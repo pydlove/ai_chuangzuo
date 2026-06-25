@@ -3848,6 +3848,18 @@
 
     var selectedTemplate = templatePresets[0];
 
+    var platformTabs = [
+      { key: 'all', label: '全部' },
+      { key: 'wechat', label: '公众号' },
+      { key: 'xiaohongshu', label: '小红书' },
+      { key: 'toutiao', label: '今日头条' },
+      { key: 'baijiahao', label: '百家号' },
+      { key: 'zhihu', label: '知乎' },
+      { key: 'douyin', label: '抖音图文' },
+      { key: 'general', label: '通用风格' }
+    ];
+    var selectedPlatform = 'all';
+
     var overlay = document.createElement('div');
     overlay.id = 'template-lib-modal';
     overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10001; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;';
@@ -3870,10 +3882,15 @@
     header.textContent = '导出模板库';
     var sub = document.createElement('div');
     sub.style.cssText = 'font-size: 13px; color: #8c8c8c;';
-    sub.textContent = '左侧实时预览 · 右侧选择模板';
+    sub.textContent = '共 ' + templatePresets.length + ' 个模板 · 左侧实时预览 · 右侧选择模板';
     headerWrap.appendChild(header);
     headerWrap.appendChild(sub);
     box.appendChild(headerWrap);
+
+    // Platform tab bar
+    var tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display: flex; gap: 8px; padding: 0 24px 14px; flex-shrink: 0; overflow-x: auto; border-bottom: 1px solid #f0f0f0;';
+    box.appendChild(tabBar);
 
     // 2-column body
     var body = document.createElement('div');
@@ -3911,32 +3928,56 @@
       applyBtn.style.cursor = 'pointer';
     }
 
-    templatePresets.forEach(function(t, idx) {
-      var row = document.createElement('div');
-      row.className = 'template-lib-row';
-      row.style.cssText = 'border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: #fff; display: flex; gap: 10px; align-items: center; transition: all 0.15s; box-sizing: border-box;';
-      row.innerHTML =
-        '<svg width="22" height="22" viewBox="0 0 16 16" style="flex-shrink: 0;"><rect width="16" height="16" rx="4" fill="' + t.iconColor + '"/><text x="8" y="12" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold" font-family="sans-serif">' + t.iconChar + '</text></svg>' +
-        '<div style="flex: 1; min-width: 0;">' +
-          '<div style="font-weight: 600; color: #1a1a1a; font-size: 13px; margin-bottom: 2px;">' + t.name + '</div>' +
-          '<div style="font-size: 11px; color: #8c8c8c; line-height: 1.4;">' + t.desc + '</div>' +
-        '</div>';
-      row.onmouseover = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#07c160'; row.style.boxShadow = '0 2px 8px rgba(7,193,96,0.1)'; } };
-      row.onmouseout = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#e8e8e8'; row.style.boxShadow = 'none'; } };
-      row.onclick = function() { selectInList(t, row); };
-      listPane.appendChild(row);
+    function renderTabs() {
+      tabBar.innerHTML = '';
+      platformTabs.forEach(function(tab) {
+        var btn = document.createElement('button');
+        btn.textContent = tab.label;
+        var active = tab.key === selectedPlatform;
+        btn.style.cssText = 'padding: 6px 14px; border-radius: 16px; border: 1px solid ' + (active ? '#07c160' : '#d9d9d9') + '; background: ' + (active ? '#f6ffed' : '#fff') + '; color: ' + (active ? '#07c160' : '#595959') + '; font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: ' + (active ? '600' : '500') + ';';
+        btn.onclick = function() {
+          selectedPlatform = tab.key;
+          renderTabs();
+          renderList();
+        };
+        tabBar.appendChild(btn);
+      });
+    }
 
-      // Auto-select first row
-      if (idx === 0) {
-        row.classList.add('selected');
-        row.style.background = '#f6ffed';
-        row.style.borderColor = '#07c160';
-        row.style.boxShadow = '0 0 0 2px rgba(7,193,96,0.25)';
-      }
-    });
+    function renderList() {
+      listPane.innerHTML = '';
+      var filtered = selectedPlatform === 'all'
+        ? templatePresets
+        : templatePresets.filter(function(t) { return t.platform === selectedPlatform; });
 
-    // Initial preview = first template
-    updatePreview(selectedTemplate);
+      filtered.forEach(function(t, idx) {
+        var row = document.createElement('div');
+        row.className = 'template-lib-row';
+        row.style.cssText = 'border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: #fff; display: flex; gap: 10px; align-items: center; transition: all 0.15s; box-sizing: border-box;';
+        row.innerHTML =
+          '<svg width="22" height="22" viewBox="0 0 16 16" style="flex-shrink: 0;"><rect width="16" height="16" rx="4" fill="' + t.iconColor + '"/><text x="8" y="12" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold" font-family="sans-serif">' + t.iconChar + '</text></svg>' +
+          '<div style="flex: 1; min-width: 0;">' +
+            '<div style="font-weight: 600; color: #1a1a1a; font-size: 13px; margin-bottom: 2px;">' + t.name + '</div>' +
+            '<div style="font-size: 11px; color: #8c8c8c; line-height: 1.4;">' + t.desc + '</div>' +
+          '</div>';
+        row.onmouseover = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#07c160'; row.style.boxShadow = '0 2px 8px rgba(7,193,96,0.1)'; } };
+        row.onmouseout = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#e8e8e8'; row.style.boxShadow = 'none'; } };
+        row.onclick = function() { selectInList(t, row); };
+        listPane.appendChild(row);
+
+        if (idx === 0) {
+          row.classList.add('selected');
+          row.style.background = '#f6ffed';
+          row.style.borderColor = '#07c160';
+          row.style.boxShadow = '0 0 0 2px rgba(7,193,96,0.25)';
+          selectedTemplate = t;
+          updatePreview(t);
+        }
+      });
+    }
+
+    renderTabs();
+    renderList();
 
     box.appendChild(body);
 
