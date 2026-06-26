@@ -8,7 +8,7 @@ This is **爱创作** ("AI Creation"), a pure frontend HTML/CSS/JS prototype for
 
 ## Tech stack
 
-The official technology stack is documented in `docs/architecture/tech-stack.md`. Database table conventions (naming, field standards, user-side vs admin-side split, Flyway migration rules) are documented in `docs/architecture/mysql-table-conventions.md`. Java package conventions (module split, package layout, naming rules) are documented in `docs/architecture/java-package-conventions.md`. Key decisions:
+The official technology stack is documented in `docs/architecture/tech-stack.md`. Database table conventions (naming, field standards, user-side vs admin-side split, Flyway migration rules) are documented in `docs/architecture/mysql-table-conventions.md`. Java package conventions (module split, package layout, naming rules) are documented in `docs/architecture/java-package-conventions.md`. API interface conventions (URL design, response format, error codes, authentication, idempotency) are documented in `docs/architecture/api-interface-conventions.md`. Exception and error code conventions (exception hierarchy, global handler, validation errors) are documented in `docs/architecture/exception-errorcode-conventions.md`. Key decisions:
 
 - **Backend**: Spring Boot + Spring Security + MyBatis-Plus, JDK 17.
 - **Database**: MySQL 8.x with Flyway for migrations.
@@ -55,7 +55,7 @@ When adding a feature, follow the existing pattern: write a short Playwright scr
   - `shared.css` and `shared.js` are loaded by every page.
 - **Legacy monolithic prototype**: `.superpowers/brainstorm/6491-1782131242/content/full-prototype-v20-legacy.html` — the original single-file version that was split into the standalone pages. Do not edit it; it is archived for reference.
 - **Design docs**: `docs/superpowers/specs/` (requirements) and `docs/superpowers/plans/` (implementation plans, often with per-task verification steps).
-- **Architecture docs**: `docs/architecture/tech-stack.md`, `docs/architecture/mysql-table-conventions.md`, and `docs/architecture/java-package-conventions.md`.
+- **Architecture docs**: `docs/architecture/tech-stack.md`, `docs/architecture/mysql-table-conventions.md`, `docs/architecture/java-package-conventions.md`, and `docs/architecture/api-interface-conventions.md`.
 - **Progress ledger**: `.superpowers/sdd/progress.md` tracks completed subagent-driven development tasks and review outcomes.
 - **Directory conventions**: `docs/project-structure-convention.md` defines the top-level directory layout (e.g., `scripts/`, `project/`, `config/`, `docs/`, `tests/`, `data/`, `logs/`). Follow it when adding new code, scripts, or documentation.
 
