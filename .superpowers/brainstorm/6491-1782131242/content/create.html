@@ -17,7 +17,7 @@
 <button onclick="location.href='index.html'">01 首页</button>
 <button onclick="location.href='login.html'">02 登录/注册</button>
 <button class="active" onclick="location.href='create.html'">03 创作页</button>
-<button onclick="location.href='loading.html'">04 生成中</button>
+<button onclick="location.href='loading.html'">04 生成队列</button>
 <button onclick="location.href='preview.html'">05 预览/导出</button>
 <button onclick="location.href='works.html'">06 我的作品</button>
 <button onclick="location.href='pricing.html'">07 会员/购买</button>
@@ -117,17 +117,26 @@
 </div>
 <div class="create-mode" id="pc-mode-custom">
 <div style="margin-bottom: 20px;">
-<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #262626;">写作方向 / 内容主题 <span style="color: #ff4d4f;">*</span></label>
-<textarea class="mock-input" placeholder="例如：分享职场新人如何快速提升工作效率的实用方法和案例，语气轻松、有干货。" style="width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; min-height: 140px; resize: vertical; color: #1a1a1a;"></textarea>
-<div style="margin-top: 6px; font-size: 13px; color: #8c8c8c;">AI 会根据你描述的方向自动生成标题、结构与正文</div>
+<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #262626;">文章标题 <span style="color: #ff4d4f;">*</span></label>
+<input type="text" class="mock-input" placeholder="例如：职场新人快速提升效率的 5 个方法" style="width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; margin-bottom: 16px; color: #1a1a1a;">
+<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #262626;">补充你的核心观点和要求 <span style="color: #ff4d4f;">*</span></label>
+<textarea class="mock-input" placeholder="例如：重点写时间管理技巧，加入具体案例，语气轻松、有干货。" style="width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; min-height: 120px; resize: vertical; color: #1a1a1a;"></textarea>
+<div style="margin-top: 6px; font-size: 13px; color: #8c8c8c;">AI 会结合标题和你的补充，生成完整文章</div>
 </div>
 </div>
 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px;">
 <div>
-<label style="display: block; margin-bottom: 8px; font-weight: 500; color: #262626;">字数要求</label>
-<button id="pc-word-count-trigger" onclick="openWordCountModal()" style="width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 15px; background: #fff; color: #1a1a1a; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-<span>📝 1500 字 · 标准深度文 ✏️</span>
-</button>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+<label style="font-weight: 500; color: #262626;">字数要求</label>
+<button onclick="openWordCountModal()" style="background: none; border: none; color: #07c160; font-size: 13px; cursor: pointer; font-weight: 500; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.background='#f6ffed'" onmouseout="this.style.background='none'">+ 字数设置</button>
+</div>
+<div id="pc-current-word-count" class="current-style-chip" style="display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%); border: 1px solid #b7eb8f; border-radius: 8px; margin-bottom: 10px; font-size: 13px;">
+<span style="color: #595959;">当前字数：</span>
+<span id="pc-current-word-count-label" style="color: #07c160; font-weight: 600;">1500 字 · 标准深度文</span>
+</div>
+<div style="font-size: 12px; color: #8c8c8c; padding: 2px 0;">
+点击 <span style="color: #07c160; margin: 0 2px;">+ 字数设置</span> 选择合适字数与场景
+</div>
 </div>
 <div>
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -247,16 +256,25 @@
 </div>
 <div class="create-mode" id="mobile-mode-custom">
 <div style="margin-bottom: 16px;">
-<label style="display: block; margin-bottom: 6px; font-weight: 500; color: #262626; font-size: 14px;">写作方向 / 内容主题 <span style="color: #ff4d4f;">*</span></label>
-<textarea class="mock-input" placeholder="例如：分享职场新人如何快速提升工作效率的实用方法和案例，语气轻松、有干货。" style="width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; min-height: 110px; resize: vertical; color: #1a1a1a;"></textarea>
-<div style="margin-top: 5px; font-size: 12px; color: #8c8c8c;">AI 会根据你描述的方向自动生成标题、结构与正文</div>
+<label style="display: block; margin-bottom: 6px; font-weight: 500; color: #262626; font-size: 14px;">文章标题 <span style="color: #ff4d4f;">*</span></label>
+<input type="text" class="mock-input" placeholder="例如：职场新人快速提升效率的 5 个方法" style="width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; margin-bottom: 12px; color: #1a1a1a;">
+<label style="display: block; margin-bottom: 6px; font-weight: 500; color: #262626; font-size: 14px;">补充你的核心观点和要求 <span style="color: #ff4d4f;">*</span></label>
+<textarea class="mock-input" placeholder="例如：重点写时间管理技巧，加入具体案例，语气轻松、有干货。" style="width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; min-height: 90px; resize: vertical; color: #1a1a1a;"></textarea>
+<div style="margin-top: 5px; font-size: 12px; color: #8c8c8c;">AI 会结合标题和你的补充，生成完整文章</div>
 </div>
 </div>
 <div style="margin-bottom: 16px;">
-<label style="display: block; margin-bottom: 6px; font-weight: 500; color: #262626; font-size: 14px;">字数要求</label>
-<button id="mobile-word-count-trigger" onclick="openWordCountModal()" style="width: 100%; padding: 10px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; background: #fff; color: #1a1a1a; text-align: left; cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
-<span>📝 1500 字 · 标准深度文 ✏️</span>
-</button>
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+<label style="font-weight: 500; color: #262626; font-size: 14px;">字数要求</label>
+<button onclick="openWordCountModal()" style="background: none; border: none; color: #07c160; font-size: 12px; cursor: pointer; font-weight: 500; padding: 2px 6px; border-radius: 4px;" onmouseover="this.style.background='#f6ffed'" onmouseout="this.style.background='none'">+ 字数设置</button>
+</div>
+<div id="mobile-current-word-count" class="current-style-chip" style="display: flex; align-items: center; gap: 6px; padding: 6px 10px; background: linear-gradient(135deg, #f6ffed 0%, #e6f7ff 100%); border: 1px solid #b7eb8f; border-radius: 6px; margin-bottom: 8px; font-size: 12px;">
+<span style="color: #595959;">当前字数：</span>
+<span id="mobile-current-word-count-label" style="color: #07c160; font-weight: 600;">1500 字 · 标准深度文</span>
+</div>
+<div style="font-size: 11px; color: #8c8c8c; padding: 2px 0;">
+点击 <span style="color: #07c160; margin: 0 2px;">+ 字数设置</span> 选择合适字数与场景
+</div>
 </div>
 <div style="margin-bottom: 16px;">
 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
@@ -293,6 +311,25 @@
 </div>
 </div>
 </div>
+<!-- 生成队列悬浮面板 -->
+<div id="generation-queue-panel" style="display:none;position:fixed;bottom:24px;right:24px;width:360px;max-width:calc(100% - 48px);background:#fff;border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,0.2);z-index:10001;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,sans-serif;">
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid #f0f0f0;">
+    <div style="font-size:16px;font-weight:700;color:#1a1a1a;">生成队列</div>
+    <button onclick="closeGenerationQueue()" style="background:none;border:none;font-size:20px;color:#8c8c8c;cursor:pointer;line-height:1;">&times;</button>
+  </div>
+  <div class="generation-queue-list" style="max-height:360px;overflow-y:auto;"></div>
+  <div style="padding:12px 20px;border-top:1px solid #f0f0f0;background:#fafafa;display:flex;gap:10px;">
+    <button onclick="location.href='loading.html'" style="flex:1;padding:8px 0;background:#07c160;border:1px solid #07c160;border-radius:6px;font-size:13px;color:#fff;cursor:pointer;">查看队列详情</button>
+    <button onclick="location.href='works.html'" style="flex:1;padding:8px 0;background:#fff;border:1px solid #d9d9d9;border-radius:6px;font-size:13px;color:#595959;cursor:pointer;">查看全部作品</button>
+  </div>
+</div>
+
+<!-- 生成队列入口按钮 -->
+<button id="generation-queue-fab" onclick="openGenerationQueue()" style="display:none;position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:50%;background:#07c160;color:#fff;border:none;box-shadow:0 4px 16px rgba(7,193,96,0.35);cursor:pointer;z-index:10000;align-items:center;justify-content:center;font-size:20px;">
+  <span class="generation-badge" style="position:absolute;top:6px;right:6px;min-width:18px;height:18px;background:#ff4d4f;color:#fff;border-radius:50%;font-size:11px;display:none;align-items:center;justify-content:center;padding:0 4px;box-sizing:border-box;">0</span>
+  📝
+</button>
+
 <script src="shared.js"></script>
 </body>
 </html>

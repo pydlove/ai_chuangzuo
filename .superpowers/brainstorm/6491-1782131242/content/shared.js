@@ -1,7 +1,9 @@
   var isLoggedIn = false;
 
   function handleGenerate() {
-    location.href='loading.html';
+    var data = collectCreatePageData();
+    submitGenerationTask(data);
+    openGenerationQueue();
   }
 
   function simulateAuth(type) {
@@ -1602,7 +1604,7 @@
       var addCard = document.createElement('div');
       addCard.className = 'style-lib-add';
       addCard.innerHTML = '<div style="font-size: 24px; margin-bottom: 6px;">+</div><div style="font-size: 13px;">新建我的风格</div>';
-      addCard.onclick = function() { alert('新建风格：从历史文章提取 / 手动配置'); };
+      addCard.onclick = function() { renderStyleEditor('create'); };
       grid.appendChild(addCard);
 
       userStylePresets.forEach(function(s, idx) {
@@ -1640,7 +1642,7 @@
         // Edit button
         card.querySelector('.style-lib-edit-btn').onclick = function(e) {
           e.stopPropagation();
-          alert('编辑提示词：「' + s.name + '」\n\n将打开编辑器（原型暂未实现）');
+          renderStyleEditor('edit', idx);
         };
         // Delete button
         card.querySelector('.style-lib-del-btn').onclick = function(e) {
@@ -1653,6 +1655,197 @@
       });
 
       contentArea.appendChild(grid);
+    }
+
+    function renderStyleEditor(mode, index) {
+      var isCreate = mode === 'create';
+      var existing = isCreate ? null : userStylePresets[index];
+      var formData = {
+        name: isCreate ? '' : (existing ? existing.name : ''),
+        prompt: isCreate ? '' : (existing ? existing.prompt : '')
+      };
+
+      contentArea.innerHTML = '';
+
+      var wrap = document.createElement('div');
+
+      // Header
+      var header = document.createElement('div');
+      header.className = 'style-editor-header';
+      var backBtn = document.createElement('button');
+      backBtn.className = 'style-editor-back';
+      backBtn.innerHTML = '← 返回';
+      backBtn.onclick = renderMy;
+      var title = document.createElement('div');
+      title.className = 'style-editor-title';
+      title.textContent = isCreate ? '新建我的风格' : '编辑提示词';
+      header.appendChild(backBtn);
+      header.appendChild(title);
+      wrap.appendChild(header);
+
+      // Form
+      var form = document.createElement('div');
+      form.className = 'style-editor-form';
+
+      // Name field
+      var nameField = document.createElement('div');
+      nameField.className = 'style-editor-field';
+      var nameLabel = document.createElement('label');
+      nameLabel.className = 'style-editor-label';
+      nameLabel.innerHTML = '风格名称<span class="required">*</span>';
+      var nameInput = document.createElement('input');
+      nameInput.className = 'style-editor-input';
+      nameInput.type = 'text';
+      nameInput.placeholder = '例如：我的小红书风';
+      nameInput.value = formData.name;
+      nameInput.maxLength = 20;
+      var nameError = document.createElement('div');
+      nameError.className = 'style-editor-error';
+      nameField.appendChild(nameLabel);
+      nameField.appendChild(nameInput);
+      nameField.appendChild(nameError);
+      form.appendChild(nameField);
+
+      // Prompt field
+      var promptField = document.createElement('div');
+      promptField.className = 'style-editor-field';
+      var promptLabel = document.createElement('label');
+      promptLabel.className = 'style-editor-label';
+      promptLabel.innerHTML = '风格提示词<span class="required">*</span>';
+      var promptTextarea = document.createElement('textarea');
+      promptTextarea.className = 'style-editor-textarea';
+      promptTextarea.placeholder = '描述你希望 AI 采用的语气、结构、用词习惯等...';
+      promptTextarea.value = formData.prompt;
+      var promptHint = document.createElement('div');
+      promptHint.className = 'style-editor-hint';
+      promptHint.textContent = '提示词会作为系统提示的一部分影响生成结果。';
+      var promptCounter = document.createElement('div');
+      promptCounter.className = 'style-editor-counter';
+      var promptError = document.createElement('div');
+      promptError.className = 'style-editor-error';
+      promptField.appendChild(promptLabel);
+      promptField.appendChild(promptTextarea);
+      promptField.appendChild(promptHint);
+      promptField.appendChild(promptCounter);
+      promptField.appendChild(promptError);
+      form.appendChild(promptField);
+
+      // Template presets for quick fill
+      var templatePresets = [
+        { index: 1, title: '产品评测', desc: '客观中立、参数对比' },
+        { index: 2, title: '情感散文', desc: '细腻温暖、意象留白' },
+        { index: 3, title: '职场干货', desc: '专业务实、可执行 checklist' },
+        { index: 7, title: '营销文案', desc: '紧迫感 + 利益点突出' }
+      ];
+
+      // Template bar
+      var templateBar = document.createElement('div');
+      templateBar.className = 'style-template-bar';
+      var templateLabel = document.createElement('div');
+      templateLabel.className = 'style-template-label';
+      templateLabel.textContent = '参考模板';
+      templateBar.appendChild(templateLabel);
+      var templateCards = document.createElement('div');
+      templateCards.className = 'style-template-cards';
+      templatePresets.forEach(function(t) {
+        var preset = systemStylePresets[t.index];
+        if (!preset) return;
+        var card = document.createElement('div');
+        card.className = 'style-template-card';
+        var cardTitle = document.createElement('div');
+        cardTitle.className = 'style-template-title';
+        cardTitle.textContent = t.title;
+        var cardDesc = document.createElement('div');
+        cardDesc.className = 'style-template-desc';
+        cardDesc.textContent = t.desc;
+        card.appendChild(cardTitle);
+        card.appendChild(cardDesc);
+        card.onclick = function() {
+          promptTextarea.value = preset.prompt;
+          updateCounter();
+          promptTextarea.focus();
+        };
+        templateCards.appendChild(card);
+      });
+      templateBar.appendChild(templateCards);
+      form.appendChild(templateBar);
+
+      function updateCounter() {
+        var len = promptTextarea.value.length;
+        promptCounter.textContent = len + ' / 1000';
+        var over = len > 1000;
+        promptCounter.classList.toggle('over', over);
+        saveBtn.disabled = over;
+      }
+      function clearErrors() {
+        nameInput.classList.remove('error');
+        promptTextarea.classList.remove('error');
+        nameError.textContent = '';
+        promptError.textContent = '';
+      }
+      function validate() {
+        clearErrors();
+        var valid = true;
+        if (!nameInput.value.trim()) {
+          nameInput.classList.add('error');
+          nameError.textContent = '请输入风格名称';
+          valid = false;
+        }
+        if (!promptTextarea.value.trim()) {
+          promptTextarea.classList.add('error');
+          promptError.textContent = '请输入风格提示词';
+          valid = false;
+        } else if (promptTextarea.value.length > 1000) {
+          promptTextarea.classList.add('error');
+          promptError.textContent = '提示词不能超过 1000 字';
+          valid = false;
+        }
+        return valid;
+      }
+
+      // Footer
+      var footer = document.createElement('div');
+      footer.className = 'style-editor-footer';
+      var cancelBtn = document.createElement('button');
+      cancelBtn.className = 'style-editor-btn-secondary';
+      cancelBtn.textContent = '取消';
+      cancelBtn.onclick = renderMy;
+      var saveBtn = document.createElement('button');
+      saveBtn.className = 'style-editor-btn-primary';
+      saveBtn.textContent = '保存';
+      saveBtn.onclick = function() {
+        if (!validate()) {
+          if (!nameInput.value.trim()) nameInput.focus();
+          else promptTextarea.focus();
+          return;
+        }
+        var newStyle = {
+          name: nameInput.value.trim().slice(0, 20),
+          desc: '',
+          count: isCreate ? 0 : (existing ? existing.count : 0),
+          prompt: promptTextarea.value.trim().slice(0, 1000)
+        };
+        if (isCreate) {
+          userStylePresets.unshift(newStyle);
+        } else if (existing) {
+          userStylePresets[index] = newStyle;
+        }
+        renderMy();
+      };
+
+      promptTextarea.addEventListener('input', updateCounter);
+      updateCounter();
+
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      form.appendChild(footer);
+
+      wrap.appendChild(form);
+      contentArea.appendChild(wrap);
+
+      // Auto focus
+      if (isCreate || !nameInput.value.trim()) nameInput.focus();
+      else promptTextarea.focus();
     }
 
     systemTab.onclick = renderSystem;
@@ -2247,6 +2440,12 @@
     confirmBtn.onclick = function () {
       currentWordCount = state.selectedCount;
       currentWordLabel = state.selectedLabel;
+      // 新版创作页使用 label 元素展示当前字数
+      ['pc-current-word-count-label', 'mobile-current-word-count-label'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = currentWordCount + ' 字 · ' + currentWordLabel;
+      });
+      // 兼容旧版 trigger 按钮
       ['pc-word-count-trigger', 'mobile-word-count-trigger'].forEach(function (id) {
         var el = document.getElementById(id);
         if (el) el.textContent = '📝 ' + currentWordCount + ' 字 · ' + currentWordLabel + ' ✏️';
@@ -2515,4 +2714,461 @@
     // Reset to default first pill (专业严谨)
     var firstPill = container.querySelector('.style-pill[data-style="专业严谨"]');
     if (firstPill) selectStylePill(firstPill, '专业严谨');
+  }
+
+  // ===== 生成队列 =====
+  var GENERATION_QUEUE_KEY = 'aichuangzuo_generation_queue';
+  var MAX_CONCURRENT = 1;
+
+  function generateId() {
+    return 'gen_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  }
+
+  function getGenerationQueue() {
+    try {
+      var data = localStorage.getItem(GENERATION_QUEUE_KEY);
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveGenerationQueue(queue) {
+    try {
+      localStorage.setItem(GENERATION_QUEUE_KEY, JSON.stringify(queue));
+    } catch (e) {}
+  }
+
+  function getQueueStats() {
+    var queue = getGenerationQueue();
+    var generating = queue.filter(function(t) { return t.status === 'generating'; }).length;
+    var queued = queue.filter(function(t) { return t.status === 'queued'; }).length;
+    var completed = queue.filter(function(t) { return t.status === 'completed'; }).length;
+    return { total: queue.length, generating: generating, queued: queued, completed: completed };
+  }
+
+  function getQueueStatusStyle(status) {
+    if (status === 'completed') return { color: '#07c160', bg: '#f6ffed' };
+    if (status === 'generating') return { color: '#1677ff', bg: '#e6f4ff' };
+    return { color: '#fa8c16', bg: '#fff7e6' };
+  }
+
+  function formatQueueTime(isoString) {
+    if (!isoString) return '';
+    var date = new Date(isoString);
+    var now = new Date();
+    var diff = Math.floor((now - date) / 1000);
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前';
+    if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前';
+    var pad = function(n) { return n < 10 ? '0' + n : n; };
+    return pad(date.getMonth() + 1) + '-' + pad(date.getDate()) + ' ' + pad(date.getHours()) + ':' + pad(date.getMinutes());
+  }
+
+  function getQueueTimeLabel(task) {
+    if (task.status === 'completed' && task.completedAt) return formatQueueTime(task.completedAt) + ' 完成';
+    if (task.status === 'generating' && task.startedAt) return formatQueueTime(task.startedAt) + ' 开始生成';
+    return formatQueueTime(task.createdAt) + ' 提交';
+  }
+
+  function submitGenerationTask(taskData) {
+    var queue = getGenerationQueue();
+    var task = {
+      id: generateId(),
+      title: taskData.title || '未命名文章',
+      topic: taskData.topic || '',
+      wordCount: taskData.wordCount || (typeof currentWordCount !== 'undefined' ? currentWordCount : 1500),
+      style: taskData.style || '年度总结',
+      template: taskData.template || '公众号标准模板',
+      status: 'queued',
+      progress: 0,
+      createdAt: new Date().toISOString(),
+      startedAt: null,
+      completedAt: null
+    };
+
+    var generatingCount = queue.filter(function(t) { return t.status === 'generating'; }).length;
+    if (generatingCount < MAX_CONCURRENT) {
+      task.status = 'generating';
+      task.startedAt = new Date().toISOString();
+    }
+
+    queue.push(task);
+    saveGenerationQueue(queue);
+    updateGenerationBadge();
+    renderGenerationQueue();
+    showGenerationToast('已加入生成队列', 'info');
+    startQueueConsumer();
+    return task;
+  }
+
+  function cancelGenerationTask(taskId) {
+    var queue = getGenerationQueue();
+    var task = queue.find(function(t) { return t.id === taskId; });
+    if (!task) return;
+    if (task.status === 'generating') {
+      showGenerationToast('生成中的任务无法取消', 'error');
+      return;
+    }
+    queue = queue.filter(function(t) { return t.id !== taskId; });
+    saveGenerationQueue(queue);
+    updateGenerationBadge();
+    renderGenerationQueue();
+    renderWorksQueueItems();
+    showGenerationToast('已取消排队', 'info');
+  }
+
+  function startQueueConsumer() {
+    if (window.__generationQueueConsumer) return;
+    window.__generationQueueConsumer = setInterval(function() {
+      processGenerationQueue();
+    }, 500);
+  }
+
+  function processGenerationQueue() {
+    var queue = getGenerationQueue();
+    var changed = false;
+
+    queue.forEach(function(task) {
+      if (task.status === 'generating') {
+        task.progress += Math.random() * 15 + 5;
+        if (task.progress >= 100) {
+          task.progress = 100;
+          task.status = 'completed';
+          task.completedAt = new Date().toISOString();
+          changed = true;
+          showGenerationToast('《' + task.title + '》生成完成', 'success');
+        } else {
+          changed = true;
+        }
+      }
+    });
+
+    var generatingCount = queue.filter(function(t) { return t.status === 'generating'; }).length;
+    if (generatingCount < MAX_CONCURRENT) {
+      var nextTask = queue.find(function(t) { return t.status === 'queued'; });
+      if (nextTask) {
+        nextTask.status = 'generating';
+        nextTask.startedAt = new Date().toISOString();
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      saveGenerationQueue(queue);
+      updateGenerationBadge();
+      renderGenerationQueue();
+      renderWorksQueueItems();
+    }
+  }
+
+  function updateGenerationBadge() {
+    var stats = getQueueStats();
+    var count = stats.generating + stats.queued;
+    document.querySelectorAll('.generation-badge').forEach(function(el) {
+      el.textContent = count;
+      el.style.display = count > 0 ? 'flex' : 'none';
+    });
+    updateGenerationFabVisibility();
+  }
+
+  function updateGenerationFabVisibility() {
+    var fab = document.getElementById('generation-queue-fab');
+    var panel = document.getElementById('generation-queue-panel');
+    if (!fab) return;
+    var stats = getQueueStats();
+    var hasTasks = stats.total > 0;
+    var panelVisible = panel && panel.style.display !== 'none';
+    fab.style.display = (hasTasks && !panelVisible) ? 'flex' : 'none';
+  }
+
+  function showGenerationToast(message, type) {
+    var existing = document.getElementById('generation-toast');
+    if (existing) existing.remove();
+
+    var bg = type === 'success' ? '#07c160' : type === 'error' ? '#ff4d4f' : '#1a1a1a';
+    var toast = document.createElement('div');
+    toast.id = 'generation-toast';
+    toast.style.cssText = 'position: fixed; top: 24px; left: 50%; transform: translateX(-50%) translateY(-20px); background: ' + bg + '; color: #fff; padding: 10px 20px; border-radius: 24px; font-size: 14px; font-weight: 500; z-index: 10003; opacity: 0; transition: all 0.25s ease; box-shadow: 0 6px 24px rgba(0,0,0,0.2); display: inline-flex; align-items: center; gap: 8px; pointer-events: none; max-width: 80%;';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    requestAnimationFrame(function() {
+      toast.style.opacity = '1';
+      toast.style.transform = 'translateX(-50%) translateY(0)';
+    });
+
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(-50%) translateY(-20px)';
+      setTimeout(function() {
+        toast.remove();
+      }, 250);
+    }, 3000);
+  }
+
+  function renderGenerationQueue() {
+    var panel = document.getElementById('generation-queue-panel');
+    if (!panel) return;
+    var list = panel.querySelector('.generation-queue-list');
+    if (!list) return;
+
+    var queue = getGenerationQueue();
+    list.innerHTML = '';
+
+    if (queue.length === 0) {
+      list.innerHTML = '<div style="text-align:center;color:#8c8c8c;font-size:13px;padding:24px 0;">暂无生成任务</div>';
+      return;
+    }
+
+    var displayQueue = queue.slice().reverse().slice(0, 5);
+    displayQueue.forEach(function(task) {
+      list.appendChild(createQueueItem(task));
+    });
+
+    if (queue.length > 5) {
+      var moreHint = document.createElement('div');
+      moreHint.style.cssText = 'text-align:center;padding:12px 0;font-size:13px;color:#8c8c8c;border-bottom:1px solid #f0f0f0;';
+      moreHint.textContent = '还有 ' + (queue.length - 5) + ' 个任务未显示';
+      list.appendChild(moreHint);
+    }
+  }
+
+  function createQueueItem(task) {
+    var el = document.createElement('div');
+    el.style.cssText = 'padding: 12px; border-bottom: 1px solid #f0f0f0;';
+
+    var statusStyle = getQueueStatusStyle(task.status);
+    var statusText = task.status === 'completed' ? '已完成' : task.status === 'generating' ? '生成中' : '排队中';
+
+    var progressHtml = '';
+    if (task.status === 'generating') {
+      progressHtml = '<div style="margin-top:8px;height:4px;background:#f0f0f0;border-radius:2px;overflow:hidden;"><div style="height:100%;background:#1677ff;width:' + Math.round(task.progress) + '%;transition:width 0.3s ease;"></div></div>';
+    }
+
+    var actionHtml = '';
+    if (task.status === 'queued') {
+      actionHtml = '<button onclick="cancelGenerationTask(\'' + task.id + '\')" style="background:none;border:none;color:#8c8c8c;font-size:12px;cursor:pointer;padding:2px 4px;">取消</button>';
+    } else if (task.status === 'completed') {
+      actionHtml = '<button onclick="location.href=\'preview.html?id=' + task.id + '\'" style="background:none;border:none;color:#07c160;font-size:12px;cursor:pointer;padding:2px 4px;">预览</button>';
+    }
+
+    el.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+        '<div style="flex:1;min-width:0;">' +
+          '<div style="font-size:14px;font-weight:600;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + task.title + '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">' +
+            '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;background:' + statusStyle.bg + ';color:' + statusStyle.color + ';">' + statusText + '</span>' +
+            '<span style="font-size:12px;color:#8c8c8c;">' + task.wordCount + ' 字 · ' + getQueueTimeLabel(task) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div>' + actionHtml + '</div>' +
+      '</div>' +
+      progressHtml;
+
+    return el;
+  }
+
+  function renderWorksQueueItems() {
+    ['works-queue-items', 'mobile-works-queue-items'].forEach(function(containerId) {
+      var container = document.getElementById(containerId);
+      if (!container) return;
+
+      var queue = getGenerationQueue().filter(function(t) {
+        return t.status === 'queued' || t.status === 'generating';
+      });
+
+      container.innerHTML = '';
+
+      queue.forEach(function(task) {
+        var isMobile = containerId.indexOf('mobile') >= 0;
+        var el = document.createElement('div');
+        el.style.cssText = isMobile
+          ? 'background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 12px;'
+          : 'background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;';
+
+        var statusStyle = getQueueStatusStyle(task.status);
+        var statusText = task.status === 'generating' ? '生成中' : '排队中';
+
+        var progressHtml = '';
+        if (task.status === 'generating') {
+          progressHtml = '<div style="margin-top:8px;height:6px;background:#f0f0f0;border-radius:3px;overflow:hidden;' + (isMobile ? '' : 'max-width:300px;') + '"><div style="height:100%;background:#1677ff;width:' + Math.round(task.progress) + '%;transition:width 0.3s ease;"></div></div>';
+        }
+
+        var actionHtml = '';
+        if (task.status === 'queued') {
+          actionHtml = '<button onclick="cancelGenerationTask(\'' + task.id + '\')" style="' + (isMobile ? 'flex: 1; padding: 8px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #ff4d4f; cursor: pointer;' : 'padding: 8px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #ff4d4f; cursor: pointer;') + '">取消排队</button>';
+        } else {
+          actionHtml = '<span style="color: #8c8c8c; font-size: 13px;">请稍候…</span>';
+        }
+
+        if (isMobile) {
+          el.innerHTML =
+            '<div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #1a1a1a;">' + task.title + '</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+              '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;background:' + statusStyle.bg + ';color:' + statusStyle.color + ';">' + statusText + '</span>' +
+              '<span style="color: #8c8c8c; font-size: 12px;">' + task.wordCount + ' 字 · ' + task.style + ' · ' + getQueueTimeLabel(task) + '</span>' +
+            '</div>' +
+            progressHtml +
+            '<div style="display: flex; gap: 8px; margin-top: 12px;">' + actionHtml + '</div>';
+        } else {
+          el.innerHTML =
+            '<div>' +
+              '<div style="font-weight: 600; font-size: 16px; margin-bottom: 6px; color: #1a1a1a;">' + task.title + '</div>' +
+              '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">' +
+                '<span style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500;background:' + statusStyle.bg + ';color:' + statusStyle.color + ';">' + statusText + '</span>' +
+                '<span style="color: #8c8c8c; font-size: 13px;">' + task.wordCount + ' 字 · ' + task.style + ' · ' + getQueueTimeLabel(task) + '</span>' +
+              '</div>' +
+              progressHtml +
+            '</div>' +
+            '<div>' + actionHtml + '</div>';
+        }
+
+        container.appendChild(el);
+      });
+    });
+  }
+
+  function openGenerationQueue() {
+    var panel = document.getElementById('generation-queue-panel');
+    if (panel) {
+      panel.style.display = 'block';
+      renderGenerationQueue();
+    }
+    updateGenerationFabVisibility();
+  }
+
+  function closeGenerationQueue() {
+    var panel = document.getElementById('generation-queue-panel');
+    if (panel) panel.style.display = 'none';
+    updateGenerationFabVisibility();
+  }
+
+  function toggleGenerationQueue() {
+    var panel = document.getElementById('generation-queue-panel');
+    if (!panel) return;
+    var isVisible = panel.style.display !== 'none';
+    if (isVisible) closeGenerationQueue();
+    else openGenerationQueue();
+  }
+
+  function collectCreatePageData() {
+    var isPc = !!document.getElementById('pc-mode-topic');
+    var prefix = isPc ? 'pc' : 'mobile';
+
+    var selectedTopic = document.querySelector('#' + prefix + '-topic-list .topic-card.selected');
+    var title = '';
+    if (selectedTopic) {
+      title = selectedTopic.querySelector('div').textContent.trim();
+    } else {
+      var customTextarea = document.querySelector('#' + prefix + '-mode-custom textarea');
+      if (customTextarea && customTextarea.value.trim()) {
+        var text = customTextarea.value.trim();
+        title = text.substring(0, 20) + (text.length > 20 ? '…' : '');
+      }
+    }
+
+    if (!title) title = '未命名文章';
+
+    var wordCount = (typeof currentWordCount !== 'undefined') ? currentWordCount : 1500;
+    var styleNameEl = document.getElementById(prefix + '-current-style-name');
+    var styleName = styleNameEl ? styleNameEl.textContent.trim() : '年度总结';
+    var templateNameEl = document.getElementById(prefix + '-current-template-name');
+    var templateName = templateNameEl ? templateNameEl.textContent.trim() : '公众号标准模板';
+
+    return { title: title, wordCount: wordCount, style: styleName, template: templateName };
+  }
+
+  // 跨标签页同步
+  window.addEventListener('storage', function(e) {
+    if (e.key === GENERATION_QUEUE_KEY) {
+      updateGenerationBadge();
+      renderGenerationQueue();
+      renderWorksQueueItems();
+    }
+  });
+
+  // 页面加载时初始化
+  document.addEventListener('DOMContentLoaded', function() {
+    initDemoQueueData();
+    updateGenerationBadge();
+    startQueueConsumer();
+    renderGenerationQueue();
+    renderWorksQueueItems();
+  });
+
+  function initDemoQueueData() {
+    var queue = getGenerationQueue();
+    if (queue.length > 0) return;
+
+    var now = new Date();
+    var demoTasks = [
+      {
+        id: 'gen_demo_generating',
+        title: '2026 年 AI 写作行业趋势深度分析',
+        topic: 'AI 写作',
+        wordCount: 2500,
+        style: '年度总结',
+        template: '公众号标准模板',
+        status: 'generating',
+        progress: 62,
+        createdAt: new Date(now - 120000).toISOString(),
+        startedAt: new Date(now - 60000).toISOString(),
+        completedAt: null
+      },
+      {
+        id: 'gen_demo_queued_1',
+        title: '月薪 5000 如何一年存下 3 万？',
+        topic: '生活技巧',
+        wordCount: 1500,
+        style: '实用清单',
+        template: '小红书爆款模板',
+        status: 'queued',
+        progress: 0,
+        createdAt: new Date(now - 90000).toISOString(),
+        startedAt: null,
+        completedAt: null
+      },
+      {
+        id: 'gen_demo_queued_2',
+        title: '30 岁后才明白：真正成熟的人，都懂得边界感',
+        topic: '情感成长',
+        wordCount: 1800,
+        style: '情感故事',
+        template: '公众号标准模板',
+        status: 'queued',
+        progress: 0,
+        createdAt: new Date(now - 60000).toISOString(),
+        startedAt: null,
+        completedAt: null
+      },
+      {
+        id: 'gen_demo_completed_1',
+        title: '工作 3 年没升职？可能是这 3 个习惯在拖后腿',
+        topic: '职场效率',
+        wordCount: 2000,
+        style: '职场干货',
+        template: '公众号标准模板',
+        status: 'completed',
+        progress: 100,
+        createdAt: new Date(now - 600000).toISOString(),
+        startedAt: new Date(now - 580000).toISOString(),
+        completedAt: new Date(now - 560000).toISOString()
+      },
+      {
+        id: 'gen_demo_completed_2',
+        title: '我用 AI 写作月入过万：新手可复制的 5 个步骤',
+        topic: 'AI 副业',
+        wordCount: 1600,
+        style: '副业经验',
+        template: '百家号标准模板',
+        status: 'completed',
+        progress: 100,
+        createdAt: new Date(now - 900000).toISOString(),
+        startedAt: new Date(now - 880000).toISOString(),
+        completedAt: new Date(now - 860000).toISOString()
+      }
+    ];
+
+    saveGenerationQueue(demoTasks);
   }
