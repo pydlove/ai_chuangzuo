@@ -4635,7 +4635,15 @@
     var confirmBtn = document.createElement('button');
     confirmBtn.textContent = '确认';
     confirmBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #07c160; background: #07c160; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600;';
-    // Wired up in Task 4.
+    confirmBtn.onclick = function () {
+      currentWordCount = state.selectedCount;
+      currentWordLabel = state.selectedLabel;
+      ['pc-word-count-trigger', 'mobile-word-count-trigger'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = '📝 ' + currentWordCount + ' 字 · ' + currentWordLabel + ' ✏️';
+      });
+      overlay.remove();
+    };
     footer.appendChild(cancelBtn);
     footer.appendChild(confirmBtn);
     box.appendChild(footer);
