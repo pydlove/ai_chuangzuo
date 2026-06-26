@@ -4568,6 +4568,114 @@
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
   }
 
+  // 打开字数设置弹窗（按平台推荐 / 按内容场景 / 按字数档位 / 自定义字数）
+  function openWordCountModal() {
+    var existing = document.getElementById('word-count-modal');
+    if (existing) existing.remove();
+
+    // Decide default tab from spec Global Constraints.
+    // Look for a checked radio / select with name "publishPlatform" on the create page.
+    var platEl = document.querySelector('[name="publishPlatform"]:checked')
+              || document.querySelector('[data-publish-platform].selected')
+              || document.querySelector('#pc-current-platform');
+    var defaultPlatform = (platEl && platEl.dataset && platEl.dataset.platform)
+                       || (platEl && platEl.getAttribute('data-platform'))
+                       || null;
+    var validPlatforms = ['wechat','xiaohongshu','toutiao','baijiahao','zhihu','douyin','general'];
+    var initialTab = (defaultPlatform && validPlatforms.indexOf(defaultPlatform) >= 0)
+                     ? 'platform'
+                     : 'tier';
+
+    var tabs = [
+      { key: 'platform', label: '按平台推荐' },
+      { key: 'scenario', label: '按内容场景' },
+      { key: 'tier',     label: '按字数档位' },
+      { key: 'custom',   label: '自定义字数' }
+    ];
+
+    var overlay = document.createElement('div');
+    overlay.id = 'word-count-modal';
+    overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10002; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background: #fff; border-radius: 16px; width: 640px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); position: relative; overflow: hidden;';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = 'position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 22px; cursor: pointer; color: #8c8c8c; line-height: 1; padding: 4px 8px; z-index: 2;';
+    closeBtn.onclick = function () { overlay.remove(); };
+    box.appendChild(closeBtn);
+
+    var headerWrap = document.createElement('div');
+    headerWrap.style.cssText = 'padding: 22px 24px 12px; flex-shrink: 0;';
+    var header = document.createElement('div');
+    header.style.cssText = 'font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; padding-right: 28px;';
+    header.textContent = '设置文章字数';
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size: 13px; color: #8c8c8c;';
+    sub.textContent = '选择合适的字数，让 AI 写出更精准的内容';
+    headerWrap.appendChild(header);
+    headerWrap.appendChild(sub);
+    box.appendChild(headerWrap);
+
+    var tabBar = document.createElement('div');
+    tabBar.style.cssText = 'display: flex; gap: 6px; padding: 0 24px 12px; flex-shrink: 0; overflow-x: auto; border-bottom: 1px solid #f0f0f0;';
+    box.appendChild(tabBar);
+
+    var content = document.createElement('div');
+    content.style.cssText = 'padding: 16px 24px; flex: 1; min-height: 0; overflow-y: auto;';
+    box.appendChild(content);
+
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding: 12px 24px 16px; flex-shrink: 0; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 8px;';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #d9d9d9; background: #fff; color: #595959; cursor: pointer; font-size: 14px;';
+    cancelBtn.onclick = function () { overlay.remove(); };
+    var confirmBtn = document.createElement('button');
+    confirmBtn.textContent = '确认';
+    confirmBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #07c160; background: #07c160; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600;';
+    // Wired up in Task 4.
+    footer.appendChild(cancelBtn);
+    footer.appendChild(confirmBtn);
+    box.appendChild(footer);
+
+    overlay.appendChild(box);
+
+    var state = {
+      activeTab: initialTab,
+      selectedPlatform: defaultPlatform && validPlatforms.indexOf(defaultPlatform) >= 0 ? defaultPlatform : 'wechat',
+      selectedCount: currentWordCount,
+      selectedLabel: currentWordLabel,
+      customValue: currentWordCount
+    };
+
+    function renderTabBar() {
+      tabBar.innerHTML = '';
+      tabs.forEach(function (tab) {
+        var btn = document.createElement('button');
+        btn.textContent = tab.label;
+        var active = tab.key === state.activeTab;
+        btn.style.cssText = 'padding: 6px 14px; border-radius: 16px; border: 1px solid ' + (active ? '#07c160' : '#d9d9d9') + '; background: ' + (active ? '#f6ffed' : '#fff') + '; color: ' + (active ? '#07c160' : '#595959') + '; font-size: 13px; cursor: pointer; white-space: nowrap; font-weight: ' + (active ? '600' : '500') + ';';
+        btn.onclick = function () {
+          state.activeTab = tab.key;
+          renderTabBar();
+          renderContent();
+        };
+        tabBar.appendChild(btn);
+      });
+    }
+
+    function renderContent() {
+      // Populated in Task 3.
+      content.innerHTML = '<div style="color:#8c8c8c;font-size:13px;padding:24px 0;text-align:center;">（占位，Task 3 填充）</div>';
+    }
+
+    renderTabBar();
+    renderContent();
+    document.body.appendChild(overlay);
+  }
+
   // 显示「已应用 X 模板」toast + 更新创作页 chip
   function applyTemplateFeedback(tpl) {
     ['pc-current-template', 'mobile-current-template'].forEach(function(id) {
