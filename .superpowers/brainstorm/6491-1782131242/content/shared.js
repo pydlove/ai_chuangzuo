@@ -622,6 +622,113 @@
     applyTemplateToPreview(mockup, template);
   }
 
+  // ===== 发布描述 & 标签 =====
+  function getPublishMetaForArticle() {
+    var titleEl = document.querySelector('.preview-title');
+    var title = titleEl ? titleEl.textContent.trim() : '如何高效管理时间';
+    return { title: title, count: '5' };
+  }
+
+  function formatDesc(template, meta) {
+    return template.replace(/\{title\}/g, meta.title).replace(/\{count\}/g, meta.count);
+  }
+
+  function getTagsForPlatform(platform, count) {
+    var tags = publishTagPresets[platform] || publishTagPresets.general;
+    var shuffled = tags.slice().sort(function() { return Math.random() - 0.5; });
+    return shuffled.slice(0, Math.min(count, shuffled.length));
+  }
+
+  function renderPublishMeta() {
+    var platform = currentPublishPlatform;
+    var meta = getPublishMetaForArticle();
+    var templates = publishDescTemplates[platform] || publishDescTemplates.general;
+    var desc = formatDesc(templates[Math.floor(Math.random() * templates.length)], meta);
+
+    var descCounts = { wechat: [5], xiaohongshu: [8, 10], toutiao: [5, 6], baijiahao: [4, 5], zhihu: [3, 4], douyin: [5, 6], general: [6, 7] };
+    var tagCount = descCounts[platform] ? descCounts[platform][Math.floor(Math.random() * descCounts[platform].length)] : 6;
+    var tags = getTagsForPlatform(platform, tagCount);
+
+    ['pc', 'mobile'].forEach(function(prefix) {
+      var descEl = document.getElementById(prefix + '-publish-desc');
+      if (descEl) descEl.value = desc;
+
+      var tagsEl = document.getElementById(prefix + '-publish-tags');
+      if (tagsEl) {
+        tagsEl.innerHTML = tags.map(function(t) {
+          return '<span class="publish-tag" onclick="copySingleTag(this)" style="padding: 4px 10px; background: #f6ffed; color: #07c160; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #b7eb8f;" onmouseover="this.style.background=\'#e6f7ff\'" onmouseout="this.style.background=\'#f6ffed\'"'>' + t + '</span>';
+        }).join('');
+      }
+    });
+  }
+
+  function regeneratePublishDesc() {
+    renderPublishMeta();
+  }
+
+  function regeneratePublishTags() {
+    renderPublishMeta();
+  }
+
+  function copyPublishDesc() {
+    var el = document.getElementById('pc-publish-desc') || document.getElementById('mobile-publish-desc');
+    if (!el) return;
+    el.select();
+    document.execCommand('copy');
+    window.getSelection().removeAllRanges();
+    showToast('描述已复制');
+  }
+
+  function copyPublishTags() {
+    var platform = currentPublishPlatform;
+    var tagsEl = document.getElementById('pc-publish-tags') || document.getElementById('mobile-publish-tags');
+    if (!tagsEl) return;
+    var tags = Array.from(tagsEl.querySelectorAll('.publish-tag')).map(function(s) { return s.textContent; });
+    var joined;
+    if (platform === 'wechat' || platform === 'zhihu') {
+      joined = tags.join('，');
+    } else {
+      joined = tags.join(' ');
+    }
+    copyToClipboard(joined);
+    showToast('标签已复制');
+  }
+
+  function copySingleTag(el) {
+    copyToClipboard(el.textContent);
+    showToast('标签已复制');
+  }
+
+  function copyToClipboard(text) {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+  }
+
+  function showToast(message) {
+    var existing = document.querySelector('.aichuangzuo-toast');
+    if (existing) existing.remove();
+    var toast = document.createElement('div');
+    toast.className = 'aichuangzuo-toast';
+    toast.textContent = message;
+    toast.style.cssText = 'position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.75); color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 14px; z-index: 10010; pointer-events: none;';
+    document.body.appendChild(toast);
+    setTimeout(function() {
+      toast.style.opacity = '0';
+      toast.style.transition = 'opacity 0.3s';
+      setTimeout(function() { toast.remove(); }, 300);
+    }, 1500);
+  }
+
   function exportWord(btn) {
     var mockup = btn.closest('.mockup') || document.querySelector('#screen-preview .mockup');
     var titleEl = mockup.querySelector('.preview-title');
