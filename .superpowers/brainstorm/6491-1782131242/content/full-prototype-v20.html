@@ -4267,6 +4267,68 @@
       previewHtml: '<div style="font-weight: 700; color: #fff; margin-bottom: 3px; font-size: 9px;">标题</div><div style="margin-bottom: 2px; color: #d9d9d9;">正文</div><div style="border-left: 2px solid #07c160; padding-left: 3px; color: #95de64;">重点</div>' }
   ];
 
+  // 字数设置弹窗的数据与全局状态
+  var wordCountPresets = {
+    platform: {
+      wechat: [
+        { count: 800,  label: '早报 / 简评' },
+        { count: 1500, label: '标准深度文' },
+        { count: 2500, label: '专题报道' },
+        { count: 3000, label: '行业研究（上限）' }
+      ],
+      xiaohongshu: [
+        { count: 300,  label: '标题种草' },
+        { count: 500,  label: '图文分享' },
+        { count: 800,  label: '详细测评' },
+        { count: 1200, label: '步骤拆解教程' }
+      ],
+      toutiao: [
+        { count: 400,  label: '热点快讯' },
+        { count: 800,  label: '事件报道' },
+        { count: 1500, label: '专题分析' },
+        { count: 2000, label: '观点长文' }
+      ],
+      baijiahao: [
+        { count: 1000, label: '知识科普' },
+        { count: 1500, label: '生活攻略' },
+        { count: 2000, label: '人文叙事' },
+        { count: 2500, label: '行业洞察' }
+      ],
+      zhihu: [
+        { count: 800,  label: '精炼回答' },
+        { count: 1500, label: '专业回答' },
+        { count: 2500, label: '长篇分析' }
+      ],
+      douyin: [
+        { count: 150, label: '封面金句' },
+        { count: 300, label: '图配文' },
+        { count: 600, label: '情感短篇' }
+      ],
+      general: [
+        { count: 500,  label: '短文' },
+        { count: 1000, label: '中等' },
+        { count: 1500, label: '标准' },
+        { count: 2500, label: '长文' }
+      ]
+    },
+    scenario: [
+      { count: 1200, label: '教程 / 步骤', desc: '操作步骤详细说明，适合图文对照' },
+      { count: 1000, label: '测评 / 对比', desc: '优缺点详细对比，附评分' },
+      { count: 500,  label: '清单 / 种草', desc: '快速清单 + 标签，重点突出' },
+      { count: 1800, label: '故事 / 叙事', desc: '沉浸式叙事，节奏完整' }
+    ],
+    tier: [
+      { count: 500,  label: '短文', desc: '速读，3 分钟读完' },
+      { count: 1000, label: '中等', desc: '标准阅读，5 分钟' },
+      { count: 1500, label: '标准', desc: '深度阅读，8 分钟' },
+      { count: 2500, label: '长文', desc: '专题阅读，12 分钟' },
+      { count: 3000, label: '超长', desc: '深度专题（上限）' }
+    ]
+  };
+
+  var currentWordCount = 1500;
+  var currentWordLabel = '标准深度文';
+
   // 30 个模板的大预览样式定义（驱动 buildLargePreview 渲染）
   var templateLargeStyles = {
     wechat:    { bg: '#fff', font: '-apple-system, sans-serif',          titleColor: '#1a1a1a', titleSize: '22px', metaColor: '#8c8c8c', metaBorder: '#eee', bodyColor: '#262626', bodySize: '14px', bodyLine: '1.85', headingColor: '#1a1a1a', headingSize: '16px', headingBorder: 'none', headingPl: '0', calloutBg: '#f6ffed', calloutBorder: '4px solid #07c160', calloutColor: '#262626' },
