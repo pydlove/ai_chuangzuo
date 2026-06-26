@@ -63,6 +63,22 @@
                   </div>
 </div>
 </div>
+        <!-- 发布描述 & 推荐标签 -->
+        <div id="pc-publish-meta-card" style="max-width: 680px; margin: 32px auto 0; padding-top: 28px; border-top: 1px solid #f0f0f0;">
+          <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 12px; font-size: 15px;">发布描述</div>
+          <textarea id="pc-publish-desc" style="width: 100%; min-height: 90px; border: 1px solid #d9d9d9; border-radius: 8px; padding: 12px; font-size: 14px; line-height: 1.6; color: #262626; resize: vertical; box-sizing: border-box;"></textarea>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px;">
+            <button onclick="regeneratePublishDesc()" style="padding: 6px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #595959; cursor: pointer;">换一版</button>
+            <button onclick="copyPublishDesc()" style="padding: 6px 14px; background: #fff; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #07c160; cursor: pointer;">复制描述</button>
+          </div>
+
+          <div style="font-weight: 600; color: #1a1a1a; margin: 24px 0 12px; font-size: 15px;">推荐标签</div>
+          <div id="pc-publish-tags" style="display: flex; flex-wrap: wrap; gap: 8px;"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px;">
+            <button onclick="regeneratePublishTags()" style="padding: 6px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #595959; cursor: pointer;">换一批</button>
+            <button onclick="copyPublishTags()" style="padding: 6px 14px; background: #fff; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #07c160; cursor: pointer;">复制全部标签</button>
+          </div>
+        </div>
 </div>
 </div>
 </div>
@@ -99,6 +115,22 @@
               </div>
 </div>
 </div>
+        <!-- 发布描述 & 推荐标签 -->
+        <div id="mobile-publish-meta-card" style="margin-top: 16px; padding-top: 20px; border-top: 1px solid #f0f0f0;">
+          <div style="font-weight: 600; color: #1a1a1a; margin-bottom: 10px; font-size: 14px;">发布描述</div>
+          <textarea id="mobile-publish-desc" style="width: 100%; min-height: 70px; border: 1px solid #d9d9d9; border-radius: 6px; padding: 10px; font-size: 13px; line-height: 1.5; color: #262626; resize: vertical; box-sizing: border-box;"></textarea>
+          <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 8px;">
+            <button onclick="regeneratePublishDesc()" style="padding: 5px 10px; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; color: #595959; cursor: pointer;">换一版</button>
+            <button onclick="copyPublishDesc()" style="padding: 5px 10px; background: #fff; border: 1px solid #07c160; border-radius: 4px; font-size: 12px; color: #07c160; cursor: pointer;">复制描述</button>
+          </div>
+
+          <div style="font-weight: 600; color: #1a1a1a; margin: 16px 0 10px; font-size: 14px;">推荐标签</div>
+          <div id="mobile-publish-tags" style="display: flex; flex-wrap: wrap; gap: 6px;"></div>
+          <div style="display: flex; justify-content: flex-end; gap: 6px; margin-top: 10px;">
+            <button onclick="regeneratePublishTags()" style="padding: 5px 10px; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 12px; color: #595959; cursor: pointer;">换一批</button>
+            <button onclick="copyPublishTags()" style="padding: 5px 10px; background: #fff; border: 1px solid #07c160; border-radius: 4px; font-size: 12px; color: #07c160; cursor: pointer;">复制全部标签</button>
+          </div>
+        </div>
 </div>
 </div>
 </div>
@@ -131,6 +163,7 @@
   document.addEventListener('DOMContentLoaded', function() {
     var floatBar = document.getElementById('floating-action-bar');
     if (floatBar) floatBar.style.display = 'flex';
+    if (typeof renderPublishMeta === 'function') renderPublishMeta();
   });
 </script>
 </body>
