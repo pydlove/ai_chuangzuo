@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>爱创作 - 登录/注册</title>
+<link rel="stylesheet" href="shared.css">
+</head>
+<body>
+<div class="section">
+<h2 style="color: #1a1a1a;">爱创作 — AI 自媒体文章生成器 v20</h2>
+<p class="subtitle" style="color: #595959;">参考星月写作首页风格：首页为营销落地页，顶部菜单显示「首页」「开始创作」，点击「开始创作」后进入登录/注册，登录成功后进入创作页。平台覆盖公众号、百家号、今日头条、小红书、抖音图文。</p>
+</div>
+<div class="prototype-frame">
+<div class="prototype-nav">
+<button onclick="location.href='index.html'">01 首页</button>
+<button class="active" onclick="location.href='login.html'">02 登录/注册</button>
+<button onclick="location.href='create.html'">03 创作页</button>
+<button onclick="location.href='loading.html'">04 生成中</button>
+<button onclick="location.href='preview.html'">05 预览/导出</button>
+<button onclick="location.href='works.html'">06 我的作品</button>
+<button onclick="location.href='pricing.html'">07 会员/购买</button>
+<button onclick="location.href='settings.html'">08 个人中心</button>
+<button onclick="location.href='order.html'">09 确认订单</button>
+<button onclick="location.href='payment.html'">10 扫码支付</button>
+</div>
+<div class="prototype-screen" id="screen-login">
+<div class="pc-mobile-wrap">
+<div class="mockup" style="flex: 1;">
+<div class="mockup-header">PC 端：登录/注册（点击开始创作后进入）</div>
+<div class="mockup-body" style="padding: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 600px; display: flex; align-items: center; justify-content: center;">
+<div style="background: rgba(255,255,255,0.95); border-radius: 16px; padding: 40px; width: 440px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+<div style="display: flex; gap: 8px; margin-bottom: 28px; background: #f5f5f5; padding: 4px; border-radius: 8px;">
+<button class="auth-tab active" onclick="switchAuth('pc', 'login')">登录</button>
+<button class="auth-tab inactive" onclick="switchAuth('pc', 'register')">注册</button>
+</div>
+<!-- 登录表单 -->
+<div class="auth-form active" id="pc-login">
+<h2 style="text-align: center; margin-bottom: 8px; color: #1a1a1a;">欢迎回来</h2>
+<p style="text-align: center; color: #595959; font-size: 14px; margin-bottom: 28px;">登录后即可开始创作</p>
+<div style="margin-bottom: 16px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">邮箱</label>
+<input class="mock-input" placeholder="请输入邮箱" style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;"/>
+</div>
+<div style="margin-bottom: 16px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">密码</label>
+<input class="mock-input" placeholder="请输入密码" style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;" type="password"/>
+</div>
+<div style="margin-bottom: 24px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">图形验证码</label>
+<div style="display: flex; gap: 10px;">
+<input class="mock-input" placeholder="输入验证码" style="flex: 1; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;"/>
+<div class="captcha-box">A7K9</div>
+</div>
+</div>
+<button class="mock-button" onclick="simulateAuth('login')" style="width: 100%; padding: 12px; background: #07c160; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600;">登录</button>
+<div style="display: flex; justify-content: space-between; margin-top: 16px; font-size: 13px; color: #595959;">
+<span onclick="location.href='forgot.html'" style="cursor: pointer;">忘记密码？</span>
+</div>
+</div>
+<!-- 注册表单 -->
+<div class="auth-form" id="pc-register">
+<h2 style="text-align: center; margin-bottom: 8px; color: #1a1a1a;">创建账号</h2>
+<p style="text-align: center; color: #595959; font-size: 14px; margin-bottom: 28px;">注册后即可开始生成文章</p>
+<div style="margin-bottom: 16px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">邮箱</label>
+<input class="mock-input" placeholder="请输入邮箱" style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;"/>
+</div>
+<div style="margin-bottom: 16px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">邮箱验证码</label>
+<div style="display: flex; gap: 10px;">
+<input class="mock-input" placeholder="输入 6 位验证码" style="flex: 1; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;"/>
+<button onclick="startCountdown(this, 60)" style="padding: 0 16px; background: #fff; border: 1px solid #07c160; border-radius: 8px; color: #07c160; font-size: 13px; font-weight: 500; cursor: pointer;">获取验证码</button>
+</div>
+</div>
+<div style="margin-bottom: 16px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">设置密码</label>
+<input class="mock-input" placeholder="6-20 位密码" style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;" type="password"/>
+</div>
+<div style="margin-bottom: 24px;">
+<label style="display: block; margin-bottom: 6px; font-size: 14px; color: #262626; font-weight: 500;">确认密码</label>
+<input class="mock-input" placeholder="再次输入密码" style="width: 100%; padding: 12px; border: 1px solid #d9d9d9; border-radius: 8px; color: #1a1a1a;" type="password"/>
+</div>
+<button class="mock-button" onclick="simulateAuth('register')" style="width: 100%; padding: 12px; background: #07c160; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600;">注册</button>
+</div>
+</div>
+</div>
+</div>
+<div class="mockup" style="width: 375px; flex-shrink: 0;">
+<div class="mockup-header">移动端：登录/注册</div>
+<div class="mockup-body" style="padding: 0; background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); min-height: 600px; display: flex; align-items: center; justify-content: center;">
+<div style="background: rgba(255,255,255,0.95); border-radius: 16px; padding: 28px 20px; width: 100%; margin: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+<div style="display: flex; gap: 8px; margin-bottom: 24px; background: #f5f5f5; padding: 4px; border-radius: 8px;">
+<button class="auth-tab active" onclick="switchAuth('mobile', 'login')" style="font-size: 13px;">登录</button>
+<button class="auth-tab inactive" onclick="switchAuth('mobile', 'register')" style="font-size: 13px;">注册</button>
+</div>
+<!-- 移动端登录 -->
+<div class="auth-form active" id="mobile-login">
+<h2 style="text-align: center; margin-bottom: 8px; font-size: 20px; color: #1a1a1a;">欢迎回来</h2>
+<p style="text-align: center; color: #595959; font-size: 13px; margin-bottom: 24px;">登录后即可开始创作</p>
+<div style="margin-bottom: 14px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">邮箱</label>
+<input class="mock-input" placeholder="请输入邮箱" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;"/>
+</div>
+<div style="margin-bottom: 14px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">密码</label>
+<input class="mock-input" placeholder="请输入密码" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;" type="password"/>
+</div>
+<div style="margin-bottom: 20px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">图形验证码</label>
+<div style="display: flex; gap: 8px;">
+<input class="mock-input" placeholder="输入验证码" style="flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;"/>
+<div class="captcha-box" style="width: 90px; height: 38px; font-size: 16px;">A7K9</div>
+</div>
+</div>
+<button class="mock-button" onclick="simulateAuth('login')" style="width: 100%; padding: 12px; background: #07c160; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600;">登录</button>
+<div style="text-align: center; margin-top: 14px; font-size: 12px; color: #595959;">
+<span onclick="location.href='forgot.html'" style="cursor: pointer;">忘记密码？</span>
+</div>
+</div>
+<!-- 移动端注册 -->
+<div class="auth-form" id="mobile-register">
+<h2 style="text-align: center; margin-bottom: 8px; font-size: 20px; color: #1a1a1a;">创建账号</h2>
+<p style="text-align: center; color: #595959; font-size: 13px; margin-bottom: 24px;">注册后即可开始生成文章</p>
+<div style="margin-bottom: 14px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">邮箱</label>
+<input class="mock-input" placeholder="请输入邮箱" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;"/>
+</div>
+<div style="margin-bottom: 14px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">邮箱验证码</label>
+<div style="display: flex; gap: 8px;">
+<input class="mock-input" placeholder="输入 6 位验证码" style="flex: 1; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;"/>
+<button onclick="startCountdown(this, 60)" style="padding: 0 12px; background: #fff; border: 1px solid #07c160; border-radius: 6px; color: #07c160; font-size: 12px; font-weight: 500; cursor: pointer;">获取</button>
+</div>
+</div>
+<div style="margin-bottom: 14px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">设置密码</label>
+<input class="mock-input" placeholder="6-20 位密码" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;" type="password"/>
+</div>
+<div style="margin-bottom: 20px;">
+<label style="display: block; margin-bottom: 6px; font-size: 13px; color: #262626; font-weight: 500;">确认密码</label>
+<input class="mock-input" placeholder="再次输入密码" style="width: 100%; padding: 10px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; color: #1a1a1a;" type="password"/>
+</div>
+<button class="mock-button" onclick="simulateAuth('register')" style="width: 100%; padding: 12px; background: #07c160; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 600;">注册</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<script src="shared.js"></script>
+</body>
+</html>
