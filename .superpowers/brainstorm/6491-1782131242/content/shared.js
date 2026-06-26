@@ -2730,6 +2730,92 @@
     document.body.appendChild(overlay);
   }
 
+  function openPlatformLibrary() {
+    var existing = document.getElementById('platform-library-modal');
+    if (existing) existing.remove();
+
+    var overlay = document.createElement('div');
+    overlay.id = 'platform-library-modal';
+    overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10003; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background: #fff; border-radius: 16px; width: 560px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); position: relative; overflow: hidden;';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = 'position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 22px; cursor: pointer; color: #8c8c8c; line-height: 1; padding: 4px 8px; z-index: 2;';
+    closeBtn.onclick = function() { overlay.remove(); };
+    box.appendChild(closeBtn);
+
+    var headerWrap = document.createElement('div');
+    headerWrap.style.cssText = 'padding: 22px 24px 12px; flex-shrink: 0;';
+    var header = document.createElement('div');
+    header.style.cssText = 'font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; padding-right: 28px;';
+    header.textContent = '选择发布平台';
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size: 13px; color: #8c8c8c;';
+    sub.textContent = '选择目标平台，AI 将按平台规则推荐模板、字数和标签';
+    headerWrap.appendChild(header);
+    headerWrap.appendChild(sub);
+    box.appendChild(headerWrap);
+
+    var content = document.createElement('div');
+    content.style.cssText = 'padding: 8px 24px 16px; flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;';
+
+    var selectedKey = currentPublishPlatform;
+
+    publishPlatforms.forEach(function(p) {
+      var card = document.createElement('div');
+      var selected = p.key === selectedKey;
+      card.style.cssText = 'border: 2px solid ' + (selected ? '#07c160' : '#e8e8e8') +
+        '; border-radius: 10px; padding: 14px; background: ' + (selected ? '#f6ffed' : '#fff') +
+        '; cursor: pointer; display: flex; flex-direction: column; gap: 4px;';
+      var name = document.createElement('div');
+      name.style.cssText = 'font-weight: 600; color: #1a1a1a; font-size: 15px;';
+      name.textContent = p.name;
+      card.appendChild(name);
+      var desc = document.createElement('div');
+      desc.style.cssText = 'color: #8c8c8c; font-size: 12px; line-height: 1.5;';
+      desc.textContent = p.desc;
+      card.appendChild(desc);
+      card.onclick = function() {
+        selectedKey = p.key;
+        Array.from(content.children).forEach(function(c, idx) {
+          var plat = publishPlatforms[idx];
+          var isSel = plat.key === selectedKey;
+          c.style.borderColor = isSel ? '#07c160' : '#e8e8e8';
+          c.style.background = isSel ? '#f6ffed' : '#fff';
+        });
+      };
+      content.appendChild(card);
+    });
+
+    box.appendChild(content);
+
+    var footer = document.createElement('div');
+    footer.style.cssText = 'padding: 12px 24px 16px; flex-shrink: 0; border-top: 1px solid #f0f0f0; display: flex; justify-content: flex-end; gap: 8px;';
+    var cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #d9d9d9; background: #fff; color: #595959; cursor: pointer; font-size: 14px;';
+    cancelBtn.onclick = function() { overlay.remove(); };
+    var confirmBtn = document.createElement('button');
+    confirmBtn.textContent = '确认';
+    confirmBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #07c160; background: #07c160; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600;';
+    confirmBtn.onclick = function() {
+      applyPlatformDefaults(selectedKey);
+      overlay.remove();
+    };
+    footer.appendChild(cancelBtn);
+    footer.appendChild(confirmBtn);
+    box.appendChild(footer);
+
+    overlay.appendChild(box);
+    overlay.onclick = function(e) {
+      if (e.target === overlay) overlay.remove();
+    };
+    document.body.appendChild(overlay);
+  }
+
   // 显示「已应用 X 模板」toast + 更新创作页 chip
   function applyTemplateFeedback(tpl) {
     ['pc-current-template', 'mobile-current-template'].forEach(function(id) {
