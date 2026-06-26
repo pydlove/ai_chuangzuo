@@ -4666,9 +4666,138 @@
       });
     }
 
+    function makeCard(count, label, desc) {
+      var card = document.createElement('div');
+      var selected = state.selectedCount === count && state.selectedLabel === label;
+      card.style.cssText = 'border: 2px solid ' + (selected ? '#07c160' : '#e8e8e8') +
+        '; border-radius: 10px; padding: 12px 14px; background: ' + (selected ? '#f6ffed' : '#fff') +
+        '; cursor: pointer; display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px;';
+      var top = document.createElement('div');
+      top.style.cssText = 'display: flex; justify-content: space-between; align-items: center;';
+      var left = document.createElement('div');
+      left.style.cssText = 'font-weight: 700; color: #1a1a1a; font-size: 16px;';
+      left.textContent = count + ' 字';
+      top.appendChild(left);
+      if (selected) {
+        var check = document.createElement('span');
+        check.textContent = '✓';
+        check.style.cssText = 'color: #07c160; font-weight: 700; font-size: 16px;';
+        top.appendChild(check);
+      }
+      card.appendChild(top);
+      var labelDiv = document.createElement('div');
+      labelDiv.style.cssText = 'color: #595959; font-size: 13px;';
+      labelDiv.textContent = label;
+      card.appendChild(labelDiv);
+      if (desc) {
+        var descDiv = document.createElement('div');
+        descDiv.style.cssText = 'color: #8c8c8c; font-size: 12px;';
+        descDiv.textContent = desc;
+        card.appendChild(descDiv);
+      }
+      card.onclick = function () {
+        state.selectedCount = count;
+        state.selectedLabel = label;
+        renderContent();
+      };
+      return card;
+    }
+
+    function renderPlatformTab() {
+      var platKeys = Object.keys(wordCountPresets.platform);
+      // Platform sub-tabs as a row of small chips.
+      var platBar = document.createElement('div');
+      platBar.style.cssText = 'display: flex; gap: 6px; margin-bottom: 12px; overflow-x: auto; padding-bottom: 4px;';
+      platKeys.forEach(function (pk) {
+        var b = document.createElement('button');
+        b.textContent = ({wechat:'公众号',xiaohongshu:'小红书',toutiao:'今日头条',baijiahao:'百家号',zhihu:'知乎',douyin:'抖音图文',general:'通用风格'})[pk];
+        var active = pk === state.selectedPlatform;
+        b.style.cssText = 'padding: 4px 12px; border-radius: 12px; border: 1px solid ' + (active ? '#07c160' : '#d9d9d9') +
+          '; background: ' + (active ? '#f6ffed' : '#fff') + '; color: ' + (active ? '#07c160' : '#595959') +
+          '; font-size: 12px; cursor: pointer; white-space: nowrap;';
+        b.onclick = function () { state.selectedPlatform = pk; renderContent(); };
+        platBar.appendChild(b);
+      });
+      content.appendChild(platBar);
+
+      var list = wordCountPresets.platform[state.selectedPlatform] || [];
+      list.forEach(function (o) { content.appendChild(makeCard(o.count, o.label, '')); });
+    }
+
+    function renderScenarioTab() {
+      wordCountPresets.scenario.forEach(function (o) {
+        content.appendChild(makeCard(o.count, o.label, o.desc));
+      });
+    }
+
+    function renderTierTab() {
+      wordCountPresets.tier.forEach(function (o) {
+        content.appendChild(makeCard(o.count, o.label, o.desc));
+      });
+    }
+
+    function renderCustomTab() {
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'padding: 8px 4px;';
+      var hint = document.createElement('div');
+      hint.style.cssText = 'color: #595959; font-size: 13px; margin-bottom: 12px;';
+      hint.textContent = '自定义 1-3000 字，AI 将按字数精确生成。';
+      wrap.appendChild(hint);
+
+      var display = document.createElement('div');
+      display.style.cssText = 'font-size: 36px; font-weight: 700; color: #07c160; text-align: center; margin: 16px 0;';
+      display.textContent = state.customValue + ' 字';
+      wrap.appendChild(display);
+
+      var input = document.createElement('input');
+      input.type = 'number';
+      input.min = 1;
+      input.max = 3000;
+      input.value = state.customValue;
+      input.style.cssText = 'width: 100%; padding: 12px 16px; border: 1px solid #d9d9d9; border-radius: 8px; font-size: 18px; text-align: center; box-sizing: border-box;';
+      input.oninput = function () {
+        var v = parseInt(input.value, 10);
+        if (isNaN(v)) return;
+        if (v < 1) v = 1;
+        if (v > 3000) v = 3000;
+        state.customValue = v;
+        state.selectedCount = v;
+        state.selectedLabel = '自定义';
+        slider.value = v;
+        display.textContent = v + ' 字';
+      };
+      wrap.appendChild(input);
+
+      var slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 1;
+      slider.max = 3000;
+      slider.value = state.customValue;
+      slider.style.cssText = 'width: 100%; margin-top: 16px; accent-color: #07c160;';
+      slider.oninput = function () {
+        var v = parseInt(slider.value, 10);
+        state.customValue = v;
+        state.selectedCount = v;
+        state.selectedLabel = '自定义';
+        input.value = v;
+        display.textContent = v + ' 字';
+      };
+      wrap.appendChild(slider);
+
+      var footer = document.createElement('div');
+      footer.style.cssText = 'color: #8c8c8c; font-size: 12px; margin-top: 12px; text-align: center;';
+      footer.textContent = 'AI 将生成约 ' + state.customValue + ' 字的文章';
+      wrap.appendChild(footer);
+
+      content.appendChild(wrap);
+    }
+
     function renderContent() {
-      // Populated in Task 3.
-      content.innerHTML = '<div style="color:#8c8c8c;font-size:13px;padding:24px 0;text-align:center;">（占位，Task 3 填充）</div>';
+      content.innerHTML = '';
+      if (state.activeTab === 'platform') renderPlatformTab();
+      else if (state.activeTab === 'scenario') renderScenarioTab();
+      else if (state.activeTab === 'tier') renderTierTab();
+      else renderCustomTab();
     }
 
     renderTabBar();
