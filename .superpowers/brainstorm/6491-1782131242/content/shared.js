@@ -2069,6 +2069,115 @@
       previewHtml: '<div style="font-weight: 700; color: #fff; margin-bottom: 3px; font-size: 9px;">标题</div><div style="margin-bottom: 2px; color: #d9d9d9;">正文</div><div style="border-left: 2px solid #07c160; padding-left: 3px; color: #95de64;">重点</div>' }
   ];
 
+  // 发布平台选择数据与状态
+  var publishPlatforms = [
+    { key: 'wechat', name: '公众号', desc: '适合深度长文和订阅号推送' },
+    { key: 'xiaohongshu', name: '小红书', desc: '种草图文，重标签和封面' },
+    { key: 'toutiao', name: '今日头条', desc: '资讯和观点长文' },
+    { key: 'baijiahao', name: '百家号', desc: '百度生态搜索流量' },
+    { key: 'zhihu', name: '知乎', desc: '问答和专业分析' },
+    { key: 'douyin', name: '抖音图文', desc: '短视频配图和短文案' },
+    { key: 'general', name: '通用', desc: '不指定平台，通用输出' }
+  ];
+
+  var platformDefaults = {
+    wechat: { template: 'wechat', wordCount: 1500, wordLabel: '标准深度文' },
+    xiaohongshu: { template: 'xiaohongshu', wordCount: 500, wordLabel: '图文分享' },
+    toutiao: { template: 'toutiao', wordCount: 1500, wordLabel: '专题分析' },
+    baijiahao: { template: 'baijiahao', wordCount: 1500, wordLabel: '生活攻略' },
+    zhihu: { template: 'zhihu-answer', wordCount: 1500, wordLabel: '专业回答' },
+    douyin: { template: 'douyin-graphic', wordCount: 300, wordLabel: '图配文' },
+    general: { template: 'business', wordCount: 1500, wordLabel: '标准' }
+  };
+
+  var publishDescTemplates = {
+    wechat: [
+      '本文围绕「{title}」展开，总结了 {count} 个实用方法，建议收藏转发。',
+      '关于「{title}」，我们梳理了 {count} 个关键要点，适合公众号读者深度阅读。'
+    ],
+    xiaohongshu: [
+      '{title} 真的很有用！{count} 个小技巧，建议姐妹们收藏～\n#自我提升',
+      '亲测有效！{title}，{count} 个方法帮你快速上手。'
+    ],
+    toutiao: [
+      '{title} 你怎么看？本文梳理了 {count} 个核心观点，欢迎评论交流。',
+      '关于「{title}」的深度解读，{count} 个要点帮你快速抓住重点。'
+    ],
+    baijiahao: [
+      '本文从「{title}」出发，总结了 {count} 个实用知识点，建议收藏。',
+      '关于「{title}」的科普解读，{count} 个要点帮你建立系统认知。'
+    ],
+    zhihu: [
+      '谢邀。针对「{title}」，分享 {count} 个我认为最关键的要点。',
+      '{title} 这个问题，核心在于 {count} 个方面，下面逐一说明。'
+    ],
+    douyin: [
+      '{title}，{count} 个方法直接抄作业！\n\n你做到了几个？评论区见',
+      '{title} 亲测有效，{count} 个技巧，快@需要的朋友来看'
+    ],
+    general: [
+      '本文围绕「{title}」展开，分享了 {count} 个实用方法。',
+      '关于「{title}」，整理了 {count} 个关键要点，希望对你有帮助。'
+    ]
+  };
+
+  var publishTagPresets = {
+    wechat: ['时间管理', '职场效率', '自我提升', '自律', '成长'],
+    xiaohongshu: ['#时间管理', '#自律打卡', '#职场干货', '#效率神器', '#自我提升', '#生活方式', '#打工人', '#成长笔记'],
+    toutiao: ['#时间管理', '#职场', '#效率提升', '#自我成长', '#干货分享'],
+    baijiahao: ['时间管理', '职场效率', '自我提升', '知识科普', '生活技巧'],
+    zhihu: ['时间管理', '职场效率', '自我提升', '个人成长', '自律'],
+    douyin: ['#时间管理', '#自律', '#职场干货', '#效率提升', '#自我提升', '#成长'],
+    general: ['#时间管理', '#自我提升', '#职场效率', '#干货分享', '#自律', '#成长']
+  };
+
+  var currentPublishPlatform = 'wechat';
+
+  function loadPublishPlatform() {
+    try {
+      var saved = localStorage.getItem('aichuangzuo_publish_platform');
+      if (saved && platformDefaults[saved]) currentPublishPlatform = saved;
+    } catch (e) {}
+  }
+
+  function savePublishPlatform(platformKey) {
+    try {
+      localStorage.setItem('aichuangzuo_publish_platform', platformKey);
+    } catch (e) {}
+  }
+
+  function applyPlatformDefaults(platformKey) {
+    var cfg = platformDefaults[platformKey];
+    if (!cfg) return;
+
+    currentPublishPlatform = platformKey;
+    savePublishPlatform(platformKey);
+
+    // Update platform chip on create page
+    ['pc', 'mobile'].forEach(function(prefix) {
+      var chip = document.getElementById(prefix + '-current-platform');
+      var nameEl = document.getElementById(prefix + '-current-platform-name');
+      var plat = publishPlatforms.find(function(p) { return p.key === platformKey; });
+      if (chip && plat) chip.setAttribute('data-platform', platformKey);
+      if (nameEl && plat) nameEl.textContent = plat.name;
+    });
+
+    // Update template chip via existing feedback helper if template exists
+    var tpl = templatePresets.find(function(t) { return t.key === cfg.template; });
+    if (tpl) applyTemplateFeedback(tpl);
+
+    // Update word count globals and chip
+    currentWordCount = cfg.wordCount;
+    currentWordLabel = cfg.wordLabel;
+    ['pc-current-word-count-label', 'mobile-current-word-count-label'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = cfg.wordCount + ' 字 · ' + cfg.wordLabel;
+    });
+  }
+
+  loadPublishPlatform();
+  applyPlatformDefaults(currentPublishPlatform);
+
   // 字数设置弹窗的数据与全局状态
   var wordCountPresets = {
     platform: {
