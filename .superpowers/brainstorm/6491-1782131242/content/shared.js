@@ -3106,6 +3106,68 @@
     document.body.appendChild(overlay);
   }
 
+  // 文章内容编辑存储层
+  var ARTICLE_EDITS_KEY = 'aichuangzuo_article_edits';
+
+  function loadArticleEdits() {
+    try {
+      var raw = localStorage.getItem(ARTICLE_EDITS_KEY);
+      if (!raw) return null;
+      var parsed = JSON.parse(raw);
+      if (!parsed || !Array.isArray(parsed.blocks)) return null;
+      return parsed;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveArticleEdits(edits) {
+    try {
+      localStorage.setItem(ARTICLE_EDITS_KEY, JSON.stringify(edits));
+      return true;
+    } catch (e) {
+      showToast('保存失败，请检查浏览器存储权限');
+      return false;
+    }
+  }
+
+  function getEditableSelectors() {
+    return [
+      '.preview-title',
+      '.preview-heading',
+      '.article-preview > p',
+      '.preview-highlight',
+      '.preview-list li'
+    ];
+  }
+
+  function serializeArticleBlocks(mockupEl) {
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return [];
+    var combinedSelector = getEditableSelectors().join(', ');
+    return Array.from(article.querySelectorAll(combinedSelector)).map(function(el) {
+      var type = 'paragraph';
+      if (el.classList.contains('preview-title')) type = 'title';
+      else if (el.classList.contains('preview-heading')) type = 'heading';
+      else if (el.classList.contains('preview-highlight')) type = 'highlight';
+      else if (el.tagName === 'LI' || (el.parentElement && el.parentElement.classList.contains('preview-list'))) type = 'list-item';
+      return { type: type, html: el.innerHTML.trim() };
+    });
+  }
+
+  function applyArticleEdits(mockupEl, edits) {
+    if (!edits || !Array.isArray(edits.blocks)) return;
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return;
+    var combinedSelector = getEditableSelectors().join(', ');
+    var editableEls = Array.from(article.querySelectorAll(combinedSelector));
+    edits.blocks.forEach(function(block, idx) {
+      if (idx < editableEls.length && block.html) {
+        editableEls[idx].innerHTML = block.html;
+      }
+    });
+  }
+
   // 打开字数设置弹窗（按平台推荐 / 按内容场景 / 按字数档位 / 自定义字数）
   function openWordCountModal() {
     var existing = document.getElementById('word-count-modal');
