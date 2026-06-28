@@ -656,7 +656,7 @@
       var tagsEl = document.getElementById(prefix + '-publish-tags');
       if (tagsEl) {
         tagsEl.innerHTML = tags.map(function(t) {
-          return '<span class="publish-tag" onclick="copySingleTag(this)" style="padding: 4px 10px; background: #f6ffed; color: #07c160; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #b7eb8f;" onmouseover="this.style.background=\'#e6f7ff\'" onmouseout="this.style.background=\'#f6ffed\'"'>' + t + '</span>';
+          return '<span class="publish-tag" onclick="copySingleTag(this)" style="padding: 4px 10px; background: #f6ffed; color: #07c160; border-radius: 12px; font-size: 13px; cursor: pointer; border: 1px solid #b7eb8f;" onmouseover="this.style.background=\'#e6f7ff\'" onmouseout="this.style.background=\'#f6ffed\'">' + t + '</span>';
         }).join('');
       }
     });
@@ -2176,6 +2176,79 @@
       previewHtml: '<div style="font-weight: 700; color: #fff; margin-bottom: 3px; font-size: 9px;">标题</div><div style="margin-bottom: 2px; color: #d9d9d9;">正文</div><div style="border-left: 2px solid #07c160; padding-left: 3px; color: #95de64;">重点</div>' }
   ];
 
+  // ===== 自定义模板存储 =====
+  var CUSTOM_TEMPLATES_KEY = 'aichuangzuo_custom_templates';
+
+  function loadCustomTemplates() {
+    try {
+      var raw = localStorage.getItem(CUSTOM_TEMPLATES_KEY);
+      if (!raw) return [];
+      var parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(function(t) {
+        return t && t.id && t.name && t.baseKey && t.overrides;
+      });
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveCustomTemplates(templates) {
+    try {
+      localStorage.setItem(CUSTOM_TEMPLATES_KEY, JSON.stringify(templates));
+      return true;
+    } catch (e) {
+      showToast('保存失败，请检查浏览器存储权限');
+      return false;
+    }
+  }
+
+  function createCustomTemplate(data) {
+    var templates = loadCustomTemplates();
+    var tpl = {
+      id: 'custom_' + Date.now(),
+      name: (data.name || '自定义模板').trim().slice(0, 20),
+      baseKey: data.baseKey,
+      overrides: data.overrides,
+      createdAt: Date.now()
+    };
+    templates.unshift(tpl);
+    if (saveCustomTemplates(templates)) {
+      showToast('模板已保存');
+      return tpl;
+    }
+    return null;
+  }
+
+  function updateCustomTemplate(id, data) {
+    var templates = loadCustomTemplates();
+    var idx = templates.findIndex(function(t) { return t.id === id; });
+    if (idx === -1) return null;
+    templates[idx].name = (data.name || templates[idx].name).trim().slice(0, 20);
+    templates[idx].baseKey = data.baseKey || templates[idx].baseKey;
+    templates[idx].overrides = data.overrides || templates[idx].overrides;
+    if (saveCustomTemplates(templates)) {
+      showToast('模板已更新');
+      return templates[idx];
+    }
+    return null;
+  }
+
+  function deleteCustomTemplate(id) {
+    var templates = loadCustomTemplates();
+    var filtered = templates.filter(function(t) { return t.id !== id; });
+    if (filtered.length === templates.length) return false;
+    if (saveCustomTemplates(filtered)) {
+      showToast('模板已删除');
+      return true;
+    }
+    return false;
+  }
+
+  function getCustomTemplateById(id) {
+    return loadCustomTemplates().find(function(t) { return t.id === id; }) || null;
+  }
+
   // 发布平台选择数据与状态
   var publishPlatforms = [
     { key: 'wechat', name: '公众号', desc: '适合深度长文和订阅号推送' },
@@ -2203,7 +2276,7 @@
       '关于「{title}」，我们梳理了 {count} 个关键要点，适合公众号读者深度阅读。'
     ],
     xiaohongshu: [
-      '{title} 真的很有用！{count} 个小技巧，建议姐妹们收藏～\n#自我提升',
+      '{title} 真的很有用！{count} 个小技巧，建议姐妹们收藏～',
       '亲测有效！{title}，{count} 个方法帮你快速上手。'
     ],
     toutiao: [
@@ -2253,7 +2326,7 @@
     } catch (e) {}
   }
 
-  function applyPlatformDefaults(platformKey) {
+  function applyPlatformDefaults(platformKey, flash) {
     var cfg = platformDefaults[platformKey];
     if (!cfg) return;
 
@@ -2267,11 +2340,13 @@
       var plat = publishPlatforms.find(function(p) { return p.key === platformKey; });
       if (chip && plat) chip.setAttribute('data-platform', platformKey);
       if (nameEl && plat) nameEl.textContent = plat.name;
+      if (flash && chip) {
+        chip.classList.remove('flash');
+        void chip.offsetWidth;
+        chip.classList.add('flash');
+        setTimeout(function() { chip.classList.remove('flash'); }, 1500);
+      }
     });
-
-    // Update template chip via existing feedback helper if template exists
-    var tpl = templatePresets.find(function(t) { return t.key === cfg.template; });
-    if (tpl) applyTemplateFeedback(tpl);
 
     // Update word count globals and chip
     currentWordCount = cfg.wordCount;
@@ -2909,7 +2984,7 @@
     confirmBtn.textContent = '确认';
     confirmBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #07c160; background: #07c160; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600;';
     confirmBtn.onclick = function() {
-      applyPlatformDefaults(selectedKey);
+      applyPlatformDefaults(selectedKey, true);
       overlay.remove();
     };
     footer.appendChild(cancelBtn);
@@ -2924,16 +2999,18 @@
   }
 
   // 显示「已应用 X 模板」toast + 更新创作页 chip
-  function applyTemplateFeedback(tpl) {
+  function applyTemplateFeedback(tpl, skipFlash) {
     ['pc-current-template', 'mobile-current-template'].forEach(function(id) {
       var chipDiv = document.getElementById(id);
       if (!chipDiv) return;
       var nameEl = chipDiv.querySelector('span[id$="-current-template-name"]');
       if (nameEl) nameEl.textContent = tpl.name;
-      chipDiv.classList.remove('flash');
-      void chipDiv.offsetWidth;
-      chipDiv.classList.add('flash');
-      setTimeout(function() { chipDiv.classList.remove('flash'); }, 1500);
+      if (!skipFlash) {
+        chipDiv.classList.remove('flash');
+        void chipDiv.offsetWidth;
+        chipDiv.classList.add('flash');
+        setTimeout(function() { chipDiv.classList.remove('flash'); }, 1500);
+      }
     });
 
     // 如果在预览页，同步更新主预览区样式和模板卡片选中状态
