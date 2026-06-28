@@ -3168,6 +3168,138 @@
     });
   }
 
+  var __articleEditSnapshot = null;
+  var __articleEditFab = null;
+
+  function sanitizePaste(e) {
+    e.preventDefault();
+    var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }
+
+  function attachPasteSanitizer(mockupEl) {
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return;
+    var selectors = getEditableSelectors();
+    selectors.forEach(function(selector) {
+      article.querySelectorAll(selector).forEach(function(el) {
+        el.addEventListener('paste', sanitizePaste);
+      });
+    });
+  }
+
+  function detachPasteSanitizer(mockupEl) {
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return;
+    var selectors = getEditableSelectors();
+    selectors.forEach(function(selector) {
+      article.querySelectorAll(selector).forEach(function(el) {
+        el.removeEventListener('paste', sanitizePaste);
+      });
+    });
+  }
+
+  function markEditableModified(el) {
+    el.setAttribute('data-edited', 'true');
+    updateEditFabHint();
+  }
+
+  function updateEditFabHint() {
+    if (!__articleEditFab) return;
+    var count = document.querySelectorAll('[data-edited="true"]').length;
+    var hint = __articleEditFab.querySelector('.edit-hint');
+    if (hint) hint.textContent = count > 0 ? '已修改 ' + count + ' 处' : '正在编辑';
+  }
+
+  function createEditFab(onCancel, onSave) {
+    if (__articleEditFab) return __articleEditFab;
+    var fab = document.createElement('div');
+    fab.className = 'article-edit-fab';
+    fab.innerHTML =
+      '<span class="edit-hint">正在编辑</span>' +
+      '<button class="cancel-btn">取消</button>' +
+      '<button class="save-btn">保存修改</button>';
+    fab.querySelector('.cancel-btn').onclick = onCancel;
+    fab.querySelector('.save-btn').onclick = onSave;
+    document.body.appendChild(fab);
+    __articleEditFab = fab;
+    return fab;
+  }
+
+  function removeEditFab() {
+    if (__articleEditFab) {
+      __articleEditFab.remove();
+      __articleEditFab = null;
+    }
+  }
+
+  function enableArticleEditing(mockupEl) {
+    if (!mockupEl) mockupEl = document.querySelector('.mockup .article-preview');
+    if (!mockupEl) return;
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return;
+    if (article.classList.contains('article-editing')) return;
+
+    __articleEditSnapshot = article.innerHTML;
+    article.classList.add('article-editing');
+
+    var selectors = getEditableSelectors();
+    selectors.forEach(function(selector) {
+      article.querySelectorAll(selector).forEach(function(el) {
+        el.setAttribute('contenteditable', 'true');
+        el.addEventListener('input', function() { markEditableModified(el); });
+      });
+    });
+
+    attachPasteSanitizer(article);
+
+    createEditFab(
+      function() { disableArticleEditing(mockupEl, true); },
+      function() { disableArticleEditing(mockupEl, false); }
+    );
+    updateEditFabHint();
+  }
+
+  function disableArticleEditing(mockupEl, isCancel) {
+    if (!mockupEl) mockupEl = document.querySelector('.mockup .article-preview');
+    if (!mockupEl) return;
+    var article = mockupEl.closest('.article-preview');
+    if (!article) return;
+
+    if (isCancel && __articleEditSnapshot !== null) {
+      article.innerHTML = __articleEditSnapshot;
+    } else {
+      var title = article.querySelector('.preview-title');
+      if (title && !title.innerText.trim()) {
+        showToast('标题不能为空');
+        return;
+      }
+      var edits = {
+        articleId: 'default_preview',
+        savedAt: Date.now(),
+        blocks: serializeArticleBlocks(article)
+      };
+      if (saveArticleEdits(edits)) {
+        showToast('内容已保存');
+      } else {
+        return;
+      }
+    }
+
+    article.classList.remove('article-editing');
+    var selectors = getEditableSelectors();
+    selectors.forEach(function(selector) {
+      article.querySelectorAll(selector).forEach(function(el) {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('data-edited');
+      });
+    });
+
+    detachPasteSanitizer(article);
+    removeEditFab();
+    __articleEditSnapshot = null;
+  }
+
   // 打开字数设置弹窗（按平台推荐 / 按内容场景 / 按字数档位 / 自定义字数）
   function openWordCountModal() {
     var existing = document.getElementById('word-count-modal');

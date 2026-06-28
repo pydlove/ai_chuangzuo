@@ -935,3 +935,101 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+
+  /* ===== 文章编辑态 ===== */
+  .article-editing .preview-title,
+  .article-editing .preview-heading,
+  .article-editing .article-preview > p,
+  .article-editing .preview-highlight,
+  .article-editing .preview-list li {
+    outline: none;
+    border-radius: 4px;
+    transition: background 0.15s, box-shadow 0.15s;
+  }
+
+  .article-editing .preview-title:hover,
+  .article-editing .preview-heading:hover,
+  .article-editing .article-preview > p:hover,
+  .article-editing .preview-highlight:hover,
+  .article-editing .preview-list li:hover {
+    background: #f6ffed;
+    box-shadow: 0 0 0 2px #b7eb8f;
+  }
+
+  .article-editing .preview-title:focus,
+  .article-editing .preview-heading:focus,
+  .article-editing .article-preview > p:focus,
+  .article-editing .preview-highlight:focus,
+  .article-editing .preview-list li:focus {
+    background: #fff;
+    box-shadow: 0 0 0 2px #07c160;
+  }
+
+  .article-edit-fab {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 28px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    z-index: 10003;
+    font-size: 14px;
+  }
+
+  .article-edit-fab .edit-hint {
+    color: #595959;
+    white-space: nowrap;
+  }
+
+  .article-edit-fab button {
+    padding: 6px 14px;
+    border-radius: 16px;
+    border: none;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .article-edit-fab .cancel-btn {
+    background: #f5f5f5;
+    color: #595959;
+  }
+
+  .article-edit-fab .save-btn {
+    background: #07c160;
+    color: #fff;
+  }
+
+  /* 非编辑态 hover 显示编辑提示 */
+  .article-preview:not(.article-editing) .preview-title,
+  .article-preview:not(.article-editing) .preview-heading,
+  .article-preview:not(.article-editing) > p,
+  .article-preview:not(.article-editing) .preview-highlight,
+  .article-preview:not(.article-editing) .preview-list li {
+    cursor: text;
+    position: relative;
+  }
+
+  .article-preview:not(.article-editing) .preview-title:hover::after,
+  .article-preview:not(.article-editing) .preview-heading:hover::after,
+  .article-preview:not(.article-editing) > p:hover::after,
+  .article-preview:not(.article-editing) .preview-highlight:hover::after,
+  .article-preview:not(.article-editing) .preview-list li:hover::after {
+    content: '编辑';
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 2px 6px;
+    background: #07c160;
+    color: #fff;
+    font-size: 11px;
+    border-radius: 4px;
+    pointer-events: auto;
+    cursor: pointer;
+    z-index: 5;
+  }
