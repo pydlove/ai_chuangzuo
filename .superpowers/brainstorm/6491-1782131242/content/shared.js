@@ -572,7 +572,8 @@
     var customTpl = isCustom ? getRuntimeTemplates().find(function(t) { return t.key === templateKey; }) : null;
     var baseKey = customTpl ? customTpl.baseKey : templateKey;
 
-    var isMobile = mockupEl.querySelector('.mockup-header').textContent.includes('移动端');
+    var headerEl = mockupEl.querySelector('.mockup-header');
+    var isMobile = headerEl ? headerEl.textContent.includes('移动端') : false;
     var styles = getTemplateStyles(isMobile);
     var s = styles[baseKey];
     if (!s) return;
@@ -2841,6 +2842,268 @@
     overlay.appendChild(box);
     document.body.appendChild(overlay);
     overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  }
+
+  // 打开自定义模板编辑器（创建/编辑）
+  function openCustomTemplateEditor(customId) {
+    var existing = document.getElementById('custom-template-editor-modal');
+    if (existing) existing.remove();
+
+    var isEdit = !!customId;
+    var custom = isEdit ? getCustomTemplateById(customId) : null;
+    var state = {
+      baseKey: custom ? custom.baseKey : templatePresets[0].key,
+      name: custom ? custom.name : '',
+      overrides: custom ? Object.assign({}, custom.overrides) : { theme: 'brand', titleStyle: 'left', highlightStyle: 'border', useCards: false }
+    };
+
+    var overlay = document.createElement('div');
+    overlay.id = 'custom-template-editor-modal';
+    overlay.style.cssText = 'position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 10002; display: flex; align-items: center; justify-content: center; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, sans-serif;';
+
+    var box = document.createElement('div');
+    box.style.cssText = 'background: #fff; border-radius: 16px; width: 960px; max-width: 100%; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.2); position: relative; overflow: hidden;';
+
+    var closeBtn = document.createElement('button');
+    closeBtn.innerHTML = '&times;';
+    closeBtn.style.cssText = 'position: absolute; top: 10px; right: 14px; background: none; border: none; font-size: 22px; cursor: pointer; color: #8c8c8c; line-height: 1; padding: 4px 8px; z-index: 2;';
+    closeBtn.onclick = function() { overlay.remove(); };
+    box.appendChild(closeBtn);
+
+    var headerWrap = document.createElement('div');
+    headerWrap.style.cssText = 'padding: 22px 24px 14px; flex-shrink: 0;';
+    var header = document.createElement('div');
+    header.style.cssText = 'font-size: 18px; font-weight: 700; color: #1a1a1a; margin-bottom: 4px; padding-right: 28px;';
+    header.textContent = isEdit ? '编辑自定义模板' : '创建自定义模板';
+    var sub = document.createElement('div');
+    sub.style.cssText = 'font-size: 13px; color: #8c8c8c;';
+    sub.textContent = '基于现有模板，通过可视化选项快速定制你的专属风格';
+    headerWrap.appendChild(header);
+    headerWrap.appendChild(sub);
+    box.appendChild(headerWrap);
+
+    var body = document.createElement('div');
+    body.style.cssText = 'display: flex; gap: 16px; padding: 0 24px; flex: 1; min-height: 0;';
+
+    var previewPane = document.createElement('div');
+    previewPane.style.cssText = 'flex: 0 0 55%; background: #f5f5f5; border-radius: 10px; overflow: hidden; min-height: 0; box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05); position: relative;';
+    body.appendChild(previewPane);
+
+    var configPane = document.createElement('div');
+    configPane.style.cssText = 'flex: 1; min-width: 0; overflow-y: auto; padding-right: 4px;';
+    body.appendChild(configPane);
+
+    function buildSamplePreview() {
+      var base = templatePresets.find(function(p) { return p.key === state.baseKey; }) || templatePresets[0];
+      var wrap = document.createElement('div');
+      wrap.className = 'mockup';
+      wrap.style.cssText = 'height: 100%; overflow-y: auto; padding: 24px; box-sizing: border-box;';
+      var inner = document.createElement('div');
+      inner.className = 'mockup-body';
+      inner.style.cssText = 'background: #fff; border-radius: 8px; padding: 24px; min-height: 100%; box-sizing: border-box;';
+      var article = document.createElement('div');
+      article.className = 'article-preview';
+      article.setAttribute('data-template', state.baseKey);
+      article.innerHTML =
+        '<h1 class="preview-title" style="margin-bottom: 16px; line-height: 1.4;">文章标题示例</h1>' +
+        '<p style="margin-bottom: 16px;">这是一段正文示例，用来预览模板效果。你可以通过右侧选项调整颜色、标题样式和段落卡片。</p>' +
+        '<h3 class="preview-heading" style="margin: 24px 0 12px;">01｜小标题示例</h3>' +
+        '<p style="margin-bottom: 16px;">这是另一段正文，展示模板的段落和行距效果。</p>' +
+        '<div class="preview-highlight" style="margin: 20px 0; padding: 16px; border-radius: 0 8px 8px 0;">这是重点高亮块的示例。</div>' +
+        '<p style="margin-bottom: 16px;">最后一段正文，帮助你判断整体阅读体验。</p>';
+      inner.appendChild(article);
+      wrap.appendChild(inner);
+      previewPane.innerHTML = '';
+      previewPane.appendChild(wrap);
+      applyTemplateToPreview(wrap, isEdit ? customId : state.baseKey);
+      if (!isEdit) {
+        applyTemplateOverrides(wrap, state.overrides);
+      }
+    }
+
+    function renderConfig() {
+      configPane.innerHTML = '';
+
+      function addLabel(text) {
+        var label = document.createElement('div');
+        label.style.cssText = 'font-weight: 600; color: #1a1a1a; font-size: 14px; margin-bottom: 10px;';
+        label.textContent = text;
+        configPane.appendChild(label);
+      }
+
+      function addSpacer() {
+        var spacer = document.createElement('div');
+        spacer.style.cssText = 'height: 20px;';
+        configPane.appendChild(spacer);
+      }
+
+      addLabel('基于模板');
+      var baseSelect = document.createElement('select');
+      baseSelect.style.cssText = 'width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; margin-bottom: 4px; color: #262626;';
+      templatePresets.forEach(function(p) {
+        var opt = document.createElement('option');
+        opt.value = p.key;
+        opt.textContent = p.name;
+        if (p.key === state.baseKey) opt.selected = true;
+        baseSelect.appendChild(opt);
+      });
+      baseSelect.onchange = function() {
+        state.baseKey = baseSelect.value;
+        buildSamplePreview();
+      };
+      configPane.appendChild(baseSelect);
+      addSpacer();
+
+      addLabel('配色主题');
+      var themeWrap = document.createElement('div');
+      themeWrap.style.cssText = 'display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 4px;';
+      var themeOptions = [
+        { key: 'brand', color: '#07c160', name: '品牌绿' },
+        { key: 'blue', color: '#1677ff', name: '商务蓝' },
+        { key: 'red', color: '#cf1322', name: '营销红' },
+        { key: 'gray', color: '#595959', name: '学术灰' },
+        { key: 'pink', color: '#ff2442', name: '小红书粉' },
+        { key: 'orange', color: '#ff6600', name: '头条橙' }
+      ];
+      themeOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'custom-theme-btn';
+        var active = state.overrides.theme === opt.key;
+        btn.title = opt.name;
+        btn.style.cssText = 'width: 32px; height: 32px; border-radius: 50%; border: 3px solid ' + (active ? '#1a1a1a' : 'transparent') + '; background: ' + opt.color + '; cursor: pointer; box-shadow: 0 0 0 1px #d9d9d9;';
+        btn.onclick = function() {
+          state.overrides.theme = opt.key;
+          renderConfig();
+          buildSamplePreview();
+        };
+        themeWrap.appendChild(btn);
+      });
+      configPane.appendChild(themeWrap);
+      addSpacer();
+
+      addLabel('标题样式');
+      var titleWrap = document.createElement('div');
+      titleWrap.style.cssText = 'display: flex; gap: 10px; margin-bottom: 4px;';
+      var titleOptions = [
+        { key: 'left', label: '左对齐' },
+        { key: 'center', label: '居中' },
+        { key: 'underline', label: '下划线' }
+      ];
+      titleOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'custom-title-btn';
+        var active = state.overrides.titleStyle === opt.key;
+        btn.textContent = opt.label;
+        btn.style.cssText = 'flex: 1; padding: 8px; border: 1px solid ' + (active ? '#07c160' : '#d9d9d9') + '; background: ' + (active ? '#f6ffed' : '#fff') + '; color: ' + (active ? '#07c160' : '#595959') + '; border-radius: 6px; cursor: pointer; font-size: 13px;';
+        btn.onclick = function() {
+          state.overrides.titleStyle = opt.key;
+          renderConfig();
+          buildSamplePreview();
+        };
+        titleWrap.appendChild(btn);
+      });
+      configPane.appendChild(titleWrap);
+      addSpacer();
+
+      addLabel('重点高亮');
+      var highlightWrap = document.createElement('div');
+      highlightWrap.style.cssText = 'display: flex; gap: 10px; margin-bottom: 4px;';
+      var highlightOptions = [
+        { key: 'border', label: '左边框' },
+        { key: 'background', label: '背景块' },
+        { key: 'quote', label: '引用体' }
+      ];
+      highlightOptions.forEach(function(opt) {
+        var btn = document.createElement('button');
+        btn.className = 'custom-highlight-btn';
+        var active = state.overrides.highlightStyle === opt.key;
+        btn.textContent = opt.label;
+        btn.style.cssText = 'flex: 1; padding: 8px; border: 1px solid ' + (active ? '#07c160' : '#d9d9d9') + '; background: ' + (active ? '#f6ffed' : '#fff') + '; color: ' + (active ? '#07c160' : '#595959') + '; border-radius: 6px; cursor: pointer; font-size: 13px;';
+        btn.onclick = function() {
+          state.overrides.highlightStyle = opt.key;
+          renderConfig();
+          buildSamplePreview();
+        };
+        highlightWrap.appendChild(btn);
+      });
+      configPane.appendChild(highlightWrap);
+      addSpacer();
+
+      addLabel('段落卡片');
+      var cardWrap = document.createElement('div');
+      cardWrap.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 4px;';
+      var cardToggle = document.createElement('button');
+      cardToggle.id = 'custom-card-toggle';
+      cardToggle.style.cssText = 'width: 44px; height: 24px; border-radius: 12px; border: none; cursor: pointer; position: relative; transition: background 0.2s; background: ' + (state.overrides.useCards ? '#07c160' : '#d9d9d9') + ';';
+      cardToggle.innerHTML = '<span style="position: absolute; top: 2px; left: ' + (state.overrides.useCards ? '22px' : '2px') + '; width: 20px; height: 20px; border-radius: 50%; background: #fff; transition: left 0.2s;"></span>';
+      cardToggle.onclick = function() {
+        state.overrides.useCards = !state.overrides.useCards;
+        renderConfig();
+        buildSamplePreview();
+      };
+      var cardLabel = document.createElement('span');
+      cardLabel.style.cssText = 'font-size: 13px; color: #595959;';
+      cardLabel.textContent = state.overrides.useCards ? '已开启' : '已关闭';
+      cardWrap.appendChild(cardToggle);
+      cardWrap.appendChild(cardLabel);
+      configPane.appendChild(cardWrap);
+      addSpacer();
+
+      addLabel('模板名称');
+      var nameInput = document.createElement('input');
+      nameInput.id = 'custom-template-name';
+      nameInput.type = 'text';
+      nameInput.value = state.name;
+      nameInput.placeholder = '给你的模板起个名字';
+      nameInput.style.cssText = 'width: 100%; padding: 8px 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 14px; box-sizing: border-box; color: #262626;';
+      nameInput.oninput = function() {
+        state.name = nameInput.value.slice(0, 20);
+      };
+      configPane.appendChild(nameInput);
+      addSpacer();
+    }
+
+    renderConfig();
+    buildSamplePreview();
+
+    box.appendChild(body);
+
+    var footer = document.createElement('div');
+    footer.style.cssText = 'display: flex; justify-content: flex-end; align-items: center; gap: 10px; padding: 16px 24px 22px; flex-shrink: 0; border-top: 1px solid #f0f0f0; margin-top: 16px;';
+
+    var cancelBtn = document.createElement('button');
+    cancelBtn.textContent = '取消';
+    cancelBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #d9d9d9; background: #fff; color: #595959; cursor: pointer; font-size: 14px;';
+    cancelBtn.onclick = function() { overlay.remove(); };
+    footer.appendChild(cancelBtn);
+
+    var saveBtn = document.createElement('button');
+    saveBtn.id = 'custom-template-save';
+    saveBtn.textContent = isEdit ? '保存' : '创建';
+    saveBtn.style.cssText = 'padding: 8px 18px; border-radius: 8px; border: 1px solid #07c160; background: #07c160; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600;';
+    saveBtn.onclick = function() {
+      if (!state.name.trim()) {
+        showToast('请输入模板名称');
+        return;
+      }
+      var data = {
+        name: state.name.trim(),
+        baseKey: state.baseKey,
+        overrides: state.overrides
+      };
+      if (isEdit) {
+        updateCustomTemplate(customId, data);
+      } else {
+        createCustomTemplate(data);
+      }
+      overlay.remove();
+    };
+    footer.appendChild(saveBtn);
+
+    box.appendChild(footer);
+    overlay.appendChild(box);
+    overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+    document.body.appendChild(overlay);
   }
 
   // 打开字数设置弹窗（按平台推荐 / 按内容场景 / 按字数档位 / 自定义字数）
