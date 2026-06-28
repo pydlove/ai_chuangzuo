@@ -3142,10 +3142,10 @@
   }
 
   function serializeArticleBlocks(mockupEl) {
-    var article = mockupEl.closest('.article-preview');
-    if (!article) return [];
+    var root = mockupEl.closest('.mockup-body');
+    if (!root) return [];
     var combinedSelector = getEditableSelectors().join(', ');
-    return Array.from(article.querySelectorAll(combinedSelector)).map(function(el) {
+    return Array.from(root.querySelectorAll(combinedSelector)).map(function(el) {
       var type = 'paragraph';
       if (el.classList.contains('preview-title')) type = 'title';
       else if (el.classList.contains('preview-heading')) type = 'heading';
@@ -3157,10 +3157,10 @@
 
   function applyArticleEdits(mockupEl, edits) {
     if (!edits || !Array.isArray(edits.blocks)) return;
-    var article = mockupEl.closest('.article-preview');
-    if (!article) return;
+    var root = mockupEl.closest('.mockup-body');
+    if (!root) return;
     var combinedSelector = getEditableSelectors().join(', ');
-    var editableEls = Array.from(article.querySelectorAll(combinedSelector));
+    var editableEls = Array.from(root.querySelectorAll(combinedSelector));
     edits.blocks.forEach(function(block, idx) {
       if (idx < editableEls.length && block.html) {
         editableEls[idx].innerHTML = block.html;
@@ -3236,22 +3236,22 @@
   function enableArticleEditing(mockupEl) {
     if (!mockupEl) mockupEl = document.querySelector('.mockup .article-preview');
     if (!mockupEl) return;
-    var article = mockupEl.closest('.article-preview');
-    if (!article) return;
-    if (article.classList.contains('article-editing')) return;
+    var root = mockupEl.closest('.mockup-body');
+    if (!root) return;
+    if (root.classList.contains('article-editing')) return;
 
-    __articleEditSnapshot = article.innerHTML;
-    article.classList.add('article-editing');
+    __articleEditSnapshot = root.innerHTML;
+    root.classList.add('article-editing');
 
     var selectors = getEditableSelectors();
     selectors.forEach(function(selector) {
-      article.querySelectorAll(selector).forEach(function(el) {
+      root.querySelectorAll(selector).forEach(function(el) {
         el.setAttribute('contenteditable', 'true');
         el.addEventListener('input', function() { markEditableModified(el); });
       });
     });
 
-    attachPasteSanitizer(article);
+    attachPasteSanitizer(root);
 
     createEditFab(
       function() { disableArticleEditing(mockupEl, true); },
@@ -3263,13 +3263,13 @@
   function disableArticleEditing(mockupEl, isCancel) {
     if (!mockupEl) mockupEl = document.querySelector('.mockup .article-preview');
     if (!mockupEl) return;
-    var article = mockupEl.closest('.article-preview');
-    if (!article) return;
+    var root = mockupEl.closest('.mockup-body');
+    if (!root) return;
 
     if (isCancel && __articleEditSnapshot !== null) {
-      article.innerHTML = __articleEditSnapshot;
+      root.innerHTML = __articleEditSnapshot;
     } else {
-      var title = article.querySelector('.preview-title');
+      var title = root.querySelector('.preview-title');
       if (title && !title.innerText.trim()) {
         showToast('标题不能为空');
         return;
@@ -3277,7 +3277,7 @@
       var edits = {
         articleId: 'default_preview',
         savedAt: Date.now(),
-        blocks: serializeArticleBlocks(article)
+        blocks: serializeArticleBlocks(root)
       };
       if (saveArticleEdits(edits)) {
         showToast('内容已保存');
@@ -3286,16 +3286,16 @@
       }
     }
 
-    article.classList.remove('article-editing');
+    root.classList.remove('article-editing');
     var selectors = getEditableSelectors();
     selectors.forEach(function(selector) {
-      article.querySelectorAll(selector).forEach(function(el) {
+      root.querySelectorAll(selector).forEach(function(el) {
         el.removeAttribute('contenteditable');
         el.removeAttribute('data-edited');
       });
     });
 
-    detachPasteSanitizer(article);
+    detachPasteSanitizer(root);
     removeEditFab();
     __articleEditSnapshot = null;
   }

@@ -165,6 +165,13 @@
     if (floatBar) floatBar.style.display = 'flex';
     if (typeof applySelectedTemplateToPreview === 'function') applySelectedTemplateToPreview();
     if (typeof renderPublishMeta === 'function') renderPublishMeta();
+    // 应用用户保存的文章编辑
+    var edits = loadArticleEdits();
+    if (edits) {
+      document.querySelectorAll('.article-preview').forEach(function(el) {
+        applyArticleEdits(el, edits);
+      });
+    }
   });
 </script>
 </body>
