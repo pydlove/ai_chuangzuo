@@ -2178,6 +2178,7 @@
 
   // ===== 自定义模板存储 =====
   var CUSTOM_TEMPLATES_KEY = 'aichuangzuo_custom_templates';
+  var SELECTED_TEMPLATE_KEY = 'aichuangzuo_selected_template';
 
   function loadCustomTemplates() {
     try {
@@ -2247,6 +2248,47 @@
 
   function getCustomTemplateById(id) {
     return loadCustomTemplates().find(function(t) { return t.id === id; }) || null;
+  }
+
+  function saveSelectedTemplate(key) {
+    try {
+      localStorage.setItem(SELECTED_TEMPLATE_KEY, key);
+    } catch (e) {}
+  }
+
+  function loadSelectedTemplate() {
+    try {
+      return localStorage.getItem(SELECTED_TEMPLATE_KEY) || 'wechat';
+    } catch (e) {
+      return 'wechat';
+    }
+  }
+
+  function applySelectedTemplateToPreview() {
+    var key = loadSelectedTemplate();
+    document.querySelectorAll('#screen-preview .mockup').forEach(function(mockup) {
+      applyTemplateToPreview(mockup, key);
+    });
+  }
+
+  function getRuntimeTemplates() {
+    return templatePresets.concat(loadCustomTemplates().map(function(t) {
+      var base = templatePresets.find(function(p) { return p.key === t.baseKey; }) || templatePresets[0];
+      return {
+        key: t.id,
+        name: t.name,
+        platform: 'custom',
+        desc: '基于 ' + base.name,
+        iconColor: base.iconColor,
+        iconChar: '我',
+        previewBg: base.previewBg,
+        previewBorder: base.previewBorder,
+        previewHtml: base.previewHtml,
+        isCustom: true,
+        baseKey: t.baseKey,
+        overrides: t.overrides
+      };
+    }));
   }
 
   // 发布平台选择数据与状态
@@ -2508,9 +2550,13 @@
       { key: 'baijiahao', label: '百家号' },
       { key: 'zhihu', label: '知乎' },
       { key: 'douyin', label: '抖音图文' },
-      { key: 'general', label: '通用风格' }
+      { key: 'general', label: '通用风格' },
+      { key: 'custom', label: '我的模板' }
     ];
     var selectedPlatform = 'all';
+
+    var runtimeTemplates = getRuntimeTemplates();
+    var selectedTemplate = runtimeTemplates[0];
 
     var overlay = document.createElement('div');
     overlay.id = 'template-lib-modal';
@@ -2534,7 +2580,7 @@
     header.textContent = '导出模板库';
     var sub = document.createElement('div');
     sub.style.cssText = 'font-size: 13px; color: #8c8c8c;';
-    sub.textContent = '共 ' + templatePresets.length + ' 个模板 · 左侧实时预览 · 右侧选择模板';
+    sub.textContent = '共 ' + runtimeTemplates.length + ' 个模板 · 左侧实时预览 · 右侧选择模板';
     headerWrap.appendChild(header);
     headerWrap.appendChild(sub);
     box.appendChild(headerWrap);
@@ -2599,14 +2645,39 @@
     function renderList() {
       listPane.innerHTML = '';
       var filtered = selectedPlatform === 'all'
-        ? templatePresets
-        : templatePresets.filter(function(t) { return t.platform === selectedPlatform; });
+        ? runtimeTemplates
+        : selectedPlatform === 'custom'
+          ? runtimeTemplates.filter(function(t) { return t.isCustom; })
+          : runtimeTemplates.filter(function(t) { return t.platform === selectedPlatform; });
+
+      if (selectedPlatform === 'custom') {
+        var createBtn = document.createElement('button');
+        createBtn.textContent = '+ 创建自定义模板';
+        createBtn.style.cssText = 'width: 100%; padding: 10px; margin-bottom: 12px; background: #f6ffed; color: #07c160; border: 1px dashed #b7eb8f; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500;';
+        createBtn.onmouseover = function() { createBtn.style.background = '#d9f7be'; };
+        createBtn.onmouseout = function() { createBtn.style.background = '#f6ffed'; };
+        createBtn.onclick = function() {
+          overlay.remove();
+          openCustomTemplateEditor();
+        };
+        listPane.appendChild(createBtn);
+
+        if (filtered.length === 0) {
+          var empty = document.createElement('div');
+          empty.style.cssText = 'text-align: center; padding: 40px 20px; color: #8c8c8c; font-size: 14px;';
+          empty.innerHTML = '<div style="margin-bottom: 12px;">还没有自定义模板</div><div style="font-size: 12px;">点击上方按钮创建你的第一个模板</div>';
+          listPane.appendChild(empty);
+          return;
+        }
+      }
 
       filtered.forEach(function(t, idx) {
         var row = document.createElement('div');
         row.className = 'template-lib-row';
-        row.style.cssText = 'border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: #fff; display: flex; gap: 10px; align-items: center; transition: all 0.15s; box-sizing: border-box;';
+        row.style.cssText = 'border: 1px solid #e8e8e8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; cursor: pointer; background: #fff; display: flex; gap: 10px; align-items: center; transition: all 0.15s; box-sizing: border-box; position: relative;';
+        var badge = t.isCustom ? '<span style="position: absolute; top: -6px; left: -6px; background: #07c160; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; z-index: 1;">我</span>' : '';
         row.innerHTML =
+          badge +
           '<svg width="22" height="22" viewBox="0 0 16 16" style="flex-shrink: 0;"><rect width="16" height="16" rx="4" fill="' + t.iconColor + '"/><text x="8" y="12" text-anchor="middle" fill="#fff" font-size="10" font-weight="bold" font-family="sans-serif">' + t.iconChar + '</text></svg>' +
           '<div style="flex: 1; min-width: 0;">' +
             '<div style="font-weight: 600; color: #1a1a1a; font-size: 13px; margin-bottom: 2px;">' + t.name + '</div>' +
@@ -2617,7 +2688,29 @@
         row.onclick = function() { selectInList(t, row); };
         listPane.appendChild(row);
 
-        if (idx === 0) {
+        if (t.isCustom) {
+          var actions = document.createElement('div');
+          actions.style.cssText = 'display: none; gap: 6px; position: absolute; top: 8px; right: 8px;';
+          actions.innerHTML = '<button class="tpl-edit-btn" style="padding: 2px 8px; background: #fff; border: 1px solid #d9d9d9; border-radius: 4px; font-size: 11px; color: #595959; cursor: pointer;">编辑</button><button class="tpl-delete-btn" style="padding: 2px 8px; background: #fff; border: 1px solid #ffccc7; border-radius: 4px; font-size: 11px; color: #cf1322; cursor: pointer;">删除</button>';
+          row.onmouseenter = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#07c160'; row.style.boxShadow = '0 2px 8px rgba(7,193,96,0.1)'; } actions.style.display = 'flex'; };
+          row.onmouseleave = function() { if (!row.classList.contains('selected')) { row.style.borderColor = '#e8e8e8'; row.style.boxShadow = 'none'; } actions.style.display = 'none'; };
+          row.appendChild(actions);
+          actions.querySelector('.tpl-edit-btn').onclick = function(e) {
+            e.stopPropagation();
+            overlay.remove();
+            openCustomTemplateEditor(t.key);
+          };
+          actions.querySelector('.tpl-delete-btn').onclick = function(e) {
+            e.stopPropagation();
+            if (confirm('确定删除「' + t.name + '」？删除后不可恢复')) {
+              deleteCustomTemplate(t.key);
+              runtimeTemplates = getRuntimeTemplates();
+              renderList();
+            }
+          };
+        }
+
+        if (idx === 0 && selectedPlatform !== 'custom') {
           row.classList.add('selected');
           row.style.background = '#f6ffed';
           row.style.borderColor = '#07c160';
@@ -3012,6 +3105,8 @@
         setTimeout(function() { chipDiv.classList.remove('flash'); }, 1500);
       }
     });
+
+    saveSelectedTemplate(tpl.key);
 
     // 如果在预览页，同步更新主预览区样式和模板卡片选中状态
     var previewScreen = document.getElementById('screen-preview');

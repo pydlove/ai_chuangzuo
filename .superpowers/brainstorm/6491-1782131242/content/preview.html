@@ -158,11 +158,12 @@
     }
   }
 </style>
-<script src="shared.js"></script>
+<script src="shared.js?v=6"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
     var floatBar = document.getElementById('floating-action-bar');
     if (floatBar) floatBar.style.display = 'flex';
+    if (typeof applySelectedTemplateToPreview === 'function') applySelectedTemplateToPreview();
     if (typeof renderPublishMeta === 'function') renderPublishMeta();
   });
 </script>
