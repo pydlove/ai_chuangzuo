@@ -567,16 +567,23 @@
   function applyTemplateToPreview(mockupEl, templateKey) {
     var preview = mockupEl.querySelector('.article-preview');
     if (!preview || !templateKey) return;
+
+    var isCustom = templateKey.indexOf('custom_') === 0;
+    var customTpl = isCustom ? getRuntimeTemplates().find(function(t) { return t.key === templateKey; }) : null;
+    var baseKey = customTpl ? customTpl.baseKey : templateKey;
+
     var isMobile = mockupEl.querySelector('.mockup-header').textContent.includes('移动端');
     var styles = getTemplateStyles(isMobile);
-    var s = styles[templateKey];
+    var s = styles[baseKey];
     if (!s) return;
+
+    preview.setAttribute('data-template', templateKey);
     Object.assign(preview.style, s.container);
     preview.querySelectorAll('.preview-title').forEach(function(el) { Object.assign(el.style, s.title); });
     preview.querySelectorAll('.preview-heading').forEach(function(el, i) {
       Object.assign(el.style, s.heading);
-      if (templateHeadingTexts[templateKey] && templateHeadingTexts[templateKey][i]) {
-        el.textContent = templateHeadingTexts[templateKey][i];
+      if (templateHeadingTexts[baseKey] && templateHeadingTexts[baseKey][i]) {
+        el.textContent = templateHeadingTexts[baseKey][i];
       }
     });
     preview.querySelectorAll('.preview-highlight').forEach(function(el) { Object.assign(el.style, s.highlight); });
@@ -586,6 +593,88 @@
     preview.querySelectorAll('.preview-divider').forEach(function(el) { Object.assign(el.style, s.divider || {}); });
     preview.querySelectorAll('.preview-tag').forEach(function(el) { Object.assign(el.style, s.tag || {}); });
     preview.querySelectorAll('.preview-cta').forEach(function(el) { Object.assign(el.style, s.cta || {}); });
+
+    if (isCustom && customTpl && customTpl.overrides) {
+      applyTemplateOverrides(mockupEl, customTpl.overrides);
+    }
+  }
+
+  var themeColorMap = {
+    brand:  { primary: '#07c160', bg: '#f6ffed', border: '#d9f7be' },
+    blue:   { primary: '#1677ff', bg: '#f0f5ff', border: '#d6e4ff' },
+    red:    { primary: '#cf1322', bg: '#fff2f0', border: '#ffccc7' },
+    gray:   { primary: '#595959', bg: '#fafafa', border: '#e8e8e8' },
+    pink:   { primary: '#ff2442', bg: '#fff0f3', border: '#ffd1d9' },
+    orange: { primary: '#ff6600', bg: '#fff7e6', border: '#ffd591' }
+  };
+
+  function applyTemplateOverrides(mockupEl, overrides) {
+    if (!overrides) return;
+    var preview = mockupEl.querySelector('.article-preview');
+    if (!preview) return;
+
+    var theme = themeColorMap[overrides.theme];
+    var primary = theme ? theme.primary : '#07c160';
+    var bg = theme ? theme.bg : '#f6ffed';
+    var border = theme ? theme.border : '#d9f7be';
+
+    preview.querySelectorAll('.preview-title').forEach(function(el) {
+      el.style.color = primary;
+      if (overrides.titleStyle === 'center') {
+        el.style.textAlign = 'center';
+        el.style.borderBottom = 'none';
+        el.style.paddingBottom = '0';
+      } else if (overrides.titleStyle === 'left') {
+        el.style.textAlign = 'left';
+        el.style.borderBottom = 'none';
+        el.style.paddingBottom = '0';
+      } else if (overrides.titleStyle === 'underline') {
+        el.style.textAlign = 'left';
+        el.style.borderBottom = '2px solid ' + primary;
+        el.style.paddingBottom = '8px';
+      }
+    });
+
+    preview.querySelectorAll('.preview-heading').forEach(function(el) {
+      el.style.color = primary;
+      el.style.borderLeftColor = primary;
+      el.style.borderBottomColor = primary;
+    });
+
+    preview.querySelectorAll('.preview-highlight').forEach(function(el) {
+      if (overrides.highlightStyle === 'border') {
+        el.style.background = bg;
+        el.style.borderLeft = '4px solid ' + primary;
+        el.style.border = 'none';
+        el.style.borderLeft = '4px solid ' + primary;
+        el.style.fontStyle = 'normal';
+      } else if (overrides.highlightStyle === 'background') {
+        el.style.background = bg;
+        el.style.border = '1px solid ' + border;
+        el.style.borderLeft = '1px solid ' + border;
+        el.style.fontStyle = 'normal';
+      } else if (overrides.highlightStyle === 'quote') {
+        el.style.background = 'transparent';
+        el.style.border = 'none';
+        el.style.borderLeft = '4px solid ' + primary;
+        el.style.fontStyle = 'italic';
+      }
+    });
+
+    preview.querySelectorAll('.preview-list li').forEach(function(el) {
+      el.style.color = primary;
+    });
+
+    if (overrides.useCards) {
+      preview.querySelectorAll('p').forEach(function(el) {
+        if (el.classList.contains('preview-title') || el.closest('.preview-highlight')) return;
+        el.style.background = '#fff';
+        el.style.border = '1px solid ' + border;
+        el.style.borderRadius = '8px';
+        el.style.padding = '12px 16px';
+        el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)';
+      });
+    }
   }
 
   function selectTemplate(card) {
