@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>控制台 - 爱创作</title>
+<link rel="stylesheet" href="shared.css">
+<style>
+  body { margin: 0; min-height: 100vh; }
+</style>
+</head>
+<body>
+<div class="console-layout">
+  <aside class="console-sidebar">
+    <div class="console-sidebar-brand">爱创作</div>
+    <nav class="console-sidebar-nav">
+      <a class="console-sidebar-item active" href="create.html" data-key="create">
+        <span>📝</span> 创作
+      </a>
+      <a class="console-sidebar-item" href="loading.html" data-key="queue">
+        <span>⏳</span> 生成队列
+      </a>
+      <a class="console-sidebar-item" href="preview.html" data-key="preview">
+        <span>👁</span> 预览导出
+      </a>
+      <a class="console-sidebar-item" href="works.html" data-key="works">
+        <span>📚</span> 我的作品
+      </a>
+    </nav>
+  </aside>
+
+  <div class="console-main">
+    <header class="console-header">
+      <div class="console-header-left">
+        <div class="console-avatar" onclick="toggleUserMenu()">U</div>
+        <div class="console-membership-badge" onclick="openMembershipModal()">会员</div>
+        <div class="console-user-menu" id="console-user-menu">
+          <a href="settings.html">个人中心</a>
+          <a href="login.html">退出登录</a>
+        </div>
+      </div>
+      <div class="console-header-center">爱创作</div>
+      <div class="console-header-right">
+        <button class="console-icon-btn" onclick="openMessageModal()" title="消息">🔔<span class="notification-badge"></span></button>
+        <button class="console-icon-btn" onclick="openTutorialModal()" title="教程">📖</button>
+        <button class="console-icon-btn" onclick="toggleTheme()" title="切换主题">🌙</button>
+        <button class="console-icon-btn" onclick="openFeedbackModal()" title="反馈">💬</button>
+        <button class="console-icon-btn" onclick="openAboutModal()" title="关于我们">ℹ️</button>
+      </div>
+    </header>
+
+    <div class="console-content">
+      <div class="console-welcome">
+        <h1>欢迎回来 👋</h1>
+        <p>从左侧菜单开始创作，或查看生成队列和作品。</p>
+        <div class="console-quick-actions">
+          <a href="create.html" class="console-btn-primary">开始创作</a>
+          <a href="works.html" class="console-btn-secondary">查看作品</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="shared.js"></script>
+<script>
+  function toggleUserMenu() {
+    var menu = document.getElementById('console-user-menu');
+    menu.classList.toggle('visible');
+  }
+
+  document.addEventListener('click', function(e) {
+    var menu = document.getElementById('console-user-menu');
+    var avatar = document.querySelector('.console-avatar');
+    if (menu && avatar && !menu.contains(e.target) && !avatar.contains(e.target)) {
+      menu.classList.remove('visible');
+    }
+  });
+
+  document.addEventListener('DOMContentLoaded', function() {
+    initTheme();
+    updateNotificationBadge();
+  });
+</script>
+</body>
+</html>
