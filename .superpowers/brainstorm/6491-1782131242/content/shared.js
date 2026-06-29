@@ -4126,6 +4126,7 @@
 
   // 页面加载时初始化
   document.addEventListener('DOMContentLoaded', function() {
+    initTheme();
     initDemoQueueData();
     updateGenerationBadge();
     startQueueConsumer();
@@ -4333,3 +4334,25 @@
     }
   }
 
+
+  // ===================== 主题切换 =====================
+  var THEME_KEY = 'aichuangzuo_theme';
+
+  function getTheme() {
+    return localStorage.getItem(THEME_KEY) || 'light';
+  }
+
+  function setTheme(theme) {
+    if (theme !== 'light' && theme !== 'dark') return;
+    document.body.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }
+
+  function toggleTheme() {
+    var next = getTheme() === 'light' ? 'dark' : 'light';
+    setTheme(next);
+  }
+
+  function initTheme() {
+    setTheme(getTheme());
+  }
