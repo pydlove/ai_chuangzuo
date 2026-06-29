@@ -4546,3 +4546,35 @@
     div.textContent = text;
     return div.innerHTML;
   }
+
+  // ===================== 教程弹框 =====================
+  function openTutorialModal() {
+    if (document.getElementById('tutorial-modal')) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'tutorial-modal';
+    overlay.innerHTML = '<div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">' +
+      '<div class="modal-header"><div class="modal-title">教程与帮助</div><button class="modal-close" onclick="closeTutorialModal()">×</button></div>' +
+      '<div class="modal-body" style="padding:0;">' +
+        '<div onclick="showToast(&#39;帮助文档占位&#39;)" style="padding:16px 20px;border-bottom:1px solid var(--border-color);cursor:pointer;">' +
+          '<div style="font-weight:600;font-size:15px;margin-bottom:4px;color:var(--text-color);">📄 帮助 / 文档</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary);">从基础到专业技巧的快速指南，助你充分利用爱创作的功能。</div>' +
+        '</div>' +
+        '<div onclick="showToast(&#39;B站视频占位&#39;)" style="padding:16px 20px;border-bottom:1px solid var(--border-color);cursor:pointer;">' +
+          '<div style="font-weight:600;font-size:15px;margin-bottom:4px;color:var(--text-color);">▶️ 观看 B 站</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary);">视频教程、定期直播和课程，适合学习者。直播中设有在线答疑时间！</div>' +
+        '</div>' +
+        '<div onclick="showToast(&#39;微信交流群占位&#39;)" style="padding:16px 20px;cursor:pointer;">' +
+          '<div style="font-weight:600;font-size:15px;margin-bottom:4px;color:var(--text-color);">💬 加入微信交流群</div>' +
+          '<div style="font-size:13px;color:var(--text-secondary);">一个充满活力的作者网络，提供帮助的渠道，分享创作技巧、经验和最佳实践。</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+    overlay.onclick = closeTutorialModal;
+    document.body.appendChild(overlay);
+  }
+
+  function closeTutorialModal() {
+    var el = document.getElementById('tutorial-modal');
+    if (el) el.remove();
+  }
