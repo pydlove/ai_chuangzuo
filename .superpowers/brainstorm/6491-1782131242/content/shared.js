@@ -4366,3 +4366,38 @@
     footer.innerHTML = '&copy; 2026 爱创作 · All Rights Reserved | 备案号：京ICP备XXXXXXXX号 | <a onclick="openAboutModal()">关于我们</a>';
     document.body.appendChild(footer);
   }
+
+  // ===================== 关于我们弹框 =====================
+  function openAboutModal() {
+    if (document.getElementById('about-modal')) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'about-modal';
+    overlay.innerHTML = '<div class="modal-content" onclick="event.stopPropagation()">' +
+      '<div class="modal-header"><div class="modal-title">关于我们</div><button class="modal-close" onclick="closeAboutModal()">×</button></div>' +
+      '<div class="modal-body">' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">' +
+          '<div style="width:48px;height:48px;border-radius:50%;background:#07c160;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;">爱</div>' +
+          '<div><div style="font-weight:700;font-size:16px;">爱创作</div><div style="color:var(--text-secondary);font-size:13px;">创作者灵感旅程中的同行者</div></div>' +
+        '</div>' +
+        '<p>爱创作希望成为创作者灵感旅程中的同行者。我们希望让写作不再被“文笔”所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。AI 在这里不是替代者，而是帮助作者整理思路、激发灵感、拓展想象的辅助工具。</p>' +
+        '<p>我们珍惜每一位作者投入在作品里的情绪、时间与热爱，也尊重原创应有的价值。对于利用 AI 进行搬运、洗稿、恶意拼接内容等行为，爱创作强烈反对。技术的发展不该消解创作，而应让真正的创意被更多人看见。</p>' +
+        '<p>平台中的 AI 生成结果，仅作为创作过程中的参考与辅助内容，相关输出由模型自动生成，并不代表平台立场或价值观点。</p>' +
+      '</div>' +
+      '<div class="modal-footer-actions">' +
+        '<button class="modal-action-btn" onclick="showToast(&#39;用户协议占位&#39;)">📄 用户协议</button>' +
+        '<button class="modal-action-btn" onclick="showToast(&#39;隐私政策占位&#39;)">🛡️ 隐私政策</button>' +
+        '<button class="modal-action-btn" onclick="showToast(&#39;关注微信占位&#39;)">💬 关注微信</button>' +
+        '<button class="modal-action-btn" onclick="showToast(&#39;联系电话占位&#39;)">📞 联系电话</button>' +
+        '<button class="modal-action-btn" onclick="showToast(&#39;举报占位&#39;)">🚩 举报</button>' +
+      '</div>' +
+      '<div style="text-align:center;padding-bottom:16px;color:var(--text-secondary);font-size:12px;">&copy; 2026 爱创作 · All Rights Reserved</div>' +
+    '</div>';
+    overlay.onclick = closeAboutModal;
+    document.body.appendChild(overlay);
+  }
+
+  function closeAboutModal() {
+    var el = document.getElementById('about-modal');
+    if (el) el.remove();
+  }
