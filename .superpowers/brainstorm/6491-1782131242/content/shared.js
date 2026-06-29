@@ -3871,6 +3871,9 @@
           task.completedAt = new Date().toISOString();
           changed = true;
           showGenerationToast('《' + task.title + '》生成完成', 'success');
+          if (typeof addNotification === 'function') {
+            addNotification('generation', '文章生成完成', '《' + task.title + '》已生成，点击预览');
+          }
         } else {
           changed = true;
         }
