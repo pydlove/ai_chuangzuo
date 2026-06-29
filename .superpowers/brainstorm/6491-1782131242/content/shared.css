@@ -10,6 +10,10 @@
   --primary-color: #07c160;
 }
 
+html {
+  color-scheme: light dark;
+}
+
 body[data-theme="dark"] {
   --bg-color: #141414;
   --text-color: #e0e0e0;
@@ -1328,9 +1332,15 @@ body {
   padding: 10px 12px;
   border-radius: 8px;
   color: var(--text-color);
+  -webkit-text-fill-color: var(--text-color);
   text-decoration: none;
   font-size: 14px;
   transition: all 0.2s;
+}
+.console-sidebar-item:link,
+.console-sidebar-item:visited {
+  color: var(--text-color);
+  -webkit-text-fill-color: var(--text-color);
 }
 .console-sidebar-item:hover {
   background: var(--sidebar-hover);
@@ -1338,7 +1348,13 @@ body {
 .console-sidebar-item.active {
   background: var(--sidebar-hover);
   color: var(--primary-color);
+  -webkit-text-fill-color: var(--primary-color);
   font-weight: 600;
+}
+.console-sidebar-item.active:link,
+.console-sidebar-item.active:visited {
+  color: var(--primary-color);
+  -webkit-text-fill-color: var(--primary-color);
 }
 .console-main {
   flex: 1;
@@ -1476,7 +1492,13 @@ body[data-theme="dark"] .console-membership-badge {
 .console-btn-secondary {
   background: var(--card-bg);
   color: var(--text-color);
+  -webkit-text-fill-color: var(--text-color);
   border: 1px solid var(--border-color);
+}
+.console-btn-secondary:link,
+.console-btn-secondary:visited {
+  color: var(--text-color);
+  -webkit-text-fill-color: var(--text-color);
 }
 
 .msg-tab {
