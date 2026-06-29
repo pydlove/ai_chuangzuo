@@ -4132,6 +4132,7 @@
     startQueueConsumer();
     renderGenerationQueue();
     renderWorksQueueItems();
+    updateNotificationBadge();
     renderGlobalFooter();
   });
 
