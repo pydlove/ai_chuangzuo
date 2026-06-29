@@ -4132,6 +4132,7 @@
     startQueueConsumer();
     renderGenerationQueue();
     renderWorksQueueItems();
+    renderGlobalFooter();
   });
 
   function initDemoQueueData() {
@@ -4355,4 +4356,13 @@
 
   function initTheme() {
     setTheme(getTheme());
+  }
+
+  // ===================== 全局 Footer =====================
+  function renderGlobalFooter() {
+    if (document.querySelector('.global-footer')) return;
+    var footer = document.createElement('div');
+    footer.className = 'global-footer';
+    footer.innerHTML = '&copy; 2026 爱创作 · All Rights Reserved | 备案号：京ICP备XXXXXXXX号 | <a onclick="openAboutModal()">关于我们</a>';
+    document.body.appendChild(footer);
   }
