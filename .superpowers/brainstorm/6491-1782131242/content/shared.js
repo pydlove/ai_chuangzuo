@@ -4293,3 +4293,43 @@
     });
   }
 
+  function seedNotificationsOnLoad() {
+    var SEED_KEY = 'aichuangzuo_notifications_seeded';
+    if (localStorage.getItem(SEED_KEY)) return;
+
+    addNotification('feature', '新功能上线：标题优化器', '预览页新增 AI 标题优化，一键生成多平台爆款标题');
+    addNotification('promotion', '限时优惠：年会员 7 折', '即日起至月底，年会员低至 199 元，点击了解详情');
+
+    var membershipExpiry = localStorage.getItem('aichuangzuo_membership_expiry');
+    if (!membershipExpiry) {
+      // 模拟一个 30 天后到期的会员，用于演示提醒
+      var expiry = new Date();
+      expiry.setDate(expiry.getDate() + 30);
+      localStorage.setItem('aichuangzuo_membership_expiry', expiry.toISOString());
+    }
+
+    localStorage.setItem(SEED_KEY, 'true');
+  }
+
+  function checkMembershipNotifications() {
+    var raw = localStorage.getItem('aichuangzuo_membership_expiry');
+    if (!raw) return;
+    var expiry = new Date(raw);
+    var now = new Date();
+    var days = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+
+    var CHECK_KEY = 'aichuangzuo_membership_notified_days';
+    var notified = parseInt(localStorage.getItem(CHECK_KEY) || '999', 10);
+
+    if (days <= 7 && days > 3 && notified > 7) {
+      addNotification('membership', '会员即将到期', '您的会员将在 7 天后到期，续费可继续享受 AI 创作权益');
+      localStorage.setItem(CHECK_KEY, '7');
+    } else if (days <= 3 && days > 0 && notified > 3) {
+      addNotification('membership', '会员即将到期', '您的会员将在 3 天内到期，请及时续费');
+      localStorage.setItem(CHECK_KEY, '3');
+    } else if (days <= 0 && notified > 0) {
+      addNotification('membership', '会员已到期', '您的会员已到期，续费后可恢复全部功能');
+      localStorage.setItem(CHECK_KEY, '0');
+    }
+  }
+

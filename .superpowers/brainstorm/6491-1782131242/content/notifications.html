@@ -127,6 +127,8 @@
   }
 
   document.addEventListener('DOMContentLoaded', function() {
+    seedNotificationsOnLoad();
+    checkMembershipNotifications();
     updateNotificationBadge();
     switchTab('generation');
   });
