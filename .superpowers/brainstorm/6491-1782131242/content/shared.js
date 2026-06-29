@@ -4401,3 +4401,39 @@
     var el = document.getElementById('about-modal');
     if (el) el.remove();
   }
+
+  // ===================== 会员信息弹框 =====================
+  function getMembershipInfo() {
+    var defaults = { level: '免费版', expiry: '未开通', quota: '10 / 10 篇' };
+    try {
+      var raw = localStorage.getItem('aichuangzuo_membership');
+      return raw ? JSON.parse(raw) : defaults;
+    } catch (e) {
+      return defaults;
+    }
+  }
+
+  function openMembershipModal() {
+    if (document.getElementById('membership-modal')) return;
+    var info = getMembershipInfo();
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'membership-modal';
+    overlay.innerHTML = '<div class="modal-content" style="max-width:360px;" onclick="event.stopPropagation()">' +
+      '<div class="modal-header"><div class="modal-title">会员信息</div><button class="modal-close" onclick="closeMembershipModal()">×</button></div>' +
+      '<div class="modal-body" style="text-align:center;">' +
+        '<div style="font-size:42px;margin-bottom:12px;">👑</div>' +
+        '<div style="font-size:18px;font-weight:700;margin-bottom:8px;">' + info.level + '</div>' +
+        '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:6px;">到期时间：' + info.expiry + '</div>' +
+        '<div style="color:var(--text-secondary);font-size:13px;margin-bottom:20px;">本月剩余额度：' + info.quota + '</div>' +
+        '<button onclick="location.href=&#39;pricing.html&#39;" style="padding:10px 24px;background:#07c160;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">立即续费</button>' +
+      '</div>' +
+    '</div>';
+    overlay.onclick = closeMembershipModal;
+    document.body.appendChild(overlay);
+  }
+
+  function closeMembershipModal() {
+    var el = document.getElementById('membership-modal');
+    if (el) el.remove();
+  }
