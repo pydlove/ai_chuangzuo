@@ -1006,20 +1006,20 @@
   }
 
   /* 非编辑态 hover 显示编辑提示 */
-  .article-preview:not(.article-editing) .preview-title,
-  .article-preview:not(.article-editing) .preview-heading,
-  .article-preview:not(.article-editing) > p,
-  .article-preview:not(.article-editing) .preview-highlight,
-  .article-preview:not(.article-editing) .preview-list li {
+  .mockup-body:not(.article-editing) .preview-title,
+  .mockup-body:not(.article-editing) .preview-heading,
+  .mockup-body:not(.article-editing) .article-preview > p,
+  .mockup-body:not(.article-editing) .preview-highlight,
+  .mockup-body:not(.article-editing) .preview-list li {
     cursor: text;
     position: relative;
   }
 
-  .article-preview:not(.article-editing) .preview-title:hover::after,
-  .article-preview:not(.article-editing) .preview-heading:hover::after,
-  .article-preview:not(.article-editing) > p:hover::after,
-  .article-preview:not(.article-editing) .preview-highlight:hover::after,
-  .article-preview:not(.article-editing) .preview-list li:hover::after {
+  .mockup-body:not(.article-editing) .preview-title:hover::after,
+  .mockup-body:not(.article-editing) .preview-heading:hover::after,
+  .mockup-body:not(.article-editing) .article-preview > p:hover::after,
+  .mockup-body:not(.article-editing) .preview-highlight:hover::after,
+  .mockup-body:not(.article-editing) .preview-list li:hover::after {
     content: '编辑';
     position: absolute;
     top: 4px;

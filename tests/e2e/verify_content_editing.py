@@ -22,10 +22,10 @@ def test_content_editing():
             try { localStorage.removeItem('aichuangzuo_article_edits'); } catch(e) {}
         }""")
 
-        # 1. 打开 preview.html 进入编辑态
+        # 1. 打开 preview.html 进入编辑态（点击标题直接触发）
         page.goto(BASE + '/preview.html', wait_until='networkidle')
         time.sleep(0.5)
-        page.click('button:has-text("编辑内容")')
+        page.click('.preview-title')
         time.sleep(0.3)
 
         # 2. 修改标题
