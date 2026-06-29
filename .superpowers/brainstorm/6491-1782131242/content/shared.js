@@ -4578,3 +4578,46 @@
     var el = document.getElementById('tutorial-modal');
     if (el) el.remove();
   }
+
+  // ===================== 反馈弹框 =====================
+  function openFeedbackModal() {
+    if (document.getElementById('feedback-modal')) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'feedback-modal';
+    overlay.innerHTML = '<div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">' +
+      '<div class="modal-header"><div class="modal-title">意见反馈</div><button class="modal-close" onclick="closeFeedbackModal()">×</button></div>' +
+      '<div class="modal-body">' +
+        '<div style="margin-bottom:12px;">' +
+          '<label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:6px;">反馈类型</label>' +
+          '<select id="feedback-type" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--card-bg);color:var(--text-color);">' +
+            '<option>功能建议</option><option>问题反馈</option><option>其他</option>' +
+          '</select>' +
+        '</div>' +
+        '<div style="margin-bottom:16px;">' +
+          '<label style="display:block;font-size:13px;color:var(--text-secondary);margin-bottom:6px;">反馈内容</label>' +
+          '<textarea id="feedback-content" rows="4" style="width:100%;padding:8px;border:1px solid var(--border-color);border-radius:6px;background:var(--card-bg);color:var(--text-color);resize:vertical;"></textarea>' +
+        '</div>' +
+        '<button onclick="submitFeedback()" style="width:100%;padding:10px;background:#07c160;color:#fff;border:none;border-radius:8px;font-size:14px;cursor:pointer;">提交反馈</button>' +
+      '</div>' +
+    '</div>';
+    overlay.onclick = closeFeedbackModal;
+    document.body.appendChild(overlay);
+  }
+
+  function closeFeedbackModal() {
+    var el = document.getElementById('feedback-modal');
+    if (el) el.remove();
+  }
+
+  function submitFeedback() {
+    var type = document.getElementById('feedback-type').value;
+    var content = document.getElementById('feedback-content').value;
+    if (!content.trim()) {
+      showToast('请填写反馈内容');
+      return;
+    }
+    console.log('Feedback:', type, content);
+    showToast('反馈已收到，感谢你的建议');
+    closeFeedbackModal();
+  }
