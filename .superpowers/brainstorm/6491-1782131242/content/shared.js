@@ -4210,12 +4210,12 @@
   }
 
   // ===================== 消息通知中心 =====================
-  var NOTIFICATION_KEY = 'aichuangzuo_notifications';
+  var NOTIFICATION_DATA_KEY = 'aichuangzuo_notifications';
   var NOTIFICATION_TYPES = ['generation', 'membership', 'feature', 'promotion'];
 
   function getNotifications() {
     try {
-      var raw = localStorage.getItem(NOTIFICATION_KEY);
+      var raw = localStorage.getItem(NOTIFICATION_DATA_KEY);
       return raw ? JSON.parse(raw) : [];
     } catch (e) {
       return [];
@@ -4223,7 +4223,7 @@
   }
 
   function saveNotifications(notifications) {
-    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+    localStorage.setItem(NOTIFICATION_DATA_KEY, JSON.stringify(notifications));
   }
 
   function isNotificationEnabled(type) {
