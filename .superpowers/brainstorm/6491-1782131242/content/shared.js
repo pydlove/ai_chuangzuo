@@ -3243,6 +3243,12 @@
     __articleEditSnapshot = root.innerHTML;
     root.classList.add('article-editing');
 
+    var globalFab = document.getElementById('floating-action-bar');
+    if (globalFab) {
+      globalFab.dataset.wasDisplay = globalFab.style.display || '';
+      globalFab.style.display = 'none';
+    }
+
     var selectors = getEditableSelectors();
     selectors.forEach(function(selector) {
       root.querySelectorAll(selector).forEach(function(el) {
@@ -3296,6 +3302,13 @@
     });
 
     detachPasteSanitizer(root);
+
+    var globalFab = document.getElementById('floating-action-bar');
+    if (globalFab) {
+      globalFab.style.display = globalFab.dataset.wasDisplay || '';
+      delete globalFab.dataset.wasDisplay;
+    }
+
     removeEditFab();
     __articleEditSnapshot = null;
   }
@@ -4192,3 +4205,88 @@
 
     saveGenerationQueue(demoTasks);
   }
+
+  // ===================== 消息通知中心 =====================
+  var NOTIFICATION_KEY = 'aichuangzuo_notifications';
+  var NOTIFICATION_TYPES = ['generation', 'membership', 'feature', 'promotion'];
+
+  function getNotifications() {
+    try {
+      var raw = localStorage.getItem(NOTIFICATION_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveNotifications(notifications) {
+    localStorage.setItem(NOTIFICATION_KEY, JSON.stringify(notifications));
+  }
+
+  function isNotificationEnabled(type) {
+    var key = 'aichuangzuo_notification_settings';
+    var defaults = { generation: true, membership: true, feature: true, promotion: true };
+    try {
+      var raw = localStorage.getItem(key);
+      var settings = raw ? JSON.parse(raw) : defaults;
+      return settings[type] !== false;
+    } catch (e) {
+      return defaults[type] !== false;
+    }
+  }
+
+  function addNotification(type, title, summary) {
+    if (!NOTIFICATION_TYPES.includes(type)) return null;
+    if (!isNotificationEnabled(type)) return null;
+    var notifications = getNotifications();
+    var notification = {
+      id: generateId(),
+      type: type,
+      title: title || '',
+      summary: summary || '',
+      read: false,
+      createdAt: new Date().toISOString()
+    };
+    notifications.unshift(notification);
+    // 最多保留 100 条
+    if (notifications.length > 100) {
+      notifications = notifications.slice(0, 100);
+    }
+    saveNotifications(notifications);
+    updateNotificationBadge();
+    return notification;
+  }
+
+  function markCategoryRead(type) {
+    var notifications = getNotifications();
+    var changed = false;
+    notifications.forEach(function(n) {
+      if (n.type === type && !n.read) {
+        n.read = true;
+        changed = true;
+      }
+    });
+    if (changed) {
+      saveNotifications(notifications);
+      updateNotificationBadge();
+    }
+  }
+
+  function clearCategory(type) {
+    var notifications = getNotifications().filter(function(n) { return n.type !== type; });
+    saveNotifications(notifications);
+    updateNotificationBadge();
+  }
+
+  function getUnreadCount() {
+    return getNotifications().filter(function(n) { return !n.read; }).length;
+  }
+
+  function updateNotificationBadge() {
+    var count = getUnreadCount();
+    document.querySelectorAll('.notification-badge').forEach(function(el) {
+      el.textContent = count > 99 ? '99+' : String(count);
+      el.style.display = count > 0 ? 'flex' : 'none';
+    });
+  }
+
