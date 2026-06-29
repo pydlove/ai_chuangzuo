@@ -43,7 +43,15 @@
   <button class="cancel" onclick="cancelEditPage()">取消</button>
   <button class="save" onclick="saveEditPage()">保存修改</button>
 </div>
-<script src="shared.js?v=8"></script>
+<script src="shared.js?v=9"></script>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    if (typeof updateNotificationBadge === 'function') {
+      updateNotificationBadge();
+    }
+  });
+</script>
+
 <script>
   function renderEditBlocks() {
     var container = document.getElementById('edit-blocks');
