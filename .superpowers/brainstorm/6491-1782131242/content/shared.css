@@ -1478,3 +1478,17 @@ body[data-theme="dark"] .console-membership-badge {
   color: var(--text-color);
   border: 1px solid var(--border-color);
 }
+
+.msg-tab {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  cursor: pointer;
+}
+.msg-tab.active {
+  background: var(--sidebar-hover);
+  color: var(--primary-color);
+}

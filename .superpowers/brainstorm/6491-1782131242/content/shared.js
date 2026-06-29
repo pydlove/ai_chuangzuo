@@ -4215,6 +4215,16 @@
   var NOTIFICATION_DATA_KEY = 'aichuangzuo_notifications';
   var NOTIFICATION_TYPES = ['generation', 'membership', 'feature', 'promotion'];
 
+  function normalizeNotificationType(type) {
+    var map = {
+      generation: 'history',
+      membership: 'message',
+      feature: 'announcement',
+      promotion: 'announcement'
+    };
+    return map[type] || type;
+  }
+
   function getNotifications() {
     try {
       var raw = localStorage.getItem(NOTIFICATION_DATA_KEY);
@@ -4263,10 +4273,11 @@
   }
 
   function markCategoryRead(type) {
+    var target = normalizeNotificationType(type);
     var notifications = getNotifications();
     var changed = false;
     notifications.forEach(function(n) {
-      if (n.type === type && !n.read) {
+      if (normalizeNotificationType(n.type) === target && !n.read) {
         n.read = true;
         changed = true;
       }
@@ -4278,7 +4289,8 @@
   }
 
   function clearCategory(type) {
-    var notifications = getNotifications().filter(function(n) { return n.type !== type; });
+    var target = normalizeNotificationType(type);
+    var notifications = getNotifications().filter(function(n) { return normalizeNotificationType(n.type) !== target; });
     saveNotifications(notifications);
     updateNotificationBadge();
   }
@@ -4436,4 +4448,101 @@
   function closeMembershipModal() {
     var el = document.getElementById('membership-modal');
     if (el) el.remove();
+  }
+
+  // ===================== 消息铃铛弹框 =====================
+  var MESSAGE_TYPE_LABELS = {
+    announcement: '公告',
+    message: '站内信',
+    history: '历史记录'
+  };
+  var currentMessageType = 'announcement';
+
+  function openMessageModal() {
+    if (document.getElementById('message-modal')) return;
+    var overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'message-modal';
+    overlay.style.alignItems = 'flex-start';
+    overlay.style.paddingTop = '60px';
+    overlay.innerHTML = '<div class="modal-content" style="max-width:420px;" onclick="event.stopPropagation()">' +
+      '<div class="modal-header">' +
+        '<div class="modal-title">消息中心</div>' +
+        '<button class="modal-close" onclick="closeMessageModal()">×</button>' +
+      '</div>' +
+      '<div style="display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border-color);">' +
+        '<button class="msg-tab active" data-type="announcement" onclick="switchMessageTab(&#39;announcement&#39;)">公告</button>' +
+        '<button class="msg-tab" data-type="message" onclick="switchMessageTab(&#39;message&#39;)">站内信</button>' +
+        '<button class="msg-tab" data-type="history" onclick="switchMessageTab(&#39;history&#39;)">历史记录</button>' +
+      '</div>' +
+      '<div class="modal-body" id="message-modal-body" style="min-height:200px;"></div>' +
+      '<div style="display:flex;justify-content:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--border-color);">' +
+        '<button onclick="markMessageCategoryRead()" style="padding:6px 12px;border:1px solid var(--border-color);background:var(--card-bg);color:var(--text-color);border-radius:6px;font-size:13px;cursor:pointer;">全部已读</button>' +
+        '<button onclick="clearMessageCategory()" style="padding:6px 12px;border:1px solid #ff4d4f;background:#fff;color:#ff4d4f;border-radius:6px;font-size:13px;cursor:pointer;">清空</button>' +
+      '</div>' +
+    '</div>';
+    overlay.onclick = closeMessageModal;
+    document.body.appendChild(overlay);
+    switchMessageTab('announcement');
+  }
+
+  function closeMessageModal() {
+    var el = document.getElementById('message-modal');
+    if (el) el.remove();
+  }
+
+  function switchMessageTab(type) {
+    currentMessageType = type;
+    document.querySelectorAll('#message-modal .msg-tab').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.type === type);
+      btn.style.cssText = btn.dataset.type === type
+        ? 'padding:6px 12px;border-radius:6px;border:none;background:#f6ffed;color:#07c160;font-size:13px;cursor:pointer;'
+        : 'padding:6px 12px;border-radius:6px;border:none;background:transparent;color:var(--text-secondary);font-size:13px;cursor:pointer;';
+    });
+    markCategoryRead(type);
+    renderMessageTab(type);
+  }
+
+  function renderMessageTab(type) {
+    var body = document.getElementById('message-modal-body');
+    if (!body) return;
+    var notifications = getNotifications().filter(function(n) {
+      return normalizeNotificationType(n.type) === type;
+    });
+    notifications.sort(function(a, b) { return new Date(b.createdAt) - new Date(a.createdAt); });
+
+    if (notifications.length === 0) {
+      body.innerHTML = '<div style="text-align:center;padding:40px 0;color:var(--text-secondary);font-size:13px;">暂无 ' + MESSAGE_TYPE_LABELS[type] + '</div>';
+      return;
+    }
+
+    body.innerHTML = notifications.map(function(n) {
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--border-color);">' +
+        '<div style="font-weight:' + (n.read ? '500' : '700') + ';font-size:14px;margin-bottom:4px;color:var(--text-color);">' + escapeHtml(n.title) + '</div>' +
+        '<div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">' + escapeHtml(n.summary) + '</div>' +
+        '<div style="font-size:12px;color:#8c8c8c;">' + formatMessageTime(n.createdAt) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function markMessageCategoryRead() {
+    markCategoryRead(currentMessageType);
+    renderMessageTab(currentMessageType);
+  }
+
+  function clearMessageCategory() {
+    if (!confirm('确定清空「' + MESSAGE_TYPE_LABELS[currentMessageType] + '」吗？')) return;
+    clearCategory(currentMessageType);
+    renderMessageTab(currentMessageType);
+  }
+
+  function formatMessageTime(iso) {
+    var date = new Date(iso);
+    return date.getFullYear() + '-' + String(date.getMonth()+1).padStart(2,'0') + '-' + String(date.getDate()).padStart(2,'0') + ' ' + String(date.getHours()).padStart(2,'0') + ':' + String(date.getMinutes()).padStart(2,'0');
+  }
+
+  function escapeHtml(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
