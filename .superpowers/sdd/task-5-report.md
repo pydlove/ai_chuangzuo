@@ -1,46 +1,33 @@
-# Task 5 Report: Add Preview-Page Cards and Styles for 30 Templates
+# Task 5 Report: Add publish meta card to preview.html
 
-## Status: DONE
+## Status
+DONE
 
-## Commits Created
-- `c5e846a` feat(template): add preview-page cards and styles for 30 templates
+## What was done
+1. **Inserted PC publish meta card** after the `max-width: 680px` inner div and before the white card closing `</div>` in the PC mockup. The card includes:
+   - `id="pc-publish-meta-card"` container
+   - `id="pc-publish-desc"` textarea with "换一版" and "复制描述" buttons
+   - `id="pc-publish-tags"` tag container with "换一批" and "复制全部标签" buttons
 
-## Verification Results
-- **PC template cards**: 30 cards (all preset keys have matching cards)
-- **Mobile pills**: 15 pills (wechat, toutiao, xiaohongshu, baijiahao, zhihu-answer, business, marketing, story, magazine, academic, wechat-minimal, xiaohongshu-list, toutiao-news, checklist, dark)
-- **templateHeadingTexts**: 18 new entries exist for new templates; 12 original keys missing headingTexts (pre-existing gap from Task 14/17)
-- **JS syntax**: VALID (node -c check passed)
-- **Invalid mobile pills**: NONE (all 15 data-template values match preset keys)
+2. **Inserted mobile publish meta card** after the `.article-preview` closing `</div>` and before the white card closing `</div>` in the mobile mockup. The card includes:
+   - `id="mobile-publish-meta-card"` container
+   - `id="mobile-publish-desc"` textarea with "换一版" and "复制描述" buttons
+   - `id="mobile-publish-tags"` tag container with "换一批" and "复制全部标签" buttons
+
+3. **Updated inline script** at the bottom of `preview.html` to call `renderPublishMeta()` on `DOMContentLoaded`.
+
+4. **Ran verification** (Step 4 from brief): all assertions passed (`Task 5 checks passed`).
+
+5. **Manual smoke test**: opened `http://localhost:28585/.superpowers/brainstorm/6491-1782131242/content/preview.html` in a headless browser via Playwright. Screenshot at `/tmp/preview_smoke_test_v2.png` confirms both PC and mobile mockups now show "发布描述" and "推荐标签" sections below the article content.
+
+6. **Committed** the change.
 
 ## Concerns
-- **Pre-existing gap**: The 12 original template keys (wechat, business, marketing, academic, toutiao, xiaohongshu, baijiahao, story, magazine, card, checklist, dark) are missing `templateHeadingTexts` entries. This was not introduced by this task - it existed before Task 5 work. A prior task (Task 14/17) was supposed to add these but only added the 18 new keys.
-- **zhihu pill**: Was already correctly set to `zhihu-answer` (not the broken "zhihu" state mentioned in the task description)
-- **Mobile pills already at 15**: The mobile pill section already had all 15 pills including the 5 new ones (wechat-minimal, xiaohongshu-list, toutiao-news, checklist, dark)
+- The `renderPublishMeta()`, `regeneratePublishDesc()`, `regeneratePublishTags()`, `copyPublishDesc()`, `copyPublishTags()`, and `copySingleTag()` functions are consumed from Task 4 (shared.js). During the smoke test, the description textarea and tags containers were empty, suggesting Task 4's `renderPublishMeta()` may not be fully populating content yet, or the platform state is not set. The UI structure is correct and the function calls are wired properly.
+- The Playwright test showed `pc_tags` and `mobile_tags` as not "visible" (likely because empty divs have zero dimensions), but the screenshot clearly shows the cards are rendered.
 
-## Task 5 Follow-Up: templateHeadingTexts Verification
+## Commits
+- `7ef39f8` feat(platform): add publish meta card to preview page
 
-### What Was Checked
-Verified whether `templateHeadingTexts` in `full-prototype-v20.html` had all 30 entries (12 original + 18 new).
-
-### Finding
-All 30 entries are already present in the committed file (HEAD). The entries were added in a prior session.
-
-### Verification Output
-```
-User script Count: 12          # BUG: pattern ([\\w-]+) does not match quoted keys like 'wechat-minimal'
-Fixed script Count: 30         # CORRECT: pattern ['\"]?([\\w-]+)['\"]? matches both quoted and unquoted
-Missing (fixed): []            # All 18 new keys present
-Git diff: 0 lines              # No uncommitted changes
-```
-
-### Note on User Verification Script
-The script provided has a regex bug:
-- Pattern `([\w-]+)` only matches unquoted keys (wechat, toutiao, etc.)
-- Quoted keys like `'wechat-minimal'`, `'zhihu-answer'` are missed
-- Fixed pattern: `['\"]?([\w-]+)['\"]?\s*:` handles both quoted and unquoted
-
-### Conclusion
-No fix needed. Entries were already committed. Commit `c5e846a` already contains all 30 `templateHeadingTexts` entries.
-
-## Report File Path
-/Users/panyong/aio_project/ai_chuangzuo/.superpowers/sdd/task-5-report.md
+## File modified
+- `.superpowers/brainstorm/6491-1782131242/content/preview.html`

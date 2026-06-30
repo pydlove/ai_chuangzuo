@@ -23,7 +23,12 @@ def test_console_page():
 
         # Sidebar
         expect(page.locator(".console-sidebar-brand")).to_have_text("爱创作")
-        expect(page.locator(".console-sidebar-item").first).to_have_text("📝 创作")
+        expect(page.locator(".console-sidebar-item").first).to_have_text("创作")
+
+        # Switch to create tab and verify iframe loads
+        page.locator(".console-sidebar-item[data-tab='create']").click()
+        iframe = page.frame_locator(".console-tab-section[data-tab='create'] iframe")
+        expect(iframe.locator(".mockup-body").get_by_text("开始创作").first).to_be_visible()
 
         # Header center title
         expect(page.locator(".console-header-center")).to_have_text("爱创作")

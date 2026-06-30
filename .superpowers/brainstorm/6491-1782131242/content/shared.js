@@ -1,5 +1,13 @@
   var isLoggedIn = false;
 
+  function consoleNavigate(tab, fallbackUrl) {
+    if (window.self !== window.top && window.parent && typeof window.parent.switchConsoleTab === 'function') {
+      window.parent.switchConsoleTab(tab);
+    } else if (fallbackUrl) {
+      location.href = fallbackUrl;
+    }
+  }
+
   function handleGenerate() {
     var data = collectCreatePageData();
     submitGenerationTask(data);
@@ -3986,7 +3994,7 @@
     if (task.status === 'queued') {
       actionHtml = '<button onclick="cancelGenerationTask(\'' + task.id + '\')" style="background:none;border:none;color:#8c8c8c;font-size:12px;cursor:pointer;padding:2px 4px;">取消</button>';
     } else if (task.status === 'completed') {
-      actionHtml = '<button onclick="location.href=\'preview.html?id=' + task.id + '\'" style="background:none;border:none;color:#07c160;font-size:12px;cursor:pointer;padding:2px 4px;">预览</button>';
+      actionHtml = '<button onclick="consoleNavigate(\'preview\', \'preview.html?id=' + task.id + '\')" style="background:none;border:none;color:#07c160;font-size:12px;cursor:pointer;padding:2px 4px;">预览</button>';
     }
 
     el.innerHTML =
@@ -4360,6 +4368,18 @@
     if (theme !== 'light' && theme !== 'dark') return;
     document.body.setAttribute('data-theme', theme);
     localStorage.setItem(THEME_KEY, theme);
+    // Sync theme to same-origin child iframes
+    if (window.top === window.self) {
+      document.querySelectorAll('iframe').forEach(function(iframe) {
+        try {
+          if (iframe.contentWindow && iframe.contentWindow.document && iframe.contentWindow.document.body) {
+            iframe.contentWindow.document.body.setAttribute('data-theme', theme);
+          }
+        } catch (e) {
+          // ignore cross-origin iframes
+        }
+      });
+    }
   }
 
   function toggleTheme() {

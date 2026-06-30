@@ -1462,7 +1462,10 @@ body[data-theme="dark"] .console-membership-badge {
 .console-content {
   flex: 1;
   padding: 24px;
-  overflow-y: auto;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 .console-welcome h1 {
   font-size: 24px;
@@ -1499,6 +1502,23 @@ body[data-theme="dark"] .console-membership-badge {
 .console-btn-secondary:visited {
   color: var(--text-color);
   -webkit-text-fill-color: var(--text-color);
+}
+
+.console-tab-section {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+.console-tab-section.active {
+  display: flex;
+}
+.console-content-frame {
+  width: 100%;
+  flex: 1;
+  min-height: 0;
+  border: none;
+  display: block;
 }
 
 .msg-tab {
