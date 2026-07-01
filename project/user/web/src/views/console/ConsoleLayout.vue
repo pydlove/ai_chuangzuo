@@ -103,151 +103,161 @@
             </a-tooltip>
           </div>
 
-          <!-- 教程下拉 -->
-          <a-dropdown
+          <!-- 教程弹框 -->
+          <a-modal
             v-model:open="tutorialVisible"
-            :trigger="['click']"
-            placement="bottomRight"
+            :footer="null"
+            :width="420"
+            centered
+            class="tutorial-modal"
           >
-            <a-tooltip title="教程">
-              <button class="console-icon-btn">
-                <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                  <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-                </svg>
-              </button>
-            </a-tooltip>
-            <template #overlay>
-              <div class="tutorial-panel">
-                <div class="tutorial-item" @click="handleTutorial('doc')">
-                  <div class="tutorial-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                      <line x1="16" y1="13" x2="8" y2="13"/>
-                      <line x1="16" y1="17" x2="8" y2="17"/>
-                      <polyline points="10 9 9 9 8 9"/>
-                    </svg>
-                  </div>
-                  <div class="tutorial-body">
-                    <div class="tutorial-name">帮助 / 文档</div>
-                    <div class="tutorial-desc">从基础到专业技巧的快速指南，助你充分利用爱创作的功能。</div>
-                  </div>
+            <div class="tutorial-panel">
+              <div class="tutorial-header">
+                <span class="tutorial-title">教程与帮助</span>
+              </div>
+              <div class="tutorial-item" @click="handleTutorial('doc')">
+                <div class="tutorial-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                    <polyline points="10 9 9 9 8 9"/>
+                  </svg>
                 </div>
-                <div class="tutorial-item" @click="tutorialVisible = false; openWechatModal()">
-                  <div class="tutorial-icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                  </div>
-                  <div class="tutorial-body">
-                    <div class="tutorial-name">加入微信交流群</div>
-                    <div class="tutorial-desc">一个充满活力的作者网络，提供帮助的渠道，分享创作技巧、经验和最佳实践。</div>
-                  </div>
+                <div class="tutorial-body">
+                  <div class="tutorial-name">帮助 / 文档</div>
+                  <div class="tutorial-desc">从基础到专业技巧的快速指南，助你充分利用爱创作的功能。</div>
                 </div>
               </div>
-            </template>
-          </a-dropdown>
-          <!-- 反馈下拉 -->
-          <a-dropdown
+              <div class="tutorial-item" @click="tutorialVisible = false; openWechatModal()">
+                <div class="tutorial-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                </div>
+                <div class="tutorial-body">
+                  <div class="tutorial-name">加入微信交流群</div>
+                  <div class="tutorial-desc">一个充满活力的作者网络，提供帮助的渠道，分享创作技巧、经验和最佳实践。</div>
+                </div>
+              </div>
+            </div>
+          </a-modal>
+
+          <!-- 教程按钮 -->
+          <a-tooltip title="教程">
+            <button class="console-icon-btn" @click="tutorialVisible = true">
+              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+              </svg>
+            </button>
+          </a-tooltip>
+          <!-- 反馈弹框 -->
+          <a-modal
             v-model:open="feedbackVisible"
-            :trigger="['click']"
-            placement="bottomRight"
+            :footer="null"
+            :width="400"
+            centered
+            class="feedback-modal"
           >
-            <a-tooltip title="反馈">
-              <button class="console-icon-btn">
-                <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                </svg>
-              </button>
-            </a-tooltip>
-            <template #overlay>
-              <div class="feedback-panel">
-                <div class="feedback-title">意见反馈</div>
-                <div class="feedback-type">
-                  <label class="feedback-label">反馈类型</label>
-                  <div class="feedback-type-btns">
-                    <button
-                      v-for="t in feedbackTypes"
-                      :key="t"
-                      :class="['type-btn', { active: feedbackType === t }]"
-                      @click="feedbackType = t"
-                    >
-                      {{ t }}
-                    </button>
-                  </div>
+            <div class="feedback-panel">
+              <div class="feedback-title">意见反馈</div>
+              <div class="feedback-type">
+                <label class="feedback-label">反馈类型</label>
+                <div class="feedback-type-btns">
+                  <button
+                    v-for="t in feedbackTypes"
+                    :key="t"
+                    :class="['type-btn', { active: feedbackType === t }]"
+                    @click="feedbackType = t"
+                  >
+                    {{ t }}
+                  </button>
                 </div>
-                <div class="feedback-content">
-                  <label class="feedback-label">反馈内容</label>
-                  <textarea
-                    v-model="feedbackContent"
-                    class="feedback-textarea"
-                    placeholder="请详细描述你的问题或建议..."
-                    rows="4"
-                  ></textarea>
-                </div>
-                <button class="feedback-submit" @click="submitFeedback">提交反馈</button>
               </div>
-            </template>
-          </a-dropdown>
-          <!-- 关于我们下拉 -->
-          <a-dropdown
+              <div class="feedback-content">
+                <label class="feedback-label">反馈内容</label>
+                <textarea
+                  v-model="feedbackContent"
+                  class="feedback-textarea"
+                  placeholder="请详细描述你的问题或建议..."
+                  rows="4"
+                ></textarea>
+              </div>
+              <button class="feedback-submit" @click="submitFeedback">提交反馈</button>
+            </div>
+          </a-modal>
+
+          <!-- 反馈按钮 -->
+          <a-tooltip title="反馈">
+            <button class="console-icon-btn" @click="feedbackVisible = true">
+              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              </svg>
+            </button>
+          </a-tooltip>
+
+          <!-- 关于我们弹框 -->
+          <a-modal
             v-model:open="aboutVisible"
-            :trigger="['click']"
-            placement="bottomRight"
+            :footer="null"
+            :width="420"
+            centered
+            class="about-modal"
           >
-            <a-tooltip title="关于我们">
-              <button class="console-icon-btn">
-                <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 16v-4"/>
-                  <path d="M12 8h.01"/>
-                </svg>
-              </button>
-            </a-tooltip>
-            <template #overlay>
-              <div class="about-panel">
-                <div class="about-header">
-                  <div class="about-logo">
-                    <img src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png" alt="爱创作" />
-                  </div>
-                  <div class="about-brand">
-                    <div class="about-name">爱创作</div>
-                    <div class="about-tagline">创作者灵感旅程中的同行者</div>
-                  </div>
+            <div class="about-panel">
+              <div class="about-header">
+                <div class="about-logo">
+                  <img src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png" alt="爱创作" />
                 </div>
-                <div class="about-desc">
-                  <p>爱创作希望成为创作者灵感旅程中的同行者。我们希望让写作不再被"文笔"所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。</p>
-                  <p>AI 在这里不是替代者，而是帮助作者整理思路、激发灵感、拓展想象的辅助工具。</p>
-                  <p>我们珍惜每一位作者投入在作品里的情绪、时间与热爱，也尊重原创应有的价值。</p>
-                </div>
-                <div class="about-links">
-                  <button class="about-link-btn" @click="openTermsModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                      <polyline points="14 2 14 8 20 8"/>
-                    </svg>
-                    用户协议
-                  </button>
-                  <button class="about-link-btn" @click="openPrivacyModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                    </svg>
-                    隐私政策
-                  </button>
-                  <button class="about-link-btn" @click="openWechatModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    关注微信
-                  </button>
-                </div>
-                <div class="about-footer">
-                  © 2026 爱创作 · All Rights Reserved
+                <div class="about-brand">
+                  <div class="about-name">爱创作</div>
+                  <div class="about-tagline">创作者灵感旅程中的同行者</div>
                 </div>
               </div>
-            </template>
-          </a-dropdown>
+              <div class="about-desc">
+                <p>爱创作希望成为创作者灵感旅程中的同行者。我们希望让写作不再被"文笔"所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。</p>
+                <p>AI 在这里不是替代者，而是帮助作者整理思路、激发灵感、拓展想象的辅助工具。</p>
+                <p>我们珍惜每一位作者投入在作品里的情绪、时间与热爱，也尊重原创应有的价值。</p>
+              </div>
+              <div class="about-links">
+                <button class="about-link-btn" @click="openTermsModal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                  </svg>
+                  用户协议
+                </button>
+                <button class="about-link-btn" @click="openPrivacyModal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                  </svg>
+                  隐私政策
+                </button>
+                <button class="about-link-btn" @click="openWechatModal">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                  </svg>
+                  关注微信
+                </button>
+              </div>
+              <div class="about-footer">
+                © 2026 爱创作 · All Rights Reserved
+              </div>
+            </div>
+          </a-modal>
+
+          <!-- 关于我们按钮 -->
+          <a-tooltip title="关于我们">
+            <button class="console-icon-btn" @click="aboutVisible = true">
+              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M12 16v-4"/>
+                <path d="M12 8h.01"/>
+              </svg>
+            </button>
+          </a-tooltip>
           <a-tooltip title="官网">
             <a href="http://localhost:28585/.superpowers/brainstorm/6491-1782131242/content/index.html" target="_blank" class="console-icon-btn">
               <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1264,12 +1274,29 @@ onMounted(() => {
 
 /* ========== 教程面板 ========== */
 .tutorial-panel {
-  width: 340px;
+  width: 100%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   user-select: none;
+}
+
+.tutorial-modal .ant-modal-body {
+  padding: 0;
+}
+
+.tutorial-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.tutorial-title {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a1a;
 }
 
 .tutorial-item {
@@ -1322,12 +1349,15 @@ onMounted(() => {
 
 /* ========== 反馈面板 ========== */
 .feedback-panel {
-  width: 320px;
+  width: 100%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   padding: 16px;
   user-select: none;
+}
+
+.feedback-modal .ant-modal-body {
+  padding: 0;
 }
 
 .feedback-title {
@@ -1422,12 +1452,15 @@ onMounted(() => {
 
 /* ========== 关于我们面板 ========== */
 .about-panel {
-  width: 340px;
+  width: 100%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   user-select: none;
+}
+
+.about-modal .ant-modal-body {
+  padding: 0;
 }
 
 .about-header {
@@ -1574,12 +1607,15 @@ body[data-theme="dark"] .console-membership-badge.has-membership {
   color: #ffa940;
 }
 
-body[data-theme="dark"] .notif-panel,
+body[data-theme="dark"] .notif-panel {
+  background: #1f1f1f;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+}
+
 body[data-theme="dark"] .tutorial-panel,
 body[data-theme="dark"] .feedback-panel,
 body[data-theme="dark"] .about-panel {
   background: #1f1f1f;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 body[data-theme="dark"] .notif-header,
@@ -1632,7 +1668,12 @@ body[data-theme="dark"] .tutorial-item:hover {
   background: #2a2a2a;
 }
 
-body[data-theme="dark"] .tutorial-name {
+body[data-theme="dark"] .tutorial-header {
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .tutorial-name,
+body[data-theme="dark"] .tutorial-title {
   color: #e0e0e0;
 }
 
