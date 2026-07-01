@@ -32,6 +32,155 @@
         </div>
 
         <div class="header-right">
+          <!-- 邀请有礼弹框 -->
+          <a-modal
+            v-model:open="inviteVisible"
+            :footer="null"
+            :width="640"
+            centered
+            class="invite-modal"
+          >
+            <div class="invite-panel">
+              <div class="invite-header">
+                <span class="invite-title">🎁 邀请有礼</span>
+              </div>
+
+              <!-- 统计卡片 -->
+              <div class="invite-stats">
+                <div class="invite-stat-item">
+                  <div class="invite-stat-value">{{ inviteStats.invitedCount }}</div>
+                  <div class="invite-stat-label">已邀请</div>
+                </div>
+                <div class="invite-stat-item">
+                  <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
+                  <div class="invite-stat-label">奖励会员天数</div>
+                </div>
+                <div class="invite-stat-item">
+                  <div class="invite-stat-value">{{ coinBalance }}</div>
+                  <div class="invite-stat-label">创作币余额</div>
+                </div>
+              </div>
+
+              <!-- 邀请码 -->
+              <div class="invite-code-card">
+                <div class="invite-code-box">
+                  <div class="invite-code-label">我的邀请码</div>
+                  <div class="invite-code-value">{{ inviteCode }}</div>
+                </div>
+                <button class="invite-btn invite-btn-primary" @click="copyInviteCode">复制邀请码</button>
+              </div>
+
+              <!-- 邀请链接 -->
+              <div class="invite-link-card">
+                <div class="invite-code-label">邀请链接</div>
+                <div class="invite-link-value">{{ inviteLink }}</div>
+                <div class="invite-link-actions">
+                  <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
+                  <button class="invite-btn invite-btn-secondary" @click="downloadInvitePoster">下载海报</button>
+                  <button class="invite-btn invite-btn-primary" :disabled="coinBalance < 100" @click="openWithdrawModal">
+                    {{ coinBalance >= 100 ? '申请提现' : '满 100 可提现' }}
+                  </button>
+                </div>
+              </div>
+
+              <!-- 阶梯奖励 -->
+              <div class="invite-progress-card">
+                <div class="invite-progress-title">阶梯奖励进度</div>
+                <div class="invite-progress-item">
+                  <div class="invite-progress-bar">
+                    <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
+                  </div>
+                  <div class="invite-progress-text">
+                    {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
+                  </div>
+                </div>
+                <div class="invite-progress-item">
+                  <div class="invite-progress-bar">
+                    <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
+                  </div>
+                  <div class="invite-progress-text">
+                    {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
+                  </div>
+                </div>
+                <div class="invite-progress-item">
+                  <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
+                  <div class="invite-progress-text">
+                    {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 邀请记录 -->
+              <div class="invite-friend-card">
+                <div class="invite-friend-header">
+                  <span class="invite-friend-title">邀请记录</span>
+                </div>
+                <div class="invite-friend-list">
+                  <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>
+                  <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
+                    <div>
+                      <span class="invite-friend-email">{{ f.email }}</span>
+                    </div>
+                    <span :class="['invite-friend-status', f.status]">
+                      {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
+                    </span>
+                  </div>
+                </div>
+                <div class="invite-simulate">
+                  <div class="invite-simulate-label">模拟：好友通过邀请链接注册</div>
+                  <div class="invite-simulate-row">
+                    <input v-model="simulateEmail" class="invite-form-input" placeholder="好友邮箱" />
+                    <button class="invite-btn invite-btn-primary" @click="simulateInviteRegister">模拟注册</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </a-modal>
+
+          <!-- 提现弹框 -->
+          <a-modal
+            v-model:open="withdrawVisible"
+            :footer="null"
+            :width="420"
+            centered
+            class="withdraw-modal"
+          >
+            <div class="withdraw-panel">
+              <div class="withdraw-title">申请提现</div>
+              <div class="withdraw-item">
+                <label class="withdraw-label">可提现余额</label>
+                <div class="withdraw-balance">{{ coinBalance }} 创作币</div>
+              </div>
+              <div class="withdraw-item">
+                <label class="withdraw-label">提现金额</label>
+                <input v-model.number="withdrawAmount" class="withdraw-input" type="number" min="100" :max="coinBalance" placeholder="最低 100" />
+                <div class="withdraw-hint">1 创作币 = 1 元，满 100 可提现</div>
+              </div>
+              <div class="withdraw-item">
+                <label class="withdraw-label">支付宝账号</label>
+                <input v-model="withdrawAccount" class="withdraw-input" placeholder="支付宝账号" />
+              </div>
+              <div class="withdraw-item">
+                <label class="withdraw-label">真实姓名</label>
+                <input v-model="withdrawName" class="withdraw-input" placeholder="真实姓名" />
+              </div>
+              <div class="withdraw-actions">
+                <button class="invite-btn invite-btn-secondary" @click="withdrawVisible = false">取消</button>
+                <button class="invite-btn invite-btn-primary" @click="submitWithdraw">提交申请</button>
+              </div>
+            </div>
+          </a-modal>
+
+          <!-- 邀请有礼按钮 -->
+          <a-tooltip title="邀请有礼">
+            <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
+              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+              </svg>
+              <span>邀请有礼</span>
+            </button>
+          </a-tooltip>
+
           <!-- 消息弹框 -->
           <a-modal
             v-model:open="notifVisible"
@@ -531,6 +680,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   EditOutlined,
   LoadingOutlined,
@@ -732,6 +882,214 @@ const loadMembership = () => {
 
 const handleMembershipClick = () => {
   router.push('/pricing')
+}
+
+// ---------- 邀请有礼 ----------
+const INVITE_CODE_KEY = 'aichuangzuo_invite_code'
+const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
+const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
+const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
+const COIN_BONUS_NEW_USER = 5
+
+const inviteVisible = ref(false)
+const withdrawVisible = ref(false)
+const inviteCode = ref('')
+const coinBalance = ref(0)
+const simulateEmail = ref('')
+const withdrawAmount = ref(null)
+const withdrawAccount = ref('')
+const withdrawName = ref('')
+
+const inviteStats = ref({
+  invitedCount: 0,
+  membershipDaysEarned: 0,
+  coinEarned: 0,
+  friends: []
+})
+
+const inviteLink = computed(() => {
+  return `${window.location.origin}/login?ref=${inviteCode.value}`
+})
+
+const generateInviteCode = () => {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+  let code = ''
+  for (let i = 0; i < 6; i++) {
+    code += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return code
+}
+
+const getStoredInviteCode = () => {
+  let code = localStorage.getItem(INVITE_CODE_KEY)
+  if (!code) {
+    code = generateInviteCode()
+    localStorage.setItem(INVITE_CODE_KEY, code)
+  }
+  return code
+}
+
+const loadInviteStats = () => {
+  const raw = localStorage.getItem(INVITE_STATS_KEY)
+  if (raw) {
+    inviteStats.value = JSON.parse(raw)
+  } else {
+    inviteStats.value = {
+      invitedCount: 0,
+      membershipDaysEarned: 0,
+      coinEarned: 0,
+      friends: []
+    }
+  }
+}
+
+const saveInviteStats = () => {
+  localStorage.setItem(INVITE_STATS_KEY, JSON.stringify(inviteStats.value))
+}
+
+const loadCoinBalance = () => {
+  const raw = localStorage.getItem(COIN_BALANCE_KEY)
+  coinBalance.value = raw ? parseInt(raw, 10) : 0
+}
+
+const setCoinBalance = (amount) => {
+  coinBalance.value = amount
+  localStorage.setItem(COIN_BALANCE_KEY, String(amount))
+}
+
+const addCoin = (amount, reason) => {
+  const balance = coinBalance.value + amount
+  setCoinBalance(balance)
+  inviteStats.value.coinEarned += amount
+  saveInviteStats()
+  console.log('创作币变动:', reason, amount, '余额:', balance)
+}
+
+const calculateMembershipReward = (totalInvited) => {
+  if (totalInvited === 3) return 3
+  if (totalInvited === 5) return 5
+  if (totalInvited > 5) return 2
+  return 0
+}
+
+const openInviteModal = () => {
+  inviteCode.value = getStoredInviteCode()
+  loadInviteStats()
+  loadCoinBalance()
+  inviteVisible.value = true
+}
+
+const copyInviteCode = () => {
+  navigator.clipboard.writeText(inviteCode.value).then(() => {
+    message.success('邀请码已复制')
+  })
+}
+
+const copyInviteLink = () => {
+  navigator.clipboard.writeText(inviteLink.value).then(() => {
+    message.success('邀请链接已复制')
+  })
+}
+
+const downloadInvitePoster = () => {
+  const canvas = document.createElement('canvas')
+  canvas.width = 300
+  canvas.height = 400
+  const ctx = canvas.getContext('2d')
+  ctx.fillStyle = '#07c160'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
+  ctx.fillStyle = '#fff'
+  ctx.font = 'bold 24px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.fillText('爱创作', canvas.width / 2, 80)
+  ctx.font = '16px sans-serif'
+  ctx.fillText('邀请你一起 AI 创作', canvas.width / 2, 120)
+  ctx.font = 'bold 32px sans-serif'
+  ctx.fillText('邀请码 ' + inviteCode.value, canvas.width / 2, 220)
+  ctx.font = '12px sans-serif'
+  ctx.fillText('扫码或输入邀请码注册', canvas.width / 2, 260)
+  const link = document.createElement('a')
+  link.download = 'invite-poster.png'
+  link.href = canvas.toDataURL()
+  link.click()
+  message.success('海报已保存')
+}
+
+const simulateInviteRegister = () => {
+  const email = simulateEmail.value.trim()
+  if (!email || !email.includes('@')) {
+    message.warning('请输入有效的邮箱')
+    return
+  }
+  if (inviteStats.value.friends.some(f => f.email === email)) {
+    message.warning('该邮箱已被邀请')
+    return
+  }
+  inviteStats.value.invitedCount += 1
+  const days = calculateMembershipReward(inviteStats.value.invitedCount)
+  if (days > 0) {
+    inviteStats.value.membershipDaysEarned += days
+  }
+  inviteStats.value.friends.unshift({
+    email,
+    status: 'registered',
+    commission: 0,
+    createdAt: new Date().toISOString()
+  })
+  saveInviteStats()
+  simulateEmail.value = ''
+  message.success('模拟注册成功')
+}
+
+const simulateFriendPurchase = (friendEmail, orderAmount, isFirst) => {
+  const friend = inviteStats.value.friends.find(f => f.email === friendEmail)
+  if (!friend) {
+    message.warning('未找到该好友')
+    return
+  }
+  const rate = isFirst ? 0.1 : 0.05
+  const commission = Math.ceil(orderAmount * rate)
+  friend.status = 'purchased'
+  friend.commission += commission
+  saveInviteStats()
+  addCoin(commission, '好友购买返利 ' + friendEmail)
+}
+
+const openWithdrawModal = () => {
+  withdrawAmount.value = null
+  withdrawAccount.value = ''
+  withdrawName.value = ''
+  withdrawVisible.value = true
+}
+
+const submitWithdraw = () => {
+  const amount = Number(withdrawAmount.value)
+  const account = withdrawAccount.value.trim()
+  const name = withdrawName.value.trim()
+  if (!amount || amount < 100) {
+    message.warning('提现金额最低 100 创作币')
+    return
+  }
+  if (amount > coinBalance.value) {
+    message.warning('提现金额不能超过余额')
+    return
+  }
+  if (!account || !name) {
+    message.warning('请填写支付宝账号和真实姓名')
+    return
+  }
+  const requests = JSON.parse(localStorage.getItem(WITHDRAW_REQUESTS_KEY) || '[]')
+  requests.push({ amount, account, name, status: 'pending', createdAt: new Date().toISOString() })
+  localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(requests))
+  setCoinBalance(coinBalance.value - amount)
+  withdrawVisible.value = false
+  message.success('提现申请已提交，预计 7 天内到账')
+}
+
+const loadInviteData = () => {
+  inviteCode.value = getStoredInviteCode()
+  loadInviteStats()
+  loadCoinBalance()
 }
 
 const notifTabs = [
@@ -2212,6 +2570,467 @@ body[data-theme="dark"] .password-input:focus {
   margin-top: 16px;
   font-size: 14px;
   color: #595959;
+}
+
+/* ========== 邀请有礼 ========== */
+.console-invite-btn {
+  width: auto;
+  padding: 0 12px;
+  gap: 6px;
+  background: linear-gradient(135deg, #07c160 0%, #06ad56 100%);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 16px;
+}
+
+.console-invite-btn:hover {
+  background: linear-gradient(135deg, #06ad56 0%, #059a4c 100%);
+}
+
+.console-invite-btn .console-icon {
+  stroke-width: 2.2;
+}
+
+.invite-modal .ant-modal-body {
+  padding: 0;
+}
+
+.invite-panel {
+  width: 100%;
+  background: #f5f5f5;
+  border-radius: 12px;
+  overflow: hidden;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.invite-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invite-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.invite-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 16px 20px;
+  background: #fff;
+}
+
+.invite-stat-item {
+  text-align: center;
+  padding: 14px;
+  background: #f8f9fa;
+  border-radius: 10px;
+}
+
+.invite-stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #07c160;
+  line-height: 1.2;
+}
+
+.invite-stat-label {
+  font-size: 12px;
+  color: #595959;
+  margin-top: 4px;
+}
+
+.invite-code-card,
+.invite-link-card,
+.invite-progress-card,
+.invite-friend-card {
+  margin: 12px 20px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.invite-code-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.invite-code-box {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 14px 16px;
+  flex: 1;
+  min-width: 180px;
+}
+
+.invite-code-label {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.invite-code-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  letter-spacing: 2px;
+}
+
+.invite-link-value {
+  font-size: 13px;
+  color: #262626;
+  word-break: break-all;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+
+.invite-link-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.invite-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-btn-primary {
+  background: #07c160;
+  color: #fff;
+}
+
+.invite-btn-primary:hover:not(:disabled) {
+  background: #06ad56;
+}
+
+.invite-btn-secondary {
+  background: #fff;
+  color: #07c160;
+  border: 1px solid #07c160;
+}
+
+.invite-btn-secondary:hover {
+  background: #f6ffed;
+}
+
+.invite-btn:disabled {
+  background: #f5f5f5;
+  color: #bfbfbf;
+  border-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.invite-progress-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.invite-progress-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.invite-progress-item:last-child {
+  margin-bottom: 0;
+}
+
+.invite-progress-bar {
+  flex: 1;
+  height: 10px;
+  background: #f0f0f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.invite-progress-fill {
+  height: 100%;
+  background: #07c160;
+  border-radius: 5px;
+  transition: width 0.4s ease;
+}
+
+.invite-progress-text {
+  width: 80px;
+  font-size: 12px;
+  color: #595959;
+  text-align: right;
+}
+
+.invite-progress-desc {
+  flex: 1;
+  font-size: 12px;
+  color: #595959;
+}
+
+.invite-friend-header {
+  margin-bottom: 12px;
+}
+
+.invite-friend-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.invite-friend-list {
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.invite-friend-empty {
+  padding: 20px 0;
+  text-align: center;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.invite-friend-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #f5f5f5;
+}
+
+.invite-friend-item:last-child {
+  border-bottom: none;
+}
+
+.invite-friend-email {
+  font-size: 13px;
+  color: #262626;
+}
+
+.invite-friend-status {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.invite-friend-status.registered {
+  background: #f6ffed;
+  color: #07c160;
+}
+
+.invite-friend-status.purchased {
+  background: #fff7e6;
+  color: #fa8c16;
+}
+
+.invite-simulate {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.invite-simulate-label {
+  font-size: 12px;
+  color: #595959;
+  margin-bottom: 8px;
+}
+
+.invite-simulate-row {
+  display: flex;
+  gap: 10px;
+}
+
+.invite-form-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.invite-form-input:focus {
+  outline: none;
+  border-color: #07c160;
+  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+}
+
+/* 提现弹框 */
+.withdraw-modal .ant-modal-body {
+  padding: 0;
+}
+
+.withdraw-panel {
+  padding: 20px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.withdraw-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.withdraw-item {
+  margin-bottom: 14px;
+}
+
+.withdraw-label {
+  display: block;
+  font-size: 12px;
+  color: #595959;
+  margin-bottom: 6px;
+}
+
+.withdraw-balance {
+  font-size: 18px;
+  font-weight: 700;
+  color: #07c160;
+}
+
+.withdraw-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #1a1a1a;
+  box-sizing: border-box;
+}
+
+.withdraw-input:focus {
+  outline: none;
+  border-color: #07c160;
+  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+}
+
+.withdraw-hint {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+
+.withdraw-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* 暗色主题 - 邀请有礼 */
+body[data-theme="dark"] .console-invite-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+}
+
+body[data-theme="dark"] .console-invite-btn:hover {
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+}
+
+body[data-theme="dark"] .invite-panel {
+  background: #141414;
+}
+
+body[data-theme="dark"] .invite-header,
+body[data-theme="dark"] .invite-code-card,
+body[data-theme="dark"] .invite-link-card,
+body[data-theme="dark"] .invite-progress-card,
+body[data-theme="dark"] .invite-friend-card,
+body[data-theme="dark"] .withdraw-panel {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .invite-title,
+body[data-theme="dark"] .invite-progress-title,
+body[data-theme="dark"] .invite-friend-title,
+body[data-theme="dark"] .withdraw-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-stat-item,
+body[data-theme="dark"] .invite-code-box {
+  background: #262626;
+}
+
+body[data-theme="dark"] .invite-stat-label,
+body[data-theme="dark"] .invite-code-label,
+body[data-theme="dark"] .invite-progress-desc,
+body[data-theme="dark"] .invite-progress-text,
+body[data-theme="dark"] .invite-simulate-label,
+body[data-theme="dark"] .withdraw-label,
+body[data-theme="dark"] .withdraw-hint {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-code-value,
+body[data-theme="dark"] .invite-link-value,
+body[data-theme="dark"] .invite-friend-email {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-friend-empty {
+  color: #666;
+}
+
+body[data-theme="dark"] .invite-friend-item {
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .invite-friend-status.registered {
+  background: #1c2e1a;
+  color: #10b981;
+}
+
+body[data-theme="dark"] .invite-friend-status.purchased {
+  background: #2b2111;
+  color: #ffa940;
+}
+
+body[data-theme="dark"] .invite-form-input,
+body[data-theme="dark"] .withdraw-input {
+  background: #262626;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-form-input:focus,
+body[data-theme="dark"] .withdraw-input:focus {
+  border-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+body[data-theme="dark"] .invite-btn-secondary {
+  background: #1f1f1f;
+  border-color: #10b981;
+  color: #10b981;
+}
+
+body[data-theme="dark"] .invite-btn-secondary:hover {
+  background: #1c2e1a;
+}
+
+body[data-theme="dark"] .invite-btn:disabled {
+  background: #262626;
+  color: #666;
+  border-color: #404040;
 }
 
 /* 移动端：侧边栏收拢为图标栏 */
