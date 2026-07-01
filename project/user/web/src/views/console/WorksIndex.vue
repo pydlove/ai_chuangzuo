@@ -59,9 +59,9 @@
         </a-empty>
       </div>
       <div v-else-if="filteredWorks.length === 0" class="works-empty">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-text">未找到匹配的作品</div>
-        <button class="empty-btn" @click="clearFilters">清空筛选</button>
+        <a-empty description="未找到匹配的作品">
+          <button class="empty-btn" @click="clearFilters">清空筛选</button>
+        </a-empty>
       </div>
       <div v-else class="work-cards">
         <div v-for="work in filteredWorks" :key="work.id" class="work-card">
@@ -74,8 +74,10 @@
             <span>{{ formatDate(work.raw.completedAt) }}</span>
           </div>
           <div class="work-actions">
-            <button class="work-action-btn" @click="resumeDraft(work.raw)">继续编辑</button>
-            <button class="work-action-btn" @click="deleteWork(work.raw.id)">删除</button>
+            <button class="work-action-btn" @click="openArticle(work.raw)">预览</button>
+            <button class="work-action-btn" @click="openArticle(work.raw)">导出</button>
+            <button class="work-action-btn" @click="openArticle(work.raw)">生成贴图</button>
+            <button class="work-action-btn danger" @click="deleteWork(work.raw.id)">删除</button>
           </div>
         </div>
       </div>
@@ -89,9 +91,9 @@
         </a-empty>
       </div>
       <div v-else-if="filteredDrafts.length === 0" class="works-empty">
-        <div class="empty-icon">🔍</div>
-        <div class="empty-text">未找到匹配的草稿</div>
-        <button class="empty-btn" @click="clearFilters">清空筛选</button>
+        <a-empty description="未找到匹配的草稿">
+          <button class="empty-btn" @click="clearFilters">清空筛选</button>
+        </a-empty>
       </div>
       <div v-else class="work-cards">
         <div v-for="draft in filteredDrafts" :key="draft.id" class="work-card draft-card">
@@ -317,6 +319,11 @@ const deleteDraft = (id) => {
 const deleteWork = (id) => {
   const idx = worksList.value.findIndex(w => w.id === id)
   if (idx > -1) worksList.value.splice(idx, 1)
+}
+
+const openArticle = (work) => {
+  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(work.content))
+  router.push('/console/preview')
 }
 </script>
 
