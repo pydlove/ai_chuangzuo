@@ -127,3 +127,154 @@ function stripHtml(html) {
 }
 
 export { BLOCK_TYPES }
+
+export function bodyToHtmlWithStyles(body, styleOverrides) {
+  // 详见后续步骤
+  return bodyToHtml(body || '')
+}
+
+export function htmlToBodyWithStyles(html) {
+  // 详见后续步骤
+  const body = htmlToBody(html || '')
+  return { body, styleOverrides: { blocks: {}, inlines: [] } }
+}
+
+export function applyStyleOverrides(html, styleOverrides) {
+  // 详见后续步骤,本任务内先返回原 HTML
+  return html || ''
+}
+
+function inlineMarkdownToHtml(text) {
+  if (!text) return ''
+  return text
+    .replace(/\*\*\*(.+?)\*\*\*/g, '<b><i>$1</i></b>')
+    .replace(/\*\*(.+?)\*\*/g, '<b>$1</b>')
+    .replace(/(^|[^*])\*([^*]+)\*([^*]|$)/g, '$1<i>$2</i>$3')
+}
+
+/**
+ * 把正文纯文本语法转为富文本编辑器用的 HTML
+ * 支持：【小标题】、> 引用、- 列表项、普通段落、*斜体*、**加粗**
+ * @param {string} body
+ * @returns {string}
+ */
+export function bodyToHtml(body) {
+  if (!body) return '<p><br></p>'
+
+  const parts = body.split(/\n\n+/)
+  const htmlParts = []
+  let listBuffer = []
+
+  const flushList = () => {
+    if (listBuffer.length === 0) return
+    htmlParts.push('<ul>' + listBuffer.map(item => `<li>${inlineMarkdownToHtml(escapeHtml(item))}</li>`).join('') + '</ul>')
+    listBuffer = []
+  }
+
+  parts.forEach((part) => {
+    const trimmed = part.trim()
+    if (!trimmed) return
+
+    const headingMatch = trimmed.match(/^【([^】]+)】$/)
+    if (headingMatch) {
+      flushList()
+      htmlParts.push(`<h2>${inlineMarkdownToHtml(escapeHtml(headingMatch[1]))}</h2>`)
+      return
+    }
+
+    if (trimmed.startsWith('> ')) {
+      flushList()
+      htmlParts.push(`<blockquote>${inlineMarkdownToHtml(escapeHtml(trimmed.slice(2)))}</blockquote>`)
+      return
+    }
+
+    const listMatch = trimmed.match(/^(?:[-•]|\d+\.)\s+(.*)$/)
+    if (listMatch) {
+      listBuffer.push(listMatch[1])
+      return
+    }
+
+    flushList()
+    const withInline = inlineMarkdownToHtml(escapeHtml(trimmed))
+    const withBr = withInline.replace(/\n/g, '<br>')
+    htmlParts.push(`<p>${withBr}</p>`)
+  })
+
+  flushList()
+
+  if (htmlParts.length === 0) return '<p><br></p>'
+  return htmlParts.join('')
+}
+
+/**
+ * 把富文本编辑器里的 HTML 转回正文纯文本语法
+ * @param {string} html
+ * @returns {string}
+ */
+export function htmlToBody(html) {
+  if (!html) return ''
+
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+
+  const parts = []
+
+  const extractInline = (node) => {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return ''
+    }
+    if (node.tagName === 'BR') {
+      return '\n'
+    }
+    const children = Array.from(node.childNodes).map(extractInline).join('')
+    const tag = node.tagName.toLowerCase()
+    if (tag === 'b' || tag === 'strong') {
+      return `**${children}**`
+    }
+    if (tag === 'i' || tag === 'em') {
+      return `*${children}*`
+    }
+    return children
+  }
+
+  const processBlock = (el) => {
+    const tag = el.tagName.toLowerCase()
+    const text = extractInline(el).trim()
+    if (!text) return
+
+    if (tag === 'h1' || tag === 'h2' || tag === 'h3' || tag === 'h4') {
+      parts.push(`【${text}】`)
+      return
+    }
+
+    if (tag === 'blockquote') {
+      parts.push(`> ${text}`)
+      return
+    }
+
+    if (tag === 'ul' || tag === 'ol') {
+      Array.from(el.children).forEach(li => {
+        if (li.tagName.toLowerCase() === 'li') {
+          const liText = extractInline(li).trim()
+          if (liText) parts.push(`- ${liText}`)
+        }
+      })
+      return
+    }
+
+    parts.push(text)
+  }
+
+  Array.from(tmp.childNodes).forEach(node => {
+    if (node.nodeType === Node.ELEMENT_NODE) {
+      processBlock(node)
+    } else if (node.nodeType === Node.TEXT_NODE && node.textContent.trim()) {
+      parts.push(node.textContent.trim())
+    }
+  })
+
+  return parts.join('\n\n')
+}
