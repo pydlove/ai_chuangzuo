@@ -470,6 +470,84 @@
     if (typeof updateNotificationBadge === 'function') {
       updateNotificationBadge();
     }
+
+    // 邀请有礼：创作币抵扣与返利
+    (function() {
+      var balance = getCoinBalance ? getCoinBalance() : 0;
+
+      // 为每个会员卡增强样式与抵扣 UI
+      var buttons = document.querySelectorAll('button[onclick="location.href=\'order.html\'"]');
+      buttons.forEach(function(btn) {
+        var card = btn.parentElement;
+        if (!card) return;
+        card.classList.add('pricing-card');
+        btn.classList.add('plan-btn');
+        btn.removeAttribute('onclick');
+
+        // 查找价格元素（文本包含 ¥ 的 div）
+        var priceEl = null;
+        var walk = function(el) {
+          if (priceEl) return;
+          for (var i = 0; i < el.childNodes.length; i++) {
+            var node = el.childNodes[i];
+            if (node.nodeType === 1) {
+              if (node.textContent.indexOf('¥') !== -1 && !node.querySelector('ul')) {
+                priceEl = node;
+              }
+              walk(node);
+            }
+          }
+        };
+        walk(card);
+        if (!priceEl) return;
+
+        priceEl.classList.add('plan-price');
+        var match = priceEl.textContent.match(/¥([0-9]+(?:\.[0-9]+)?)/);
+        var basePrice = match ? parseFloat(match[1]) : 0;
+        priceEl.setAttribute('data-base-price', basePrice);
+
+        var discountWrap = document.createElement('div');
+        discountWrap.className = 'invite-coin-discount';
+        discountWrap.style.cssText = 'margin-bottom: 12px;';
+        discountWrap.innerHTML =
+          '<label>创作币抵扣</label>' +
+          '<input type="number" class="coin-discount-input" min="0" placeholder="0" style="width: 60px; padding: 4px 8px; border: 1px solid #ffd591; border-radius: 6px;">' +
+          '<span style="font-size: 12px; color: #8c8c8c;">可用 <span class="coin-balance">' + balance + '</span> 币</span>';
+
+        var finalPriceWrap = document.createElement('div');
+        finalPriceWrap.className = 'plan-final-price';
+        finalPriceWrap.style.cssText = 'font-size: 14px; color: #595959; margin-bottom: 12px;';
+        finalPriceWrap.innerHTML = '实付：¥<span class="final-amount">' + basePrice.toFixed(1) + '</span>';
+
+        card.insertBefore(finalPriceWrap, btn);
+        card.insertBefore(discountWrap, finalPriceWrap);
+
+        var input = discountWrap.querySelector('.coin-discount-input');
+        input.addEventListener('input', function() {
+          var use = Math.min(parseInt(input.value || '0', 10), balance, basePrice);
+          input.value = use;
+          finalPriceWrap.querySelector('.final-amount').textContent = (basePrice - use).toFixed(1);
+        });
+
+        btn.addEventListener('click', function() {
+          var use = parseInt(input.value || '0', 10);
+          var finalAmount = parseFloat(finalPriceWrap.querySelector('.final-amount').textContent);
+          var currentBalance = getCoinBalance ? getCoinBalance() : 0;
+          if (setCoinBalance) setCoinBalance(currentBalance - use);
+
+          // 模拟返利给邀请人（按实付金额 10%）
+          var statsRaw = localStorage.getItem('aichuangzuo_invite_stats');
+          var stats = statsRaw ? JSON.parse(statsRaw) : { invitedCount: 0, membershipDaysEarned: 0, coinEarned: 0, friends: [] };
+          var commission = Math.ceil(finalAmount * 0.1);
+          stats.coinEarned += commission;
+          localStorage.setItem('aichuangzuo_invite_stats', JSON.stringify(stats));
+          var afterBalance = parseInt(localStorage.getItem('aichuangzuo_coin_balance') || '0', 10);
+          localStorage.setItem('aichuangzuo_coin_balance', String(afterBalance + commission));
+
+          location.href = 'order.html';
+        });
+      });
+    })();
   });
 </script>
 

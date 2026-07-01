@@ -17,6 +17,9 @@
   function simulateAuth(type) {
     isLoggedIn = true;
     sessionStorage.setItem('isLoggedIn', 'true');
+    if (type === 'register') {
+      awardNewUserCoins();
+    }
     location.href='create.html';
   }
 
@@ -4142,6 +4145,10 @@
     renderWorksQueueItems();
     updateNotificationBadge();
     renderGlobalFooter();
+    storeRefCode();
+    showInviteBannerIfRef();
+    initInvitePage();
+    applyCoinDiscount();
   });
 
   function initDemoQueueData() {
@@ -4642,3 +4649,368 @@
     showToast('反馈已收到，感谢你的建议');
     closeFeedbackModal();
   }
+
+  // ===================== 邀请有礼模块 =====================
+  (function() {
+    var INVITE_CODE_KEY = 'aichuangzuo_invite_code';
+    var INVITE_STATS_KEY = 'aichuangzuo_invite_stats';
+    var COIN_BALANCE_KEY = 'aichuangzuo_coin_balance';
+    var MEMBERSHIP_DAYS_KEY = 'aichuangzuo_membership_pro_days';
+    var WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests';
+    var INVITE_REF_KEY = 'aichuangzuo_invite_ref';
+    var COIN_BONUS_NEW_USER = 5;
+
+    function generateInviteCode() {
+      var chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+      var code = '';
+      for (var i = 0; i < 6; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+      return code;
+    }
+
+    window.getInviteCode = function() {
+      var code = localStorage.getItem(INVITE_CODE_KEY);
+      if (!code) {
+        code = generateInviteCode();
+        localStorage.setItem(INVITE_CODE_KEY, code);
+      }
+      return code;
+    };
+
+    function getStats() {
+      var raw = localStorage.getItem(INVITE_STATS_KEY);
+      var stats = raw ? JSON.parse(raw) : null;
+      if (!stats) {
+        stats = {
+          invitedCount: 0,
+          membershipDaysEarned: 0,
+          coinEarned: 0,
+          friends: []
+        };
+        localStorage.setItem(INVITE_STATS_KEY, JSON.stringify(stats));
+      }
+      return stats;
+    }
+
+    function saveStats(stats) {
+      localStorage.setItem(INVITE_STATS_KEY, JSON.stringify(stats));
+    }
+
+    window.getInviteStats = function() {
+      return getStats();
+    };
+
+    window.getCoinBalance = function() {
+      var raw = localStorage.getItem(COIN_BALANCE_KEY);
+      return raw ? parseInt(raw, 10) : 0;
+    };
+
+    window.setCoinBalance = function(amount) {
+      localStorage.setItem(COIN_BALANCE_KEY, String(amount));
+    };
+
+    function addCoin(amount, reason) {
+      var balance = getCoinBalance();
+      balance += amount;
+      setCoinBalance(balance);
+      var stats = getStats();
+      stats.coinEarned += amount;
+      saveStats(stats);
+      console.log('创作币变动:', reason, amount, '余额:', balance);
+    }
+
+    function getMembershipDays() {
+      var raw = localStorage.getItem(MEMBERSHIP_DAYS_KEY);
+      return raw ? parseInt(raw, 10) : 0;
+    }
+
+    function addMembershipDays(days) {
+      var current = getMembershipDays();
+      current += days;
+      localStorage.setItem(MEMBERSHIP_DAYS_KEY, String(current));
+      var stats = getStats();
+      stats.membershipDaysEarned += days;
+      saveStats(stats);
+    }
+
+    function calculateMembershipReward(totalInvited) {
+      if (totalInvited === 3) return 3;
+      if (totalInvited === 5) return 5;
+      if (totalInvited > 5) return 2;
+      return 0;
+    }
+
+    window.awardMembershipDays = function(totalInvited) {
+      var days = calculateMembershipReward(totalInvited);
+      if (days > 0) {
+        addMembershipDays(days);
+      }
+    };
+
+    // 模拟：被邀请人注册成功
+    window.simulateInviteRegister = function(friendEmail) {
+      if (!friendEmail || friendEmail.indexOf('@') === -1) {
+        showToast('请输入有效的邮箱');
+        return;
+      }
+      var stats = getStats();
+      if (stats.friends.some(function(f) { return f.email === friendEmail; })) {
+        showToast('该邮箱已被邀请');
+        return;
+      }
+      stats.invitedCount += 1;
+      stats.friends.unshift({ email: friendEmail, status: 'registered', commission: 0, createdAt: new Date().toISOString() });
+      saveStats(stats);
+      awardMembershipDays(stats.invitedCount);
+      renderInvitePage();
+    };
+
+    // 模拟：被邀请人购买会员
+    window.simulateFriendPurchase = function(friendEmail, orderAmount, isFirst) {
+      var stats = getStats();
+      var friend = stats.friends.find(function(f) { return f.email === friendEmail; });
+      if (!friend) {
+        showToast('未找到该好友');
+        return;
+      }
+      var rate = isFirst ? 0.1 : 0.05;
+      var commission = Math.ceil(orderAmount * rate);
+      friend.status = 'purchased';
+      friend.commission += commission;
+      saveStats(stats);
+      addCoin(commission, '好友购买返利 ' + friendEmail);
+      renderInvitePage();
+    };
+
+    window.copyInviteCode = function() {
+      var code = getInviteCode();
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(code).then(function() { showToast('邀请码已复制'); });
+      } else {
+        var input = document.createElement('input');
+        input.value = code;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('邀请码已复制');
+      }
+    };
+
+    window.copyInviteLink = function() {
+      var code = getInviteCode();
+      var link = location.origin + '/.superpowers/brainstorm/6491-1782131242/content/login.html?ref=' + code;
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(link).then(function() { showToast('邀请链接已复制'); });
+      } else {
+        var input = document.createElement('input');
+        input.value = link;
+        document.body.appendChild(input);
+        input.select();
+        document.execCommand('copy');
+        document.body.removeChild(input);
+        showToast('邀请链接已复制');
+      }
+    };
+
+    window.downloadInvitePoster = function() {
+      var canvas = document.createElement('canvas');
+      canvas.width = 300;
+      canvas.height = 400;
+      var ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#07c160';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('爱创作', canvas.width / 2, 80);
+      ctx.font = '16px sans-serif';
+      ctx.fillText('邀请你一起 AI 创作', canvas.width / 2, 120);
+      ctx.font = 'bold 32px sans-serif';
+      ctx.fillText('邀请码 ' + getInviteCode(), canvas.width / 2, 220);
+      ctx.font = '12px sans-serif';
+      ctx.fillText('扫码或输入邀请码注册', canvas.width / 2, 260);
+      var link = document.createElement('a');
+      link.download = 'invite-poster.png';
+      link.href = canvas.toDataURL();
+      link.click();
+      showToast('海报已保存');
+    };
+
+    window.openWithdrawModal = function() {
+      if (document.getElementById('invite-withdraw-modal')) return;
+      var balance = getCoinBalance();
+      var overlay = document.createElement('div');
+      overlay.id = 'invite-withdraw-modal';
+      overlay.className = 'invite-withdraw-modal-overlay';
+      overlay.innerHTML =
+        '<div class="invite-withdraw-modal">' +
+          '<div class="invite-withdraw-title">申请提现</div>' +
+          '<div class="invite-form-item">' +
+            '<label class="invite-form-label">可提现余额</label>' +
+            '<div style="font-size:20px;font-weight:700;color:#07c160;">' + balance + ' 创作币</div>' +
+          '</div>' +
+          '<div class="invite-form-item">' +
+            '<label class="invite-form-label">提现金额</label>' +
+            '<input id="withdraw-amount" class="invite-form-input" type="number" min="100" max="' + balance + '" placeholder="最低 100">' +
+            '<div class="invite-form-hint">1 创作币 = 1 元，满 100 可提现</div>' +
+          '</div>' +
+          '<div class="invite-form-item">' +
+            '<label class="invite-form-label">支付宝账号</label>' +
+            '<input id="withdraw-account" class="invite-form-input" placeholder="支付宝账号">' +
+          '</div>' +
+          '<div class="invite-form-item">' +
+            '<label class="invite-form-label">真实姓名</label>' +
+            '<input id="withdraw-name" class="invite-form-input" placeholder="真实姓名">' +
+          '</div>' +
+          '<div class="invite-modal-actions">' +
+            '<button class="invite-btn invite-btn-secondary" onclick="closeWithdrawModal()">取消</button>' +
+            '<button class="invite-btn invite-btn-primary" onclick="submitWithdraw()">提交申请</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(overlay);
+      overlay.onclick = function(e) { if (e.target === overlay) closeWithdrawModal(); };
+    };
+
+    window.closeWithdrawModal = function() {
+      var modal = document.getElementById('invite-withdraw-modal');
+      if (modal) modal.remove();
+    };
+
+    window.submitWithdraw = function() {
+      var amount = parseInt(document.getElementById('withdraw-amount').value, 10);
+      var account = document.getElementById('withdraw-account').value.trim();
+      var name = document.getElementById('withdraw-name').value.trim();
+      var balance = getCoinBalance();
+      if (!amount || amount < 100) { showToast('提现金额最低 100 创作币'); return; }
+      if (amount > balance) { showToast('提现金额不能超过余额'); return; }
+      if (!account || !name) { showToast('请填写支付宝账号和真实姓名'); return; }
+      var requests = JSON.parse(localStorage.getItem(WITHDRAW_REQUESTS_KEY) || '[]');
+      requests.push({ amount: amount, account: account, name: name, status: 'pending', createdAt: new Date().toISOString() });
+      localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(requests));
+      setCoinBalance(balance - amount);
+      closeWithdrawModal();
+      renderInvitePage();
+      showToast('提现申请已提交，预计 7 天内到账');
+    };
+
+    window.renderInvitePage = function() {
+      var stats = getStats();
+      var balance = getCoinBalance();
+      var code = getInviteCode();
+      var membershipDays = getMembershipDays();
+
+      var inviteCodeEl = document.getElementById('invite-code-display');
+      var inviteLinkEl = document.getElementById('invite-link-display');
+      if (inviteCodeEl) inviteCodeEl.textContent = code;
+      if (inviteLinkEl) inviteLinkEl.textContent = location.origin + '/.superpowers/brainstorm/6491-1782131242/content/login.html?ref=' + code;
+
+      var statCount = document.getElementById('invite-stat-count');
+      var statDays = document.getElementById('invite-stat-days');
+      var statCoin = document.getElementById('invite-stat-coin');
+      if (statCount) statCount.textContent = stats.invitedCount;
+      if (statDays) statDays.textContent = membershipDays;
+      if (statCoin) statCoin.textContent = balance;
+
+      // 移动端统计同步
+      var mobileCount = document.getElementById('mobile-stat-count');
+      var mobileDays = document.getElementById('mobile-stat-days');
+      var mobileCoin = document.getElementById('mobile-stat-coin');
+      var mobileCode = document.getElementById('mobile-code-display');
+      if (mobileCount) mobileCount.textContent = stats.invitedCount;
+      if (mobileDays) mobileDays.textContent = membershipDays;
+      if (mobileCoin) mobileCoin.textContent = balance;
+      if (mobileCode) mobileCode.textContent = code;
+
+      // 阶梯进度
+      var progressContainer = document.getElementById('invite-progress');
+      if (progressContainer) {
+        var milestones = [
+          { count: 3, reward: 3, label: '邀请 3 人' },
+          { count: 5, reward: 5, label: '邀请 5 人' }
+        ];
+        var html = '<div class="invite-progress-title">阶梯奖励进度</div>';
+        milestones.forEach(function(m) {
+          var pct = Math.min(100, (stats.invitedCount / m.count) * 100);
+          var reached = stats.invitedCount >= m.count;
+          html +=
+            '<div class="invite-progress-item">' +
+              '<div class="invite-progress-bar"><div class="invite-progress-fill" style="width:' + pct + '%"></div></div>' +
+              '<div class="invite-progress-text">' + (reached ? '<span class="invite-progress-reward">+' + m.reward + ' 天</span>' : stats.invitedCount + '/' + m.count) + '</div>' +
+            '</div>';
+        });
+        var extra = Math.max(0, stats.invitedCount - 5);
+        html +=
+          '<div class="invite-progress-item">' +
+            '<div style="flex:1;font-size:13px;color:#595959;">超过 5 人后，每多 1 人 +2 天专业版会员</div>' +
+            '<div class="invite-progress-text">' + (extra > 0 ? '+' + (extra * 2) + ' 天' : '—') + '</div>' +
+          '</div>';
+        progressContainer.innerHTML = html;
+      }
+
+      // 好友列表
+      var listContainer = document.getElementById('invite-friend-list');
+      if (listContainer) {
+        if (stats.friends.length === 0) {
+          listContainer.innerHTML = '<div class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>';
+        } else {
+          listContainer.innerHTML = stats.friends.map(function(f) {
+            return '<div class="invite-friend-item">' +
+              '<div><span class="invite-friend-email">' + f.email + '</span></div>' +
+              '<span class="invite-friend-status ' + f.status + '">' + (f.status === 'purchased' ? '已购买 +' + f.commission + ' 币' : '已注册') + '</span>' +
+            '</div>';
+          }).join('');
+        }
+      }
+
+      // 提现按钮状态
+      var withdrawBtn = document.getElementById('invite-withdraw-btn');
+      if (withdrawBtn) {
+        withdrawBtn.disabled = balance < 100;
+        withdrawBtn.textContent = balance >= 100 ? '申请提现' : '满 100 可提现';
+      }
+    };
+
+    window.initInvitePage = function() {
+      getInviteCode();
+      renderInvitePage();
+    };
+
+    window.applyCoinDiscount = function(orderAmount, coinAmount) {
+      var balance = getCoinBalance();
+      var use = Math.min(coinAmount, balance, orderAmount);
+      return {
+        used: use,
+        finalAmount: Math.max(0, orderAmount - use)
+      };
+    };
+
+    // ref 归因辅助
+    window.storeRefCode = function() {
+      var params = new URLSearchParams(location.search);
+      var ref = params.get('ref');
+      if (ref) {
+        localStorage.setItem(INVITE_REF_KEY, ref);
+      }
+    };
+
+    window.showInviteBannerIfRef = function() {
+      var params = new URLSearchParams(location.search);
+      var ref = params.get('ref') || localStorage.getItem(INVITE_REF_KEY);
+      var pc = document.getElementById('pc-invite-banner');
+      var mobile = document.getElementById('mobile-invite-banner');
+      if (ref) {
+        if (pc) pc.style.display = 'flex';
+        if (mobile) mobile.style.display = 'flex';
+      }
+    };
+
+    window.awardNewUserCoins = function() {
+      var ref = localStorage.getItem(INVITE_REF_KEY);
+      if (ref) {
+        addCoin(COIN_BONUS_NEW_USER, '新用户注册奖励（邀请码：' + ref + '）');
+        localStorage.removeItem(INVITE_REF_KEY);
+      }
+    };
+  })();

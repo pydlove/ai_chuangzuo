@@ -69,6 +69,10 @@
 </div>
 <!-- 注册表单 -->
 <div class="auth-form" id="pc-register">
+<div class="invite-banner" id="pc-invite-banner" style="display:none; margin-bottom: 16px;">
+  <div class="invite-banner-icon">🎁</div>
+  <div class="invite-banner-text">你收到了好友的邀请，注册并完成邮箱验证后可获得 <strong>5 个创作币</strong>。</div>
+</div>
 <h2 style="text-align: center; margin-bottom: 8px; color: #1a1a1a;">创建账号</h2>
 <p style="text-align: center; color: #595959; font-size: 14px; margin-bottom: 28px;">注册后即可开始生成文章</p>
 <div style="margin-bottom: 16px;">
@@ -129,6 +133,10 @@
 </div>
 <!-- 移动端注册 -->
 <div class="auth-form" id="mobile-register">
+<div class="invite-banner" id="mobile-invite-banner" style="display:none; margin-bottom: 14px;">
+  <div class="invite-banner-icon">🎁</div>
+  <div class="invite-banner-text" style="font-size: 13px;">你收到了好友的邀请，注册并完成邮箱验证后可获得 <strong>5 个创作币</strong>。</div>
+</div>
 <h2 style="text-align: center; margin-bottom: 8px; font-size: 20px; color: #1a1a1a;">创建账号</h2>
 <p style="text-align: center; color: #595959; font-size: 13px; margin-bottom: 24px;">注册后即可开始生成文章</p>
 <div style="margin-bottom: 14px;">
@@ -162,6 +170,15 @@
   document.addEventListener('DOMContentLoaded', function() {
     if (typeof updateNotificationBadge === 'function') {
       updateNotificationBadge();
+    }
+    var params = new URLSearchParams(location.search);
+    var ref = params.get('ref');
+    if (ref) {
+      var pc = document.getElementById('pc-invite-banner');
+      var mobile = document.getElementById('mobile-invite-banner');
+      if (pc) pc.style.display = 'flex';
+      if (mobile) mobile.style.display = 'flex';
+      localStorage.setItem('aichuangzuo_invite_ref', ref);
     }
   });
 </script>
