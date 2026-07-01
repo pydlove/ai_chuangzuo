@@ -174,13 +174,7 @@
           <!-- 邀请有礼按钮 -->
           <a-tooltip title="邀请有礼">
             <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="7" width="18" height="14" rx="2" ry="2"/>
-                <path d="M12 7v14"/>
-                <path d="M3 11h18"/>
-                <path d="M9 7c-1.5 0-2.5-1-2.5-2.5S7.5 2 9 2s2.5 1 2.5 2.5S10.5 7 9 7z"/>
-                <path d="M15 7c-1.5 0-2.5-1-2.5-2.5S13.5 2 15 2s2.5 1 2.5 2.5S16.5 7 15 7z"/>
-              </svg>
+              <span style="font-size: 16px;">🎁</span>
               <span>邀请有礼</span>
             </button>
           </a-tooltip>
@@ -2581,7 +2575,7 @@ body[data-theme="dark"] .password-input:focus {
   width: auto;
   padding: 0 12px;
   gap: 6px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2589,7 +2583,7 @@ body[data-theme="dark"] .password-input:focus {
 }
 
 .console-invite-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
 .console-invite-btn .console-icon {
@@ -2941,11 +2935,11 @@ body[data-theme="dark"] .password-input:focus {
 
 /* 暗色主题 - 邀请有礼 */
 body[data-theme="dark"] .console-invite-btn {
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
 }
 
 body[data-theme="dark"] .console-invite-btn:hover {
-  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
 body[data-theme="dark"] .invite-panel {
