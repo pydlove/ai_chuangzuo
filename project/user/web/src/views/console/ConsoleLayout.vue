@@ -996,7 +996,7 @@ const downloadInvitePoster = () => {
   canvas.width = 300
   canvas.height = 400
   const ctx = canvas.getContext('2d')
-  ctx.fillStyle = '#07c160'
+  ctx.fillStyle = '#FF2442'
   ctx.fillRect(0, 0, canvas.width, canvas.height)
   ctx.fillStyle = '#fff'
   ctx.font = 'bold 24px sans-serif'
@@ -2577,7 +2577,7 @@ body[data-theme="dark"] .password-input:focus {
   width: auto;
   padding: 0 12px;
   gap: 6px;
-  background: linear-gradient(135deg, #07c160 0%, #06ad56 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
@@ -2585,7 +2585,7 @@ body[data-theme="dark"] .password-input:focus {
 }
 
 .console-invite-btn:hover {
-  background: linear-gradient(135deg, #06ad56 0%, #059a4c 100%);
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
 }
 
 .console-invite-btn .console-icon {
@@ -2638,7 +2638,7 @@ body[data-theme="dark"] .password-input:focus {
 .invite-stat-value {
   font-size: 24px;
   font-weight: 700;
-  color: #07c160;
+  color: var(--color-primary);
   line-height: 1.2;
 }
 
@@ -2712,22 +2712,22 @@ body[data-theme="dark"] .password-input:focus {
 }
 
 .invite-btn-primary {
-  background: #07c160;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .invite-btn-primary:hover:not(:disabled) {
-  background: #06ad56;
+  background: var(--color-primary-hover);
 }
 
 .invite-btn-secondary {
   background: #fff;
-  color: #07c160;
-  border: 1px solid #07c160;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
 }
 
 .invite-btn-secondary:hover {
-  background: #f6ffed;
+  background: var(--color-primary-light);
 }
 
 .invite-btn:disabled {
@@ -2765,7 +2765,7 @@ body[data-theme="dark"] .password-input:focus {
 
 .invite-progress-fill {
   height: 100%;
-  background: #07c160;
+  background: var(--color-primary);
   border-radius: 5px;
   transition: width 0.4s ease;
 }
@@ -2829,8 +2829,8 @@ body[data-theme="dark"] .password-input:focus {
 }
 
 .invite-friend-status.registered {
-  background: #f6ffed;
-  color: #07c160;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
 }
 
 .invite-friend-status.purchased {
@@ -2867,8 +2867,8 @@ body[data-theme="dark"] .password-input:focus {
 
 .invite-form-input:focus {
   outline: none;
-  border-color: #07c160;
-  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
 }
 
 /* 提现弹框 */
@@ -2903,7 +2903,7 @@ body[data-theme="dark"] .password-input:focus {
 .withdraw-balance {
   font-size: 18px;
   font-weight: 700;
-  color: #07c160;
+  color: var(--color-primary);
 }
 
 .withdraw-input {
@@ -2918,8 +2918,8 @@ body[data-theme="dark"] .password-input:focus {
 
 .withdraw-input:focus {
   outline: none;
-  border-color: #07c160;
-  box-shadow: 0 0 0 3px rgba(7, 193, 96, 0.1);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
 }
 
 .withdraw-hint {
@@ -2937,11 +2937,11 @@ body[data-theme="dark"] .password-input:focus {
 
 /* 暗色主题 - 邀请有礼 */
 body[data-theme="dark"] .console-invite-btn {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
 }
 
 body[data-theme="dark"] .console-invite-btn:hover {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
+  background: linear-gradient(135deg, var(--color-primary-hover) 0%, var(--color-primary-active) 100%);
 }
 
 body[data-theme="dark"] .invite-panel {
@@ -2995,8 +2995,8 @@ body[data-theme="dark"] .invite-friend-item {
 }
 
 body[data-theme="dark"] .invite-friend-status.registered {
-  background: #1c2e1a;
-  color: #10b981;
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .invite-friend-status.purchased {
@@ -3013,18 +3013,18 @@ body[data-theme="dark"] .withdraw-input {
 
 body[data-theme="dark"] .invite-form-input:focus,
 body[data-theme="dark"] .withdraw-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
 
 body[data-theme="dark"] .invite-btn-secondary {
   background: #1f1f1f;
-  border-color: #10b981;
-  color: #10b981;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .invite-btn-secondary:hover {
-  background: #1c2e1a;
+  background: rgba(255, 36, 66, 0.15);
 }
 
 body[data-theme="dark"] .invite-btn:disabled {
