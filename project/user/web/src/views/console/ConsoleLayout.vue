@@ -174,14 +174,7 @@
           <!-- 邀请有礼按钮 -->
           <a-tooltip title="邀请有礼">
             <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M10 2h4"/>
-                <path d="M12 2v4"/>
-                <path d="M6 7c-2.5 3-3.5 7-2.5 11 .8 2.5 3.5 4.5 8.5 4.5s7.7-2 8.5-4.5c1-4 0-8-2.5-11H6z"/>
-                <path d="M9 11l3 3 3-3"/>
-                <path d="M9 14h6"/>
-                <path d="M12 14v4"/>
-              </svg>
+              <span style="font-size: 16px;">🎁</span>
               <span>邀请有礼</span>
             </button>
           </a-tooltip>
