@@ -45,92 +45,94 @@
                 <span class="invite-title">🎁 邀请有礼</span>
               </div>
 
-              <!-- 统计卡片 -->
-              <div class="invite-stats">
-                <div class="invite-stat-item">
-                  <div class="invite-stat-value">{{ inviteStats.invitedCount }}</div>
-                  <div class="invite-stat-label">已邀请</div>
+              <div class="invite-content">
+                <!-- 统计卡片 -->
+                <div class="invite-stats">
+                  <div class="invite-stat-item">
+                    <div class="invite-stat-value">{{ inviteStats.invitedCount }}</div>
+                    <div class="invite-stat-label">已邀请</div>
+                  </div>
+                  <div class="invite-stat-item">
+                    <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
+                    <div class="invite-stat-label">奖励会员天数</div>
+                  </div>
+                  <div class="invite-stat-item">
+                    <div class="invite-stat-value">{{ coinBalance }}</div>
+                    <div class="invite-stat-label">创作币余额</div>
+                  </div>
                 </div>
-                <div class="invite-stat-item">
-                  <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
-                  <div class="invite-stat-label">奖励会员天数</div>
-                </div>
-                <div class="invite-stat-item">
-                  <div class="invite-stat-value">{{ coinBalance }}</div>
-                  <div class="invite-stat-label">创作币余额</div>
-                </div>
-              </div>
 
-              <!-- 邀请码 -->
-              <div class="invite-code-card">
-                <div class="invite-code-box">
-                  <div class="invite-code-label">我的邀请码</div>
-                  <div class="invite-code-value">{{ inviteCode }}</div>
+                <!-- 邀请码 -->
+                <div class="invite-code-card">
+                  <div class="invite-code-box">
+                    <div class="invite-code-label">我的邀请码</div>
+                    <div class="invite-code-value">{{ inviteCode }}</div>
+                  </div>
+                  <button class="invite-btn invite-btn-primary" @click="copyInviteCode">复制邀请码</button>
                 </div>
-                <button class="invite-btn invite-btn-primary" @click="copyInviteCode">复制邀请码</button>
-              </div>
 
-              <!-- 邀请链接 -->
-              <div class="invite-link-card">
-                <div class="invite-code-label">邀请链接</div>
-                <div class="invite-link-value">{{ inviteLink }}</div>
-                <div class="invite-link-actions">
-                  <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
-                  <button class="invite-btn invite-btn-secondary" @click="downloadInvitePoster">下载海报</button>
-                  <button class="invite-btn invite-btn-primary" :disabled="coinBalance < 100" @click="openWithdrawModal">
-                    {{ coinBalance >= 100 ? '申请提现' : '满 100 可提现' }}
-                  </button>
+                <!-- 邀请链接 -->
+                <div class="invite-link-card">
+                  <div class="invite-code-label">邀请链接</div>
+                  <div class="invite-link-value">{{ inviteLink }}</div>
+                  <div class="invite-link-actions">
+                    <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
+                    <button class="invite-btn invite-btn-secondary" @click="downloadInvitePoster">下载海报</button>
+                    <button class="invite-btn invite-btn-primary" :disabled="coinBalance < 100" @click="openWithdrawModal">
+                      {{ coinBalance >= 100 ? '申请提现' : '满 100 可提现' }}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <!-- 阶梯奖励 -->
-              <div class="invite-progress-card">
-                <div class="invite-progress-title">阶梯奖励进度</div>
-                <div class="invite-progress-item">
-                  <div class="invite-progress-bar">
-                    <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
-                  </div>
-                  <div class="invite-progress-text">
-                    {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
-                  </div>
-                </div>
-                <div class="invite-progress-item">
-                  <div class="invite-progress-bar">
-                    <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
-                  </div>
-                  <div class="invite-progress-text">
-                    {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
-                  </div>
-                </div>
-                <div class="invite-progress-item">
-                  <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
-                  <div class="invite-progress-text">
-                    {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
-                  </div>
-                </div>
-              </div>
-
-              <!-- 邀请记录 -->
-              <div class="invite-friend-card">
-                <div class="invite-friend-header">
-                  <span class="invite-friend-title">邀请记录</span>
-                </div>
-                <div class="invite-friend-list">
-                  <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>
-                  <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
-                    <div>
-                      <span class="invite-friend-email">{{ f.email }}</span>
+                <!-- 阶梯奖励 -->
+                <div class="invite-progress-card">
+                  <div class="invite-progress-title">阶梯奖励进度</div>
+                  <div class="invite-progress-item">
+                    <div class="invite-progress-bar">
+                      <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
                     </div>
-                    <span :class="['invite-friend-status', f.status]">
-                      {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
-                    </span>
+                    <div class="invite-progress-text">
+                      {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
+                    </div>
+                  </div>
+                  <div class="invite-progress-item">
+                    <div class="invite-progress-bar">
+                      <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
+                    </div>
+                    <div class="invite-progress-text">
+                      {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
+                    </div>
+                  </div>
+                  <div class="invite-progress-item">
+                    <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
+                    <div class="invite-progress-text">
+                      {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
+                    </div>
                   </div>
                 </div>
-                <div class="invite-simulate">
-                  <div class="invite-simulate-label">模拟：好友通过邀请链接注册</div>
-                  <div class="invite-simulate-row">
-                    <input v-model="simulateEmail" class="invite-form-input" placeholder="好友邮箱" />
-                    <button class="invite-btn invite-btn-primary" @click="simulateInviteRegister">模拟注册</button>
+
+                <!-- 邀请记录 -->
+                <div class="invite-friend-card">
+                  <div class="invite-friend-header">
+                    <span class="invite-friend-title">邀请记录</span>
+                  </div>
+                  <div class="invite-friend-list">
+                    <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>
+                    <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
+                      <div>
+                        <span class="invite-friend-email">{{ f.email }}</span>
+                      </div>
+                      <span :class="['invite-friend-status', f.status]">
+                        {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
+                      </span>
+                    </div>
+                  </div>
+                  <div class="invite-simulate">
+                    <div class="invite-simulate-label">模拟：好友通过邀请链接注册</div>
+                    <div class="invite-simulate-row">
+                      <input v-model="simulateEmail" class="invite-form-input" placeholder="好友邮箱" />
+                      <button class="invite-btn invite-btn-primary" @click="simulateInviteRegister">模拟注册</button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -2599,20 +2601,26 @@ body[data-theme="dark"] .password-input:focus {
   background: #f5f5f5;
   border-radius: 12px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
   max-height: 80vh;
-  overflow-y: auto;
 }
 
 .invite-header {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 16px 20px;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
+}
+
+.invite-content {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+  padding-bottom: 4px;
 }
 
 .invite-title {
