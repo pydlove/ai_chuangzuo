@@ -54,9 +54,9 @@
     <!-- 已生成列表 -->
     <div v-if="activeTab === 'works'" class="works-list">
       <div v-if="worksList.length === 0" class="works-empty">
-        <div class="empty-icon">📝</div>
-        <div class="empty-text">还没有生成的文章</div>
-        <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        <a-empty description="还没有生成的文章">
+          <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        </a-empty>
       </div>
       <div v-else-if="filteredWorks.length === 0" class="works-empty">
         <div class="empty-icon">🔍</div>
@@ -84,9 +84,9 @@
     <!-- 草稿箱 -->
     <div v-if="activeTab === 'drafts'" class="drafts-list">
       <div v-if="draftsList.length === 0" class="works-empty">
-        <div class="empty-icon">📁</div>
-        <div class="empty-text">草稿箱是空的</div>
-        <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        <a-empty description="草稿箱是空的">
+          <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        </a-empty>
       </div>
       <div v-else-if="filteredDrafts.length === 0" class="works-empty">
         <div class="empty-icon">🔍</div>
@@ -119,7 +119,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
-const activeTab = ref('drafts')
+const activeTab = ref('works')
 
 const platformOptions = [
   { key: 'wechat', label: '微信公众号' },
