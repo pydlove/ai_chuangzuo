@@ -71,20 +71,58 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
 const activeTab = ref('drafts')
 
+const WORKS_KEY = 'aichuangzuo_generation_queue'
+const DRAFTS_KEY = 'aichuangzuo_drafts'
+
 // 草稿列表
 const draftsList = computed(() => {
-  return JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
+  const raw = localStorage.getItem(DRAFTS_KEY) || '[]'
+  try {
+    return JSON.parse(raw)
+  } catch {
+    return []
+  }
 })
 
-// 作品列表（模拟数据）
+// 作品列表
 const worksList = ref([])
+
+const loadWorks = () => {
+  const saved = localStorage.getItem(WORKS_KEY)
+  if (!saved) {
+    worksList.value = []
+    return
+  }
+  try {
+    const queue = JSON.parse(saved)
+    worksList.value = queue
+      .filter(item => item.status === 'completed')
+      .map(item => ({
+        id: item.id,
+        title: item.title,
+        platform: item.platform,
+        wordCount: item.wordCount,
+        style: item.style,
+        template: item.template || '未选择',
+        completedAt: item.completedAt,
+        content: item.content
+      }))
+      .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
+  } catch {
+    worksList.value = []
+  }
+}
+
+onMounted(() => {
+  loadWorks()
+})
 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr)
