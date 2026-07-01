@@ -2,6 +2,39 @@
   <div class="works-index">
     <div class="works-header">
       <h2 class="works-title">我的作品</h2>
+
+      <div class="works-filter-bar">
+        <a-input-search
+          v-model:value="searchKeyword"
+          placeholder="搜索标题关键词"
+          class="works-search"
+          allow-clear
+        />
+        <a-select
+          v-model:value="selectedPlatforms"
+          mode="multiple"
+          class="works-filter-select"
+          placeholder="平台"
+          :max-tag-count="1"
+          :options="platformOptions.map(p => ({ value: p.key, label: p.label }))"
+          allow-clear
+        />
+        <a-select
+          v-model:value="selectedStyles"
+          mode="multiple"
+          class="works-filter-select"
+          placeholder="风格"
+          :max-tag-count="1"
+          :options="styleOptions.map(s => ({ value: s.key, label: s.label }))"
+          allow-clear
+        />
+        <a-radio-group v-model:value="timeRange" class="works-filter-time">
+          <a-radio-button v-for="opt in timeRangeOptions" :key="opt.key" :value="opt.key">
+            {{ opt.label }}
+          </a-radio-button>
+        </a-radio-group>
+      </div>
+
       <div class="works-tabs">
         <button
           :class="['works-tab', { active: activeTab === 'works' }]"
@@ -77,6 +110,38 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const activeTab = ref('drafts')
+
+const platformOptions = [
+  { key: 'wechat', label: '微信公众号' },
+  { key: 'xiaohongshu', label: '小红书' },
+  { key: 'toutiao', label: '今日头条' },
+  { key: 'baijiahao', label: '百家号' },
+  { key: 'douyin', label: '抖音图文' },
+  { key: 'zhihu', label: '知乎' }
+]
+
+const styleOptions = [
+  { key: '产品评测', label: '产品评测' },
+  { key: '情感散文', label: '情感散文' },
+  { key: '职场干货', label: '职场干货' },
+  { key: '营销文案', label: '营销文案' },
+  { key: '年度总结', label: '年度总结' },
+  { key: '知识科普', label: '知识科普' },
+  { key: '热点评论', label: '热点评论' },
+  { key: '故事叙事', label: '故事叙事' }
+]
+
+const timeRangeOptions = [
+  { key: 'all', label: '全部' },
+  { key: '7', label: '近7天' },
+  { key: '30', label: '近30天' },
+  { key: '90', label: '近90天' }
+]
+
+const searchKeyword = ref('')
+const selectedPlatforms = ref([])
+const selectedStyles = ref([])
+const timeRange = ref('all')
 
 const WORKS_KEY = 'aichuangzuo_generation_queue'
 const DRAFTS_KEY = 'aichuangzuo_drafts'
@@ -303,5 +368,26 @@ const deleteWork = (id) => {
 .work-action-btn.primary:hover {
   background: #e61e3a;
   border-color: #e61e3a;
+}
+
+.works-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  margin: 0 24px;
+}
+
+.works-search {
+  width: 220px;
+}
+
+.works-filter-select {
+  min-width: 120px;
+}
+
+.works-filter-time {
+  display: flex;
+  flex-shrink: 0;
 }
 </style>
