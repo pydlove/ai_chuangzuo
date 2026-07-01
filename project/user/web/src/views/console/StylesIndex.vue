@@ -24,32 +24,88 @@
 
     <!-- 我的风格 -->
     <div v-show="activeTab === 'my'" class="styles-content">
-      <div v-if="myStyles.length === 0" class="styles-empty">
-        <a-empty description="还没有自定义风格">
-          <button class="empty-btn" @click="goToCreate">去创建一个</button>
-        </a-empty>
-      </div>
-      <div v-else class="styles-grid">
-        <div class="style-add-card" @click="goToCreate">
-          <div class="style-add-icon">+</div>
-          <div class="style-add-text">新建我的风格</div>
+      <div v-if="editorMode" class="style-editor">
+        <div class="style-editor-header">
+          <button class="style-editor-back" @click="goBack">← 返回</button>
+          <div class="style-editor-title">{{ editingStyle.originalName ? '编辑提示词' : '新建我的风格' }}</div>
         </div>
-        <div
-          v-for="(s, idx) in myStyles"
-          :key="s.name"
-          class="style-card"
-        >
-          <div class="style-card-title">{{ s.name }}</div>
-          <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
-          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-          <div class="style-card-actions">
-            <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
-            <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-              {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
-            </button>
-            <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
-            <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(s.name)">删除</button>
+        <div class="style-editor-form">
+          <div class="style-editor-field">
+            <label class="style-editor-label">风格名称 <span class="required">*</span></label>
+            <input
+              v-model="editingStyle.name"
+              type="text"
+              class="style-editor-input"
+              placeholder="例如：我的小红书风"
+              maxlength="20"
+            />
+            <div v-if="errors.name" class="style-editor-error">{{ errors.name }}</div>
+          </div>
+          <div class="style-editor-field">
+            <label class="style-editor-label">风格提示词 <span class="required">*</span></label>
+            <textarea
+              v-model="editingStyle.prompt"
+              class="style-editor-textarea"
+              placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
+              rows="5"
+            ></textarea>
+            <div class="style-editor-counter" :class="{ over: editingStyle.prompt.length > 1000 }">
+              {{ editingStyle.prompt.length }} / 1000
+            </div>
+            <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
+          </div>
+          <div class="style-editor-presets">
+            <div class="style-editor-preset-label">快速填充模板：</div>
+            <div class="style-editor-preset-list">
+              <div
+                v-for="preset in systemStyles"
+                :key="preset.name"
+                class="style-preset-card"
+                @click="editingStyle.prompt = preset.prompt"
+              >
+                <div class="style-preset-title">{{ preset.name }}</div>
+                <div class="style-preset-desc">{{ preset.desc }}</div>
+              </div>
+            </div>
+          </div>
+          <button
+            class="save-style-btn"
+            :disabled="!isFormValid"
+            @click="saveStyle"
+          >
+            保存
+          </button>
+        </div>
+      </div>
+
+      <div v-else>
+        <div v-if="myStyles.length === 0" class="styles-empty">
+          <a-empty description="还没有自定义风格">
+            <button class="empty-btn" @click="goToCreate">去创建一个</button>
+          </a-empty>
+        </div>
+        <div v-else class="styles-grid">
+          <div class="style-add-card" @click="goToCreate">
+            <div class="style-add-icon">+</div>
+            <div class="style-add-text">新建我的风格</div>
+          </div>
+          <div
+            v-for="s in myStyles"
+            :key="s.name"
+            class="style-card"
+          >
+            <div class="style-card-title">{{ s.name }}</div>
+            <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
+            <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+            <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
+            <div class="style-card-actions">
+              <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
+              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+                {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
+              </button>
+              <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
+              <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(s.name)">删除</button>
+            </div>
           </div>
         </div>
       </div>
@@ -80,19 +136,33 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   systemStyles,
   myStyles,
   applyStyle,
-  removeCustomStyle
+  addCustomStyle,
+  updateCustomStyle,
+  removeCustomStyle,
+  isStyleNameExists
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
 const activeTab = ref('my')
 const editorMode = ref(false)
 const expandedNames = ref(new Set())
+
+const editingStyle = reactive({
+  originalName: '',
+  name: '',
+  prompt: ''
+})
+
+const errors = reactive({
+  name: '',
+  prompt: ''
+})
 
 const promptSummary = (prompt) => {
   if (!prompt) return ''
@@ -109,12 +179,78 @@ const togglePrompt = (name) => {
   expandedNames.value = set
 }
 
+const validate = () => {
+  errors.name = ''
+  errors.prompt = ''
+
+  const name = editingStyle.name.trim()
+  const prompt = editingStyle.prompt.trim()
+  let valid = true
+
+  if (!name) {
+    errors.name = '请输入风格名称'
+    valid = false
+  } else if (name.length > 20) {
+    errors.name = '风格名称最多 20 字'
+    valid = false
+  } else if (isStyleNameExists(name, editingStyle.originalName)) {
+    errors.name = '该风格名称已存在'
+    valid = false
+  }
+
+  if (!prompt) {
+    errors.prompt = '请输入风格提示词'
+    valid = false
+  } else if (prompt.length > 1000) {
+    errors.prompt = '风格提示词最多 1000 字'
+    valid = false
+  }
+
+  return valid
+}
+
+const isFormValid = computed(() => {
+  const name = editingStyle.name.trim()
+  const prompt = editingStyle.prompt.trim()
+  return name && name.length <= 20 && prompt && prompt.length <= 1000 && !isStyleNameExists(name, editingStyle.originalName)
+})
+
 const goToCreate = () => {
-  // 将在 Task 4 中实现
+  editingStyle.originalName = ''
+  editingStyle.name = ''
+  editingStyle.prompt = ''
+  errors.name = ''
+  errors.prompt = ''
+  editorMode.value = true
 }
 
 const goToEdit = (style) => {
-  // 将在 Task 4 中实现
+  editingStyle.originalName = style.name
+  editingStyle.name = style.name
+  editingStyle.prompt = style.prompt
+  errors.name = ''
+  errors.prompt = ''
+  editorMode.value = true
+}
+
+const goBack = () => {
+  editorMode.value = false
+}
+
+const saveStyle = () => {
+  if (!validate()) return
+  if (editingStyle.originalName) {
+    updateCustomStyle(editingStyle.originalName, {
+      name: editingStyle.name,
+      prompt: editingStyle.prompt
+    })
+  } else {
+    addCustomStyle({
+      name: editingStyle.name,
+      prompt: editingStyle.prompt
+    })
+  }
+  editorMode.value = false
 }
 
 const useStyle = (style) => {
@@ -316,5 +452,162 @@ const deleteStyle = (name) => {
 .style-action-btn.style-del-btn:hover {
   border-color: #ff4d4f;
   color: #ff4d4f;
+}
+
+.style-editor {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 720px;
+}
+
+.style-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.style-editor-back {
+  background: none;
+  border: none;
+  color: #595959;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 4px 8px 4px 0;
+}
+
+.style-editor-back:hover {
+  color: #07c160;
+}
+
+.style-editor-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.style-editor-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.style-editor-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.style-editor-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.style-editor-label .required {
+  color: #ff4d4f;
+  margin-left: 2px;
+}
+
+.style-editor-input,
+.style-editor-textarea {
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.style-editor-input:focus,
+.style-editor-textarea:focus {
+  border-color: #07c160;
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.1);
+}
+
+.style-editor-error {
+  color: #ff4d4f;
+  font-size: 12px;
+}
+
+.style-editor-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.style-editor-counter.over {
+  color: #ff4d4f;
+}
+
+.style-editor-presets {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.style-editor-preset-label {
+  font-size: 13px;
+  color: #595959;
+}
+
+.style-editor-preset-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.style-preset-card {
+  flex: 0 0 160px;
+  border: 1px solid #e8e8e8;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.style-preset-card:hover {
+  border-color: #07c160;
+  background: #f6ffed;
+}
+
+.style-preset-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.style-preset-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.save-style-btn {
+  padding: 10px 20px;
+  background: #ff2442;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: fit-content;
+}
+
+.save-style-btn:hover {
+  background: #e61e3a;
+}
+
+.save-style-btn:disabled {
+  background: #d9d9d9;
+  cursor: not-allowed;
 }
 </style>
