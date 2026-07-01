@@ -6,6 +6,9 @@
       </button>
       <h2 class="preview-title-text">预览/导出</h2>
       <div class="preview-header-actions">
+        <button class="action-btn" @click="enterEditMode">
+          编辑正文
+        </button>
         <button class="action-btn" @click="copyText">
           <CopyOutlined /> 复制正文
         </button>
@@ -32,7 +35,19 @@
             风格:{{ article.style || '专业严谨' }}
           </span>
         </div>
-        <div class="article-body" v-html="formattedBody"></div>
+        <div v-if="!isEditing" class="article-body" v-html="formattedBody" @click="onBodyClick"></div>
+        <div v-else class="article-body editing-body" @click="onBodyClick">
+          <div
+            v-for="(block, idx) in blocks"
+            :key="idx"
+            :class="['edit-block', block.type, { modified: modifiedIndices.has(idx) }]"
+            :data-type="block.type"
+            contenteditable="true"
+            @paste="onPaste"
+            @input="onBlockInput(idx, $event)"
+            v-html="renderBlockHtml(block)"
+          />
+        </div>
       </div>
 
       <!-- 发布描述 -->
@@ -66,7 +81,7 @@
     </div>
 
     <!-- 浮动操作栏 -->
-    <div v-if="article" class="floating-action-bar">
+    <div v-if="article && !isEditing" class="floating-action-bar">
       <button class="float-btn" @click="optimizeTitle">
         ✧ AI 优化标题
       </button>
@@ -79,6 +94,13 @@
       <button class="float-btn danger" @click="generateCards">
         生成贴图
       </button>
+    </div>
+
+    <!-- 编辑态保存条 -->
+    <div v-if="article && isEditing" class="edit-floating-bar">
+      <span class="edit-hint">{{ modifiedIndices.size > 0 ? `已修改 ${modifiedIndices.size} 处` : '正在编辑' }}</span>
+      <button class="float-btn" @click="cancelEdit">取消</button>
+      <button class="float-btn primary" @click="saveEdit">保存修改</button>
     </div>
 
     <!-- AI 标题优化弹窗 -->
@@ -209,6 +231,8 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { CopyOutlined } from '@ant-design/icons-vue'
+import { loadCurrentArticle, saveCurrentArticle, syncArticleToQueue } from '@/utils/articleStorage.js'
+import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES } from '@/utils/articleBlocks.js'
 
 const article = ref(null)
 const publishDesc = ref('')
@@ -227,6 +251,12 @@ const cardsModalVisible = ref(false)
 const cardsStyle = ref('xiaohongshu')
 const cardsData = ref([])
 const cardCanvasRefs = ref([])
+
+// 编辑态
+const isEditing = ref(false)
+const blocks = ref([])
+const modifiedIndices = ref(new Set())
+const articleSnapshot = ref(null)
 
 const cardStyles = {
   xiaohongshu: {
@@ -388,16 +418,97 @@ const getItemDelayStyle = (index) => {
 
 // 加载文章
 const loadArticle = () => {
-  const saved = localStorage.getItem('aichuangzuo_current_article')
+  const saved = loadCurrentArticle()
   if (saved) {
-    try {
-      article.value = JSON.parse(saved)
-      // 生成模拟的发布描述和标签
-      generateMeta()
-    } catch (e) {
-      article.value = null
-    }
+    article.value = saved
+    generateMeta()
   }
+}
+
+// 编辑态
+const enterEditMode = () => {
+  if (!article.value) return
+  articleSnapshot.value = JSON.parse(JSON.stringify(article.value))
+  blocks.value = parseBodyToBlocks(article.value.title, article.value.body)
+  modifiedIndices.value = new Set()
+  isEditing.value = true
+}
+
+const onBodyClick = (e) => {
+  if (isEditing.value) return
+  const target = e.target
+  const editableTags = ['H1', 'H2', 'H3', 'P', 'LI', 'DIV']
+  if (editableTags.includes(target.tagName) && target.closest('.article-body')) {
+    enterEditMode()
+    nextTick(() => {
+      target.focus()
+    })
+  }
+}
+
+const onPaste = (e) => {
+  e.preventDefault()
+  const text = (e.clipboardData || window.clipboardData).getData('text/plain')
+  document.execCommand('insertText', false, text)
+}
+
+const onBlockInput = (idx, e) => {
+  blocks.value[idx].html = e.target.innerHTML
+  modifiedIndices.value.add(idx)
+}
+
+const renderBlockHtml = (block) => {
+  if (block.type === BLOCK_TYPES.TITLE) {
+    return `<h1 style="font-size:24px;font-weight:700;margin-bottom:16px;line-height:1.4;color:#1a1a1a;">${block.html}</h1>`
+  }
+  if (block.type === BLOCK_TYPES.HEADING) {
+    return `<h2 style="font-size:18px;font-weight:600;color:#1a1a1a;margin:24px 0 12px;">${block.html}</h2>`
+  }
+  if (block.type === BLOCK_TYPES.LIST_ITEM) {
+    return `<li style="margin-bottom:8px;">${block.html}</li>`
+  }
+  if (block.type === BLOCK_TYPES.HIGHLIGHT) {
+    return `<div style="background:#f6ffed;border-left:4px solid #07c160;padding:16px;margin:20px 0;border-radius:0 8px 8px 0;">${block.html}</div>`
+  }
+  return `<p style="margin-bottom:16px;">${block.html}</p>`
+}
+
+const saveEdit = () => {
+  const titleBlock = blocks.value.find(b => b.type === BLOCK_TYPES.TITLE)
+  if (!titleBlock || !stripHtml(titleBlock.html).trim()) {
+    message.error('标题不能为空')
+    return
+  }
+
+  const { title, body } = serializeBlocksToArticle(blocks.value)
+  const updated = { ...article.value, title, body }
+
+  if (!saveCurrentArticle(updated)) {
+    message.error('保存失败，请检查浏览器存储权限')
+    return
+  }
+
+  syncArticleToQueue(updated)
+  article.value = updated
+  isEditing.value = false
+  modifiedIndices.value = new Set()
+  message.success('内容已保存')
+}
+
+const cancelEdit = () => {
+  if (articleSnapshot.value) {
+    article.value = articleSnapshot.value
+  }
+  isEditing.value = false
+  modifiedIndices.value = new Set()
+  blocks.value = []
+}
+
+function stripHtml(html) {
+  if (!html) return ''
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  return tmp.textContent || tmp.innerText || ''
 }
 
 // 生成模拟meta
@@ -1537,6 +1648,52 @@ onMounted(() => {
 
   .cards-modal-item-label {
     font-size: 11px;
+  }
+}
+
+.editing-body .edit-block {
+  outline: none;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px;
+  transition: border-color 0.2s;
+}
+
+.editing-body .edit-block:focus,
+.editing-body .edit-block:focus-within {
+  border-color: #07c160;
+  box-shadow: 0 0 0 2px rgba(7, 193, 96, 0.15);
+}
+
+.editing-body .edit-block.modified {
+  background: #f6ffed;
+}
+
+.edit-floating-bar {
+  position: fixed;
+  bottom: 0;
+  left: 200px;
+  right: 0;
+  background: #fff;
+  border-top: 1px solid #eee;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06);
+  padding: 10px 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  z-index: 100;
+}
+
+.edit-hint {
+  font-size: 13px;
+  color: #595959;
+  margin-right: 8px;
+}
+
+@media (max-width: 768px) {
+  .edit-floating-bar {
+    left: 64px;
   }
 }
 </style>
