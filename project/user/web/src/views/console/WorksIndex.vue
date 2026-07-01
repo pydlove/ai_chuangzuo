@@ -76,7 +76,7 @@
           <div class="work-actions">
             <a-button
               type="primary"
-              style="background: #07c160; border-color: #07c160;"
+              class="primary-btn"
               @click="openArticle(work.raw)"
             >
               导出&生成贴图
@@ -478,6 +478,22 @@ const openArticle = (work) => {
 .work-action-btn.primary:hover {
   background: #e61e3a;
   border-color: #e61e3a;
+}
+
+.primary-btn {
+  background: #ff2442;
+  border-color: #ff2442;
+  box-shadow: 0 2px 0 rgba(255, 36, 66, 0.1) !important;
+}
+
+.primary-btn:hover {
+  background: #e61e3a !important;
+  border-color: #e61e3a !important;
+}
+
+.primary-btn:active {
+  background: #cc1832 !important;
+  border-color: #cc1832 !important;
 }
 
 .works-filter-bar {
