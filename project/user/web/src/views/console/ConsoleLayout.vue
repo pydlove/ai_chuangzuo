@@ -19,7 +19,7 @@
           :class="{ active: isActive(item.path) }"
         >
           <component :is="item.icon" class="nav-icon" />
-          <span>{{ item.label }}</span>
+          <span class="nav-label">{{ item.label }}</span>
         </router-link>
       </nav>
     </aside>
@@ -532,7 +532,7 @@ const router = useRouter()
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
-  { path: '/console/queue', label: '我的作品', icon: FolderOutlined }
+  { path: '/console/works', label: '我的作品', icon: FolderOutlined }
 ]
 
 const isActive = (path) => {
@@ -718,9 +718,7 @@ const loadMembership = () => {
 }
 
 const handleMembershipClick = () => {
-  if (!hasMembership.value) {
-    router.push('/pricing')
-  }
+  router.push('/pricing')
 }
 
 const notifTabs = [
@@ -2162,5 +2160,39 @@ body[data-theme="dark"] .password-input:focus {
   margin-top: 16px;
   font-size: 14px;
   color: #595959;
+}
+
+/* 移动端：侧边栏收拢为图标栏 */
+@media (max-width: 768px) {
+  .console-sidebar {
+    width: 64px;
+  }
+
+  .console-sidebar-brand {
+    justify-content: center;
+    padding: 0;
+  }
+
+  .brand-logo {
+    margin-right: 0;
+  }
+
+  .brand-name {
+    display: none;
+  }
+
+  .console-sidebar-nav {
+    padding: 12px 8px;
+    align-items: center;
+  }
+
+  .console-sidebar-item {
+    justify-content: center;
+    padding: 10px;
+  }
+
+  .nav-label {
+    display: none;
+  }
 }
 </style>

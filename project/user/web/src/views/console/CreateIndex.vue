@@ -3,148 +3,106 @@
     <div class="create-layout">
       <!-- 左侧创作区 -->
       <div class="create-card">
-      <h2 class="create-title">开始创作</h2>
-      <p class="create-subtitle">选择一种方式，让 AI 帮你生成文章</p>
-
-      <!-- 额度卡片 -->
-      <div class="quota-card">
-        <div class="quota-info">
-          <span class="quota-text">本月已用 <strong class="quota-used">{{ quotaUsed }}</strong> 次，剩余 <strong class="quota-remaining">{{ quotaRemaining }}</strong> 次</span>
-          <span class="quota-link" @click="router.push('/pricing')">升级套餐</span>
-        </div>
-        <div class="quota-progress">
-          <div
-            class="quota-progress-bar"
-            :style="{
-              width: usedPercent + '%',
-              background: quotaColor
-            }"
-          ></div>
-        </div>
-      </div>
-
-      <!-- 模式切换 -->
-      <div class="mode-tabs">
-        <button
-          :class="['mode-tab', { active: createMode === 'topic' }]"
-          @click="createMode = 'topic'"
-        >
-          AI 选题找灵感
-        </button>
-        <button
-          :class="['mode-tab', { active: createMode === 'custom' }]"
-          @click="createMode = 'custom'"
-        >
-          自定义写作方向
-        </button>
-      </div>
-
-      <!-- AI 选题模式 -->
-      <div v-show="createMode === 'topic'" class="create-mode">
-        <div class="topic-section">
-          <label class="form-label">选择一个感兴趣的选题 <span class="required">*</span></label>
-          <div class="topic-grid">
-            <div
-              v-for="topic in topics"
-              :key="topic.id"
-              :class="['topic-card', { selected: selectedTopic?.id === topic.id, used: topic.used }]"
-              @click="topic.used ? null : selectTopic(topic)"
-            >
-              <div class="topic-title">{{ topic.title }}</div>
-              <div class="topic-meta">
-                <span class="topic-tag">{{ topic.tag }}</span>
-                <span class="topic-heat">{{ topic.heat }} 热度</span>
-              </div>
-            </div>
+        <!-- 顶部：标题 + 额度 -->
+        <div class="create-card-header">
+          <div>
+            <h2 class="create-title">开始创作</h2>
+            <p class="create-subtitle">输入你的想法，AI 帮你生成文章</p>
           </div>
-          <div class="topic-footer">
-            <span class="topic-hint">AI 已为你推荐 {{ topics.length }} 个高热度选题</span>
-            <button class="refresh-btn" @click="refreshTopics">换一批灵感</button>
+          <div class="quota-pill">
+            本月剩余 <strong>{{ quotaRemaining }}</strong> / {{ quotaTotal }} 次
           </div>
         </div>
 
-        <div class="input-section">
-          <label class="form-label">补充你的核心观点和要求 <span class="required">*</span></label>
-          <textarea
-            v-model="topicRequirement"
-            class="form-textarea"
-            placeholder="例如：重点写第 2 个方法，加入自己的亲身经历，语气要真诚。"
-          ></textarea>
-          <div class="input-hint">AI 会结合选题和你的补充，生成完整文章</div>
-        </div>
-      </div>
-
-      <!-- 自定义模式 -->
-      <div v-show="createMode === 'custom'" class="create-mode">
-        <div class="input-section">
-          <label class="form-label">文章标题 <span class="required">*</span></label>
+        <!-- 核心输入区 -->
+        <div class="hero-input">
           <input
             v-model="customTitle"
             type="text"
-            class="form-input"
+            class="hero-title-input"
             placeholder="例如：职场新人快速提升效率的 5 个方法"
           />
-        </div>
 
-        <div class="input-section">
-          <label class="form-label">补充你的核心观点和要求 <span class="required">*</span></label>
           <textarea
             v-model="customRequirement"
-            class="form-textarea"
-            placeholder="例如：重点写时间管理技巧，加入具体案例，语气轻松、有干货。"
+            class="hero-textarea"
+            placeholder="描述你想写的内容，或点击下方的灵感胶囊快速开始。例如：重点写时间管理技巧，加入具体案例，语气轻松、有干货。"
           ></textarea>
-          <div class="input-hint">AI 会结合标题和你的补充，生成完整文章</div>
         </div>
-      </div>
 
-      <!-- 设置工具栏 -->
-      <div class="settings-toolbar">
-        <span class="settings-label">发布到</span>
-        <button class="settings-chip" @click="openPlatformModal">
-          <span>{{ currentPlatform.name }}</span>
-          <span class="chip-caret">▾</span>
-        </button>
-        <span class="settings-sep">·</span>
-        <button class="settings-chip" @click="openWordCountModal">
-          <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span>
-          <span class="chip-caret">▾</span>
-        </button>
-        <span class="settings-sep">·</span>
-        <button class="settings-chip" @click="openStyleModal">
-          <span>{{ currentStyle.name }}</span>
-          <span class="chip-caret">▾</span>
-        </button>
-        <span class="settings-sep">·</span>
-        <button class="settings-chip" @click="openTemplateModal">
-          <span>{{ currentTemplate.name }}</span>
-          <span class="chip-caret">▾</span>
-        </button>
-      </div>
+        <!-- 智能默认配置 -->
+        <div class="smart-defaults">
+          <button class="settings-chip" @click="openPlatformModal">
+            <span>{{ currentPlatform.name }}</span>
+            <span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="openWordCountModal">
+            <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span>
+            <span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="openStyleModal">
+            <span>{{ currentStyle.name }}</span>
+            <span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="openTemplateModal">
+            <span>{{ currentTemplate.name }}</span>
+            <span class="chip-caret">▾</span>
+          </button>
+        </div>
 
-      <!-- 底部操作栏 -->
-      <div class="action-bar">
-        <div class="action-bar-left">
-          <button class="action-link" @click="handleSaveDraft">保存草稿</button>
-          <a-tooltip title="草稿箱" placement="top">
-            <button class="action-icon-btn" @click="draftBoxVisible = true">
-              <FolderOutlined />
+        <!-- 主操作行：保存草稿 + 生成文章 -->
+        <div class="hero-action-row">
+          <div class="hero-action-left">
+            <button class="action-link" @click="handleSaveDraft">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -2px;">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                <polyline points="17 21 17 13 7 13 7 21"/>
+                <polyline points="7 3 7 8 15 8"/>
+              </svg>
+              保存草稿
             </button>
-          </a-tooltip>
+            <button class="action-link" @click="draftBoxVisible = true">
+              <FolderOutlined style="margin-right: 4px;" />
+              草稿箱
+            </button>
+          </div>
+          <button class="hero-generate-btn" @click="handleGenerate">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+            </svg>
+            生成文章
+          </button>
         </div>
-        <button class="action-primary" @click="handleGenerate">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
-          </svg>
-          生成文章
-        </button>
+
+        <!-- 选题灵感胶囊 -->
+        <div class="topic-capsules">
+          <span class="topic-capsules-label">没灵感？点一个快速开始：</span>
+          <div class="topic-capsules-grid">
+            <a-tooltip
+              v-for="topic in topics"
+              :key="topic.id"
+              :title="topic.title"
+              placement="top"
+            >
+              <button
+                :class="['topic-capsule', { used: topic.used }]"
+                :disabled="topic.used"
+                :title="topic.title"
+                @click="topic.used ? null : applyTopic(topic)"
+              >
+                {{ topic.title }}
+              </button>
+            </a-tooltip>
+          </div>
+          <button class="refresh-capsule" @click="refreshTopics">换一批</button>
+        </div>
       </div>
-    </div>
 
     <!-- 右侧生成队列 -->
     <div class="queue-panel">
       <div class="queue-panel-header">
         <h3 class="queue-panel-title">生成队列</h3>
-        <button class="queue-more-btn" @click="router.push('/console/queue')">查看更多 →</button>
+        <button class="queue-more-btn" @click="router.push('/console/works')">查看更多 →</button>
       </div>
       <div v-if="miniQueueList.length === 0" class="queue-panel-empty">
         <InboxOutlined class="empty-icon" />
@@ -248,6 +206,95 @@
           <button class="export-float-btn primary" @click="handleExportWord">导出 Word</button>
           <button class="export-float-btn outline" @click="copyExportText">复制正文</button>
           <button class="export-float-btn danger" @click="generateExportCards">生成贴图</button>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- AI 标题优化弹框 -->
+    <a-modal
+      v-model:open="titleOptVisible"
+      :footer="null"
+      :width="560"
+      centered
+      class="title-opt-modal"
+    >
+      <template #title>
+        <span class="modal-title-text">AI 标题优化</span>
+      </template>
+
+      <div v-if="exportArticle" class="title-opt-content">
+        <div class="title-opt-original">
+          <span>原标题</span>{{ exportArticle.title }}
+        </div>
+        <div class="title-opt-section-label">AI 推荐标题</div>
+        <div class="title-opt-list">
+          <div
+            v-for="(title, index) in titleOptSuggestions"
+            :key="`ai-${index}`"
+            :class="['title-opt-item', { selected: selectedOptTitle === title }]"
+            @click="selectOptTitle(title)"
+          >
+            <div class="title-opt-radio"></div>
+            <div class="title-opt-item-text">{{ title }}</div>
+          </div>
+        </div>
+        <div class="title-opt-footer">
+          <button class="title-opt-btn-cancel" @click="closeTitleOpt">取消</button>
+          <button class="title-opt-btn-confirm" :disabled="!selectedOptTitle" @click="confirmOptTitle">确认替换</button>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 贴图生成弹框 -->
+    <a-modal
+      v-model:open="cardsModalVisible"
+      :footer="null"
+      :width="900"
+      centered
+      class="cards-modal"
+    >
+      <template #title>
+        <span class="modal-title-text">生成贴图</span>
+      </template>
+
+      <div class="cards-modal-content">
+        <div class="cards-modal-header-row">
+          <div class="cards-modal-tabs">
+            <button
+              v-for="key in cardStyleKeys"
+              :key="key"
+              class="cards-modal-tab"
+              :class="{ active: cardsStyle === key }"
+              :style="cardsStyle === key ? { background: cardStyles[key].accent, borderColor: cardStyles[key].accent, color: '#fff' } : {}"
+              @click="cardsStyle = key"
+            >
+              {{ cardStyles[key].label }}
+            </button>
+          </div>
+          <button class="cards-modal-download-all" @click="downloadAllExportCards">全部下载</button>
+        </div>
+
+        <div class="cards-modal-sub">
+          共 {{ cardsData.length }} 张 · {{ cardStyles[cardsStyle].label }}风格 · 点击单张可下载
+        </div>
+
+        <div class="cards-modal-grid">
+          <div
+            v-for="(card, index) in cardsData"
+            :key="index"
+            class="cards-modal-item"
+            @click="downloadExportCard(index)"
+          >
+            <canvas
+              :ref="el => { if (el) cardCanvasRefs[index] = el }"
+              class="cards-modal-canvas"
+              width="750"
+              height="1000"
+            ></canvas>
+            <div class="cards-modal-item-label">
+              图 {{ index + 1 }} / {{ cardsData.length }}{{ card.type === 'cover' ? ' · 封面' : ' · ' + card.title }}
+            </div>
+          </div>
         </div>
       </div>
     </a-modal>
@@ -526,8 +573,8 @@
             @click="restoreDraft(draft)"
           >
             <div class="draft-info">
-              <div class="draft-title">{{ draft.createMode === 'topic' ? draft.selectedTopic?.title : draft.customTitle || '未命名草稿' }}</div>
-              <div class="draft-desc">{{ draft.topicRequirement || draft.customRequirement || '未填写要求' }}</div>
+              <div class="draft-title">{{ draft.customTitle || '未命名草稿' }}</div>
+              <div class="draft-desc">{{ draft.customRequirement || '未填写要求' }}</div>
               <div class="draft-meta">
                 <span>{{ draft.platform?.name || '未选择平台' }}</span>
                 <span>·</span>
@@ -599,7 +646,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { FolderOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, InboxOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
@@ -611,9 +658,6 @@ onMounted(() => {
   const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
   if (drafts.length > 0) {
     const data = drafts[0]
-    createMode.value = data.createMode || 'topic'
-    if (data.selectedTopic) selectedTopic.value = data.selectedTopic
-    topicRequirement.value = data.topicRequirement || ''
     customTitle.value = data.customTitle || ''
     customRequirement.value = data.customRequirement || ''
     if (data.platform) {
@@ -671,6 +715,7 @@ const continueGeneration = (id) => {
       current.progress = 100
       current.status = 'completed'
       current.completedAt = new Date().toISOString()
+      current.content = generateMockContent(current)
       saveMiniQueue()
       clearInterval(interval)
     } else {
@@ -696,10 +741,7 @@ const quotaColor = computed(() => {
   return '#ff4d4f'  // 红色
 })
 
-// 创作模式
-const createMode = ref('topic')
-
-// AI 选题
+// 灵感选题
 const topics = ref([
   { id: 1, title: '工作 3 年没升职？可能是这 3 个习惯在拖后腿', tag: '职场效率', heat: '3.2k', used: false },
   { id: 2, title: '我用 AI 写作月入过万：新手可复制的 5 个步骤', tag: 'AI 副业', heat: '5.8k', used: false },
@@ -708,11 +750,15 @@ const topics = ref([
   { id: 5, title: '30 岁后才明白：真正成熟的人，都懂得边界感', tag: '情感成长', heat: '2.9k', used: false },
   { id: 6, title: 'AI 时代，普通人如何抓住新机会的 4 个思路', tag: 'AI 副业', heat: '7.2k', used: false }
 ])
-const selectedTopic = ref(null)
-const topicRequirement = ref('')
 
-const selectTopic = (topic) => {
-  selectedTopic.value = topic
+const applyTopic = (topic) => {
+  customTitle.value = topic.title
+  if (customRequirement.value.trim()) {
+    customRequirement.value = customRequirement.value.trim() + '\n\n基于选题：' + topic.title
+  } else {
+    customRequirement.value = '请围绕这个选题生成一篇文章。'
+  }
+  topic.used = true
 }
 
 const refreshTopics = () => {
@@ -721,7 +767,7 @@ const refreshTopics = () => {
   topics.value = shuffled
 }
 
-// 自定义
+// 创作内容
 const customTitle = ref('')
 const customRequirement = ref('')
 
@@ -974,9 +1020,6 @@ const draftList = computed(() => {
 })
 
 const restoreDraft = (draft) => {
-  createMode.value = draft.createMode || 'topic'
-  selectedTopic.value = draft.selectedTopic || null
-  topicRequirement.value = draft.topicRequirement || ''
   customTitle.value = draft.customTitle || ''
   customRequirement.value = draft.customRequirement || ''
   if (draft.platform) {
@@ -1101,6 +1144,13 @@ const exportModalVisible = ref(false)
 const exportArticle = ref(null)
 const exportPublishDesc = ref('')
 const exportTags = ref([])
+const titleOptVisible = ref(false)
+const titleOptSuggestions = ref([])
+const selectedOptTitle = ref('')
+const cardsModalVisible = ref(false)
+const cardsStyle = ref('xiaohongshu')
+const cardsData = ref([])
+const cardCanvasRefs = ref([])
 
 const openExportModal = (item) => {
   // 从完整队列数据中获取文章内容
@@ -1158,7 +1208,35 @@ const copyExportText = () => {
 }
 
 const handleExportWord = () => {
-  message.info('Word 导出功能开发中...')
+  if (!exportArticle.value) return
+
+  const title = exportArticle.value.title || '未命名文章'
+  const bodyHtml = formattedExportBody.value
+
+  const html = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
+      <head>
+        <meta charset="UTF-8">
+        <title>${title}</title>
+      </head>
+      <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; color: #262626;">
+        <h1 style="font-size: 24px; margin-bottom: 16px; line-height: 1.4; color: #1a1a1a;">${title}</h1>
+        <div style="font-size: 16px; line-height: 1.8;">${bodyHtml}</div>
+      </body>
+    </html>
+  `
+
+  const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = title.replace(/[\\\\/:*?"<>|]/g, '_') + '.doc'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+
+  message.success('Word 导出成功')
 }
 
 const copyExportDesc = () => {
@@ -1189,20 +1267,376 @@ const regenerateExportTags = () => {
 }
 
 const optimizeExportTitle = () => {
-  message.info('标题优化功能开发中...')
+  if (!exportArticle.value) return
+  titleOptSuggestions.value = generateTitleSuggestions(exportArticle.value.title)
+  selectedOptTitle.value = ''
+  titleOptVisible.value = true
 }
 
-const generateExportCards = () => {
-  message.info('生成贴图功能开发中...')
+const generateTitleSuggestions = (title) => {
+  return [
+    `${title}：从入门到精通的完整指南`,
+    `为什么${title}？看完这篇你就懂了`,
+    `${title}，方法其实很简单`,
+    `关于${title}，你必须知道的 5 件事`,
+    `${title}：实测有效的经验分享`
+  ]
 }
+
+const selectOptTitle = (title) => {
+  selectedOptTitle.value = title
+}
+
+const confirmOptTitle = () => {
+  if (selectedOptTitle.value && exportArticle.value) {
+    exportArticle.value.title = selectedOptTitle.value
+    message.success('标题已替换')
+  }
+  titleOptVisible.value = false
+}
+
+const closeTitleOpt = () => {
+  titleOptVisible.value = false
+}
+
+const cardStyles = {
+  xiaohongshu: {
+    label: '小红书',
+    accent: '#ff2442',
+    coverGrad: ['#ff2442', '#ff7a8a', '#ffd1d9'],
+    coverCircle: 'rgba(255,255,255,0.18)',
+    coverCircle2: 'rgba(255,255,255,0.12)',
+    tagBg: 'rgba(255,255,255,0.95)',
+    tagText: '干货分享',
+    brandText: '— 作者昵称 —',
+    contentBg: '#fff',
+    headingColor: '#1a1a1a',
+    bodyColor: '#595959',
+    numColor: '#fff',
+    footerBg: '#fff0f3',
+    font: '"PingFang SC", sans-serif'
+  },
+  wechat: {
+    label: '公众号',
+    accent: '#07c160',
+    coverGrad: ['#07c160', '#95de64', '#d9f7be'],
+    coverCircle: 'rgba(255,255,255,0.2)',
+    coverCircle2: 'rgba(255,255,255,0.14)',
+    tagBg: 'rgba(255,255,255,0.95)',
+    tagText: '深度好文',
+    brandText: '— 作者昵称 —',
+    contentBg: '#fff',
+    headingColor: '#1a1a1a',
+    bodyColor: '#595959',
+    numColor: '#fff',
+    footerBg: '#f6ffed',
+    font: '"PingFang SC", sans-serif'
+  },
+  douyin: {
+    label: '抖音',
+    accent: '#25f4ee',
+    coverGrad: ['#0a0a0a', '#1a1a1a', '#fe2c55'],
+    coverCircle: 'rgba(37,244,238,0.25)',
+    coverCircle2: 'rgba(254,44,85,0.25)',
+    tagBg: '#25f4ee',
+    tagText: '上热门',
+    brandText: '— 作者昵称 —',
+    contentBg: '#1a1a1a',
+    headingColor: '#fff',
+    bodyColor: '#d9d9d9',
+    numColor: '#0a0a0a',
+    footerBg: '#000',
+    font: '"PingFang SC", sans-serif'
+  },
+  literary: {
+    label: '文艺',
+    accent: '#8b5e34',
+    coverGrad: ['#8b5e34', '#d4a373', '#f0e6d8'],
+    coverCircle: 'rgba(255,255,255,0.18)',
+    coverCircle2: 'rgba(255,255,255,0.12)',
+    tagBg: 'rgba(255,255,255,0.92)',
+    tagText: '慢读时光',
+    brandText: '— 作者昵称 —',
+    contentBg: '#faf5ef',
+    headingColor: '#5a3e2b',
+    bodyColor: '#8b5e34',
+    numColor: '#fff',
+    footerBg: '#f0e6d8',
+    font: 'Georgia, "Songti SC", serif'
+  },
+  minimal: {
+    label: '极简',
+    accent: '#1a1a1a',
+    coverGrad: ['#1a1a1a', '#262626', '#404040'],
+    coverCircle: 'rgba(255,255,255,0.06)',
+    coverCircle2: 'rgba(255,255,255,0.04)',
+    tagBg: '#fff',
+    tagText: 'NOTE',
+    brandText: '— YOUR NAME —',
+    contentBg: '#fff',
+    headingColor: '#000',
+    bodyColor: '#262626',
+    numColor: '#fff',
+    footerBg: '#fafafa',
+    font: '"Helvetica Neue", "PingFang SC", sans-serif'
+  },
+  business: {
+    label: '商务',
+    accent: '#1677ff',
+    coverGrad: ['#003a8c', '#1677ff', '#bae0ff'],
+    coverCircle: 'rgba(255,255,255,0.15)',
+    coverCircle2: 'rgba(255,255,255,0.1)',
+    tagBg: 'rgba(255,255,255,0.95)',
+    tagText: 'INSIGHT',
+    brandText: '— YOUR NAME —',
+    contentBg: '#fff',
+    headingColor: '#003a8c',
+    bodyColor: '#595959',
+    numColor: '#fff',
+    footerBg: '#f0f5ff',
+    font: '"PingFang SC", sans-serif'
+  }
+}
+
+const cardStyleKeys = computed(() => Object.keys(cardStyles))
+
+const generateExportCards = () => {
+  if (!exportArticle.value) return
+
+  const title = exportArticle.value.title || '未命名文章'
+  const body = exportArticle.value.body || ''
+  const paragraphs = body.split(/\n+/).filter(line => line.trim())
+
+  const cards = []
+  const firstP = paragraphs.find(p => !p.startsWith('【'))
+  cards.push({
+    type: 'cover',
+    title,
+    desc: firstP ? firstP.trim().slice(0, 80) : ''
+  })
+
+  let currentHeading = null
+  let currentContent = []
+  let headingIndex = 0
+
+  paragraphs.forEach(line => {
+    const headingMatch = line.match(/^【([^】]+)】$/)
+    if (headingMatch) {
+      if (currentHeading) {
+        cards.push({
+          type: 'content',
+          num: headingIndex,
+          title: currentHeading,
+          content: currentContent.slice(0, 5).join('\n')
+        })
+      }
+      headingIndex++
+      currentHeading = headingMatch[1].trim()
+      currentContent = []
+    } else if (currentHeading) {
+      currentContent.push(line.trim().slice(0, 120))
+    }
+  })
+
+  if (currentHeading) {
+    cards.push({
+      type: 'content',
+      num: headingIndex,
+      title: currentHeading,
+      content: currentContent.slice(0, 5).join('\n')
+    })
+  }
+
+  cardsData.value = cards
+  cardsStyle.value = 'xiaohongshu'
+  cardsModalVisible.value = true
+}
+
+const closeExportCardsModal = () => {
+  cardsModalVisible.value = false
+}
+
+const wrapCardText = (ctx, text, x, y, maxWidth, lineHeight, maxLines) => {
+  if (!text) return y
+  const chars = text.split('')
+  let line = ''
+  let yy = y
+  let drawnLines = 0
+
+  for (let i = 0; i < chars.length; i++) {
+    line += chars[i]
+    if (ctx.measureText(line).width > maxWidth) {
+      line = line.slice(0, -1)
+      if (drawnLines >= maxLines - 1 && i < chars.length - 1) {
+        while (ctx.measureText(line + '...').width > maxWidth) line = line.slice(0, -1)
+        ctx.fillText(line + '...', x, yy)
+        return yy + lineHeight
+      }
+      ctx.fillText(line, x, yy)
+      drawnLines++
+      yy += lineHeight
+      line = chars[i]
+    }
+  }
+
+  if (line) {
+    if (drawnLines >= maxLines - 1) {
+      while (ctx.measureText(line + '...').width > maxWidth) line = line.slice(0, -1)
+      ctx.fillText(line + '...', x, yy)
+    } else {
+      ctx.fillText(line, x, yy)
+    }
+  }
+  return yy
+}
+
+const drawExportCard = (canvas, data, styleName) => {
+  const style = cardStyles[styleName] || cardStyles.xiaohongshu
+  const ctx = canvas.getContext('2d')
+  const w = canvas.width
+  const h = canvas.height
+  ctx.clearRect(0, 0, w, h)
+
+  if (data.type === 'cover') {
+    const grad = ctx.createLinearGradient(0, 0, w, h)
+    grad.addColorStop(0, style.coverGrad[0])
+    grad.addColorStop(0.5, style.coverGrad[1])
+    grad.addColorStop(1, style.coverGrad[2])
+    ctx.fillStyle = grad
+    ctx.fillRect(0, 0, w, h)
+
+    ctx.fillStyle = style.coverCircle || 'rgba(255,255,255,0.18)'
+    ctx.beginPath(); ctx.arc(w - 80, 120, 160, 0, Math.PI * 2); ctx.fill()
+    ctx.beginPath(); ctx.arc(60, h - 220, 120, 0, Math.PI * 2); ctx.fill()
+    ctx.fillStyle = style.coverCircle2 || 'rgba(255,255,255,0.12)'
+    ctx.beginPath(); ctx.arc(w - 200, h - 120, 90, 0, Math.PI * 2); ctx.fill()
+
+    ctx.fillStyle = style.tagBg
+    ctx.beginPath()
+    ctx.moveTo(60 + 80, 80)
+    ctx.arcTo(60 + 160, 80, 60 + 160, 80 + 44, 22)
+    ctx.arcTo(60 + 160, 80 + 44, 60, 80 + 44, 22)
+    ctx.arcTo(60, 80 + 44, 60, 80, 22)
+    ctx.arcTo(60, 80, 60 + 160, 80, 22)
+    ctx.closePath()
+    ctx.fill()
+    ctx.fillStyle = style.accent
+    ctx.font = `bold 22px ${style.font}`
+    ctx.textAlign = 'center'
+    ctx.fillText(style.tagText, 140, 111)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = `bold 60px ${style.font}`
+    ctx.textAlign = 'left'
+    ctx.shadowColor = 'rgba(0,0,0,0.1)'
+    ctx.shadowBlur = 8
+    ctx.shadowOffsetY = 4
+    wrapCardText(ctx, data.title, 60, 320, w - 120, 78, 4)
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+
+    ctx.fillStyle = 'rgba(255,255,255,0.92)'
+    ctx.font = `26px ${style.font}`
+    wrapCardText(ctx, data.desc, 60, h - 220, w - 120, 40, 2)
+
+    ctx.fillStyle = '#fff'
+    ctx.font = `bold 26px ${style.font}`
+    ctx.fillText(style.brandText, 60, h - 80)
+  } else {
+    const bg = style.contentBg || '#fff'
+    ctx.fillStyle = bg
+    ctx.fillRect(0, 0, w, h)
+
+    ctx.fillStyle = style.accent
+    ctx.fillRect(0, 0, w, 14)
+
+    ctx.fillStyle = style.accent
+    ctx.beginPath()
+    ctx.arc(110, 140, 56, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.fillStyle = style.numColor || '#fff'
+    ctx.font = `bold 48px ${style.font}`
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    const numStr = String(data.num).padStart(2, '0')
+    ctx.fillText(numStr, 110, 148)
+    ctx.textBaseline = 'alphabetic'
+
+    ctx.fillStyle = style.headingColor
+    ctx.font = `bold 46px ${style.font}`
+    ctx.textAlign = 'left'
+    const titleEndY = wrapCardText(ctx, data.title, 60, 260, w - 120, 60, 2)
+
+    ctx.fillStyle = style.accent
+    ctx.fillRect(60, titleEndY + 8, 80, 5)
+
+    ctx.fillStyle = style.bodyColor
+    ctx.font = `28px ${style.font}`
+    let contentY = titleEndY + 60
+    const lines = (data.content || '').split('\n')
+    lines.forEach(line => {
+      if (!line.trim()) return
+      wrapCardText(ctx, line.trim(), 60, contentY, w - 120, 44, 1)
+      contentY += 50
+    })
+
+    ctx.fillStyle = style.footerBg
+    ctx.fillRect(0, h - 110, w, 110)
+    ctx.fillStyle = style.accent
+    ctx.font = `bold 22px ${style.font}`
+    ctx.fillText(style.brandText, 60, h - 55)
+  }
+}
+
+const renderExportCardCanvas = (index) => {
+  const canvas = cardCanvasRefs.value[index]
+  if (!canvas) return null
+  const card = cardsData.value[index]
+  drawExportCard(canvas, card, cardsStyle.value)
+  return canvas
+}
+
+const downloadExportCanvas = (canvas, filename) => {
+  canvas.toBlob((blob) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }, 'image/png')
+}
+
+const downloadExportCard = (index) => {
+  const canvas = renderExportCardCanvas(index)
+  if (!canvas) return
+  const style = cardStyles[cardsStyle.value]
+  downloadExportCanvas(canvas, `${style.label}_贴图_${index + 1}_${cardsData.value.length}.png`)
+}
+
+const downloadAllExportCards = () => {
+  cardsData.value.forEach((_, index) => {
+    setTimeout(() => {
+      downloadExportCard(index)
+    }, index * 400)
+  })
+}
+
+watch([cardsModalVisible, cardsStyle], () => {
+  if (!cardsModalVisible.value) return
+  nextTick(() => {
+    cardCanvasRefs.value.forEach((canvas, index) => {
+      if (canvas) drawExportCard(canvas, cardsData.value[index], cardsStyle.value)
+    })
+  })
+}, { immediate: true })
 
 // 操作
 const handleSaveDraft = () => {
   const data = {
     id: Date.now(),
-    createMode: createMode.value,
-    selectedTopic: selectedTopic.value,
-    topicRequirement: topicRequirement.value,
     customTitle: customTitle.value,
     customRequirement: customRequirement.value,
     platform: currentPlatform.value,
@@ -1224,32 +1658,22 @@ const handlePreview = () => {
 }
 
 const handleGenerate = () => {
-  if (createMode.value === 'topic' && !selectedTopic.value) {
-    message.warning('请选择一个选题')
-    return
-  }
-  if (createMode.value === 'custom' && !customTitle.value.trim()) {
+  if (!customTitle.value.trim()) {
     message.warning('请输入文章标题')
     return
   }
-  const requirement = createMode.value === 'topic' ? topicRequirement.value : customRequirement.value
-  if (!requirement.trim()) {
+  if (!customRequirement.value.trim()) {
     message.warning('请补充你的核心观点和要求')
     return
   }
 
   // 构建任务数据
   const taskData = {
-    title: createMode.value === 'topic'
-      ? (selectedTopic.value?.title || '未命名')
-      : customTitle.value,
+    title: customTitle.value,
     platform: currentPlatform.value,
     wordCount: currentWordCount.value,
     style: currentStyle.value,
     template: currentTemplate.value,
-    createMode: createMode.value,
-    selectedTopic: selectedTopic.value,
-    topicRequirement: topicRequirement.value,
     customTitle: customTitle.value,
     customRequirement: customRequirement.value
   }
@@ -1260,6 +1684,16 @@ const handleGenerate = () => {
   // 清空表单
   clearForm()
   message.success('已加入生成队列')
+}
+
+// 生成模拟文章内容
+const generateMockContent = (item) => {
+  const title = item.title
+  return {
+    title,
+    body: `【引言】\n\n在快节奏的当下，${title}成为许多人关注的焦点。无论是职场新人还是资深从业者，掌握正确的方法都能带来显著的效率提升。\n\n【方法一：明确目标，拆解任务】\n\n首先要做的是把大目标拆成可执行的小任务。模糊的目标容易让人拖延，而清晰的步骤能帮助你快速启动。建议每天早晨列出当天最重要的三件事，并预估完成时间。\n\n【方法二：建立节奏，减少切换】\n\n频繁切换任务会大量消耗注意力。尝试用番茄工作法或时间块管理，把同类工作集中处理，减少上下文切换带来的损耗。\n\n【方法三：复盘迭代，持续优化】\n\n每完成一个阶段，花五分钟回顾：哪些做得好？哪些可以改进？长期积累下来，你会形成一套适合自己的高效 workflow。\n\n【结语】\n\n${title}并不难，关键在于从今天开始行动。选择适合自己的方法，坚持下去，效果会逐渐显现。`,
+    style: item.style || '专业严谨'
+  }
 }
 
 // 添加到本地队列并模拟生成
@@ -1291,6 +1725,7 @@ const addToMiniQueue = (taskData) => {
       current.progress = 100
       current.status = 'completed'
       current.completedAt = new Date().toISOString()
+      current.content = generateMockContent(current)
       saveMiniQueue()
       clearInterval(interval)
     } else {
@@ -1304,14 +1739,6 @@ const saveMiniQueue = () => {
 }
 
 const clearForm = () => {
-  // 标记选题为已使用
-  if (selectedTopic.value) {
-    const topic = topics.value.find(t => t.id === selectedTopic.value.id)
-    if (topic) topic.used = true
-  }
-  // 清空选题
-  selectedTopic.value = null
-  topicRequirement.value = ''
   customTitle.value = ''
   customRequirement.value = ''
 }
@@ -1344,10 +1771,10 @@ const clearForm = () => {
 .queue-panel {
   width: 320px;
   flex-shrink: 0;
-  background: var(--color-bg-card);
+  background: #fafafa;
   border-radius: 16px;
   padding: 20px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
 }
@@ -1369,7 +1796,7 @@ const clearForm = () => {
 .queue-more-btn {
   background: none;
   border: none;
-  color: #ff2442;
+  color: #8c8c8c;
   font-size: 12px;
   cursor: pointer;
   padding: 4px 8px;
@@ -1378,12 +1805,13 @@ const clearForm = () => {
 }
 
 .queue-more-btn:hover {
+  color: var(--color-primary);
   background: #fff0f2;
 }
 
 .queue-panel-empty {
   text-align: center;
-  padding: 40px 0;
+  padding: 24px 0;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -1392,9 +1820,9 @@ const clearForm = () => {
 }
 
 .queue-panel-empty .empty-icon {
-  font-size: 48px;
-  color: #e8e8e8;
-  margin-bottom: 12px;
+  font-size: 32px;
+  color: #d9d9d9;
+  margin-bottom: 8px;
 }
 
 .queue-panel-empty .empty-text {
@@ -1437,12 +1865,12 @@ const clearForm = () => {
 
 .queue-panel-item.completed {
   background: #fff;
-  border-color: #b7eb8f;
+  border-color: #d9f7be;
 }
 
 .queue-panel-item.completed:hover {
-  border-color: #95de64;
-  box-shadow: 0 2px 8px rgba(7, 193, 96, 0.1);
+  border-color: #b7eb8f;
+  box-shadow: 0 2px 8px rgba(7, 193, 96, 0.08);
 }
 
 .queue-panel-item.queued {
@@ -1931,26 +2359,9 @@ const clearForm = () => {
   gap: 4px;
 }
 
-.action-icon-btn {
+.action-link {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.action-icon-btn:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-
-.action-link {
   background: none;
   border: none;
   color: #595959;
@@ -2918,5 +3329,517 @@ const clearForm = () => {
 
 .export-float-btn.danger:hover {
   background: #fff2f0;
+}
+
+/* ===== AI 标题优化弹框 ===== */
+
+.title-opt-content {
+  padding: 8px 4px 0;
+}
+
+.title-opt-original {
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 14px;
+  color: #1a1a1a;
+  line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.title-opt-original span {
+  display: block;
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 4px;
+}
+
+.title-opt-section-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 10px;
+}
+
+.title-opt-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.title-opt-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.title-opt-item:hover {
+  border-color: #ff2442;
+  background: #fff8f9;
+}
+
+.title-opt-item.selected {
+  border-color: #ff2442;
+  background: #fff0f2;
+}
+
+.title-opt-radio {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid #d9d9d9;
+  flex-shrink: 0;
+  margin-top: 2px;
+  transition: all 0.15s;
+}
+
+.title-opt-item.selected .title-opt-radio {
+  border-color: #ff2442;
+  background: #ff2442;
+  box-shadow: inset 0 0 0 3px #fff;
+}
+
+.title-opt-item-text {
+  font-size: 14px;
+  color: #1a1a1a;
+  line-height: 1.5;
+}
+
+.title-opt-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.title-opt-btn-cancel {
+  padding: 8px 18px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.title-opt-btn-cancel:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+.title-opt-btn-confirm {
+  padding: 8px 18px;
+  background: #ff2442;
+  border: 1px solid #ff2442;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.title-opt-btn-confirm:hover {
+  background: #e61e3a;
+}
+
+.title-opt-btn-confirm:disabled {
+  background: #ffd1d9;
+  border-color: #ffd1d9;
+  cursor: not-allowed;
+}
+
+/* ===== 贴图生成弹框 ===== */
+
+.cards-modal-content {
+  padding: 8px 4px 0;
+}
+
+.cards-modal-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.cards-modal-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.cards-modal-tab {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cards-modal-tab:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+.cards-modal-download-all {
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #ff2442;
+  border-radius: 20px;
+  font-size: 13px;
+  color: #ff2442;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.cards-modal-download-all:hover {
+  background: #fff0f2;
+}
+
+.cards-modal-sub {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 16px;
+}
+
+.cards-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  max-height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.cards-modal-item {
+  cursor: pointer;
+  transition: transform 0.15s;
+}
+
+.cards-modal-item:hover {
+  transform: translateY(-2px);
+}
+
+.cards-modal-canvas {
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  display: block;
+}
+
+.cards-modal-item-label {
+  text-align: center;
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 8px;
+}
+
+@media (max-width: 768px) {
+  .cards-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== 单屏启动器新样式 ===== */
+
+.create-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.create-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.create-subtitle {
+  font-size: 14px;
+  margin-bottom: 0;
+}
+
+.quota-pill {
+  font-size: 12px;
+  color: #595959;
+  background: #f5f5f5;
+  padding: 4px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.quota-pill strong {
+  color: var(--color-primary);
+}
+
+.hero-input {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.hero-title-input {
+  width: 100%;
+  padding: 12px 16px;
+  border: 1px solid #c4c4c4;
+  border-radius: 10px;
+  font-size: 15px;
+  color: #1a1a1a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.hero-title-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.hero-title-input::placeholder {
+  color: #999;
+}
+
+.hero-textarea {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #c4c4c4;
+  border-radius: 12px;
+  font-size: 15px;
+  min-height: 120px;
+  resize: vertical;
+  color: #1a1a1a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  font-family: inherit;
+  line-height: 1.6;
+}
+
+.hero-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.hero-textarea::placeholder {
+  color: #999;
+}
+
+.hero-generate-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: auto;
+  padding: 12px 36px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 14px rgba(255, 36, 66, 0.3);
+  flex-shrink: 0;
+}
+
+.hero-generate-btn:hover {
+  background: var(--color-primary-hover);
+  box-shadow: 0 6px 20px rgba(255, 36, 66, 0.4);
+  transform: translateY(-1px);
+}
+
+.hero-generate-btn:active {
+  transform: translateY(0);
+}
+
+.hero-action-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.hero-action-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.smart-defaults {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+
+.topic-capsules {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  min-width: 0;
+}
+
+.topic-capsules-label {
+  font-size: 13px;
+  color: #595959;
+  flex-shrink: 0;
+  line-height: 20px;
+}
+
+.topic-capsules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.topic-capsules-grid > * {
+  display: flex;
+  min-width: 0;
+}
+
+.topic-capsule {
+  width: 100%;
+  padding: 8px 12px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.topic-capsule:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #fff0f2;
+}
+
+.topic-capsule.used {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.refresh-capsule {
+  align-self: flex-start;
+  padding: 6px 16px;
+  background: none;
+  border: 1px solid #e8e8e8;
+  border-radius: 16px;
+  font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  margin-top: 4px;
+}
+
+.refresh-capsule:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.create-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .create-layout {
+    flex-direction: column;
+  }
+
+  .queue-panel {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .queue-panel-empty {
+    padding: 16px 0;
+  }
+
+  .create-card {
+    padding: 16px;
+  }
+
+  .create-card-header {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .create-title {
+    font-size: 20px;
+  }
+
+  .hero-textarea {
+    min-height: 100px;
+  }
+
+  .smart-defaults {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .smart-defaults::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hero-action-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+
+  .hero-action-left {
+    justify-content: flex-start;
+  }
+
+  .hero-generate-btn {
+    width: 100%;
+  }
+
+  .topic-capsules-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .refresh-capsule {
+    align-self: center;
+  }
 }
 </style>

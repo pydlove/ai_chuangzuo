@@ -37,8 +37,7 @@ const routes = [
       },
       {
         path: 'queue',
-        name: 'ConsoleQueue',
-        component: () => import('@/views/console/QueueIndex.vue')
+        redirect: '/console/works'
       },
       {
         path: 'works',

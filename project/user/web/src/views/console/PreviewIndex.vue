@@ -1,7 +1,7 @@
 <template>
   <div class="preview-index">
     <div class="preview-header">
-      <button class="back-btn" @click="$router.push('/console/queue')">
+      <button class="back-btn" @click="$router.push('/console/works')">
         ← 返回
       </button>
       <h2 class="preview-title-text">预览/导出</h2>
