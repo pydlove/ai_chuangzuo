@@ -45,6 +45,11 @@ const routes = [
         component: () => import('@/views/console/WorksIndex.vue')
       },
       {
+        path: 'styles',
+        name: 'ConsoleStyles',
+        component: () => import('@/views/console/StylesIndex.vue')
+      },
+      {
         path: 'preview',
         name: 'ConsolePreview',
         component: () => import('@/views/console/PreviewIndex.vue')

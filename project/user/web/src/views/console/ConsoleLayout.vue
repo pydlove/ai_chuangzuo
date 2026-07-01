@@ -525,7 +525,8 @@ import {
   EditOutlined,
   LoadingOutlined,
   EyeOutlined,
-  FolderOutlined
+  FolderOutlined,
+  SmileOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -533,7 +534,8 @@ const router = useRouter()
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
-  { path: '/console/works', label: '我的作品', icon: FolderOutlined }
+  { path: '/console/works', label: '我的作品', icon: FolderOutlined },
+  { path: '/console/styles', label: '我的风格', icon: SmileOutlined }
 ]
 
 const isActive = (path) => {
