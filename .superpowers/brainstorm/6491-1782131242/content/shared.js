@@ -4142,15 +4142,6 @@
     renderWorksQueueItems();
     updateNotificationBadge();
     renderGlobalFooter();
-
-    // 全局 ESC 关闭最上层弹框
-    document.addEventListener('keydown', function(e) {
-      if (e.key !== 'Escape') return;
-      var modals = document.querySelectorAll('.modal-overlay');
-      if (modals.length === 0) return;
-      var topModal = modals[modals.length - 1];
-      topModal.remove();
-    });
   });
 
   function initDemoQueueData() {
