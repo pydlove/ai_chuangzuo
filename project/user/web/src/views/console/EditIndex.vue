@@ -101,9 +101,8 @@
         class="edit-editor"
         contenteditable="true"
         @paste="onPaste"
-        @keyup="updateActiveFormat"
-        @mouseup="updateActiveFormat"
-        v-html="bodyHtml"
+        @keyup="updateActiveFormats"
+        @mouseup="updateActiveFormats"
       />
     </div>
 
@@ -169,65 +168,115 @@ const onPaste = (e) => {
   document.execCommand('insertText', false, text)
 }
 
-const updateActiveFormat = () => {
-  const editor = editorRef.value
-  if (!editor) return
+const updateActiveFormats = () => {
+  if (!editorRef.value) return
   const node = document.getSelection()?.anchorNode
   if (!node) return
   let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
-  while (el && el !== editor) {
+  Object.keys(activeFormats).forEach(k => {
+    activeFormats[k] = (typeof activeFormats[k] === 'string' ? '' : false)
+  })
+  while (el && el !== editorRef.value) {
     const tag = el.tagName.toLowerCase()
-    if (tag === 'h2') {
-      activeFormat.value = 'heading'
-      return
-    }
-    if (tag === 'blockquote') {
-      activeFormat.value = 'blockquote'
-      return
-    }
-    if (tag === 'ul' || tag === 'ol' || tag === 'li') {
-      activeFormat.value = 'list'
-      return
+    if (['b', 'strong'].includes(tag)) activeFormats.bold = true
+    if (['i', 'em'].includes(tag)) activeFormats.italic = true
+    if (tag === 'u') activeFormats.underline = true
+    if (['s', 'del', 'strike'].includes(tag)) activeFormats.strike = true
+    if (tag === 'code') activeFormats.code = true
+    if (el.style) {
+      if (el.style.textAlign) activeFormats.align = el.style.textAlign
+      if (el.style.lineHeight) activeFormats.lineHeight = el.style.lineHeight
+      if (el.style.paddingLeft) {
+        const px = parseInt(el.style.paddingLeft, 10)
+        activeFormats.indent = String(Math.round(px / 24))
+      }
+      if (el.style.color) activeFormats.color = el.style.color
+      if (el.style.backgroundColor) activeFormats.backgroundColor = el.style.backgroundColor
+      if (el.style.fontSize) activeFormats.fontSize = el.style.fontSize
+      if (el.style.fontFamily) activeFormats.fontFamily = el.style.fontFamily
     }
     el = el.parentElement
   }
-  activeFormat.value = ''
 }
 
-const formatHeading = () => {
+const applyInline = (styleKey) => {
   editorRef.value?.focus()
-  document.execCommand('formatBlock', false, '<h2>')
-  updateActiveFormat()
+  const cmdMap = { bold: 'bold', italic: 'italic', underline: 'underline', strike: 'strikeThrough' }
+  const cmd = cmdMap[styleKey]
+  if (styleKey === 'code') {
+    const sel = window.getSelection()
+    if (!sel || sel.rangeCount === 0) return
+    const text = sel.toString() || 'code'
+    document.execCommand('insertHTML', false, `<code>${text}</code>`)
+  } else if (cmd) {
+    document.execCommand(cmd, false, null)
+  }
+  syncStyleOverridesFromDom()
+  updateActiveFormats()
 }
 
-const formatQuote = () => {
+const applyColor = (key, value) => {
   editorRef.value?.focus()
-  document.execCommand('formatBlock', false, '<blockquote>')
-  updateActiveFormat()
+  document.execCommand(key === 'color' ? 'foreColor' : 'hiliteColor', false, value)
+  activeFormats[key] = value
+  syncStyleOverridesFromDom()
 }
 
-const formatList = () => {
-  editorRef.value?.focus()
-  document.execCommand('insertUnorderedList')
-  updateActiveFormat()
+const wrapCurrentBlockStyle = (styleStr) => {
+  const sel = window.getSelection()
+  if (!sel || sel.rangeCount === 0) return
+  const node = sel.anchorNode
+  if (!node) return
+  let el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement
+  while (el && el !== editorRef.value && !/^(P|H[1-4]|BLOCKQUOTE|UL|OL|LI)$/.test(el.tagName)) {
+    el = el.parentElement
+  }
+  if (!el || el === editorRef.value) return
+  const existing = el.getAttribute('style') || ''
+  el.setAttribute('style', `${existing}${styleStr};`)
 }
 
-const formatBold = () => {
+const applyBlockStyle = (key, value) => {
   editorRef.value?.focus()
-  document.execCommand('bold')
+  if (key === 'align') {
+    document.execCommand(`justify${value.charAt(0).toUpperCase()}${value.slice(1)}`, false, null)
+  } else if (key === 'lineHeight') {
+    wrapCurrentBlockStyle(`line-height: ${value}`)
+  } else if (key === 'indent') {
+    const delta = parseInt(value, 10) - (parseInt(activeFormats.indent, 10) || 0)
+    for (let i = 0; i < Math.abs(delta); i++) {
+      document.execCommand(delta > 0 ? 'indent' : 'outdent', false, null)
+    }
+  } else if (key === 'fontSize') {
+    const sizeMap = { xs: '12px', sm: '14px', base: '15px', lg: '18px', xl: '22px' }
+    wrapCurrentBlockStyle(`font-size: ${sizeMap[value] || '15px'}`)
+  } else if (key === 'fontFamily') {
+    const map = { system: 'system-ui, -apple-system, sans-serif', serif: 'serif', sans: 'sans-serif', kai: 'KaiTi, serif' }
+    wrapCurrentBlockStyle(`font-family: ${map[value] || map.system}`)
+  }
+  activeFormats[key] = value
+  syncStyleOverridesFromDom()
+  updateActiveFormats()
 }
 
-const formatItalic = () => {
+const applyList = (kind) => {
   editorRef.value?.focus()
-  document.execCommand('italic')
+  document.execCommand(kind === 'ul' ? 'insertUnorderedList' : 'insertOrderedList', false, null)
+  syncStyleOverridesFromDom()
+  updateActiveFormats()
 }
 
-const clearFormat = () => {
+const applyBlock = (tag) => {
   editorRef.value?.focus()
-  document.execCommand('removeFormat')
-  document.execCommand('formatBlock', false, '<p>')
-  document.execCommand('outdent')
-  updateActiveFormat()
+  document.execCommand('formatBlock', false, `<${tag}>`)
+  syncStyleOverridesFromDom()
+  updateActiveFormats()
+}
+
+const syncStyleOverridesFromDom = () => {
+  if (!editorRef.value) return
+  const { styleOverrides } = htmlToBodyWithStyles(editorRef.value.innerHTML)
+  styleOverridesRef.value = styleOverrides
 }
 
 const save = () => {
@@ -237,13 +286,14 @@ const save = () => {
     return
   }
 
-  const html = editorRef.value?.innerHTML || ''
-  const body = htmlToBody(html)
+  if (!editorRef.value) return
+  const { body, styleOverrides } = htmlToBodyWithStyles(editorRef.value.innerHTML)
 
   const article = {
     ...originalArticle.value,
     title: finalTitle,
-    body
+    body,
+    styleOverrides
   }
 
   if (!saveCurrentArticle(article)) {
@@ -346,6 +396,48 @@ const cancel = () => {
   border-radius: 8px;
   margin-bottom: 12px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.edit-toolbar-more {
+  margin-top: 8px;
+}
+
+.toolbar-group {
+  margin-left: 4px;
+}
+
+.color-picker-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 8px;
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  width: 160px;
+}
+
+.color-swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  border: 1px solid #d9d9d9;
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+.color-swatch:hover {
+  transform: scale(1.1);
+}
+
+.color-native {
+  width: 100%;
+  height: 28px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  cursor: pointer;
+  margin-top: 4px;
 }
 
 .toolbar-btn {
