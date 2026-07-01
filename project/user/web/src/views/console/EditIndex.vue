@@ -76,21 +76,19 @@
           </template>
         </a-dropdown>
 
-        <a-button v-if="collapsed" size="small" @click="showMore = !showMore">更多</a-button>
-      </div>
-
-      <div v-if="collapsed && showMore" class="edit-toolbar edit-toolbar-more">
-        <a-button-group size="small">
+        <a-button-group size="small" class="toolbar-group">
           <a-button :type="activeFormats.align === 'left' ? 'primary' : 'default'" @click="applyBlockStyle('align', 'left')">左对齐</a-button>
           <a-button :type="activeFormats.align === 'center' ? 'primary' : 'default'" @click="applyBlockStyle('align', 'center')">居中</a-button>
           <a-button :type="activeFormats.align === 'right' ? 'primary' : 'default'" @click="applyBlockStyle('align', 'right')">右对齐</a-button>
           <a-button :type="activeFormats.align === 'justify' ? 'primary' : 'default'" @click="applyBlockStyle('align', 'justify')">两端</a-button>
         </a-button-group>
-        <a-button-group size="small">
+
+        <a-button-group size="small" class="toolbar-group">
           <a-button @click="applyList('ul')">• 无序</a-button>
           <a-button @click="applyList('ol')">1. 有序</a-button>
         </a-button-group>
-        <a-button-group size="small">
+
+        <a-button-group size="small" class="toolbar-group">
           <a-button @click="applyBlock('h2')">小标题</a-button>
           <a-button @click="applyBlock('blockquote')">引用</a-button>
         </a-button-group>
