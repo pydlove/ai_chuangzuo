@@ -536,7 +536,7 @@
                 {{ m.prompt }}
               </div>
               <div v-show="expandedPromptIdx === idx" class="style-prompt-actions">
-                <button class="style-action-btn" @click.stop="goToCreateStyle">编辑提示词</button>
+                <button class="style-action-btn" @click.stop="goToEditStyle(m)">编辑提示词</button>
                 <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(m.name)">删除</button>
               </div>
             </div>
@@ -652,6 +652,15 @@ import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { FolderOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, InboxOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useRouter } from 'vue-router'
+import {
+  systemStyles,
+  myStyles,
+  currentStyle,
+  applyStyle as applyStyleShared,
+  addCustomStyle,
+  updateCustomStyle,
+  removeCustomStyle
+} from '@/composables/useStyles.js'
 
 const router = useRouter()
 
@@ -874,23 +883,11 @@ const selectWordCount = (wc) => {
 
 // 风格
 const styleTab = ref('system')
-const systemStyles = [
-  { name: '年度总结', desc: '回顾、复盘、展望', promptSummary: '语气：回顾性、感恩 + 数据自省\n结构：成绩 + 反思 + 明年目标\n长度：1500-2500 字，带小标题分章' },
-  { name: '产品评测', desc: '客观、数据驱动、多角度对比', promptSummary: '语气：客观中立、有理有据\n结构：外观 + 性能 + 体验 + 总结\n要素：必带参数对比表 + 优缺点' },
-  { name: '情感散文', desc: '细腻、共情、个人化表达', promptSummary: '语气：细腻、温暖、第一人称\n修辞：善用比喻、意象、留白\n结构：场景 + 情绪 + 升华' },
-  { name: '职场干货', desc: '实操性强、结构清晰', promptSummary: '语气：专业务实、老板视角\n结构：痛点 + 方案 + 步骤 + 案例\n要素：可执行的 checklist' },
-  { name: '知识科普', desc: '通俗易懂、有趣案例', promptSummary: '语气：老师讲解、循循善诱\n技巧：类比生活化 + 类比图示\n结构：是什么 + 为什么 + 怎么用' },
-  { name: '热点评论', desc: '时效性强、观点鲜明', promptSummary: '语气：犀利、立场鲜明\n结构：事件复述 + 观点输出 + 深度\n要素：开头一句话亮明立场' },
-  { name: '故事叙事', desc: '沉浸感、有冲突与转折', promptSummary: '语气：克制、文学化\n结构：起承转合 + 人物对话\n要素：场景细节 + 心理活动' },
-  { name: '营销转化', desc: '引导行动、强说服', promptSummary: '语气：紧迫感 + 利益点突出\n结构：痛点共鸣 + 方案 + 案例 + CTA\n要素：必带限时/优惠/倒计时' }
-]
-const myStyles = ref([])
-const currentStyle = ref(systemStyles[0])
 const styleVisible = ref(false)
 const selectedStyleName = ref(null)
 const expandedPromptIdx = ref(null)
 const createStyleMode = ref(false)
-const editingStyle = reactive({ name: '', prompt: '' })
+const editingStyle = reactive({ originalName: '', name: '', prompt: '', isEdit: false })
 
 const openStyleModal = () => {
   styleTab.value = 'system'
@@ -909,15 +906,25 @@ const applyStyle = () => {
   const s = systemStyles.find(x => x.name === selectedStyleName.value) ||
             myStyles.value.find(x => x.name === selectedStyleName.value)
   if (s) {
-    currentStyle.value = s
+    applyStyleShared(s)
     styleVisible.value = false
   }
 }
 
 const goToCreateStyle = () => {
   createStyleMode.value = true
+  editingStyle.isEdit = false
+  editingStyle.originalName = ''
   editingStyle.name = ''
   editingStyle.prompt = ''
+}
+
+const goToEditStyle = (style) => {
+  createStyleMode.value = true
+  editingStyle.isEdit = true
+  editingStyle.originalName = style.name
+  editingStyle.name = style.name
+  editingStyle.prompt = style.prompt
 }
 
 const goBackToList = () => {
@@ -926,18 +933,23 @@ const goBackToList = () => {
 
 const saveStyle = () => {
   if (!editingStyle.name.trim() || !editingStyle.prompt.trim()) return
-  myStyles.value.push({
-    name: editingStyle.name,
-    desc: '自定义风格',
-    count: 0,
-    prompt: editingStyle.prompt
-  })
+  if (editingStyle.name.trim().length > 20 || editingStyle.prompt.trim().length > 1000) return
+  if (editingStyle.isEdit) {
+    updateCustomStyle(editingStyle.originalName, {
+      name: editingStyle.name,
+      prompt: editingStyle.prompt
+    })
+  } else {
+    addCustomStyle({
+      name: editingStyle.name,
+      prompt: editingStyle.prompt
+    })
+  }
   createStyleMode.value = false
 }
 
 const deleteStyle = (name) => {
-  const idx = myStyles.value.findIndex(x => x.name === name)
-  if (idx > -1) myStyles.value.splice(idx, 1)
+  removeCustomStyle(name)
   if (selectedStyleName.value === name) selectedStyleName.value = null
 }
 
