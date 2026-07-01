@@ -12,6 +12,11 @@ const routes = [
     component: () => import('@/views/Login.vue')
   },
   {
+    path: '/forgot',
+    name: 'Forgot',
+    component: () => import('@/views/Forgot.vue')
+  },
+  {
     path: '/pricing',
     name: 'Pricing',
     component: () => import('@/views/Pricing.vue')
@@ -39,11 +44,6 @@ const routes = [
         path: 'preview',
         name: 'ConsolePreview',
         component: () => import('@/views/console/PreviewIndex.vue')
-      },
-      {
-        path: 'works',
-        name: 'ConsoleWorks',
-        component: () => import('@/views/console/WorksIndex.vue')
       }
     ]
   }
