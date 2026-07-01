@@ -1453,7 +1453,7 @@ onMounted(() => {
   align-items: center;
   justify-content: center;
   padding: 40px;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .cards-modal-box {

@@ -111,7 +111,7 @@
       </div>
       <div v-else class="queue-panel-list">
         <div
-          v-for="item in miniQueueList"
+          v-for="item in miniQueueList.slice(0, 5)"
           :key="item.id"
           :class="['queue-panel-item', item.status]"
         >
@@ -149,6 +149,9 @@
               </svg>
             </button>
           </div>
+        </div>
+        <div v-if="miniQueueList.length > 5" class="queue-panel-more">
+          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/works')">去我的作品查看 →</button>
         </div>
       </div>
     </div>
@@ -1806,6 +1809,35 @@ const clearForm = () => {
 .queue-more-btn:hover {
   color: var(--color-primary);
   background: #fff0f2;
+}
+
+.queue-panel-more {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  border: 1px dashed #ffd1d9;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #595959;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.queue-panel-more-link {
+  display: inline;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: #ff2442;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.queue-panel-more-link:hover {
+  color: #e61e3a;
+  text-decoration: underline;
 }
 
 .queue-panel-empty {

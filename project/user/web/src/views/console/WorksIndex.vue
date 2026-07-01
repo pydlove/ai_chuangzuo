@@ -74,9 +74,13 @@
             <span>{{ formatDate(work.raw.completedAt) }}</span>
           </div>
           <div class="work-actions">
-            <button class="work-action-btn" @click="openArticle(work.raw)">预览</button>
-            <button class="work-action-btn" @click="openArticle(work.raw)">导出</button>
-            <button class="work-action-btn" @click="openArticle(work.raw)">生成贴图</button>
+            <a-button
+              type="primary"
+              style="background: #07c160; border-color: #07c160;"
+              @click="openArticle(work.raw)"
+            >
+              导出&生成贴图
+            </a-button>
             <button class="work-action-btn danger" @click="deleteWork(work.raw.id)">删除</button>
           </div>
         </div>

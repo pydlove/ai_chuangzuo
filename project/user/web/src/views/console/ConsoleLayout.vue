@@ -32,75 +32,76 @@
         </div>
 
         <div class="header-right">
-          <!-- 消息下拉 -->
-          <a-dropdown
+          <!-- 消息弹框 -->
+          <a-modal
             v-model:open="notifVisible"
-            :trigger="['click']"
-            placement="bottomRight"
+            :footer="null"
+            :width="640"
+            centered
+            class="notif-modal"
           >
-            <div class="bell-wrap">
-              <a-tooltip title="消息">
-                <button class="console-icon-btn bell-btn">
-                  <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                  </svg>
-                  <span v-if="unreadCount > 0" class="bell-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+            <div class="notif-panel">
+              <!-- 面板头部 -->
+              <div class="notif-header">
+                <span class="notif-title">消息中心</span>
+                <button
+                  v-if="unreadCount > 0"
+                  class="notif-read-all"
+                  @click="markAllRead"
+                >
+                  全部已读
                 </button>
-              </a-tooltip>
-            </div>
-            <template #overlay>
-              <div class="notif-panel">
-                <!-- 面板头部 -->
-                <div class="notif-header">
-                  <span class="notif-title">消息中心</span>
-                  <button
-                    v-if="unreadCount > 0"
-                    class="notif-read-all"
-                    @click="markAllRead"
-                  >
-                    全部已读
-                  </button>
-                </div>
+              </div>
 
-                <!-- Tab 栏 -->
-                <div class="notif-tabs">
-                  <button
-                    v-for="tab in notifTabs"
-                    :key="tab.type"
-                    :class="['notif-tab', { active: activeTab === tab.type }]"
-                    @click="switchTab(tab.type)"
-                  >
-                    {{ tab.label }}
-                    <span v-if="getUnreadByType(tab.type) > 0" class="notif-tab-badge">
-                      {{ getUnreadByType(tab.type) }}
-                    </span>
-                  </button>
-                </div>
+              <!-- Tab 栏 -->
+              <div class="notif-tabs">
+                <button
+                  v-for="tab in notifTabs"
+                  :key="tab.type"
+                  :class="['notif-tab', { active: activeTab === tab.type }]"
+                  @click="switchTab(tab.type)"
+                >
+                  {{ tab.label }}
+                  <span v-if="getUnreadByType(tab.type) > 0" class="notif-tab-badge">
+                    {{ getUnreadByType(tab.type) }}
+                  </span>
+                </button>
+              </div>
 
-                <!-- 消息列表 -->
-                <div class="notif-list">
-                  <div v-if="currentNotifs.length === 0" class="notif-empty">
-                    <div class="notif-empty-icon">📭</div>
-                    <div class="notif-empty-text">暂无 {{ activeTabLabel }} 消息</div>
-                  </div>
-                  <div
-                    v-for="n in currentNotifs"
-                    :key="n.id"
-                    :class="['notif-item', { unread: !n.read }]"
-                    @click="handleNotifClick(n)"
-                  >
-                    <div class="notif-item-dot" v-if="!n.read"></div>
-                    <div class="notif-item-body">
-                      <div class="notif-item-title">{{ n.title }}</div>
-                      <div class="notif-item-summary">{{ n.summary }}</div>
-                      <div class="notif-item-time">{{ formatTime(n.createdAt) }}</div>
-                    </div>
+              <!-- 消息列表 -->
+              <div class="notif-list">
+                <div v-if="currentNotifs.length === 0" class="notif-empty">
+                  <a-empty :description="`暂无 ${activeTabLabel} 消息`" />
+                </div>
+                <div
+                  v-for="n in currentNotifs"
+                  :key="n.id"
+                  :class="['notif-item', { unread: !n.read }]"
+                  @click="handleNotifClick(n)"
+                >
+                  <div class="notif-item-dot" v-if="!n.read"></div>
+                  <div class="notif-item-body">
+                    <div class="notif-item-title">{{ n.title }}</div>
+                    <div class="notif-item-summary">{{ n.summary }}</div>
+                    <div class="notif-item-time">{{ formatTime(n.createdAt) }}</div>
                   </div>
                 </div>
               </div>
-            </template>
-          </a-dropdown>
+            </div>
+          </a-modal>
+
+          <!-- 消息铃铛 -->
+          <div class="bell-wrap">
+            <a-tooltip title="消息">
+              <button class="console-icon-btn bell-btn" @click="notifVisible = true">
+                <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
+                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
+                </svg>
+                <span v-if="unreadCount > 0" class="bell-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+              </button>
+            </a-tooltip>
+          </div>
 
           <!-- 教程下拉 -->
           <a-dropdown
@@ -1083,12 +1084,19 @@ onMounted(() => {
 
 /* 通知面板 */
 .notif-panel {
-  width: 360px;
+  width: 100%;
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
   overflow: hidden;
   user-select: none;
+}
+
+.notif-modal .ant-modal-body {
+  padding: 0;
+}
+
+.notif-modal .ant-modal-header {
+  margin-bottom: 0;
 }
 
 .notif-header {
@@ -1166,7 +1174,8 @@ onMounted(() => {
 
 /* 消息列表 */
 .notif-list {
-  max-height: 380px;
+  max-height: 520px;
+  min-height: 320px;
   overflow-y: auto;
 }
 
