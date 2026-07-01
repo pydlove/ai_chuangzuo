@@ -2604,6 +2604,9 @@ body[data-theme="dark"] .password-input:focus {
 }
 
 .invite-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
