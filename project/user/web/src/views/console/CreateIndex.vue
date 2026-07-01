@@ -61,7 +61,7 @@
               </svg>
               保存草稿
             </button>
-            <button class="action-link" @click="draftBoxVisible = true">
+            <button class="action-link" @click="router.push('/console/works?tab=drafts')">
               <FolderOutlined style="margin-right: 4px;" />
               草稿箱
             </button>
@@ -562,8 +562,7 @@
     >
       <div :key="draftBoxKey">
         <div v-if="draftList.length === 0" class="draft-box-empty">
-          <div class="draft-empty-icon">📁</div>
-          <div class="draft-empty-text">草稿箱是空的</div>
+          <a-empty description="草稿箱是空的" />
         </div>
         <div v-else class="draft-box-list">
           <div

@@ -117,8 +117,9 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
+const route = useRoute()
 const router = useRouter()
 
 const activeTab = ref('works')
@@ -199,6 +200,9 @@ const loadWorks = () => {
 
 onMounted(() => {
   loadWorks()
+  if (route.query.tab === 'drafts') {
+    activeTab.value = 'drafts'
+  }
 })
 
 const normalizeItems = (items, type) => {
