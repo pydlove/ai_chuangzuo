@@ -37,6 +37,29 @@ def test_pricing_coin_discount(page):
     expect(page.locator(".final-amount").first).not_to_contain_text("29.9")
 
 
+def test_console_invite_modal(page):
+    page.goto(f"{BASE}/console.html")
+    page.evaluate("""
+        localStorage.removeItem('aichuangzuo_invite_code');
+        localStorage.removeItem('aichuangzuo_invite_stats');
+        localStorage.removeItem('aichuangzuo_coin_balance');
+    """)
+    page.reload()
+    btn = page.locator(".console-invite-btn")
+    expect(btn).to_be_visible()
+    expect(btn).to_contain_text("邀请有礼")
+    btn.click()
+    expect(page.locator("#console-invite-modal")).to_be_visible()
+    code = page.locator("#invite-code-display").text_content()
+    assert re.match(r"^[A-Z0-9]{6}$", code.strip()), f"invite code invalid: {code}"
+    page.fill("#simulate-friend-email", "console-modal@example.com")
+    page.click('button:has-text("模拟注册")')
+    expect(page.locator("#invite-stat-count")).to_contain_text("1")
+    expect(page.locator("#invite-friend-list")).to_contain_text("console-modal@example.com")
+    page.click(".modal-close")
+    expect(page.locator("#console-invite-modal")).to_be_hidden()
+
+
 if __name__ == "__main__":
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -47,6 +70,7 @@ if __name__ == "__main__":
         test_simulate_friend_register(page)
         test_login_ref_banner(page)
         test_pricing_coin_discount(page)
+        test_console_invite_modal(page)
 
         browser.close()
         print("All invite reward checks passed.")
