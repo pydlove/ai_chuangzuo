@@ -58,19 +58,24 @@
         <div class="empty-text">还没有生成的文章</div>
         <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
       </div>
+      <div v-else-if="filteredWorks.length === 0" class="works-empty">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">未找到匹配的作品</div>
+        <button class="empty-btn" @click="clearFilters">清空筛选</button>
+      </div>
       <div v-else class="work-cards">
-        <div v-for="work in worksList" :key="work.id" class="work-card">
+        <div v-for="work in filteredWorks" :key="work.id" class="work-card">
           <div class="work-title">{{ work.title }}</div>
           <div class="work-meta">
-            <span>{{ work.platform }}</span>
+            <span>{{ work.platformName }}</span>
             <span>·</span>
-            <span>{{ work.wordCount }} 字</span>
+            <span>{{ work.raw.wordCount }} 字</span>
             <span>·</span>
-            <span>{{ work.createdAt }}</span>
+            <span>{{ formatDate(work.raw.completedAt) }}</span>
           </div>
           <div class="work-actions">
-            <button class="work-action-btn" @click="resumeDraft(work)">继续编辑</button>
-            <button class="work-action-btn" @click="deleteWork(work.id)">删除</button>
+            <button class="work-action-btn" @click="resumeDraft(work.raw)">继续编辑</button>
+            <button class="work-action-btn" @click="deleteWork(work.raw.id)">删除</button>
           </div>
         </div>
       </div>
@@ -83,19 +88,24 @@
         <div class="empty-text">草稿箱是空的</div>
         <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
       </div>
+      <div v-else-if="filteredDrafts.length === 0" class="works-empty">
+        <div class="empty-icon">🔍</div>
+        <div class="empty-text">未找到匹配的草稿</div>
+        <button class="empty-btn" @click="clearFilters">清空筛选</button>
+      </div>
       <div v-else class="work-cards">
-        <div v-for="draft in draftsList" :key="draft.id" class="work-card draft-card">
-          <div class="work-title">{{ draft.title || '未命名草稿' }}</div>
+        <div v-for="draft in filteredDrafts" :key="draft.id" class="work-card draft-card">
+          <div class="work-title">{{ draft.title }}</div>
           <div class="work-meta">
-            <span>{{ draft.platform?.name || '未选择平台' }}</span>
+            <span>{{ draft.platformName }}</span>
             <span>·</span>
-            <span>{{ draft.wordCount?.count || 0 }} 字</span>
+            <span>{{ draft.raw.wordCount?.count || 0 }} 字</span>
             <span>·</span>
-            <span>保存于 {{ formatDate(draft.savedAt) }}</span>
+            <span>保存于 {{ formatDate(draft.raw.savedAt) }}</span>
           </div>
           <div class="work-actions">
-            <button class="work-action-btn primary" @click="resumeDraft(draft)">继续编辑</button>
-            <button class="work-action-btn" @click="deleteDraft(draft.id)">删除</button>
+            <button class="work-action-btn primary" @click="resumeDraft(draft.raw)">继续编辑</button>
+            <button class="work-action-btn" @click="deleteDraft(draft.raw.id)">删除</button>
           </div>
         </div>
       </div>
@@ -188,6 +198,91 @@ const loadWorks = () => {
 onMounted(() => {
   loadWorks()
 })
+
+const normalizeItems = (items, type) => {
+  return items.map(item => {
+    if (type === 'draft') {
+      return {
+        id: item.id,
+        title: item.customTitle || '未命名草稿',
+        platformName: item.platform?.name || '未选择平台',
+        styleName: item.style?.name || '未选择',
+        date: item.savedAt ? new Date(item.savedAt) : null,
+        raw: item
+      }
+    }
+    return {
+      id: item.id,
+      title: item.title,
+      platformName: item.platform || '未选择',
+      styleName: item.style || '未选择',
+      date: item.completedAt ? new Date(item.completedAt) : null,
+      raw: item
+    }
+  })
+}
+
+const isWithinDays = (date, days) => {
+  if (!date) return false
+  const now = new Date()
+  const diff = (now - date) / (1000 * 60 * 60 * 24)
+  return diff <= days
+}
+
+const platformMap = {
+  wechat: '微信公众号',
+  xiaohongshu: '小红书',
+  toutiao: '今日头条',
+  baijiahao: '百家号',
+  douyin: '抖音图文',
+  zhihu: '知乎'
+}
+
+const matchesFilters = (item) => {
+  if (searchKeyword.value.trim()) {
+    const kw = searchKeyword.value.trim().toLowerCase()
+    if (!item.title.toLowerCase().includes(kw)) {
+      return false
+    }
+  }
+
+  if (selectedPlatforms.value.length > 0) {
+    const selectedLabels = selectedPlatforms.value.map(k => platformMap[k])
+    if (!selectedLabels.includes(item.platformName)) {
+      return false
+    }
+  }
+
+  if (selectedStyles.value.length > 0) {
+    if (!selectedStyles.value.includes(item.styleName)) {
+      return false
+    }
+  }
+
+  if (timeRange.value !== 'all') {
+    const days = parseInt(timeRange.value, 10)
+    if (!isWithinDays(item.date, days)) {
+      return false
+    }
+  }
+
+  return true
+}
+
+const filteredWorks = computed(() => {
+  return normalizeItems(worksList.value, 'work').filter(matchesFilters)
+})
+
+const filteredDrafts = computed(() => {
+  return normalizeItems(draftsList.value, 'draft').filter(matchesFilters)
+})
+
+const clearFilters = () => {
+  searchKeyword.value = ''
+  selectedPlatforms.value = []
+  selectedStyles.value = []
+  timeRange.value = 'all'
+}
 
 const formatDate = (dateStr) => {
   const d = new Date(dateStr)
