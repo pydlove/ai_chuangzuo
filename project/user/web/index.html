@@ -6,9 +6,130 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>爱创作</title>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <style>
+      #app-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #ffffff 0%, #fff5f7 100%);
+        opacity: 0;
+        animation: loaderFadeIn 0.5s ease forwards;
+      }
+
+      #app-loader.fade-out {
+        animation: loaderFadeOut 0.6s ease forwards;
+        pointer-events: none;
+      }
+
+      .loader-brand {
+        font-size: 42px;
+        font-weight: 700;
+        color: #ff2442;
+        letter-spacing: 2px;
+        opacity: 0;
+        transform: translateY(12px);
+        animation: loaderContentIn 0.7s ease 0.2s forwards;
+      }
+
+      .loader-slogan {
+        margin-top: 18px;
+        font-size: 16px;
+        color: #595959;
+        letter-spacing: 4px;
+        opacity: 0;
+        transform: translateY(12px);
+        animation: loaderContentIn 0.7s ease 0.45s forwards;
+      }
+
+      .loader-line {
+        margin-top: 32px;
+        width: 120px;
+        height: 3px;
+        background: #ffe0e5;
+        border-radius: 3px;
+        overflow: hidden;
+        opacity: 0;
+        animation: loaderContentIn 0.7s ease 0.6s forwards;
+      }
+
+      .loader-line::after {
+        content: '';
+        display: block;
+        width: 40%;
+        height: 100%;
+        background: #ff2442;
+        border-radius: 3px;
+        animation: loaderLineSlide 1.2s ease-in-out infinite;
+      }
+
+      @keyframes loaderFadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes loaderFadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+
+      @keyframes loaderContentIn {
+        from {
+          opacity: 0;
+          transform: translateY(12px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes loaderLineSlide {
+        0% { transform: translateX(-100%); }
+        50% { transform: translateX(150%); }
+        100% { transform: translateX(-100%); }
+      }
+    </style>
   </head>
   <body>
+    <div id="app-loader">
+      <div class="loader-brand">爱创作</div>
+      <div class="loader-slogan">爱创作，灵感随行</div>
+      <div class="loader-line"></div>
+    </div>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+      (function () {
+        const loader = document.getElementById('app-loader')
+        if (!loader) return
+
+        const hideLoader = () => {
+          loader.classList.add('fade-out')
+          setTimeout(() => {
+            loader.remove()
+          }, 650)
+        }
+
+        // 至少展示 1.2 秒后淡出
+        const minShow = 1200
+        const startTime = performance.now()
+
+        const onReady = () => {
+          const elapsed = performance.now() - startTime
+          const remain = Math.max(0, minShow - elapsed)
+          setTimeout(hideLoader, remain)
+        }
+
+        if (document.readyState === 'complete') {
+          onReady()
+        } else {
+          window.addEventListener('load', onReady)
+        }
+      })()
+    </script>
   </body>
 </html>
