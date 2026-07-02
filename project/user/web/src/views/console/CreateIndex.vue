@@ -205,6 +205,7 @@
 
         <!-- 浮动操作栏 -->
         <div class="export-floating-bar">
+          <button class="export-float-btn" @click="editExportArticle">编辑正文</button>
           <button class="export-float-btn" @click="optimizeExportTitle">✧ AI 优化标题</button>
           <button class="export-float-btn primary" @click="handleExportWord">导出 Word</button>
           <button class="export-float-btn outline" @click="copyExportText">复制正文</button>
@@ -498,6 +499,12 @@
           >
             我的风格
           </button>
+          <button
+            :class="['style-tab', { active: styleTab === 'learned' }]"
+            @click="styleTab = 'learned'; createStyleMode = false"
+          >
+            学习的风格
+          </button>
         </div>
 
         <div class="style-content">
@@ -539,6 +546,32 @@
                 <button class="style-action-btn" @click.stop="goToEditStyle(m)">编辑提示词</button>
                 <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(m.name)">删除</button>
               </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 学习的风格 -->
+        <div v-show="styleTab === 'learned'" class="style-grid">
+          <div
+            v-if="learnedStyles.length === 0"
+            class="style-empty"
+          >
+            还没有学习过的风格，请前往「我的风格」页面学习。
+          </div>
+          <div
+            v-for="(l, idx) in learnedStyles"
+            v-else
+            :key="l.name"
+            :class="['style-card', { selected: selectedStyleName === l.name }]"
+            @click="selectStyle(l)"
+          >
+            <div class="style-card-title">{{ l.name }}</div>
+            <div class="style-card-desc">来源：{{ l.sourceName }} · {{ l.sourceType.toUpperCase() }}</div>
+            <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
+              {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
+            </div>
+            <div v-show="expandedLearnedIdx === idx" class="style-prompt-full">
+              {{ l.prompt }}
             </div>
           </div>
         </div>
@@ -659,7 +692,8 @@ import {
   applyStyle as applyStyleShared,
   addCustomStyle,
   updateCustomStyle,
-  removeCustomStyle
+  removeCustomStyle,
+  learnedStyles
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
@@ -886,6 +920,7 @@ const styleTab = ref('system')
 const styleVisible = ref(false)
 const selectedStyleName = ref(null)
 const expandedPromptIdx = ref(null)
+const expandedLearnedIdx = ref(null)
 const createStyleMode = ref(false)
 const editingStyle = reactive({ originalName: '', name: '', prompt: '', isEdit: false })
 
@@ -955,6 +990,10 @@ const deleteStyle = (name) => {
 
 const togglePrompt = (idx) => {
   expandedPromptIdx.value = expandedPromptIdx.value === idx ? null : idx
+}
+
+const toggleLearnedPrompt = (idx) => {
+  expandedLearnedIdx.value = expandedLearnedIdx.value === idx ? null : idx
 }
 
 const stylePresets = [
@@ -1175,6 +1214,7 @@ const openExportModal = (item) => {
       const fullItem = list.find(x => x.id === item.id)
       if (fullItem && fullItem.content) {
         exportArticle.value = {
+          id: fullItem.id,
           title: fullItem.title,
           body: fullItem.content.body || '',
           wordCount: item.wordCount,
@@ -1188,6 +1228,13 @@ const openExportModal = (item) => {
       console.error('load export article error', e)
     }
   }
+}
+
+const editExportArticle = () => {
+  if (!exportArticle.value) return
+  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(exportArticle.value))
+  exportModalVisible.value = false
+  router.push('/console/edit')
 }
 
 const generateExportMeta = () => {
