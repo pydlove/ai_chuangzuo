@@ -2926,9 +2926,9 @@ const clearForm = () => {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: #f6ffed;
-  color: #389e0d;
-  border: 1px solid #b7eb8f;
+  background: #fff0f3;
+  color: #ff2442;
+  border: 1px solid #ffd1d9;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 500;
@@ -3685,9 +3685,9 @@ body[data-theme="dark"] .export-meta {
 }
 
 body[data-theme="dark"] .export-style-badge {
-  background: rgba(7, 193, 96, 0.15);
-  border-color: rgba(7, 193, 96, 0.35);
-  color: #4ade80;
+  background: rgba(255, 36, 66, 0.15);
+  border-color: rgba(255, 36, 66, 0.35);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .export-body {
