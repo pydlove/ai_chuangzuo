@@ -250,58 +250,7 @@
     </a-modal>
 
     <!-- 贴图生成弹框 -->
-    <a-modal
-      v-model:open="cardsModalVisible"
-      :footer="null"
-      :width="900"
-      centered
-      class="cards-modal"
-    >
-      <template #title>
-        <span class="modal-title-text">生成贴图</span>
-      </template>
-
-      <div class="cards-modal-content">
-        <div class="cards-modal-header-row">
-          <div class="cards-modal-tabs">
-            <button
-              v-for="key in cardStyleKeys"
-              :key="key"
-              class="cards-modal-tab"
-              :class="{ active: cardsStyle === key }"
-              :style="cardsStyle === key ? { background: cardStyles[key].accent, borderColor: cardStyles[key].accent, color: '#fff' } : {}"
-              @click="cardsStyle = key"
-            >
-              {{ cardStyles[key].label }}
-            </button>
-          </div>
-          <button class="cards-modal-download-all" @click="downloadAllExportCards">全部下载</button>
-        </div>
-
-        <div class="cards-modal-sub">
-          共 {{ cardsData.length }} 张 · {{ cardStyles[cardsStyle].label }}风格 · 点击单张可下载
-        </div>
-
-        <div class="cards-modal-grid">
-          <div
-            v-for="(card, index) in cardsData"
-            :key="index"
-            class="cards-modal-item"
-            @click="downloadExportCard(index)"
-          >
-            <canvas
-              :ref="el => { if (el) cardCanvasRefs[index] = el }"
-              class="cards-modal-canvas"
-              width="750"
-              height="1000"
-            ></canvas>
-            <div class="cards-modal-item-label">
-              图 {{ index + 1 }} / {{ cardsData.length }}{{ card.type === 'cover' ? ' · 封面' : ' · ' + card.title }}
-            </div>
-          </div>
-        </div>
-      </div>
-    </a-modal>
+    <CardsModal v-model:visible="cardsModalVisible" :article="exportArticle" />
   </div>
 
     <!-- 发布平台选择弹框 -->
@@ -311,6 +260,7 @@
       :width="560"
       centered
       :closable="true"
+      class="platform-modal"
     >
       <template #title>
         <div class="modal-title-wrap">
@@ -337,6 +287,7 @@
       :footer="null"
       :width="640"
       centered
+      class="word-count-modal"
     >
       <template #title>
         <div class="modal-title-wrap">
@@ -431,6 +382,7 @@
       :footer="null"
       :width="720"
       centered
+      class="style-modal"
     >
       <template #title>
         <div class="modal-title-wrap">
@@ -606,6 +558,7 @@
       :footer="null"
       :width="480"
       centered
+      class="draft-box-modal"
     >
       <div :key="draftBoxKey">
         <div v-if="draftList.length === 0" class="draft-box-empty">
@@ -642,7 +595,7 @@
       :width="960"
       centered
       :closable="true"
-      class="template-lib-modal"
+      class="template-modal template-lib-modal"
     >
       <template #title>
         <div class="modal-title-wrap">
@@ -692,7 +645,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { FolderOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, InboxOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
@@ -707,6 +660,7 @@ import {
   learnedStyles
 } from '@/composables/useStyles.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
+import CardsModal from '@/components/CardsModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -1237,9 +1191,6 @@ const titleOptVisible = ref(false)
 const titleOptSuggestions = ref([])
 const selectedOptTitle = ref('')
 const cardsModalVisible = ref(false)
-const cardsStyle = ref('xiaohongshu')
-const cardsData = ref([])
-const cardCanvasRefs = ref([])
 
 const openExportModal = (item) => {
   // 从完整队列数据中获取文章内容
@@ -1396,339 +1347,10 @@ const closeTitleOpt = () => {
   titleOptVisible.value = false
 }
 
-const cardStyles = {
-  xiaohongshu: {
-    label: '小红书',
-    accent: '#ff2442',
-    coverGrad: ['#ff2442', '#ff7a8a', '#ffd1d9'],
-    coverCircle: 'rgba(255,255,255,0.18)',
-    coverCircle2: 'rgba(255,255,255,0.12)',
-    tagBg: 'rgba(255,255,255,0.95)',
-    tagText: '干货分享',
-    brandText: '— 作者昵称 —',
-    contentBg: '#fff',
-    headingColor: '#1a1a1a',
-    bodyColor: '#595959',
-    numColor: '#fff',
-    footerBg: '#fff0f3',
-    font: '"PingFang SC", sans-serif'
-  },
-  wechat: {
-    label: '公众号',
-    accent: '#07c160',
-    coverGrad: ['#07c160', '#95de64', '#d9f7be'],
-    coverCircle: 'rgba(255,255,255,0.2)',
-    coverCircle2: 'rgba(255,255,255,0.14)',
-    tagBg: 'rgba(255,255,255,0.95)',
-    tagText: '深度好文',
-    brandText: '— 作者昵称 —',
-    contentBg: '#fff',
-    headingColor: '#1a1a1a',
-    bodyColor: '#595959',
-    numColor: '#fff',
-    footerBg: '#f6ffed',
-    font: '"PingFang SC", sans-serif'
-  },
-  douyin: {
-    label: '抖音',
-    accent: '#25f4ee',
-    coverGrad: ['#0a0a0a', '#1a1a1a', '#fe2c55'],
-    coverCircle: 'rgba(37,244,238,0.25)',
-    coverCircle2: 'rgba(254,44,85,0.25)',
-    tagBg: '#25f4ee',
-    tagText: '上热门',
-    brandText: '— 作者昵称 —',
-    contentBg: '#1a1a1a',
-    headingColor: '#fff',
-    bodyColor: '#d9d9d9',
-    numColor: '#0a0a0a',
-    footerBg: '#000',
-    font: '"PingFang SC", sans-serif'
-  },
-  literary: {
-    label: '文艺',
-    accent: '#8b5e34',
-    coverGrad: ['#8b5e34', '#d4a373', '#f0e6d8'],
-    coverCircle: 'rgba(255,255,255,0.18)',
-    coverCircle2: 'rgba(255,255,255,0.12)',
-    tagBg: 'rgba(255,255,255,0.92)',
-    tagText: '慢读时光',
-    brandText: '— 作者昵称 —',
-    contentBg: '#faf5ef',
-    headingColor: '#5a3e2b',
-    bodyColor: '#8b5e34',
-    numColor: '#fff',
-    footerBg: '#f0e6d8',
-    font: 'Georgia, "Songti SC", serif'
-  },
-  minimal: {
-    label: '极简',
-    accent: '#1a1a1a',
-    coverGrad: ['#1a1a1a', '#262626', '#404040'],
-    coverCircle: 'rgba(255,255,255,0.06)',
-    coverCircle2: 'rgba(255,255,255,0.04)',
-    tagBg: '#fff',
-    tagText: 'NOTE',
-    brandText: '— YOUR NAME —',
-    contentBg: '#fff',
-    headingColor: '#000',
-    bodyColor: '#262626',
-    numColor: '#fff',
-    footerBg: '#fafafa',
-    font: '"Helvetica Neue", "PingFang SC", sans-serif'
-  },
-  business: {
-    label: '商务',
-    accent: '#1677ff',
-    coverGrad: ['#003a8c', '#1677ff', '#bae0ff'],
-    coverCircle: 'rgba(255,255,255,0.15)',
-    coverCircle2: 'rgba(255,255,255,0.1)',
-    tagBg: 'rgba(255,255,255,0.95)',
-    tagText: 'INSIGHT',
-    brandText: '— YOUR NAME —',
-    contentBg: '#fff',
-    headingColor: '#003a8c',
-    bodyColor: '#595959',
-    numColor: '#fff',
-    footerBg: '#f0f5ff',
-    font: '"PingFang SC", sans-serif'
-  }
-}
-
-const cardStyleKeys = computed(() => Object.keys(cardStyles))
-
 const generateExportCards = () => {
   if (!exportArticle.value) return
-
-  const title = exportArticle.value.title || '未命名文章'
-  const body = exportArticle.value.body || ''
-  const paragraphs = body.split(/\n+/).filter(line => line.trim())
-
-  const cards = []
-  const firstP = paragraphs.find(p => !p.startsWith('【'))
-  cards.push({
-    type: 'cover',
-    title,
-    desc: firstP ? firstP.trim().slice(0, 80) : ''
-  })
-
-  let currentHeading = null
-  let currentContent = []
-  let headingIndex = 0
-
-  paragraphs.forEach(line => {
-    const headingMatch = line.match(/^【([^】]+)】$/)
-    if (headingMatch) {
-      if (currentHeading) {
-        cards.push({
-          type: 'content',
-          num: headingIndex,
-          title: currentHeading,
-          content: currentContent.slice(0, 5).join('\n')
-        })
-      }
-      headingIndex++
-      currentHeading = headingMatch[1].trim()
-      currentContent = []
-    } else if (currentHeading) {
-      currentContent.push(line.trim().slice(0, 120))
-    }
-  })
-
-  if (currentHeading) {
-    cards.push({
-      type: 'content',
-      num: headingIndex,
-      title: currentHeading,
-      content: currentContent.slice(0, 5).join('\n')
-    })
-  }
-
-  cardsData.value = cards
-  cardsStyle.value = 'xiaohongshu'
   cardsModalVisible.value = true
 }
-
-const closeExportCardsModal = () => {
-  cardsModalVisible.value = false
-}
-
-const wrapCardText = (ctx, text, x, y, maxWidth, lineHeight, maxLines) => {
-  if (!text) return y
-  const chars = text.split('')
-  let line = ''
-  let yy = y
-  let drawnLines = 0
-
-  for (let i = 0; i < chars.length; i++) {
-    line += chars[i]
-    if (ctx.measureText(line).width > maxWidth) {
-      line = line.slice(0, -1)
-      if (drawnLines >= maxLines - 1 && i < chars.length - 1) {
-        while (ctx.measureText(line + '...').width > maxWidth) line = line.slice(0, -1)
-        ctx.fillText(line + '...', x, yy)
-        return yy + lineHeight
-      }
-      ctx.fillText(line, x, yy)
-      drawnLines++
-      yy += lineHeight
-      line = chars[i]
-    }
-  }
-
-  if (line) {
-    if (drawnLines >= maxLines - 1) {
-      while (ctx.measureText(line + '...').width > maxWidth) line = line.slice(0, -1)
-      ctx.fillText(line + '...', x, yy)
-    } else {
-      ctx.fillText(line, x, yy)
-    }
-  }
-  return yy
-}
-
-const drawExportCard = (canvas, data, styleName) => {
-  const style = cardStyles[styleName] || cardStyles.xiaohongshu
-  const ctx = canvas.getContext('2d')
-  const w = canvas.width
-  const h = canvas.height
-  ctx.clearRect(0, 0, w, h)
-
-  if (data.type === 'cover') {
-    const grad = ctx.createLinearGradient(0, 0, w, h)
-    grad.addColorStop(0, style.coverGrad[0])
-    grad.addColorStop(0.5, style.coverGrad[1])
-    grad.addColorStop(1, style.coverGrad[2])
-    ctx.fillStyle = grad
-    ctx.fillRect(0, 0, w, h)
-
-    ctx.fillStyle = style.coverCircle || 'rgba(255,255,255,0.18)'
-    ctx.beginPath(); ctx.arc(w - 80, 120, 160, 0, Math.PI * 2); ctx.fill()
-    ctx.beginPath(); ctx.arc(60, h - 220, 120, 0, Math.PI * 2); ctx.fill()
-    ctx.fillStyle = style.coverCircle2 || 'rgba(255,255,255,0.12)'
-    ctx.beginPath(); ctx.arc(w - 200, h - 120, 90, 0, Math.PI * 2); ctx.fill()
-
-    ctx.fillStyle = style.tagBg
-    ctx.beginPath()
-    ctx.moveTo(60 + 80, 80)
-    ctx.arcTo(60 + 160, 80, 60 + 160, 80 + 44, 22)
-    ctx.arcTo(60 + 160, 80 + 44, 60, 80 + 44, 22)
-    ctx.arcTo(60, 80 + 44, 60, 80, 22)
-    ctx.arcTo(60, 80, 60 + 160, 80, 22)
-    ctx.closePath()
-    ctx.fill()
-    ctx.fillStyle = style.accent
-    ctx.font = `bold 22px ${style.font}`
-    ctx.textAlign = 'center'
-    ctx.fillText(style.tagText, 140, 111)
-
-    ctx.fillStyle = '#fff'
-    ctx.font = `bold 60px ${style.font}`
-    ctx.textAlign = 'left'
-    ctx.shadowColor = 'rgba(0,0,0,0.1)'
-    ctx.shadowBlur = 8
-    ctx.shadowOffsetY = 4
-    wrapCardText(ctx, data.title, 60, 320, w - 120, 78, 4)
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-
-    ctx.fillStyle = 'rgba(255,255,255,0.92)'
-    ctx.font = `26px ${style.font}`
-    wrapCardText(ctx, data.desc, 60, h - 220, w - 120, 40, 2)
-
-    ctx.fillStyle = '#fff'
-    ctx.font = `bold 26px ${style.font}`
-    ctx.fillText(style.brandText, 60, h - 80)
-  } else {
-    const bg = style.contentBg || '#fff'
-    ctx.fillStyle = bg
-    ctx.fillRect(0, 0, w, h)
-
-    ctx.fillStyle = style.accent
-    ctx.fillRect(0, 0, w, 14)
-
-    ctx.fillStyle = style.accent
-    ctx.beginPath()
-    ctx.arc(110, 140, 56, 0, Math.PI * 2)
-    ctx.fill()
-    ctx.fillStyle = style.numColor || '#fff'
-    ctx.font = `bold 48px ${style.font}`
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    const numStr = String(data.num).padStart(2, '0')
-    ctx.fillText(numStr, 110, 148)
-    ctx.textBaseline = 'alphabetic'
-
-    ctx.fillStyle = style.headingColor
-    ctx.font = `bold 46px ${style.font}`
-    ctx.textAlign = 'left'
-    const titleEndY = wrapCardText(ctx, data.title, 60, 260, w - 120, 60, 2)
-
-    ctx.fillStyle = style.accent
-    ctx.fillRect(60, titleEndY + 8, 80, 5)
-
-    ctx.fillStyle = style.bodyColor
-    ctx.font = `28px ${style.font}`
-    let contentY = titleEndY + 60
-    const lines = (data.content || '').split('\n')
-    lines.forEach(line => {
-      if (!line.trim()) return
-      wrapCardText(ctx, line.trim(), 60, contentY, w - 120, 44, 1)
-      contentY += 50
-    })
-
-    ctx.fillStyle = style.footerBg
-    ctx.fillRect(0, h - 110, w, 110)
-    ctx.fillStyle = style.accent
-    ctx.font = `bold 22px ${style.font}`
-    ctx.fillText(style.brandText, 60, h - 55)
-  }
-}
-
-const renderExportCardCanvas = (index) => {
-  const canvas = cardCanvasRefs.value[index]
-  if (!canvas) return null
-  const card = cardsData.value[index]
-  drawExportCard(canvas, card, cardsStyle.value)
-  return canvas
-}
-
-const downloadExportCanvas = (canvas, filename) => {
-  canvas.toBlob((blob) => {
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = filename
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
-  }, 'image/png')
-}
-
-const downloadExportCard = (index) => {
-  const canvas = renderExportCardCanvas(index)
-  if (!canvas) return
-  const style = cardStyles[cardsStyle.value]
-  downloadExportCanvas(canvas, `${style.label}_贴图_${index + 1}_${cardsData.value.length}.png`)
-}
-
-const downloadAllExportCards = () => {
-  cardsData.value.forEach((_, index) => {
-    setTimeout(() => {
-      downloadExportCard(index)
-    }, index * 400)
-  })
-}
-
-watch([cardsModalVisible, cardsStyle], () => {
-  if (!cardsModalVisible.value) return
-  nextTick(() => {
-    cardCanvasRefs.value.forEach((canvas, index) => {
-      if (canvas) drawExportCard(canvas, cardsData.value[index], cardsStyle.value)
-    })
-  })
-}, { immediate: true })
 
 // 操作
 const handleSaveDraft = () => {
@@ -3593,103 +3215,6 @@ const clearForm = () => {
   cursor: not-allowed;
 }
 
-/* ===== 贴图生成弹框 ===== */
-
-.cards-modal-content {
-  padding: 8px 4px 0;
-}
-
-.cards-modal-header-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.cards-modal-tabs {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.cards-modal-tab {
-  padding: 6px 14px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 20px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.cards-modal-tab:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-}
-
-.cards-modal-download-all {
-  padding: 6px 14px;
-  background: #fff;
-  border: 1px solid #ff2442;
-  border-radius: 20px;
-  font-size: 13px;
-  color: #ff2442;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.cards-modal-download-all:hover {
-  background: #fff0f2;
-}
-
-.cards-modal-sub {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 16px;
-}
-
-.cards-modal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-  max-height: 520px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-
-.cards-modal-item {
-  cursor: pointer;
-  transition: transform 0.15s;
-}
-
-.cards-modal-item:hover {
-  transform: translateY(-2px);
-}
-
-.cards-modal-canvas {
-  width: 100%;
-  height: auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  display: block;
-}
-
-.cards-modal-item-label {
-  text-align: center;
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-top: 8px;
-}
-
-@media (max-width: 768px) {
-  .cards-modal-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ===== 单屏启动器新样式 ===== */
 
 .create-card-header {
@@ -3977,5 +3502,614 @@ const clearForm = () => {
   .refresh-capsule {
     align-self: center;
   }
+}
+
+/* 深色模式 */
+body[data-theme="dark"] .hero-title-input,
+body[data-theme="dark"] .hero-textarea {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .hero-title-input::placeholder,
+body[data-theme="dark"] .hero-textarea::placeholder {
+  color: #737373;
+}
+
+body[data-theme="dark"] .hero-title-input:focus,
+body[data-theme="dark"] .hero-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .settings-chip {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .topic-capsule {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .topic-capsule:hover {
+  background: #333;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .queue-panel {
+  background: #181818;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .queue-panel-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .queue-panel-item {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .queue-panel-item:hover {
+  border-color: #434343;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .queue-panel-item.generating {
+  border-color: rgba(255, 36, 66, 0.35);
+}
+
+body[data-theme="dark"] .queue-panel-item.completed {
+  border-color: rgba(7, 193, 96, 0.35);
+}
+
+body[data-theme="dark"] .queue-panel-item.queued {
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .queue-panel-item.failed {
+  border-color: rgba(255, 77, 79, 0.35);
+}
+
+body[data-theme="dark"] .queue-panel-item.generating .queue-item-icon {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6a;
+}
+
+body[data-theme="dark"] .queue-panel-item.completed .queue-item-icon {
+  background: rgba(7, 193, 96, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .queue-panel-item.queued .queue-item-icon {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .queue-panel-item.failed .queue-item-icon {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .queue-item-status-badge.generating {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6a;
+}
+
+body[data-theme="dark"] .queue-item-status-badge.completed {
+  background: rgba(7, 193, 96, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .queue-item-status-badge.queued {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .queue-item-status-badge.failed {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .queue-item-progress-text {
+  color: #ff4d6a;
+}
+
+body[data-theme="dark"] .queue-item-footer {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .queue-export-btn {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .queue-export-btn:hover {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .queue-panel-more {
+  background: transparent;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .queue-more-btn:hover {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .quota-pill {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+/* 导出/预览弹框深色 */
+body[data-theme="dark"] :deep(.export-modal .ant-modal-content),
+body[data-theme="dark"] :deep(.export-modal .ant-modal-header) {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] :deep(.export-modal .ant-modal-close) {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] :deep(.export-modal .ant-modal-close:hover) {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .modal-title-text {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-article {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .export-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-meta {
+  color: #a6a6a6;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .export-style-badge {
+  background: rgba(7, 193, 96, 0.15);
+  border-color: rgba(7, 193, 96, 0.35);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .export-body {
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .export-body h2 {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-publish-meta {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .export-meta-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-desc-input {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-desc-input:focus {
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .export-meta-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-meta-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .export-meta-btn.primary {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 发布平台 / 字数 / 模板弹框内元素（仍在 teleport 后保留 data-v） */
+body[data-theme="dark"] .modal-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .modal-subtitle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .platform-item {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .platform-item:hover,
+body[data-theme="dark"] .platform-item.selected {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .platform-name {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .platform-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .wc-tabs {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .wc-tab {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .wc-tab.active {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .wc-item,
+body[data-theme="dark"] .wc-item-wide {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .wc-item:hover,
+body[data-theme="dark"] .wc-item-wide:hover,
+body[data-theme="dark"] .wc-item.selected,
+body[data-theme="dark"] .wc-item-wide.selected {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .wc-count {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .wc-label,
+body[data-theme="dark"] .wc-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .wc-custom-input {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .wc-custom-input:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+/* 风格编辑内联表单 */
+body[data-theme="dark"] .style-editor-label {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-editor-hint {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-editor-input,
+body[data-theme="dark"] .style-editor-textarea {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-editor-input::placeholder,
+body[data-theme="dark"] .style-editor-textarea::placeholder {
+  color: #737373;
+}
+
+body[data-theme="dark"] .style-editor-input:focus,
+body[data-theme="dark"] .style-editor-textarea:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+body[data-theme="dark"] .style-editor-preset {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .style-editor-preset:hover {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+/* 模板弹框内行 */
+body[data-theme="dark"] .template-row {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .template-row:hover,
+body[data-theme="dark"] .template-row.selected {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .template-row-name {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .template-row-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .template-group-title {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .template-footer {
+  border-top-color: #303030;
+}
+
+/* 草稿箱 */
+body[data-theme="dark"] .draft-empty-text {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .draft-item {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .draft-item:hover {
+  background: #2a2a2a;
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .draft-item-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .draft-item-time {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-meta-btn.primary:hover {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .export-tag {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-floating-bar {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .export-float-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-float-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .export-float-btn.primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+body[data-theme="dark"] .export-float-btn.primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #fff;
+}
+
+body[data-theme="dark"] .export-float-btn.outline {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .export-float-btn.outline:hover {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .export-float-btn.danger {
+  background: transparent;
+  border-color: #ff4d4f;
+  color: #ff4d4f;
+}
+
+body[data-theme="dark"] .export-float-btn.danger:hover {
+  background: rgba(255, 77, 79, 0.15);
+}
+
+/* AI 标题优化弹框深色 */
+body[data-theme="dark"] .title-opt-original {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .title-opt-original span {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .title-opt-section-label {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .title-opt-item {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .title-opt-item:hover {
+  background: #2a2a2a;
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .title-opt-item.selected {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .title-opt-radio {
+  border-color: #434343;
+}
+
+body[data-theme="dark"] .title-opt-item.selected .title-opt-radio {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  box-shadow: inset 0 0 0 3px #1f1f1f;
+}
+
+body[data-theme="dark"] .title-opt-item-text {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .title-opt-footer {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .title-opt-btn-cancel {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .title-opt-btn-cancel:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .title-opt-btn-confirm:disabled {
+  background: #434343;
+  border-color: #434343;
+  color: #737373;
+}
+</style>
+
+<style>
+/* 创作页导出预览弹框：暗色全局覆盖（弹框被 teleport 到 body，需非 scoped） */
+body[data-theme="dark"] .export-modal .ant-modal-content,
+body[data-theme="dark"] .export-modal .ant-modal-header,
+body[data-theme="dark"] .export-modal .ant-modal-body {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .export-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .export-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .export-modal .ant-modal-title,
+body[data-theme="dark"] .export-modal .modal-title-text {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .export-modal .ant-modal-footer {
+  background: #1f1f1f !important;
+  border-top-color: #303030 !important;
+}
+
+/* 创作页 AI 标题优化弹框：暗色全局覆盖 */
+body[data-theme="dark"] .title-opt-modal .ant-modal-content,
+body[data-theme="dark"] .title-opt-modal .ant-modal-header,
+body[data-theme="dark"] .title-opt-modal .ant-modal-body {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .title-opt-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .title-opt-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .title-opt-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
+/* 创作页发布平台 / 字数 / 风格 / 草稿箱 / 模板弹框：暗色全局覆盖 */
+body[data-theme="dark"] .platform-modal .ant-modal-content,
+body[data-theme="dark"] .platform-modal .ant-modal-header,
+body[data-theme="dark"] .word-count-modal .ant-modal-content,
+body[data-theme="dark"] .word-count-modal .ant-modal-header,
+body[data-theme="dark"] .style-modal .ant-modal-content,
+body[data-theme="dark"] .style-modal .ant-modal-header,
+body[data-theme="dark"] .draft-box-modal .ant-modal-content,
+body[data-theme="dark"] .draft-box-modal .ant-modal-header,
+body[data-theme="dark"] .template-modal .ant-modal-content,
+body[data-theme="dark"] .template-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-close-x,
+body[data-theme="dark"] .word-count-modal .ant-modal-close-x,
+body[data-theme="dark"] .style-modal .ant-modal-close-x,
+body[data-theme="dark"] .draft-box-modal .ant-modal-close-x,
+body[data-theme="dark"] .template-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-close:hover,
+body[data-theme="dark"] .word-count-modal .ant-modal-close:hover,
+body[data-theme="dark"] .style-modal .ant-modal-close:hover,
+body[data-theme="dark"] .draft-box-modal .ant-modal-close:hover,
+body[data-theme="dark"] .template-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-title,
+body[data-theme="dark"] .word-count-modal .ant-modal-title,
+body[data-theme="dark"] .style-modal .ant-modal-title,
+body[data-theme="dark"] .draft-box-modal .ant-modal-title,
+body[data-theme="dark"] .template-modal .ant-modal-title {
+  color: #f0f0f0 !important;
 }
 </style>
