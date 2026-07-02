@@ -209,6 +209,43 @@
             </div>
           </a-modal>
 
+          <!-- 兑换码弹框 -->
+          <a-modal
+            v-model:open="redeemVisible"
+            :footer="null"
+            :width="420"
+            centered
+            class="redeem-modal"
+          >
+            <div class="redeem-panel">
+              <div class="redeem-header">
+                <span class="redeem-title">🎟️ 兑换码</span>
+                <span class="redeem-subtitle">输入兑换码兑换奖励</span>
+              </div>
+
+              <input
+                ref="redeemInputRef"
+                v-model="redeemCode"
+                class="redeem-input"
+                placeholder="请输入兑换码"
+                maxlength="32"
+                @keydown.enter="submitRedeem"
+              />
+
+              <div v-if="redeemStatus" :class="['redeem-status', redeemStatus.type]">
+                {{ redeemStatus.message }}
+              </div>
+
+              <button
+                class="invite-btn invite-btn-primary redeem-submit"
+                :disabled="!canSubmitRedeem"
+                @click="submitRedeem"
+              >
+                {{ redeemLoading ? '兑换中...' : '立即兑换' }}
+              </button>
+            </div>
+          </a-modal>
+
           <!-- 邀请活动完整规则抽屉 -->
           <a-drawer
             v-model:open="inviteRulesVisible"
@@ -853,7 +890,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
@@ -1079,6 +1116,29 @@ const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
 const COIN_BONUS_NEW_USER = 5
+
+// ---------- 兑换码 ----------
+const REDEEM_USED_KEY = 'aichuangzuo_redeem_codes'
+const REDEEM_HISTORY_KEY = 'aichuangzuo_redeem_history'
+
+const redeemVisible = ref(false)
+const redeemCode = ref('')
+const redeemLoading = ref(false)
+const redeemStatus = ref(null)
+const redeemInputRef = ref(null)
+
+const canSubmitRedeem = computed(() => {
+  return redeemCode.value.trim().length >= 6 && !redeemLoading.value
+})
+
+const openRedeemModal = () => {
+  redeemVisible.value = true
+  redeemCode.value = ''
+  redeemStatus.value = null
+  nextTick(() => {
+    redeemInputRef.value?.focus()
+  })
+}
 
 const inviteVisible = ref(false)
 const withdrawVisible = ref(false)
