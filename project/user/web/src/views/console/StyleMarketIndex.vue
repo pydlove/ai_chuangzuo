@@ -2,10 +2,10 @@
   <div class="style-market-index">
     <div class="style-market-header">
       <h2 class="style-market-title">风格市场</h2>
-      <p class="style-market-subtitle">发现优质写作风格，支持原创创作者</p>
-      <div class="style-market-rules">
-        收益规则：他人使用你的分享风格，你获得 0.2 创作币；每周按使用次数发放里程碑奖励（50/200/500/1000 次对应 5/15/30/60 币）。
-      </div>
+      <p class="style-market-subtitle">
+        发现优质写作风格，支持原创创作者
+        <span class="style-market-rules-link" @click="rulesVisible = true">收益规则</span>
+      </p>
     </div>
 
     <div class="style-market-filter-bar">
@@ -83,6 +83,24 @@
       </div>
     </div>
   </div>
+
+  <a-modal
+    :open="rulesVisible"
+    title="风格市场收益规则"
+    :footer="null"
+    :width="560"
+    centered
+    @cancel="rulesVisible = false"
+  >
+    <ol class="style-market-rules-list">
+      <li>他人每使用一次你分享的风格，你将获得 0.2 创作币奖励。</li>
+      <li>每周根据风格被使用次数发放里程碑奖励：50 次 5 币、200 次 15 币、500 次 30 币、1000 次 60 币。</li>
+      <li>里程碑奖励每周结算一次，结算后当周使用次数清零并重新累计。</li>
+      <li>使用他人分享的风格无需支付创作币，创作者仍可正常获得收益。</li>
+      <li>如发现违规刷量行为，平台有权取消相关收益并下架风格。</li>
+    </ol>
+    <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -101,6 +119,7 @@ const searchQuery = ref('')
 const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
 const expandedIds = ref(new Set())
+const rulesVisible = ref(false)
 
 const tabOptions = [
   { key: 'all', label: '全部' },
@@ -190,17 +209,42 @@ const handleSimulate = (s) => {
   font-size: 13px;
   color: #8c8c8c;
   margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
-.style-market-rules {
-  margin-top: 12px;
-  padding: 10px 14px;
-  background: #fff7e6;
-  border: 1px solid #ffe7ba;
-  border-radius: 8px;
+.style-market-rules-link {
+  color: #ff2442;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.style-market-rules-link:hover {
+  color: #e61e3a;
+}
+
+.style-market-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.8;
+}
+
+.style-market-rules-list li {
+  margin-bottom: 10px;
+}
+
+.style-market-rules-footer {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
   font-size: 13px;
-  color: #ad6800;
-  line-height: 1.6;
+  color: #8c8c8c;
 }
 
 .style-market-filter-bar {
