@@ -173,6 +173,128 @@
       </div>
     </div>
   </div>
+
+  <!-- 学习风格导入对话框 -->
+  <a-modal
+    :open="importDialogVisible"
+    :footer="null"
+    :width="640"
+    centered
+    @cancel="closeImportDialog"
+  >
+    <template #title>
+      <div class="modal-title">学习写作风格</div>
+    </template>
+
+    <!-- 进度态 -->
+    <div v-if="isLearning" class="learned-progress">
+      <a-spin />
+      <div class="learned-progress-text">● ● ● 分析中…</div>
+    </div>
+
+    <!-- 粘贴 / 上传 tab -->
+    <template v-else-if="!learnedResult">
+      <div class="learned-subtabs">
+        <button
+          :class="['learned-subtab', { active: importSubTab === 'paste' }]"
+          @click="importSubTab = 'paste'"
+        >粘贴正文</button>
+        <button
+          :class="['learned-subtab', { active: importSubTab === 'upload' }]"
+          @click="importSubTab = 'upload'"
+        >上传文件</button>
+      </div>
+
+      <!-- 粘贴 -->
+      <div v-show="importSubTab === 'paste'" class="learned-pane">
+        <textarea
+          v-model="pasteText"
+          class="learned-textarea"
+          placeholder="将原文粘贴到这里…"
+          maxlength="50000"
+        ></textarea>
+        <div class="learned-counter">{{ pasteText.length }} / 50000</div>
+        <input
+          v-model="pasteSourceName"
+          type="text"
+          class="learned-input"
+          placeholder="来源标题（可选）"
+          maxlength="50"
+        />
+        <div v-if="pasteError" class="learned-error">{{ pasteError }}</div>
+        <button
+          class="learned-submit-btn"
+          :disabled="pasteText.trim().length < 200"
+          @click="submitPaste"
+        >开始学习</button>
+      </div>
+
+      <!-- 上传 -->
+      <div v-show="importSubTab === 'upload'" class="learned-pane">
+        <label class="learned-upload-zone">
+          <input
+            type="file"
+            accept=".txt,.md,.docx"
+            @change="onFileChange"
+            style="display: none;"
+          />
+          <div v-if="!uploadFile" class="learned-upload-hint">
+            点击选择文件或拖拽到此处<br/>
+            <span class="learned-upload-types">支持 .txt / .md / .docx（最大 5MB）</span>
+          </div>
+          <div v-else class="learned-upload-info">
+            ✓ {{ uploadFile.name }} ({{ Math.round(uploadFile.size / 1024) }} KB)
+          </div>
+        </label>
+        <div v-if="uploadError" class="learned-error">{{ uploadError }}</div>
+        <button
+          class="learned-submit-btn"
+          :disabled="!uploadFile"
+          @click="submitUpload"
+        >开始学习</button>
+      </div>
+    </template>
+
+    <!-- 结果页 -->
+    <div v-else>
+      <div class="learned-result-title">学习结果 ✓ 已从「{{ learnedResult.sourceName }}」中提取风格</div>
+      <div class="learned-result-field">
+        <label class="learned-result-label">学到的提示词（可编辑）</label>
+        <textarea
+          v-model="learnedResult.prompt"
+          class="learned-textarea"
+          maxlength="1000"
+        ></textarea>
+        <div class="learned-counter" :class="{ over: learnedResult.prompt.length > 1000 }">
+          {{ learnedResult.prompt.length }} / 1000
+        </div>
+      </div>
+      <div class="learned-result-field">
+        <label class="learned-result-label">原文风格示例</label>
+        <div class="learned-excerpt">① {{ learnedResult.excerpt1 }}</div>
+        <div class="learned-excerpt">② {{ learnedResult.excerpt2 }}</div>
+      </div>
+      <div class="learned-result-field">
+        <label class="learned-result-label">命名 <span class="required">*</span></label>
+        <input
+          v-model="learnedResult.name"
+          type="text"
+          class="learned-input"
+          placeholder="例如：我的小红书风"
+          maxlength="20"
+        />
+        <div v-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
+      </div>
+      <div class="learned-result-actions">
+        <button class="learned-cancel-btn" @click="closeImportDialog">放弃</button>
+        <button
+          class="learned-submit-btn"
+          :disabled="!canSaveLearnedResult"
+          @click="saveLearnedResult"
+        >保存到风格库</button>
+      </div>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -187,11 +309,29 @@ import {
   removeCustomStyle,
   isStyleNameExists,
   learnedStyles,
-  removeLearnedStyle
+  removeLearnedStyle,
+  analyzeArticleStyle,
+  isLearnedStyleNameExists,
+  findLearnedStyleByHash,
+  addLearnedStyle,
+  isLearning,
+  readFileAsText,
+  readDocxAsText
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
 const activeTab = ref('my')
+
+// 导入对话框状态
+const importDialogVisible = ref(false)
+const importSubTab = ref('paste')
+const pasteText = ref('')
+const pasteSourceName = ref('')
+const pasteError = ref('')
+const uploadFile = ref(null)
+const uploadError = ref('')
+const learnedResult = ref(null)
+const learnedResultError = ref('')
 const editorMode = ref(false)
 const expandedNames = ref(new Set())
 
@@ -305,8 +445,113 @@ const deleteStyle = (name) => {
 }
 
 const openImportDialog = () => {
-  // 完整实现在 Task 5-6 中
-  alert('导入对话框将在 Task 5-6 中实现')
+  pasteText.value = ''
+  pasteSourceName.value = ''
+  pasteError.value = ''
+  uploadFile.value = null
+  uploadError.value = ''
+  learnedResult.value = null
+  learnedResultError.value = ''
+  importSubTab.value = 'paste'
+  importDialogVisible.value = true
+}
+
+const closeImportDialog = () => {
+  importDialogVisible.value = false
+}
+
+const onFileChange = (e) => {
+  uploadError.value = ''
+  const file = e.target.files?.[0]
+  if (!file) {
+    uploadFile.value = null
+    return
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    uploadError.value = '文件过大（> 5MB）'
+    uploadFile.value = null
+    return
+  }
+  const ext = file.name.split('.').pop().toLowerCase()
+  if (!['txt', 'md', 'docx'].includes(ext)) {
+    uploadError.value = '仅支持 .txt / .md / .docx'
+    uploadFile.value = null
+    return
+  }
+  uploadFile.value = file
+}
+
+const submitPaste = async () => {
+  pasteError.value = ''
+  const text = pasteText.value.trim()
+  if (text.length < 200) {
+    pasteError.value = '正文过短（少于 200 字）'
+    return
+  }
+  await runAnalysis(text, pasteSourceName.value.trim() || '粘贴的参考文章', 'paste')
+}
+
+const submitUpload = async () => {
+  uploadError.value = ''
+  if (!uploadFile.value) return
+  try {
+    const ext = uploadFile.value.name.split('.').pop().toLowerCase()
+    let text
+    if (ext === 'docx') {
+      text = await readDocxAsText(uploadFile.value)
+    } else {
+      text = await readFileAsText(uploadFile.value)
+    }
+    if (text.trim().length < 200) {
+      uploadError.value = '正文过短（少于 200 字）'
+      return
+    }
+    await runAnalysis(text, uploadFile.value.name, ext)
+  } catch (err) {
+    uploadError.value = err.message || '文件读取失败'
+  }
+}
+
+const runAnalysis = async (text, sourceName, sourceType) => {
+  const tempResult = await analyzeArticleStyle(text, { sourceName, sourceType })
+  const dup = findLearnedStyleByHash(tempResult.fileHash)
+  if (dup) {
+    if (sourceType === 'paste') {
+      pasteError.value = '已学过这篇文章（命名：「' + dup.name + '」）'
+    } else {
+      uploadError.value = '已学过这篇文章（命名：「' + dup.name + '」）'
+    }
+    return
+  }
+  learnedResult.value = { ...tempResult, name: '' }
+}
+
+const canSaveLearnedResult = computed(() => {
+  if (!learnedResult.value) return false
+  const name = learnedResult.value.name.trim()
+  if (!name || name.length > 20) return false
+  if (learnedResult.value.prompt.length > 1000) return false
+  if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) return false
+  return true
+})
+
+const saveLearnedResult = () => {
+  if (!learnedResult.value) return
+  const name = learnedResult.value.name.trim()
+  if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) {
+    learnedResultError.value = '该风格名称已存在'
+    return
+  }
+  if (name.length > 20) {
+    learnedResultError.value = '风格名称最多 20 字'
+    return
+  }
+  if (learnedResult.value.prompt.length > 1000) {
+    learnedResultError.value = '提示词超过 1000 字'
+    return
+  }
+  addLearnedStyle(learnedResult.value)
+  closeImportDialog()
 }
 
 const deleteLearnedStyle = (name) => {
@@ -702,5 +947,193 @@ const deleteLearnedStyle = (name) => {
   font-size: 12px;
   color: #8c8c8c;
   margin-bottom: 8px;
+}
+
+.learned-subtabs {
+  display: flex;
+  gap: 4px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  width: fit-content;
+}
+
+.learned-subtab {
+  padding: 6px 14px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+}
+
+.learned-subtab.active {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.learned-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.learned-textarea {
+  width: 100%;
+  min-height: 200px;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.learned-textarea:focus {
+  outline: none;
+  border-color: #07c160;
+}
+
+.learned-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.learned-counter.over {
+  color: #ff4d4f;
+}
+
+.learned-input {
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.learned-input:focus {
+  outline: none;
+  border-color: #07c160;
+}
+
+.learned-upload-zone {
+  display: block;
+  padding: 40px 20px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.learned-upload-zone:hover {
+  border-color: #07c160;
+  background: #f6ffed;
+}
+
+.learned-upload-hint {
+  font-size: 14px;
+  color: #595959;
+}
+
+.learned-upload-types {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.learned-upload-info {
+  font-size: 14px;
+  color: #07c160;
+}
+
+.learned-error {
+  color: #ff4d4f;
+  font-size: 13px;
+}
+
+.learned-submit-btn {
+  padding: 10px 20px;
+  background: #07c160;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.learned-submit-btn:disabled {
+  background: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.learned-progress {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.learned-progress-text {
+  margin-top: 12px;
+  font-size: 14px;
+  color: #595959;
+}
+
+.learned-result-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.learned-result-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.learned-result-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.learned-result-label .required {
+  color: #ff4d4f;
+}
+
+.learned-excerpt {
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  margin-bottom: 6px;
+}
+
+.learned-result-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.learned-cancel-btn {
+  padding: 10px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+}
+
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
 }
 </style>
