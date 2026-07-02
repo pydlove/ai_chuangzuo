@@ -98,3 +98,49 @@ export const isStyleNameExists = (name, excludeName = null) => {
   const inCustom = myStyles.value.some(s => s.name.trim().toLowerCase() === target)
   return inSystem || inCustom
 }
+
+// ============ 文章风格学习（前端 mock，后端替换点） ============
+
+const LEARNED_STORAGE_KEY = 'aichuangzuo_learned_styles'
+
+function loadLearnedStyles() {
+  try {
+    const raw = localStorage.getItem(LEARNED_STORAGE_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveLearnedStyles() {
+  localStorage.setItem(LEARNED_STORAGE_KEY, JSON.stringify(learnedStyles.value))
+}
+
+async function simpleHash(text) {
+  const sample = text.slice(0, 1000) + '|' + text.length
+  const bytes = new TextEncoder().encode(sample)
+  const buffer = await crypto.subtle.digest('SHA-1', bytes)
+  const hex = Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return hex.slice(0, 16)
+}
+
+export const learnedStyles = ref(loadLearnedStyles())
+export const isLearning = ref(false)
+
+export function readFileAsText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = e => resolve(e.target.result)
+    reader.onerror = () => reject(new Error('文件读取失败'))
+    reader.readAsText(file)
+  })
+}
+
+export async function readDocxAsText(file) {
+  if (!window.mammoth) throw new Error('mammoth.js 未加载')
+  const buffer = await file.arrayBuffer()
+  const result = await window.mammoth.extractRawText({ arrayBuffer: buffer })
+  return result.value
+}
