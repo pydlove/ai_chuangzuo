@@ -15,12 +15,28 @@
   }
 
   function simulateAuth(type) {
+    if (type === 'register') {
+      var inputCode = getRegisterInviteCode();
+      var selfCode = (typeof getInviteCode === 'function') ? getInviteCode() : '';
+      if (inputCode && selfCode && inputCode === selfCode) {
+        showToast('不能填写自己的邀请码');
+        return;
+      }
+      // 手动输入框是唯一的真值；空字符串表示明确不填，清除残留 ref
+      if (inputCode) {
+        localStorage.setItem('aichuangzuo_invite_ref', inputCode);
+      } else {
+        localStorage.removeItem('aichuangzuo_invite_ref');
+      }
+      isLoggedIn = true;
+      sessionStorage.setItem('isLoggedIn', 'true');
+      awardNewUserCoins();
+      location.href = 'create.html';
+      return;
+    }
     isLoggedIn = true;
     sessionStorage.setItem('isLoggedIn', 'true');
-    if (type === 'register') {
-      awardNewUserCoins();
-    }
-    location.href='create.html';
+    location.href = 'create.html';
   }
 
   function simulateReset() {
@@ -5012,5 +5028,11 @@
         addCoin(COIN_BONUS_NEW_USER, '新用户注册奖励（邀请码：' + ref + '）');
         localStorage.removeItem(INVITE_REF_KEY);
       }
+    };
+
+    window.getRegisterInviteCode = function() {
+      var el = document.getElementById('pc-invite-code-input')
+            || document.getElementById('mobile-invite-code-input');
+      return el ? el.value.trim().toUpperCase() : '';
     };
   })();
