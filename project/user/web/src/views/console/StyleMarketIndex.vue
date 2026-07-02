@@ -58,6 +58,12 @@
             使用
           </button>
           <button
+            :class="['style-market-favorite-btn', { active: isFavorite(s.id) }]"
+            @click="toggleFavorite(s.id)"
+          >
+            {{ isFavorite(s.id) ? '已收藏' : '收藏' }}
+          </button>
+          <button
             class="style-market-simulate-btn"
             @click="togglePrompt(s.id)"
           >
@@ -82,7 +88,9 @@ import { useRouter } from 'vue-router'
 import {
   marketStyles,
   useMarketStyle,
-  simulateExternalUse
+  simulateExternalUse,
+  toggleFavorite,
+  isFavorite
 } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
@@ -386,6 +394,29 @@ const handleSimulate = (s) => {
 .style-market-use-btn:disabled {
   background: #d9d9d9;
   cursor: not-allowed;
+}
+
+.style-market-favorite-btn {
+  padding: 10px 16px;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.style-market-favorite-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+  background: #fff0f2;
+}
+
+.style-market-favorite-btn.active {
+  background: #fff0f2;
+  color: #ff2442;
+  border-color: #ff2442;
 }
 
 .style-market-simulate-btn {

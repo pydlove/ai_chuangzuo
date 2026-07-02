@@ -22,6 +22,12 @@
           学习的风格
         </button>
         <button
+          :class="['styles-tab', { active: activeTab === 'favorites' }]"
+          @click="activeTab = 'favorites'; editorMode = false"
+        >
+          收藏的风格
+        </button>
+        <button
           :class="['styles-tab', { active: activeTab === 'system' }]"
           @click="activeTab = 'system'; editorMode = false"
         >
@@ -257,6 +263,42 @@
         </div>
       </div>
     </div>
+
+    <!-- 收藏的风格 -->
+    <div v-show="activeTab === 'favorites'" class="styles-content">
+      <div v-if="favoriteStyles.length === 0" class="styles-empty">
+        还没有收藏的风格，去风格市场看看吧
+      </div>
+      <div v-else class="styles-grid">
+        <div
+          v-for="s in favoriteStyles"
+          :key="s.id"
+          class="style-card"
+        >
+          <div class="style-card-head">
+            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ s.name }}</div>
+              </div>
+              <div class="style-card-meta">by {{ s.creatorName }}</div>
+            </div>
+            <button class="style-card-remove" @click.stop="toggleFavorite(s.id)">取消收藏</button>
+          </div>
+          <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
+          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
+          <div class="style-card-footer">
+            <div class="style-card-actions">
+              <button class="style-action-btn primary" @click.stop="useFavoriteStyle(s)">使用</button>
+              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+                {{ expandedNames.has(s.name) ? '收起' : '查看' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- 学习风格导入对话框 -->
@@ -413,7 +455,10 @@ import {
 import {
   marketStyles,
   shareStyleToMarket,
-  approveMarketStyle
+  approveMarketStyle,
+  favoriteStyles,
+  toggleFavorite,
+  useMarketStyle
 } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
@@ -581,6 +626,15 @@ const saveStyle = () => {
 const useStyle = (style) => {
   applyStyle(style)
   router.push('/console/create')
+}
+
+const useFavoriteStyle = (style) => {
+  try {
+    useMarketStyle(style.id)
+    router.push(`/console/create?marketStyleId=${style.id}`)
+  } catch (err) {
+    alert(err.message)
+  }
 }
 
 const deleteStyle = (name) => {

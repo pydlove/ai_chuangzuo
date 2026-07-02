@@ -1,9 +1,10 @@
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const MARKET_KEY = 'aichuangzuo_style_market'
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const USER_ID_KEY = 'aichuangzuo_user_id'
+const FAVORITES_KEY = 'aichuangzuo_favorite_styles'
 
 const PRICE_PER_USE = 0.2
 
@@ -42,6 +43,19 @@ function getUserId() {
   return id
 }
 
+function loadFavoriteIds() {
+  try {
+    const raw = localStorage.getItem(FAVORITES_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function saveFavoriteIds() {
+  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds.value))
+}
+
 export function getCoinBalance() {
   const raw = localStorage.getItem(COIN_BALANCE_KEY)
   return raw ? parseFloat(raw) : 0
@@ -53,6 +67,26 @@ function setCoinBalance(balance) {
 
 export const marketStyles = ref(loadMarketStyles())
 export const earningsRecords = ref(loadEarningsRecords())
+export const favoriteIds = ref(loadFavoriteIds())
+
+export const favoriteStyles = computed(() =>
+  marketStyles.value.filter(s => s.status === 'approved' && favoriteIds.value.includes(s.id))
+)
+
+export function toggleFavorite(marketId) {
+  const set = new Set(favoriteIds.value)
+  if (set.has(marketId)) {
+    set.delete(marketId)
+  } else {
+    set.add(marketId)
+  }
+  favoriteIds.value = Array.from(set)
+  saveFavoriteIds()
+}
+
+export function isFavorite(marketId) {
+  return favoriteIds.value.includes(marketId)
+}
 
 export function shareStyleToMarket(style, sourceType) {
   const existing = marketStyles.value.find(
