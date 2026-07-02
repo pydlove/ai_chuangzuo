@@ -19,6 +19,8 @@
 - **docx 解析**：通过一次性 CDN 引入 `mammoth.js`，放在 `index.html` 的 `<head>` 中。
 - **持久化**：用 `localStorage`（key = `aichuangzuo_learned_styles`），刷新页面后保留。
 - **分类**：在 `StylesIndex.vue` 增加第三个 tab「学习的风格」，与「我的风格」「系统预设」并列。
+- **命名默认值**：结果页的「命名」输入框默认填 `sourceName`（如「娱乐至死」），用户可改。
+- **适用范围**：8 个预设场景多选（小红书 / 公众号 / 知乎 / 头条号 / 产品评测 / 职场干货 / 知识科普 / 故事叙事），至少选 1 个才能保存。
 - **创作页集成**：在创作页风格弹框中增加第三个 tab，复用 `applyStyle` 共用同一份 `learnedStyles` 状态。
 
 ## 3. 数据模型
@@ -26,15 +28,22 @@
 ```js
 // LearnedStyle：学到的风格
 {
-  name: '我的小红书风',           // 用户命名，必填，不超过 20 字，不区分大小写去重
+  name: '娱乐至死',                // 风格名称，默认填 sourceName，用户可改
   sourceName: 'xxx.txt',          // 来源文件名或粘贴时填的标题
   sourceType: 'txt' | 'md' | 'docx' | 'paste',
   excerpt1: '原文片段 1（≤120 字）',
   excerpt2: '原文片段 2（≤80 字）',
   prompt: '四段式风格提示词（≤1000 字，可编辑）',
+  scopes: ['公众号', '知乎'],       // 适用范围，从 SCENE_PRESETS 中多选，至少 1 个
   fileHash: 'sha1 前 8 位',
   createdAt: '2026-07-02T...'
 }
+
+// SCENE_PRESETS：预设适用范围常量
+export const SCENE_PRESETS = [
+  '小红书', '公众号', '知乎', '头条号',
+  '产品评测', '职场干货', '知识科普', '故事叙事'
+]
 ```
 
 ## 4. 架构与组件
