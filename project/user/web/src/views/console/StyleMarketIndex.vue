@@ -178,12 +178,12 @@ const handleSimulate = (s) => {
   background: #f5f5f5;
   padding: 4px;
   border-radius: 8px;
-  height: 40px;
+  height: 44px;
   width: fit-content;
 }
 
 .style-market-tab {
-  padding: 6px 16px;
+  padding: 8px 16px;
   border: none;
   background: transparent;
   border-radius: 6px;
@@ -209,7 +209,7 @@ const handleSimulate = (s) => {
 .style-market-search-input {
   width: 100%;
   max-width: 400px;
-  height: 40px;
+  height: 44px;
   padding: 0 12px;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
