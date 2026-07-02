@@ -20,6 +20,12 @@
       >
         系统预设
       </button>
+      <button
+        :class="['styles-tab', { active: activeTab === 'learned' }]"
+        @click="activeTab = 'learned'; editorMode = false"
+      >
+        学习的风格
+      </button>
     </div>
 
     <!-- 我的风格 -->
@@ -132,6 +138,40 @@
         </div>
       </div>
     </div>
+
+    <!-- 学习的风格 -->
+    <div v-show="activeTab === 'learned'" class="styles-content">
+      <div class="learned-banner">
+        上传或粘贴一篇文章，AI 会分析它的写作风格并保存为「我的风格」
+      </div>
+      <div class="learned-toolbar">
+        <button class="learned-add-btn" @click="openImportDialog">+ 学习新风格</button>
+      </div>
+      <div v-if="learnedStyles.length === 0" class="learned-empty">
+        还没有学习过的风格。点击上方按钮开始学习。
+      </div>
+      <div v-else class="styles-grid">
+        <div
+          v-for="s in learnedStyles"
+          :key="s.name"
+          class="style-card"
+        >
+          <div class="style-card-title">{{ s.name }}</div>
+          <div class="style-card-source">
+            来源：{{ s.sourceName }} · {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
+          </div>
+          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
+          <div class="style-card-actions">
+            <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
+            <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+              {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
+            </button>
+            <button class="style-action-btn style-del-btn" @click.stop="deleteLearnedStyle(s.name)">删除</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -145,7 +185,9 @@ import {
   addCustomStyle,
   updateCustomStyle,
   removeCustomStyle,
-  isStyleNameExists
+  isStyleNameExists,
+  learnedStyles,
+  removeLearnedStyle
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
@@ -260,6 +302,16 @@ const useStyle = (style) => {
 
 const deleteStyle = (name) => {
   removeCustomStyle(name)
+}
+
+const openImportDialog = () => {
+  // 完整实现在 Task 5-6 中
+  alert('导入对话框将在 Task 5-6 中实现')
+}
+
+const deleteLearnedStyle = (name) => {
+  if (!confirm('确定要删除「' + name + '」吗？')) return
+  removeLearnedStyle(name)
 }
 </script>
 
@@ -609,5 +661,46 @@ const deleteStyle = (name) => {
 .save-style-btn:disabled {
   background: #d9d9d9;
   cursor: not-allowed;
+}
+
+.learned-banner {
+  padding: 12px 16px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #389e0d;
+  margin-bottom: 16px;
+}
+
+.learned-toolbar {
+  margin-bottom: 16px;
+}
+
+.learned-add-btn {
+  padding: 8px 16px;
+  background: #07c160;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.learned-add-btn:hover {
+  background: #06a050;
+}
+
+.learned-empty {
+  padding: 60px 20px;
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.style-card-source {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
 }
 </style>
