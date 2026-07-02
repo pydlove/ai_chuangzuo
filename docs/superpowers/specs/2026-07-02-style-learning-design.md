@@ -158,15 +158,20 @@ async function simpleHash(text) {
 **粘贴正文 tab**：
 - 大文本域（maxLength = 50000，placeholder 提示粘贴完整文章）
 - 字数统计：`{count} / 50000`
-- 「来源标题（可选）」输入框
+- 「来源标题（可选）」输入框，留空时 `sourceName` 默认为「粘贴的参考文章」
 - 「开始学习」按钮（disabled when 文本 < 200 字）
 
 **上传文件 tab**：
 - 拖拽 / 点击文件选择区
 - 已选择文件显示文件名 + 大小
+- `sourceName` 自动取文件名（如「xxx.txt」）
 - 「开始学习」按钮（disabled when 无文件）
 
-**学习结果页**（替换对话框主体）：
+**分析进度态**（点击「开始学习」后替换对话框主体）：
+- 居中显示「● ● ● 分析中…」+ 加载圈
+- 「开始学习」按钮 disabled 防重复
+
+**学习结果页**（分析完成后展示）：
 - 标题：「学习结果 ✓ 已从「{sourceName}」中提取风格」
 - 「学到的提示词」textarea（可编辑，maxLength = 1000，字数统计）
 - 「原文风格示例」展示 excerpt1 + excerpt2
@@ -175,8 +180,9 @@ async function simpleHash(text) {
 
 ### CreateIndex.vue 改动
 
-- 创作页风格弹框 tab 由两个改为三个：复用 `learnedStyles` + `useStyle()`
+- 创作页风格弹框 tab 由两个改为三个，与 `StylesIndex.vue` 共用 `learnedStyles`（useStyles.js 中的共享状态）
 - 卡片同样显示来源行 + 「使用」「查看完整」「删除」按钮
+- 删除卡片在两个页面同步生效（同一份 ref）
 
 ## 5. 数据流
 
