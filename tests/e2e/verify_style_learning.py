@@ -48,23 +48,19 @@ def main():
 
         # 6. 粘贴足够长的文本
         textareas = page.locator('.learned-textarea')
-        inputs = page.locator('.learned-input')
         textareas.first.fill(SAMPLE_TEXT)
-        # 第一个 .learned-input 是「来源标题」
-        inputs.first.fill('测试来源')
         page.wait_for_timeout(200)
         page.locator('.learned-submit-btn').first.click()
 
         # 7. 等待进度态结束，进入结果页
         page.wait_for_selector('.learned-progress', timeout=2000)
         page.wait_for_selector('.learned-result-title', timeout=5000)
-        assert '测试来源' in page.locator('.learned-result-title').inner_text()
+        assert '参考文章' in page.locator('.learned-result-title').inner_text()
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_learning_result.png')
 
-        # 8. 输入命名并保存（结果页第二个 .learned-input 是「命名」字段）
-        inputs = page.locator('.learned-input')
-        inputs.last.fill('我的测试风格')
-        # 适用范围：填写
+        # 8. 输入命名并保存
+        page.locator('input[placeholder="例如：我的小红书风"]').fill('我的测试风格')
+        # 适用范围
         page.locator('input[placeholder*="公众号情感文"]').fill('公众号情感文')
         page.wait_for_timeout(200)
         page.locator('button:has-text("保存到风格库")').click()

@@ -158,7 +158,7 @@
         >
           <div class="style-card-title">{{ s.name }}</div>
           <div class="style-card-source">
-            来源：{{ s.sourceName }} · {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
+            {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
           </div>
           <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
@@ -212,20 +212,13 @@
           v-model="pasteText"
           class="learned-textarea"
           placeholder="将原文粘贴到这里…"
-          maxlength="50000"
+          maxlength="3000"
         ></textarea>
-        <div class="learned-counter">{{ pasteText.length }} / 50000</div>
-        <input
-          v-model="pasteSourceName"
-          type="text"
-          class="learned-input"
-          placeholder="来源标题（可选）"
-          maxlength="50"
-        />
+        <div class="learned-counter">{{ pasteText.length }} / 3000</div>
         <div v-if="pasteError" class="learned-error">{{ pasteError }}</div>
         <button
           class="learned-submit-btn"
-          :disabled="pasteText.trim().length < 200"
+          :disabled="pasteText.trim().length < 200 || pasteText.trim().length > 3000"
           @click="submitPaste"
         >开始学习</button>
       </div>
@@ -241,7 +234,7 @@
           />
           <div v-if="!uploadFile" class="learned-upload-hint">
             点击选择文件或拖拽到此处<br/>
-            <span class="learned-upload-types">支持 .txt / .md / .docx（最大 5MB）</span>
+            <span class="learned-upload-types">支持 .txt / .md / .docx（最大 1MB）</span>
           </div>
           <div v-else class="learned-upload-info">
             ✓ {{ uploadFile.name }} ({{ Math.round(uploadFile.size / 1024) }} KB)
@@ -258,7 +251,7 @@
 
     <!-- 结果页 -->
     <div v-else>
-      <div class="learned-result-title">学习结果 ✓ 已从「{{ learnedResult.sourceName }}」中提取风格</div>
+      <div class="learned-result-title">学习结果 ✓ 已从参考文章中提取风格</div>
       <div class="learned-result-field">
         <label class="learned-result-label">学到的提示词（可编辑）</label>
         <textarea
@@ -340,7 +333,6 @@ const activeTab = ref('my')
 const importDialogVisible = ref(false)
 const importSubTab = ref('paste')
 const pasteText = ref('')
-const pasteSourceName = ref('')
 const pasteError = ref('')
 const uploadFile = ref(null)
 const uploadError = ref('')
@@ -460,7 +452,6 @@ const deleteStyle = (name) => {
 
 const openImportDialog = () => {
   pasteText.value = ''
-  pasteSourceName.value = ''
   pasteError.value = ''
   uploadFile.value = null
   uploadError.value = ''
@@ -481,8 +472,8 @@ const onFileChange = (e) => {
     uploadFile.value = null
     return
   }
-  if (file.size > 5 * 1024 * 1024) {
-    uploadError.value = '文件过大（> 5MB）'
+  if (file.size > 1 * 1024 * 1024) {
+    uploadError.value = '文件过大（> 1MB）'
     uploadFile.value = null
     return
   }
@@ -502,7 +493,11 @@ const submitPaste = async () => {
     pasteError.value = '正文过短（少于 200 字）'
     return
   }
-  await runAnalysis(text, pasteSourceName.value.trim() || '粘贴的参考文章', 'paste')
+  if (text.length > 3000) {
+    pasteError.value = '正文过长（超过 3000 字）'
+    return
+  }
+  await runAnalysis(text, 'paste')
 }
 
 const submitUpload = async () => {
@@ -520,14 +515,18 @@ const submitUpload = async () => {
       uploadError.value = '正文过短（少于 200 字）'
       return
     }
-    await runAnalysis(text, uploadFile.value.name, ext)
+    if (text.trim().length > 3000) {
+      uploadError.value = '正文过长（超过 3000 字）'
+      return
+    }
+    await runAnalysis(text, ext)
   } catch (err) {
     uploadError.value = err.message || '文件读取失败'
   }
 }
 
-const runAnalysis = async (text, sourceName, sourceType) => {
-  const tempResult = await analyzeArticleStyle(text, { sourceName, sourceType })
+const runAnalysis = async (text, sourceType) => {
+  const tempResult = await analyzeArticleStyle(text, { sourceType })
   const dup = findLearnedStyleByHash(tempResult.fileHash)
   if (dup) {
     if (sourceType === 'paste') {
@@ -537,7 +536,7 @@ const runAnalysis = async (text, sourceName, sourceType) => {
     }
     return
   }
-  learnedResult.value = { ...tempResult, name: tempResult.sourceName }
+  learnedResult.value = { ...tempResult, name: '' }
 }
 
 const canSaveLearnedResult = computed(() => {

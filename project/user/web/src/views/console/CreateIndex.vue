@@ -566,7 +566,6 @@
             @click="selectStyle(l)"
           >
             <div class="style-card-title">{{ l.name }}</div>
-            <div class="style-card-desc">来源：{{ l.sourceName }} · {{ l.sourceType.toUpperCase() }}</div>
             <div v-if="l.scope" class="style-card-scope">适用：{{ l.scope }}</div>
             <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
               {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}

@@ -169,7 +169,6 @@ export async function analyzeArticleStyle(text, meta) {
     await new Promise(r => setTimeout(r, 1500))
 
     return {
-      sourceName: meta.sourceName || '未命名参考',
       sourceType: meta.sourceType,
       excerpt1: (first || mid).slice(0, 120),
       excerpt2: longest,
@@ -194,7 +193,6 @@ export function isLearnedStyleNameExists(name, excludeName = null) {
 export function addLearnedStyle(style) {
   learnedStyles.value.unshift({
     name: style.name.trim(),
-    sourceName: style.sourceName,
     sourceType: style.sourceType,
     excerpt1: style.excerpt1,
     excerpt2: style.excerpt2,
