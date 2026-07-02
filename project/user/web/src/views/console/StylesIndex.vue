@@ -1841,7 +1841,7 @@ body[data-theme="dark"] .styles-tab:hover {
 }
 
 body[data-theme="dark"] .styles-empty {
-  background: #1f1f1f;
+  background: #141414;
   border: 1px dashed #303030;
   border-radius: 16px;
   padding: 32px;
