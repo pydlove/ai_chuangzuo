@@ -3,6 +3,9 @@
     <div class="style-market-header">
       <h2 class="style-market-title">风格市场</h2>
       <p class="style-market-subtitle">发现优质写作风格，支持原创创作者</p>
+      <div class="style-market-rules">
+        收益规则：他人使用你的分享风格，你获得 0.2 创作币；每周按使用次数发放里程碑奖励（50/200/500/1000 次对应 5/15/30/60 币）。
+      </div>
     </div>
 
     <div class="style-market-filter-bar">
@@ -187,6 +190,17 @@ const handleSimulate = (s) => {
   font-size: 13px;
   color: #8c8c8c;
   margin: 0;
+}
+
+.style-market-rules {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff7e6;
+  border: 1px solid #ffe7ba;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #ad6800;
+  line-height: 1.6;
 }
 
 .style-market-filter-bar {
