@@ -2,6 +2,8 @@ from playwright.sync_api import sync_playwright
 import os
 import time
 
+APP_URL = os.environ.get('APP_URL', 'http://127.0.0.1:5173')
+
 errors = []
 downloads = []
 
@@ -16,7 +18,7 @@ with sync_playwright() as p:
 
     page.on('console', on_console)
 
-    page.goto('http://127.0.0.1:5173/')
+    page.goto(f'{APP_URL}/')
     page.wait_for_load_state('networkidle')
     article = {
         'title': '如何高效管理时间：从混乱到掌控的 5 个方法',
@@ -27,7 +29,7 @@ with sync_playwright() as p:
     }
     page.evaluate(f"() => {{ localStorage.setItem('aichuangzuo_current_article', JSON.stringify({article})) }}")
 
-    page.goto('http://127.0.0.1:5173/console/preview')
+    page.goto(f'{APP_URL}/console/preview')
     page.wait_for_load_state('networkidle')
     page.wait_for_timeout(500)
 
