@@ -52,6 +52,13 @@ def main():
         assert '市场测试风格' in page.content()
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_list.png')
 
+        # 4.5 打开收益规则弹框
+        page.locator('.style-market-rules-link').click()
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_rules.png')
+        page.locator('.ant-modal-close').click()
+        page.wait_for_timeout(300)
+
         # 5. 使用市场风格
         page.locator('button:has-text("使用")').first.click()
         page.wait_for_timeout(800)

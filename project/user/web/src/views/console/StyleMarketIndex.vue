@@ -94,11 +94,11 @@
     @cancel="rulesVisible = false"
   >
     <ol class="style-market-rules-list">
-      <li>他人每使用一次你分享的风格，你将获得 0.2 创作币奖励。</li>
-      <li>每周根据风格被使用次数发放里程碑奖励：50 次 5 币、200 次 15 币、500 次 30 币、1000 次 60 币。</li>
-      <li>里程碑奖励每周结算一次，结算后当周使用次数清零并重新累计。</li>
-      <li>使用他人分享的风格无需支付创作币，创作者仍可正常获得收益。</li>
-      <li>如发现违规刷量行为，平台有权取消相关收益并下架风格。</li>
+      <li>他人每使用一次你分享的风格，你将获得 <span class="style-market-rule-highlight">0.2 创作币</span> 奖励。</li>
+      <li>每周根据风格被使用次数发放里程碑奖励：<span class="style-market-rule-highlight">50 次 5 币</span>、<span class="style-market-rule-highlight">200 次 15 币</span>、<span class="style-market-rule-highlight">500 次 30 币</span>、<span class="style-market-rule-highlight">1000 次 60 币</span>。</li>
+      <li>里程碑奖励 <span class="style-market-rule-highlight">每周结算一次</span>，结算后当周使用次数清零并重新累计。</li>
+      <li>使用他人分享的风格 <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
+      <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架风格</span>。</li>
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
@@ -238,6 +238,13 @@ const handleSimulate = (s) => {
 
 .style-market-rules-list li {
   margin-bottom: 10px;
+}
+
+.style-market-rule-highlight {
+  color: #ff2442;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .style-market-rules-footer {
