@@ -4,9 +4,12 @@
     <div class="coin-page-header">
       <div class="coin-page-title-wrap">
         <h2 class="coin-page-title">创作币 &amp; 提现</h2>
-        <p class="coin-page-desc">查看你的创作币余额、提现记录，并申请提现到支付宝。</p>
+        <p class="coin-page-desc">
+          查看你的创作币余额、提现记录，并申请提现到支付宝。
+          <span class="coin-rules-link" @click="rulesVisible = true">提现规则</span>
+        </p>
       </div>
-      <button class="invite-btn invite-btn-secondary" @click="goBack">返回邀请有礼</button>
+      <button class="invite-btn invite-btn-secondary" @click="goBack">{{ backText }}</button>
     </div>
 
     <!-- 实名认证状态 -->
@@ -155,11 +158,53 @@
             :placeholder="realNameVerified ? realName : '请先完成实名认证'"
           />
         </div>
+        <div class="coin-apply-agreement">
+          <label class="coin-apply-agreement-label">
+            <input v-model="agreementAccepted" type="checkbox" class="coin-apply-agreement-checkbox" @change="saveAgreement" />
+            <span>我已阅读并同意</span>
+            <span class="coin-apply-agreement-link" @click="agreementModalVisible = true">《提现服务协议》</span>
+          </label>
+        </div>
         <div class="coin-apply-actions">
           <button class="invite-btn invite-btn-secondary" @click="applyVisible = false">取消</button>
           <button class="invite-btn invite-btn-primary" :disabled="!canSubmitApply" @click="submitApply">提交申请</button>
         </div>
       </div>
+    </a-modal>
+
+    <a-modal
+      v-model:open="rulesVisible"
+      title="提现规则"
+      :footer="null"
+      :width="560"
+      centered
+    >
+      <ol class="coin-rules-list">
+        <li>仅<span class="coin-rules-highlight">付费邀请用户</span>可申请提现，且需至少邀请 <span class="coin-rules-highlight">3</span> 位<span class="coin-rules-highlight">付费好友</span>。</li>
+        <li>创作币余额满 <span class="coin-rules-highlight">100</span> 即可提现，<span class="coin-rules-highlight">1 创作币 = 1 元</span>人民币。</li>
+        <li>提现申请提交后约 <span class="coin-rules-highlight">1 个工作日</span>审核，预计 <span class="coin-rules-highlight">7 个工作日内</span>到账。</li>
+        <li>目前仅支持<span class="coin-rules-highlight">支付宝</span>提现，请确保<span class="coin-rules-highlight">支付宝账号</span>和<span class="coin-rules-highlight">真实姓名</span>与本人一致。</li>
+        <li>因<span class="coin-rules-highlight">账号信息错误</span>、<span class="coin-rules-highlight">账户异常</span>等原因导致的提现失败，平台概不负责。</li>
+      </ol>
+      <div class="coin-rules-footer">* 活动最终解释权归平台所有。</div>
+    </a-modal>
+
+    <a-modal
+      v-model:open="agreementModalVisible"
+      title="提现服务协议"
+      :footer="null"
+      :width="560"
+      centered
+    >
+      <ol class="coin-rules-list">
+        <li>用户承诺提现资金来源合法，不得利用本平台进行洗钱、套现、赌博、诈骗等违法活动。</li>
+        <li>用户申请提现的账户信息（支付宝账号、真实姓名）必须与本人实名认证信息一致。</li>
+        <li>用户应确保邀请好友行为真实有效，禁止通过虚假注册、刷单、机器刷量等方式获取创作币。</li>
+        <li>平台有权对异常提现行为进行审核、延迟到账、拒绝提现或冻结相关收益。</li>
+        <li>因用户提供错误账户信息、账户异常或违反法律法规导致的提现失败，平台不承担任何责任。</li>
+        <li>平台可根据法律法规及业务需要调整本协议内容，调整后会通过官方渠道通知用户。</li>
+      </ol>
+      <div class="coin-rules-footer">* 本协议内容仅供参考，具体以平台最终公示为准。</div>
     </a-modal>
   </div>
 </template>
@@ -167,14 +212,16 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
 const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
 const REAL_NAME_KEY = 'aichuangzuo_real_name_info'
+const WITHDRAW_AGREEMENT_KEY = 'aichuangzuo_withdraw_agreement_accepted'
 
 const router = useRouter()
+const route = useRoute()
 
 const realName = ref('')
 const idCard = ref('')
@@ -185,6 +232,9 @@ const withdrawRecords = ref([])
 const applyVisible = ref(false)
 const applyAmount = ref(null)
 const applyAccount = ref('')
+const rulesVisible = ref(false)
+const agreementModalVisible = ref(false)
+const agreementAccepted = ref(false)
 
 const maskedIdCard = computed(() => {
   const v = idCard.value || ''
@@ -243,6 +293,7 @@ const canSubmitApply = computed(() => {
   if (!amount || amount < 100 || amount > coinBalance.value) return false
   if (!applyAccount.value.trim()) return false
   if (!realNameVerified.value) return false
+  if (!agreementAccepted.value) return false
   return true
 })
 
@@ -306,6 +357,15 @@ const loadWithdrawRecords = () => {
   }
 }
 
+const loadAgreement = () => {
+  const raw = localStorage.getItem(WITHDRAW_AGREEMENT_KEY)
+  agreementAccepted.value = raw === 'true'
+}
+
+const saveAgreement = () => {
+  localStorage.setItem(WITHDRAW_AGREEMENT_KEY, String(agreementAccepted.value))
+}
+
 const submitRealName = () => {
   if (!canSubmitRealName.value) {
     message.warning('请填写真实姓名和 18 位身份证号')
@@ -334,12 +394,17 @@ const openApplyModal = () => {
     message.warning('你有正在审核中的提现申请')
     return
   }
+  loadAgreement()
   applyAmount.value = null
   applyAccount.value = ''
   applyVisible.value = true
 }
 
 const submitApply = () => {
+  if (!agreementAccepted.value) {
+    message.warning('请先阅读并同意《提现服务协议》')
+    return
+  }
   if (!canSubmitApply.value) {
     message.warning('请完整填写提现信息')
     return
@@ -366,8 +431,16 @@ const submitApply = () => {
   message.success('提现申请已提交，预计 7 天内到账')
 }
 
+const backText = computed(() => {
+  return route.query.from === 'account' ? '返回我的账户' : '返回邀请有礼'
+})
+
 const goBack = () => {
-  router.push({ path: '/console/create', query: { openInvite: '1' } })
+  if (route.query.from === 'account') {
+    router.push('/console/earnings')
+  } else {
+    router.push({ path: '/console/create', query: { openInvite: '1' } })
+  }
 }
 
 onMounted(() => {
@@ -375,6 +448,7 @@ onMounted(() => {
   loadCoinBalance()
   loadInviteStats()
   loadWithdrawRecords()
+  loadAgreement()
 })
 </script>
 
@@ -404,6 +478,50 @@ onMounted(() => {
   margin: 6px 0 0;
   font-size: 13px;
   color: var(--text-secondary, #595959);
+}
+
+.coin-rules-link {
+  color: #ff2442;
+  cursor: pointer;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  margin-left: 8px;
+}
+
+.coin-rules-link:hover {
+  color: #e61e3a;
+}
+
+.coin-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.8;
+}
+
+.coin-rules-list li {
+  margin-bottom: 10px;
+}
+
+.coin-rules-footer {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.coin-rules-highlight {
+  color: #ff2442;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+body[data-theme="dark"] .coin-rules-highlight {
+  color: #ff4d6f;
 }
 
 .coin-section {
@@ -824,5 +942,48 @@ body[data-theme="dark"] .coin-auth-display-value {
 
 body[data-theme="dark"] .coin-records-empty {
   color: rgba(255, 255, 255, 0.35);
+}
+
+.coin-apply-agreement {
+  margin-bottom: 18px;
+}
+
+.coin-apply-agreement-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+}
+
+.coin-apply-agreement-checkbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: #ff2442;
+}
+
+.coin-apply-agreement-link {
+  color: #ff2442;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.coin-apply-agreement-link:hover {
+  color: #e61e3a;
+}
+
+body[data-theme="dark"] .coin-apply-agreement-label {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .coin-apply-agreement-link {
+  color: #ff2442;
+}
+
+body[data-theme="dark"] .coin-apply-agreement-link:hover {
+  color: #e61e3a;
 }
 </style>

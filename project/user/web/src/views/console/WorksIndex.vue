@@ -556,4 +556,164 @@ const editWork = (work) => {
   display: flex;
   flex-shrink: 0;
 }
+
+/* 深色模式 */
+body[data-theme="dark"] .work-card,
+body[data-theme="dark"] .draft-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .work-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .work-meta,
+body[data-theme="dark"] .works-empty {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .work-action-btn {
+  background: #2a2a2a;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .work-action-btn.primary {
+  background: var(--color-primary, #ff2442);
+  border-color: var(--color-primary, #ff2442);
+  color: #fff;
+}
+
+body[data-theme="dark"] .work-action-btn.danger {
+  background: rgba(255, 77, 79, 0.15);
+  border-color: rgba(255, 77, 79, 0.3);
+  color: #ff4d4f;
+}
+
+body[data-theme="dark"] .works-tabs {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .works-tab {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .works-tab:hover {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .works-tab.active {
+  background: #1f1f1f;
+  color: #f0f0f0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+body[data-theme="dark"] .draft-card {
+  background: #2a1f23;
+  border-color: #5c2a30;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-affix-wrapper),
+body[data-theme="dark"] .works-search :deep(.ant-input) {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input::placeholder) {
+  color: #737373 !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-group-addon) {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-search-button) {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-search-button:hover) {
+  background: #303030 !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-search-icon) {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .works-search :deep(.ant-input-search-icon:hover) {
+  color: var(--color-primary) !important;
+}
+
+body[data-theme="dark"] .works-filter-select :deep(.ant-select-selector) {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .works-filter-select :deep(.ant-select-selection-item) {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .works-filter-select :deep(.ant-select-selection-placeholder) {
+  color: #737373 !important;
+}
+
+body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper) {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper:hover) {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] :deep(.ant-empty-description) {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .primary-btn {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+body[data-theme="dark"] .primary-btn:hover {
+  background: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+}
+</style>
+
+<style>
+/* 我的作品：Ant 下拉（select）弹层 teleport 到 body，需全局覆盖 */
+body[data-theme="dark"] .ant-select-dropdown {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+}
+
+body[data-theme="dark"] .ant-select-item {
+  color: #d9d9d9 !important;
+}
+
+body[data-theme="dark"] .ant-select-item-option-active,
+body[data-theme="dark"] .ant-select-item:hover {
+  background: #2a2a2a !important;
+}
+
+body[data-theme="dark"] .ant-select-item-option-selected {
+  background: rgba(255, 36, 66, 0.15) !important;
+  color: var(--color-primary) !important;
+}
+
+body[data-theme="dark"] .ant-empty-description {
+  color: #a6a6a6 !important;
+}
 </style>

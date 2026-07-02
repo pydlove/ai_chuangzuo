@@ -536,4 +536,135 @@ const cancel = () => {
   background: #ff2442;
   color: #fff;
 }
+
+/* 深色模式 */
+body[data-theme="dark"] .back-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .back-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .edit-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .edit-empty {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .edit-title-input {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .edit-title-input::placeholder {
+  color: #737373;
+}
+
+body[data-theme="dark"] .edit-title-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .edit-toolbar {
+  background: #2a2a2a;
+  border: 1px solid #303030;
+}
+
+body[data-theme="dark"] .color-picker-panel {
+  background: #1f1f1f;
+  border: 1px solid #303030;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .color-native {
+  background: #2a2a2a;
+  border-color: #434343;
+}
+
+body[data-theme="dark"] .edit-editor {
+  background: #1f1f1f;
+  border-color: #434343;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .edit-editor:focus {
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .edit-editor :deep(h2) {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .edit-editor :deep(blockquote) {
+  background: rgba(255, 36, 66, 0.15);
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .edit-editor :deep(code) {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .edit-actions {
+  background: #1f1f1f;
+  border-color: #303030;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+body[data-theme="dark"] .edit-actions .cancel {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+</style>
+
+<style>
+/* 编辑页：Ant 组件被 teleport 到 body 或渲染在子组件根上，需全局覆盖 */
+body[data-theme="dark"] .ant-btn {
+  background: #2a2a2a !important;
+  border-color: #434343 !important;
+  color: #d9d9d9 !important;
+}
+
+body[data-theme="dark"] .ant-btn:hover {
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary) !important;
+}
+
+body[data-theme="dark"] .ant-btn-primary {
+  background: var(--color-primary) !important;
+  border-color: var(--color-primary) !important;
+  color: #fff !important;
+}
+
+body[data-theme="dark"] .ant-btn-primary:hover {
+  background: var(--color-primary-hover) !important;
+  border-color: var(--color-primary-hover) !important;
+  color: #fff !important;
+}
+
+body[data-theme="dark"] .ant-dropdown-menu {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .ant-dropdown-menu-item {
+  color: #d9d9d9 !important;
+}
+
+body[data-theme="dark"] .ant-dropdown-menu-item:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .ant-dropdown-menu-item-selected {
+  background: rgba(255, 36, 66, 0.15) !important;
+  color: var(--color-primary) !important;
+}
 </style>

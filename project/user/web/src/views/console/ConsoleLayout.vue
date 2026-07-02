@@ -502,7 +502,7 @@
           <a-modal
             v-model:open="feedbackVisible"
             :footer="null"
-            :width="400"
+            :width="560"
             centered
             class="feedback-modal"
           >
@@ -527,7 +527,7 @@
                   v-model="feedbackContent"
                   class="feedback-textarea"
                   placeholder="请详细描述你的问题或建议..."
-                  rows="4"
+                  rows="6"
                 ></textarea>
               </div>
               <button class="feedback-submit" @click="submitFeedback">提交反馈</button>
@@ -862,6 +862,7 @@
     :footer="null"
     :width="400"
     centered
+    class="profile-modal"
   >
     <div class="profile-modal-content">
       <div class="profile-item">
@@ -885,6 +886,7 @@
     :footer="null"
     :width="400"
     centered
+    class="email-modal"
   >
     <div class="email-modal-content">
       <div class="email-item">
@@ -2732,8 +2734,12 @@ body[data-theme="dark"] .notif-tab {
 }
 
 body[data-theme="dark"] .notif-tab.active {
-  color: #10b981;
-  border-bottom-color: #10b981;
+  color: #ff4d6f;
+  border-bottom-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .notif-read-all {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .notif-item {
@@ -2745,11 +2751,11 @@ body[data-theme="dark"] .notif-item:hover {
 }
 
 body[data-theme="dark"] .notif-item.unread {
-  background: #1c2418;
+  background: rgba(255, 36, 66, 0.08);
 }
 
 body[data-theme="dark"] .notif-item.unread:hover {
-  background: #232e1f;
+  background: rgba(255, 36, 66, 0.14);
 }
 
 body[data-theme="dark"] .notif-item-title {
@@ -2761,7 +2767,7 @@ body[data-theme="dark"] .tutorial-item {
 }
 
 body[data-theme="dark"] .tutorial-item:hover {
-  background: #2a2a2a;
+  background: rgba(255, 36, 66, 0.1);
 }
 
 body[data-theme="dark"] .tutorial-header {
@@ -2774,11 +2780,15 @@ body[data-theme="dark"] .tutorial-title {
 }
 
 body[data-theme="dark"] .tutorial-icon {
-  color: #10b981;
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .feedback-title {
   color: #e0e0e0;
+}
+
+body[data-theme="dark"] .feedback-label {
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .feedback-textarea {
@@ -2788,8 +2798,16 @@ body[data-theme="dark"] .feedback-textarea {
 }
 
 body[data-theme="dark"] .feedback-textarea:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .feedback-submit {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .feedback-submit:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
 body[data-theme="dark"] .type-btn {
@@ -2799,9 +2817,9 @@ body[data-theme="dark"] .type-btn {
 }
 
 body[data-theme="dark"] .type-btn.active {
-  border-color: #10b981;
-  color: #10b981;
-  background: #1c2e1a;
+  border-color: #ff4d6f;
+  color: #ff4d6f;
+  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .about-logo {
@@ -2822,9 +2840,9 @@ body[data-theme="dark"] .about-link-btn {
 }
 
 body[data-theme="dark"] .about-link-btn:hover {
-  background: #1c2e1a;
-  border-color: #10b981;
-  color: #10b981;
+  background: rgba(255, 36, 66, 0.12);
+  border-color: #ff4d6f;
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .about-footer {
@@ -3136,8 +3154,8 @@ body[data-theme="dark"] .email-input {
 
 body[data-theme="dark"] .profile-input:focus,
 body[data-theme="dark"] .email-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
 
 body[data-theme="dark"] .email-code-btn {
@@ -3147,9 +3165,9 @@ body[data-theme="dark"] .email-code-btn {
 }
 
 body[data-theme="dark"] .email-code-btn:hover:not(:disabled) {
-  background: #1c2e1a;
-  border-color: #10b981;
-  color: #10b981;
+  background: rgba(255, 36, 66, 0.15);
+  border-color: #ff4d6f;
+  color: #ff4d6f;
 }
 
 /* 暗色主题 */
@@ -4410,7 +4428,7 @@ body[data-theme="dark"] .redeem-input {
 }
 
 body[data-theme="dark"] .redeem-input:focus {
-  border-color: var(--color-primary);
+  border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
 
@@ -4420,6 +4438,24 @@ body[data-theme="dark"] .redeem-status.error {
 
 body[data-theme="dark"] .redeem-status.success {
   color: #10b981;
+}
+
+body[data-theme="dark"] .redeem-submit {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .redeem-submit:hover:not(:disabled) {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .profile-submit,
+body[data-theme="dark"] .email-submit {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .profile-submit:hover,
+body[data-theme="dark"] .email-submit:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
 /* 移动端：侧边栏收拢为图标栏 */
@@ -4505,22 +4541,52 @@ body[data-theme="dark"] .redeem-status.success {
  */
 body[data-theme="dark"] .invite-modal .ant-modal-content,
 body[data-theme="dark"] .poster-modal .ant-modal-content,
-body[data-theme="dark"] .notif-modal .ant-modal-content {
+body[data-theme="dark"] .notif-modal .ant-modal-content,
+body[data-theme="dark"] .tutorial-modal .ant-modal-content,
+body[data-theme="dark"] .feedback-modal .ant-modal-content,
+body[data-theme="dark"] .about-modal .ant-modal-content,
+body[data-theme="dark"] .profile-modal .ant-modal-content,
+body[data-theme="dark"] .email-modal .ant-modal-content,
+body[data-theme="dark"] .redeem-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
 
 body[data-theme="dark"] .invite-modal .ant-modal-close,
 body[data-theme="dark"] .poster-modal .ant-modal-close,
-body[data-theme="dark"] .notif-modal .ant-modal-close {
+body[data-theme="dark"] .notif-modal .ant-modal-close,
+body[data-theme="dark"] .tutorial-modal .ant-modal-close,
+body[data-theme="dark"] .feedback-modal .ant-modal-close,
+body[data-theme="dark"] .about-modal .ant-modal-close,
+body[data-theme="dark"] .profile-modal .ant-modal-close,
+body[data-theme="dark"] .email-modal .ant-modal-close,
+body[data-theme="dark"] .redeem-modal .ant-modal-close {
   color: #a6a6a6;
 }
 
 body[data-theme="dark"] .invite-modal .ant-modal-close:hover,
 body[data-theme="dark"] .poster-modal .ant-modal-close:hover,
-body[data-theme="dark"] .notif-modal .ant-modal-close:hover {
+body[data-theme="dark"] .notif-modal .ant-modal-close:hover,
+body[data-theme="dark"] .tutorial-modal .ant-modal-close:hover,
+body[data-theme="dark"] .feedback-modal .ant-modal-close:hover,
+body[data-theme="dark"] .about-modal .ant-modal-close:hover,
+body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
+body[data-theme="dark"] .email-modal .ant-modal-close:hover,
+body[data-theme="dark"] .redeem-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* 修改昵称 / 修改邮箱 的 Ant 标题头在暗色下需改为深底 */
+body[data-theme="dark"] .profile-modal .ant-modal-header,
+body[data-theme="dark"] .email-modal .ant-modal-header {
+  background: #141414;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .profile-modal .ant-modal-title,
+body[data-theme="dark"] .email-modal .ant-modal-title {
+  color: #e0e0e0;
 }
 
 /* 注意：class="invite-rules-drawer" 直接挂在 .ant-drawer-content 上（同一元素），

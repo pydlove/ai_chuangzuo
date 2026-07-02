@@ -1841,11 +1841,12 @@ body[data-theme="dark"] .styles-tab:hover {
 }
 
 body[data-theme="dark"] .styles-empty {
-  background: #141414;
-  border: 1px dashed #303030;
-  border-radius: 16px;
-  padding: 32px;
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .styles-empty,
+body[data-theme="dark"] .styles-empty .style-add-card {
+  background-color: #141414 !important;
 }
 
 body[data-theme="dark"] .style-add-card:hover {
@@ -1885,12 +1886,13 @@ body[data-theme="dark"] .style-card-status.pending {
 }
 
 body[data-theme="dark"] .style-card-remove {
-  color: #a6a6a6;
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff4d4f;
 }
 
 body[data-theme="dark"] .style-card-remove:hover {
-  background: #2a2a2a;
-  color: #ff4d4f;
+  background: rgba(255, 77, 79, 0.25);
+  color: #ff7875;
 }
 
 body[data-theme="dark"] .style-card-scope {
@@ -1901,6 +1903,12 @@ body[data-theme="dark"] .style-card-scope {
 body[data-theme="dark"] .style-card-prompt {
   background: #141414;
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-prompt-full {
+  background: #141414;
+  color: #d9d9d9;
+  border: 1px solid #303030;
 }
 
 body[data-theme="dark"] .style-action-btn {
@@ -2072,6 +2080,10 @@ body[data-theme="dark"] .save-style-btn:disabled {
 body[data-theme="dark"] .learned-banner {
   background: #1f1f1f;
   border-color: #303030;
+}
+
+body[data-theme="dark"] .learned-subtabs {
+  background: #141414;
 }
 
 body[data-theme="dark"] .learned-subtab {

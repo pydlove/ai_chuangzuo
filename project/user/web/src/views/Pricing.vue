@@ -4,7 +4,7 @@
     <header class="pricing-nav">
       <div class="nav-brand">
         <img
-          src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png"
+          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
           alt="爱创作"
           class="nav-logo"
         />
@@ -13,6 +13,42 @@
       <div class="nav-links">
         <router-link to="/" class="nav-link">首页</router-link>
         <router-link to="/pricing" class="nav-link active">价格</router-link>
+        <button
+          class="theme-toggle"
+          :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
+          @click="toggleTheme"
+        >
+          <svg
+            v-if="currentTheme === 'light'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
         <router-link to="/login" class="nav-cta">开始创作</router-link>
       </div>
     </header>
@@ -109,7 +145,28 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+
+// ---------- 主题切换 ----------
+const THEME_KEY = 'aichuangzuo_theme'
+const currentTheme = ref('light')
+
+const toggleTheme = () => {
+  const next = currentTheme.value === 'light' ? 'dark' : 'light'
+  currentTheme.value = next
+  document.body.setAttribute('data-theme', next)
+  localStorage.setItem(THEME_KEY, next)
+}
+
+const loadTheme = () => {
+  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  currentTheme.value = saved
+  document.body.setAttribute('data-theme', saved)
+}
+
+onMounted(() => {
+  loadTheme()
+})
 
 const activeCycle = ref('month')
 const cycles = [
@@ -617,5 +674,201 @@ const scrollToCompare = () => {
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #FFF5F7;
+  color: #FF2442;
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ========== 暗色主题 ========== */
+body[data-theme="dark"] .pricing-page {
+  background: #141414;
+}
+
+body[data-theme="dark"] .pricing-nav {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .nav-brand-name {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .nav-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .nav-link:hover,
+body[data-theme="dark"] .nav-link.active {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .nav-cta {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .nav-cta:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .theme-toggle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .pricing-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .pricing-subtitle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .billing-toggle {
+  background: #262626;
+}
+
+body[data-theme="dark"] .toggle-btn {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .toggle-btn.active {
+  background: #1f1f1f;
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .compare-link span {
+  color: #ff4d6f;
+  border-bottom-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .pricing-card {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .pricing-card:hover {
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .pricing-card.recommended {
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .plan-name,
+body[data-theme="dark"] .plan-price {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .plan-original,
+body[data-theme="dark"] .plan-period {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .plan-articles,
+body[data-theme="dark"] .plan-savings {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .plan-features {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .plan-features li.disabled {
+  color: #666;
+}
+
+body[data-theme="dark"] .plan-btn {
+  background: #1f1f1f;
+  color: #ff4d6f;
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .plan-btn:hover {
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .plan-btn.primary {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+  border: none;
+}
+
+body[data-theme="dark"] .plan-btn.primary:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .compare-section {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .compare-header h2 {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .compare-hint {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .compare-table th {
+  color: #e0e0e0;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .compare-table th.recommended-col {
+  background: rgba(255, 36, 66, 0.18);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .compare-table th span {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .compare-table tr:hover td {
+  background: rgba(255, 36, 66, 0.06);
+}
+
+body[data-theme="dark"] .compare-table td {
+  border-bottom-color: #262626;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .compare-table td.recommended-col {
+  background: rgba(255, 36, 66, 0.1);
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .pricing-footer {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .pricing-footer span + span::before {
+  color: #303030;
 }
 </style>

@@ -303,6 +303,25 @@ const handleSimulate = (s) => {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
+body[data-theme="dark"] .style-market-tabs {
+  background: #141414;
+}
+
+body[data-theme="dark"] .style-market-tab {
+  background-color: transparent !important;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-tab:hover {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-market-tab.active {
+  background-color: #2a2a2a !important;
+  color: #f0f0f0;
+  box-shadow: none;
+}
+
 .style-market-search {
   display: flex;
   align-items: center;
@@ -521,5 +540,70 @@ const handleSimulate = (s) => {
   border-color: #ff2442;
   color: #ff2442;
   background: #fff0f2;
+}
+
+/* 暗色主题 */
+body[data-theme="dark"] .style-market-search-input {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-market-search-input::placeholder {
+  color: #737373;
+}
+
+body[data-theme="dark"] .style-market-search-input:focus {
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-market-empty {
+  background-color: transparent !important;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-card {
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .style-market-card-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-market-card-creator,
+body[data-theme="dark"] .style-market-card-prompt,
+body[data-theme="dark"] .style-market-card-stats {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-prompt-full {
+  background: #141414;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-card-scope {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.35);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .style-market-favorite-btn,
+body[data-theme="dark"] .style-market-simulate-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-favorite-btn:hover,
+body[data-theme="dark"] .style-market-simulate-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .style-market-favorite-btn.active {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  color: #ff6b81;
 }
 </style>

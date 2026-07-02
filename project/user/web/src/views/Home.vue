@@ -4,7 +4,7 @@
     <header class="home-nav">
       <div class="nav-brand">
         <img
-          src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png"
+          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
           alt="爱创作"
           class="nav-logo"
         />
@@ -13,6 +13,42 @@
       <div class="nav-links">
         <router-link to="/" class="nav-link active">首页</router-link>
         <router-link to="/pricing" class="nav-link">会员</router-link>
+        <button
+          class="theme-toggle"
+          :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
+          @click="toggleTheme"
+        >
+          <svg
+            v-if="currentTheme === 'light'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
         <router-link to="/login" class="nav-cta">开始创作</router-link>
       </div>
     </header>
@@ -152,6 +188,28 @@
 </template>
 
 <script setup>
+import { ref, onMounted } from 'vue'
+
+// ---------- 主题切换 ----------
+const THEME_KEY = 'aichuangzuo_theme'
+const currentTheme = ref('light')
+
+const toggleTheme = () => {
+  const next = currentTheme.value === 'light' ? 'dark' : 'light'
+  currentTheme.value = next
+  document.body.setAttribute('data-theme', next)
+  localStorage.setItem(THEME_KEY, next)
+}
+
+const loadTheme = () => {
+  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  currentTheme.value = saved
+  document.body.setAttribute('data-theme', saved)
+}
+
+onMounted(() => {
+  loadTheme()
+})
 </script>
 
 <style scoped>
@@ -509,5 +567,161 @@
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* 主题切换按钮 */
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #FFF5F7;
+  color: #FF2442;
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ========== 暗色主题 ========== */
+body[data-theme="dark"] .home-page {
+  background: #141414;
+}
+
+body[data-theme="dark"] .home-nav {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .nav-brand-name {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .nav-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .nav-link:hover,
+body[data-theme="dark"] .nav-link.active {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .nav-cta {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .nav-cta:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .theme-toggle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .hero {
+  background: linear-gradient(180deg, rgba(255, 36, 66, 0.12) 0%, #141414 100%);
+}
+
+body[data-theme="dark"] .hero-badge {
+  background: #1f1f1f;
+  border-color: rgba(255, 77, 111, 0.5);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .hero-title,
+body[data-theme="dark"] .features-title,
+body[data-theme="dark"] .feature-name,
+body[data-theme="dark"] .cta-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .hero-desc,
+body[data-theme="dark"] .check-item,
+body[data-theme="dark"] .features-subtitle,
+body[data-theme="dark"] .feature-desc,
+body[data-theme="dark"] .cta-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .hero-btn {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+  box-shadow: 0 10px 30px rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .hero-btn:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .check-icon {
+  background: #ff4d6f;
+}
+
+body[data-theme="dark"] .stats {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .stat-num {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .stat-label {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .features-tag {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .feature-card {
+  background: #1f1f1f;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .feature-icon {
+  background: rgba(255, 36, 66, 0.12) !important;
+}
+
+body[data-theme="dark"] .feature-icon svg {
+  stroke: #ff4d6f;
+}
+
+body[data-theme="dark"] .steps {
+  background: linear-gradient(135deg, #b01030 0%, #8a0f25 100%);
+}
+
+body[data-theme="dark"] .step-num {
+  background: #e0e0e0;
+  color: #FF2442;
+}
+
+body[data-theme="dark"] .cta-section {
+  background: #141414;
+}
+
+body[data-theme="dark"] .home-footer {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .home-footer span + span::before {
+  color: #303030;
 }
 </style>

@@ -3850,7 +3850,63 @@ body[data-theme="dark"] .style-editor-preset:hover {
   color: var(--color-primary);
 }
 
+body[data-theme="dark"] .style-preset-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-preset-card:hover {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-preset-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-preset-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-tabs {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .style-tab {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-tab:hover {
+  color: #f0f0f0;
+}
+
 /* 模板弹框内行 */
+body[data-theme="dark"] .template-tabs {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .template-tab {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .template-tab:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .template-tab.active {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .template-preview-pane {
+  background: #141414;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
 body[data-theme="dark"] .template-row {
   background: #1f1f1f;
   border-color: #303030;

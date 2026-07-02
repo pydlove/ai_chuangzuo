@@ -52,6 +52,19 @@
   --font-caption: 11px;
 }
 
+/* 深色主题变量覆盖 */
+body[data-theme="dark"] {
+  --color-text-primary: #f0f0f0;
+  --color-text-regular: #d9d9d9;
+  --color-text-secondary: #a6a6a6;
+  --color-text-placeholder: #737373;
+  --color-border-default: #434343;
+  --color-border-light: #303030;
+  --color-bg-page: #141414;
+  --color-bg-card: #1f1f1f;
+  --color-bg-hover: #2a2a2a;
+}
+
 * {
   margin: 0;
   padding: 0;
@@ -148,4 +161,69 @@ button {
 
 .invite-coin-tooltip-list li:last-child {
   margin-bottom: 0;
+}
+
+/* 邀请创作币说明 tooltip 暗色主题 */
+body[data-theme="dark"] .invite-coin-tooltip .ant-tooltip-inner {
+  background: #1f1f1f;
+  color: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .invite-coin-tooltip .ant-tooltip-arrow::before {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-content {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-title,
+body[data-theme="dark"] .invite-coin-tooltip-section-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-desc,
+body[data-theme="dark"] .invite-coin-tooltip-list li {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-section + .invite-coin-tooltip-section {
+  border-top-color: #303030;
+}
+
+/* Console 内容区深色模式兜底：卡片/区块/面板/列表项/筛选/标签暗色化 */
+body[data-theme="dark"] .console-content [class*="-card"]:not([class*="-card-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-section"]:not([class*="-section-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-panel"]:not([class*="-panel-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-box"]:not([class*="-box-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-wrap"]:not([class*="-wrap-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-empty"]:not([class*="-empty-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-modal-content"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-form"]:not([class*="-form-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-table"]:not([class*="-table-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-item"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-filter"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-tab"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]) {
+  background-color: #1f1f1f;
+  border-color: #303030;
+}
+
+/* Console 内容区深色模式兜底：主标题/名称/描述/标签文字亮色化 */
+body[data-theme="dark"] .console-content [class$="-title"],
+body[data-theme="dark"] .console-content [class$="-name"] {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .console-content [class$="-desc"],
+body[data-theme="dark"] .console-content [class$="-label"],
+body[data-theme="dark"] .console-content [class$="-hint"],
+body[data-theme="dark"] .console-content [class$="-text"],
+body[data-theme="dark"] .console-content [class$="-count"],
+body[data-theme="dark"] .console-content [class$="-meta"] {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .console-content [class$="-list"] {
+  color: #a6a6a6;
 }
