@@ -978,7 +978,7 @@ const simulateApprove = (name) => {
   gap: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  height: 220px;
+  min-height: 270px;
   box-sizing: border-box;
 }
 
