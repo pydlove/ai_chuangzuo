@@ -210,6 +210,23 @@ export function removeLearnedStyle(name) {
   saveLearnedStyles()
 }
 
+export function updateLearnedStyle(oldName, style) {
+  const idx = learnedStyles.value.findIndex(s => s.name === oldName)
+  if (idx > -1) {
+    const updated = {
+      ...learnedStyles.value[idx],
+      name: style.name.trim(),
+      prompt: style.prompt.trim(),
+      scope: (style.scope || '').trim()
+    }
+    learnedStyles.value[idx] = updated
+    if (currentStyle.value && currentStyle.value.name === oldName) {
+      currentStyle.value = updated
+    }
+    saveLearnedStyles()
+  }
+}
+
 export function findLearnedStyleByHash(hash) {
   return learnedStyles.value.find(s => s.fileHash === hash)
 }

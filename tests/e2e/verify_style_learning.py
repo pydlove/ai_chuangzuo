@@ -74,7 +74,27 @@ def main():
         assert '我的测试风格' in cards.first.inner_text()
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_learning_card.png')
 
-        # 10. 创作页联动
+        # 10. 编辑卡片
+        page.locator('button:has-text("编辑")').first.click()
+        page.wait_for_timeout(300)
+        page.locator('input[placeholder="例如：我的小红书风"]').fill('我的测试风格已编辑')
+        page.locator('input[placeholder*="公众号情感文"]').fill('知乎回答')
+        page.locator('.learned-textarea').first.fill('编辑后的提示词内容。')
+        page.wait_for_timeout(200)
+        page.locator('button:has-text("保存到风格库")').click()
+        page.wait_for_timeout(500)
+
+        tabs.nth(2).click()
+        page.wait_for_timeout(300)
+        cards = page.locator('.styles-content:visible .style-card')
+        assert cards.count() == 1
+        card_text = cards.first.inner_text()
+        assert '我的测试风格已编辑' in card_text
+        assert '适用：知乎回答' in card_text
+        assert '编辑后的提示词内容' in card_text
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_learning_edited.png')
+
+        # 11. 创作页联动
         page.goto(f'{URL}/console/create')
         page.wait_for_timeout(1500)
         chips = page.locator('.settings-chip')
@@ -84,9 +104,9 @@ def main():
         assert modal_tabs.count() == 3
         modal_tabs.nth(2).click()
         page.wait_for_timeout(500)
-        assert '我的测试风格' in page.content()
+        assert '我的测试风格已编辑' in page.content()
 
-        # 11. 删除卡片
+        # 12. 删除卡片
         page.goto(f'{URL}/console/styles')
         page.wait_for_timeout(500)
         tabs = page.locator('.styles-tab')

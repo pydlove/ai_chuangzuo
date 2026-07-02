@@ -19,8 +19,11 @@
 - **docx 解析**：通过一次性 CDN 引入 `mammoth.js`，放在 `index.html` 的 `<head>` 中。
 - **持久化**：用 `localStorage`（key = `aichuangzuo_learned_styles`），刷新页面后保留。
 - **分类**：在 `StylesIndex.vue` 增加第三个 tab「学习的风格」，与「我的风格」「系统预设」并列。
-- **命名默认值**：结果页的「命名」输入框默认填 `sourceName`（如「娱乐至死」），用户可改。
+- **命名**：用户手填，必填，留空时保存按钮禁用，placeholder 提示「例如：我的小红书风」。
 - **适用范围**：单个 input 手填，≤ 50 字，非空。卡片上以「适用：xxx」单行展示。
+- **字数/大小限制**：粘贴正文最少 200 字、最多 3000 字；上传文件最大 1MB；仅支持 .txt / .md / .docx。
+- **来源标题**：不采集；结果页标题通用化为「学习结果 ✓ 已从参考文章中提取风格」。
+- **编辑**：已保存的学习风格可在「学习的风格」tab 点击「编辑」，修改名称、适用范围、提示词。
 - **创作页集成**：在创作页风格弹框中增加第三个 tab，复用 `applyStyle` 共用同一份 `learnedStyles` 状态。
 
 ## 3. 数据模型
@@ -28,14 +31,13 @@
 ```js
 // LearnedStyle：学到的风格
 {
-  name: '娱乐至死',                // 风格名称，默认填 sourceName，用户可改
-  sourceName: 'xxx.txt',          // 来源文件名或粘贴时填的标题
+  name: '娱乐至死',                // 风格名称，必填，不超过 20 字，由用户手填
   sourceType: 'txt' | 'md' | 'docx' | 'paste',
   excerpt1: '原文片段 1（≤120 字）',
   excerpt2: '原文片段 2（≤80 字）',
   prompt: '四段式风格提示词（≤1000 字，可编辑）',
-  scope: '公众号情感文 / 深度书评',  // 适用范围，用户手填，最长 50 字
-  fileHash: 'sha1 前 8 位',
+  scope: '公众号情感文 / 深度书评',  // 适用范围，用户手填，最长 50 字，必填
+  fileHash: 'sha1 前 16 位',
   createdAt: '2026-07-02T...'
 }
 ```
@@ -64,7 +66,7 @@ function loadFromLocalStorage() {
 
 // 核心分析函数（前端 mock，async 接口为后端预留）
 export async function analyzeArticleStyle(text, meta) {
-  // 1. 简单 hash 用于去重
+  // 1. SHA-1 hash 用于去重
   const fileHash = await simpleHash(text)
   // 2. 切段落
   const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 20)
@@ -86,11 +88,11 @@ export async function analyzeArticleStyle(text, meta) {
   // mock 延迟 1.5 秒（让 UI 有进度反馈）
   await new Promise(r => setTimeout(r, 1500))
   return {
-    sourceName: meta.sourceName || '未命名参考',
     sourceType: meta.sourceType,
     excerpt1: (first || mid).slice(0, 120),
     excerpt2: longest,
     prompt,
+    scope: '',     // 适用范围，由用户在结果页手填
     fileHash,
     createdAt: new Date().toISOString()
   }
@@ -117,6 +119,24 @@ export function removeLearnedStyle(name) {
   saveLearnedStyles()
 }
 
+// 编辑
+export function updateLearnedStyle(oldName, style) {
+  const idx = learnedStyles.value.findIndex(s => s.name === oldName)
+  if (idx > -1) {
+    const updated = {
+      ...learnedStyles.value[idx],
+      name: style.name.trim(),
+      prompt: style.prompt.trim(),
+      scope: (style.scope || '').trim()
+    }
+    learnedStyles.value[idx] = updated
+    if (currentStyle.value && currentStyle.value.name === oldName) {
+      currentStyle.value = updated
+    }
+    saveLearnedStyles()
+  }
+}
+
 // 重复检测
 export function findLearnedStyleByHash(hash) {
   return learnedStyles.value.find(s => s.fileHash === hash)
@@ -140,9 +160,13 @@ export async function readDocxAsText(file) {
 }
 
 async function simpleHash(text) {
-  // 简单 hash：取前 1000 字 + 长度组合，再 btoa 转短码
   const sample = text.slice(0, 1000) + '|' + text.length
-  return btoa(unescape(encodeURIComponent(sample))).slice(0, 16)
+  const bytes = new TextEncoder().encode(sample)
+  const buffer = await crypto.subtle.digest('SHA-1', bytes)
+  const hex = Array.from(new Uint8Array(buffer))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+  return hex.slice(0, 16)
 }
 ```
 
@@ -152,33 +176,33 @@ async function simpleHash(text) {
 - 「学习的风格」tab 内容区：
   - 空状态：显示横幅 + 「+ 学习新风格」按钮
   - 非空状态：「+ 学习新风格」按钮 + 卡片网格
-- 卡片复用现有 `.style-card` 样式，新增来源行 + 「来源」标签
+- 卡片复用现有 `.style-card` 样式，显示来源类型 + 日期 + 适用范围 + 「使用」「查看完整」「编辑」「删除」按钮
+- 点击「编辑」打开同款结果表单，可修改名称、适用范围、提示词
 
 ### 导入对话框（新增组件，定义在 StylesIndex.vue 内）
 
 模态对话框，二级 tab「粘贴正文 / 上传文件」：
 
 **粘贴正文 tab**：
-- 大文本域（maxLength = 50000，placeholder 提示粘贴完整文章）
-- 字数统计：`{count} / 50000`
-- 「来源标题（可选）」输入框，留空时 `sourceName` 默认为「粘贴的参考文章」
-- 「开始学习」按钮（disabled when 文本 < 200 字）
+- 大文本域（maxLength = 3000，placeholder 提示粘贴完整文章）
+- 字数统计：`{count} / 3000`
+- 「开始学习」按钮（disabled when 文本 < 200 字 or > 3000 字）
 
 **上传文件 tab**：
 - 拖拽 / 点击文件选择区
 - 已选择文件显示文件名 + 大小
-- `sourceName` 自动取文件名（如「xxx.txt」）
 - 「开始学习」按钮（disabled when 无文件）
 
 **分析进度态**（点击「开始学习」后替换对话框主体）：
 - 居中显示「● ● ● 分析中…」+ 加载圈
 - 「开始学习」按钮 disabled 防重复
 
-**学习结果页**（分析完成后展示）：
-- 标题：「学习结果 ✓ 已从「{sourceName}」中提取风格」
+**学习结果页**（分析完成后展示，编辑时复用）：
+- 标题：「学习结果 ✓ 已从参考文章中提取风格」（编辑模式标题为「编辑风格」）
 - 「学到的提示词」textarea（可编辑，maxLength = 1000，字数统计）
 - 「原文风格示例」展示 excerpt1 + excerpt2
-- 「命名」输入框（maxLength = 20，命名重复校验）
+- 「适用范围」输入框（必填，maxLength = 50）
+- 「命名」输入框（maxLength = 20，命名重复校验，编辑时排除自身旧名）
 - 「保存到风格库」「放弃」按钮
 
 ### CreateIndex.vue 改动
@@ -216,7 +240,8 @@ addLearnedStyle({ name, ...result }) → localStorage
 | 场景 | 处理 |
 |---|---|
 | 文本 < 200 字 | 「开始学习」按钮禁用，提示「正文过短」 |
-| 文件 > 5MB | 拒绝，提示「文件过大（> 5MB）」 |
+| 文本 > 3000 字 | 「开始学习」按钮禁用，提示「正文过长」 |
+| 文件 > 1MB | 拒绝，提示「文件过大（> 1MB）」 |
 | 非 .txt / .md / .docx | 拒绝，提示「仅支持 .txt / .md / .docx」 |
 | docx 解析失败 | 提示「Word 文档读取失败」 |
 | 同一文章重复（fileHash 命中） | 提示「已学过这篇文章」，定位到原卡片 |
@@ -224,6 +249,7 @@ addLearnedStyle({ name, ...result }) → localStorage
 | 命名 > 20 字 | maxlength 截断 |
 | 提示词 > 1000 字 | 字数统计变红，保存禁用 |
 | 分析中重复点击 | 「开始学习」按钮 disabled |
+| 编辑时命名冲突 | 排除自身旧名后仍重复才报错 |
 
 ## 7. 后端替换点
 
@@ -248,13 +274,14 @@ export async function analyzeArticleStyle(text, meta) {
 1. **粘贴学习**：粘贴 > 200 字文本 → 学习 → 命名 → 保存 → 卡片出现
 2. **上传 txt / md / docx**：三种文件类型分别走通
 3. **过短文本**：粘贴 100 字 → 按钮禁用
-4. **大文件**：上传 6MB 文件 → 拒绝
+4. **大文件**：上传 > 1MB 文件 → 拒绝
 5. **错误文件类型**：上传 .pdf → 拒绝
 6. **重复学习**：粘贴相同文本两次 → 第二次提示已存在
 7. **命名重复**：保存与现有风格同名 → 错误提示
-8. **创作页联动**：在创作页风格弹框的第三个 tab 看到学到的风格，点击「使用」可应用
-9. **刷新保留**：刷新页面后 learnedStyles 仍在
-10. **删除**：第三个 tab 删除卡片后，创作页弹框同步消失
+8. **编辑学习风格**：修改名称 / 适用范围 / 提示词 → 卡片同步更新
+9. **创作页联动**：在创作页风格弹框的第三个 tab 看到学到的风格，点击「使用」可应用
+10. **刷新保留**：刷新页面后 learnedStyles 仍在
+11. **删除**：第三个 tab 删除卡片后，创作页弹框同步消失
 
 ## 9. 实现位置汇总
 

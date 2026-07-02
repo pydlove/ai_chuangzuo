@@ -168,6 +168,7 @@
             <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
               {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
             </button>
+            <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
             <button class="style-action-btn style-del-btn" @click.stop="deleteLearnedStyle(s.name)">删除</button>
           </div>
         </div>
@@ -184,7 +185,7 @@
     @cancel="closeImportDialog"
   >
     <template #title>
-      <div class="modal-title">学习写作风格</div>
+      <div class="modal-title">{{ isEditingLearned ? '编辑学习的风格' : '学习写作风格' }}</div>
     </template>
 
     <!-- 进度态 -->
@@ -251,7 +252,7 @@
 
     <!-- 结果页 -->
     <div v-else>
-      <div class="learned-result-title">学习结果 ✓ 已从参考文章中提取风格</div>
+      <div class="learned-result-title">{{ isEditingLearned ? '编辑风格' : '学习结果 ✓ 已从参考文章中提取风格' }}</div>
       <div class="learned-result-field">
         <label class="learned-result-label">学到的提示词（可编辑）</label>
         <textarea
@@ -323,7 +324,8 @@ import {
   addLearnedStyle,
   isLearning,
   readFileAsText,
-  readDocxAsText
+  readDocxAsText,
+  updateLearnedStyle
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
@@ -338,6 +340,8 @@ const uploadFile = ref(null)
 const uploadError = ref('')
 const learnedResult = ref(null)
 const learnedResultError = ref('')
+const isEditingLearned = ref(false)
+const editingLearnedOriginalName = ref('')
 const editorMode = ref(false)
 const expandedNames = ref(new Set())
 
@@ -457,12 +461,24 @@ const openImportDialog = () => {
   uploadError.value = ''
   learnedResult.value = null
   learnedResultError.value = ''
+  isEditingLearned.value = false
+  editingLearnedOriginalName.value = ''
   importSubTab.value = 'paste'
+  importDialogVisible.value = true
+}
+
+const goToEditLearned = (style) => {
+  learnedResult.value = { ...style }
+  learnedResultError.value = ''
+  isEditingLearned.value = true
+  editingLearnedOriginalName.value = style.name
   importDialogVisible.value = true
 }
 
 const closeImportDialog = () => {
   importDialogVisible.value = false
+  isEditingLearned.value = false
+  editingLearnedOriginalName.value = ''
 }
 
 const onFileChange = (e) => {
@@ -545,7 +561,8 @@ const canSaveLearnedResult = computed(() => {
   if (!name || name.length > 20) return false
   if (learnedResult.value.prompt.length > 1000) return false
   if (!learnedResult.value.scope || !learnedResult.value.scope.trim()) return false
-  if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) return false
+  const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
+  if (isStyleNameExists(name, excludeName) || isLearnedStyleNameExists(name, excludeName)) return false
   return true
 })
 
@@ -553,13 +570,15 @@ const learnedNameConflict = computed(() => {
   if (!learnedResult.value) return false
   const name = learnedResult.value.name.trim()
   if (!name) return false
-  return isStyleNameExists(name) || isLearnedStyleNameExists(name)
+  const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
+  return isStyleNameExists(name, excludeName) || isLearnedStyleNameExists(name, excludeName)
 })
 
 const saveLearnedResult = () => {
   if (!learnedResult.value) return
   const name = learnedResult.value.name.trim()
-  if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) {
+  const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
+  if (isStyleNameExists(name, excludeName) || isLearnedStyleNameExists(name, excludeName)) {
     learnedResultError.value = '该风格名称已存在'
     return
   }
@@ -575,7 +594,11 @@ const saveLearnedResult = () => {
     learnedResultError.value = '请填写适用范围'
     return
   }
-  addLearnedStyle(learnedResult.value)
+  if (isEditingLearned.value) {
+    updateLearnedStyle(editingLearnedOriginalName.value, learnedResult.value)
+  } else {
+    addLearnedStyle(learnedResult.value)
+  }
   closeImportDialog()
 }
 
