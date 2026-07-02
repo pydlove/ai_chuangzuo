@@ -45,6 +45,7 @@
         </div>
         <div v-if="s.scope" class="style-market-card-scope">{{ s.scope }}</div>
         <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
+        <div v-show="expandedIds.has(s.id)" class="style-market-prompt-full">{{ s.prompt }}</div>
         <div class="style-market-card-stats">
           <span>🔥 本周 {{ s.weeklyUses }} 次</span>
           <span>累计 {{ s.totalUses }} 次</span>
@@ -55,6 +56,12 @@
             @click="handleUse(s)"
           >
             使用
+          </button>
+          <button
+            class="style-market-simulate-btn"
+            @click="togglePrompt(s.id)"
+          >
+            {{ expandedIds.has(s.id) ? '收起' : '查看完整提示词' }}
           </button>
           <button
             v-if="s.creatorId === currentUserId"
@@ -82,6 +89,7 @@ const router = useRouter()
 const searchQuery = ref('')
 const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
+const expandedIds = ref(new Set())
 
 const tabOptions = [
   { key: 'all', label: '全部' },
@@ -119,6 +127,16 @@ const filteredStyles = computed(() => {
 const promptSummary = (prompt) => {
   if (!prompt) return ''
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
+}
+
+const togglePrompt = (id) => {
+  const set = new Set(expandedIds.value)
+  if (set.has(id)) {
+    set.delete(id)
+  } else {
+    set.add(id)
+  }
+  expandedIds.value = set
 }
 
 const handleUse = (s) => {
@@ -321,6 +339,17 @@ const handleSimulate = (s) => {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.style-market-prompt-full {
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.7;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  white-space: pre-line;
 }
 
 .style-market-card-stats {
