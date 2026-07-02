@@ -26,7 +26,7 @@ def main():
         page.wait_for_timeout(500)
 
         # 2. 创建我的风格
-        page.get_by_text('去创建一个').click()
+        page.locator('.style-add-card:has-text("新建我的风格")').click()
         page.wait_for_timeout(300)
         inputs = page.locator('.style-editor-input')
         inputs.nth(0).fill('市场测试风格')
@@ -50,7 +50,7 @@ def main():
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_list.png')
 
         # 5. 使用市场风格
-        page.locator('button:has-text("使用（0.2 币）")').first.click()
+        page.locator('button:has-text("使用")').first.click()
         page.wait_for_timeout(800)
         assert '/console/create' in page.url
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_applied.png')

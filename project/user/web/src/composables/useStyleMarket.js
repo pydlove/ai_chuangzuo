@@ -99,13 +99,7 @@ export function useMarketStyle(marketId) {
   if (!s) throw new Error('风格不存在')
   if (s.status !== 'approved') throw new Error('风格未上架')
 
-  const balance = getCoinBalance()
-  if (balance < PRICE_PER_USE) {
-    throw new Error('余额不足')
-  }
-
-  // 单用户 mock：扣费与收益都作用于当前用户余额，净变化为 0
-  setCoinBalance(Number((balance - PRICE_PER_USE).toFixed(2)))
+  // 前端 mock：使用他人分享的风格不扣创作币，创作者仍获得收益
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
 
@@ -173,12 +167,7 @@ export function simulateExternalUse(marketId) {
   if (!s) throw new Error('风格不存在')
   if (s.status !== 'approved') throw new Error('风格未上架')
 
-  const balance = getCoinBalance()
-  if (balance < PRICE_PER_USE) {
-    throw new Error('余额不足')
-  }
-
-  setCoinBalance(Number((balance - PRICE_PER_USE).toFixed(2)))
+  // 前端 mock：外部用户使用免费，创作者获得收益
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
 

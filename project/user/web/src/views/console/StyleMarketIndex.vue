@@ -5,19 +5,15 @@
       <p class="style-market-subtitle">发现优质写作风格，支持原创创作者</p>
     </div>
 
-    <div class="style-market-stats">
-      <div class="style-market-stat">
-        <div class="style-market-stat-value">{{ approvedStyles.length }}</div>
-        <div class="style-market-stat-label">上架风格</div>
-      </div>
-      <div class="style-market-stat">
-        <div class="style-market-stat-value">{{ totalWeeklyUses }}</div>
-        <div class="style-market-stat-label">本周使用</div>
-      </div>
-      <div class="style-market-stat">
-        <div class="style-market-stat-value">{{ coinBalance }}</div>
-        <div class="style-market-stat-label">我的余额</div>
-      </div>
+    <div class="style-market-tabs">
+      <button
+        v-for="tab in tabOptions"
+        :key="tab.key"
+        :class="['style-market-tab', { active: activeTab === tab.key }]"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
     <div class="style-market-search">
@@ -54,10 +50,9 @@
         <div class="style-market-card-actions">
           <button
             class="style-market-use-btn"
-            :disabled="coinBalance < s.price"
             @click="handleUse(s)"
           >
-            使用（{{ s.price }} 币）
+            使用
           </button>
           <button
             v-if="s.creatorId === currentUserId"
@@ -78,27 +73,41 @@ import { useRouter } from 'vue-router'
 import {
   marketStyles,
   useMarketStyle,
-  simulateExternalUse,
-  getCoinBalance
+  simulateExternalUse
 } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
 const searchQuery = ref('')
+const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
-const coinBalance = ref(getCoinBalance())
+
+const tabOptions = [
+  { key: 'all', label: '全部' },
+  { key: 'hot', label: '最热' },
+  { key: 'new', label: '最新' },
+  { key: 'featured', label: '精选' }
+]
+
+const FEATURED_USES_THRESHOLD = 5
 
 const approvedStyles = computed(() =>
   marketStyles.value.filter(s => s.status === 'approved')
 )
 
-const totalWeeklyUses = computed(() =>
-  approvedStyles.value.reduce((sum, s) => sum + s.weeklyUses, 0)
-)
-
 const filteredStyles = computed(() => {
+  let list = approvedStyles.value
+  if (activeTab.value === 'hot') {
+    list = [...list].sort((a, b) => b.totalUses - a.totalUses)
+  } else if (activeTab.value === 'new') {
+    list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  } else if (activeTab.value === 'featured') {
+    list = list.filter(s => s.totalUses >= FEATURED_USES_THRESHOLD)
+      .sort((a, b) => b.totalUses - a.totalUses)
+  }
+
   const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return approvedStyles.value
-  return approvedStyles.value.filter(
+  if (!q) return list
+  return list.filter(
     s =>
       s.name.toLowerCase().includes(q) ||
       (s.scope && s.scope.toLowerCase().includes(q))
@@ -110,14 +119,9 @@ const promptSummary = (prompt) => {
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
 }
 
-const refreshBalance = () => {
-  coinBalance.value = getCoinBalance()
-}
-
 const handleUse = (s) => {
   try {
     useMarketStyle(s.id)
-    refreshBalance()
     router.push(`/console/create?marketStyleId=${s.id}`)
   } catch (err) {
     alert(err.message)
@@ -127,7 +131,6 @@ const handleUse = (s) => {
 const handleSimulate = (s) => {
   try {
     simulateExternalUse(s.id)
-    refreshBalance()
   } catch (err) {
     alert(err.message)
   }
@@ -158,30 +161,32 @@ const handleSimulate = (s) => {
   margin: 0;
 }
 
-.style-market-stats {
+.style-market-tabs {
   display: flex;
-  gap: 16px;
+  gap: 4px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
   margin-bottom: 20px;
+  width: fit-content;
 }
 
-.style-market-stat {
+.style-market-tab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.style-market-tab.active {
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 16px 24px;
-  min-width: 120px;
-}
-
-.style-market-stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: #ff2442;
-}
-
-.style-market-stat-label {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-top: 4px;
+  color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .style-market-search {

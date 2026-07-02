@@ -97,9 +97,10 @@
 
       <div v-else>
         <div v-if="myStyles.length === 0" class="styles-empty">
-          <a-empty description="还没有自定义风格">
-            <button class="empty-btn" @click="goToCreate">去创建一个</button>
-          </a-empty>
+          <div class="style-add-card" @click="goToCreate">
+            <div class="style-add-icon">+</div>
+            <div class="style-add-text">新建我的风格</div>
+          </div>
         </div>
         <div v-else class="styles-grid">
           <div class="style-add-card" @click="goToCreate">
@@ -182,13 +183,17 @@
       <div class="learned-banner">
         上传或粘贴一篇文章，AI 会分析它的写作风格并保存为「我的风格」
       </div>
-      <div class="learned-toolbar">
-        <button class="learned-add-btn" @click="openImportDialog">+ 学习新风格</button>
-      </div>
-      <div v-if="learnedStyles.length === 0" class="learned-empty">
-        还没有学习过的风格。点击上方按钮开始学习。
+      <div v-if="learnedStyles.length === 0" class="styles-grid">
+        <div class="style-add-card" @click="openImportDialog">
+          <div class="style-add-icon">+</div>
+          <div class="style-add-text">学习新风格</div>
+        </div>
       </div>
       <div v-else class="styles-grid">
+        <div class="style-add-card" @click="openImportDialog">
+          <div class="style-add-icon">+</div>
+          <div class="style-add-text">学习新风格</div>
+        </div>
         <div
           v-for="s in learnedStyles"
           :key="s.name"
@@ -782,24 +787,9 @@ const simulateApprove = (name) => {
 
 .styles-empty {
   padding: 60px 0;
-  display: flex;
-  justify-content: center;
-}
-
-.empty-btn {
-  padding: 8px 20px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  margin-top: 12px;
-}
-
-.empty-btn:hover {
-  background: #e61e3a;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
 }
 
 .styles-grid {
@@ -1203,31 +1193,6 @@ const simulateApprove = (name) => {
   font-size: 13px;
   color: #ff2442;
   margin-bottom: 16px;
-}
-
-.learned-toolbar {
-  margin-bottom: 16px;
-}
-
-.learned-add-btn {
-  padding: 8px 16px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.learned-add-btn:hover {
-  background: #e61e3a;
-}
-
-.learned-empty {
-  padding: 60px 20px;
-  text-align: center;
-  color: #8c8c8c;
-  font-size: 14px;
 }
 
 .learned-subtabs {
