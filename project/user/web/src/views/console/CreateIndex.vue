@@ -695,7 +695,7 @@
 import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
 import { FolderOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, InboxOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import {
   systemStyles,
   myStyles,
@@ -706,8 +706,10 @@ import {
   removeCustomStyle,
   learnedStyles
 } from '@/composables/useStyles.js'
+import { marketStyles } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
+const route = useRoute()
 
 // 恢复草稿（加载最新一个）
 onMounted(() => {
@@ -724,6 +726,22 @@ onMounted(() => {
     if (data.style) currentStyle.value = data.style
     if (data.template) currentTemplate.value = data.template
   }
+
+  // 从风格市场跳转过来时自动应用风格
+  const marketStyleId = route.query.marketStyleId
+  if (marketStyleId) {
+    const s = marketStyles.value.find(x => x.id === marketStyleId)
+    if (s) {
+      applyStyleShared({
+        name: s.name,
+        prompt: s.prompt,
+        scope: s.scope
+      })
+      selectedStyleName.value = s.name
+      router.replace({ path: route.path })
+    }
+  }
+
   loadMiniQueue()
   // 定时刷新队列
   setInterval(loadMiniQueue, 2000)
