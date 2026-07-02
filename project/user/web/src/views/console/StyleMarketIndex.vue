@@ -173,20 +173,23 @@ const handleSimulate = (s) => {
 
 .style-market-tabs {
   display: flex;
+  align-items: center;
   gap: 4px;
   background: #f5f5f5;
   padding: 4px;
   border-radius: 8px;
+  height: 40px;
   width: fit-content;
 }
 
 .style-market-tab {
-  padding: 8px 16px;
+  padding: 6px 16px;
   border: none;
   background: transparent;
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1;
   color: #595959;
   cursor: pointer;
   transition: all 0.2s;
@@ -199,16 +202,19 @@ const handleSimulate = (s) => {
 }
 
 .style-market-search {
-  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
 }
 
 .style-market-search-input {
   width: 100%;
   max-width: 400px;
-  padding: 10px 12px;
+  height: 40px;
+  padding: 0 12px;
   border: 1px solid #d9d9d9;
   border-radius: 8px;
   font-size: 14px;
+  box-sizing: border-box;
 }
 
 .style-market-search-input:focus {
