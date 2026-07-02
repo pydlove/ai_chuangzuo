@@ -81,6 +81,7 @@
             >
               导出&生成贴图
             </a-button>
+            <button class="work-action-btn" @click="editWork(work.raw)">编辑内容</button>
             <button class="work-action-btn danger" @click="deleteWork(work.raw.id)">删除</button>
           </div>
         </div>
@@ -333,6 +334,20 @@ const openArticle = (work) => {
   localStorage.setItem('aichuangzuo_current_article', JSON.stringify(work.content))
   router.push('/console/preview')
 }
+
+const editWork = (work) => {
+  const article = {
+    id: work.id,
+    title: work.title,
+    body: work.content?.body || '',
+    wordCount: work.wordCount,
+    completedAt: work.completedAt,
+    style: work.style,
+    platform: work.platform
+  }
+  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(article))
+  router.push('/console/edit')
+}
 </script>
 
 <style scoped>
@@ -508,8 +523,33 @@ const openArticle = (work) => {
   width: 220px;
 }
 
+.works-search :deep(.ant-input-affix-wrapper-focused),
+.works-search :deep(.ant-input:focus) {
+  border-color: #ff2442 !important;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15) !important;
+}
+
 .works-filter-select {
   min-width: 120px;
+}
+
+.works-filter-select :deep(.ant-select-selector) {
+  border-radius: 6px !important;
+}
+
+.works-filter-select :deep(.ant-select-focused .ant-select-selector),
+.works-filter-select :deep(.ant-select-open .ant-select-selector) {
+  border-color: #ff2442 !important;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15) !important;
+}
+
+.works-filter-time :deep(.ant-radio-button-wrapper-checked) {
+  color: #ff2442 !important;
+  border-color: #ff2442 !important;
+}
+
+.works-filter-time :deep(.ant-radio-button-wrapper-checked::before) {
+  background-color: #ff2442 !important;
 }
 
 .works-filter-time {

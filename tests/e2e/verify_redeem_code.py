@@ -37,9 +37,12 @@ def test_redeem_code():
             }""")
 
         # 用例 1: 弹框渲染
-        redeem_buttons = page.locator("button:has-text('兑换码')")
-        expect(redeem_buttons).to_have_count(1)
-        redeem_buttons.first.click()
+        # 打开个人中心下拉
+        page.locator(".console-avatar").click()
+        page.wait_for_selector(".user-center-panel", timeout=5000)
+        redeem_items = page.locator(".user-action:has-text('兑换码')")
+        expect(redeem_items).to_have_count(1)
+        redeem_items.first.click()
         page.wait_for_selector(".redeem-panel", timeout=5000)
         page.screenshot(path=SCREENSHOT_DIR / "redeem_modal_open.png")
 
@@ -61,7 +64,9 @@ def test_redeem_code():
         assert get_coin_balance() == 100, f"余额应为 100,实际 {get_coin_balance()}"
 
         # 用例 5: 重复兑换提示已使用
-        redeem_buttons.first.click()
+        page.locator(".console-avatar").click()
+        page.wait_for_selector(".user-center-panel", timeout=5000)
+        page.locator(".user-action:has-text('兑换码')").first.click()
         page.wait_for_selector(".redeem-panel", timeout=5000)
         page.locator(".redeem-input").fill("COIN100")
         submit_btn.click()
@@ -87,7 +92,10 @@ def test_redeem_code():
         assert re.match(r"\d{4}-\d{2}-\d{2}", membership.get("expiresAt", "")), membership
 
         # 用例 4: 无效码
-        redeem_buttons.first.click()
+        page.locator(".console-avatar").click()
+        page.wait_for_selector(".user-center-panel", timeout=5000)
+        page.locator(".user-action:has-text('兑换码')").first.click()
+        page.wait_for_selector(".redeem-panel", timeout=5000)
         page.locator(".redeem-input").fill("INVALID")
         submit_btn.click()
         page.wait_for_selector(".redeem-status.error", timeout=5000)

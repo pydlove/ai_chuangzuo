@@ -6,6 +6,23 @@
 <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
 <title>爱创作 - 我的作品</title>
 <link rel="stylesheet" href="shared.css?v=12">
+<style>
+  .primary-action-btn {
+    background: #ff2442;
+    border: 1px solid #ff2442;
+    color: #fff;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .primary-action-btn:hover {
+    background: #e61e3a;
+    border-color: #e61e3a;
+  }
+  .primary-action-btn:active {
+    background: #cc1832;
+    border-color: #cc1832;
+  }
+</style>
 </head>
 <body>
 <div class="section">
@@ -67,7 +84,7 @@
 <div style="color: #8c8c8c; font-size: 13px;">2026-06-22 14:30 · 约 1500 字 · 公众号标准模板</div>
 </div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 <button onclick="confirmDelete(this)" style="padding: 8px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #ff4d4f;">删除</button>
 </div>
 </div>
@@ -77,7 +94,7 @@
 <div style="color: #8c8c8c; font-size: 13px;">2026-06-21 10:15 · 约 2200 字 · 营销转化模板</div>
 </div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 <button onclick="confirmDelete(this)" style="padding: 8px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #ff4d4f;">删除</button>
 </div>
 </div>
@@ -87,7 +104,7 @@
 <div style="color: #8c8c8c; font-size: 13px;">2026-06-20 18:45 · 约 1800 字 · 简约商务模板</div>
 </div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="padding: 8px 14px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 <button onclick="confirmDelete(this)" style="padding: 8px 14px; background: #fff; border: 1px solid #d9d9d9; border-radius: 6px; font-size: 13px; color: #ff4d4f;">删除</button>
 </div>
 </div>
@@ -118,21 +135,21 @@
 <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #1a1a1a;">如何高效管理时间：从混乱到掌控的 5 个方法</div>
 <div style="color: #8c8c8c; font-size: 12px; margin-bottom: 12px;">2026-06-22 14:30 · 约 1500 字</div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 </div>
 </div>
 <div style="background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05); margin-bottom: 12px;">
 <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #1a1a1a;">AI 时代，普通人如何抓住新机会</div>
 <div style="color: #8c8c8c; font-size: 12px; margin-bottom: 12px;">2026-06-21 10:15 · 约 2200 字</div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 </div>
 </div>
 <div style="background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.05);">
 <div style="font-weight: 600; font-size: 15px; margin-bottom: 6px; color: #1a1a1a;">新手写作指南：从 0 到 1 建立输出习惯</div>
 <div style="color: #8c8c8c; font-size: 12px; margin-bottom: 12px;">2026-06-20 18:45 · 约 1800 字</div>
 <div style="display: flex; gap: 8px;">
-<button onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; background: #07c160; border: 1px solid #07c160; border-radius: 6px; font-size: 13px; color: #fff;">导出&生成贴图</button>
+<button class="primary-action-btn" onclick="consoleNavigate('preview', 'preview.html')" style="flex: 1; padding: 8px; border-radius: 6px; font-size: 13px;">导出&生成贴图</button>
 </div>
 </div>
 </div>

@@ -1,6 +1,6 @@
 # 设计系统规范
 
-> 本文档定义爱创作（AI Creation）项目用户端与管理端的 UI 设计系统，覆盖品牌色、圆角、字号、间距、阴影、按钮、搜索框、列表等核心视觉规范。主色调采用品牌绿 `#07c160`。
+> 本文档定义爱创作（AI Creation）项目用户端与管理端的 UI 设计系统，覆盖品牌色、圆角、字号、间距、阴影、按钮、搜索框、列表等核心视觉规范。主色调采用小红书品牌红 `#ff2442`。
 
 ---
 
@@ -10,11 +10,11 @@
 
 | 名称 | 颜色值 | 用途 |
 |---|---|---|
-| `primary` | `#07c160` | 主按钮、强调文字、选中状态、链接 |
-| `primary-hover` | `#06ad56` | 主按钮 hover |
-| `primary-active` | `#059a4c` | 主按钮 active |
-| `primary-light` | `#f6ffed` | 主色淡背景（hover、选中态、徽标底色） |
-| `primary-bg` | `#f6ffed` | 极淡背景（高亮区域） |
+| `primary` | `#ff2442` | 主按钮、强调文字、选中状态、链接 |
+| `primary-hover` | `#e61e3a` | 主按钮 hover |
+| `primary-active` | `#cc1832` | 主按钮 active |
+| `primary-light` | `#fff0f2` | 主色淡背景（hover、选中态、徽标底色） |
+| `primary-bg` | `#fff0f2` | 极淡背景（高亮区域） |
 
 ---
 
@@ -275,11 +275,11 @@ font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
 ```css
 :root {
   /* 品牌色 */
-  --color-primary: #07c160;
-  --color-primary-hover: #06ad56;
-  --color-primary-active: #059a4c;
-  --color-primary-light: #f6ffed;
-  --color-primary-bg: #f6ffed;
+  --color-primary: #ff2442;
+  --color-primary-hover: #e61e3a;
+  --color-primary-active: #cc1832;
+  --color-primary-light: #fff0f2;
+  --color-primary-bg: #fff0f2;
 
   /* 中性色 */
   --color-text-primary: #1a1a1a;
@@ -345,4 +345,5 @@ font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
 | 日期 | 版本 | 变更说明 | 变更人 |
 |---|---|---|---|
 | 2026-06-30 | v1.0 | 初稿：品牌绿 `#07c160`、圆角、字体、间距、按钮、搜索框、列表、控制台布局 | - |
-| 2026-06-30 | v1.1 | 更新主色为绿色体系，调整圆角档位，增加控制台布局规范章节 | - |
+| 2026-06-30 | v1.1 | 更新主色为红色体系，调整圆角档位，增加控制台布局规范章节 | - |
+| 2026-07-01 | v1.2 | 修正主色为小红书品牌红 `#ff2442`，同步更新主色衍生变量 | - |

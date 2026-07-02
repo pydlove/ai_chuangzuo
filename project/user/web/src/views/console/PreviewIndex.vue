@@ -6,7 +6,7 @@
       </button>
       <h2 class="preview-title-text">预览/导出</h2>
       <div class="preview-header-actions">
-        <button class="action-btn" @click="enterEditMode">
+        <button class="action-btn" @click="goToEditPage">
           编辑正文
         </button>
         <button class="action-btn" @click="copyText">
@@ -229,7 +229,10 @@
 
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+
+const router = useRouter()
 import { CopyOutlined } from '@ant-design/icons-vue'
 import { loadCurrentArticle, saveCurrentArticle, syncArticleToQueue } from '@/utils/articleStorage.js'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES } from '@/utils/articleBlocks.js'
@@ -426,6 +429,12 @@ const loadArticle = () => {
 }
 
 // 编辑态
+const goToEditPage = () => {
+  if (!article.value) return
+  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(article.value))
+  router.push('/console/edit')
+}
+
 const enterEditMode = () => {
   if (!article.value) return
   articleSnapshot.value = JSON.parse(JSON.stringify(article.value))
@@ -924,6 +933,8 @@ onMounted(() => {
   font-size: 20px;
   font-weight: 600;
   color: #1a1a1a;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .preview-header-actions {
@@ -1032,9 +1043,9 @@ onMounted(() => {
   align-items: center;
   gap: 4px;
   padding: 2px 8px;
-  background: #f6ffed;
-  color: #389e0d;
-  border: 1px solid #b7eb8f;
+  background: #fff0f2;
+  color: #ff2442;
+  border: 1px solid #ffccc7;
   border-radius: 10px;
   font-size: 12px;
   font-weight: 500;
