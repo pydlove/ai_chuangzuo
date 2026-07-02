@@ -111,23 +111,29 @@
             :key="s.name"
             class="style-card"
           >
-            <div class="style-card-title">{{ s.name }}</div>
+            <div class="style-card-header">
+              <div class="style-card-title">{{ s.name }}</div>
+              <div
+                v-if="getMarketStatus(s.name)"
+                class="style-card-status"
+                :class="statusClass(s.name)"
+              >
+                {{ getMarketStatus(s.name) }}
+              </div>
+            </div>
             <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
             <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
-            <div v-if="getMarketStatus(s.name)" class="style-card-market-tag">
-              {{ getMarketStatus(s.name) }}
-            </div>
             <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
             <div class="style-card-actions">
-              <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
+              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
               <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
                 {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
               </button>
               <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
               <button
                 v-if="getMarketStatus(s.name) === '审核中'"
-                class="style-action-btn"
+                class="style-action-btn success"
                 @click.stop="simulateApprove(s.name)"
               >模拟通过</button>
               <button
@@ -135,7 +141,7 @@
                 class="style-action-btn"
                 @click.stop="shareStyle(s, 'my')"
               >分享</button>
-              <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(s.name)">删除</button>
+              <button class="style-action-btn danger" @click.stop="deleteStyle(s.name)">删除</button>
             </div>
           </div>
         </div>
@@ -181,25 +187,31 @@
           :key="s.name"
           class="style-card"
         >
-          <div class="style-card-title">{{ s.name }}</div>
+          <div class="style-card-header">
+            <div class="style-card-title">{{ s.name }}</div>
+            <div
+              v-if="getMarketStatus(s.name)"
+              class="style-card-status"
+              :class="statusClass(s.name)"
+            >
+              {{ getMarketStatus(s.name) }}
+            </div>
+          </div>
           <div class="style-card-source">
             {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
           </div>
           <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
-          <div v-if="getMarketStatus(s.name)" class="style-card-market-tag">
-            {{ getMarketStatus(s.name) }}
-          </div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-actions">
-            <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
+            <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
             <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
               {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
             </button>
             <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
             <button
               v-if="getMarketStatus(s.name) === '审核中'"
-              class="style-action-btn"
+              class="style-action-btn success"
               @click.stop="simulateApprove(s.name)"
             >模拟通过</button>
             <button
@@ -207,7 +219,7 @@
               class="style-action-btn"
               @click.stop="shareStyle(s, 'learned')"
             >分享</button>
-            <button class="style-action-btn style-del-btn" @click.stop="deleteLearnedStyle(s.name)">删除</button>
+            <button class="style-action-btn danger" @click.stop="deleteLearnedStyle(s.name)">删除</button>
           </div>
         </div>
       </div>
@@ -679,6 +691,13 @@ const getMarketStatus = (name) => {
   return ''
 }
 
+const statusClass = (name) => {
+  const status = getMarketStatus(name)
+  if (status === '已上架') return 'approved'
+  if (status === '审核中') return 'pending'
+  return ''
+}
+
 const shareStyle = (style, sourceType) => {
   try {
     shareStyleToMarket(style, sourceType)
@@ -813,49 +832,124 @@ const simulateApprove = (name) => {
 
 .style-card {
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 16px;
-  transition: all 0.2s;
+  border: 1px solid #f2f2f2;
+  border-radius: 16px;
+  padding: 20px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.style-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, #ff2442, #ff8a9b);
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 
 .style-card:hover {
-  border-color: #ffd1d9;
-  box-shadow: 0 2px 12px rgba(255, 36, 66, 0.08);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(255, 36, 66, 0.12);
+}
+
+.style-card:hover::before {
+  opacity: 1;
+}
+
+.style-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
 }
 
 .style-card-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: 6px;
+  line-height: 1.4;
+  word-break: break-all;
+}
+
+.style-card-status {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.style-card-status.approved {
+  background: #f6ffed;
+  color: #52c41a;
+}
+
+.style-card-status.pending {
+  background: #fff7e6;
+  color: #fa8c16;
 }
 
 .style-card-desc {
   font-size: 12px;
   color: #8c8c8c;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+.style-card-source {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+
+.style-card-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  font-size: 12px;
+  color: #ff2442;
+  background: #fff0f2;
+  border: 1px solid #ffd1d9;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.style-card-scope::before {
+  content: '#';
+  opacity: 0.7;
 }
 
 .style-card-prompt {
-  font-size: 12px;
-  color: #bfbfbf;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.6;
+  margin-bottom: 14px;
   flex: 1;
-  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .style-prompt-full {
-  font-size: 12px;
+  font-size: 13px;
   color: #595959;
-  line-height: 1.6;
+  line-height: 1.7;
   background: #fafafa;
-  border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
   white-space: pre-line;
 }
 
@@ -867,9 +961,9 @@ const simulateApprove = (name) => {
 
 .style-action-btn {
   padding: 6px 12px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid #e8e8e8;
   background: #fff;
-  border-radius: 6px;
+  border-radius: 8px;
   font-size: 13px;
   color: #595959;
   cursor: pointer;
@@ -879,11 +973,33 @@ const simulateApprove = (name) => {
 .style-action-btn:hover {
   border-color: #ff2442;
   color: #ff2442;
+  background: #fff0f2;
 }
 
-.style-action-btn.style-del-btn:hover {
+.style-action-btn.primary {
+  background: #ff2442;
+  color: #fff;
+  border-color: #ff2442;
+}
+
+.style-action-btn.primary:hover {
+  background: #e61e3a;
+}
+
+.style-action-btn.danger:hover {
   border-color: #ff4d4f;
   color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.style-action-btn.success {
+  background: #f6ffed;
+  color: #52c41a;
+  border-color: #b7eb8f;
+}
+
+.style-action-btn.success:hover {
+  background: #d9f7be;
 }
 
 .style-editor {
@@ -1076,12 +1192,6 @@ const simulateApprove = (name) => {
   text-align: center;
   color: #8c8c8c;
   font-size: 14px;
-}
-
-.style-card-source {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 8px;
 }
 
 .learned-subtabs {
@@ -1277,24 +1387,4 @@ const simulateApprove = (name) => {
   color: #8c8c8c;
 }
 
-.style-card-market-tag {
-  display: inline-block;
-  font-size: 12px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 10px;
-  background: #fff0f2;
-  color: #ff2442;
-  border: 1px solid #ffd1d9;
-}
-
-.style-card-scope {
-  font-size: 12px;
-  color: #1890ff;
-  background: #e6f7ff;
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 8px;
-}
 </style>

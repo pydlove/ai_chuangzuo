@@ -41,6 +41,7 @@ def main():
         page.wait_for_timeout(300)
         card.locator('button:has-text("模拟通过")').click()
         page.wait_for_timeout(300)
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_cards_redesign.png')
 
         # 4. 进入市场页
         page.goto(f'{URL}/console/style-market')
