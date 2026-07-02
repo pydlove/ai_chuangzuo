@@ -193,8 +193,26 @@
       if (pc) pc.style.display = 'flex';
       if (mobile) mobile.style.display = 'flex';
       localStorage.setItem('aichuangzuo_invite_ref', ref);
+      var pcInput = document.getElementById('pc-invite-code-input');
+      var mobileInput = document.getElementById('mobile-invite-code-input');
+      if (pcInput) pcInput.value = ref.toUpperCase();
+      if (mobileInput) mobileInput.value = ref.toUpperCase();
+      bindInviteCodeSync();
+    } else {
+      bindInviteCodeSync();
     }
   });
+
+  function bindInviteCodeSync() {
+    var pcInput = document.getElementById('pc-invite-code-input');
+    var mobileInput = document.getElementById('mobile-invite-code-input');
+    if (!pcInput || !mobileInput) return;
+    function sync(from, to) {
+      return function() { to.value = from.value.toUpperCase(); };
+    }
+    pcInput.addEventListener('input', sync(pcInput, mobileInput));
+    mobileInput.addEventListener('input', sync(mobileInput, pcInput));
+  }
 </script>
 
 </body>
