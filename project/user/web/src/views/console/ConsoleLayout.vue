@@ -43,9 +43,46 @@
             <div class="invite-panel">
               <div class="invite-header">
                 <span class="invite-title">🎁 邀请有礼</span>
+                <a-tooltip title="点击复制 ID">
+                  <button class="invite-user-id" @click="copyUserId">
+                    <span class="invite-user-id-label">我的 ID</span>
+                    <b class="invite-user-id-value">{{ userId }}</b>
+                    <svg class="invite-user-id-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                  </button>
+                </a-tooltip>
               </div>
 
               <div class="invite-content">
+                <!-- 活动规则 -->
+                <div class="invite-rules">
+                  <div class="invite-rules-header">
+                    <span class="invite-rules-title">📌 活动规则</span>
+                    <span class="invite-rules-tag">长期有效</span>
+                  </div>
+                  <div class="invite-rule-item">
+                    <span class="invite-rule-label">🎁 邀请奖励</span>
+                    <span class="invite-rule-text">累计邀请 3 人 +3 天会员、5 人 +5 天，超过 5 人后每多 1 人 +2 天专业版会员。</span>
+                  </div>
+                  <div class="invite-rule-item">
+                    <span class="invite-rule-label">💰 创作币返利</span>
+                    <span class="invite-rule-text">
+                      <u class="invite-rule-underline">推荐新客下单即获得奖励，一次邀请终身享受订单返佣红利</u>。<br>
+                      好友首次购买返 10%，续费返 5%（1 创作币 = 1 元，满 100 可提现至支付宝）。
+                    </span>
+                  </div>
+                  <div class="invite-rule-item">
+                    <span class="invite-rule-label">🌱 新用户福利</span>
+                    <span class="invite-rule-text">新用户通过你的邀请码注册，立刻获得 5 创作币。</span>
+                  </div>
+                  <button class="invite-rules-detail-btn" @click="openInviteRulesDrawer">
+                    <span>查看完整活动规则</span>
+                    <span class="invite-rules-detail-arrow">›</span>
+                  </button>
+                </div>
+
                 <!-- 统计卡片 -->
                 <div class="invite-stats">
                   <div class="invite-stat-item">
@@ -56,9 +93,55 @@
                     <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
                     <div class="invite-stat-label">奖励会员天数</div>
                   </div>
-                  <div class="invite-stat-item">
+                  <div class="invite-stat-item invite-stat-item-coin">
                     <div class="invite-stat-value">{{ coinBalance }}</div>
-                    <div class="invite-stat-label">创作币余额</div>
+                    <div class="invite-stat-label-row">
+                      <a-tooltip placement="top" :mouse-enter-delay="0.1" overlay-class-name="invite-coin-tooltip">
+                        <template #title>
+                          <div class="invite-coin-tooltip-content">
+                            <div class="invite-coin-tooltip-title">💰 创作币说明</div>
+                            <div class="invite-coin-tooltip-desc">
+                              创作币是爱创作推出的虚拟货币，<b>1 创作币 = 1 元人民币</b>。
+                            </div>
+
+                            <div class="invite-coin-tooltip-section">
+                              <div class="invite-coin-tooltip-section-title">如何获得</div>
+                              <ul class="invite-coin-tooltip-list">
+                                <li>邀请好友<b>首次购买</b>会员返佣 <b>10%</b></li>
+                                <li>邀请好友<b>续费</b>会员返佣 <b>5%</b></li>
+                              </ul>
+                            </div>
+
+                            <div class="invite-coin-tooltip-section">
+                              <div class="invite-coin-tooltip-section-title">可用于</div>
+                              <ul class="invite-coin-tooltip-list">
+                                <li>满 100 创作币可申请<b>提现至支付宝</b></li>
+                                <li>后续可用于<b>抵扣会员订阅</b>费用</li>
+                              </ul>
+                            </div>
+                          </div>
+                        </template>
+                        <div class="invite-stat-label invite-stat-label-tooltip">
+                          <span>创作币余额</span>
+                          <svg class="invite-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="16" x2="12" y2="12"/>
+                            <line x1="12" y1="8" x2="12.01" y2="8"/>
+                          </svg>
+                        </div>
+                      </a-tooltip>
+                      <button class="invite-stat-go-withdraw" @click="goToWithdraw">去提现</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 邀请链接 -->
+                <div class="invite-link-card">
+                  <div class="invite-code-label">邀请链接</div>
+                  <div class="invite-link-value">{{ inviteLink }}</div>
+                  <div class="invite-link-actions">
+                    <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
+                    <button class="invite-btn invite-btn-secondary" @click="openPosterModal">下载海报</button>
                   </div>
                 </div>
 
@@ -69,19 +152,6 @@
                     <div class="invite-code-value">{{ inviteCode }}</div>
                   </div>
                   <button class="invite-btn invite-btn-primary" @click="copyInviteCode">复制邀请码</button>
-                </div>
-
-                <!-- 邀请链接 -->
-                <div class="invite-link-card">
-                  <div class="invite-code-label">邀请链接</div>
-                  <div class="invite-link-value">{{ inviteLink }}</div>
-                  <div class="invite-link-actions">
-                    <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
-                    <button class="invite-btn invite-btn-secondary" @click="downloadInvitePoster">下载海报</button>
-                    <button class="invite-btn invite-btn-primary" :disabled="coinBalance < 100" @click="openWithdrawModal">
-                      {{ coinBalance >= 100 ? '申请提现' : '满 100 可提现' }}
-                    </button>
-                  </div>
                 </div>
 
                 <!-- 阶梯奖励 -->
@@ -139,6 +209,59 @@
             </div>
           </a-modal>
 
+          <!-- 邀请活动完整规则抽屉 -->
+          <a-drawer
+            v-model:open="inviteRulesVisible"
+            :width="480"
+            :closable="false"
+            :footer-style="{ padding: 0 }"
+            placement="right"
+            class="invite-rules-drawer"
+          >
+            <div class="invite-rules-detail">
+              <div class="invite-rules-detail-header">
+                <span class="invite-rules-detail-title">活动规则详情</span>
+                <button class="invite-rules-detail-close" @click="inviteRulesVisible = false">×</button>
+              </div>
+
+              <div class="invite-rules-detail-body">
+                <section class="invite-rules-detail-section">
+                  <h4 class="invite-rules-detail-heading">邀请返佣机制</h4>
+                  <div class="invite-rules-detail-callout">
+                    推荐新客下单即获得奖励，<b>一次邀请终身享受订单返佣红利</b>。
+                  </div>
+                  <ul class="invite-rules-detail-list">
+                    <li>通过专属邀请链接或邀请码建立邀请关系，好友注册成功即生效。</li>
+                    <li>累计邀请 3 人奖励 3 天专业版会员；累计邀请 5 人奖励 5 天专业版会员。</li>
+                    <li>超过 5 人后，每多邀请 1 人额外奖励 2 天专业版会员，会员天数可累计叠加。</li>
+                    <li>好友首次购买会员可获 10% 创作币返佣，续费返佣 5%，返佣以创作币形式即时到账。</li>
+                    <li>被邀请的好友通过你的链接首次下单后，该笔订单视为你邀请的返佣订单。</li>
+                  </ul>
+                </section>
+
+                <section class="invite-rules-detail-section">
+                  <h4 class="invite-rules-detail-heading">提现规则</h4>
+                  <ul class="invite-rules-detail-list">
+                    <li>仅付费邀请用户可申请提现，且需至少邀请 3 位付费好友。</li>
+                    <li>创作币余额满 100 即可提现，1 创作币 = 1 元人民币。</li>
+                    <li>提现申请提交后约 1 个工作日审核，预计 7 个工作日内到账。</li>
+                    <li>目前仅支持支付宝提现，请确保支付宝账号和真实姓名与本人一致。</li>
+                    <li>因账号信息错误、账户异常等原因导致的提现失败，平台概不负责。</li>
+                  </ul>
+                </section>
+
+                <section class="invite-rules-detail-section">
+                  <h4 class="invite-rules-detail-heading">声明</h4>
+                  <ul class="invite-rules-detail-list">
+                    <li>根据业务发展和市场环境变化，活动规则可能调整，会通过官方渠道提前通知。</li>
+                    <li>平台保留对违规刷量、虚假邀请、机器注册等行为的处理权。</li>
+                    <li>本活动最终解释权归爱创作所有，如有疑问请联系客服。</li>
+                  </ul>
+                </section>
+              </div>
+            </div>
+          </a-drawer>
+
           <!-- 提现弹框 -->
           <a-modal
             v-model:open="withdrawVisible"
@@ -173,11 +296,63 @@
             </div>
           </a-modal>
 
+          <!-- 海报样式选择弹框 -->
+          <a-modal
+            v-model:open="posterVisible"
+            :footer="null"
+            :width="640"
+            centered
+            class="poster-modal"
+          >
+            <div class="poster-panel">
+              <div class="poster-panel-header">
+                <span class="poster-panel-title">选择海报样式</span>
+                <span class="poster-panel-desc">为不同场景挑一款合适的海报，点击缩略图即可选中</span>
+              </div>
+
+              <div class="poster-grid">
+                <div
+                  v-for="t in posterTemplates"
+                  :key="t.id"
+                  :class="['poster-card', { active: posterSelectedId === t.id }]"
+                  @click="posterSelectedId = t.id"
+                >
+                  <div class="poster-card-canvas-wrap">
+                    <canvas
+                      :ref="el => setPosterPreviewRef(t.id, el)"
+                      :width="120"
+                      :height="160"
+                      class="poster-card-canvas"
+                    ></canvas>
+                  </div>
+                  <div class="poster-card-name">{{ t.name }}</div>
+                  <div class="poster-card-tag">{{ t.tag }}</div>
+                  <div v-if="posterSelectedId === t.id" class="poster-card-check">✓</div>
+                </div>
+              </div>
+
+              <div class="poster-actions">
+                <button class="invite-btn invite-btn-secondary" @click="posterVisible = false">取消</button>
+                <button class="invite-btn invite-btn-primary" @click="downloadSelectedPoster">
+                  下载{{ selectedTemplate?.name }}
+                </button>
+              </div>
+            </div>
+          </a-modal>
+
           <!-- 邀请有礼按钮 -->
           <a-tooltip title="邀请有礼">
             <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
               <span style="font-size: 16px;">🎁</span>
               <span>邀请有礼</span>
+            </button>
+          </a-tooltip>
+
+          <!-- 兑换码按钮 -->
+          <a-tooltip title="兑换码">
+            <button class="console-icon-btn console-invite-btn" @click="openRedeemModal">
+              <span style="font-size: 16px;">🎟️</span>
+              <span>兑换码</span>
             </button>
           </a-tooltip>
 
@@ -490,7 +665,7 @@
       </header>
 
       <!-- 内容区 -->
-      <div class="console-content">
+      <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
         <router-view />
       </div>
 
@@ -678,9 +853,11 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted } from 'vue'
+import { ref, computed, reactive, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import QRCode from 'qrcode'
+import logoUrl from '@/assets/images/common/logo.png'
 import {
   EditOutlined,
   LoadingOutlined,
@@ -691,6 +868,18 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+
+// 处理从提现页面"返回邀请有礼"时自动打开邀请弹框
+watch(
+  () => route.query.openInvite,
+  (val) => {
+    if (val === '1') {
+      openInviteModal()
+      router.replace({ query: {} })
+    }
+  },
+  { immediate: true }
+)
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
@@ -893,12 +1082,17 @@ const COIN_BONUS_NEW_USER = 5
 
 const inviteVisible = ref(false)
 const withdrawVisible = ref(false)
+const inviteRulesVisible = ref(false)
+const posterVisible = ref(false)
+const posterSelectedId = ref('classic-red')
+const posterPreviewRefs = ref({})
 const inviteCode = ref('')
 const coinBalance = ref(0)
 const simulateEmail = ref('')
 const withdrawAmount = ref(null)
 const withdrawAccount = ref('')
 const withdrawName = ref('')
+const userId = ref('88886666')
 
 const inviteStats = ref({
   invitedCount: 0,
@@ -972,11 +1166,323 @@ const calculateMembershipReward = (totalInvited) => {
   return 0
 }
 
+// ---------- 海报样式 ----------
+const posterTemplates = [
+  {
+    id: 'classic-red',
+    name: '品牌红',
+    tag: '热情醒目',
+    background: '#FF2442',
+    accent: '#fff',
+    textPrimary: '#ffffff',
+    textSecondary: 'rgba(255,255,255,0.85)',
+    codeBg: 'rgba(255,255,255,0.18)',
+    codeBorder: 'rgba(255,255,255,0.4)',
+    deco: 'circle',
+    qrBg: '#ffffff',
+    qrFg: '#1a1a1a',
+    logoBg: '#fff'
+  },
+  {
+    id: 'clean-white',
+    name: '简约白',
+    tag: '干净百搭',
+    background: '#ffffff',
+    accent: '#FF2442',
+    textPrimary: '#1a1a1a',
+    textSecondary: '#595959',
+    codeBg: '#fff5f7',
+    codeBorder: '#FF2442',
+    deco: 'line',
+    qrBg: '#ffffff',
+    qrFg: '#1a1a1a',
+    logoBg: 'transparent'
+  },
+  {
+    id: 'dark-premium',
+    name: '深色高级',
+    tag: '沉稳质感',
+    background: '#1a1a2e',
+    accent: '#f5b942',
+    textPrimary: '#ffffff',
+    textSecondary: 'rgba(255,255,255,0.7)',
+    codeBg: 'rgba(245,185,66,0.15)',
+    codeBorder: '#f5b942',
+    deco: 'diamond',
+    qrBg: '#ffffff',
+    qrFg: '#1a1a1a',
+    logoBg: '#fff'
+  },
+  {
+    id: 'fresh-green',
+    name: '清新绿',
+    tag: '自然清新',
+    background: '#07c160',
+    accent: '#fff',
+    textPrimary: '#ffffff',
+    textSecondary: 'rgba(255,255,255,0.85)',
+    codeBg: 'rgba(255,255,255,0.18)',
+    codeBorder: 'rgba(255,255,255,0.4)',
+    deco: 'wave',
+    qrBg: '#ffffff',
+    qrFg: '#1a1a1a',
+    logoBg: '#fff'
+  }
+]
+
+const selectedTemplate = computed(() => {
+  return posterTemplates.find(t => t.id === posterSelectedId.value) || posterTemplates[0]
+})
+
+// 缓存 logo image 元素 + 当前邀请链接对应的 QR code data URL
+let logoImage = null
+let logoAspect = 1210 / 648  // logo.png 原始宽高比 (~1.87:1，长方形)
+const qrCache = new Map()
+
+const loadLogo = () => {
+  if (logoImage) return Promise.resolve(logoImage)
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      logoImage = img
+      if (img.naturalWidth && img.naturalHeight) {
+        logoAspect = img.naturalWidth / img.naturalHeight
+      }
+      resolve(img)
+    }
+    img.onerror = () => resolve(null)
+    img.src = logoUrl
+  })
+}
+
+const buildQrDataUrl = (link) => {
+  if (qrCache.has(link)) return Promise.resolve(qrCache.get(link))
+  return QRCode.toDataURL(link, {
+    errorCorrectionLevel: 'H',
+    margin: 1,
+    width: 320,
+    color: { dark: '#1a1a1a', light: '#ffffff' }
+  }).then(url => {
+    qrCache.set(link, url)
+    return url
+  }).catch(() => null)
+}
+
+const loadQrImage = (dataUrl) => {
+  return new Promise((resolve) => {
+    if (!dataUrl) return resolve(null)
+    const img = new Image()
+    img.onload = () => resolve(img)
+    img.onerror = () => resolve(null)
+    img.src = dataUrl
+  })
+}
+
+const drawPoster = async (canvas, template, code, link) => {
+  const ctx = canvas.getContext('2d')
+  const W = canvas.width
+  const H = canvas.height
+  ctx.clearRect(0, 0, W, H)
+
+  // 背景
+  ctx.fillStyle = template.background
+  ctx.fillRect(0, 0, W, H)
+
+  // 装饰元素
+  if (template.deco === 'circle') {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'
+    ctx.beginPath()
+    ctx.arc(W - 30, 40, 80, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.beginPath()
+    ctx.arc(20, H - 30, 60, 0, Math.PI * 2)
+    ctx.fill()
+  } else if (template.deco === 'line') {
+    ctx.strokeStyle = '#FF2442'
+    ctx.lineWidth = 3
+    ctx.beginPath()
+    ctx.moveTo(0, H * 0.32)
+    ctx.lineTo(W, H * 0.32)
+    ctx.stroke()
+    ctx.strokeStyle = 'rgba(255,36,66,0.15)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < 5; i++) {
+      ctx.beginPath()
+      ctx.moveTo(20, H * 0.5 + i * 14)
+      ctx.lineTo(W - 20, H * 0.5 + i * 14)
+      ctx.stroke()
+    }
+  } else if (template.deco === 'diamond') {
+    ctx.fillStyle = 'rgba(245,185,66,0.1)'
+    ctx.save()
+    ctx.translate(W / 2, H * 0.16)
+    ctx.rotate(Math.PI / 4)
+    ctx.fillRect(-40, -40, 80, 80)
+    ctx.restore()
+    ctx.strokeStyle = 'rgba(245,185,66,0.35)'
+    ctx.lineWidth = 1
+    for (let i = 0; i < 3; i++) {
+      ctx.beginPath()
+      ctx.arc(W / 2, H - 60, 30 + i * 12, 0, Math.PI * 2)
+      ctx.stroke()
+    }
+  } else if (template.deco === 'wave') {
+    ctx.fillStyle = 'rgba(255,255,255,0.08)'
+    ctx.beginPath()
+    ctx.moveTo(0, H * 0.7)
+    ctx.quadraticCurveTo(W * 0.5, H * 0.55, W, H * 0.7)
+    ctx.lineTo(W, H)
+    ctx.lineTo(0, H)
+    ctx.closePath()
+    ctx.fill()
+    ctx.beginPath()
+    ctx.moveTo(0, H * 0.85)
+    ctx.quadraticCurveTo(W * 0.5, H * 0.7, W, H * 0.85)
+    ctx.lineTo(W, H)
+    ctx.lineTo(0, H)
+    ctx.closePath()
+    ctx.fill()
+  }
+
+  // 顶部 logo + 品牌名（按 logo.png 原始长方形比例绘制，不扭曲）
+  const logoHeight = Math.round(W * 0.16)
+  const logoWidth = Math.round(logoHeight * logoAspect)
+  const headerCenterY = H * 0.13
+  if (logoImage) {
+    if (template.logoBg && template.logoBg !== 'transparent') {
+      // 圆角徽章比 logo 四周各留 8px
+      const padX = 12
+      const padY = 8
+      ctx.fillStyle = template.logoBg
+      roundRect(
+        ctx,
+        W / 2 - logoWidth / 2 - padX,
+        headerCenterY - logoHeight / 2 - padY,
+        logoWidth + padX * 2,
+        logoHeight + padY * 2,
+        10
+      )
+      ctx.fill()
+    }
+    ctx.drawImage(
+      logoImage,
+      W / 2 - logoWidth / 2,
+      headerCenterY - logoHeight / 2,
+      logoWidth,
+      logoHeight
+    )
+  }
+
+  ctx.textAlign = 'center'
+  ctx.fillStyle = template.textPrimary
+  ctx.font = `bold ${Math.round(W * 0.075)}px sans-serif`
+  ctx.fillText('爱创作', W / 2, H * 0.27)
+
+  ctx.fillStyle = template.textSecondary
+  ctx.font = `${Math.round(W * 0.038)}px sans-serif`
+  ctx.fillText('邀请你一起 AI 创作', W / 2, H * 0.32)
+
+  // 高亮短语
+  ctx.fillStyle = template.textPrimary
+  ctx.font = `bold ${Math.round(W * 0.052)}px sans-serif`
+  ctx.fillText('一次邀请 终身返佣', W / 2, H * 0.39)
+
+  // 邀请码卡片
+  const cardX = W * 0.12
+  const cardY = H * 0.42
+  const cardW = W * 0.76
+  const cardH = H * 0.13
+  ctx.fillStyle = template.codeBg
+  roundRect(ctx, cardX, cardY, cardW, cardH, 8)
+  ctx.fill()
+  ctx.strokeStyle = template.codeBorder
+  ctx.lineWidth = 2
+  ctx.stroke()
+
+  ctx.fillStyle = template.textSecondary
+  ctx.font = `${Math.round(W * 0.03)}px sans-serif`
+  ctx.fillText('我的邀请码', W / 2, cardY + cardH * 0.38)
+
+  ctx.fillStyle = template.textPrimary
+  ctx.font = `bold ${Math.round(W * 0.07)}px sans-serif`
+  ctx.fillText(code, W / 2, cardY + cardH * 0.82)
+
+  // 二维码区域
+  const qrSize = Math.round(W * 0.34)
+  const qrX = (W - qrSize) / 2
+  const qrY = H * 0.6
+  const qrImg = await loadQrImage(await buildQrDataUrl(link))
+  if (qrImg) {
+    ctx.fillStyle = template.qrBg
+    roundRect(ctx, qrX - 8, qrY - 8, qrSize + 16, qrSize + 16, 10)
+    ctx.fill()
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+  }
+
+  // 底部文案
+  ctx.fillStyle = template.textPrimary
+  ctx.font = `bold ${Math.round(W * 0.04)}px sans-serif`
+  ctx.fillText('扫码 / 输入邀请码 立即加入', W / 2, H * 0.92)
+
+  ctx.fillStyle = template.accent
+  ctx.font = `${Math.round(W * 0.034)}px sans-serif`
+  ctx.fillText('立享专业版会员 + 创作币奖励', W / 2, H * 0.955)
+}
+
+const roundRect = (ctx, x, y, w, h, r) => {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+const renderPosterPreviews = async () => {
+  await loadLogo()
+  const code = inviteCode.value || 'ABC123'
+  const link = inviteLink.value
+  for (const t of posterTemplates) {
+    const canvas = posterPreviewRefs.value[t.id]
+    if (canvas) await drawPoster(canvas, t, code, link)
+  }
+}
+
+const setPosterPreviewRef = (id, el) => {
+  if (el) posterPreviewRefs.value[id] = el
+}
+
+const openPosterModal = () => {
+  posterVisible.value = true
+  // 等 modal 渲染完后再画预览
+  setTimeout(renderPosterPreviews, 50)
+}
+
+const downloadSelectedPoster = async () => {
+  const template = selectedTemplate.value
+  await loadLogo()
+  const canvas = document.createElement('canvas')
+  canvas.width = 750
+  canvas.height = 1000
+  await drawPoster(canvas, template, inviteCode.value, inviteLink.value)
+  const link = document.createElement('a')
+  link.download = `invite-poster-${template.id}.png`
+  link.href = canvas.toDataURL()
+  link.click()
+  message.success(`${template.name} 海报已保存`)
+}
+
 const openInviteModal = () => {
   inviteCode.value = getStoredInviteCode()
   loadInviteStats()
   loadCoinBalance()
   inviteVisible.value = true
+}
+
+const openInviteRulesDrawer = () => {
+  inviteRulesVisible.value = true
 }
 
 const copyInviteCode = () => {
@@ -991,28 +1497,10 @@ const copyInviteLink = () => {
   })
 }
 
-const downloadInvitePoster = () => {
-  const canvas = document.createElement('canvas')
-  canvas.width = 300
-  canvas.height = 400
-  const ctx = canvas.getContext('2d')
-  ctx.fillStyle = '#FF2442'
-  ctx.fillRect(0, 0, canvas.width, canvas.height)
-  ctx.fillStyle = '#fff'
-  ctx.font = 'bold 24px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.fillText('爱创作', canvas.width / 2, 80)
-  ctx.font = '16px sans-serif'
-  ctx.fillText('邀请你一起 AI 创作', canvas.width / 2, 120)
-  ctx.font = 'bold 32px sans-serif'
-  ctx.fillText('邀请码 ' + inviteCode.value, canvas.width / 2, 220)
-  ctx.font = '12px sans-serif'
-  ctx.fillText('扫码或输入邀请码注册', canvas.width / 2, 260)
-  const link = document.createElement('a')
-  link.download = 'invite-poster.png'
-  link.href = canvas.toDataURL()
-  link.click()
-  message.success('海报已保存')
+const copyUserId = () => {
+  navigator.clipboard.writeText(userId.value).then(() => {
+    message.success('ID 已复制')
+  })
 }
 
 const simulateInviteRegister = () => {
@@ -1060,6 +1548,11 @@ const openWithdrawModal = () => {
   withdrawAccount.value = ''
   withdrawName.value = ''
   withdrawVisible.value = true
+}
+
+const goToWithdraw = () => {
+  inviteVisible.value = false
+  router.push('/console/coin')
 }
 
 const submitWithdraw = () => {
@@ -1307,6 +1800,10 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.console-content-hidden {
+  visibility: hidden;
 }
 
 /* 顶部栏 */
@@ -2629,12 +3126,54 @@ body[data-theme="dark"] .password-input:focus {
   color: #1a1a1a;
 }
 
+.invite-user-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: #f8f9fa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-user-id:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.invite-user-id-label {
+  color: #8c8c8c;
+}
+
+.invite-user-id-value {
+  font-family: 'SF Mono', Consolas, Monaco, monospace;
+  font-weight: 700;
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+}
+
+.invite-user-id-copy {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+  color: #bfbfbf;
+  transition: color 0.2s;
+}
+
+.invite-user-id:hover .invite-user-id-copy {
+  color: var(--color-primary);
+}
+
 .invite-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr 1.4fr;
   gap: 12px;
   padding: 16px 20px;
   background: #fff;
+  margin-top: 10px;
 }
 
 .invite-stat-item {
@@ -2655,6 +3194,286 @@ body[data-theme="dark"] .password-input:focus {
   font-size: 12px;
   color: #595959;
   margin-top: 4px;
+}
+
+.invite-stat-label-tooltip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: help;
+  transition: color 0.2s;
+}
+
+.invite-stat-label-tooltip:hover {
+  color: var(--color-primary);
+}
+
+.invite-info-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: #bfbfbf;
+  transition: color 0.2s;
+}
+
+.invite-stat-label-tooltip:hover .invite-info-icon {
+  color: var(--color-primary);
+}
+
+.invite-stat-item-coin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.invite-stat-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.invite-stat-go-withdraw {
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  flex-shrink: 0;
+}
+
+.invite-stat-go-withdraw:hover {
+  background: #e0203b;
+  transform: translateY(-1px);
+}
+
+.invite-stat-go-withdraw:active {
+  transform: translateY(0);
+}
+
+.invite-rules {
+  margin: 12px 20px 0;
+  padding: 14px 16px;
+  background: var(--color-primary-light);
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 36, 66, 0.25);
+}
+
+.invite-rules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 12px;
+  border-bottom: 1px dashed rgba(255, 36, 66, 0.2);
+}
+
+.invite-rules-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.invite-rules-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(255, 36, 66, 0.12);
+  color: var(--color-primary);
+  transform: translateY(-2px);
+}
+
+.invite-rule-item {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+  margin-bottom: 8px;
+}
+
+.invite-rule-item:last-child {
+  margin-bottom: 0;
+}
+
+.invite-rule-label {
+  flex-shrink: 0;
+  font-weight: 600;
+  color: #1a1a1a;
+  min-width: 92px;
+}
+
+.invite-rule-text {
+  flex: 1;
+}
+
+.invite-rule-underline {
+  text-decoration: underline;
+  text-decoration-color: #1a1a1a;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 2px;
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.invite-rules-detail-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #fff;
+  border: 1px solid rgba(255, 36, 66, 0.25);
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-rules-detail-btn:hover {
+  background: var(--color-primary-light);
+  border-color: var(--color-primary);
+}
+
+.invite-rules-detail-arrow {
+  font-size: 18px;
+  line-height: 1;
+  color: var(--color-primary);
+}
+
+/* 完整规则抽屉 */
+.invite-rules-drawer .ant-drawer-body {
+  padding: 0;
+}
+
+.invite-rules-detail {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+}
+
+.invite-rules-detail-header {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invite-rules-detail-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.invite-rules-detail-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  font-size: 22px;
+  line-height: 1;
+  color: #8c8c8c;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.invite-rules-detail-close:hover {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.invite-rules-detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px 24px 28px;
+}
+
+.invite-rules-detail-section + .invite-rules-detail-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px dashed #eee;
+}
+
+.invite-rules-detail-heading {
+  position: relative;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 12px;
+  padding-left: 12px;
+}
+
+.invite-rules-detail-heading::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--color-primary);
+}
+
+.invite-rules-detail-callout {
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: rgba(255, 36, 66, 0.06);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #262626;
+}
+
+.invite-rules-detail-callout b {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+.invite-rules-detail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.invite-rules-detail-list li {
+  position: relative;
+  padding-left: 18px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: #595959;
+}
+
+.invite-rules-detail-list li:last-child {
+  margin-bottom: 0;
+}
+
+.invite-rules-detail-list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
 }
 
 .invite-code-card,
@@ -2708,42 +3527,6 @@ body[data-theme="dark"] .password-input:focus {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-.invite-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.invite-btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-.invite-btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-}
-
-.invite-btn-secondary {
-  background: #fff;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-}
-
-.invite-btn-secondary:hover {
-  background: var(--color-primary-light);
-}
-
-.invite-btn:disabled {
-  background: #f5f5f5;
-  color: #bfbfbf;
-  border-color: #d9d9d9;
-  cursor: not-allowed;
 }
 
 .invite-progress-title {
@@ -2944,6 +3727,152 @@ body[data-theme="dark"] .password-input:focus {
   margin-top: 20px;
 }
 
+/* 海报样式选择弹框 */
+.poster-modal .ant-modal-body {
+  padding: 0;
+}
+
+.poster-panel {
+  padding: 24px 26px 22px;
+}
+
+.poster-panel-header {
+  margin-bottom: 18px;
+}
+
+.poster-panel-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #1f1f1f);
+  margin-bottom: 4px;
+}
+
+.poster-panel-desc {
+  display: block;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.poster-card {
+  position: relative;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  padding: 14px 12px 16px;
+  background: #fafafa;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.poster-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.poster-card.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.18);
+}
+
+.poster-card-canvas-wrap {
+  background: #fff;
+  border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  max-height: 210px;
+}
+
+.poster-card-canvas {
+  max-width: 100%;
+  max-height: 210px;
+  width: auto;
+  height: auto;
+  display: block;
+}
+
+.poster-card-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+
+.poster-card-tag {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 2px;
+}
+
+.poster-card-check {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+}
+
+.poster-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+body[data-theme="dark"] .poster-panel-title {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body[data-theme="dark"] .poster-panel-desc,
+body[data-theme="dark"] .poster-card-tag {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body[data-theme="dark"] .poster-card {
+  background: #262626;
+}
+
+body[data-theme="dark"] .poster-card-canvas-wrap {
+  background: #141414;
+}
+
+body[data-theme="dark"] .poster-card-name {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body[data-theme="dark"] .poster-card.active {
+  background: rgba(255, 36, 66, 0.18);
+}
+
+body[data-theme="dark"] .poster-actions {
+  border-top-color: #303030;
+}
+
 /* 暗色主题 - 邀请有礼 */
 body[data-theme="dark"] .console-invite-btn {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
@@ -2974,9 +3903,103 @@ body[data-theme="dark"] .withdraw-title {
   color: #e0e0e0;
 }
 
+body[data-theme="dark"] .invite-user-id {
+  background: #262626;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .invite-user-id:hover {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: rgba(255, 36, 66, 0.5);
+}
+
+body[data-theme="dark"] .invite-user-id-value {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .invite-user-id:hover .invite-user-id-copy {
+  color: #ff4d6f;
+}
+
 body[data-theme="dark"] .invite-stat-item,
 body[data-theme="dark"] .invite-code-box {
   background: #262626;
+}
+
+body[data-theme="dark"] .invite-rules {
+  background: rgba(255, 36, 66, 0.1);
+  border-color: rgba(255, 36, 66, 0.3);
+}
+
+body[data-theme="dark"] .invite-rules-header {
+  border-bottom-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .invite-rules-tag {
+  background: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .invite-rule-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rule-underline {
+  color: #e0e0e0;
+  text-decoration-color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rules-detail-btn {
+  background: #262626;
+  border-color: rgba(255, 36, 66, 0.35);
+}
+
+body[data-theme="dark"] .invite-rules-detail-btn:hover {
+  background: rgba(255, 36, 66, 0.18);
+}
+
+body[data-theme="dark"] .invite-rules-detail {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .invite-rules-detail-header {
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .invite-rules-detail-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rules-detail-close:hover {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .invite-rules-detail-section + .invite-rules-detail-section {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .invite-rules-detail-list li {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-rules-detail-list li::before {
+  background: #ff4d6f;
+}
+
+body[data-theme="dark"] .invite-rules-detail-heading {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .invite-rules-detail-heading::before {
+  background: #ff4d6f;
+}
+
+body[data-theme="dark"] .invite-rules-detail-callout {
+  background: rgba(255, 36, 66, 0.12);
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rules-detail-callout b {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .invite-stat-label,
@@ -3074,5 +4097,113 @@ body[data-theme="dark"] .invite-btn:disabled {
   .nav-label {
     display: none;
   }
+}
+</style>
+
+<style>
+/* 邀请有礼 - 通用按钮样式（全局，供其他页面复用） */
+.invite-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  line-height: 1.2;
+}
+
+.invite-btn-primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.invite-btn-primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.invite-btn-secondary {
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+}
+
+.invite-btn-secondary:hover {
+  background: var(--color-primary-light);
+}
+
+.invite-btn:disabled {
+  background: #f5f5f5;
+  color: #bfbfbf;
+  cursor: not-allowed;
+  border-color: transparent;
+}
+
+/* 邀请有礼 - 创作币说明 tooltip（全局，因为 a-tooltip 内容渲染到 body） */
+.invite-coin-tooltip .ant-tooltip-inner {
+  max-width: 260px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #262626;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.invite-coin-tooltip .ant-tooltip-arrow::before {
+  background: #fff;
+}
+
+.invite-coin-tooltip-content {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.invite-coin-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.invite-coin-tooltip-desc {
+  margin-bottom: 8px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-desc b {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.invite-coin-tooltip-section + .invite-coin-tooltip-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+
+.invite-coin-tooltip-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.invite-coin-tooltip-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: disc;
+}
+
+.invite-coin-tooltip-list li {
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-list li:last-child {
+  margin-bottom: 0;
 }
 </style>

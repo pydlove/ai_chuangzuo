@@ -60,7 +60,7 @@ cd project/user/web
 npm run dev
 ```
 
-浏览器打开 `http://localhost:5173/console/create`,确认顶部右侧在 🎁 邀请有礼 右侧出现 🎟️ 兑换码 胶囊按钮。
+浏览器打开 `http://localhost:22345/console/create`(若端口被占用,Vite 会自动顺延,以实际启动输出为准),确认顶部右侧在 🎁 邀请有礼 右侧出现 🎟️ 兑换码 胶囊按钮。
 
 - [ ] **Step 3: Commit**
 
@@ -558,7 +558,7 @@ import sys
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
-BASE_URL = "http://localhost:5173"
+BASE_URL = "http://localhost:22345"
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
 
 
@@ -655,7 +655,7 @@ if __name__ == "__main__":
 
 - [ ] **Step 2: 运行测试**
 
-确保 dev server 仍在运行(端口 5173),然后执行:
+确保 dev server 仍在运行(`vite` 默认端口 `22345`,若被占用会顺延,以实际输出为准),然后执行:
 
 ```bash
 python3 tests/e2e/verify_redeem_code.py
@@ -724,4 +724,4 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 ### 已知边界
 
 - 测试脚本会清除 `aichuangzuo_redeem_codes`、`aichuangzuo_redeem_history`、`aichuangzuo_coin_balance`、`aichuangzuo_membership`,避免历史状态干扰
-- 测试要求 dev server 在 `localhost:5173` 运行,与现有其他 e2e 脚本一致
+- 测试要求 dev server 在 `localhost:22345`(或顺延端口)运行,与项目 `vite.config.js` 配置一致
