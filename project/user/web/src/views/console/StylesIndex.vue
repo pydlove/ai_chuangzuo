@@ -283,7 +283,9 @@
           placeholder="例如：我的小红书风"
           maxlength="20"
         />
-        <div v-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
+        <div v-if="learnedNameConflict" class="learned-error">该风格名称已存在</div>
+        <div v-else-if="learnedResult.name.trim().length > 20" class="learned-error">风格名称最多 20 字</div>
+        <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
       </div>
       <div class="learned-result-actions">
         <button class="learned-cancel-btn" @click="closeImportDialog">放弃</button>
@@ -533,6 +535,13 @@ const canSaveLearnedResult = computed(() => {
   if (learnedResult.value.prompt.length > 1000) return false
   if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) return false
   return true
+})
+
+const learnedNameConflict = computed(() => {
+  if (!learnedResult.value) return false
+  const name = learnedResult.value.name.trim()
+  if (!name) return false
+  return isStyleNameExists(name) || isLearnedStyleNameExists(name)
 })
 
 const saveLearnedResult = () => {
