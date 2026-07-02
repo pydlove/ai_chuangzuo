@@ -52,7 +52,15 @@ def main():
         assert '市场测试风格' in page.content()
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_list.png')
 
-        # 4.5 打开收益规则弹框
+        # 4.5 切换本周最热、历史最热 tab
+        page.locator('.style-market-tab:has-text("本周最热")').click()
+        page.wait_for_timeout(300)
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_week_hot.png')
+        page.locator('.style-market-tab:has-text("历史最热")').click()
+        page.wait_for_timeout(300)
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_all_hot.png')
+
+        # 4.6 打开收益规则弹框
         page.locator('.style-market-rules-link').click()
         page.wait_for_timeout(500)
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_rules.png')

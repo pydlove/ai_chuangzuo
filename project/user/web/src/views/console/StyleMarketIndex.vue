@@ -124,7 +124,8 @@ const rulesVisible = ref(false)
 
 const tabOptions = [
   { key: 'all', label: '全部' },
-  { key: 'hot', label: '最热' },
+  { key: 'week-hot', label: '本周最热' },
+  { key: 'all-hot', label: '历史最热' },
   { key: 'new', label: '最新' },
   { key: 'featured', label: '精选' }
 ]
@@ -137,7 +138,9 @@ const approvedStyles = computed(() =>
 
 const filteredStyles = computed(() => {
   let list = approvedStyles.value
-  if (activeTab.value === 'hot') {
+  if (activeTab.value === 'week-hot') {
+    list = [...list].sort((a, b) => b.weeklyUses - a.weeklyUses)
+  } else if (activeTab.value === 'all-hot') {
     list = [...list].sort((a, b) => b.totalUses - a.totalUses)
   } else if (activeTab.value === 'new') {
     list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
