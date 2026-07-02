@@ -475,7 +475,7 @@ const downloadAllCards = () => {
 
 .cards-modal-download-all {
   padding: 10px 20px;
-  background: #07c160;
+  background: #ff2442;
   color: #fff;
   border: none;
   border-radius: 8px;
@@ -486,7 +486,7 @@ const downloadAllCards = () => {
 }
 
 .cards-modal-download-all:hover {
-  background: #06ad56;
+  background: #e61e3a;
 }
 
 .cards-modal-tabs {
@@ -621,24 +621,26 @@ body[data-theme="dark"] .cards-modal-title {
 }
 
 body[data-theme="dark"] .cards-modal-download-all {
-  background: transparent;
-  border-color: #07c160;
-  color: #07c160;
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
 }
 
 body[data-theme="dark"] .cards-modal-download-all:hover {
-  background: rgba(7, 193, 96, 0.15);
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 body[data-theme="dark"] .cards-modal-tab {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #a6a6a6;
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.35);
+  color: #d9d9d9;
 }
 
 body[data-theme="dark"] .cards-modal-tab:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.15);
 }
 
 body[data-theme="dark"] .cards-modal-sub {
