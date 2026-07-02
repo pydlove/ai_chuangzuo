@@ -4250,6 +4250,113 @@ body[data-theme="dark"] .invite-btn:disabled {
   border-color: #404040;
 }
 
+/* ========== 兑换码弹框 ========== */
+.redeem-modal .ant-modal-body {
+  padding: 0;
+}
+
+.redeem-panel {
+  padding: 24px;
+  background: #fff;
+  border-radius: 12px;
+}
+
+.redeem-header {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.redeem-title {
+  display: block;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.redeem-subtitle {
+  display: block;
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.redeem-input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  font-size: 15px;
+  color: #1a1a1a;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+
+.redeem-input::placeholder {
+  text-transform: none;
+  color: #bfbfbf;
+}
+
+.redeem-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.redeem-status {
+  margin-top: 14px;
+  font-size: 13px;
+  text-align: center;
+  min-height: 20px;
+}
+
+.redeem-status.error {
+  color: #ff4d4f;
+}
+
+.redeem-status.success {
+  color: #07c160;
+}
+
+.redeem-submit {
+  width: 100%;
+  margin-top: 14px;
+  padding: 12px;
+  font-size: 15px;
+}
+
+body[data-theme="dark"] .redeem-panel {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .redeem-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .redeem-subtitle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .redeem-input {
+  background: #262626;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .redeem-input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .redeem-status.error {
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .redeem-status.success {
+  color: #10b981;
+}
+
 /* 移动端：侧边栏收拢为图标栏 */
 @media (max-width: 768px) {
   .console-sidebar {
