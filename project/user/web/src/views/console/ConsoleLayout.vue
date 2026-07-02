@@ -11,16 +11,32 @@
         <span class="brand-name">爱创作</span>
       </div>
       <nav class="console-sidebar-nav">
-        <router-link
-          v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
-          class="console-sidebar-item"
-          :class="{ active: isActive(item.path) }"
-        >
-          <component :is="item.icon" class="nav-icon" />
-          <span class="nav-label">{{ item.label }}</span>
-        </router-link>
+        <template v-for="item in navItems" :key="item.path || item.label">
+          <div v-if="item.children" class="console-sidebar-group">
+            <div class="console-sidebar-group-title">
+              <component :is="item.icon" class="nav-icon" />
+              <span>{{ item.label }}</span>
+            </div>
+            <router-link
+              v-for="sub in item.children"
+              :key="sub.path"
+              :to="sub.path"
+              class="console-sidebar-item sub-item"
+              :class="{ active: isActive(sub.path) }"
+            >
+              <span class="nav-label">{{ sub.label }}</span>
+            </router-link>
+          </div>
+          <router-link
+            v-else
+            :to="item.path"
+            class="console-sidebar-item"
+            :class="{ active: isActive(item.path) }"
+          >
+            <component :is="item.icon" class="nav-icon" />
+            <span class="nav-label">{{ item.label }}</span>
+          </router-link>
+        </template>
       </nav>
     </aside>
 
@@ -877,7 +893,8 @@ import {
   LoadingOutlined,
   EyeOutlined,
   FolderOutlined,
-  SmileOutlined
+  SmileOutlined,
+  FireOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -898,7 +915,16 @@ watch(
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/works', label: '我的作品', icon: FolderOutlined },
-  { path: '/console/styles', label: '我的风格', icon: SmileOutlined }
+  {
+    label: '我的风格',
+    icon: SmileOutlined,
+    children: [
+      { path: '/console/styles', label: '我的风格' },
+      { path: '/console/style-market', label: '风格市场' },
+      { path: '/console/earnings', label: '收益明细' }
+    ]
+  },
+  { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined }
 ]
 
 const isActive = (path) => {
@@ -1928,6 +1954,25 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.console-sidebar-group {
+  margin-bottom: 4px;
+}
+
+.console-sidebar-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  color: #595959;
+  font-weight: 500;
+}
+
+.console-sidebar-item.sub-item {
+  padding-left: 44px;
+  font-size: 13px;
 }
 
 .console-sidebar-item {

@@ -50,6 +50,16 @@ const routes = [
         component: () => import('@/views/console/StylesIndex.vue')
       },
       {
+        path: 'style-market',
+        name: 'ConsoleStyleMarket',
+        component: () => import('@/views/console/StyleMarketIndex.vue')
+      },
+      {
+        path: 'earnings',
+        name: 'ConsoleEarnings',
+        component: () => import('@/views/console/EarningsIndex.vue')
+      },
+      {
         path: 'edit',
         name: 'ConsoleEdit',
         component: () => import('@/views/console/EditIndex.vue')
@@ -58,6 +68,16 @@ const routes = [
         path: 'preview',
         name: 'ConsolePreview',
         component: () => import('@/views/console/PreviewIndex.vue')
+      },
+      {
+        path: 'coin',
+        name: 'ConsoleCoin',
+        component: () => import('@/views/console/WithdrawIndex.vue')
+      },
+      {
+        path: 'hot-search',
+        name: 'ConsoleHotSearch',
+        component: () => import('@/views/console/HotSearchIndex.vue')
       }
     ]
   }
