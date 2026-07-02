@@ -15,7 +15,7 @@
               :key="key"
               class="cards-modal-tab"
               :class="{ active: cardsStyle === key }"
-              :style="cardsStyle === key ? { background: cardStyles[key].accent, borderColor: cardStyles[key].accent, color: '#fff' } : {}"
+              :style="cardsStyle === key ? { background: 'var(--color-primary)', borderColor: 'var(--color-primary)', color: '#fff' } : {}"
               @click="cardsStyle = key"
             >
               {{ cardStyles[key].label }}
