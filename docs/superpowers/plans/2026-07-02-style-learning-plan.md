@@ -1185,9 +1185,12 @@ def main():
         page.wait_for_timeout(200)
         assert page.locator('.learned-submit-btn').first.is_disabled()
 
-        # 6. 粘贴足够长的文本
-        page.locator('.learned-textarea').first.fill(SAMPLE_TEXT)
-        page.locator('.learned-source-name, .learned-input').first.fill('测试来源')
+        # 6. 粘贴足够长的文本（粘贴面板含 1 个 textarea 和 2 个 input：来源标题 + 命名占位）
+        textareas = page.locator('.learned-textarea')
+        inputs = page.locator('.learned-input')
+        textareas.first.fill(SAMPLE_TEXT)
+        # 第一个 .learned-input 是「来源标题」
+        inputs.first.fill('测试来源')
         page.wait_for_timeout(200)
         page.locator('.learned-submit-btn').first.click()
 
@@ -1196,8 +1199,9 @@ def main():
         assert '测试来源' in page.locator('.learned-result-title').inner_text()
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_learning_result.png')
 
-        # 8. 输入命名并保存
-        page.locator('.learned-input').last.fill('我的测试风格')
+        # 8. 输入命名并保存（结果页第二个 .learned-input 是「命名」字段）
+        inputs = page.locator('.learned-input')
+        inputs.last.fill('我的测试风格')
         page.wait_for_timeout(200)
         page.locator('button:has-text("保存到风格库")').click()
         page.wait_for_timeout(500)
