@@ -472,11 +472,11 @@
     <div class="publish-confirm-body">
       <p class="publish-confirm-title">确认发布「{{ pendingPublish.style?.name }}」？</p>
       <ol class="publish-confirm-list">
-        <li>发布后将进入平台审核流程，审核通过后其他用户才可在风格市场中发现并使用该风格。</li>
-        <li>审核期间该风格会显示「审核中」状态，你可以随时查看进度。</li>
-        <li>风格被他人使用后，你将按照收益规则获得创作币奖励。</li>
+        <li>发布后将进入<span class="publish-confirm-highlight">平台审核流程</span>，审核通过后其他用户才可在风格市场中发现并使用该风格。</li>
+        <li>审核期间该风格会显示<span class="publish-confirm-highlight">「审核中」</span>状态，你可以随时查看进度。</li>
+        <li>风格被他人使用后，你将按照<span class="publish-confirm-highlight">收益规则</span>获得<span class="publish-confirm-highlight">创作币奖励</span>。</li>
       </ol>
-      <p class="publish-confirm-tip">请确保风格提示词符合平台规范，避免违规内容。</p>
+      <p class="publish-confirm-tip">请确保风格提示词符合<span class="publish-confirm-highlight">平台规范</span>，避免违规内容。</p>
     </div>
     <div class="publish-confirm-actions">
       <button class="publish-confirm-cancel" @click="closePublishConfirm">取消</button>
@@ -1325,6 +1325,13 @@ const simulateApprove = (name) => {
   font-size: 13px;
   color: #8c8c8c;
   margin: 0;
+}
+
+.publish-confirm-highlight {
+  color: #ff2442;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }
 
 .publish-confirm-actions {
