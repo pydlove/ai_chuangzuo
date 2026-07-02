@@ -114,6 +114,9 @@
             <div class="style-card-title">{{ s.name }}</div>
             <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
             <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
+            <div v-if="getMarketStatus(s.name)" class="style-card-market-tag">
+              {{ getMarketStatus(s.name) }}
+            </div>
             <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
             <div class="style-card-actions">
@@ -122,6 +125,16 @@
                 {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
               </button>
               <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
+              <button
+                v-if="getMarketStatus(s.name) === '审核中'"
+                class="style-action-btn"
+                @click.stop="simulateApprove(s.name)"
+              >模拟通过</button>
+              <button
+                v-else-if="!getMarketStatus(s.name)"
+                class="style-action-btn"
+                @click.stop="shareStyle(s, 'my')"
+              >分享</button>
               <button class="style-action-btn style-del-btn" @click.stop="deleteStyle(s.name)">删除</button>
             </div>
           </div>
@@ -173,6 +186,9 @@
             {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
           </div>
           <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
+          <div v-if="getMarketStatus(s.name)" class="style-card-market-tag">
+            {{ getMarketStatus(s.name) }}
+          </div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-actions">
@@ -181,6 +197,16 @@
               {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
             </button>
             <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
+            <button
+              v-if="getMarketStatus(s.name) === '审核中'"
+              class="style-action-btn"
+              @click.stop="simulateApprove(s.name)"
+            >模拟通过</button>
+            <button
+              v-else-if="!getMarketStatus(s.name)"
+              class="style-action-btn"
+              @click.stop="shareStyle(s, 'learned')"
+            >分享</button>
             <button class="style-action-btn style-del-btn" @click.stop="deleteLearnedStyle(s.name)">删除</button>
           </div>
         </div>
@@ -339,6 +365,11 @@ import {
   readDocxAsText,
   updateLearnedStyle
 } from '@/composables/useStyles.js'
+import {
+  marketStyles,
+  shareStyleToMarket,
+  approveMarketStyle
+} from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
 const activeTab = ref('my')
@@ -636,6 +667,31 @@ const saveLearnedResult = () => {
 const deleteLearnedStyle = (name) => {
   if (!confirm('确定要删除「' + name + '」吗？')) return
   removeLearnedStyle(name)
+}
+
+const getMarketStatus = (name) => {
+  const s = marketStyles.value.find(
+    m => m.originalName === name && m.creatorId === localStorage.getItem('aichuangzuo_user_id')
+  )
+  if (!s) return ''
+  if (s.status === 'pending') return '审核中'
+  if (s.status === 'approved') return '已上架'
+  return ''
+}
+
+const shareStyle = (style, sourceType) => {
+  try {
+    shareStyleToMarket(style, sourceType)
+  } catch (err) {
+    alert(err.message)
+  }
+}
+
+const simulateApprove = (name) => {
+  const s = marketStyles.value.find(
+    m => m.originalName === name && m.creatorId === localStorage.getItem('aichuangzuo_user_id')
+  )
+  if (s) approveMarketStyle(s.id)
 }
 </script>
 
@@ -1219,6 +1275,17 @@ const deleteLearnedStyle = (name) => {
 .learned-hint {
   font-size: 12px;
   color: #8c8c8c;
+}
+
+.style-card-market-tag {
+  display: inline-block;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  margin-bottom: 10px;
+  background: #fff0f2;
+  color: #ff2442;
+  border: 1px solid #ffd1d9;
 }
 
 .style-card-scope {
