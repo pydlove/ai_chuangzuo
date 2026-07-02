@@ -208,7 +208,8 @@ const handleSimulate = (s) => {
 
 .style-market-search-input {
   width: 100%;
-  max-width: 400px;
+  min-width: 320px;
+  max-width: 520px;
   height: 44px;
   padding: 0 12px;
   border: 1px solid #d9d9d9;

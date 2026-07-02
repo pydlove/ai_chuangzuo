@@ -7,25 +7,36 @@
       </div>
     </div>
 
-    <div class="styles-tabs">
-      <button
-        :class="['styles-tab', { active: activeTab === 'my' }]"
-        @click="activeTab = 'my'; editorMode = false"
-      >
-        我的风格
-      </button>
-      <button
-        :class="['styles-tab', { active: activeTab === 'learned' }]"
-        @click="activeTab = 'learned'; editorMode = false"
-      >
-        学习的风格
-      </button>
-      <button
-        :class="['styles-tab', { active: activeTab === 'system' }]"
-        @click="activeTab = 'system'; editorMode = false"
-      >
-        系统预设风格
-      </button>
+    <div class="styles-filter-bar">
+      <div class="styles-tabs">
+        <button
+          :class="['styles-tab', { active: activeTab === 'my' }]"
+          @click="activeTab = 'my'; editorMode = false"
+        >
+          我的风格
+        </button>
+        <button
+          :class="['styles-tab', { active: activeTab === 'learned' }]"
+          @click="activeTab = 'learned'; editorMode = false"
+        >
+          学习的风格
+        </button>
+        <button
+          :class="['styles-tab', { active: activeTab === 'system' }]"
+          @click="activeTab = 'system'; editorMode = false"
+        >
+          系统预设风格
+        </button>
+      </div>
+
+      <div class="styles-search">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="styles-search-input"
+          placeholder="搜索风格名或适用范围"
+        />
+      </div>
     </div>
 
     <!-- 我的风格 -->
@@ -96,7 +107,7 @@
       </div>
 
       <div v-else>
-        <div v-if="myStyles.length === 0" class="styles-empty">
+        <div v-if="filteredMyStyles.length === 0" class="styles-empty">
           <div class="style-add-card" @click="goToCreate">
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的风格</div>
@@ -108,7 +119,7 @@
             <div class="style-add-text">新建我的风格</div>
           </div>
           <div
-            v-for="s in myStyles"
+            v-for="s in filteredMyStyles"
             :key="s.name"
             class="style-card"
           >
@@ -158,9 +169,12 @@
 
     <!-- 系统预设 -->
     <div v-show="activeTab === 'system'" class="styles-content">
-      <div class="styles-grid">
+      <div v-if="filteredSystemStyles.length === 0" class="styles-empty">
+        没有找到匹配的系统预设风格
+      </div>
+      <div v-else class="styles-grid">
         <div
-          v-for="s in systemStyles"
+          v-for="s in filteredSystemStyles"
           :key="s.name"
           class="style-card"
         >
@@ -183,7 +197,7 @@
       <div class="learned-banner">
         上传或粘贴一篇文章，AI 会分析它的写作风格并保存为「我的风格」
       </div>
-      <div v-if="learnedStyles.length === 0" class="styles-grid">
+      <div v-if="filteredLearnedStyles.length === 0" class="styles-grid">
         <div class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新风格</div>
@@ -195,7 +209,7 @@
           <div class="style-add-text">学习新风格</div>
         </div>
         <div
-          v-for="s in learnedStyles"
+          v-for="s in filteredLearnedStyles"
           :key="s.name"
           class="style-card"
         >
@@ -404,6 +418,32 @@ import {
 
 const router = useRouter()
 const activeTab = ref('my')
+const searchQuery = ref('')
+
+const filterText = (s) => {
+  const q = searchQuery.value.trim().toLowerCase()
+  if (!q) return true
+  return (
+    s.name.toLowerCase().includes(q) ||
+    (s.scope && s.scope.toLowerCase().includes(q)) ||
+    (s.prompt && s.prompt.toLowerCase().includes(q))
+  )
+}
+
+const filteredMyStyles = computed(() => myStyles.value.filter(filterText))
+const filteredLearnedStyles = computed(() => learnedStyles.value.filter(filterText))
+const filteredSystemStyles = computed(() =>
+  systemStyles.filter(s => {
+    const q = searchQuery.value.trim().toLowerCase()
+    if (!q) return true
+    return (
+      s.name.toLowerCase().includes(q) ||
+      (s.desc && s.desc.toLowerCase().includes(q)) ||
+      (s.promptSummary && s.promptSummary.toLowerCase().includes(q)) ||
+      (s.prompt && s.prompt.toLowerCase().includes(q))
+    )
+  })
+)
 
 // 导入对话框状态
 const importDialogVisible = ref(false)
@@ -757,13 +797,22 @@ const simulateApprove = (name) => {
   margin: 0;
 }
 
+.styles-filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
 .styles-tabs {
   display: flex;
+  align-items: center;
   gap: 4px;
   background: #f5f5f5;
   padding: 4px;
   border-radius: 8px;
-  margin-bottom: 20px;
+  height: 44px;
   width: fit-content;
 }
 
@@ -774,6 +823,7 @@ const simulateApprove = (name) => {
   border-radius: 6px;
   font-size: 14px;
   font-weight: 500;
+  line-height: 1;
   color: #595959;
   cursor: pointer;
   transition: all 0.2s;
@@ -783,6 +833,28 @@ const simulateApprove = (name) => {
   background: #fff;
   color: #1a1a1a;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.styles-search {
+  display: flex;
+  align-items: center;
+}
+
+.styles-search-input {
+  width: 100%;
+  min-width: 280px;
+  max-width: 480px;
+  height: 44px;
+  padding: 0 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.styles-search-input:focus {
+  outline: none;
+  border-color: #ff2442;
 }
 
 .styles-empty {
