@@ -64,6 +64,7 @@ export const addCustomStyle = (style) => {
     name: style.name.trim(),
     desc: style.desc || '自定义风格',
     prompt: style.prompt.trim(),
+    scope: (style.scope || '').trim(),
     count: 0
   })
 }
@@ -75,7 +76,11 @@ export const updateCustomStyle = (oldName, style) => {
       ...myStyles.value[idx],
       name: style.name.trim(),
       desc: style.desc || '自定义风格',
-      prompt: style.prompt.trim()
+      prompt: style.prompt.trim(),
+      scope: (style.scope || '').trim()
+    }
+    if (currentStyle.value && currentStyle.value.name === oldName) {
+      currentStyle.value = myStyles.value[idx]
     }
   }
 }

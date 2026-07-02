@@ -466,6 +466,16 @@
             ></textarea>
             <div class="style-editor-hint">提示词会作为系统提示的一部分影响生成结果。</div>
           </div>
+          <div class="style-editor-field">
+            <label class="style-editor-label">适用范围 <span class="required">*</span></label>
+            <input
+              v-model="editingStyle.scope"
+              type="text"
+              class="style-editor-input"
+              placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
+              maxlength="50"
+            />
+          </div>
           <div class="style-editor-presets">
             <div class="style-editor-preset-label">快速填充模板：</div>
             <div class="style-editor-preset-list">
@@ -536,6 +546,7 @@
             >
               <div class="style-card-title">{{ m.name }}</div>
               <div class="style-card-desc">{{ m.desc }} · 已用 {{ m.count }} 次</div>
+              <div v-if="m.scope" class="style-card-scope">适用：{{ m.scope }}</div>
               <div class="style-prompt-toggle" @click.stop="togglePrompt(idx)">
                 {{ expandedPromptIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
               </div>
@@ -916,16 +927,16 @@ const selectWordCount = (wc) => {
 }
 
 // 风格
-const styleTab = ref('system')
+const styleTab = ref('my')
 const styleVisible = ref(false)
 const selectedStyleName = ref(null)
 const expandedPromptIdx = ref(null)
 const expandedLearnedIdx = ref(null)
 const createStyleMode = ref(false)
-const editingStyle = reactive({ originalName: '', name: '', prompt: '', isEdit: false })
+const editingStyle = reactive({ originalName: '', name: '', prompt: '', scope: '', isEdit: false })
 
 const openStyleModal = () => {
-  styleTab.value = 'system'
+  styleTab.value = 'my'
   selectedStyleName.value = null
   expandedPromptIdx.value = null
   createStyleMode.value = false
@@ -952,6 +963,7 @@ const goToCreateStyle = () => {
   editingStyle.originalName = ''
   editingStyle.name = ''
   editingStyle.prompt = ''
+  editingStyle.scope = ''
 }
 
 const goToEditStyle = (style) => {
@@ -960,6 +972,7 @@ const goToEditStyle = (style) => {
   editingStyle.originalName = style.name
   editingStyle.name = style.name
   editingStyle.prompt = style.prompt
+  editingStyle.scope = style.scope || ''
 }
 
 const goBackToList = () => {
@@ -967,17 +980,22 @@ const goBackToList = () => {
 }
 
 const saveStyle = () => {
-  if (!editingStyle.name.trim() || !editingStyle.prompt.trim()) return
-  if (editingStyle.name.trim().length > 20 || editingStyle.prompt.trim().length > 1000) return
+  const name = editingStyle.name.trim()
+  const prompt = editingStyle.prompt.trim()
+  const scope = editingStyle.scope.trim()
+  if (!name || !prompt || !scope) return
+  if (name.length > 20 || prompt.length > 1000 || scope.length > 50) return
   if (editingStyle.isEdit) {
     updateCustomStyle(editingStyle.originalName, {
-      name: editingStyle.name,
-      prompt: editingStyle.prompt
+      name,
+      prompt,
+      scope
     })
   } else {
     addCustomStyle({
-      name: editingStyle.name,
-      prompt: editingStyle.prompt
+      name,
+      prompt,
+      scope
     })
   }
   createStyleMode.value = false

@@ -60,6 +60,17 @@
             </div>
             <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
           </div>
+          <div class="style-editor-field">
+            <label class="style-editor-label">适用范围 <span class="required">*</span></label>
+            <input
+              v-model="editingStyle.scope"
+              type="text"
+              class="style-editor-input"
+              placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
+              maxlength="50"
+            />
+            <div v-if="errors.scope" class="style-editor-error">{{ errors.scope }}</div>
+          </div>
           <div class="style-editor-presets">
             <div class="style-editor-preset-label">快速填充模板：</div>
             <div class="style-editor-preset-list">
@@ -102,6 +113,7 @@
           >
             <div class="style-card-title">{{ s.name }}</div>
             <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
+            <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
             <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
             <div class="style-card-actions">
@@ -348,12 +360,14 @@ const expandedNames = ref(new Set())
 const editingStyle = reactive({
   originalName: '',
   name: '',
-  prompt: ''
+  prompt: '',
+  scope: ''
 })
 
 const errors = reactive({
   name: '',
-  prompt: ''
+  prompt: '',
+  scope: ''
 })
 
 const promptSummary = (prompt) => {
@@ -374,9 +388,11 @@ const togglePrompt = (name) => {
 const validate = () => {
   errors.name = ''
   errors.prompt = ''
+  errors.scope = ''
 
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
+  const scope = editingStyle.scope.trim()
   let valid = true
 
   if (!name) {
@@ -398,21 +414,32 @@ const validate = () => {
     valid = false
   }
 
+  if (!scope) {
+    errors.scope = '请输入适用范围'
+    valid = false
+  } else if (scope.length > 50) {
+    errors.scope = '适用范围最多 50 字'
+    valid = false
+  }
+
   return valid
 }
 
 const isFormValid = computed(() => {
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
-  return name && name.length <= 20 && prompt && prompt.length <= 1000 && !isStyleNameExists(name, editingStyle.originalName)
+  const scope = editingStyle.scope.trim()
+  return name && name.length <= 20 && prompt && prompt.length <= 1000 && scope && scope.length <= 50 && !isStyleNameExists(name, editingStyle.originalName)
 })
 
 const goToCreate = () => {
   editingStyle.originalName = ''
   editingStyle.name = ''
   editingStyle.prompt = ''
+  editingStyle.scope = ''
   errors.name = ''
   errors.prompt = ''
+  errors.scope = ''
   editorMode.value = true
 }
 
@@ -420,8 +447,10 @@ const goToEdit = (style) => {
   editingStyle.originalName = style.name
   editingStyle.name = style.name
   editingStyle.prompt = style.prompt
+  editingStyle.scope = style.scope || ''
   errors.name = ''
   errors.prompt = ''
+  errors.scope = ''
   editorMode.value = true
 }
 
@@ -434,12 +463,14 @@ const saveStyle = () => {
   if (editingStyle.originalName) {
     updateCustomStyle(editingStyle.originalName, {
       name: editingStyle.name,
-      prompt: editingStyle.prompt
+      prompt: editingStyle.prompt,
+      scope: editingStyle.scope
     })
   } else {
     addCustomStyle({
       name: editingStyle.name,
-      prompt: editingStyle.prompt
+      prompt: editingStyle.prompt,
+      scope: editingStyle.scope
     })
   }
   editorMode.value = false

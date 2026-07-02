@@ -28,22 +28,30 @@ def main():
         # 4. 新建风格
         page.locator('button:has-text("去创建一个")').click()
         page.wait_for_timeout(300)
-        page.locator('.style-editor-input').fill('测试风格')
+        inputs = page.locator('.style-editor-input')
+        inputs.nth(0).fill('测试风格')
         page.locator('.style-editor-textarea').fill('这是一段测试风格提示词，语气轻松活泼。')
+        inputs.nth(1).fill('公众号情感文')
         page.locator('.style-editor-form button:has-text("保存")').click()
         page.wait_for_timeout(300)
 
         cards = page.locator('.styles-content:visible .style-card')
         assert cards.count() == 1, f'Expected 1 custom style, got {cards.count()}'
-        assert '测试风格' in cards.first.inner_text()
+        card_text = cards.first.inner_text()
+        assert '测试风格' in card_text
+        assert '适用：公众号情感文' in card_text
 
         # 5. 编辑风格
         page.locator('button:has-text("编辑")').click()
         page.wait_for_timeout(300)
         page.locator('.style-editor-textarea').fill('已更新的测试风格提示词。')
+        inputs = page.locator('.style-editor-input')
+        inputs.nth(1).fill('小红书种草')
         page.locator('.style-editor-form button:has-text("保存")').click()
         page.wait_for_timeout(300)
-        assert '已更新' in cards.first.inner_text()
+        card_text = cards.first.inner_text()
+        assert '已更新' in card_text
+        assert '适用：小红书种草' in card_text
 
         # 6. 删除风格
         page.locator('button:has-text("删除")').click()
