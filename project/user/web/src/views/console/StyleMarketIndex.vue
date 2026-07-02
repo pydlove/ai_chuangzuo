@@ -62,22 +62,23 @@
           </button>
           <button
             :class="['style-market-favorite-btn', { active: isFavorite(s.id) }]"
+            :title="isFavorite(s.id) ? '已收藏' : '收藏'"
             @click="toggleFavorite(s.id)"
           >
-            {{ isFavorite(s.id) ? '已收藏' : '收藏' }}
+            {{ isFavorite(s.id) ? '♥' : '♡' }}
           </button>
           <button
             class="style-market-simulate-btn"
             @click="togglePrompt(s.id)"
           >
-            {{ expandedIds.has(s.id) ? '收起' : '查看完整提示词' }}
+            {{ expandedIds.has(s.id) ? '收起' : '查看' }}
           </button>
           <button
             v-if="s.creatorId === currentUserId"
             class="style-market-simulate-btn"
             @click="handleSimulate(s)"
           >
-            模拟他人使用
+            模拟
           </button>
         </div>
       </div>
@@ -455,14 +456,19 @@ const handleSimulate = (s) => {
 }
 
 .style-market-favorite-btn {
-  padding: 10px 16px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: #fff;
   border: 1px solid #e8e8e8;
   border-radius: 10px;
-  font-size: 14px;
-  color: #595959;
+  font-size: 20px;
+  color: #8c8c8c;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .style-market-favorite-btn:hover {
