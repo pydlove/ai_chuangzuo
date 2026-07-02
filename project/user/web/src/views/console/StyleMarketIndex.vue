@@ -38,12 +38,17 @@
         :key="s.id"
         class="style-market-card"
       >
-        <div class="style-market-card-title">{{ s.name }}</div>
-        <div class="style-market-card-creator">by {{ s.creatorName }}</div>
-        <div v-if="s.scope" class="style-market-card-scope">适用：{{ s.scope }}</div>
+        <div class="style-market-card-head">
+          <div class="style-market-card-avatar">{{ s.name.charAt(0) }}</div>
+          <div class="style-market-card-title-wrap">
+            <div class="style-market-card-title">{{ s.name }}</div>
+            <div class="style-market-card-creator">by {{ s.creatorName }}</div>
+          </div>
+        </div>
+        <div v-if="s.scope" class="style-market-card-scope">{{ s.scope }}</div>
         <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
         <div class="style-market-card-stats">
-          <span>本周 {{ s.weeklyUses }} 次</span>
+          <span>🔥 本周 {{ s.weeklyUses }} 次</span>
           <span>累计 {{ s.totalUses }} 次</span>
         </div>
         <div class="style-market-card-actions">
@@ -205,74 +210,123 @@ const handleSimulate = (s) => {
 
 .style-market-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
 }
 
 .style-market-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.style-market-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(255, 36, 66, 0.13);
+}
+
+.style-market-card-head {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.style-market-card-avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff2442, #ff8a9b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.style-market-card-title-wrap {
+  flex: 1;
+  min-width: 0;
 }
 
 .style-market-card-title {
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 4px;
+  line-height: 1.35;
+  word-break: break-all;
 }
 
 .style-market-card-creator {
   font-size: 12px;
   color: #8c8c8c;
-  margin-bottom: 8px;
 }
 
 .style-market-card-scope {
-  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  font-size: 13px;
   color: #ff2442;
   background: #fff0f2;
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  border: 1px solid #ffd1d9;
+  padding: 4px 12px;
+  border-radius: 20px;
+  margin-bottom: 14px;
+}
+
+.style-market-card-scope::before {
+  content: '#';
+  opacity: 0.7;
 }
 
 .style-market-card-prompt {
-  font-size: 12px;
+  font-size: 14px;
   color: #595959;
-  line-height: 1.5;
-  margin-bottom: 12px;
+  line-height: 1.7;
+  margin-bottom: 16px;
   flex: 1;
-  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .style-market-card-stats {
   display: flex;
-  gap: 12px;
-  font-size: 12px;
+  gap: 16px;
+  font-size: 13px;
   color: #8c8c8c;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .style-market-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .style-market-use-btn {
   flex: 1;
-  padding: 8px 16px;
+  padding: 10px 18px;
   background: #ff2442;
   color: #fff;
   border: none;
-  border-radius: 6px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
+  transition: background 0.2s;
 }
 
 .style-market-use-btn:hover {
@@ -285,17 +339,19 @@ const handleSimulate = (s) => {
 }
 
 .style-market-simulate-btn {
-  padding: 8px 12px;
+  padding: 10px 16px;
   background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  font-size: 13px;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  font-size: 14px;
   color: #595959;
   cursor: pointer;
+  transition: all 0.2s;
 }
 
 .style-market-simulate-btn:hover {
   border-color: #ff2442;
   color: #ff2442;
+  background: #fff0f2;
 }
 </style>
