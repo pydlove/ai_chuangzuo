@@ -135,6 +135,28 @@
           />
         </div>
 
+        <!-- 邀请 banner（仅 ref 存在时显示） -->
+        <a-alert
+          v-if="showInviteBanner"
+          message="你收到了好友的邀请，注册并完成邮箱验证后可获得 5 个创作币。"
+          type="success"
+          show-icon
+          class="invite-banner"
+        />
+
+        <div class="form-item">
+          <label class="form-label">
+            邀请码 <span class="form-label-optional">（选填）</span>
+          </label>
+          <input
+            v-model="registerForm.inviteCode"
+            type="text"
+            class="form-input"
+            placeholder="如没有可留空"
+            maxlength="6"
+          />
+        </div>
+
         <button class="submit-btn" @click="handleRegister">注册</button>
       </div>
     </div>
@@ -352,6 +374,16 @@ generateCaptcha()
   font-size: 14px;
   color: #262626;
   font-weight: 500;
+}
+
+.form-label-optional {
+  color: #8c8c8c;
+  font-weight: 400;
+}
+
+.invite-banner {
+  margin-bottom: 16px;
+  border-radius: 8px;
 }
 
 .form-input {
