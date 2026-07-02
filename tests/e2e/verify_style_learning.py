@@ -65,6 +65,9 @@ def main():
         inputs = page.locator('.learned-input')
         inputs.last.fill('我的测试风格')
         page.wait_for_timeout(200)
+        # 至少选一个 scope
+        page.locator('.learned-scope-chip:has-text("公众号")').first.click()
+        page.wait_for_timeout(200)
         page.locator('button:has-text("保存到风格库")').click()
         page.wait_for_timeout(500)
 

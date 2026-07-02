@@ -567,6 +567,9 @@
           >
             <div class="style-card-title">{{ l.name }}</div>
             <div class="style-card-desc">来源：{{ l.sourceName }} · {{ l.sourceType.toUpperCase() }}</div>
+            <div v-if="l.scopes && l.scopes.length" class="style-card-scopes">
+              <span v-for="sc in l.scopes" :key="sc" class="scope-tag">{{ sc }}</span>
+            </div>
             <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
               {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
             </div>
@@ -2768,6 +2771,23 @@ const clearForm = () => {
   font-size: 12px;
   color: #8c8c8c;
   margin-bottom: 8px;
+}
+
+.style-card-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.scope-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e6f7ff;
+  color: #1890ff;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .style-card-prompt {

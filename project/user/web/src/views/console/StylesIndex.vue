@@ -160,6 +160,9 @@
           <div class="style-card-source">
             来源：{{ s.sourceName }} · {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
           </div>
+          <div v-if="s.scopes && s.scopes.length" class="style-card-scopes">
+            <span v-for="sc in s.scopes" :key="sc" class="scope-tag">{{ sc }}</span>
+          </div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-actions">
@@ -275,6 +278,19 @@
         <div class="learned-excerpt">② {{ learnedResult.excerpt2 }}</div>
       </div>
       <div class="learned-result-field">
+        <label class="learned-result-label">适用范围 <span class="required">*</span></label>
+        <div class="learned-scopes">
+          <button
+            v-for="scene in scenePresets"
+            :key="scene"
+            type="button"
+            :class="['learned-scope-chip', { active: learnedResult.scopes.includes(scene) }]"
+            @click="toggleScope(scene)"
+          >{{ scene }}</button>
+        </div>
+        <div v-if="learnedResult.scopes.length === 0" class="learned-hint">至少选择一个适用场景</div>
+      </div>
+      <div class="learned-result-field">
         <label class="learned-result-label">命名 <span class="required">*</span></label>
         <input
           v-model="learnedResult.name"
@@ -318,7 +334,8 @@ import {
   addLearnedStyle,
   isLearning,
   readFileAsText,
-  readDocxAsText
+  readDocxAsText,
+  SCENE_PRESETS
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
@@ -525,7 +542,7 @@ const runAnalysis = async (text, sourceName, sourceType) => {
     }
     return
   }
-  learnedResult.value = { ...tempResult, name: '' }
+  learnedResult.value = { ...tempResult, name: tempResult.sourceName }
 }
 
 const canSaveLearnedResult = computed(() => {
@@ -533,9 +550,23 @@ const canSaveLearnedResult = computed(() => {
   const name = learnedResult.value.name.trim()
   if (!name || name.length > 20) return false
   if (learnedResult.value.prompt.length > 1000) return false
+  if (!learnedResult.value.scopes || learnedResult.value.scopes.length === 0) return false
   if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) return false
   return true
 })
+
+const scenePresets = SCENE_PRESETS
+
+const toggleScope = (scene) => {
+  if (!learnedResult.value) return
+  const list = learnedResult.value.scopes
+  const idx = list.indexOf(scene)
+  if (idx > -1) {
+    list.splice(idx, 1)
+  } else {
+    list.push(scene)
+  }
+}
 
 const learnedNameConflict = computed(() => {
   if (!learnedResult.value) return false
@@ -1144,5 +1175,55 @@ const deleteLearnedStyle = (name) => {
   font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
+}
+
+.learned-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.learned-scope-chip {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 16px;
+  background: #fff;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.learned-scope-chip:hover {
+  border-color: #07c160;
+  color: #07c160;
+}
+
+.learned-scope-chip.active {
+  background: #07c160;
+  border-color: #07c160;
+  color: #fff;
+}
+
+.learned-hint {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.style-card-scopes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.scope-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e6f7ff;
+  color: #1890ff;
+  border-radius: 10px;
+  font-size: 11px;
+  line-height: 1.5;
 }
 </style>
