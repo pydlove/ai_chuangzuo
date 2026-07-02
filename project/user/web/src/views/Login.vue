@@ -10,12 +10,48 @@
     <header class="login-nav">
       <div class="nav-brand" @click="$router.push('/')">
         <img
-          src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png"
+          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
           alt="爱创作"
           class="nav-logo"
         />
         <span class="nav-brand-name">爱创作</span>
       </div>
+      <button
+        class="theme-toggle"
+        :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
+        @click="toggleTheme"
+      >
+        <svg
+          v-if="currentTheme === 'light'"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+        </svg>
+        <svg
+          v-else
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        >
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+        </svg>
+      </button>
     </header>
 
     <!-- 登录卡片 -->
@@ -192,6 +228,23 @@ import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserC
 
 const router = useRouter()
 
+// ---------- 主题切换 ----------
+const THEME_KEY = 'aichuangzuo_theme'
+const currentTheme = ref('light')
+
+const toggleTheme = () => {
+  const next = currentTheme.value === 'light' ? 'dark' : 'light'
+  currentTheme.value = next
+  document.body.setAttribute('data-theme', next)
+  localStorage.setItem(THEME_KEY, next)
+}
+
+const loadTheme = () => {
+  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  currentTheme.value = saved
+  document.body.setAttribute('data-theme', saved)
+}
+
 const activeTab = ref('login')
 const showInviteBanner = ref(false)
 
@@ -276,15 +329,14 @@ const handleRegister = async () => {
 generateCaptcha()
 
 onMounted(() => {
+  loadTheme()
   const ref = getRefFromUrl()
   if (ref) {
     setStoredRef(ref)
     registerForm.inviteCode = ref
     showInviteBanner.value = true
-    // 带邀请链接访问时默认展示注册 tab
     activeTab.value = 'register'
   } else if (getStoredRef()) {
-    // localStorage 残留 ref（用户刷新页面），banner 仍显示
     showInviteBanner.value = true
     activeTab.value = 'register'
   }
@@ -340,6 +392,34 @@ onMounted(() => {
   position: relative;
   z-index: 1;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #FFF5F7;
+  color: #FF2442;
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .nav-brand {
@@ -583,5 +663,133 @@ onMounted(() => {
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* ========== 暗色主题 ========== */
+body[data-theme="dark"] .login-page {
+  background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+}
+
+body[data-theme="dark"] .bg-circle {
+  background: rgba(255, 36, 66, 0.05);
+}
+
+body[data-theme="dark"] .login-nav {
+  background: rgba(31, 31, 31, 0.9);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body[data-theme="dark"] .nav-brand-name {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .theme-toggle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .login-card {
+  background: #1f1f1f;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .auth-tabs {
+  background: #262626;
+}
+
+body[data-theme="dark"] .auth-tab {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .auth-tab.active {
+  background: #1f1f1f;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-title,
+body[data-theme="dark"] .form-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-subtitle,
+body[data-theme="dark"] .form-label-optional,
+body[data-theme="dark"] .forgot-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .forgot-link:hover {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .form-input {
+  background: #262626;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-input:focus {
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .form-input::placeholder {
+  color: #666;
+}
+
+body[data-theme="dark"] .captcha-box {
+  background: linear-gradient(135deg, #2a1a1d 0%, #1f1f1f 100%);
+  border-color: rgba(255, 77, 111, 0.4);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .code-btn {
+  background: #1f1f1f;
+  border-color: #ff4d6f;
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .code-btn:hover:not(:disabled) {
+  background: #ff4d6f;
+  color: #fff;
+}
+
+body[data-theme="dark"] .code-btn:disabled {
+  border-color: #404040;
+  color: #666;
+}
+
+body[data-theme="dark"] .submit-btn {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .submit-btn:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .login-footer {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .login-footer span + span::before {
+  color: #303030;
+}
+
+body[data-theme="dark"] .invite-banner {
+  background: rgba(255, 36, 66, 0.12) !important;
+  border-color: rgba(255, 77, 111, 0.4) !important;
+}
+
+body[data-theme="dark"] .invite-banner :deep(.ant-alert-message) {
+  color: #e0e0e0 !important;
+}
+
+body[data-theme="dark"] .invite-coin-trigger {
+  color: #ff4d6f;
 }
 </style>

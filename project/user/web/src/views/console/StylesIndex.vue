@@ -162,7 +162,7 @@
             <div v-if="s.scope" class="style-card-scope-list">
               <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
             </div>
-            <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+            <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
             <div class="style-card-footer">
               <div class="style-card-actions">
@@ -199,15 +199,24 @@
           :key="s.name"
           class="style-card"
         >
-          <div class="style-card-title">{{ s.name }}</div>
-          <div class="style-card-desc">{{ s.desc }}</div>
-          <div class="style-card-prompt">{{ s.promptSummary }}</div>
-          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-          <div class="style-card-actions">
-            <button class="style-action-btn" @click.stop="useStyle(s)">使用</button>
-            <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-              {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
-            </button>
+          <div class="style-card-head">
+            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ s.name }}</div>
+              </div>
+              <div class="style-card-meta">{{ s.desc }}</div>
+            </div>
+          </div>
+          <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ s.promptSummary }}</div>
+          <div v-if="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
+          <div class="style-card-footer">
+            <div class="style-card-actions">
+              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
+              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+                {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -256,7 +265,7 @@
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
           </div>
-          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+          <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-footer">
             <div class="style-card-actions">
@@ -284,7 +293,7 @@
     <!-- 收藏的风格 -->
     <div v-show="activeTab === 'favorites'" class="styles-content">
       <div v-if="favoriteStyles.length === 0" class="styles-empty">
-        还没有收藏的风格，去风格市场看看吧
+        <span class="styles-empty-tip">还没有收藏的风格，去风格市场看看吧</span>
       </div>
       <div v-else class="styles-grid">
         <div
@@ -305,7 +314,7 @@
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
           </div>
-          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
+          <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-footer">
             <div class="style-card-actions">
@@ -1053,6 +1062,15 @@ const simulateApprove = (name) => {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: 24px;
+}
+
+.styles-empty-tip {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 60px 20px;
+  color: #ff2442;
+  font-size: 15px;
+  font-weight: 500;
 }
 
 .styles-grid {
@@ -1844,6 +1862,10 @@ body[data-theme="dark"] .styles-empty {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .styles-empty-tip {
+  color: var(--color-primary);
+}
+
 body[data-theme="dark"] .styles-empty,
 body[data-theme="dark"] .styles-empty .style-add-card {
   background-color: #141414 !important;
@@ -1901,7 +1923,7 @@ body[data-theme="dark"] .style-card-scope {
 }
 
 body[data-theme="dark"] .style-card-prompt {
-  background: #141414;
+  background: #1f1f1f;
   color: #a6a6a6;
 }
 

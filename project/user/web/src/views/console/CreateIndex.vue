@@ -3285,7 +3285,7 @@ const clearForm = () => {
   border: 1px solid #c4c4c4;
   border-radius: 12px;
   font-size: 15px;
-  min-height: 120px;
+  min-height: 350px;
   resize: vertical;
   color: #1a1a1a;
   transition: border-color 0.2s, box-shadow 0.2s;
@@ -3878,6 +3878,80 @@ body[data-theme="dark"] .style-tab {
 
 body[data-theme="dark"] .style-tab:hover {
   color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-tab.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-card:hover,
+body[data-theme="dark"] .style-card.selected {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-card-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-card-desc {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-card-scope {
+  color: #4dabf7;
+  background: rgba(24, 144, 255, 0.15);
+}
+
+body[data-theme="dark"] .style-card-prompt {
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .style-add-card {
+  border-color: #434343;
+  background: transparent;
+}
+
+body[data-theme="dark"] .style-add-card:hover {
+  border-color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.08);
+}
+
+body[data-theme="dark"] .style-add-icon,
+body[data-theme="dark"] .style-add-text {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-empty-text {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-footer {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .style-apply-btn {
+  background: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-apply-btn:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+body[data-theme="dark"] .style-apply-btn:not(:disabled):hover {
+  background: var(--color-primary-hover);
+}
+
+body[data-theme="dark"] .style-prompt-toggle {
+  color: var(--color-primary);
 }
 
 /* 模板弹框内行 */

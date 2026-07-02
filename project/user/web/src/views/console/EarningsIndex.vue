@@ -740,6 +740,40 @@ body[data-theme="dark"] .earnings-filter:hover {
 body[data-theme="dark"] .account-rules-footer {
   border-color: #303030;
 }
+
+body[data-theme="dark"] .account-info-icon {
+  color: #737373;
+}
+
+body[data-theme="dark"] .account-stat-label-tooltip:hover .account-info-icon {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .account-stat-withdraw {
+  background: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .account-stat-withdraw:hover {
+  background: var(--color-primary-hover, #e61e3a);
+}
+
+body[data-theme="dark"] .account-settle-btn {
+  background: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .account-settle-btn:hover {
+  background: var(--color-primary-hover, #e61e3a);
+}
+
+body[data-theme="dark"] .earnings-status.settled {
+  background: rgba(82, 196, 26, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .earnings-status.unsettled {
+  background: rgba(250, 140, 22, 0.15);
+  color: #ffa940;
+}
 </style>
 
 <style>

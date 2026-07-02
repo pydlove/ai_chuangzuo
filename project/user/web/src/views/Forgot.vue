@@ -10,7 +10,7 @@
     <header class="forgot-nav">
       <div class="nav-brand" @click="$router.push('/')">
         <img
-          src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png"
+          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
           alt="爱创作"
           class="nav-logo"
         />

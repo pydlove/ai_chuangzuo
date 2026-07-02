@@ -24,7 +24,16 @@ function saveMarketStyles() {
 function loadEarningsRecords() {
   try {
     const raw = localStorage.getItem(EARNINGS_KEY)
-    return raw ? JSON.parse(raw) : []
+    const records = raw ? JSON.parse(raw) : []
+    const currentWeek = getCurrentWeek()
+    return records.map((r) => {
+      const week = r.settlementWeek || (r.createdAt ? getWeekFromDate(new Date(r.createdAt)) : currentWeek)
+      return {
+        ...r,
+        status: r.status || (week < currentWeek ? 'settled' : 'unsettled'),
+        settlementWeek: week
+      }
+    })
   } catch {
     return []
   }
@@ -86,6 +95,19 @@ export function toggleFavorite(marketId) {
 
 export function isFavorite(marketId) {
   return favoriteIds.value.includes(marketId)
+}
+
+function getWeekFromDate(date) {
+  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+  const dayNum = d.getUTCDay() || 7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
+  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
+  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+}
+
+function getCurrentWeek() {
+  return getWeekFromDate(new Date())
 }
 
 export function shareStyleToMarket(style, sourceType) {
@@ -150,6 +172,8 @@ export function useMarketStyle(marketId) {
     amount: PRICE_PER_USE,
     fromUserId: getUserId(),
     description: `使用「${s.name}」生成文章`,
+    status: 'unsettled',
+    settlementWeek: getCurrentWeek(),
     createdAt: new Date().toISOString()
   })
   saveEarningsRecords()
@@ -183,6 +207,8 @@ export function settleWeeklyMilestone() {
         styleId: s.id,
         amount: bonus,
         description: `「${s.name}」本周使用 ${s.weeklyUses} 次，获得里程碑奖励`,
+        status: 'unsettled',
+        settlementWeek: getCurrentWeek(),
         createdAt: now.toISOString()
       })
       saveEarningsRecords()
@@ -218,6 +244,8 @@ export function simulateExternalUse(marketId) {
     amount: PRICE_PER_USE,
     fromUserId: 'external-user',
     description: `其他用户使用「${s.name}」生成文章`,
+    status: 'unsettled',
+    settlementWeek: getCurrentWeek(),
     createdAt: new Date().toISOString()
   })
   saveEarningsRecords()
@@ -235,9 +263,66 @@ export function getTotalEarnings() {
     .reduce((sum, r) => sum + r.amount, 0)
 }
 
-export function getWeeklyEarnings() {
-  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+export function getSettledEarnings() {
   return earningsRecords.value
-    .filter(r => r.createdAt > weekAgo && r.amount > 0)
+    .filter(r => r.status === 'settled' && r.amount > 0)
     .reduce((sum, r) => sum + r.amount, 0)
+}
+
+export function getUnsettledEarnings() {
+  return earningsRecords.value
+    .filter(r => r.status === 'unsettled' && r.amount > 0)
+    .reduce((sum, r) => sum + r.amount, 0)
+}
+
+export function getWeeklyEarnings(week) {
+  return earningsRecords.value
+    .filter(r => r.settlementWeek === week && r.amount > 0)
+    .reduce((sum, r) => sum + r.amount, 0)
+}
+
+export function getCurrentWeekEarnings() {
+  return getWeeklyEarnings(getCurrentWeek())
+}
+
+export function getWeeklySettlementList() {
+  const map = new Map()
+  earningsRecords.value
+    .filter(r => r.amount > 0)
+    .forEach((r) => {
+      const week = r.settlementWeek || getWeekFromDate(new Date(r.createdAt))
+      if (!map.has(week)) {
+        map.set(week, { week, total: 0, settled: 0, unsettled: 0, count: 0 })
+      }
+      const item = map.get(week)
+      item.total += r.amount
+      item.count += 1
+      if (r.status === 'settled') {
+        item.settled += r.amount
+      } else {
+        item.unsettled += r.amount
+      }
+    })
+  return Array.from(map.values()).sort((a, b) => b.week.localeCompare(a.week))
+}
+
+export function weeklySettle(targetWeek) {
+  const week = targetWeek || getPreviousWeek()
+  let settled = 0
+  earningsRecords.value.forEach((r) => {
+    if (r.settlementWeek === week && r.status === 'unsettled') {
+      r.status = 'settled'
+      settled += r.amount
+    }
+  })
+  if (settled > 0) {
+    saveEarningsRecords()
+  }
+  return settled
+}
+
+export function getPreviousWeek() {
+  const now = new Date()
+  now.setDate(now.getDate() - 7)
+  return getWeekFromDate(now)
 }

@@ -88,6 +88,7 @@
   </div>
 
   <a-modal
+    class="rules-modal"
     :open="rulesVisible"
     title="风格市场收益规则"
     :footer="null"
@@ -262,6 +263,23 @@ const handleSimulate = (s) => {
   padding-top: 14px;
   border-top: 1px solid #f0f0f0;
   font-size: 13px;
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .style-market-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .style-market-subtitle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-rules-list {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-market-rules-footer {
+  border-top-color: #303030;
   color: #8c8c8c;
 }
 
@@ -605,5 +623,31 @@ body[data-theme="dark"] .style-market-favorite-btn.active {
   background: rgba(255, 36, 66, 0.15);
   border-color: var(--color-primary);
   color: #ff6b81;
+}
+</style>
+
+<style>
+/* 暗色主题 - 收益规则弹层外壳适配（全局，非 scoped） */
+body[data-theme="dark"] .rules-modal .ant-modal-content {
+  background: #141414;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .rules-modal .ant-modal-header {
+  background: #141414;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .rules-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .rules-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
 }
 </style>

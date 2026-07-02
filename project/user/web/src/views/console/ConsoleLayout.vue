@@ -55,6 +55,7 @@
             :width="640"
             centered
             class="invite-modal"
+            :mask-style="{ background: 'transparent' }"
           >
             <div class="invite-panel">
               <div class="invite-header">
@@ -452,7 +453,7 @@
           <a-modal
             v-model:open="tutorialVisible"
             :footer="null"
-            :width="420"
+            :width="560"
             centered
             class="tutorial-modal"
           >
@@ -547,7 +548,7 @@
           <a-modal
             v-model:open="aboutVisible"
             :footer="null"
-            :width="420"
+            :width="640"
             centered
             class="about-modal"
           >
@@ -822,6 +823,7 @@
     :footer="null"
     :width="400"
     centered
+    class="password-modal"
   >
     <div class="password-modal-content">
       <div class="password-item">
@@ -2708,12 +2710,14 @@ body[data-theme="dark"] .console-membership-badge.has-membership {
 body[data-theme="dark"] .notif-panel {
   background: #1f1f1f;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  border-radius: 8px;
 }
 
 body[data-theme="dark"] .tutorial-panel,
 body[data-theme="dark"] .feedback-panel,
 body[data-theme="dark"] .about-panel {
   background: #1f1f1f;
+  border-radius: 8px;
 }
 
 body[data-theme="dark"] .notif-header,
@@ -2721,6 +2725,11 @@ body[data-theme="dark"] .notif-tabs,
 body[data-theme="dark"] .about-header,
 body[data-theme="dark"] .about-desc {
   border-color: #303030;
+}
+
+/* 给消息中心头部右侧留出关闭按钮位置，避免"全部已读"被 X 覆盖 */
+body[data-theme="dark"] .notif-header {
+  padding-right: 56px;
 }
 
 body[data-theme="dark"] .notif-title,
@@ -3267,8 +3276,12 @@ body[data-theme="dark"] .password-input {
 }
 
 body[data-theme="dark"] .password-input:focus {
-  border-color: #10b981;
-  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .password-input::placeholder {
+  color: #737373;
 }
 
 /* 用户协议 / 隐私政策 */
@@ -4191,12 +4204,12 @@ body[data-theme="dark"] .invite-progress-bar {
 }
 
 body[data-theme="dark"] .invite-rules {
-  background: rgba(255, 36, 66, 0.1);
-  border-color: rgba(255, 36, 66, 0.3);
+  background: #1f1f1f;
+  border-color: #303030;
 }
 
 body[data-theme="dark"] .invite-rules-header {
-  border-bottom-color: rgba(255, 36, 66, 0.25);
+  border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .invite-rules-tag {
@@ -4411,6 +4424,7 @@ body[data-theme="dark"] .invite-btn:disabled {
 
 body[data-theme="dark"] .redeem-panel {
   background: #1f1f1f;
+  border-radius: 8px;
 }
 
 body[data-theme="dark"] .redeem-title {
@@ -4533,6 +4547,12 @@ body[data-theme="dark"] .email-submit:hover {
   border-color: transparent;
 }
 
+body[data-theme="dark"] .invite-btn:disabled {
+  background: #262626;
+  color: #666;
+  border-color: #404040;
+}
+
 /*
  * 暗色主题 - Ant 弹层外壳适配（全局，非 scoped）
  * 原因：a-modal / a-drawer 的内容被 teleport 到 body，其 .ant-modal-content
@@ -4547,9 +4567,36 @@ body[data-theme="dark"] .feedback-modal .ant-modal-content,
 body[data-theme="dark"] .about-modal .ant-modal-content,
 body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
-body[data-theme="dark"] .redeem-modal .ant-modal-content {
+body[data-theme="dark"] .redeem-modal .ant-modal-content,
+body[data-theme="dark"] .password-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+/* 消息中心：去掉弹框内容区默认 padding，并把标题头背景也改成和面板一致，避免暗色下出现异色外圈 */
+body[data-theme="dark"] .notif-modal .ant-modal-content {
+  padding: 0;
+}
+
+body[data-theme="dark"] .notif-modal .ant-modal-header {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+
+/* 教程 / 反馈 / 关于我们：同样处理 */
+body[data-theme="dark"] .tutorial-modal .ant-modal-content,
+body[data-theme="dark"] .feedback-modal .ant-modal-content,
+body[data-theme="dark"] .about-modal .ant-modal-content,
+body[data-theme="dark"] .redeem-modal .ant-modal-content {
+  padding: 0;
+}
+
+body[data-theme="dark"] .tutorial-modal .ant-modal-header,
+body[data-theme="dark"] .feedback-modal .ant-modal-header,
+body[data-theme="dark"] .about-modal .ant-modal-header,
+body[data-theme="dark"] .redeem-modal .ant-modal-header {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .invite-modal .ant-modal-close,
@@ -4560,7 +4607,8 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close,
 body[data-theme="dark"] .about-modal .ant-modal-close,
 body[data-theme="dark"] .profile-modal .ant-modal-close,
 body[data-theme="dark"] .email-modal .ant-modal-close,
-body[data-theme="dark"] .redeem-modal .ant-modal-close {
+body[data-theme="dark"] .redeem-modal .ant-modal-close,
+body[data-theme="dark"] .password-modal .ant-modal-close {
   color: #a6a6a6;
 }
 
@@ -4572,20 +4620,23 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close:hover,
 body[data-theme="dark"] .about-modal .ant-modal-close:hover,
 body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-modal .ant-modal-close:hover,
-body[data-theme="dark"] .redeem-modal .ant-modal-close:hover {
+body[data-theme="dark"] .redeem-modal .ant-modal-close:hover,
+body[data-theme="dark"] .password-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 修改昵称 / 修改邮箱 的 Ant 标题头在暗色下需改为深底 */
+/* 修改昵称 / 修改邮箱 / 修改密码 的 Ant 标题头在暗色下需改为深底 */
 body[data-theme="dark"] .profile-modal .ant-modal-header,
-body[data-theme="dark"] .email-modal .ant-modal-header {
+body[data-theme="dark"] .email-modal .ant-modal-header,
+body[data-theme="dark"] .password-modal .ant-modal-header {
   background: #141414;
   border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .profile-modal .ant-modal-title,
-body[data-theme="dark"] .email-modal .ant-modal-title {
+body[data-theme="dark"] .email-modal .ant-modal-title,
+body[data-theme="dark"] .password-modal .ant-modal-title {
   color: #e0e0e0;
 }
 

@@ -459,6 +459,11 @@ onMounted(() => {
   margin: 0 auto;
 }
 
+.coin-page-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
 .coin-page-header {
   display: flex;
   align-items: flex-start;
@@ -942,6 +947,112 @@ body[data-theme="dark"] .coin-auth-display-value {
 
 body[data-theme="dark"] .coin-records-empty {
   color: rgba(255, 255, 255, 0.35);
+}
+
+body[data-theme="dark"] .coin-auth-status.verified {
+  background: rgba(82, 196, 26, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .coin-auth-status.unverified {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .coin-eligibility-tag.ready {
+  background: rgba(82, 196, 26, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .coin-eligibility-tag.low,
+body[data-theme="dark"] .coin-eligibility-tag.disabled {
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body[data-theme="dark"] .coin-eligibility-tag.pending {
+  background: rgba(250, 173, 20, 0.15);
+  color: #ffa940;
+}
+
+body[data-theme="dark"] .coin-records-status-tag.pending {
+  background: rgba(250, 173, 20, 0.15);
+  color: #ffa940;
+}
+
+body[data-theme="dark"] .coin-records-status-tag.approved {
+  background: rgba(82, 196, 26, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .coin-records-status-tag.rejected {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .coin-rules-list {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .coin-rules-footer {
+  border-top-color: #303030;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+body[data-theme="dark"] .coin-rules-highlight {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .coin-form-input::placeholder,
+body[data-theme="dark"] .coin-apply-input::placeholder {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+body[data-theme="dark"] .coin-auth-tip {
+  border-left-color: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .coin-stat-unit {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body[data-theme="dark"] .coin-records-row {
+  background: transparent;
+}
+
+body[data-theme="dark"] .coin-records-row:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+body[data-theme="dark"] .coin-page-header {
+  background: #1f1f1f;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+body[data-theme="dark"] .coin-page-title-wrap {
+  background: transparent;
+}
+
+body[data-theme="dark"] .coin-page-header .invite-btn-secondary {
+  background: #2a2a2a;
+  border-color: var(--color-primary, #ff2442);
+  color: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .coin-page-header .invite-btn-secondary:hover {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .coin-section-header .invite-btn-secondary {
+  background: #2a2a2a;
+  border-color: var(--color-primary, #ff2442);
+  color: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .coin-section-header .invite-btn-secondary:hover {
+  background: rgba(255, 36, 66, 0.15);
 }
 
 .coin-apply-agreement {
