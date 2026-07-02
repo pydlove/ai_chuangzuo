@@ -79,13 +79,26 @@
           </div>
           <div class="style-editor-field">
             <label class="style-editor-label">适用范围 <span class="required">*</span></label>
-            <input
-              v-model="editingStyle.scope"
-              type="text"
-              class="style-editor-input"
-              placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
-              maxlength="50"
-            />
+            <div class="style-scope-tags">
+              <div
+                v-for="tag in parseScopeTags(editingStyle.scope)"
+                :key="tag"
+                class="style-scope-tag"
+              >
+                {{ tag }}
+                <span class="style-scope-tag-remove" @click="editingStyle.scope = removeScopeTag(editingStyle.scope, tag)">×</span>
+              </div>
+              <input
+                v-if="parseScopeTags(editingStyle.scope).length < MAX_SCOPE_TAGS"
+                v-model="editingStyleScopeInput"
+                type="text"
+                class="style-scope-tag-input"
+                placeholder="输入标签后回车"
+                :maxlength="MAX_SCOPE_TAG_LENGTH"
+                @keydown.enter.prevent="addEditingStyleTag"
+              />
+            </div>
+            <div class="style-scope-hint">最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字</div>
             <div v-if="errors.scope" class="style-editor-error">{{ errors.scope }}</div>
           </div>
           <div class="style-editor-presets">
@@ -146,7 +159,9 @@
               </div>
               <button class="style-card-remove" @click.stop="deleteStyle(s.name)">删除</button>
             </div>
-            <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
+            <div v-if="s.scope" class="style-card-scope-list">
+              <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+            </div>
             <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
             <div class="style-card-footer">
@@ -238,7 +253,9 @@
             </div>
             <button class="style-card-remove" @click.stop="deleteLearnedStyle(s.name)">删除</button>
           </div>
-          <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
+          <div v-if="s.scope" class="style-card-scope-list">
+            <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+          </div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-footer">
@@ -285,7 +302,9 @@
             </div>
             <button class="style-card-remove" @click.stop="toggleFavorite(s.id)">取消收藏</button>
           </div>
-          <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
+          <div v-if="s.scope" class="style-card-scope-list">
+            <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+          </div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-footer">
@@ -396,14 +415,27 @@
       </div>
       <div class="learned-result-field">
         <label class="learned-result-label">适用范围 <span class="required">*</span></label>
-        <input
-          v-model="learnedResult.scope"
-          type="text"
-          class="learned-input"
-          placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
-          maxlength="50"
-        />
-        <div v-if="!learnedResult.scope.trim()" class="learned-hint">简单描述这个风格适合写什么场景的文章</div>
+        <div class="style-scope-tags">
+          <div
+            v-for="tag in parseScopeTags(learnedResult.scope)"
+            :key="tag"
+            class="style-scope-tag"
+          >
+            {{ tag }}
+            <span class="style-scope-tag-remove" @click="learnedResult.scope = removeScopeTag(learnedResult.scope, tag)">×</span>
+          </div>
+          <input
+            v-if="parseScopeTags(learnedResult.scope).length < MAX_SCOPE_TAGS"
+            v-model="learnedResultScopeInput"
+            type="text"
+            class="style-scope-tag-input"
+            placeholder="输入标签后回车"
+            :maxlength="MAX_SCOPE_TAG_LENGTH"
+            @keydown.enter.prevent="addLearnedResultTag"
+          />
+        </div>
+        <div class="style-scope-hint">最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字</div>
+        <div v-if="!learnedResult.scope || !parseScopeTags(learnedResult.scope).length" class="learned-hint">请至少添加一个适用范围标签</div>
       </div>
       <div class="learned-result-field">
         <label class="learned-result-label">命名 <span class="required">*</span></label>
@@ -488,6 +520,56 @@ const router = useRouter()
 const activeTab = ref('my')
 const searchQuery = ref('')
 
+const MAX_SCOPE_TAGS = 3
+const MAX_SCOPE_TAG_LENGTH = 8
+
+const parseScopeTags = (scopeStr) => {
+  if (!scopeStr) return []
+  return scopeStr.split(/[,，]/).map(t => t.trim()).filter(Boolean)
+}
+
+const formatScopeTags = (tags) => tags.join(',')
+
+const validateScopeTags = (tags) => {
+  if (tags.length === 0) return '请至少添加一个适用范围标签'
+  if (tags.length > MAX_SCOPE_TAGS) return `最多添加 ${MAX_SCOPE_TAGS} 个标签`
+  for (const tag of tags) {
+    if (tag.length > MAX_SCOPE_TAG_LENGTH) return `每个标签最多 ${MAX_SCOPE_TAG_LENGTH} 个字`
+  }
+  return ''
+}
+
+const addScopeTag = (scopeStr, inputRef) => {
+  const raw = inputRef.value.trim()
+  if (!raw) return scopeStr
+  const tags = parseScopeTags(scopeStr)
+  if (tags.length >= MAX_SCOPE_TAGS) {
+    inputRef.value = ''
+    return scopeStr
+  }
+  const newTags = raw.split(/[,，]/).map(t => t.trim()).filter(Boolean)
+  for (const tag of newTags) {
+    if (tags.length >= MAX_SCOPE_TAGS) break
+    if (tag.length > MAX_SCOPE_TAG_LENGTH) continue
+    if (!tags.includes(tag)) tags.push(tag)
+  }
+  inputRef.value = ''
+  return formatScopeTags(tags)
+}
+
+const removeScopeTag = (scopeStr, tag) => {
+  return formatScopeTags(parseScopeTags(scopeStr).filter(t => t !== tag))
+}
+
+const addEditingStyleTag = () => {
+  editingStyle.scope = addScopeTag(editingStyle.scope, editingStyleScopeInput)
+}
+
+const addLearnedResultTag = () => {
+  if (!learnedResult.value) return
+  learnedResult.value.scope = addScopeTag(learnedResult.value.scope, learnedResultScopeInput)
+}
+
 const filterText = (s) => {
   const q = searchQuery.value.trim().toLowerCase()
   if (!q) return true
@@ -521,6 +603,7 @@ const pasteError = ref('')
 const uploadFile = ref(null)
 const uploadError = ref('')
 const learnedResult = ref(null)
+const learnedResultScopeInput = ref('')
 const learnedResultError = ref('')
 const isEditingLearned = ref(false)
 const editingLearnedOriginalName = ref('')
@@ -535,6 +618,7 @@ const editingStyle = reactive({
   prompt: '',
   scope: ''
 })
+const editingStyleScopeInput = ref('')
 
 const errors = reactive({
   name: '',
@@ -586,11 +670,10 @@ const validate = () => {
     valid = false
   }
 
-  if (!scope) {
-    errors.scope = '请输入适用范围'
-    valid = false
-  } else if (scope.length > 50) {
-    errors.scope = '适用范围最多 50 字'
+  const scopeTags = parseScopeTags(scope)
+  const scopeError = validateScopeTags(scopeTags)
+  if (scopeError) {
+    errors.scope = scopeError
     valid = false
   }
 
@@ -600,8 +683,8 @@ const validate = () => {
 const isFormValid = computed(() => {
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
-  const scope = editingStyle.scope.trim()
-  return name && name.length <= 20 && prompt && prompt.length <= 1000 && scope && scope.length <= 50 && !isStyleNameExists(name, editingStyle.originalName)
+  const scopeTags = parseScopeTags(editingStyle.scope)
+  return name && name.length <= 20 && prompt && prompt.length <= 1000 && !validateScopeTags(scopeTags) && !isStyleNameExists(name, editingStyle.originalName)
 })
 
 const goToCreate = () => {
@@ -609,6 +692,7 @@ const goToCreate = () => {
   editingStyle.name = ''
   editingStyle.prompt = ''
   editingStyle.scope = ''
+  editingStyleScopeInput.value = ''
   errors.name = ''
   errors.prompt = ''
   errors.scope = ''
@@ -620,6 +704,7 @@ const goToEdit = (style) => {
   editingStyle.name = style.name
   editingStyle.prompt = style.prompt
   editingStyle.scope = style.scope || ''
+  editingStyleScopeInput.value = ''
   errors.name = ''
   errors.prompt = ''
   errors.scope = ''
@@ -673,6 +758,7 @@ const openImportDialog = () => {
   uploadError.value = ''
   learnedResult.value = null
   learnedResultError.value = ''
+  learnedResultScopeInput.value = ''
   isEditingLearned.value = false
   editingLearnedOriginalName.value = ''
   importSubTab.value = 'paste'
@@ -682,6 +768,7 @@ const openImportDialog = () => {
 const goToEditLearned = (style) => {
   learnedResult.value = { ...style }
   learnedResultError.value = ''
+  learnedResultScopeInput.value = ''
   isEditingLearned.value = true
   editingLearnedOriginalName.value = style.name
   importDialogVisible.value = true
@@ -772,7 +859,8 @@ const canSaveLearnedResult = computed(() => {
   const name = learnedResult.value.name.trim()
   if (!name || name.length > 20) return false
   if (learnedResult.value.prompt.length > 1000) return false
-  if (!learnedResult.value.scope || !learnedResult.value.scope.trim()) return false
+  const scopeTags = parseScopeTags(learnedResult.value.scope)
+  if (scopeTags.length === 0 || validateScopeTags(scopeTags)) return false
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
   if (isStyleNameExists(name, excludeName) || isLearnedStyleNameExists(name, excludeName)) return false
   return true
@@ -802,8 +890,13 @@ const saveLearnedResult = () => {
     learnedResultError.value = '提示词超过 1000 字'
     return
   }
-  if (!learnedResult.value.scope || !learnedResult.value.scope.trim()) {
+  if (!learnedResult.value.scope || !parseScopeTags(learnedResult.value.scope).length) {
     learnedResultError.value = '请填写适用范围'
+    return
+  }
+  const scopeError = validateScopeTags(parseScopeTags(learnedResult.value.scope))
+  if (scopeError) {
+    learnedResultError.value = scopeError
     return
   }
   if (isEditingLearned.value) {
@@ -1118,6 +1211,12 @@ const simulateApprove = (name) => {
   border: 1px solid #ffd1d9;
   padding: 4px 12px;
   border-radius: 20px;
+}
+
+.style-card-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 14px;
 }
 
@@ -1338,6 +1437,66 @@ const simulateApprove = (name) => {
 .style-editor-error {
   color: #ff4d4f;
   font-size: 12px;
+}
+
+.style-scope-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  min-height: 44px;
+  box-sizing: border-box;
+}
+
+.style-scope-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #fff0f2;
+  border: 1px solid #ffd1d9;
+  border-radius: 16px;
+  font-size: 13px;
+  color: #ff2442;
+}
+
+.style-scope-tag-remove {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #ff8a9b;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.style-scope-tag-remove:hover {
+  color: #ff2442;
+  background: #ffe0e5;
+}
+
+.style-scope-tag-input {
+  flex: 1;
+  min-width: 80px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: transparent;
+  padding: 4px 2px;
+}
+
+.style-scope-hint {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 6px;
 }
 
 .style-editor-counter {

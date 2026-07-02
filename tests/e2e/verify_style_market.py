@@ -28,10 +28,10 @@ def main():
         # 2. 创建我的风格
         page.locator('.style-add-card:has-text("新建我的风格")').click()
         page.wait_for_timeout(300)
-        inputs = page.locator('.style-editor-input')
-        inputs.nth(0).fill('市场测试风格')
+        page.locator('.style-editor-input').fill('市场测试风格')
         page.locator('.style-editor-textarea').fill('这是一段用于市场测试的风格提示词。')
-        inputs.nth(1).fill('公众号情感文')
+        page.locator('.style-scope-tag-input').fill('公众号情感文')
+        page.locator('.style-scope-tag-input').press('Enter')
         page.locator('.style-editor-form button:has-text("保存")').click()
         page.wait_for_timeout(300)
 

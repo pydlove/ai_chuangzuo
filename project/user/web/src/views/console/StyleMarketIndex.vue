@@ -46,7 +46,9 @@
             <div class="style-market-card-creator">by {{ s.creatorName }}</div>
           </div>
         </div>
-        <div v-if="s.scope" class="style-market-card-scope">{{ s.scope }}</div>
+        <div v-if="s.scope" class="style-market-card-scope-list">
+          <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-market-card-scope">{{ tag }}</span>
+        </div>
         <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
         <div v-show="expandedIds.has(s.id)" class="style-market-prompt-full">{{ s.prompt }}</div>
         <div class="style-market-card-stats">
@@ -121,6 +123,11 @@ const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
 const expandedIds = ref(new Set())
 const rulesVisible = ref(false)
+
+const parseScopeTags = (scopeStr) => {
+  if (!scopeStr) return []
+  return scopeStr.split(/[,，]/).map(t => t.trim()).filter(Boolean)
+}
 
 const tabOptions = [
   { key: 'all', label: '全部' },
@@ -398,6 +405,12 @@ const handleSimulate = (s) => {
   border: 1px solid #ffd1d9;
   padding: 4px 12px;
   border-radius: 20px;
+}
+
+.style-market-card-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 14px;
 }
 
