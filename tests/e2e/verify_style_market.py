@@ -35,10 +35,13 @@ def main():
         page.locator('.style-editor-form button:has-text("保存")').click()
         page.wait_for_timeout(300)
 
-        # 3. 分享并模拟审核通过
+        # 3. 发布并模拟审核通过
         card = page.locator('.style-card:has-text("市场测试风格")')
-        card.locator('button:has-text("分享")').click()
-        page.wait_for_timeout(300)
+        card.locator('button:has-text("发布")').click()
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_publish_confirm.png')
+        page.locator('.publish-confirm-submit:has-text("确认发布")').click()
+        page.wait_for_timeout(500)
         card.locator('button:has-text("通过")').click()
         page.wait_for_timeout(300)
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_cards_redesign.png')

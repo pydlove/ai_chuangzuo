@@ -163,9 +163,9 @@
                 >通过</button>
                 <button
                   v-else-if="!getMarketStatus(s.name)"
-                  class="style-action-btn"
-                  @click.stop="shareStyle(s, 'my')"
-                >分享</button>
+                  class="style-action-btn primary"
+                  @click.stop="openPublishConfirm(s, 'my')"
+                >发布</button>
               </div>
             </div>
           </div>
@@ -255,9 +255,9 @@
               >通过</button>
               <button
                 v-else-if="!getMarketStatus(s.name)"
-                class="style-action-btn"
-                @click.stop="shareStyle(s, 'learned')"
-              >分享</button>
+                class="style-action-btn primary"
+                @click.stop="openPublishConfirm(s, 'learned')"
+              >发布</button>
             </div>
           </div>
         </div>
@@ -428,6 +428,29 @@
       </div>
     </div>
   </a-modal>
+
+  <a-modal
+    :open="publishConfirmVisible"
+    title="发布风格到市场"
+    :footer="null"
+    :width="480"
+    centered
+    @cancel="closePublishConfirm"
+  >
+    <div class="publish-confirm-body">
+      <p class="publish-confirm-title">确认发布「{{ pendingPublish.style?.name }}」？</p>
+      <ol class="publish-confirm-list">
+        <li>发布后将进入平台审核流程，审核通过后其他用户才可在风格市场中发现并使用该风格。</li>
+        <li>审核期间该风格会显示「审核中」状态，你可以随时查看进度。</li>
+        <li>风格被他人使用后，你将按照收益规则获得创作币奖励。</li>
+      </ol>
+      <p class="publish-confirm-tip">请确保风格提示词符合平台规范，避免违规内容。</p>
+    </div>
+    <div class="publish-confirm-actions">
+      <button class="publish-confirm-cancel" @click="closePublishConfirm">取消</button>
+      <button class="publish-confirm-submit" @click="confirmPublish">确认发布</button>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -503,6 +526,8 @@ const isEditingLearned = ref(false)
 const editingLearnedOriginalName = ref('')
 const editorMode = ref(false)
 const expandedNames = ref(new Set())
+const publishConfirmVisible = ref(false)
+const pendingPublish = ref({ style: null, sourceType: '' })
 
 const editingStyle = reactive({
   originalName: '',
@@ -817,6 +842,25 @@ const shareStyle = (style, sourceType) => {
   } catch (err) {
     alert(err.message)
   }
+}
+
+const openPublishConfirm = (style, sourceType) => {
+  pendingPublish.value = { style, sourceType }
+  publishConfirmVisible.value = true
+}
+
+const confirmPublish = () => {
+  const { style, sourceType } = pendingPublish.value
+  if (style && sourceType) {
+    shareStyle(style, sourceType)
+  }
+  publishConfirmVisible.value = false
+  pendingPublish.value = { style: null, sourceType: '' }
+}
+
+const closePublishConfirm = () => {
+  publishConfirmVisible.value = false
+  pendingPublish.value = { style: null, sourceType: '' }
 }
 
 const simulateApprove = (name) => {
@@ -1137,6 +1181,7 @@ const simulateApprove = (name) => {
   background: #ff2442;
   color: #fff;
   border-color: #ff2442;
+  min-width: 72px;
 }
 
 .style-action-btn.primary:hover {
@@ -1151,6 +1196,67 @@ const simulateApprove = (name) => {
 
 .style-action-btn.success:hover {
   background: #d9f7be;
+}
+
+.publish-confirm-body {
+  padding: 8px 0 16px;
+}
+
+.publish-confirm-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+}
+
+.publish-confirm-list {
+  margin: 0 0 14px;
+  padding-left: 18px;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.7;
+}
+
+.publish-confirm-list li {
+  margin-bottom: 8px;
+}
+
+.publish-confirm-tip {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 0;
+}
+
+.publish-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.publish-confirm-cancel {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+}
+
+.publish-confirm-submit {
+  padding: 8px 20px;
+  background: #ff2442;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.publish-confirm-submit:hover {
+  background: #e61e3a;
 }
 
 .style-editor {
