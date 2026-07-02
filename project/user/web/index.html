@@ -6,6 +6,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>爱创作</title>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script>
+      (function () {
+        const theme = localStorage.getItem('aichuangzuo_theme') || 'light'
+        document.documentElement.setAttribute('data-theme', theme)
+      })()
+    </script>
     <style>
       #app-loader {
         position: fixed;
@@ -109,6 +115,22 @@
         0% { transform: translateX(-100%); }
         50% { transform: translateX(150%); }
         100% { transform: translateX(-100%); }
+      }
+
+      html[data-theme="dark"] #app-loader {
+        background: linear-gradient(135deg, #141414 50%, #1a0a0c 50%);
+      }
+
+      html[data-theme="dark"] .loader-slogan {
+        color: #a6a6a6;
+      }
+
+      html[data-theme="dark"] .loader-en {
+        color: #737373;
+      }
+
+      html[data-theme="dark"] .loader-line {
+        background: #2a2a2a;
       }
     </style>
   </head>
