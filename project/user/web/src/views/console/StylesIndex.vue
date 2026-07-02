@@ -15,16 +15,16 @@
         我的风格
       </button>
       <button
-        :class="['styles-tab', { active: activeTab === 'system' }]"
-        @click="activeTab = 'system'; editorMode = false"
-      >
-        系统预设
-      </button>
-      <button
         :class="['styles-tab', { active: activeTab === 'learned' }]"
         @click="activeTab = 'learned'; editorMode = false"
       >
         学习的风格
+      </button>
+      <button
+        :class="['styles-tab', { active: activeTab === 'system' }]"
+        @click="activeTab = 'system'; editorMode = false"
+      >
+        系统预设风格
       </button>
     </div>
 
@@ -958,11 +958,11 @@ const deleteLearnedStyle = (name) => {
 
 .learned-banner {
   padding: 12px 16px;
-  background: #f6ffed;
-  border: 1px solid #b7eb8f;
+  background: #fff0f2;
+  border: 1px solid #ffd1d9;
   border-radius: 8px;
   font-size: 13px;
-  color: #389e0d;
+  color: #ff2442;
   margin-bottom: 16px;
 }
 
@@ -972,7 +972,7 @@ const deleteLearnedStyle = (name) => {
 
 .learned-add-btn {
   padding: 8px 16px;
-  background: #07c160;
+  background: #ff2442;
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -981,7 +981,7 @@ const deleteLearnedStyle = (name) => {
 }
 
 .learned-add-btn:hover {
-  background: #06a050;
+  background: #e61e3a;
 }
 
 .learned-empty {
@@ -1042,7 +1042,7 @@ const deleteLearnedStyle = (name) => {
 
 .learned-textarea:focus {
   outline: none;
-  border-color: #07c160;
+  border-color: #ff2442;
 }
 
 .learned-counter {
@@ -1064,7 +1064,7 @@ const deleteLearnedStyle = (name) => {
 
 .learned-input:focus {
   outline: none;
-  border-color: #07c160;
+  border-color: #ff2442;
 }
 
 .learned-upload-zone {
@@ -1078,8 +1078,8 @@ const deleteLearnedStyle = (name) => {
 }
 
 .learned-upload-zone:hover {
-  border-color: #07c160;
-  background: #f6ffed;
+  border-color: #ff2442;
+  background: #fff0f2;
 }
 
 .learned-upload-hint {
@@ -1094,7 +1094,7 @@ const deleteLearnedStyle = (name) => {
 
 .learned-upload-info {
   font-size: 14px;
-  color: #07c160;
+  color: #ff2442;
 }
 
 .learned-error {
@@ -1104,7 +1104,7 @@ const deleteLearnedStyle = (name) => {
 
 .learned-submit-btn {
   padding: 10px 20px;
-  background: #07c160;
+  background: #ff2442;
   color: #fff;
   border: none;
   border-radius: 8px;

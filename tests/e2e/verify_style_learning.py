@@ -26,10 +26,11 @@ def main():
         page.reload()
         page.wait_for_timeout(500)
 
-        # 2. 验证第三个 tab 存在
+        # 2. 验证第二个 tab 为学习的风格
         tabs = page.locator('.styles-tab')
         assert tabs.count() == 3, f'期望 3 个 tab，实际 {tabs.count()}'
-        tabs.nth(2).click()
+        assert '学习的风格' in tabs.nth(1).inner_text()
+        tabs.nth(1).click()
         page.wait_for_timeout(300)
 
         # 3. 验证空状态
@@ -66,8 +67,8 @@ def main():
         page.locator('button:has-text("保存到风格库")').click()
         page.wait_for_timeout(500)
 
-        # 9. 验证第三个 tab 中出现新卡片
-        tabs.nth(2).click()
+        # 9. 验证第二个 tab 中出现新卡片
+        tabs.nth(1).click()
         page.wait_for_timeout(300)
         cards = page.locator('.styles-content:visible .style-card')
         assert cards.count() == 1, f'期望 1 张卡片，实际 {cards.count()}'
@@ -84,7 +85,7 @@ def main():
         page.locator('button:has-text("保存到风格库")').click()
         page.wait_for_timeout(500)
 
-        tabs.nth(2).click()
+        tabs.nth(1).click()
         page.wait_for_timeout(300)
         cards = page.locator('.styles-content:visible .style-card')
         assert cards.count() == 1
@@ -102,7 +103,8 @@ def main():
         page.wait_for_timeout(800)
         modal_tabs = page.locator('.ant-modal .style-tab')
         assert modal_tabs.count() == 3
-        modal_tabs.nth(2).click()
+        assert '学习的风格' in modal_tabs.nth(1).inner_text()
+        modal_tabs.nth(1).click()
         page.wait_for_timeout(500)
         assert '我的测试风格已编辑' in page.content()
 
@@ -110,7 +112,7 @@ def main():
         page.goto(f'{URL}/console/styles')
         page.wait_for_timeout(500)
         tabs = page.locator('.styles-tab')
-        tabs.nth(2).click()
+        tabs.nth(1).click()
         page.wait_for_timeout(300)
         page.on('dialog', lambda dialog: dialog.accept())
         page.locator('button:has-text("删除")').first.click()

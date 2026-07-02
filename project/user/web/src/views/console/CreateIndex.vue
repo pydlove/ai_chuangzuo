@@ -488,12 +488,6 @@
       <template v-else>
         <div class="style-tabs">
           <button
-            :class="['style-tab', { active: styleTab === 'system' }]"
-            @click="styleTab = 'system'; createStyleMode = false"
-          >
-            系统预设
-          </button>
-          <button
             :class="['style-tab', { active: styleTab === 'my' }]"
             @click="styleTab = 'my'; createStyleMode = false"
           >
@@ -504,6 +498,12 @@
             @click="styleTab = 'learned'; createStyleMode = false"
           >
             学习的风格
+          </button>
+          <button
+            :class="['style-tab', { active: styleTab === 'system' }]"
+            @click="styleTab = 'system'; createStyleMode = false"
+          >
+            系统预设风格
           </button>
         </div>
 

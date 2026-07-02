@@ -12,10 +12,10 @@ def main():
         page.wait_for_timeout(800)
 
         assert page.locator('.styles-title').inner_text() == '我的风格'
-        assert page.locator('.styles-tab').count() == 2
+        assert page.locator('.styles-tab').count() == 3
 
-        # 2. 系统预设 tab 显示 8 张卡片
-        page.locator('button:has-text("系统预设")').click()
+        # 2. 系统预设风格 tab 显示 8 张卡片
+        page.locator('button:has-text("系统预设风格")').click()
         page.wait_for_timeout(300)
         system_cards = page.locator('.styles-content:visible .style-card')
         assert system_cards.count() == 8, f'Expected 8 system styles, got {system_cards.count()}'
@@ -50,8 +50,8 @@ def main():
         page.wait_for_timeout(300)
         assert page.locator('.styles-empty').count() == 1
 
-        # 7. 系统预设“使用”跳转创作页
-        page.locator('button:has-text("系统预设")').click()
+        # 7. 系统预设风格“使用”跳转创作页
+        page.locator('button:has-text("系统预设风格")').click()
         page.wait_for_timeout(300)
         page.locator('.styles-content:visible .style-action-btn').filter(has_text='使用').first.click()
         page.wait_for_timeout(500)
