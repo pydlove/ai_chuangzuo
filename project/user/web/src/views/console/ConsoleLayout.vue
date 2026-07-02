@@ -894,7 +894,9 @@ import {
   EyeOutlined,
   FolderOutlined,
   SmileOutlined,
-  FireOutlined
+  FireOutlined,
+  ShopOutlined,
+  DollarOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -915,15 +917,9 @@ watch(
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/works', label: '我的作品', icon: FolderOutlined },
-  {
-    label: '我的风格',
-    icon: SmileOutlined,
-    children: [
-      { path: '/console/styles', label: '我的风格' },
-      { path: '/console/style-market', label: '风格市场' },
-      { path: '/console/earnings', label: '收益明细' }
-    ]
-  },
+  { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
+  { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
+  { path: '/console/earnings', label: '收益明细', icon: DollarOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined }
 ]
 
