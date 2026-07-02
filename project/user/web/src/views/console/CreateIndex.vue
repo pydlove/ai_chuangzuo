@@ -1349,6 +1349,7 @@ const closeTitleOpt = () => {
 
 const generateExportCards = () => {
   if (!exportArticle.value) return
+  exportModalVisible.value = false
   cardsModalVisible.value = true
 }
 
