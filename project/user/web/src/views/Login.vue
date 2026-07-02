@@ -170,12 +170,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserCoins } from '@/composables/useInviteCode'
 
 const router = useRouter()
 
 const activeTab = ref('login')
+const showInviteBanner = ref(false)
 
 const loginForm = reactive({
   email: '',
@@ -187,7 +190,8 @@ const registerForm = reactive({
   email: '',
   code: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  inviteCode: ''
 })
 
 // 验证码
@@ -228,13 +232,45 @@ const handleLogin = () => {
   router.push('/console')
 }
 
-const handleRegister = () => {
+const handleRegister = async () => {
+  const inviteCode = registerForm.inviteCode.trim().toUpperCase()
+
+  // 1. 自邀请校验
+  const selfCode = getInviteCode()
+  if (inviteCode && inviteCode === selfCode) {
+    message.warning('不能填写自己的邀请码')
+    return
+  }
+
+  // 2. 输入框是唯一真值；空字符串显式清除残留 ref
+  setStoredRef(inviteCode)
+
   // TODO: 调用注册接口
   console.log('注册', registerForm)
+
+  // 3. 注册成功后发放创作币并提示
+  const coins = awardNewUserCoins()
+  if (coins > 0) {
+    message.success(`注册成功，邀请奖励 +${coins} 创作币`)
+  }
+
+  router.push('/console')
 }
 
 // 初始化验证码
 generateCaptcha()
+
+onMounted(() => {
+  const ref = getRefFromUrl()
+  if (ref) {
+    setStoredRef(ref)
+    registerForm.inviteCode = ref
+    showInviteBanner.value = true
+  } else if (getStoredRef()) {
+    // localStorage 残留 ref（用户刷新页面），banner 仍显示
+    showInviteBanner.value = true
+  }
+})
 </script>
 
 <style scoped>
