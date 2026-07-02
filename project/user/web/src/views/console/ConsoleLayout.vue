@@ -96,31 +96,7 @@
                   <div class="invite-stat-item invite-stat-item-coin">
                     <div class="invite-stat-value">{{ coinBalance }}</div>
                     <div class="invite-stat-label-row">
-                      <a-tooltip placement="top" :mouse-enter-delay="0.1" overlay-class-name="invite-coin-tooltip">
-                        <template #title>
-                          <div class="invite-coin-tooltip-content">
-                            <div class="invite-coin-tooltip-title">💰 创作币说明</div>
-                            <div class="invite-coin-tooltip-desc">
-                              创作币是爱创作推出的虚拟货币，<b>1 创作币 = 1 元人民币</b>。
-                            </div>
-
-                            <div class="invite-coin-tooltip-section">
-                              <div class="invite-coin-tooltip-section-title">如何获得</div>
-                              <ul class="invite-coin-tooltip-list">
-                                <li>邀请好友<b>首次购买</b>会员返佣 <b>10%</b></li>
-                                <li>邀请好友<b>续费</b>会员返佣 <b>5%</b></li>
-                              </ul>
-                            </div>
-
-                            <div class="invite-coin-tooltip-section">
-                              <div class="invite-coin-tooltip-section-title">可用于</div>
-                              <ul class="invite-coin-tooltip-list">
-                                <li>满 100 创作币可申请<b>提现至支付宝</b></li>
-                                <li>后续可用于<b>抵扣会员订阅</b>费用</li>
-                              </ul>
-                            </div>
-                          </div>
-                        </template>
+                      <CoinInfoTooltip>
                         <div class="invite-stat-label invite-stat-label-tooltip">
                           <span>创作币余额</span>
                           <svg class="invite-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -129,7 +105,7 @@
                             <line x1="12" y1="8" x2="12.01" y2="8"/>
                           </svg>
                         </div>
-                      </a-tooltip>
+                      </CoinInfoTooltip>
                       <button class="invite-stat-go-withdraw" @click="goToWithdraw">去提现</button>
                     </div>
                   </div>
@@ -219,7 +195,7 @@
           >
             <div class="redeem-panel">
               <div class="redeem-header">
-                <span class="redeem-title">🎟️ 兑换码</span>
+                <span class="redeem-title">兑换码</span>
                 <span class="redeem-subtitle">输入兑换码兑换奖励</span>
               </div>
 
@@ -337,7 +313,7 @@
           <a-modal
             v-model:open="posterVisible"
             :footer="null"
-            :width="640"
+            :width="840"
             centered
             class="poster-modal"
           >
@@ -357,8 +333,8 @@
                   <div class="poster-card-canvas-wrap">
                     <canvas
                       :ref="el => setPosterPreviewRef(t.id, el)"
-                      :width="120"
-                      :height="160"
+                      :width="600"
+                      :height="800"
                       class="poster-card-canvas"
                     ></canvas>
                   </div>
@@ -382,14 +358,6 @@
             <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
               <span style="font-size: 16px;">🎁</span>
               <span>邀请有礼</span>
-            </button>
-          </a-tooltip>
-
-          <!-- 兑换码按钮 -->
-          <a-tooltip title="兑换码">
-            <button class="console-icon-btn console-invite-btn" @click="openRedeemModal">
-              <span style="font-size: 16px;">🎟️</span>
-              <span>兑换码</span>
             </button>
           </a-tooltip>
 
@@ -686,6 +654,14 @@
                     </svg>
                     修改密码
                   </div>
+                  <div class="user-action" @click="openRedeemModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M2 9a3 3 0 0 1 3-3h.93a2 2 0 0 0 1.66-.9l.82-1.2A2 2 0 0 1 11.07 2h1.86a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H19a3 3 0 0 1 3 3"/>
+                      <path d="M2 9v9a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V9"/>
+                      <path d="M8 16h.01"/>
+                    </svg>
+                    兑换码
+                  </div>
                   <div class="user-action user-action-logout" @click="handleLogout">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
@@ -894,6 +870,7 @@ import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
+import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import logoUrl from '@/assets/images/common/logo.png'
 import {
   EditOutlined,
@@ -3941,8 +3918,8 @@ body[data-theme="dark"] .password-input:focus {
 
 .poster-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
   margin-bottom: 20px;
 }
 
@@ -3950,14 +3927,11 @@ body[data-theme="dark"] .password-input:focus {
   position: relative;
   border: 2px solid transparent;
   border-radius: 12px;
-  padding: 14px 12px 16px;
+  padding: 10px 8px 12px;
   background: #fafafa;
   cursor: pointer;
   transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
   text-align: center;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .poster-card:hover {
@@ -3975,19 +3949,19 @@ body[data-theme="dark"] .password-input:focus {
   background: #fff;
   border-radius: 6px;
   overflow: hidden;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   aspect-ratio: 3 / 4;
-  max-height: 210px;
+  max-height: 240px;
 }
 
 .poster-card-canvas {
   max-width: 100%;
-  max-height: 210px;
+  max-height: 240px;
   width: auto;
   height: auto;
   display: block;
@@ -4430,72 +4404,5 @@ body[data-theme="dark"] .redeem-status.success {
   color: #bfbfbf;
   cursor: not-allowed;
   border-color: transparent;
-}
-
-/* 邀请有礼 - 创作币说明 tooltip（全局，因为 a-tooltip 内容渲染到 body） */
-.invite-coin-tooltip .ant-tooltip-inner {
-  max-width: 260px;
-  padding: 10px 12px;
-  background: #fff;
-  color: #262626;
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-}
-
-.invite-coin-tooltip .ant-tooltip-arrow::before {
-  background: #fff;
-}
-
-.invite-coin-tooltip-content {
-  text-align: left;
-  font-size: 12px;
-  line-height: 1.6;
-  color: #595959;
-}
-
-.invite-coin-tooltip-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-}
-
-.invite-coin-tooltip-desc {
-  margin-bottom: 8px;
-  color: #595959;
-}
-
-.invite-coin-tooltip-desc b {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.invite-coin-tooltip-section + .invite-coin-tooltip-section {
-  margin-top: 8px;
-  padding-top: 8px;
-  border-top: 1px dashed #eee;
-}
-
-.invite-coin-tooltip-section-title {
-  font-size: 12px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.invite-coin-tooltip-list {
-  margin: 0;
-  padding: 0 0 0 14px;
-  list-style: disc;
-}
-
-.invite-coin-tooltip-list li {
-  margin-bottom: 2px;
-  font-size: 12px;
-  color: #595959;
-}
-
-.invite-coin-tooltip-list li:last-child {
-  margin-bottom: 0;
 }
 </style>
