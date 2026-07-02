@@ -103,18 +103,6 @@ export const isStyleNameExists = (name, excludeName = null) => {
 
 const LEARNED_STORAGE_KEY = 'aichuangzuo_learned_styles'
 
-// 预设适用范围（学习风格时多选）
-export const SCENE_PRESETS = [
-  '小红书',
-  '公众号',
-  '知乎',
-  '头条号',
-  '产品评测',
-  '职场干货',
-  '知识科普',
-  '故事叙事'
-]
-
 function loadLearnedStyles() {
   try {
     const raw = localStorage.getItem(LEARNED_STORAGE_KEY)
@@ -186,7 +174,7 @@ export async function analyzeArticleStyle(text, meta) {
       excerpt1: (first || mid).slice(0, 120),
       excerpt2: longest,
       prompt,
-      scopes: [],     // 适用范围，由用户在结果页选择
+      scope: '',     // 适用范围，由用户在结果页手填
       fileHash,
       createdAt: new Date().toISOString()
     }
@@ -211,7 +199,7 @@ export function addLearnedStyle(style) {
     excerpt1: style.excerpt1,
     excerpt2: style.excerpt2,
     prompt: style.prompt.trim(),
-    scopes: Array.isArray(style.scopes) ? style.scopes : [],
+    scope: (style.scope || '').trim(),
     fileHash: style.fileHash,
     createdAt: style.createdAt
   })

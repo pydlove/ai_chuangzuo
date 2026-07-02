@@ -160,9 +160,7 @@
           <div class="style-card-source">
             来源：{{ s.sourceName }} · {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
           </div>
-          <div v-if="s.scopes && s.scopes.length" class="style-card-scopes">
-            <span v-for="sc in s.scopes" :key="sc" class="scope-tag">{{ sc }}</span>
-          </div>
+          <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
           <div class="style-card-actions">
@@ -279,16 +277,14 @@
       </div>
       <div class="learned-result-field">
         <label class="learned-result-label">适用范围 <span class="required">*</span></label>
-        <div class="learned-scopes">
-          <button
-            v-for="scene in scenePresets"
-            :key="scene"
-            type="button"
-            :class="['learned-scope-chip', { active: learnedResult.scopes.includes(scene) }]"
-            @click="toggleScope(scene)"
-          >{{ scene }}</button>
-        </div>
-        <div v-if="learnedResult.scopes.length === 0" class="learned-hint">至少选择一个适用场景</div>
+        <input
+          v-model="learnedResult.scope"
+          type="text"
+          class="learned-input"
+          placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
+          maxlength="50"
+        />
+        <div v-if="!learnedResult.scope.trim()" class="learned-hint">简单描述这个风格适合写什么场景的文章</div>
       </div>
       <div class="learned-result-field">
         <label class="learned-result-label">命名 <span class="required">*</span></label>
@@ -334,8 +330,7 @@ import {
   addLearnedStyle,
   isLearning,
   readFileAsText,
-  readDocxAsText,
-  SCENE_PRESETS
+  readDocxAsText
 } from '@/composables/useStyles.js'
 
 const router = useRouter()
@@ -550,23 +545,10 @@ const canSaveLearnedResult = computed(() => {
   const name = learnedResult.value.name.trim()
   if (!name || name.length > 20) return false
   if (learnedResult.value.prompt.length > 1000) return false
-  if (!learnedResult.value.scopes || learnedResult.value.scopes.length === 0) return false
+  if (!learnedResult.value.scope || !learnedResult.value.scope.trim()) return false
   if (isStyleNameExists(name) || isLearnedStyleNameExists(name)) return false
   return true
 })
-
-const scenePresets = SCENE_PRESETS
-
-const toggleScope = (scene) => {
-  if (!learnedResult.value) return
-  const list = learnedResult.value.scopes
-  const idx = list.indexOf(scene)
-  if (idx > -1) {
-    list.splice(idx, 1)
-  } else {
-    list.push(scene)
-  }
-}
 
 const learnedNameConflict = computed(() => {
   if (!learnedResult.value) return false
@@ -588,6 +570,10 @@ const saveLearnedResult = () => {
   }
   if (learnedResult.value.prompt.length > 1000) {
     learnedResultError.value = '提示词超过 1000 字'
+    return
+  }
+  if (!learnedResult.value.scope || !learnedResult.value.scope.trim()) {
+    learnedResultError.value = '请填写适用范围'
     return
   }
   addLearnedStyle(learnedResult.value)
@@ -1177,53 +1163,18 @@ const deleteLearnedStyle = (name) => {
   color: #1a1a1a;
 }
 
-.learned-scopes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.learned-scope-chip {
-  padding: 6px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 16px;
-  background: #fff;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.learned-scope-chip:hover {
-  border-color: #07c160;
-  color: #07c160;
-}
-
-.learned-scope-chip.active {
-  background: #07c160;
-  border-color: #07c160;
-  color: #fff;
-}
-
 .learned-hint {
   font-size: 12px;
   color: #8c8c8c;
 }
 
-.style-card-scopes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 8px;
-}
-
-.scope-tag {
+.style-card-scope {
+  font-size: 12px;
+  color: #1890ff;
+  background: #e6f7ff;
   display: inline-block;
   padding: 2px 8px;
-  background: #e6f7ff;
-  color: #1890ff;
-  border-radius: 10px;
-  font-size: 11px;
-  line-height: 1.5;
+  border-radius: 4px;
+  margin-bottom: 8px;
 }
 </style>

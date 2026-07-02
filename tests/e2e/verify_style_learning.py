@@ -64,9 +64,8 @@ def main():
         # 8. 输入命名并保存（结果页第二个 .learned-input 是「命名」字段）
         inputs = page.locator('.learned-input')
         inputs.last.fill('我的测试风格')
-        page.wait_for_timeout(200)
-        # 至少选一个 scope
-        page.locator('.learned-scope-chip:has-text("公众号")').first.click()
+        # 适用范围：填写
+        page.locator('input[placeholder*="公众号情感文"]').fill('公众号情感文')
         page.wait_for_timeout(200)
         page.locator('button:has-text("保存到风格库")').click()
         page.wait_for_timeout(500)
