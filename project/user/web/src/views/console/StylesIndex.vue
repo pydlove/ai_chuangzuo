@@ -111,37 +111,44 @@
             :key="s.name"
             class="style-card"
           >
-            <div class="style-card-header">
-              <div class="style-card-title">{{ s.name }}</div>
-              <div
-                v-if="getMarketStatus(s.name)"
-                class="style-card-status"
-                :class="statusClass(s.name)"
-              >
-                {{ getMarketStatus(s.name) }}
+            <div class="style-card-head">
+              <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
+              <div class="style-card-title-wrap">
+                <div class="style-card-title-row">
+                  <div class="style-card-title">{{ s.name }}</div>
+                  <div
+                    v-if="getMarketStatus(s.name)"
+                    class="style-card-status"
+                    :class="statusClass(s.name)"
+                  >
+                    {{ getMarketStatus(s.name) }}
+                  </div>
+                </div>
+                <div class="style-card-meta">自定义风格 · 已用 {{ s.count }} 次</div>
               </div>
+              <button class="style-card-remove" @click.stop="deleteStyle(s.name)">删除</button>
             </div>
-            <div class="style-card-desc">{{ s.desc }} · 已用 {{ s.count }} 次</div>
-            <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
+            <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
             <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-            <div class="style-card-actions">
-              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-                {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
-              </button>
-              <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
-              <button
-                v-if="getMarketStatus(s.name) === '审核中'"
-                class="style-action-btn success"
-                @click.stop="simulateApprove(s.name)"
-              >模拟通过</button>
-              <button
-                v-else-if="!getMarketStatus(s.name)"
-                class="style-action-btn"
-                @click.stop="shareStyle(s, 'my')"
-              >分享</button>
-              <button class="style-action-btn danger" @click.stop="deleteStyle(s.name)">删除</button>
+            <div class="style-card-footer">
+              <div class="style-card-actions">
+                <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
+                <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+                  {{ expandedNames.has(s.name) ? '收起' : '查看' }}
+                </button>
+                <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
+                <button
+                  v-if="getMarketStatus(s.name) === '审核中'"
+                  class="style-action-btn success"
+                  @click.stop="simulateApprove(s.name)"
+                >通过</button>
+                <button
+                  v-else-if="!getMarketStatus(s.name)"
+                  class="style-action-btn"
+                  @click.stop="shareStyle(s, 'my')"
+                >分享</button>
+              </div>
             </div>
           </div>
         </div>
@@ -187,39 +194,46 @@
           :key="s.name"
           class="style-card"
         >
-          <div class="style-card-header">
-            <div class="style-card-title">{{ s.name }}</div>
-            <div
-              v-if="getMarketStatus(s.name)"
-              class="style-card-status"
-              :class="statusClass(s.name)"
-            >
-              {{ getMarketStatus(s.name) }}
+          <div class="style-card-head">
+            <div class="style-card-avatar learned">{{ s.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ s.name }}</div>
+                <div
+                  v-if="getMarketStatus(s.name)"
+                  class="style-card-status"
+                  :class="statusClass(s.name)"
+                >
+                  {{ getMarketStatus(s.name) }}
+                </div>
+              </div>
+              <div class="style-card-meta">
+                {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
+              </div>
             </div>
+            <button class="style-card-remove" @click.stop="deleteLearnedStyle(s.name)">删除</button>
           </div>
-          <div class="style-card-source">
-            {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
-          </div>
-          <div v-if="s.scope" class="style-card-scope">适用：{{ s.scope }}</div>
+          <div v-if="s.scope" class="style-card-scope">{{ s.scope }}</div>
           <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
           <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-          <div class="style-card-actions">
-            <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-            <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-              {{ expandedNames.has(s.name) ? '收起' : '查看完整提示词' }}
-            </button>
-            <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
-            <button
-              v-if="getMarketStatus(s.name) === '审核中'"
-              class="style-action-btn success"
-              @click.stop="simulateApprove(s.name)"
-            >模拟通过</button>
-            <button
-              v-else-if="!getMarketStatus(s.name)"
-              class="style-action-btn"
-              @click.stop="shareStyle(s, 'learned')"
-            >分享</button>
-            <button class="style-action-btn danger" @click.stop="deleteLearnedStyle(s.name)">删除</button>
+          <div class="style-card-footer">
+            <div class="style-card-actions">
+              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
+              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
+                {{ expandedNames.has(s.name) ? '收起' : '查看' }}
+              </button>
+              <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
+              <button
+                v-if="getMarketStatus(s.name) === '审核中'"
+                class="style-action-btn success"
+                @click.stop="simulateApprove(s.name)"
+              >通过</button>
+              <button
+                v-else-if="!getMarketStatus(s.name)"
+                class="style-action-btn"
+                @click.stop="shareStyle(s, 'learned')"
+              >分享</button>
+            </div>
           </div>
         </div>
       </div>
@@ -790,93 +804,106 @@ const simulateApprove = (name) => {
 
 .styles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: 24px;
 }
 
 .style-add-card {
-  border: 1px dashed #d9d9d9;
-  border-radius: 12px;
-  padding: 24px;
+  border: 2px dashed #e8e8e8;
+  border-radius: 20px;
+  padding: 32px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 160px;
+  min-height: 200px;
 }
 
 .style-add-card:hover {
-  border-color: #07c160;
-  background: #f6ffed;
+  border-color: #ff2442;
+  background: #fff8f9;
 }
 
 .style-add-icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #f5f5f5;
   color: #8c8c8c;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 28px;
 }
 
 .style-add-text {
-  font-size: 14px;
+  font-size: 15px;
   color: #595959;
 }
 
 .style-card {
   background: #fff;
-  border: 1px solid #f2f2f2;
-  border-radius: 16px;
-  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
-}
-
-.style-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, #ff2442, #ff8a9b);
-  opacity: 0;
-  transition: opacity 0.25s ease;
 }
 
 .style-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(255, 36, 66, 0.12);
+  transform: translateY(-5px);
+  box-shadow: 0 16px 36px rgba(255, 36, 66, 0.13);
 }
 
-.style-card:hover::before {
-  opacity: 1;
-}
-
-.style-card-header {
+.style-card-head {
   display: flex;
-  justify-content: space-between;
   align-items: flex-start;
-  gap: 10px;
-  margin-bottom: 8px;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.style-card-avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ff2442, #ff8a9b);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.style-card-avatar.learned {
+  background: linear-gradient(135deg, #ff8a9b, #ffc2cb);
+}
+
+.style-card-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.style-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
 }
 
 .style-card-title {
-  font-size: 16px;
+  font-size: 18px;
   font-weight: 600;
   color: #1a1a1a;
-  line-height: 1.4;
+  line-height: 1.35;
   word-break: break-all;
 }
 
@@ -899,16 +926,25 @@ const simulateApprove = (name) => {
   color: #fa8c16;
 }
 
-.style-card-desc {
+.style-card-meta {
   font-size: 12px;
   color: #8c8c8c;
-  margin-bottom: 12px;
 }
 
-.style-card-source {
+.style-card-remove {
+  flex-shrink: 0;
+  padding: 4px 10px;
+  border: none;
+  background: #fff1f0;
+  color: #ff4d4f;
+  border-radius: 12px;
   font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.style-card-remove:hover {
+  background: #ffccc7;
 }
 
 .style-card-scope {
@@ -916,13 +952,13 @@ const simulateApprove = (name) => {
   align-items: center;
   gap: 4px;
   width: fit-content;
-  font-size: 12px;
+  font-size: 13px;
   color: #ff2442;
   background: #fff0f2;
   border: 1px solid #ffd1d9;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: 20px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .style-card-scope::before {
@@ -931,40 +967,46 @@ const simulateApprove = (name) => {
 }
 
 .style-card-prompt {
-  font-size: 13px;
+  font-size: 14px;
   color: #595959;
-  line-height: 1.6;
-  margin-bottom: 14px;
+  line-height: 1.7;
+  margin-bottom: 18px;
   flex: 1;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
 .style-prompt-full {
-  font-size: 13px;
+  font-size: 14px;
   color: #595959;
   line-height: 1.7;
   background: #fafafa;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
   white-space: pre-line;
+}
+
+.style-card-footer {
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f5f5f5;
 }
 
 .style-card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
 }
 
 .style-action-btn {
-  padding: 6px 12px;
+  padding: 8px 16px;
   border: 1px solid #e8e8e8;
   background: #fff;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 10px;
+  font-size: 14px;
   color: #595959;
   cursor: pointer;
   transition: all 0.2s;
@@ -984,12 +1026,6 @@ const simulateApprove = (name) => {
 
 .style-action-btn.primary:hover {
   background: #e61e3a;
-}
-
-.style-action-btn.danger:hover {
-  border-color: #ff4d4f;
-  color: #ff4d4f;
-  background: #fff1f0;
 }
 
 .style-action-btn.success {

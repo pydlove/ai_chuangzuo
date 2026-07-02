@@ -39,7 +39,7 @@ def main():
         card = page.locator('.style-card:has-text("市场测试风格")')
         card.locator('button:has-text("分享")').click()
         page.wait_for_timeout(300)
-        card.locator('button:has-text("模拟通过")').click()
+        card.locator('button:has-text("通过")').click()
         page.wait_for_timeout(300)
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_cards_redesign.png')
 
