@@ -203,7 +203,7 @@
       <div class="learned-banner">
         上传或粘贴一篇文章，AI 会分析它的写作风格并保存为「我的风格」
       </div>
-      <div v-if="filteredLearnedStyles.length === 0" class="styles-grid">
+      <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
         <div class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新风格</div>
@@ -978,7 +978,8 @@ const simulateApprove = (name) => {
   gap: 10px;
   cursor: pointer;
   transition: all 0.2s;
-  min-height: 200px;
+  height: 220px;
+  box-sizing: border-box;
 }
 
 .style-add-card:hover {
