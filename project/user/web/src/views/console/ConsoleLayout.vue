@@ -4,7 +4,7 @@
     <aside class="console-sidebar">
       <div class="console-sidebar-brand">
         <img
-          :src="currentTheme === 'dark' ? 'https://foruda.gitee.com/images/1782816881530259552/332b2985_8060302.png' : 'https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png'"
+          :src="logoUrl"
           alt="爱创作"
           class="brand-logo"
         />
@@ -554,7 +554,7 @@
             <div class="about-panel">
               <div class="about-header">
                 <div class="about-logo">
-                  <img src="https://foruda.gitee.com/images/1782805324201637771/ee4f5810_8060302.png" alt="爱创作" />
+                  <img src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png" alt="爱创作" />
                 </div>
                 <div class="about-brand">
                   <div class="about-name">爱创作</div>
@@ -612,6 +612,44 @@
               </svg>
             </a>
           </a-tooltip>
+          <!-- 主题切换 -->
+          <a-tooltip :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'">
+            <button class="console-icon-btn" @click="toggleTheme">
+              <svg
+                v-if="currentTheme === 'light'"
+                class="console-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <svg
+                v-else
+                class="console-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              >
+                <circle cx="12" cy="12" r="5" />
+                <line x1="12" y1="1" x2="12" y2="3" />
+                <line x1="12" y1="21" x2="12" y2="23" />
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                <line x1="1" y1="12" x2="3" y2="12" />
+                <line x1="21" y1="12" x2="23" y2="12" />
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+              </svg>
+            </button>
+          </a-tooltip>
+
           <span
             :class="['console-membership-badge', { 'has-membership': hasMembership, 'no-membership': !hasMembership }]"
             @click="handleMembershipClick"
@@ -887,7 +925,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
-import logoUrl from '@/assets/images/common/logo.png'
+const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
   LoadingOutlined,
@@ -919,7 +957,7 @@ const navItems = [
   { path: '/console/works', label: '我的作品', icon: FolderOutlined },
   { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
-  { path: '/console/earnings', label: '收益明细', icon: DollarOutlined },
+  { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined }
 ]
 
@@ -1736,7 +1774,7 @@ const openWithdrawModal = () => {
 
 const goToWithdraw = () => {
   inviteVisible.value = false
-  router.push('/console/coin')
+  router.push('/console/coin?from=invite')
 }
 
 const submitWithdraw = () => {
@@ -2632,8 +2670,8 @@ body[data-theme="dark"] .console-sidebar-item {
 
 body[data-theme="dark"] .console-sidebar-item:hover,
 body[data-theme="dark"] .console-sidebar-item.active {
-  background: #1a2e1a;
-  color: #10b981;
+  background: rgba(255, 36, 66, 0.15);
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .console-header {
@@ -4126,6 +4164,14 @@ body[data-theme="dark"] .invite-code-box {
   background: #262626;
 }
 
+body[data-theme="dark"] .invite-stats {
+  background: #141414;
+}
+
+body[data-theme="dark"] .invite-progress-bar {
+  background: #303030;
+}
+
 body[data-theme="dark"] .invite-rules {
   background: rgba(255, 36, 66, 0.1);
   border-color: rgba(255, 36, 66, 0.3);
@@ -4141,6 +4187,10 @@ body[data-theme="dark"] .invite-rules-tag {
 
 body[data-theme="dark"] .invite-rule-label {
   color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rule-text {
+  color: #e8e8e8;
 }
 
 body[data-theme="dark"] .invite-rule-underline {
@@ -4178,7 +4228,7 @@ body[data-theme="dark"] .invite-rules-detail-section + .invite-rules-detail-sect
 }
 
 body[data-theme="dark"] .invite-rules-detail-list li {
-  color: #a6a6a6;
+  color: #f0f0f0;
 }
 
 body[data-theme="dark"] .invite-rules-detail-list li::before {
@@ -4445,5 +4495,37 @@ body[data-theme="dark"] .redeem-status.success {
   color: #bfbfbf;
   cursor: not-allowed;
   border-color: transparent;
+}
+
+/*
+ * 暗色主题 - Ant 弹层外壳适配（全局，非 scoped）
+ * 原因：a-modal / a-drawer 的内容被 teleport 到 body，其 .ant-modal-content
+ * / .ant-drawer-content 由 Ant 生成、不带组件 scope 属性，scoped 样式无法命中，
+ * 暗色下会保留 #fff 白底。这里在全局块内按主题覆盖其外壳背景。
+ */
+body[data-theme="dark"] .invite-modal .ant-modal-content,
+body[data-theme="dark"] .poster-modal .ant-modal-content,
+body[data-theme="dark"] .notif-modal .ant-modal-content {
+  background: #141414;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .invite-modal .ant-modal-close,
+body[data-theme="dark"] .poster-modal .ant-modal-close,
+body[data-theme="dark"] .notif-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-modal .ant-modal-close:hover,
+body[data-theme="dark"] .poster-modal .ant-modal-close:hover,
+body[data-theme="dark"] .notif-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 注意：class="invite-rules-drawer" 直接挂在 .ant-drawer-content 上（同一元素），
+ * 所以必须用复合选择器 .invite-rules-drawer.ant-drawer-content，而非后代选择器。 */
+body[data-theme="dark"] .invite-rules-drawer.ant-drawer-content {
+  background: #1f1f1f;
 }
 </style>
