@@ -144,3 +144,72 @@ export async function readDocxAsText(file) {
   const result = await window.mammoth.extractRawText({ arrayBuffer: buffer })
   return result.value
 }
+
+// 风格分析（前端 mock，async 接口为后端预留）
+export async function analyzeArticleStyle(text, meta) {
+  isLearning.value = true
+  try {
+    const fileHash = await simpleHash(text)
+    const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 20)
+    const first = paragraphs[0]?.trim() || ''
+    const mid = paragraphs[Math.floor(paragraphs.length / 2)]?.trim() || ''
+    const sentences = text.split(/[。！？\n]/).filter(s => s.trim().length > 10)
+    const longest = sentences.sort((a, b) => b.length - a.length)[0]?.trim().slice(0, 80) || ''
+
+    const prompt = `你是一位中文写手，请模仿以下参考文章的写作风格：
+
+【语气】克制、文学化，善用短句与留白
+【词汇】避免网络用语，偏书面表达
+【句式】长短句交替，节奏感强
+【结构】起承转合清晰，结尾有余味
+
+请在生成新内容时参考以下片段的风格特征。`
+
+    // mock 延迟 1.5 秒
+    await new Promise(r => setTimeout(r, 1500))
+
+    return {
+      sourceName: meta.sourceName || '未命名参考',
+      sourceType: meta.sourceType,
+      excerpt1: (first || mid).slice(0, 120),
+      excerpt2: longest,
+      prompt,
+      fileHash,
+      createdAt: new Date().toISOString()
+    }
+  } finally {
+    isLearning.value = false
+  }
+}
+
+// 命名去重（仅在学习风格之间检查；与 myStyles 共用 isStyleNameExists）
+export function isLearnedStyleNameExists(name, excludeName = null) {
+  const target = name.trim().toLowerCase()
+  if (!target) return false
+  if (excludeName && target === excludeName.trim().toLowerCase()) return false
+  return learnedStyles.value.some(s => s.name.trim().toLowerCase() === target)
+}
+
+export function addLearnedStyle(style) {
+  learnedStyles.value.unshift({
+    name: style.name.trim(),
+    sourceName: style.sourceName,
+    sourceType: style.sourceType,
+    excerpt1: style.excerpt1,
+    excerpt2: style.excerpt2,
+    prompt: style.prompt.trim(),
+    fileHash: style.fileHash,
+    createdAt: style.createdAt
+  })
+  saveLearnedStyles()
+}
+
+export function removeLearnedStyle(name) {
+  const idx = learnedStyles.value.findIndex(s => s.name === name)
+  if (idx > -1) learnedStyles.value.splice(idx, 1)
+  saveLearnedStyles()
+}
+
+export function findLearnedStyleByHash(hash) {
+  return learnedStyles.value.find(s => s.fileHash === hash)
+}
