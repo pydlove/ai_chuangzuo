@@ -5,24 +5,26 @@
       <p class="style-market-subtitle">发现优质写作风格，支持原创创作者</p>
     </div>
 
-    <div class="style-market-tabs">
-      <button
-        v-for="tab in tabOptions"
-        :key="tab.key"
-        :class="['style-market-tab', { active: activeTab === tab.key }]"
-        @click="activeTab = tab.key"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
+    <div class="style-market-filter-bar">
+      <div class="style-market-tabs">
+        <button
+          v-for="tab in tabOptions"
+          :key="tab.key"
+          :class="['style-market-tab', { active: activeTab === tab.key }]"
+          @click="activeTab = tab.key"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
 
-    <div class="style-market-search">
-      <input
-        v-model="searchQuery"
-        type="text"
-        class="style-market-search-input"
-        placeholder="搜索风格名或适用范围"
-      />
+      <div class="style-market-search">
+        <input
+          v-model="searchQuery"
+          type="text"
+          class="style-market-search-input"
+          placeholder="搜索风格名或适用范围"
+        />
+      </div>
     </div>
 
     <div v-if="filteredStyles.length === 0" class="style-market-empty">
@@ -161,13 +163,21 @@ const handleSimulate = (s) => {
   margin: 0;
 }
 
+.style-market-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
 .style-market-tabs {
   display: flex;
   gap: 4px;
   background: #f5f5f5;
   padding: 4px;
   border-radius: 8px;
-  margin-bottom: 20px;
   width: fit-content;
 }
 
