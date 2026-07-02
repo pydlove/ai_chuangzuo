@@ -53,12 +53,14 @@ def main():
               localStorage.removeItem('aichuangzuo_coin_balance')
             }""")
             open_login(page)
+            # 默认 tab 应为「登录」（无 ref）
+            default_tab = page.locator("button.auth-tab.active").inner_text()
             switch_to_register(page)
             invite_val = page.locator('input[placeholder="如没有可留空"]').input_value()
             banner_count = page.locator(".invite-banner").count()
             banner_visible = banner_count > 0 and page.locator(".invite-banner").is_visible()
-            ok = invite_val == "" and not banner_visible
-            results.append(("场景1 无ref输入框为空+banner隐藏", ok))
+            ok = invite_val == "" and not banner_visible and default_tab == "登录"
+            results.append(("场景1 无ref默认登录tab+输入框为空+banner隐藏", ok))
             page.screenshot(path=str(SCREENSHOT_DIR / "login_invite_no_ref.png"))
             ctx.close()
 
@@ -72,12 +74,13 @@ def main():
               localStorage.removeItem('aichuangzuo_coin_balance')
             }""")
             open_login(page, ref="ABC123")
-            switch_to_register(page)
+            # 默认 tab 应为「注册」（带 ref）
+            default_tab = page.locator("button.auth-tab.active").inner_text()
             invite_val = page.locator('input[placeholder="如没有可留空"]').input_value()
             banner_visible = page.locator(".invite-banner").count() > 0 and \
                              page.locator(".invite-banner").is_visible()
-            ok = invite_val == "ABC123" and banner_visible
-            results.append(("场景2 ref自动填充+banner显示", ok))
+            ok = invite_val == "ABC123" and banner_visible and default_tab == "注册"
+            results.append(("场景2 ref默认注册tab+自动填充+banner显示", ok))
             page.screenshot(path=str(SCREENSHOT_DIR / "login_invite_auto_fill.png"))
             ctx.close()
 
@@ -93,7 +96,7 @@ def main():
               localStorage.removeItem('aichuangzuo_coin_balance')
             }""")
             open_login(page, ref="K7P2QX")
-            switch_to_register(page)
+            # 带 ref 默认就是注册 tab，无需 switch_to_register
             # 直接点注册按钮（限定在「注册」字样的 submit-btn）
             page.locator("button.submit-btn", has_text="注册").click()
             page.wait_for_timeout(800)
@@ -139,7 +142,7 @@ def main():
               localStorage.removeItem('aichuangzuo_coin_balance')
             }""")
             open_login(page, ref="EXTREF9")
-            switch_to_register(page)
+            # 带 ref 默认就是注册 tab，无需 switch_to_register
             page.locator("button.submit-btn", has_text="注册").click()
             page.wait_for_timeout(800)
             current_url = page.url

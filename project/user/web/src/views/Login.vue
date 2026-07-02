@@ -266,9 +266,12 @@ onMounted(() => {
     setStoredRef(ref)
     registerForm.inviteCode = ref
     showInviteBanner.value = true
+    // 带邀请链接访问时默认展示注册 tab
+    activeTab.value = 'register'
   } else if (getStoredRef()) {
     // localStorage 残留 ref（用户刷新页面），banner 仍显示
     showInviteBanner.value = true
+    activeTab.value = 'register'
   }
 })
 </script>
