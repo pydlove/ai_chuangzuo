@@ -648,7 +648,7 @@
                   <div class="membership-left">
                     <div class="membership-label">当前会员</div>
                     <div class="membership-name">{{ hasMembership ? membershipLevel : '免费版' }}</div>
-                    <div class="membership-expiry" v-if="hasMembership">有效期至 2026-12-31</div>
+                    <div class="membership-expiry" v-if="hasMembership">有效期至 {{ membershipExpiry }}</div>
                   </div>
                   <div class="membership-right">
                     <button class="membership-btn">{{ hasMembership ? '续费' : '开通' }}</button>
@@ -1097,17 +1097,56 @@ const handleLogout = () => {
 const MEMBERSHIP_KEY = 'aichuangzuo_membership'
 const hasMembership = ref(false)
 const membershipLevel = ref('年会员')
+const membershipExpiry = ref('')
 
 const loadMembership = () => {
-  const level = localStorage.getItem(MEMBERSHIP_KEY)
-  if (level) {
-    hasMembership.value = true
-    membershipLevel.value = level
+  const raw = localStorage.getItem(MEMBERSHIP_KEY)
+  if (!raw) {
+    hasMembership.value = false
+    return
   }
+  try {
+    const parsed = JSON.parse(raw)
+    if (parsed && typeof parsed === 'object') {
+      membershipLevel.value = parsed.level || '年会员'
+      membershipExpiry.value = parsed.expiresAt || ''
+      hasMembership.value = true
+      return
+    }
+  } catch {
+    // 旧格式 string,迁移
+  }
+  // 旧 string 格式
+  membershipLevel.value = raw
+  const fallbackExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  membershipExpiry.value = fallbackExpiry
+  hasMembership.value = true
+  // 写入新格式
+  localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+    level: membershipLevel.value,
+    expiresAt: membershipExpiry.value
+  }))
 }
 
 const handleMembershipClick = () => {
   router.push('/pricing')
+}
+
+const extendMembership = (days, level) => {
+  const now = new Date()
+  const currentExpiry = membershipExpiry.value ? new Date(membershipExpiry.value) : now
+  const base = currentExpiry > now ? currentExpiry : now
+  const newExpiry = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
+  const isoDate = newExpiry.toISOString().split('T')[0]
+
+  membershipLevel.value = level || membershipLevel.value || '年会员'
+  membershipExpiry.value = isoDate
+  hasMembership.value = true
+
+  localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+    level: membershipLevel.value,
+    expiresAt: isoDate
+  }))
 }
 
 // ---------- 邀请有礼 ----------
@@ -1138,6 +1177,92 @@ const openRedeemModal = () => {
   nextTick(() => {
     redeemInputRef.value?.focus()
   })
+}
+
+const REDEEM_PRESETS = {
+  COIN100: { type: 'coin', reward: 100 },
+  COIN500: { type: 'coin', reward: 500 },
+  VIP7DAY: { type: 'membership', reward: 7, level: '专业版会员' },
+  VIP30DAY: { type: 'membership', reward: 30, level: '专业版会员' }
+}
+
+const getRedeemedCodes = () => {
+  try {
+    const raw = localStorage.getItem(REDEEM_USED_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+const saveRedeemedCode = (code) => {
+  const codes = getRedeemedCodes()
+  if (!codes.includes(code)) {
+    codes.push(code)
+    localStorage.setItem(REDEEM_USED_KEY, JSON.stringify(codes))
+  }
+}
+
+const appendRedeemHistory = (record) => {
+  try {
+    const raw = localStorage.getItem(REDEEM_HISTORY_KEY)
+    const history = raw ? JSON.parse(raw) : []
+    history.unshift(record)
+    localStorage.setItem(REDEEM_HISTORY_KEY, JSON.stringify(history))
+  } catch {
+    // ignore
+  }
+}
+
+const submitRedeem = () => {
+  const code = redeemCode.value.trim().toUpperCase()
+  if (code.length < 6) {
+    redeemStatus.value = { type: 'error', message: '兑换码格式不正确' }
+    return
+  }
+  if (redeemLoading.value) return
+
+  redeemLoading.value = true
+  redeemStatus.value = null
+
+  // 模拟网络请求
+  setTimeout(() => {
+    if (getRedeemedCodes().includes(code)) {
+      redeemStatus.value = { type: 'error', message: '该兑换码已被使用过' }
+      redeemLoading.value = false
+      return
+    }
+
+    const preset = REDEEM_PRESETS[code]
+    if (!preset) {
+      redeemStatus.value = { type: 'error', message: '兑换码无效或已过期' }
+      redeemLoading.value = false
+      return
+    }
+
+    saveRedeemedCode(code)
+    appendRedeemHistory({
+      code,
+      type: preset.type,
+      reward: preset.reward,
+      redeemedAt: new Date().toISOString()
+    })
+
+    if (preset.type === 'coin') {
+      addCoin(preset.reward, `兑换码 ${code}`)
+      redeemStatus.value = { type: 'success', message: `✅ 兑换成功 +${preset.reward} 创作币` }
+    } else if (preset.type === 'membership') {
+      extendMembership(preset.reward, preset.level)
+      redeemStatus.value = { type: 'success', message: `✅ 兑换成功 +${preset.reward} 天${preset.level}` }
+    }
+
+    redeemLoading.value = false
+    setTimeout(() => {
+      redeemVisible.value = false
+      redeemCode.value = ''
+      redeemStatus.value = null
+    }, 2000)
+  }, 400)
 }
 
 const inviteVisible = ref(false)
