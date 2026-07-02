@@ -82,3 +82,70 @@ button {
   cursor: pointer;
   font: inherit;
 }
+
+/* 邀请创作币说明 tooltip（a-tooltip 内容渲染到 body，需全局） */
+.invite-coin-tooltip .ant-tooltip-inner {
+  max-width: 260px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #262626;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.invite-coin-tooltip .ant-tooltip-arrow::before {
+  background: #fff;
+}
+
+.invite-coin-tooltip-content {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.invite-coin-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.invite-coin-tooltip-desc {
+  margin-bottom: 8px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-desc b {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.invite-coin-tooltip-section + .invite-coin-tooltip-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+
+.invite-coin-tooltip-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.invite-coin-tooltip-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: disc;
+}
+
+.invite-coin-tooltip-list li {
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-list li:last-child {
+  margin-bottom: 0;
+}
