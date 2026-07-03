@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @Service
@@ -53,6 +54,10 @@ public class AuthServiceImpl implements AuthService {
 
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static final int MAX_LOGIN_FAIL = 5;
+    private static final long LOGIN_FAIL_WINDOW_MINUTES = 5;
+    private static final long ACCOUNT_LOCK_MINUTES = 30;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -165,12 +170,17 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
         }
 
-        // 账号锁定检查在 Task 12 实现
+        String failKey = "user:auth:login-fail:" + request.getEmail();
         String lockKey = "user:auth:account-lock:" + request.getEmail();
+
+        if (cacheUtil.get(lockKey) != null) {
+            throw new BusinessException(UserAuthErrorCode.OPERATION_TOO_FREQUENT);
+        }
 
         User user = userMapper.selectByEmail(request.getEmail());
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             saveLoginLog(0L, 1, clientIp, userAgent, 0, "账号或密码错误");
+            incrementLoginFail(failKey, lockKey);
             throw new BusinessException(UserAuthErrorCode.ACCOUNT_OR_PASSWORD_ERROR);
         }
 
@@ -178,8 +188,22 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.ACCOUNT_DISABLED);
         }
 
+        cacheUtil.delete(failKey);
         saveLoginLog(user.getId(), 1, clientIp, userAgent, 1, null);
         return buildAuthTokenVO(user);
+    }
+
+    private void incrementLoginFail(String failKey, String lockKey) {
+        Integer count = cacheUtil.get(failKey);
+        if (count == null) {
+            count = 0;
+        }
+        count++;
+        cacheUtil.set(failKey, count, LOGIN_FAIL_WINDOW_MINUTES, TimeUnit.MINUTES);
+        if (count >= MAX_LOGIN_FAIL) {
+            cacheUtil.set(lockKey, true, ACCOUNT_LOCK_MINUTES, TimeUnit.MINUTES);
+            cacheUtil.delete(failKey);
+        }
     }
 
     @Override
