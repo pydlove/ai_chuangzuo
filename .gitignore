@@ -28,7 +28,10 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Logs
+# Build artifacts
+/target/
+target/
+
 *.log
 logs/*
 !logs/.gitkeep
