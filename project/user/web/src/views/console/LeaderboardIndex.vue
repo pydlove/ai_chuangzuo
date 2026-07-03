@@ -340,7 +340,7 @@ const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
 
 const coinRewardBanner = computed(() => ({
   class: 'is-current',
-  title: '本月 TOP 10 每月可获 100 创作币奖励',
+  title: '本月 TOP 10 当月可获 100 创作币奖励',
   desc: '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
 }))
 
@@ -348,7 +348,7 @@ const incomeRewardBanner = computed(() => {
   const isCurrent = incomePeriodValue.value === currentIncomeMonth
   return {
     class: isCurrent ? 'is-current' : 'is-past',
-    title: isCurrent ? '本月度 TOP 10 每月可获 100 创作币奖励' : '历史月榜单已结算',
+    title: isCurrent ? '本月度 TOP 10 当月可获 100 创作币奖励' : '历史月榜单已结算',
     desc: isCurrent
       ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
       : '该月榜单已结算，TOP 10 奖励已发放'
