@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.auth.controller;
 
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.auth.dto.request.LoginRequest;
+import com.aichuangzuo.user.modules.auth.dto.request.RefreshTokenRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.SendEmailCodeRequest;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -57,6 +59,21 @@ public class AuthController {
         String clientIp = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
         return Result.success(authService.register(request, clientIp, userAgent));
+    }
+
+    @Operation(summary = "刷新 Token")
+    @PostMapping("/refresh-token")
+    public Result<AuthTokenVO> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        return Result.success(authService.refreshToken(request));
+    }
+
+    @Operation(summary = "退出登录")
+    @PostMapping("/logout")
+    public Result<Void> logout(@RequestHeader(value = "Authorization", required = false) String authorization) {
+        if (authorization != null && authorization.startsWith("Bearer ")) {
+            authService.logout(authorization.substring(7));
+        }
+        return Result.success();
     }
 
     private String getClientIp(HttpServletRequest request) {

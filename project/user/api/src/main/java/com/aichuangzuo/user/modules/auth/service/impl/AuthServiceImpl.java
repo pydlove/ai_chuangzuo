@@ -184,11 +184,20 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokenVO refreshToken(RefreshTokenRequest request) {
-        throw new UnsupportedOperationException("Implement in next task");
+        Long userId = jwtUtil.parseRefreshToken(request.getRefreshToken());
+        User user = userMapper.selectById(userId);
+        if (user == null || user.getUserStatus() == 0) {
+            throw new BusinessException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
+        return buildAuthTokenVO(user);
     }
 
     @Override
     public void logout(String accessToken) {
-        throw new UnsupportedOperationException("Implement in next task");
+        String jti = jwtUtil.getJti(accessToken);
+        long ttlMillis = jwtUtil.getExpiration(accessToken).getTime() - System.currentTimeMillis();
+        if (ttlMillis > 0) {
+            cacheUtil.set("user:auth:token-blacklist:" + jti, true, ttlMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
+        }
     }
 }
