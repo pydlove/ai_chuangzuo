@@ -175,8 +175,8 @@
       <div class="features-inner">
         <div class="features-header">
           <div class="features-tag">为什么选择爱创作</div>
-          <h2 class="features-title">把时间变成收益</h2>
-          <p class="features-subtitle">不教你写文案，只帮你把内容变成账号流量和收入</p>
+          <h2 class="features-title">把时间变成账号资产</h2>
+          <p class="features-subtitle">不教你写文案，只帮你把内容变成账号流量、持续收益和长期复利</p>
         </div>
         <div class="features-grid">
           <div class="feature-card">
@@ -187,7 +187,7 @@
               </svg>
             </div>
             <div class="feature-name">3 分钟成稿</div>
-            <div class="feature-desc">告别 3 小时憋一篇文，输入写作方向，AI 自动完成标题、结构、正文。</div>
+            <div class="feature-desc">输入写作方向，AI 自动完成标题、结构、正文。告别 3 小时憋一篇文。</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon" style="background: #fff1f0;">
@@ -196,8 +196,8 @@
                 <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
               </svg>
             </div>
-            <div class="feature-name">多平台变现</div>
-            <div class="feature-desc">一次生成，适配公众号、百家号、今日头条、小红书、抖音图文，流量不浪费。</div>
+            <div class="feature-name">一稿多发跨平台</div>
+            <div class="feature-desc">一次创作，公众号、小红书、抖音、百家号、头条、知乎全部适配，一份内容赚 N 份收益。</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon" style="background: #fff1f0;">
@@ -206,7 +206,7 @@
               </svg>
             </div>
             <div class="feature-name">爆款结构</div>
-            <div class="feature-desc">内置高打开率标题、钩子开头、金句结尾，不用懂写作也能写出爆款。</div>
+            <div class="feature-desc">内置高打开率标题、钩子开头、金句结尾，不用懂写作也能产出爆款。</div>
           </div>
           <div class="feature-card">
             <div class="feature-icon" style="background: #fff1f0;">
@@ -219,7 +219,38 @@
               </svg>
             </div>
             <div class="feature-name">导出即发布</div>
-            <div class="feature-desc">生成后预览、调整、导出 Word，复制到各平台直接发布，快速变现。</div>
+            <div class="feature-desc">生成后预览、微调、导出 Word，复制到任何平台直接发布，快速变现。</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background: #fff1f0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="1" x2="12" y2="23"/>
+                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+              </svg>
+            </div>
+            <div class="feature-name">持续变现</div>
+            <div class="feature-desc">创作币奖励、邀请好友返利、月榜奖金、外部自媒体收入申报……不是写一篇赚一篇，是越写越能赚。</div>
+          </div>
+          <div class="feature-card feature-card-asset">
+            <div class="feature-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
+                <polyline points="17 6 23 6 23 12"/>
+              </svg>
+            </div>
+            <div class="feature-name">账号资产复利</div>
+            <div class="feature-desc">自媒体账号像滚雪球 —— 粉丝、内容沉淀、平台权重，会随时间持续累加。早一天起号，早一天开始滚雪球。</div>
+            <svg class="asset-chart" viewBox="0 0 240 60" preserveAspectRatio="none">
+              <defs>
+                <linearGradient id="asset-grad" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#FF2442" stop-opacity="0.2"/>
+                  <stop offset="100%" stop-color="#FF2442" stop-opacity="1"/>
+                </linearGradient>
+              </defs>
+              <polyline points="0,52 30,46 60,42 90,34 120,28 150,20 180,14 210,8 240,4" fill="none" stroke="url(#asset-grad)" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="240" cy="4" r="3.5" fill="#FF2442"/>
+              <text x="234" y="14" fill="#FF2442" font-size="9" font-weight="700">↑</text>
+            </svg>
           </div>
         </div>
       </div>
@@ -560,7 +591,7 @@ onMounted(() => {
 
 .features-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 20px;
 }
 
@@ -598,6 +629,32 @@ onMounted(() => {
   font-size: 14px;
   color: #595959;
   line-height: 1.6;
+}
+
+.feature-card-asset {
+  background: linear-gradient(135deg, #1f1f1f 0%, #2a2a2a 100%);
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+
+.feature-card-asset .feature-icon {
+  background: rgba(255, 36, 66, 0.15);
+}
+
+.feature-card-asset .feature-name {
+  color: #fff;
+}
+
+.feature-card-asset .feature-desc {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.asset-chart {
+  width: 100%;
+  height: 60px;
+  margin-top: 14px;
+  display: block;
 }
 
 /* 使用步骤 */
