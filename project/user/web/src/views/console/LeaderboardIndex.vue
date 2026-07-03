@@ -1148,157 +1148,6 @@ function handleSubmit() {
   background: #e61e3a;
 }
 
-/* 暗色主题 */
-:global(body[data-theme="dark"]) .leaderboard-page {
-  background: #141414;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-title,
-:global(body[data-theme="dark"]) .form-label,
-:global(body[data-theme="dark"]) .submission-month,
-:global(body[data-theme="dark"]) .leaderboard-submissions-title,
-:global(body[data-theme="dark"]) .top-nickname,
-:global(body[data-theme="dark"]) .leaderboard-nickname,
-:global(body[data-theme="dark"]) .leaderboard-period-label {
-  color: #e0e0e0;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-subtitle,
-:global(body[data-theme="dark"]) .leaderboard-submissions-hint,
-:global(body[data-theme="dark"]) .submission-meta,
-:global(body[data-theme="dark"]) .form-upload-placeholder,
-:global(body[data-theme="dark"]) .leaderboard-empty {
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-tabs,
-:global(body[data-theme="dark"]) .leaderboard-period-tabs {
-  background: #1f1f1f;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-tab.active,
-:global(body[data-theme="dark"]) .leaderboard-period-tab.active {
-  background: #2a2a2a;
-  color: #e0e0e0;
-  box-shadow: none;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-tab,
-:global(body[data-theme="dark"]) .leaderboard-period-tab {
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-top-card,
-:global(body[data-theme="dark"]) .leaderboard-item,
-:global(body[data-theme="dark"]) .leaderboard-submissions,
-:global(body[data-theme="dark"]) .form-select,
-:global(body[data-theme="dark"]) .form-input,
-:global(body[data-theme="dark"]) .leaderboard-select {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-  color: #e0e0e0;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-item.is-me {
-  background: rgba(255, 36, 66, 0.08);
-  border-color: rgba(255, 36, 66, 0.25);
-}
-
-:global(body[data-theme="dark"]) .leaderboard-top-card.top-1 {
-  background: linear-gradient(180deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(255, 213, 145, 0.3);
-}
-
-:global(body[data-theme="dark"]) .leaderboard-top-card.top-2 {
-  background: linear-gradient(180deg, rgba(246, 255, 237, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(183, 235, 143, 0.3);
-}
-
-:global(body[data-theme="dark"]) .leaderboard-top-card.top-3 {
-  background: linear-gradient(180deg, rgba(230, 247, 255, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(145, 213, 255, 0.3);
-}
-
-:global(body[data-theme="dark"]) .reward-banner.is-current {
-  background: linear-gradient(135deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(255, 213, 145, 0.3);
-}
-
-:global(body[data-theme="dark"]) .reward-banner.is-past {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-}
-
-:global(body[data-theme="dark"]) .reward-banner-title,
-:global(body[data-theme="dark"]) .my-reward-label {
-  color: #e0e0e0;
-}
-
-:global(body[data-theme="dark"]) .reward-banner-desc,
-:global(body[data-theme="dark"]) .my-reward-desc {
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .my-reward-card {
-  background: rgba(255, 36, 66, 0.08);
-  border-color: rgba(255, 36, 66, 0.25);
-}
-
-:global(body[data-theme="dark"]) .leaderboard-avatar {
-  background: #2a2a2a;
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-empty {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-submission-item {
-  background: #141414;
-}
-
-:global(body[data-theme="dark"]) .form-upload,
-:global(body[data-theme="dark"]) .form-upload-item,
-:global(body[data-theme="dark"]) .form-upload-add {
-  border-color: #2a2a2a;
-  background: #1f1f1f;
-}
-
-:global(body[data-theme="dark"]) .form-static {
-  background: #141414;
-  border-color: #2a2a2a;
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .form-label-hint {
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .form-btn-default {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-  color: #e0e0e0;
-}
-
-:global(body[data-theme="dark"]) .form-btn-default:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-rules-list {
-  color: #b0b0b0;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-rules-footer {
-  border-top-color: #2a2a2a;
-  color: #8c8c8c;
-}
-
-:global(body[data-theme="dark"]) .leaderboard-rules-guide-link a {
-  color: #ff4d6f;
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
   .leaderboard-page {
@@ -1375,5 +1224,181 @@ function handleSubmit() {
   .my-reward-amount {
     margin-left: auto;
   }
+}
+</style>
+
+<style>
+/* 暗色主题：全局覆盖（弹框 teleport 到 body，需非 scoped） */
+body[data-theme="dark"] .leaderboard-page {
+  background: #141414;
+}
+
+body[data-theme="dark"] .leaderboard-title,
+body[data-theme="dark"] .form-label,
+body[data-theme="dark"] .submission-month,
+body[data-theme="dark"] .leaderboard-submissions-title,
+body[data-theme="dark"] .top-nickname,
+body[data-theme="dark"] .leaderboard-nickname,
+body[data-theme="dark"] .leaderboard-period-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .leaderboard-subtitle,
+body[data-theme="dark"] .leaderboard-submissions-hint,
+body[data-theme="dark"] .submission-meta,
+body[data-theme="dark"] .form-upload-placeholder,
+body[data-theme="dark"] .leaderboard-empty {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-tabs,
+body[data-theme="dark"] .leaderboard-period-tabs {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .leaderboard-tab.active,
+body[data-theme="dark"] .leaderboard-period-tab.active {
+  background: #2a2a2a;
+  color: #e0e0e0;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .leaderboard-tab,
+body[data-theme="dark"] .leaderboard-period-tab {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-top-card,
+body[data-theme="dark"] .leaderboard-item,
+body[data-theme="dark"] .leaderboard-submissions,
+body[data-theme="dark"] .form-select,
+body[data-theme="dark"] .form-input,
+body[data-theme="dark"] .leaderboard-select {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .leaderboard-item.is-me {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .leaderboard-top-card.top-1 {
+  background: linear-gradient(180deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
+  border-color: rgba(255, 213, 145, 0.3);
+}
+
+body[data-theme="dark"] .leaderboard-top-card.top-2 {
+  background: linear-gradient(180deg, rgba(246, 255, 237, 0.1) 0%, #1f1f1f 100%);
+  border-color: rgba(183, 235, 143, 0.3);
+}
+
+body[data-theme="dark"] .leaderboard-top-card.top-3 {
+  background: linear-gradient(180deg, rgba(230, 247, 255, 0.1) 0%, #1f1f1f 100%);
+  border-color: rgba(145, 213, 255, 0.3);
+}
+
+body[data-theme="dark"] .reward-banner.is-current {
+  background: linear-gradient(135deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
+  border-color: rgba(255, 213, 145, 0.3);
+}
+
+body[data-theme="dark"] .reward-banner.is-past {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .reward-banner-title,
+body[data-theme="dark"] .my-reward-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .reward-banner-desc,
+body[data-theme="dark"] .my-reward-desc {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .my-reward-card {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .leaderboard-avatar {
+  background: #2a2a2a;
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-empty {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .leaderboard-submission-item {
+  background: #141414;
+}
+
+body[data-theme="dark"] .form-upload,
+body[data-theme="dark"] .form-upload-item,
+body[data-theme="dark"] .form-upload-add {
+  border-color: #2a2a2a;
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .form-static {
+  background: #141414;
+  border-color: #2a2a2a;
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .form-label-hint {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .form-btn-default {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-btn-default:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+body[data-theme="dark"] .leaderboard-rules-list {
+  color: #b0b0b0;
+}
+
+body[data-theme="dark"] .leaderboard-rules-footer {
+  border-top-color: #2a2a2a;
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-rules-guide-link a {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-content,
+body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-content,
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-header,
+body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-header {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-title,
+body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close,
+body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-close {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close:hover,
+body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-close:hover {
+  color: #ff2442;
 }
 </style>

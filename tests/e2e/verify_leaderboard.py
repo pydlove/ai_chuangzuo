@@ -75,6 +75,27 @@ def main():
             time.sleep(0.3)
             page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_rules.png"))
 
+            # 暗色主题截图
+            page.locator(".leaderboard-rules-modal .ant-modal-close").click()
+            time.sleep(0.3)
+            page.evaluate(
+                """() => {
+                    localStorage.setItem('aichuangzuo_theme', 'dark');
+                    document.body.setAttribute('data-theme', 'dark');
+                }"""
+            )
+            time.sleep(0.3)
+            page.locator('.leaderboard-tab >> text=创作币榜').click()
+            time.sleep(0.3)
+            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_coin_dark.png"))
+            page.locator('.leaderboard-tab >> text=自媒体收入榜').click()
+            time.sleep(0.3)
+            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_income_dark.png"))
+
+            # 验证暗色下关键元素可见且背景色符合预期
+            bg = page.evaluate("() => getComputedStyle(document.querySelector('.leaderboard-page')).backgroundColor")
+            assert "14" in bg or "20" in bg or "21" in bg, f"unexpected dark background: {bg}"
+
             browser.close()
             print("All leaderboard checks passed.")
     finally:
