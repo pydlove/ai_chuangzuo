@@ -246,12 +246,6 @@ const handleLogin = async () => {
   if (isLocked.value) return
   if (!validateForm()) return
 
-  if (form.captcha.toUpperCase() !== captchaText.value) {
-    errors.captcha = '验证码错误'
-    refreshCaptcha()
-    return
-  }
-
   loading.value = true
   errorMessage.value = ''
 
@@ -291,6 +285,11 @@ const handleLogin = async () => {
 onMounted(() => {
   loadTheme()
   generateCaptcha()
+
+  // mock 开发账号，预填以方便演示
+  form.account = 'admin'
+  form.password = '123456'
+  form.captcha = captchaText.value
 
   const remembered = storage.get(REMEMBER_KEY)
   if (remembered) {
