@@ -136,7 +136,8 @@ const handleClick = (sectionId, articleId) => {
 
 @media (max-width: 768px) {
   .guide-sidebar {
-    width: 100%;
+    width: auto;
+    flex-shrink: 0;
   }
   .gs-mobile-toggle {
     display: flex;
