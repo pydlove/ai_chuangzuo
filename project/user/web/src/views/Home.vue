@@ -127,19 +127,23 @@
     <!-- Hero 区 -->
     <section class="hero">
       <div class="hero-inner">
-        <div class="hero-badge">AI 自媒体写作助手</div>
-        <h1 class="hero-title">3 分钟写一篇能变现的自媒体文章</h1>
+        <div class="hero-badge">AI 写作助手 · 多平台变现 · 账号长期增值</div>
+        <h1 class="hero-title">会增值的自媒体账号，从第一篇文章开始</h1>
         <p class="hero-desc">
-          把每天 3 小时的写作时间，压缩成 3 分钟。AI 自动完成创作、正文、排版，一次生成适配公众号、百家号、今日头条、小红书、抖音图文。
+          3 分钟产出一篇能直接发的文章，平台内多重赚钱机制，
+          让你的自媒体账号像滚雪球一样，越做越大、越来越值钱。
         </p>
-        <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+        <div class="hero-actions">
+          <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+          <router-link to="/guide" class="hero-btn-secondary">看看能赚多少钱</router-link>
+        </div>
         <div class="hero-checkmarks">
-          <span class="check-item"><span class="check-icon">✓</span>每天省下 2 小时</span>
-          <span class="check-item"><span class="check-icon">✓</span>多平台一键分发</span>
-          <span class="check-item"><span class="check-icon">✓</span>零基础也能出爆款</span>
+          <span class="check-item"><span class="check-icon">✓</span>单篇 3 分钟成稿</span>
+          <span class="check-item"><span class="check-icon">✓</span>多平台一稿多发变现</span>
+          <span class="check-item"><span class="check-icon">✓</span>账号越久越值钱</span>
         </div>
         <div class="hero-guide-link">
-          <router-link to="/guide">不知道怎么变现？看看玩法指南 →</router-link>
+          <router-link to="/guide">不知道怎么变现？先看看玩法指南 →</router-link>
         </div>
       </div>
     </section>
@@ -440,6 +444,32 @@ onMounted(() => {
 
 .hero-guide-link a:hover {
   color: #e61e3a;
+}
+
+.hero-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hero-btn-secondary {
+  display: inline-block;
+  padding: 14px 28px;
+  background: transparent;
+  color: #FF2442;
+  border: 2px solid #FF2442;
+  border-radius: 30px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hero-btn-secondary:hover {
+  background: #FF2442;
+  color: #fff;
 }
 
 .check-item {
@@ -1231,5 +1261,15 @@ body[data-theme="dark"] .mobile-drawer-theme:hover {
   border-color: rgba(255, 77, 111, 0.5);
   color: #ff4d6f;
   background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .hero-btn-secondary {
+  color: #ff4d6f;
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .hero-btn-secondary:hover {
+  background: #ff4d6f;
+  color: #fff;
 }
 </style>
