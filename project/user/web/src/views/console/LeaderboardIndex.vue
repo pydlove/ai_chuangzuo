@@ -307,7 +307,6 @@ const monthOptions = getMonthOptions()
 const yearOptions = getYearOptions()
 
 const activeTab = ref('coin')
-const coinMonth = ref(monthOptions[0])
 const incomePeriodType = ref('month')
 const incomePeriodValue = ref(monthOptions[0])
 const rulesVisible = ref(false)
@@ -322,7 +321,7 @@ function setIncomePeriodType(type) {
   incomePeriodValue.value = type === 'month' ? currentIncomeMonth : currentIncomeYear
 }
 
-const coinList = computed(() => getCoinLeaderboard(coinMonth.value))
+const coinList = computed(() => getCoinLeaderboard(currentCoinMonth))
 const coinTop3 = computed(() => coinList.value.slice(0, 3))
 const coinListAfter3 = computed(() => coinList.value.slice(3))
 
@@ -339,16 +338,11 @@ const currentIncomeYear = yearOptions[0]
 const myCoinItem = computed(() => coinList.value.find(i => i.isMe))
 const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
 
-const coinRewardBanner = computed(() => {
-  const isCurrent = coinMonth.value === currentCoinMonth
-  return {
-    class: isCurrent ? 'is-current' : 'is-past',
-    title: isCurrent ? '本月 TOP 10 每月可获 100 创作币奖励' : '历史月榜单已结算',
-    desc: isCurrent
-      ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
-      : '该月榜单已结算，TOP 10 奖励已发放'
-  }
-})
+const coinRewardBanner = computed(() => ({
+  class: 'is-current',
+  title: '本月 TOP 10 每月可获 100 创作币奖励',
+  desc: '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
+}))
 
 const incomeRewardBanner = computed(() => {
   const isCurrent = incomePeriodValue.value === currentIncomeMonth
@@ -391,12 +385,10 @@ const myIncomeStatus = computed(() => {
 })
 
 function coinRewardLabel(item) {
-  const isCurrentMonth = coinMonth.value === currentCoinMonth
   if (item.rank > 10) return null
-  const record = getRewardRecord('coin', coinMonth.value, item.userId)
+  const record = getRewardRecord('coin', currentCoinMonth, item.userId)
   if (record) return { text: '已获 100 创作币', type: 'awarded' }
-  if (isCurrentMonth) return { text: '本月榜单进行中，待结算', type: 'pending' }
-  return null
+  return { text: '本月榜单进行中，待结算', type: 'pending' }
 }
 
 function incomeRewardLabel(item) {
