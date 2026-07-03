@@ -1313,7 +1313,10 @@ body[data-theme="dark"] .reward-banner.is-past {
   border-color: #2a2a2a;
 }
 
-body[data-theme="dark"] .reward-banner-title,
+body[data-theme="dark"] .reward-banner-title {
+  color: #e0e0e0;
+}
+
 body[data-theme="dark"] .leaderboard-reward.pending,
 body[data-theme="dark"] .top-reward.pending {
   background: #2a2a2a;
