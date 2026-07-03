@@ -827,7 +827,14 @@ body[data-theme="dark"] .home-footer span + span::before {
   color: #303030;
 }
 
-/* ========== 手机端导航基础显示控制（Task 2） ========== */
+/* ========== 手机端导航与抽屉 ========== */
+
+.nav-link-desktop,
+.theme-toggle-desktop {
+  display: inline-flex;
+}
+
+/* 汉堡按钮 */
 .mobile-menu-toggle {
   display: none;
   width: 32px;
@@ -839,12 +846,138 @@ body[data-theme="dark"] .home-footer span + span::before {
   cursor: pointer;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s;
+}
+
+.mobile-menu-toggle:hover {
+  background: #FFF5F7;
+  color: #FF2442;
 }
 
 .mobile-menu-toggle svg {
   width: 20px;
   height: 20px;
 }
+
+/* 抽屉遮罩 */
+.mobile-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 99;
+}
+
+/* 抽屉面板 */
+.mobile-drawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 260px;
+  background: #fff;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.1);
+  flex-direction: column;
+}
+
+.mobile-drawer.open {
+  transform: translateX(0);
+}
+
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mobile-drawer-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.mobile-drawer-close {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.mobile-drawer-close:hover {
+  background: #f5f5f5;
+  color: #FF2442;
+}
+
+.mobile-drawer-nav {
+  flex: 1;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-drawer-link {
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 15px;
+  color: #1a1a1a;
+  transition: all 0.2s;
+}
+
+.mobile-drawer-link:hover,
+.mobile-drawer-link.active {
+  background: #FFF5F7;
+  color: #FF2442;
+}
+
+.mobile-drawer-footer {
+  padding: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.mobile-drawer-theme {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  background: #fff;
+  color: #595959;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mobile-drawer-theme:hover {
+  border-color: #FFCBD4;
+  color: #FF2442;
+  background: #FFF5F7;
+}
+
+.mobile-drawer-theme svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ========== 媒体查询：手机端 ≤768px ========== */
 
 @media (max-width: 768px) {
   .home-nav {
@@ -877,5 +1010,69 @@ body[data-theme="dark"] .home-footer span + span::before {
   .mobile-menu-toggle {
     display: flex;
   }
+
+  .mobile-drawer-backdrop {
+    display: block;
+  }
+
+  .mobile-drawer {
+    display: flex;
+  }
+}
+
+/* ========== 手机端抽屉黑暗主题 ========== */
+
+body[data-theme="dark"] .mobile-menu-toggle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mobile-menu-toggle:hover {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .mobile-drawer {
+  background: #1f1f1f;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .mobile-drawer-header,
+body[data-theme="dark"] .mobile-drawer-footer {
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .mobile-drawer-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mobile-drawer-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mobile-drawer-close:hover {
+  background: #2a2a2a;
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .mobile-drawer-link {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mobile-drawer-link:hover,
+body[data-theme="dark"] .mobile-drawer-link.active {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .mobile-drawer-theme {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mobile-drawer-theme:hover {
+  border-color: rgba(255, 77, 111, 0.5);
+  color: #ff4d6f;
+  background: rgba(255, 36, 66, 0.15);
 }
 </style>
