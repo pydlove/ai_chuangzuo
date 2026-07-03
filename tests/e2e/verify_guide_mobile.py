@@ -72,15 +72,28 @@ def test_guide_mobile():
         page.wait_for_url(re.compile(r".*/pricing$"))
         expect(page.locator(".mobile-drawer")).to_have_count(0)
 
-        # 11. 回到 guide,检查 sidebar 抽屉目录能正常开关
+        # 11. 回到 guide,检查 sidebar 底部抽屉能正常开关
         page.goto(GUIDE_URL)
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(500)
         if page.locator(".gs-mobile-toggle").count() > 0:
-            page.locator(".gs-mobile-toggle").click()
-            expect(page.locator(".gs-nav")).to_have_class(re.compile(r"\bopen\b"))
+            fab = page.locator(".gs-mobile-toggle")
+            expect(fab).to_be_visible()
+            # FAB 是 fixed 右下圆形按钮,不占用主阅读区
+            fab_box = fab.bounding_box()
+            assert fab_box["width"] == 56 and fab_box["height"] == 56, f"FAB 应为 56×56: {fab_box}"
+            assert fab_box["x"] > 250, f"FAB 应位于右下:x={fab_box['x']}"
+            # 主阅读区不被遮挡:.guide-sidebar 在 mobile 下 width=0
+            sidebar_box = page.locator(".guide-sidebar").bounding_box()
+            assert sidebar_box["width"] == 0, f"Sidebar 在 mobile 应折叠:{sidebar_box}"
+            # 点击 FAB → 底部抽屉滑入
+            fab.click()
+            sheet = page.locator(".gs-nav")
+            expect(sheet).to_have_class(re.compile(r"\bopen\b"))
+            page.screenshot(path="tests/e2e/screenshots/guide_mobile_375_sheet.png")
+            # 点击蒙层 → 抽屉关闭
             page.locator(".gs-backdrop").click()
-            expect(page.locator(".gs-nav")).not_to_have_class(re.compile(r"\bopen\b"))
+            expect(sheet).not_to_have_class(re.compile(r"\bopen\b"))
 
         # 12. 暗色主题下导航与抽屉可见且有深色背景
         page.evaluate("document.body.setAttribute('data-theme', 'dark'); localStorage.setItem('aichuangzuo_theme', 'dark')")
@@ -88,7 +101,7 @@ def test_guide_mobile():
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(500)
         expect(page.locator(".navbar")).to_be_visible()
-        expect(page.locator(".mobile-menu-toggle")).to_be_visible()
+        expect(page.locator(".gs-mobile-toggle")).to_be_visible()
 
         # 13. 无横向溢出
         body_width = page.evaluate("document.documentElement.scrollWidth")

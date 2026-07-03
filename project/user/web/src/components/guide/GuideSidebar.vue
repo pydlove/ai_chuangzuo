@@ -1,7 +1,6 @@
 <template>
   <aside class="guide-sidebar">
-    <div class="gs-mobile-toggle" @click="mobileOpen = !mobileOpen">
-      <span>目录</span>
+    <div class="gs-mobile-toggle" @click="mobileOpen = !mobileOpen" aria-label="打开目录">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <line x1="3" y1="12" x2="21" y2="12" />
         <line x1="3" y1="6" x2="21" y2="6" />
@@ -72,17 +71,18 @@ const handleClick = (sectionId, articleId) => {
 .gs-mobile-toggle {
   display: none;
   align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  font-size: 14px;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
   color: #595959;
   cursor: pointer;
-  border-bottom: 1px solid #f0f0f0;
+  border: 1px solid #f0f0f0;
+  border-radius: 20px;
   background: #fff;
 }
 .gs-mobile-toggle svg {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
 }
 .gs-backdrop {
   display: none;
@@ -136,30 +136,65 @@ const handleClick = (sectionId, articleId) => {
 
 @media (max-width: 768px) {
   .guide-sidebar {
-    width: auto;
+    width: 0;
     flex-shrink: 0;
+    overflow: hidden;
   }
   .gs-mobile-toggle {
     display: flex;
+    position: fixed;
+    right: 16px;
+    bottom: 24px;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    border-radius: 50%;
+    border: none;
+    background: #ff2442;
+    color: #fff;
+    box-shadow: 0 6px 18px rgba(255, 36, 66, 0.35);
+    z-index: 90;
+    justify-content: center;
+  }
+  .gs-mobile-toggle:hover {
+    background: #e61e3a;
+  }
+  .gs-mobile-toggle svg {
+    width: 22px;
+    height: 22px;
   }
   .gs-backdrop {
     display: block;
   }
   .gs-nav {
     position: fixed;
-    top: 0;
     left: 0;
+    right: 0;
     bottom: 0;
-    width: 260px;
+    max-height: 70vh;
     background: #fff;
     z-index: 100;
-    padding: 16px;
-    transform: translateX(-100%);
-    transition: transform 0.25s;
-    box-shadow: 2px 0 12px rgba(0,0,0,0.1);
+    padding: 12px 16px 24px;
+    border-top-left-radius: 16px;
+    border-top-right-radius: 16px;
+    transform: translateY(100%);
+    transition: transform 0.28s ease;
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.12);
+    overflow-y: auto;
+    pointer-events: none;
   }
   .gs-nav.open {
-    transform: translateX(0);
+    transform: translateY(0);
+    pointer-events: auto;
+  }
+  .gs-nav::before {
+    content: '';
+    display: block;
+    width: 36px;
+    height: 4px;
+    background: #e0e0e0;
+    border-radius: 2px;
+    margin: 0 auto 12px;
   }
 }
 
@@ -184,5 +219,15 @@ body[data-theme="dark"] .gs-article.active {
 }
 body[data-theme="dark"] .gs-nav {
   background: #1f1f1f;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
+}
+body[data-theme="dark"] .gs-nav::before {
+  background: #404040;
+}
+body[data-theme="dark"] .gs-mobile-toggle {
+  background: linear-gradient(135deg, #ff6b8a 0%, #ff2442 100%);
+}
+body[data-theme="dark"] .gs-mobile-toggle:hover {
+  background: linear-gradient(135deg, #ff4d6f 0%, #e61e3a 100%);
 }
 </style>
