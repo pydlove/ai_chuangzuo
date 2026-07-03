@@ -109,15 +109,21 @@ export function submitIncomeSubmission(payload) {
   if (!Number.isFinite(Number(payload.amount))) {
     throw new Error('amount must be a finite number')
   }
-  if (!payload.screenshot || typeof payload.screenshot !== 'string') {
-    throw new Error('screenshot is required')
+  const screenshots = Array.isArray(payload.screenshots)
+    ? payload.screenshots
+    : payload.screenshot
+      ? [payload.screenshot]
+      : []
+  if (screenshots.length === 0 || !screenshots.every(s => typeof s === 'string')) {
+    throw new Error('screenshots are required')
   }
   const submission = {
     id: 'income-' + Date.now().toString(36),
     userId: getUserId(),
     month: payload.month,
     amount: Math.round(Number(payload.amount) * 100) / 100,
-    screenshot: payload.screenshot,
+    screenshots,
+    screenshot: screenshots[0],
     status: 'pending',
     createdAt: new Date().toISOString(),
     auditedAt: '',

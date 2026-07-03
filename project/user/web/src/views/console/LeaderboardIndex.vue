@@ -86,9 +86,7 @@
               年度
             </button>
           </div>
-          <select v-model="incomePeriodValue" class="leaderboard-select">
-            <option v-for="p in incomePeriodOptions" :key="p" :value="p">{{ p }}</option>
-          </select>
+          <span class="leaderboard-period-label">{{ incomePeriodLabel }}</span>
         </div>
         <button class="leaderboard-submit-btn" @click="openSubmitModal">
           申报收入
@@ -192,9 +190,7 @@
       <div class="leaderboard-submit-form">
         <div class="form-row">
           <label class="form-label">所属月份</label>
-          <select v-model="submitMonth" class="form-select">
-            <option v-for="m in monthOptions" :key="m" :value="m">{{ m }}</option>
-          </select>
+          <div class="form-static">{{ currentMonth }}</div>
         </div>
         <div class="form-row">
           <label class="form-label">收入金额（元）</label>
@@ -208,19 +204,27 @@
           />
         </div>
         <div class="form-row">
-          <label class="form-label">收益截图</label>
-          <div class="form-upload">
-            <input
-              ref="fileInput"
-              type="file"
-              accept="image/*"
-              class="form-file"
-              @change="handleFileChange"
-            />
-            <div v-if="!submitScreenshot" class="form-upload-placeholder">
-              点击或拖拽上传截图
+          <label class="form-label">收益截图 <span class="form-label-hint">可上传多张，支持多平台</span></label>
+          <div class="form-upload-grid">
+            <div
+              v-for="(src, index) in submitScreenshots"
+              :key="index"
+              class="form-upload-item"
+            >
+              <img :src="src" class="form-upload-preview" />
+              <button class="form-upload-remove" @click="removeScreenshot(index)">×</button>
             </div>
-            <img v-else :src="submitScreenshot" class="form-upload-preview" />
+            <div class="form-upload form-upload-add">
+              <input
+                ref="fileInput"
+                type="file"
+                accept="image/*"
+                multiple
+                class="form-file"
+                @change="handleFileChange"
+              />
+              <div class="form-upload-placeholder">+</div>
+            </div>
           </div>
         </div>
         <div class="form-actions">
@@ -272,13 +276,13 @@ const incomePeriodValue = ref(monthOptions[0])
 const rulesVisible = ref(false)
 const submitVisible = ref(false)
 
-const incomePeriodOptions = computed(() => {
-  return incomePeriodType.value === 'month' ? monthOptions : yearOptions
+const incomePeriodLabel = computed(() => {
+  return incomePeriodType.value === 'month' ? currentIncomeMonth : currentIncomeYear
 })
 
 function setIncomePeriodType(type) {
   incomePeriodType.value = type
-  incomePeriodValue.value = type === 'month' ? monthOptions[0] : yearOptions[0]
+  incomePeriodValue.value = type === 'month' ? currentIncomeMonth : currentIncomeYear
 }
 
 const coinList = computed(() => getCoinLeaderboard(coinMonth.value))
@@ -323,15 +327,14 @@ function statusText(status) {
 }
 
 // 申报表单
-const submitMonth = ref(monthOptions[0])
+const currentMonth = monthOptions[0]
 const submitAmount = ref('')
-const submitScreenshot = ref('')
+const submitScreenshots = ref([])
 const fileInput = ref(null)
 
 function openSubmitModal() {
-  submitMonth.value = monthOptions[0]
   submitAmount.value = ''
-  submitScreenshot.value = ''
+  submitScreenshots.value = []
   if (fileInput.value) fileInput.value.value = ''
   submitVisible.value = true
 }
@@ -342,20 +345,26 @@ function closeSubmitModal() {
 }
 
 function resetSubmitForm() {
-  submitMonth.value = monthOptions[0]
   submitAmount.value = ''
-  submitScreenshot.value = ''
+  submitScreenshots.value = []
   if (fileInput.value) fileInput.value.value = ''
 }
 
 function handleFileChange(e) {
-  const file = e.target.files[0]
-  if (!file) return
-  const reader = new FileReader()
-  reader.onload = (event) => {
-    submitScreenshot.value = event.target.result
-  }
-  reader.readAsDataURL(file)
+  const files = Array.from(e.target.files || [])
+  if (!files.length) return
+  files.forEach(file => {
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      submitScreenshots.value.push(event.target.result)
+    }
+    reader.readAsDataURL(file)
+  })
+  if (fileInput.value) fileInput.value.value = ''
+}
+
+function removeScreenshot(index) {
+  submitScreenshots.value.splice(index, 1)
 }
 
 function handleSubmit() {
@@ -364,15 +373,15 @@ function handleSubmit() {
     message.error('请输入有效的收入金额')
     return
   }
-  if (!submitScreenshot.value) {
+  if (submitScreenshots.value.length === 0) {
     message.error('请上传收益截图')
     return
   }
   try {
     submitIncomeSubmission({
-      month: submitMonth.value,
+      month: currentMonth,
       amount,
-      screenshot: submitScreenshot.value
+      screenshots: submitScreenshots.value
     })
     message.success('收入申报已提交，等待审核')
     closeSubmitModal()
@@ -503,6 +512,12 @@ function handleSubmit() {
   background: #fff;
   color: #1a1a1a;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.leaderboard-period-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
 }
 
 .leaderboard-submit-btn {
@@ -813,16 +828,62 @@ function handleSubmit() {
   color: #bfbfbf;
 }
 
+.form-static {
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  background: #f5f5f5;
+  color: #595959;
+  display: flex;
+  align-items: center;
+}
+
+.form-label-hint {
+  font-size: 12px;
+  color: #8c8c8c;
+  font-weight: 400;
+  margin-left: 4px;
+}
+
+.form-upload-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.form-upload-item {
+  position: relative;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
 .form-upload {
   position: relative;
   border: 1px dashed #d9d9d9;
   border-radius: 8px;
-  min-height: 120px;
+  min-height: 100px;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   cursor: pointer;
+}
+
+.form-upload-add {
+  background: #fafafa;
+}
+
+.form-upload-add .form-upload-placeholder {
+  font-size: 28px;
+  font-weight: 300;
+  color: #bfbfbf;
 }
 
 .form-file {
@@ -840,9 +901,32 @@ function handleSubmit() {
 }
 
 .form-upload-preview {
-  max-width: 100%;
-  max-height: 240px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.form-upload-remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.form-upload-remove:hover {
+  background: rgba(0, 0, 0, 0.7);
 }
 
 .form-actions {
@@ -893,7 +977,8 @@ function handleSubmit() {
 :global(body[data-theme="dark"]) .submission-month,
 :global(body[data-theme="dark"]) .leaderboard-submissions-title,
 :global(body[data-theme="dark"]) .top-nickname,
-:global(body[data-theme="dark"]) .leaderboard-nickname {
+:global(body[data-theme="dark"]) .leaderboard-nickname,
+:global(body[data-theme="dark"]) .leaderboard-period-label {
   color: #e0e0e0;
 }
 
@@ -967,9 +1052,21 @@ function handleSubmit() {
   background: #141414;
 }
 
-:global(body[data-theme="dark"]) .form-upload {
+:global(body[data-theme="dark"]) .form-upload,
+:global(body[data-theme="dark"]) .form-upload-item,
+:global(body[data-theme="dark"]) .form-upload-add {
   border-color: #2a2a2a;
   background: #1f1f1f;
+}
+
+:global(body[data-theme="dark"]) .form-static {
+  background: #141414;
+  border-color: #2a2a2a;
+  color: #8c8c8c;
+}
+
+:global(body[data-theme="dark"]) .form-label-hint {
+  color: #8c8c8c;
 }
 
 :global(body[data-theme="dark"]) .form-btn-default {
