@@ -1,3 +1,3 @@
 <template>
-  <div>Admin Web Skeleton</div>
+  <router-view />
 </template>
