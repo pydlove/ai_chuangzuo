@@ -26,10 +26,10 @@ def main():
         print("OK: 首页可进入玩法指南")
 
         # 2. 左侧目录存在
-        expect(page.locator("text=平台能干嘛").first).to_be_visible()
-        expect(page.locator("text=能赚多少钱").first).to_be_visible()
-        expect(page.locator("text=怎么赚").first).to_be_visible()
-        expect(page.locator("text=怎么提现").first).to_be_visible()
+        expect(page.locator("text=产品功能").first).to_be_visible()
+        expect(page.locator("text=收益方式").first).to_be_visible()
+        expect(page.locator("text=创作流程").first).to_be_visible()
+        expect(page.locator("text=提现与结算").first).to_be_visible()
         print("OK: 左侧目录 4 个分类存在")
 
         # 3. 时间节省计算器
@@ -45,7 +45,7 @@ def main():
         print("OK: 排行榜预览存在")
 
         # 5. 点击目录滚动
-        page.locator("aside.guide-sidebar >> text=怎么提现").click()
+        page.locator("aside.guide-sidebar >> text=提现与结算").click()
         page.wait_for_timeout(600)
         page.screenshot(path=os.path.join(SCREENSHOT_DIR, "guide_scroll.png"))
         print("OK: 点击目录可滚动")

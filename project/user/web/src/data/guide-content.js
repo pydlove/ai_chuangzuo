@@ -1,7 +1,7 @@
 export const guideSections = [
   {
     id: 'what',
-    title: '平台能干嘛',
+    title: '产品功能',
     articles: [
       {
         id: 'what-intro',
@@ -47,7 +47,7 @@ export const guideSections = [
   },
   {
     id: 'money',
-    title: '能赚多少钱',
+    title: '收益方式',
     articles: [
       {
         id: 'money-platform',
@@ -86,7 +86,7 @@ export const guideSections = [
   },
   {
     id: 'how',
-    title: '怎么赚',
+    title: '创作流程',
     articles: [
       {
         id: 'how-step1',
@@ -129,7 +129,7 @@ export const guideSections = [
   },
   {
     id: 'withdraw',
-    title: '怎么提现',
+    title: '提现与结算',
     articles: [
       {
         id: 'withdraw-coin',
