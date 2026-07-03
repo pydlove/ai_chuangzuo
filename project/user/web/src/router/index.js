@@ -22,6 +22,11 @@ const routes = [
     component: () => import('@/views/Pricing.vue')
   },
   {
+    path: '/guide',
+    name: 'Guide',
+    component: () => import('@/views/GuideIndex.vue')
+  },
+  {
     path: '/console',
     name: 'Console',
     component: () => import('@/views/console/ConsoleLayout.vue'),
