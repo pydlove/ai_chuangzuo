@@ -248,6 +248,12 @@ function awardTopUsers(leaderboardType, periodValue, getLeaderboardFn) {
   return awardedCount
 }
 
+export function getRewardRecord(leaderboardType, periodValue, userId) {
+  return rewardRecords.value.find(
+    r => r.leaderboardType === leaderboardType && r.periodValue === periodValue && r.userId === userId
+  )
+}
+
 export function simulateAwardMonthlyRewards(periodValue) {
   awardTopUsers('coin', periodValue, () => getCoinLeaderboard(periodValue))
   awardTopUsers('income', periodValue, () => getIncomeLeaderboard('month', periodValue))
