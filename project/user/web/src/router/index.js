@@ -78,6 +78,11 @@ const routes = [
         path: 'hot-search',
         name: 'ConsoleHotSearch',
         component: () => import('@/views/console/HotSearchIndex.vue')
+      },
+      {
+        path: 'leaderboard',
+        name: 'ConsoleLeaderboard',
+        component: () => import('@/views/console/LeaderboardIndex.vue')
       }
     ]
   }

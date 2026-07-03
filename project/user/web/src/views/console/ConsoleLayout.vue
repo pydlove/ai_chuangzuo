@@ -733,7 +733,7 @@
       </header>
 
       <!-- 内容区 -->
-      <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
+      <div class="console-content">
         <router-view />
       </div>
 
@@ -752,6 +752,7 @@
     :footer="null"
     :width="640"
     centered
+    class="terms-modal"
   >
     <div class="terms-content">
       <p>欢迎使用爱创作服务（以下简称"本服务"）。在您使用本服务之前，请仔细阅读本用户协议。</p>
@@ -782,6 +783,7 @@
     :footer="null"
     :width="640"
     centered
+    class="privacy-modal"
   >
     <div class="terms-content">
       <p>我们非常重视您的个人隐私保护，在您使用爱创作服务时，我们会按照本隐私政策的规定收集、使用、存储和保护您的个人信息。</p>
@@ -805,6 +807,7 @@
     :footer="null"
     :width="400"
     centered
+    class="wechat-modal"
   >
     <div class="wechat-modal-content">
       <img
@@ -938,7 +941,8 @@ import {
   SmileOutlined,
   FireOutlined,
   ShopOutlined,
-  DollarOutlined
+  DollarOutlined,
+  TrophyOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -962,7 +966,8 @@ const navItems = [
   { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
   { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
-  { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined }
+  { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
+  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined }
 ]
 
 const isActive = (path) => {
@@ -2047,10 +2052,6 @@ onMounted(() => {
   min-width: 0;
 }
 
-.console-content-hidden {
-  visibility: hidden;
-}
-
 /* 顶部栏 */
 .console-header {
   height: 56px;
@@ -2379,6 +2380,9 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   user-select: none;
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
 }
 
 .tutorial-modal .ant-modal-body {
@@ -2403,10 +2407,11 @@ onMounted(() => {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 18px 20px;
   cursor: pointer;
   transition: background 0.15s;
   border-bottom: 1px solid #f0f0f0;
+  flex: 1;
 }
 
 .tutorial-item:last-child {
@@ -2557,6 +2562,9 @@ onMounted(() => {
   border-radius: 12px;
   overflow: hidden;
   user-select: none;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
 }
 
 .about-modal .ant-modal-body {
@@ -2597,8 +2605,9 @@ onMounted(() => {
 }
 
 .about-desc {
-  padding: 12px 16px;
+  padding: 16px;
   border-bottom: 1px solid #f0f0f0;
+  flex: 1;
 }
 
 .about-desc p {
@@ -2613,7 +2622,7 @@ onMounted(() => {
 }
 
 .about-links {
-  padding: 8px 12px;
+  padding: 12px 16px;
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -4568,8 +4577,11 @@ body[data-theme="dark"] .about-modal .ant-modal-content,
 body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
 body[data-theme="dark"] .redeem-modal .ant-modal-content,
-body[data-theme="dark"] .password-modal .ant-modal-content {
-  background: #141414;
+body[data-theme="dark"] .password-modal .ant-modal-content,
+body[data-theme="dark"] .wechat-modal .ant-modal-content,
+body[data-theme="dark"] .terms-modal .ant-modal-content,
+body[data-theme="dark"] .privacy-modal .ant-modal-content {
+  background: #1f1f1f;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
 
@@ -4608,7 +4620,10 @@ body[data-theme="dark"] .about-modal .ant-modal-close,
 body[data-theme="dark"] .profile-modal .ant-modal-close,
 body[data-theme="dark"] .email-modal .ant-modal-close,
 body[data-theme="dark"] .redeem-modal .ant-modal-close,
-body[data-theme="dark"] .password-modal .ant-modal-close {
+body[data-theme="dark"] .password-modal .ant-modal-close,
+body[data-theme="dark"] .wechat-modal .ant-modal-close,
+body[data-theme="dark"] .terms-modal .ant-modal-close,
+body[data-theme="dark"] .privacy-modal .ant-modal-close {
   color: #a6a6a6;
 }
 
@@ -4621,22 +4636,49 @@ body[data-theme="dark"] .about-modal .ant-modal-close:hover,
 body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-modal .ant-modal-close:hover,
 body[data-theme="dark"] .redeem-modal .ant-modal-close:hover,
-body[data-theme="dark"] .password-modal .ant-modal-close:hover {
+body[data-theme="dark"] .password-modal .ant-modal-close:hover,
+body[data-theme="dark"] .wechat-modal .ant-modal-close:hover,
+body[data-theme="dark"] .terms-modal .ant-modal-close:hover,
+body[data-theme="dark"] .privacy-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 修改昵称 / 修改邮箱 / 修改密码 的 Ant 标题头在暗色下需改为深底 */
+/* 修改昵称 / 修改邮箱 / 修改密码 / 客服微信 / 用户协议 / 隐私政策 的 Ant 标题头在暗色下需改为深底 */
 body[data-theme="dark"] .profile-modal .ant-modal-header,
 body[data-theme="dark"] .email-modal .ant-modal-header,
-body[data-theme="dark"] .password-modal .ant-modal-header {
-  background: #141414;
+body[data-theme="dark"] .password-modal .ant-modal-header,
+body[data-theme="dark"] .wechat-modal .ant-modal-header,
+body[data-theme="dark"] .terms-modal .ant-modal-header,
+body[data-theme="dark"] .privacy-modal .ant-modal-header {
+  background: #1f1f1f;
   border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .profile-modal .ant-modal-title,
 body[data-theme="dark"] .email-modal .ant-modal-title,
-body[data-theme="dark"] .password-modal .ant-modal-title {
+body[data-theme="dark"] .password-modal .ant-modal-title,
+body[data-theme="dark"] .wechat-modal .ant-modal-title,
+body[data-theme="dark"] .terms-modal .ant-modal-title,
+body[data-theme="dark"] .privacy-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+/* 客服微信暗色适配 */
+body[data-theme="dark"] .wechat-hint {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .wechat-qr-large {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+/* 用户协议 / 隐私政策暗色适配 */
+body[data-theme="dark"] .terms-content {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .terms-content h4 {
   color: #e0e0e0;
 }
 
