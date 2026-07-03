@@ -11,11 +11,11 @@
         <span class="nav-brand-name">爱创作</span>
       </div>
       <div class="nav-links">
-        <router-link to="/" class="nav-link active">首页</router-link>
-        <router-link to="/pricing" class="nav-link">会员</router-link>
-        <router-link to="/guide" class="nav-link">玩法指南</router-link>
+        <router-link to="/" class="nav-link nav-link-desktop active">首页</router-link>
+        <router-link to="/pricing" class="nav-link nav-link-desktop">会员</router-link>
+        <router-link to="/guide" class="nav-link nav-link-desktop">玩法指南</router-link>
         <button
-          class="theme-toggle"
+          class="theme-toggle theme-toggle-desktop"
           :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
           @click="toggleTheme"
         >
@@ -51,8 +51,78 @@
           </svg>
         </button>
         <router-link to="/login" class="nav-cta">开始创作</router-link>
+        <button
+          class="mobile-menu-toggle"
+          aria-label="打开菜单"
+          @click="mobileMenuOpen = !mobileMenuOpen"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
       </div>
     </header>
+
+    <!-- 移动端抽屉 -->
+    <div
+      v-if="mobileMenuOpen"
+      class="mobile-drawer-backdrop"
+      @click="mobileMenuOpen = false"
+    />
+    <div :class="['mobile-drawer', { open: mobileMenuOpen }]">
+      <div class="mobile-drawer-header">
+        <span class="mobile-drawer-title">菜单</span>
+        <button
+          class="mobile-drawer-close"
+          aria-label="关闭菜单"
+          @click="mobileMenuOpen = false"
+        >
+          ×
+        </button>
+      </div>
+      <nav class="mobile-drawer-nav">
+        <router-link to="/" class="mobile-drawer-link" @click="mobileMenuOpen = false">首页</router-link>
+        <router-link to="/pricing" class="mobile-drawer-link" @click="mobileMenuOpen = false">会员</router-link>
+        <router-link to="/guide" class="mobile-drawer-link" @click="mobileMenuOpen = false">玩法指南</router-link>
+      </nav>
+      <div class="mobile-drawer-footer">
+        <button class="mobile-drawer-theme" @click="toggleTheme">
+          <svg
+            v-if="currentTheme === 'light'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+          <span>{{ currentTheme === 'light' ? '切换深色主题' : '切换浅色主题' }}</span>
+        </button>
+      </div>
+    </div>
 
     <!-- Hero 区 -->
     <section class="hero">
@@ -192,11 +262,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 
 // ---------- 主题切换 ----------
 const THEME_KEY = 'aichuangzuo_theme'
 const currentTheme = ref('light')
+const mobileMenuOpen = ref(false)
+
+watch(mobileMenuOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
+onUnmounted(() => {
+  document.body.style.overflow = ''
+})
 
 const toggleTheme = () => {
   const next = currentTheme.value === 'light' ? 'dark' : 'light'
@@ -746,5 +825,57 @@ body[data-theme="dark"] .home-footer {
 
 body[data-theme="dark"] .home-footer span + span::before {
   color: #303030;
+}
+
+/* ========== 手机端导航基础显示控制（Task 2） ========== */
+.mobile-menu-toggle {
+  display: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-toggle svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 768px) {
+  .home-nav {
+    padding: 12px 16px;
+  }
+
+  .nav-logo {
+    height: 28px;
+  }
+
+  .nav-brand-name {
+    font-size: 16px;
+  }
+
+  .nav-links {
+    gap: 12px;
+  }
+
+  .nav-link-desktop,
+  .theme-toggle-desktop {
+    display: none;
+  }
+
+  .nav-cta {
+    padding: 10px 20px;
+    font-size: 13px;
+    border-radius: 20px;
+  }
+
+  .mobile-menu-toggle {
+    display: flex;
+  }
 }
 </style>

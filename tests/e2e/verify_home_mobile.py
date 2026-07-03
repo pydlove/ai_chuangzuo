@@ -37,7 +37,7 @@ def test_home_mobile():
         page.locator(".mobile-drawer a:has-text('玩法指南')").click()
         page.wait_for_timeout(300)
         expect(page).to_have_url(f"{BASE_URL}guide")
-        expect(page.locator(".mobile-drawer")).not_to_have_class(re.compile(r'open'))
+        expect(page.locator(".mobile-drawer")).to_have_count(0)
 
         # 6. 截图保存
         page.goto(BASE_URL)
