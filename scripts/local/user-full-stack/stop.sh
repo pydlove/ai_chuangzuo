@@ -6,7 +6,7 @@ ROOT_DIR="$(cd "$(dirname "$0")/../../.." && pwd)"
 PID_DIR="${ROOT_DIR}/logs/.pids"
 BACKEND_PID_FILE="${PID_DIR}/user-api.pid"
 FRONTEND_PID_FILE="${PID_DIR}/user-web.pid"
-BACKEND_PORT=8080
+BACKEND_PORT=25050
 FRONTEND_PORT=22345
 
 stop_one() {
