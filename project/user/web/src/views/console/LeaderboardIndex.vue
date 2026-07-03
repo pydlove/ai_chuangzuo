@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .leaderboard-page {
 }
 
 body[data-theme="dark"] .leaderboard-section {
-  background: #141414;
+  background: #141414 !important;
 }
 
 body[data-theme="dark"] .leaderboard-title,
