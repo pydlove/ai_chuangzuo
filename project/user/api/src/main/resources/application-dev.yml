@@ -1,0 +1,11 @@
+auth:
+  captcha:
+    mock-enabled: true
+    mock-code: "TEST12"
+  email-code:
+    mock-enabled: true
+    mock-code: "000000"
+
+logging:
+  level:
+    com.aichuangzuo: INFO

@@ -103,19 +103,8 @@
         </div>
 
         <div class="form-item">
-          <label class="form-label">图形验证码</label>
-          <div class="captcha-row">
-            <input
-              v-model="loginForm.captcha"
-              type="text"
-              class="form-input captcha-input"
-              placeholder="输入验证码"
-              maxlength="6"
-            />
-            <div class="captcha-box" @click="loadCaptcha" title="点击刷新">
-              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" />
-            </div>
-          </div>
+          <label class="form-label">人机验证</label>
+          <SliderCaptcha v-model="loginSliderPassed" />
         </div>
 
         <button class="submit-btn" @click="handleLogin">登录</button>
@@ -141,19 +130,8 @@
         </div>
 
         <div class="form-item">
-          <label class="form-label">图形验证码</label>
-          <div class="captcha-row">
-            <input
-              v-model="registerForm.captcha"
-              type="text"
-              class="form-input captcha-input"
-              placeholder="输入验证码"
-              maxlength="6"
-            />
-            <div class="captcha-box" @click="loadCaptcha" title="点击刷新">
-              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" />
-            </div>
-          </div>
+          <label class="form-label">人机验证</label>
+          <SliderCaptcha v-model="registerSliderPassed" />
         </div>
 
         <div class="form-item">
@@ -245,10 +223,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserCoins } from '@/composables/useInviteCode'
 import { getCaptcha, sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
 
@@ -289,17 +268,35 @@ const registerForm = reactive({
   inviteCode: ''
 })
 
-// ---------- 后端图形验证码 ----------
+// ---------- 后端 captcha 会话 ----------
+// 滑块是纯前端 UX mock；后端 captcha 接口仍调用以拿到 captchaKey
+// （限流/会话锚点），但前端不再展示图形码图片。
 const captchaKey = ref('')
-const captchaImage = ref('')
+
+// 滑块拖到末端后，前端把该值写入 form.captcha 随接口发出
+// dev/test profile 后端 captcha mock 模式固定返回该值
+const SLIDER_CAPTCHA_VALUE = 'TEST12'
+
+const loginSliderPassed = ref(false)
+const registerSliderPassed = ref(false)
+
+watch(loginSliderPassed, (val) => {
+  loginForm.captcha = val ? SLIDER_CAPTCHA_VALUE : ''
+})
+watch(registerSliderPassed, (val) => {
+  registerForm.captcha = val ? SLIDER_CAPTCHA_VALUE : ''
+})
+
+const resetSliders = () => {
+  loginSliderPassed.value = false
+  registerSliderPassed.value = false
+}
 
 const loadCaptcha = async () => {
-  loginForm.captcha = ''
-  registerForm.captcha = ''
+  resetSliders()
   try {
     const res = await getCaptcha()
     captchaKey.value = res.data.captchaKey
-    captchaImage.value = res.data.captchaImage
   } catch (err) {
     message.error(err?.message || '验证码加载失败')
   }
@@ -327,8 +324,8 @@ const sendCode = async () => {
     message.warning('请先填写邮箱')
     return
   }
-  if (!registerForm.captcha) {
-    message.warning('请输入图形验证码')
+  if (!registerSliderPassed.value) {
+    message.warning('请先完成人机验证')
     return
   }
   try {
@@ -352,8 +349,8 @@ const persistTokens = (data) => {
 }
 
 const handleLogin = async () => {
-  if (!loginForm.captcha) {
-    message.warning('请输入图形验证码')
+  if (!loginSliderPassed.value) {
+    message.warning('请先完成人机验证')
     return
   }
   try {
@@ -675,32 +672,6 @@ onBeforeUnmount(() => {
   flex: 1;
 }
 
-.captcha-box {
-  width: 90px;
-  height: 42px;
-  background: linear-gradient(135deg, #fff0f0 0%, #fff 100%);
-  border: 1px solid #ffbdc5;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #FF2442;
-  letter-spacing: 4px;
-  cursor: pointer;
-  user-select: none;
-  overflow: hidden;
-  flex-shrink: 0;
-}
-
-.captcha-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
 .code-btn {
   padding: 0 14px;
   background: #fff;
@@ -864,12 +835,6 @@ body[data-theme="dark"] .form-input:focus {
 
 body[data-theme="dark"] .form-input::placeholder {
   color: #666;
-}
-
-body[data-theme="dark"] .captcha-box {
-  background: linear-gradient(135deg, #2a1a1d 0%, #1f1f1f 100%);
-  border-color: rgba(255, 77, 111, 0.4);
-  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .code-btn {

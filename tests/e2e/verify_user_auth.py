@@ -2,15 +2,15 @@
 """用户认证流程端到端验证。
 
 覆盖场景：
-  1) 注册：打开 /login → 切到注册 tab → 后端 API 获取 captcha + email code →
-            表单填写 → 提交 → 跳转 /console
+  1) 注册：打开 /login → 切到注册 tab → 拖动滑块完成人机验证 →
+            后端 API 获取 captchaKey + email code → 表单填写 → 提交 → 跳转 /console
   2) 验证：localStorage 中 access_token / refresh_token 已存
   3) 退出：点击头像 → 退出登录 → 跳转 /login
   4) 验证：localStorage 中 access_token 已被清空
 
 前置条件：
   - 后端运行在 25050，前端运行在 22345
-  - 后端以 SPRING_PROFILES_ACTIVE=test 启动（启用 mock 验证码）
+  - 后端以 SPRING_PROFILES_ACTIVE=test 启动（启用 mock 验证码：captcha=TEST12, email=000000）
 
 用法：
   python3 tests/e2e/verify_user_auth.py
@@ -30,6 +30,29 @@ PASSWORD = "Test123456"
 
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
+
+
+def drag_slider_to_end(page):
+    """拖动注册表单中的 SliderCaptcha 滑块到末端，触发 passed 状态。"""
+    handle = page.locator(".slider-captcha:visible .slider-handle").first
+    box = handle.bounding_box()
+    assert box, "未找到滑块 handle 位置"
+    # 起点：handle 中心
+    start_x = box["x"] + box["width"] / 2
+    start_y = box["y"] + box["height"] / 2
+    # 终点：handle 右侧再推 300px（足够触发 95% 阈值）
+    end_x = start_x + 300
+    page.mouse.move(start_x, start_y)
+    page.mouse.down()
+    # 分步移动更接近真实拖动
+    page.mouse.move(start_x + 50, start_y, steps=5)
+    page.mouse.move(start_x + 150, start_y, steps=5)
+    page.mouse.move(end_x, start_y, steps=5)
+    page.mouse.up()
+    # 等"验证成功"出现
+    page.wait_for_selector(
+        ".slider-captcha:visible.is-passed", timeout=5000
+    )
 
 
 def main():
@@ -54,16 +77,16 @@ def main():
         register_title = page.locator(".form-title:visible").inner_text()
         results.append(("切换到注册 tab", "创建账号" in register_title))
 
-        # 等注册表单中的 captcha 图片就绪（DOM 中共有 2 个 .captcha-img，
-        # 通过 :visible 过滤掉登录表单那个被 v-show 隐藏的）
-        page.wait_for_selector(".captcha-img:visible", timeout=10000)
+        # ============== 3. 拖动人机验证滑块 ==============
+        drag_slider_to_end(page)
+        results.append(("人机验证滑块拖到末端", True))
 
-        # ============== 3. 通过 API 获取 captcha key ==============
+        # ============== 4. 通过 API 获取 captcha key ==============
         captcha_resp = ctx.request.get(f"{API_URL}/auth/captcha").json()
         captcha_key = captcha_resp.get("data", {}).get("captchaKey")
         results.append(("captcha API 返回 captchaKey", bool(captcha_key)))
 
-        # ============== 4. 发送邮箱验证码 ==============
+        # ============== 5. 发送邮箱验证码 ==============
         email_resp = ctx.request.post(
             f"{API_URL}/auth/email-codes",
             data={
@@ -74,21 +97,20 @@ def main():
         ).json()
         results.append(("邮箱验证码发送成功", email_resp.get("code") == 0))
 
-        # ============== 5. 填写注册表单 ==============
+        # ============== 6. 填写注册表单 ==============
         # 登录/注册两个表单都有相同 placeholder，:visible 过滤掉被 v-show 隐藏的
         page.fill("input[placeholder='请输入邮箱']:visible", email)
-        page.fill("input[placeholder='输入验证码']:visible", CAPTCHA_MOCK_CODE)
         page.fill("input[placeholder='输入 6 位验证码']:visible", EMAIL_CODE_MOCK)
         page.fill("input[placeholder='6-20 位密码']:visible", PASSWORD)
         page.fill("input[placeholder='再次输入密码']:visible", PASSWORD)
         page.screenshot(path=str(SCREENSHOT_DIR / "user_auth_01_register_filled.png"))
 
-        # ============== 6. 提交注册 ==============
+        # ============== 7. 提交注册 ==============
         page.click("button.submit-btn:has-text('注册')")
         page.wait_for_url(re.compile(r"/console"), timeout=15000)
         results.append(("注册成功跳转 /console", "/console" in page.url))
 
-        # ============== 7. 验证 token 写入 ==============
+        # ============== 8. 验证 token 写入 ==============
         access_token = page.evaluate(
             "() => localStorage.getItem('aichuangzuo_access_token')"
         )
@@ -102,7 +124,7 @@ def main():
         page.wait_for_timeout(1500)
         page.screenshot(path=str(SCREENSHOT_DIR / "user_auth_02_console.png"))
 
-        # ============== 8. 退出登录 ==============
+        # ============== 9. 退出登录 ==============
         page.click(".console-avatar")
         page.wait_for_selector(".user-action-logout", timeout=5000)
         page.click(".user-action-logout")
@@ -110,7 +132,7 @@ def main():
         results.append(("退出登录跳转 /login", "/login" in page.url))
         page.screenshot(path=str(SCREENSHOT_DIR / "user_auth_03_logout.png"))
 
-        # ============== 9. 验证 token 已清空 ==============
+        # ============== 10. 验证 token 已清空 ==============
         access_after = page.evaluate(
             "() => localStorage.getItem('aichuangzuo_access_token')"
         )
