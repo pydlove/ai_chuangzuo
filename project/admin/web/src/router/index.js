@@ -17,6 +17,11 @@ const routes = [
         path: 'users',
         name: 'AdminUserList',
         component: () => import('@/views/UserListView.vue')
+      },
+      {
+        path: 'styles',
+        name: 'AdminStyleReview',
+        component: () => import('@/views/StyleReviewView.vue')
       }
     ]
   },
