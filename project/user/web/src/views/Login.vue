@@ -102,11 +102,6 @@
           />
         </div>
 
-        <div class="form-item">
-          <label class="form-label">人机验证</label>
-          <SliderCaptcha v-model="loginSliderPassed" />
-        </div>
-
         <button class="submit-btn" @click="handleLogin">登录</button>
 
         <div class="form-footer">
@@ -130,11 +125,6 @@
         </div>
 
         <div class="form-item">
-          <label class="form-label">人机验证</label>
-          <SliderCaptcha v-model="registerSliderPassed" />
-        </div>
-
-        <div class="form-item">
           <label class="form-label">邮箱验证码</label>
           <div class="captcha-row">
             <input
@@ -147,7 +137,7 @@
             <button
               class="code-btn"
               :disabled="codeCountdown > 0"
-              @click="sendCode"
+              @click="openSliderModal"
             >
               {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
             </button>
@@ -219,6 +209,41 @@
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
       <span>浙ICP备XXXXXXXX号-1</span>
     </footer>
+
+    <!-- 注册流程：发送邮箱验证码前的滑块弹框 -->
+    <a-modal
+      v-model:open="sliderModalVisible"
+      title="人机验证"
+      :footer="null"
+      :mask-closable="false"
+      :keyboard="false"
+      width="420px"
+      class="slider-modal slider-modal-register"
+    >
+      <p class="slider-modal-tip">
+        拖动滑块完成验证后将向
+        <b>{{ registerForm.email || '当前邮箱' }}</b>
+        发送 6 位邮箱验证码
+      </p>
+      <SliderCaptcha v-model="sliderModalPassed" />
+    </a-modal>
+
+    <!-- 登录流程：调用后端登录接口前的滑块弹框 -->
+    <a-modal
+      v-model:open="loginSliderModalVisible"
+      title="人机验证"
+      :footer="null"
+      :mask-closable="false"
+      :keyboard="false"
+      width="420px"
+      class="slider-modal slider-modal-login"
+    >
+      <p class="slider-modal-tip">
+        拖动滑块完成验证后将登录账号
+        <b v-if="loginForm.email">「{{ loginForm.email }}」</b>
+      </p>
+      <SliderCaptcha v-model="loginModalPassed" />
+    </a-modal>
   </div>
 </template>
 
@@ -255,13 +280,11 @@ const showInviteBanner = ref(false)
 
 const loginForm = reactive({
   email: '',
-  password: '',
-  captcha: ''
+  password: ''
 })
 
 const registerForm = reactive({
   email: '',
-  captcha: '',
   code: '',
   password: '',
   confirmPassword: '',
@@ -277,26 +300,103 @@ const captchaKey = ref('')
 // dev/test profile 后端 captcha mock 模式固定返回该值
 const SLIDER_CAPTCHA_VALUE = 'TEST12'
 
-const loginSliderPassed = ref(false)
-const registerSliderPassed = ref(false)
+// 注册流程：滑块弹框状态
+const sliderModalVisible = ref(false)
+const sliderModalPassed = ref(false)
+let modalSending = false  // 防止 watch 在 close → reset 路径上重复触发
 
-watch(loginSliderPassed, (val) => {
-  loginForm.captcha = val ? SLIDER_CAPTCHA_VALUE : ''
-})
-watch(registerSliderPassed, (val) => {
-  registerForm.captcha = val ? SLIDER_CAPTCHA_VALUE : ''
+// 登录流程：滑块弹框状态
+const loginSliderModalVisible = ref(false)
+const loginModalPassed = ref(false)
+let loginModalSending = false
+
+// 注册弹框内滑块通过 → 调发送邮箱验证码接口
+watch(sliderModalPassed, async (val) => {
+  if (!val || modalSending) return
+  modalSending = true
+  try {
+    await sendEmailCode({
+      email: registerForm.email,
+      captchaKey: captchaKey.value,
+      captchaCode: SLIDER_CAPTCHA_VALUE
+    })
+    startCodeCountdown()
+    message.success('验证码已发送')
+    sliderModalVisible.value = false
+    loadCaptcha()  // 重新拿 captchaKey 给下次发送
+  } catch (err) {
+    message.error(err?.message || '发送失败')
+    sliderModalVisible.value = false
+  } finally {
+    modalSending = false
+  }
 })
 
-const resetSliders = () => {
-  loginSliderPassed.value = false
-  registerSliderPassed.value = false
-}
+// 登录弹框内滑块通过 → 调后端登录接口
+watch(loginModalPassed, async (val) => {
+  if (!val || loginModalSending) return
+  loginModalSending = true
+  try {
+    const res = await loginApi({
+      email: loginForm.email,
+      password: loginForm.password,
+      captchaKey: captchaKey.value,
+      captchaCode: SLIDER_CAPTCHA_VALUE
+    })
+    persistTokens(res.data)
+    message.success('登录成功')
+    loginSliderModalVisible.value = false
+    router.push('/console')
+  } catch (err) {
+    message.error(err?.message || '登录失败')
+    loginSliderModalVisible.value = false
+    loadCaptcha()
+  } finally {
+    loginModalSending = false
+  }
+})
 
 const loadCaptcha = async () => {
-  resetSliders()
   try {
     const res = await getCaptcha()
     captchaKey.value = res.data.captchaKey
+  } catch (err) {
+    message.error(err?.message || '验证码加载失败')
+  }
+}
+
+// 打开注册滑块弹框前先取一个 captchaKey（限流锚点）
+const openSliderModal = async () => {
+  if (codeCountdown.value > 0) return
+  if (!registerForm.email) {
+    message.warning('请先填写邮箱')
+    return
+  }
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.data.captchaKey
+    sliderModalPassed.value = false
+    sliderModalVisible.value = true
+  } catch (err) {
+    message.error(err?.message || '验证码加载失败')
+  }
+}
+
+// 打开登录滑块弹框：先校验邮箱/密码，再取 captchaKey
+const openLoginSliderModal = async () => {
+  if (!loginForm.email) {
+    message.warning('请填写邮箱')
+    return
+  }
+  if (!loginForm.password) {
+    message.warning('请填写密码')
+    return
+  }
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.data.captchaKey
+    loginModalPassed.value = false
+    loginSliderModalVisible.value = true
   } catch (err) {
     message.error(err?.message || '验证码加载失败')
   }
@@ -318,55 +418,13 @@ const startCodeCountdown = () => {
   }, 1000)
 }
 
-const sendCode = async () => {
-  if (codeCountdown.value > 0) return
-  if (!registerForm.email) {
-    message.warning('请先填写邮箱')
-    return
-  }
-  if (!registerSliderPassed.value) {
-    message.warning('请先完成人机验证')
-    return
-  }
-  try {
-    await sendEmailCode({
-      email: registerForm.email,
-      captchaKey: captchaKey.value,
-      captchaCode: registerForm.captcha
-    })
-    startCodeCountdown()
-    message.success('验证码已发送')
-    loadCaptcha()
-  } catch (err) {
-    message.error(err?.message || '发送失败')
-    loadCaptcha()
-  }
-}
-
 const persistTokens = (data) => {
   localStorage.setItem('aichuangzuo_access_token', data.accessToken)
   localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
 }
 
 const handleLogin = async () => {
-  if (!loginSliderPassed.value) {
-    message.warning('请先完成人机验证')
-    return
-  }
-  try {
-    const res = await loginApi({
-      email: loginForm.email,
-      password: loginForm.password,
-      captchaKey: captchaKey.value,
-      captchaCode: loginForm.captcha
-    })
-    persistTokens(res.data)
-    message.success('登录成功')
-    router.push('/console')
-  } catch (err) {
-    message.error(err?.message || '登录失败')
-    loadCaptcha()
-  }
+  await openLoginSliderModal()
 }
 
 const handleRegister = async () => {
@@ -878,6 +936,44 @@ body[data-theme="dark"] .invite-banner {
 
 body[data-theme="dark"] .invite-banner :deep(.ant-alert-message) {
   color: #e0e0e0 !important;
+}
+
+/* ========== 滑块弹框 ========== */
+.slider-modal-tip {
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.slider-modal-tip b {
+  color: #FF2442;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+body[data-theme="dark"] .slider-modal-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .slider-modal-tip b {
+  color: #ff4d6f;
+}
+
+.slider-modal :deep(.ant-modal-header) {
+  margin-bottom: 12px;
+}
+
+body[data-theme="dark"] .slider-modal :deep(.ant-modal-content) {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .slider-modal :deep(.ant-modal-header) {
+  background: transparent;
+}
+
+body[data-theme="dark"] .slider-modal :deep(.ant-modal-title) {
+  color: #e0e0e0;
 }
 
 body[data-theme="dark"] .invite-coin-trigger {
