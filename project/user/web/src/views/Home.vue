@@ -316,23 +316,23 @@
     <!-- 使用步骤 -->
     <section class="steps">
       <div class="steps-inner">
-        <h2 class="steps-title">3 步开始内容变现</h2>
-        <p class="steps-subtitle">不用学习写作，只需要会复制粘贴</p>
+        <h2 class="steps-title">3 步起一个会增值的账号</h2>
+        <p class="steps-subtitle">1 分钟注册，3 分钟第一篇，写不动也能保持账号在涨</p>
         <div class="steps-list">
           <div class="step-item">
             <div class="step-num">1</div>
-            <div class="step-name">输入主题</div>
-            <div class="step-desc">填写写作方向</div>
+            <div class="step-name">注册账号</div>
+            <div class="step-desc">1 分钟（免费）</div>
           </div>
           <div class="step-item">
             <div class="step-num">2</div>
-            <div class="step-name">AI 生成</div>
-            <div class="step-desc">3 分钟获得完整文章</div>
+            <div class="step-name">输入主题</div>
+            <div class="step-desc">1 句话（零门槛）</div>
           </div>
           <div class="step-item">
             <div class="step-num">3</div>
-            <div class="step-name">发布变现</div>
-            <div class="step-desc">多平台分发获取流量</div>
+            <div class="step-name">AI 产出</div>
+            <div class="step-desc">3 分钟可发（一篇成品）</div>
           </div>
         </div>
       </div>
@@ -340,9 +340,15 @@
 
     <!-- 最终 CTA -->
     <section class="cta-section">
-      <h2 class="cta-title">现在注册，开始你的第一条变现内容</h2>
-      <p class="cta-desc">每天少写 2 小时，多赚一份副业收入</p>
-      <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+      <h2 class="cta-title">现在起号，3 个月后看复利</h2>
+      <p class="cta-desc">
+        内容慢慢写，账号先到位 ——<br />
+        等你准备好赚钱时，雪球已经在滚。
+      </p>
+      <div class="cta-actions">
+        <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+        <router-link to="/guide" class="hero-btn-secondary">查看玩法指南</router-link>
+      </div>
     </section>
 
     <!-- 底部 -->
@@ -860,6 +866,14 @@ onMounted(() => {
   font-size: 16px;
 }
 
+.cta-actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
 /* 底部 */
 .home-footer {
   padding: 16px 24px;
@@ -1361,6 +1375,56 @@ body[data-theme="dark"] .home-footer span + span::before {
     font-size: 13px;
   }
 
+  /* 账号资产复利卡 — 移动端调整 */
+  .feature-card-asset {
+    padding: 22px;
+  }
+
+  .asset-chart {
+    height: 50px;
+    margin-top: 12px;
+  }
+
+  /* 收益玩法矩阵 — 移动端切换单列 */
+  .earnings-section {
+    padding: 40px 20px;
+  }
+
+  .earnings-header {
+    margin-bottom: 32px;
+  }
+
+  .earnings-title {
+    font-size: 24px;
+  }
+
+  .earnings-subtitle {
+    font-size: 14px;
+  }
+
+  .earnings-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+
+  .section-cta {
+    padding: 10px 24px;
+    font-size: 14px;
+  }
+
+  /* Hero 主+次双按钮 — 移动端改纵向 */
+  .hero-actions {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-btn-secondary {
+    padding: 12px 28px;
+    font-size: 15px;
+    border-radius: 24px;
+  }
+
   /* 使用步骤 */
   .steps {
     padding: 40px 20px;
@@ -1396,6 +1460,11 @@ body[data-theme="dark"] .home-footer span + span::before {
   .cta-desc {
     font-size: 14px;
     margin-bottom: 24px;
+  }
+
+  .cta-actions {
+    flex-direction: column;
+    gap: 12px;
   }
 
   /* 底部 */
