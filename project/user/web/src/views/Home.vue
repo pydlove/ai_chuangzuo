@@ -13,6 +13,7 @@
       <div class="nav-links">
         <router-link to="/" class="nav-link active">首页</router-link>
         <router-link to="/pricing" class="nav-link">会员</router-link>
+        <router-link to="/guide" class="nav-link">玩法指南</router-link>
         <button
           class="theme-toggle"
           :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
@@ -66,6 +67,9 @@
           <span class="check-item"><span class="check-icon">✓</span>每天省下 2 小时</span>
           <span class="check-item"><span class="check-icon">✓</span>多平台一键分发</span>
           <span class="check-item"><span class="check-icon">✓</span>零基础也能出爆款</span>
+        </div>
+        <div class="hero-guide-link">
+          <router-link to="/guide">不知道怎么变现？看看玩法指南 →</router-link>
         </div>
       </div>
     </section>
@@ -342,6 +346,21 @@ onMounted(() => {
   justify-content: center;
   margin-top: 28px;
   flex-wrap: wrap;
+}
+
+.hero-guide-link {
+  margin-top: 20px;
+  font-size: 14px;
+}
+
+.hero-guide-link a {
+  color: #ff2442;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.hero-guide-link a:hover {
+  color: #e61e3a;
 }
 
 .check-item {
@@ -671,6 +690,10 @@ body[data-theme="dark"] .hero-btn:hover {
 
 body[data-theme="dark"] .check-icon {
   background: #ff4d6f;
+}
+
+body[data-theme="dark"] .hero-guide-link a {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .stats {
