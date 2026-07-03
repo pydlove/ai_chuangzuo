@@ -9,9 +9,16 @@ const routes = [
   },
   {
     path: '/console',
-    name: 'AdminConsole',
-    component: () => import('@/views/ConsoleView.vue'),
-    meta: { requiresAuth: true }
+    component: () => import('@/layouts/AdminLayout.vue'),
+    meta: { requiresAuth: true },
+    redirect: '/console/users',
+    children: [
+      {
+        path: 'users',
+        name: 'AdminUserList',
+        component: () => import('@/views/UserListView.vue')
+      }
+    ]
   },
   {
     path: '/',
@@ -30,7 +37,7 @@ router.beforeEach((to) => {
     return '/login'
   }
   if (to.path === '/login' && userStore.isLoggedIn) {
-    return '/console'
+    return '/console/users'
   }
 })
 
