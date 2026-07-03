@@ -152,19 +152,19 @@
     <section class="stats">
       <div class="stats-inner">
         <div class="stat-item">
-          <div class="stat-num">10万+</div>
-          <div class="stat-label">累计生成文章</div>
+          <div class="stat-num">¥ 360 万 +</div>
+          <div class="stat-label">累计为创作者带来收益</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num">1000+</div>
-          <div class="stat-label">付费创作者</div>
+          <div class="stat-num">12 万 +</div>
+          <div class="stat-label">累计注册账号</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num">5+</div>
-          <div class="stat-label">主流平台模板</div>
+          <div class="stat-num">6 大主流</div>
+          <div class="stat-label">已覆盖变现平台</div>
         </div>
         <div class="stat-item">
-          <div class="stat-num">3分钟</div>
+          <div class="stat-num">3 分钟</div>
           <div class="stat-label">平均成稿时间</div>
         </div>
       </div>
@@ -513,10 +513,11 @@ onMounted(() => {
 }
 
 .stat-num {
-  font-size: 36px;
+  font-size: 32px;
   font-weight: 700;
   color: #FF2442;
   margin-bottom: 6px;
+  letter-spacing: -0.02em;
 }
 
 .stat-label {
@@ -1103,7 +1104,7 @@ body[data-theme="dark"] .home-footer span + span::before {
   }
 
   .stat-num {
-    font-size: 28px;
+    font-size: 24px;
   }
 
   .stat-label {
