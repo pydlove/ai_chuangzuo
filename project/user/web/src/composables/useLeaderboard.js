@@ -221,8 +221,8 @@ function awardTopUsers(leaderboardType, periodValue, getLeaderboardFn) {
       localStorage.setItem(COIN_BALANCE_KEY, String(Number((balance + 100).toFixed(2))))
 
       const earnings = load(EARNINGS_KEY, [])
-      earnings.unshift({
-        id: 'earn-' + Date.now().toString(36),
+      const earningRecord = {
+        id: 'earn-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 6),
         type: 'leaderboard_reward',
         styleName: '',
         styleId: '',
@@ -231,8 +231,10 @@ function awardTopUsers(leaderboardType, periodValue, getLeaderboardFn) {
         status: 'settled',
         settlementWeek: '',
         createdAt: new Date().toISOString()
-      })
+      }
+      earnings.unshift(earningRecord)
       save(EARNINGS_KEY, earnings)
+      earningsRecords.value.unshift(earningRecord)
     }
 
     awardedCount++
