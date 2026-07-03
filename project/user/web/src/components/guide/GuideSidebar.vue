@@ -101,10 +101,10 @@ const handleClick = (sectionId, articleId) => {
   margin-bottom: 8px;
 }
 .gs-section-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
-  padding: 8px 12px;
+  padding: 10px 12px;
   cursor: pointer;
   border-radius: 6px;
   transition: background 0.2s;
@@ -116,13 +116,13 @@ const handleClick = (sectionId, articleId) => {
   padding-left: 8px;
 }
 .gs-article {
-  font-size: 13px;
+  font-size: 14px;
   color: #595959;
-  padding: 7px 12px;
+  padding: 8px 12px 8px 20px;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.2s;
-  line-height: 1.5;
+  line-height: 1.6;
 }
 .gs-article:hover {
   color: #ff2442;
