@@ -16,8 +16,12 @@
         />
         <span class="nav-brand-name">爱创作</span>
       </div>
-      <button
-        class="theme-toggle"
+      <div class="nav-links">
+        <router-link to="/" class="nav-link">首页</router-link>
+        <router-link to="/pricing" class="nav-link">会员</router-link>
+        <router-link to="/guide" class="nav-link">玩法指南</router-link>
+        <button
+          class="theme-toggle"
         :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
         @click="toggleTheme"
       >
@@ -52,6 +56,7 @@
           <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </svg>
       </button>
+    </div>
     </header>
 
     <!-- 登录卡片 -->
@@ -105,8 +110,11 @@
               type="text"
               class="form-input captcha-input"
               placeholder="输入验证码"
+              maxlength="6"
             />
-            <div class="captcha-box" @click="refreshCaptcha">{{ captchaText }}</div>
+            <div class="captcha-box" @click="loadCaptcha" title="点击刷新">
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" />
+            </div>
           </div>
         </div>
 
@@ -133,6 +141,22 @@
         </div>
 
         <div class="form-item">
+          <label class="form-label">图形验证码</label>
+          <div class="captcha-row">
+            <input
+              v-model="registerForm.captcha"
+              type="text"
+              class="form-input captcha-input"
+              placeholder="输入验证码"
+              maxlength="6"
+            />
+            <div class="captcha-box" @click="loadCaptcha" title="点击刷新">
+              <img v-if="captchaImage" :src="captchaImage" alt="验证码" class="captcha-img" />
+            </div>
+          </div>
+        </div>
+
+        <div class="form-item">
           <label class="form-label">邮箱验证码</label>
           <div class="captcha-row">
             <input
@@ -140,6 +164,7 @@
               type="text"
               class="form-input captcha-input"
               placeholder="输入 6 位验证码"
+              maxlength="6"
             />
             <button
               class="code-btn"
@@ -220,11 +245,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserCoins } from '@/composables/useInviteCode'
+import { getCaptcha, sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const router = useRouter()
 
@@ -256,48 +282,94 @@ const loginForm = reactive({
 
 const registerForm = reactive({
   email: '',
+  captcha: '',
   code: '',
   password: '',
   confirmPassword: '',
   inviteCode: ''
 })
 
-// 验证码
-const captchaText = ref('')
-const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
+// ---------- 后端图形验证码 ----------
+const captchaKey = ref('')
+const captchaImage = ref('')
 
-const generateCaptcha = () => {
-  let result = ''
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
+const loadCaptcha = async () => {
+  loginForm.captcha = ''
+  registerForm.captcha = ''
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.data.captchaKey
+    captchaImage.value = res.data.captchaImage
+  } catch (err) {
+    message.error(err?.message || '验证码加载失败')
   }
-  captchaText.value = result
 }
 
-const refreshCaptcha = () => {
-  generateCaptcha()
-}
-
-// 验证码倒计时
+// ---------- 邮箱验证码倒计时 ----------
 const codeCountdown = ref(0)
 let countdownTimer = null
 
-const sendCode = () => {
-  if (codeCountdown.value > 0) return
+const startCodeCountdown = () => {
   codeCountdown.value = 60
+  if (countdownTimer) clearInterval(countdownTimer)
   countdownTimer = setInterval(() => {
     codeCountdown.value--
     if (codeCountdown.value <= 0) {
       clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }, 1000)
 }
 
-const handleLogin = () => {
-  // TODO: 调用登录接口
-  console.log('登录', loginForm)
-  // 模拟登录成功，跳转控制台
-  router.push('/console')
+const sendCode = async () => {
+  if (codeCountdown.value > 0) return
+  if (!registerForm.email) {
+    message.warning('请先填写邮箱')
+    return
+  }
+  if (!registerForm.captcha) {
+    message.warning('请输入图形验证码')
+    return
+  }
+  try {
+    await sendEmailCode({
+      email: registerForm.email,
+      captchaKey: captchaKey.value,
+      captchaCode: registerForm.captcha
+    })
+    startCodeCountdown()
+    message.success('验证码已发送')
+    loadCaptcha()
+  } catch (err) {
+    message.error(err?.message || '发送失败')
+    loadCaptcha()
+  }
+}
+
+const persistTokens = (data) => {
+  localStorage.setItem('aichuangzuo_access_token', data.accessToken)
+  localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
+}
+
+const handleLogin = async () => {
+  if (!loginForm.captcha) {
+    message.warning('请输入图形验证码')
+    return
+  }
+  try {
+    const res = await loginApi({
+      email: loginForm.email,
+      password: loginForm.password,
+      captchaKey: captchaKey.value,
+      captchaCode: loginForm.captcha
+    })
+    persistTokens(res.data)
+    message.success('登录成功')
+    router.push('/console')
+  } catch (err) {
+    message.error(err?.message || '登录失败')
+    loadCaptcha()
+  }
 }
 
 const handleRegister = async () => {
@@ -313,23 +385,34 @@ const handleRegister = async () => {
   // 2. 输入框是唯一真值；空字符串显式清除残留 ref
   setStoredRef(inviteCode)
 
-  // TODO: 调用注册接口
-  console.log('注册', registerForm)
+  try {
+    const res = await registerApi({
+      email: registerForm.email,
+      emailCode: registerForm.code,
+      password: registerForm.password,
+      confirmPassword: registerForm.confirmPassword,
+      inviteCode: inviteCode || undefined
+    })
+    persistTokens(res.data)
 
-  // 3. 注册成功后发放创作币并提示
-  const coins = awardNewUserCoins()
-  if (coins > 0) {
-    message.success(`注册成功，邀请奖励 +${coins} 创作币`)
+    // 3. 注册成功后发放创作币并提示
+    const coins = awardNewUserCoins()
+    if (coins > 0) {
+      message.success(`注册成功，邀请奖励 +${coins} 创作币`)
+    } else {
+      message.success('注册成功')
+    }
+
+    router.push('/console')
+  } catch (err) {
+    message.error(err?.message || '注册失败')
+    loadCaptcha()
   }
-
-  router.push('/console')
 }
-
-// 初始化验证码
-generateCaptcha()
 
 onMounted(() => {
   loadTheme()
+  loadCaptcha()
   const ref = getRefFromUrl()
   if (ref) {
     setStoredRef(ref)
@@ -339,6 +422,13 @@ onMounted(() => {
   } else if (getStoredRef()) {
     showInviteBanner.value = true
     activeTab.value = 'register'
+  }
+})
+
+onBeforeUnmount(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
   }
 })
 </script>
@@ -420,6 +510,24 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   flex-shrink: 0;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav-link {
+  font-size: 14px;
+  color: #262626;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #FF2442;
 }
 
 .nav-brand {
@@ -582,6 +690,15 @@ onMounted(() => {
   letter-spacing: 4px;
   cursor: pointer;
   user-select: none;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.captcha-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 .code-btn {
@@ -677,6 +794,15 @@ body[data-theme="dark"] .bg-circle {
 body[data-theme="dark"] .login-nav {
   background: rgba(31, 31, 31, 0.9);
   box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body[data-theme="dark"] .nav-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .nav-link:hover,
+body[data-theme="dark"] .nav-link.active {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .nav-brand-name {

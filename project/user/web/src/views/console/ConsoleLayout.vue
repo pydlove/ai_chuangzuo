@@ -937,6 +937,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
+import { logout as logoutApi } from '@/api/auth'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1165,8 +1166,15 @@ const openWechatModal = () => {
   wechatVisible.value = true
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
   userCenterVisible.value = false
+  try {
+    await logoutApi()
+  } catch (err) {
+    // 退出接口失败也继续清理本地状态
+  }
+  localStorage.removeItem('aichuangzuo_access_token')
+  localStorage.removeItem('aichuangzuo_refresh_token')
   localStorage.removeItem('aichuangzuo_membership')
   localStorage.removeItem('aichuangzuo_notif_seeded')
   router.push('/login')
