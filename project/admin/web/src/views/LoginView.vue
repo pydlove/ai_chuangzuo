@@ -560,6 +560,19 @@ onMounted(() => {
   height: 44px;
   font-size: 15px;
   font-weight: 600;
+  background: #ff2442;
+  border-color: #ff2442;
+}
+
+.submit-btn:hover,
+.submit-btn:focus {
+  background: #e61e3a;
+  border-color: #e61e3a;
+}
+
+.submit-btn:disabled {
+  background: #ff9aae;
+  border-color: #ff9aae;
 }
 
 .login-footer {
