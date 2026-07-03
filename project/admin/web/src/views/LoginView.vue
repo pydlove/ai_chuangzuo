@@ -142,7 +142,7 @@
       </div>
 
       <div class="form-item remember-row">
-        <label class="remember-label"
+        <label class="remember-label">
           <input v-model="rememberMe" type="checkbox" class="remember-checkbox" />
           记住我
         </label>
