@@ -1,0 +1,36 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: user-api
+  profiles:
+    active: dev
+  datasource:
+    url: jdbc:mysql://localhost:3306/aichuangzuo?useUnicode=true&characterEncoding=utf8mb4&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      logic-delete-field: isDeleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+auth:
+  jwt:
+    access-secret: ${JWT_ACCESS_SECRET:please-change-this-access-secret-at-least-256-bits-long}
+    refresh-secret: ${JWT_REFRESH_SECRET:please-change-this-refresh-secret-at-least-256-bits-long}
+    access-expiration: 7200
+    refresh-expiration: 604800
+  register:
+    max-per-ip: 10
