@@ -23,11 +23,11 @@ import { useRouter } from 'vue-router'
 const router = useRouter()
 
 const MOCK_TOP = [
-  { userId: 'm1', nickname: '创作者小王', amount: 12580, rank: 1 },
-  { userId: 'm2', nickname: '文案阿杰', amount: 9200, rank: 2 },
-  { userId: 'm3', nickname: '自媒体老李', amount: 7150, rank: 3 },
-  { userId: 'm4', nickname: '写作喵', amount: 5400, rank: 4 },
-  { userId: 'm5', nickname: '内容工匠', amount: 3880, rank: 5 }
+  { userId: 'm1', nickname: '用户 A', amount: 12580, rank: 1 },
+  { userId: 'm2', nickname: '用户 B', amount: 9200, rank: 2 },
+  { userId: 'm3', nickname: '用户 C', amount: 7150, rank: 3 },
+  { userId: 'm4', nickname: '用户 D', amount: 5400, rank: 4 },
+  { userId: 'm5', nickname: '用户 E', amount: 3880, rank: 5 }
 ]
 
 const topList = ref([...MOCK_TOP])
