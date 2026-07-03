@@ -1233,6 +1233,10 @@ body[data-theme="dark"] .leaderboard-page {
   background: #141414;
 }
 
+body[data-theme="dark"] .leaderboard-section {
+  background: #141414;
+}
+
 body[data-theme="dark"] .leaderboard-title,
 body[data-theme="dark"] .form-label,
 body[data-theme="dark"] .submission-month,
@@ -1310,6 +1314,18 @@ body[data-theme="dark"] .reward-banner.is-past {
 }
 
 body[data-theme="dark"] .reward-banner-title,
+body[data-theme="dark"] .leaderboard-reward.pending,
+body[data-theme="dark"] .top-reward.pending {
+  background: #2a2a2a;
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-reward.awarded,
+body[data-theme="dark"] .top-reward.awarded {
+  background: rgba(56, 158, 13, 0.15);
+  color: #b7eb8f;
+}
+
 body[data-theme="dark"] .my-reward-label {
   color: #e0e0e0;
 }

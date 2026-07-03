@@ -92,6 +92,11 @@ def main():
             time.sleep(0.3)
             page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_income_dark.png"))
 
+            # 暗色规则弹框截图
+            page.click("text=规则说明")
+            time.sleep(0.3)
+            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_rules_dark.png"))
+
             # 验证暗色下关键元素可见且背景色符合预期
             bg = page.evaluate("() => getComputedStyle(document.querySelector('.leaderboard-page')).backgroundColor")
             assert "14" in bg or "20" in bg or "21" in bg, f"unexpected dark background: {bg}"
