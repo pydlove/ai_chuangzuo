@@ -100,6 +100,8 @@ def main():
             # 验证暗色下关键元素可见且背景色符合预期
             bg = page.evaluate("() => getComputedStyle(document.querySelector('.leaderboard-page')).backgroundColor")
             assert "14" in bg or "20" in bg or "21" in bg, f"unexpected dark background: {bg}"
+            section_bg = page.evaluate("() => getComputedStyle(document.querySelector('.leaderboard-section')).backgroundColor")
+            assert "14" in section_bg or "20" in section_bg or "21" in section_bg, f"unexpected dark section background: {section_bg}"
 
             browser.close()
             print("All leaderboard checks passed.")
