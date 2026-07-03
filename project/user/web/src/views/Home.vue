@@ -1018,6 +1018,163 @@ body[data-theme="dark"] .home-footer span + span::before {
   .mobile-drawer {
     display: flex;
   }
+
+  /* Hero */
+  .hero {
+    padding: 48px 20px 40px;
+  }
+
+  .hero-badge {
+    font-size: 12px;
+    padding: 5px 12px;
+    margin-bottom: 16px;
+  }
+
+  .hero-title {
+    font-size: 28px;
+    line-height: 1.25;
+    margin-bottom: 16px;
+  }
+
+  .hero-desc {
+    font-size: 16px;
+    margin-bottom: 24px;
+  }
+
+  .hero-btn {
+    padding: 14px 32px;
+    border-radius: 24px;
+    font-size: 16px;
+  }
+
+  .hero-checkmarks {
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+  }
+
+  .check-item {
+    justify-content: center;
+  }
+
+  .hero-guide-link {
+    margin-top: 24px;
+  }
+
+  /* 数据区 */
+  .stats {
+    padding: 32px 20px;
+  }
+
+  .stats-inner {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px 12px;
+  }
+
+  .stat-num {
+    font-size: 28px;
+  }
+
+  .stat-label {
+    font-size: 13px;
+  }
+
+  /* 特色功能 */
+  .features {
+    padding: 40px 20px;
+  }
+
+  .features-header {
+    margin-bottom: 32px;
+  }
+
+  .features-title {
+    font-size: 24px;
+  }
+
+  .features-subtitle {
+    font-size: 14px;
+  }
+
+  .features-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .feature-card {
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 14px;
+  }
+
+  .feature-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .feature-name {
+    font-size: 15px;
+  }
+
+  .feature-desc {
+    font-size: 13px;
+  }
+
+  /* 使用步骤 */
+  .steps {
+    padding: 40px 20px;
+  }
+
+  .steps-title {
+    font-size: 24px;
+  }
+
+  .steps-subtitle {
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .steps-list {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step-item {
+    padding: 20px;
+  }
+
+  /* 最终 CTA */
+  .cta-section {
+    padding: 40px 20px;
+  }
+
+  .cta-title {
+    font-size: 22px;
+  }
+
+  .cta-desc {
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+
+  /* 底部 */
+  .home-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    padding: 16px 20px;
+  }
+
+  .home-footer span + span::before {
+    display: none;
+  }
 }
 
 /* ========== 手机端抽屉黑暗主题 ========== */
