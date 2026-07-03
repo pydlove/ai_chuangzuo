@@ -234,7 +234,9 @@ function awardTopUsers(leaderboardType, periodValue, getLeaderboardFn) {
       }
       earnings.unshift(earningRecord)
       save(EARNINGS_KEY, earnings)
-      earningsRecords.value.unshift(earningRecord)
+      if (earningsRecords?.value) {
+        earningsRecords.value.unshift(earningRecord)
+      }
     }
 
     awardedCount++
