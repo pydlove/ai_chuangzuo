@@ -69,7 +69,7 @@ function getPeriodRange(periodType, periodValue) {
   return { start: new Date(`${year}-01-01T00:00:00`), end: new Date(`${year + 1}-01-01T00:00:00`) }
 }
 
-function generateMockIncomeUser(index, periodType, periodValue, baseAmount) {
+function generateMockIncomeUser(index, periodType, periodValue) {
   const userId = 'mock_income_' + index
   const nickname = MOCK_NICKNAMES[(index + 5) % MOCK_NICKNAMES.length]
   const seed = hashString(`${periodType}-${periodValue}-${userId}`)
@@ -101,11 +101,20 @@ export function getCoinLeaderboard(month) {
 }
 
 export function submitIncomeSubmission(payload) {
+  if (!/^\d{4}-\d{2}$/.test(payload.month)) {
+    throw new Error('month must be YYYY-MM format')
+  }
+  if (!Number.isFinite(Number(payload.amount))) {
+    throw new Error('amount must be a finite number')
+  }
+  if (!payload.screenshot || typeof payload.screenshot !== 'string') {
+    throw new Error('screenshot is required')
+  }
   const submission = {
     id: 'income-' + Date.now().toString(36),
     userId: getUserId(),
     month: payload.month,
-    amount: Number(payload.amount),
+    amount: Math.round(Number(payload.amount) * 100) / 100,
     screenshot: payload.screenshot,
     status: 'pending',
     createdAt: new Date().toISOString(),
@@ -157,7 +166,7 @@ export function getIncomeLeaderboard(periodType, periodValue) {
   ]
 
   for (let i = 0; i < 10; i++) {
-    list.push(generateMockIncomeUser(i, periodType, periodValue, currentUserAmount))
+    list.push(generateMockIncomeUser(i, periodType, periodValue))
   }
 
   list.sort((a, b) => b.amount - a.amount)
