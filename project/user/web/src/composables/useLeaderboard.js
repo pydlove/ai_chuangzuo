@@ -59,6 +59,25 @@ function generateMockUser(index, month) {
   return { userId, nickname, amount }
 }
 
+function getPeriodRange(periodType, periodValue) {
+  if (periodType === 'month') {
+    const start = new Date(`${periodValue}-01T00:00:00`)
+    const end = new Date(start.getFullYear(), start.getMonth() + 1, 1)
+    return { start, end }
+  }
+  const year = parseInt(periodValue, 10)
+  return { start: new Date(`${year}-01-01T00:00:00`), end: new Date(`${year + 1}-01-01T00:00:00`) }
+}
+
+function generateMockIncomeUser(index, periodType, periodValue, baseAmount) {
+  const userId = 'mock_income_' + index
+  const nickname = MOCK_NICKNAMES[(index + 5) % MOCK_NICKNAMES.length]
+  const seed = hashString(`${periodType}-${periodValue}-${userId}`)
+  const factor = periodType === 'year' ? 12 : 1
+  const amount = Number(((seededRandom(seed) * 10000 + 500) * factor).toFixed(2))
+  return { userId, nickname, amount }
+}
+
 export function getCoinLeaderboard(month) {
   const currentUserId = getUserId()
   const start = new Date(`${month}-01T00:00:00`)
@@ -76,6 +95,70 @@ export function getCoinLeaderboard(month) {
     { userId: currentUserId, nickname: '我', amount: Number(currentUserAmount.toFixed(2)), isMe: true },
     ...MOCK_NICKNAMES.map((_, i) => generateMockUser(i, month))
   ]
+
+  list.sort((a, b) => b.amount - a.amount)
+  return list.map((item, index) => ({ ...item, rank: index + 1 }))
+}
+
+export function submitIncomeSubmission(payload) {
+  const submission = {
+    id: 'income-' + Date.now().toString(36),
+    userId: getUserId(),
+    month: payload.month,
+    amount: Number(payload.amount),
+    screenshot: payload.screenshot,
+    status: 'pending',
+    createdAt: new Date().toISOString(),
+    auditedAt: '',
+    rejectReason: ''
+  }
+  incomeSubmissions.value.unshift(submission)
+  save(INCOME_SUBMISSIONS_KEY, incomeSubmissions.value)
+  return submission.id
+}
+
+export function approveIncomeSubmission(id) {
+  const s = incomeSubmissions.value.find(x => x.id === id)
+  if (s && s.status === 'pending') {
+    s.status = 'approved'
+    s.auditedAt = new Date().toISOString()
+    save(INCOME_SUBMISSIONS_KEY, incomeSubmissions.value)
+  }
+}
+
+export function rejectIncomeSubmission(id, reason) {
+  const s = incomeSubmissions.value.find(x => x.id === id)
+  if (s && s.status === 'pending') {
+    s.status = 'rejected'
+    s.rejectReason = reason || ''
+    s.auditedAt = new Date().toISOString()
+    save(INCOME_SUBMISSIONS_KEY, incomeSubmissions.value)
+  }
+}
+
+export function getMyIncomeSubmissions() {
+  return incomeSubmissions.value.filter(s => s.userId === getUserId())
+}
+
+export function getIncomeLeaderboard(periodType, periodValue) {
+  const currentUserId = getUserId()
+  const { start, end } = getPeriodRange(periodType, periodValue)
+
+  const currentUserAmount = incomeSubmissions.value
+    .filter(s => {
+      if (s.status !== 'approved' || s.userId !== currentUserId) return false
+      const d = new Date(`${s.month}-01T00:00:00`)
+      return d >= start && d < end
+    })
+    .reduce((sum, s) => sum + s.amount, 0)
+
+  const list = [
+    { userId: currentUserId, nickname: '我', amount: Number(currentUserAmount.toFixed(2)), isMe: true }
+  ]
+
+  for (let i = 0; i < 10; i++) {
+    list.push(generateMockIncomeUser(i, periodType, periodValue, currentUserAmount))
+  }
 
   list.sort((a, b) => b.amount - a.amount)
   return list.map((item, index) => ({ ...item, rank: index + 1 }))
