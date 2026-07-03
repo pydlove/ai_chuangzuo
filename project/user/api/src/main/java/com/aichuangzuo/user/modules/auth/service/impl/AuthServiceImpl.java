@@ -19,6 +19,7 @@ import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserLoginLogMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
+import com.aichuangzuo.user.modules.auth.service.CaptchaService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
 import com.aichuangzuo.user.modules.auth.vo.UserVO;
@@ -43,6 +44,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final IpRegisterLimitMapper ipRegisterLimitMapper;
     private final EmailCodeService emailCodeService;
+    private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
     private final CacheUtil cacheUtil;
     private final AuthConverter authConverter;
@@ -157,10 +159,27 @@ public class AuthServiceImpl implements AuthService {
         userLoginLogMapper.insert(logRecord);
     }
 
-    // login / refreshToken / logout 在后续任务中实现
     @Override
     public AuthTokenVO login(LoginRequest request, String clientIp, String userAgent) {
-        throw new UnsupportedOperationException("Implement in next task");
+        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
+            throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
+        }
+
+        // 账号锁定检查在 Task 12 实现
+        String lockKey = "user:auth:account-lock:" + request.getEmail();
+
+        User user = userMapper.selectByEmail(request.getEmail());
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            saveLoginLog(0L, 1, clientIp, userAgent, 0, "账号或密码错误");
+            throw new BusinessException(UserAuthErrorCode.ACCOUNT_OR_PASSWORD_ERROR);
+        }
+
+        if (user.getUserStatus() == 0) {
+            throw new BusinessException(UserAuthErrorCode.ACCOUNT_DISABLED);
+        }
+
+        saveLoginLog(user.getId(), 1, clientIp, userAgent, 1, null);
+        return buildAuthTokenVO(user);
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.auth.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.modules.auth.dto.request.LoginRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.SendEmailCodeRequest;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
@@ -40,6 +41,14 @@ public class AuthController {
     public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
         emailCodeService.sendEmailCode(request.getEmail(), request.getCaptchaKey(), request.getCaptchaCode());
         return Result.success();
+    }
+
+    @Operation(summary = "用户登录")
+    @PostMapping("/login")
+    public Result<AuthTokenVO> login(@Valid @RequestBody LoginRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
+        return Result.success(authService.login(request, clientIp, userAgent));
     }
 
     @Operation(summary = "用户注册")
