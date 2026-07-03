@@ -938,7 +938,8 @@ import {
   SmileOutlined,
   FireOutlined,
   ShopOutlined,
-  DollarOutlined
+  DollarOutlined,
+  TrophyOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -962,7 +963,8 @@ const navItems = [
   { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
   { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
-  { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined }
+  { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
+  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined }
 ]
 
 const isActive = (path) => {
