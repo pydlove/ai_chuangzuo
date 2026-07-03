@@ -25,6 +25,12 @@
           </template>
           用户管理
         </a-menu-item>
+        <a-menu-item key="/console/styles">
+          <template #icon>
+            <AuditOutlined />
+          </template>
+          风格审核
+        </a-menu-item>
       </a-menu>
     </a-layout-sider>
 
@@ -53,7 +59,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -65,6 +71,7 @@ const userName = computed(() => userStore.userInfo?.name || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
+  if (route.path === '/console/styles') return '风格审核'
   return ''
 })
 
