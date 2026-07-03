@@ -31,6 +31,23 @@
         </select>
       </div>
 
+      <div :class="['reward-banner', coinRewardBanner.class]">
+        <div class="reward-banner-icon">🏆</div>
+        <div class="reward-banner-text">
+          <div class="reward-banner-title">{{ coinRewardBanner.title }}</div>
+          <div class="reward-banner-desc">{{ coinRewardBanner.desc }}</div>
+        </div>
+      </div>
+
+      <div v-if="myCoinStatus" class="my-reward-card">
+        <div class="my-reward-rank">第 {{ myCoinItem.rank }} 名</div>
+        <div class="my-reward-info">
+          <div class="my-reward-label">{{ myCoinStatus.label }}</div>
+          <div class="my-reward-desc">{{ myCoinStatus.desc }}</div>
+        </div>
+        <div class="my-reward-amount">+100 创作币</div>
+      </div>
+
       <div class="leaderboard-top3">
         <div
           v-for="item in coinTop3"
@@ -91,6 +108,23 @@
         <button class="leaderboard-submit-btn" @click="openSubmitModal">
           申报收入
         </button>
+      </div>
+
+      <div v-if="incomePeriodType === 'month'" :class="['reward-banner', incomeRewardBanner.class]">
+        <div class="reward-banner-icon">🏆</div>
+        <div class="reward-banner-text">
+          <div class="reward-banner-title">{{ incomeRewardBanner.title }}</div>
+          <div class="reward-banner-desc">{{ incomeRewardBanner.desc }}</div>
+        </div>
+      </div>
+
+      <div v-if="myIncomeStatus" class="my-reward-card">
+        <div class="my-reward-rank">第 {{ myIncomeItem.rank }} 名</div>
+        <div class="my-reward-info">
+          <div class="my-reward-label">{{ myIncomeStatus.label }}</div>
+          <div class="my-reward-desc">{{ myIncomeStatus.desc }}</div>
+        </div>
+        <div class="my-reward-amount">+100 创作币</div>
       </div>
 
       <div class="leaderboard-top3">
@@ -175,6 +209,9 @@
         <li>严禁提交虚假收入截图，一经查实将取消当月排名与奖励资格。</li>
       </ol>
       <div class="leaderboard-rules-footer">* 活动最终解释权归平台所有。</div>
+      <div class="leaderboard-rules-guide-link">
+        <router-link to="/guide">阅读完整玩法指南 →</router-link>
+      </div>
     </a-modal>
 
     <!-- 收入申报 -->
@@ -298,6 +335,60 @@ const incomeListAfter3 = computed(() => incomeList.value.slice(3))
 const currentCoinMonth = monthOptions[0]
 const currentIncomeMonth = monthOptions[0]
 const currentIncomeYear = yearOptions[0]
+
+const myCoinItem = computed(() => coinList.value.find(i => i.isMe))
+const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
+
+const coinRewardBanner = computed(() => {
+  const isCurrent = coinMonth.value === currentCoinMonth
+  return {
+    class: isCurrent ? 'is-current' : 'is-past',
+    title: isCurrent ? '本月 TOP 10 每月可获 100 创作币奖励' : '历史月榜单已结算',
+    desc: isCurrent
+      ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
+      : '该月榜单已结算，TOP 10 奖励已发放'
+  }
+})
+
+const incomeRewardBanner = computed(() => {
+  const isCurrent = incomePeriodValue.value === currentIncomeMonth
+  return {
+    class: isCurrent ? 'is-current' : 'is-past',
+    title: isCurrent ? '本月度 TOP 10 每月可获 100 创作币奖励' : '历史月榜单已结算',
+    desc: isCurrent
+      ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
+      : '该月榜单已结算，TOP 10 奖励已发放'
+  }
+})
+
+function myRewardStatus(item, type) {
+  if (!item || item.rank > 10) return null
+  if (item.rank <= 3) {
+    return {
+      label: `已锁定 TOP ${item.rank}`,
+      desc: '本月榜单进行中，结算后自动发放',
+      type: 'pending'
+    }
+  }
+  return {
+    label: `进入 TOP 10（第 ${item.rank} 名）`,
+    desc: '本月榜单进行中，结算后自动发放',
+    type: 'pending'
+  }
+}
+
+const myCoinStatus = computed(() => {
+  if (!myCoinItem.value) return null
+  if (myCoinItem.value.rank > 10) return null
+  return myRewardStatus(myCoinItem.value, 'coin')
+})
+
+const myIncomeStatus = computed(() => {
+  if (incomePeriodType.value !== 'month') return null
+  if (!myIncomeItem.value) return null
+  if (myIncomeItem.value.rank > 10) return null
+  return myRewardStatus(myIncomeItem.value, 'income')
+})
 
 function coinRewardLabel(item) {
   const isCurrentMonth = coinMonth.value === currentCoinMonth
@@ -535,6 +626,88 @@ function handleSubmit() {
 
 .leaderboard-submit-btn:hover {
   background: #e61e3a;
+}
+
+.reward-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid;
+}
+
+.reward-banner.is-current {
+  background: linear-gradient(135deg, #fff7e6 0%, #fff 100%);
+  border-color: #ffd591;
+}
+
+.reward-banner.is-past {
+  background: #f5f5f5;
+  border-color: #e8e8e8;
+}
+
+.reward-banner-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+}
+
+.reward-banner-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.reward-banner-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.reward-banner-desc {
+  font-size: 13px;
+  color: #595959;
+}
+
+.my-reward-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: linear-gradient(135deg, #fff0f2 0%, #fff 100%);
+  border: 1px solid #ffd1d9;
+  border-radius: 12px;
+}
+
+.my-reward-rank {
+  font-size: 22px;
+  font-weight: 700;
+  color: #ff2442;
+  flex-shrink: 0;
+}
+
+.my-reward-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.my-reward-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.my-reward-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.my-reward-amount {
+  font-size: 18px;
+  font-weight: 700;
+  color: #ff2442;
+  flex-shrink: 0;
 }
 
 .leaderboard-top3 {
@@ -795,6 +968,22 @@ function handleSubmit() {
   color: #8c8c8c;
 }
 
+.leaderboard-rules-guide-link {
+  margin-top: 12px;
+  font-size: 14px;
+  text-align: right;
+}
+
+.leaderboard-rules-guide-link a {
+  color: #ff2442;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.leaderboard-rules-guide-link a:hover {
+  color: #e61e3a;
+}
+
 .leaderboard-submit-form {
   display: flex;
   flex-direction: column;
@@ -1038,6 +1227,31 @@ function handleSubmit() {
   border-color: rgba(145, 213, 255, 0.3);
 }
 
+:global(body[data-theme="dark"]) .reward-banner.is-current {
+  background: linear-gradient(135deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
+  border-color: rgba(255, 213, 145, 0.3);
+}
+
+:global(body[data-theme="dark"]) .reward-banner.is-past {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+:global(body[data-theme="dark"]) .reward-banner-title,
+:global(body[data-theme="dark"]) .my-reward-label {
+  color: #e0e0e0;
+}
+
+:global(body[data-theme="dark"]) .reward-banner-desc,
+:global(body[data-theme="dark"]) .my-reward-desc {
+  color: #8c8c8c;
+}
+
+:global(body[data-theme="dark"]) .my-reward-card {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
 :global(body[data-theme="dark"]) .leaderboard-avatar {
   background: #2a2a2a;
   color: #8c8c8c;
@@ -1089,6 +1303,10 @@ function handleSubmit() {
   color: #8c8c8c;
 }
 
+:global(body[data-theme="dark"]) .leaderboard-rules-guide-link a {
+  color: #ff4d6f;
+}
+
 /* 移动端适配 */
 @media (max-width: 768px) {
   .leaderboard-page {
@@ -1137,6 +1355,33 @@ function handleSubmit() {
     flex-direction: column;
     align-items: flex-start;
     gap: 4px;
+  }
+
+  .reward-banner {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .reward-banner-icon {
+    font-size: 24px;
+  }
+
+  .reward-banner-title {
+    font-size: 14px;
+  }
+
+  .reward-banner-desc {
+    font-size: 12px;
+  }
+
+  .my-reward-card {
+    flex-wrap: wrap;
+    padding: 12px 14px;
+    gap: 10px;
+  }
+
+  .my-reward-amount {
+    margin-left: auto;
   }
 }
 </style>

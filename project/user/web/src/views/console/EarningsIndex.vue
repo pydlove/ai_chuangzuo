@@ -68,7 +68,8 @@
           </button>
         </div>
         <div v-if="weeklyList.length === 0" class="account-empty">
-          暂无收益结算记录
+          <div>还没有收益</div>
+          <router-link to="/guide" class="guide-link">看看怎么赚创作币 →</router-link>
         </div>
         <div v-else class="monthly-list">
           <div
@@ -469,6 +470,18 @@ const formatTime = (iso) => {
   font-size: 14px;
 }
 
+.guide-link {
+  display: inline-block;
+  margin-top: 8px;
+  color: #ff2442;
+  font-size: 14px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.guide-link:hover {
+  color: #e61e3a;
+}
+
 .account-rules-link {
   color: #ff2442;
   cursor: pointer;
@@ -773,6 +786,10 @@ body[data-theme="dark"] .earnings-status.settled {
 body[data-theme="dark"] .earnings-status.unsettled {
   background: rgba(250, 140, 22, 0.15);
   color: #ffa940;
+}
+
+body[data-theme="dark"] .guide-link {
+  color: #ff4d6f;
 }
 </style>
 

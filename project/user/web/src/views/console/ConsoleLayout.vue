@@ -732,6 +732,14 @@
         </div>
       </header>
 
+      <!-- 玩法指南横幅 -->
+      <div v-if="guideBannerVisible" class="guide-banner">
+        <span class="guide-banner-text" @click="goToGuide">
+          新手？3 分钟了解怎么在爱创作变现 →
+        </span>
+        <span class="guide-banner-close" @click="dismissGuideBanner">✕</span>
+      </div>
+
       <!-- 内容区 -->
       <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
         <router-view />
@@ -956,6 +964,34 @@ watch(
   },
   { immediate: true }
 )
+
+// ---------- 玩法指南新手横幅 ----------
+const WORKS_KEY = 'aichuangzuo_generation_queue'
+const GUIDE_BANNER_DISMISSED_KEY = 'aichuangzuo_guide_banner_dismissed'
+
+const hasWorks = () => {
+  try {
+    const raw = localStorage.getItem(WORKS_KEY)
+    if (!raw) return false
+    const list = JSON.parse(raw)
+    return Array.isArray(list) && list.some(item => item.status === 'completed')
+  } catch {
+    return false
+  }
+}
+
+const guideBannerVisible = ref(
+  !localStorage.getItem(GUIDE_BANNER_DISMISSED_KEY) && !hasWorks()
+)
+
+const dismissGuideBanner = () => {
+  guideBannerVisible.value = false
+  localStorage.setItem(GUIDE_BANNER_DISMISSED_KEY, '1')
+}
+
+const goToGuide = () => {
+  router.push('/guide')
+}
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
@@ -2152,6 +2188,36 @@ onMounted(() => {
   background: var(--color-bg-page);
 }
 
+/* 玩法指南横幅 */
+.guide-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: #fff5f7;
+  border-bottom: 1px solid #ffd1d9;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.guide-banner-text {
+  color: #ff2442;
+  cursor: pointer;
+  font-weight: 500;
+}
+.guide-banner-text:hover {
+  text-decoration: underline;
+}
+.guide-banner-close {
+  color: #8c8c8c;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.guide-banner-close:hover {
+  color: #595959;
+}
+
 /* 底部 */
 .console-footer {
   padding: 16px 24px;
@@ -2687,6 +2753,20 @@ body[data-theme="dark"] .console-header {
 
 body[data-theme="dark"] .console-content {
   background: #141414;
+}
+
+body[data-theme="dark"] .guide-banner {
+  background: #331018;
+  border-bottom-color: #52222b;
+}
+body[data-theme="dark"] .guide-banner-text {
+  color: #ff4d6f;
+}
+body[data-theme="dark"] .guide-banner-close {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .guide-banner-close:hover {
+  color: #e0e0e0;
 }
 
 body[data-theme="dark"] .console-footer {
