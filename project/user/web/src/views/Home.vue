@@ -256,6 +256,63 @@
       </div>
     </section>
 
+    <!-- 收益玩法矩阵 -->
+    <section class="earnings-section">
+      <div class="earnings-inner">
+        <div class="earnings-header">
+          <div class="earnings-tag">4 种变现路径</div>
+          <h2 class="earnings-title">边写边赚</h2>
+          <p class="earnings-subtitle">平台内赚创作币 + 返利 + 奖金，平台外赚自媒体收入</p>
+        </div>
+        <div class="earnings-grid">
+          <div class="feature-card">
+            <div class="feature-icon" style="background: #fff1f0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="6" x2="12" y2="12"/>
+                <line x1="12" y1="12" x2="16" y2="14"/>
+              </svg>
+            </div>
+            <div class="feature-name">创作币奖励</div>
+            <div class="feature-desc">完成任务、活动、上榜，1 元 = 1 创作币。抵扣会员购买、满 100 可提现到支付宝。</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background: #fff1f0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+            </div>
+            <div class="feature-name">邀请好友返利</div>
+            <div class="feature-desc">邀请 3 人 → 3 天会员；好友首单 10% 返利。老带新，你赚会员天数和创作币。</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background: #fff1f0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+              </svg>
+            </div>
+            <div class="feature-name">排行榜奖金</div>
+            <div class="feature-desc">创作币榜、自媒体收入榜，月榜 TOP10 各奖 100 创作币 —— 写得好就上榜。</div>
+          </div>
+          <div class="feature-card">
+            <div class="feature-icon" style="background: #fff1f0;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+              </svg>
+            </div>
+            <div class="feature-name">自媒体收入申报</div>
+            <div class="feature-desc">公众号、小红书、抖音、百家号、头条、知乎 收益申报，记录你的自媒体收入轨迹。</div>
+          </div>
+        </div>
+        <router-link to="/guide" class="section-cta">查看完整玩法 · 看看别人赚了多少 →</router-link>
+      </div>
+    </section>
+
     <!-- 使用步骤 -->
     <section class="steps">
       <div class="steps-inner">
@@ -657,6 +714,70 @@ onMounted(() => {
   display: block;
 }
 
+/* 收益玩法矩阵 */
+.earnings-section {
+  background: #f8f9fa;
+  padding: 70px 48px;
+}
+
+.earnings-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.earnings-header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.earnings-tag {
+  display: inline-block;
+  color: #FF2442;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.earnings-title {
+  font-size: 30px;
+  color: #1a1a1a;
+  margin-bottom: 12px;
+  font-weight: 700;
+}
+
+.earnings-subtitle {
+  color: #595959;
+  font-size: 15px;
+}
+
+.earnings-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+  margin-bottom: 40px;
+}
+
+.section-cta {
+  display: block;
+  width: max-content;
+  margin: 0 auto;
+  padding: 12px 28px;
+  background: transparent;
+  color: #FF2442;
+  border: 2px solid #FF2442;
+  border-radius: 24px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.section-cta:hover {
+  background: #FF2442;
+  color: #fff;
+}
+
 /* 使用步骤 */
 .steps {
   background: linear-gradient(135deg, #FF2442 0%, #CC1730 100%);
@@ -882,6 +1003,32 @@ body[data-theme="dark"] .features-tag {
 body[data-theme="dark"] .feature-card {
   background: #1f1f1f;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .earnings-section {
+  background: #1a1a1a;
+}
+
+body[data-theme="dark"] .earnings-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .earnings-subtitle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .section-cta {
+  color: #ff4d6f;
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .section-cta:hover {
+  background: #ff4d6f;
+  color: #fff;
+}
+
+body[data-theme="dark"] .feature-card-asset {
+  background: linear-gradient(135deg, #1f1f1f 0%, #2a2a2a 100%);
 }
 
 body[data-theme="dark"] .feature-icon {
