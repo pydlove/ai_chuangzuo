@@ -26,9 +26,9 @@
     <!-- 创作币榜 -->
     <div v-show="activeTab === 'coin'" class="leaderboard-section">
       <div class="leaderboard-toolbar">
-        <select v-model="coinMonth" class="leaderboard-select">
-          <option v-for="m in monthOptions" :key="m" :value="m">{{ m }}</option>
-        </select>
+        <div class="leaderboard-toolbar-left">
+          <span class="leaderboard-period-label">{{ currentCoinMonth }}</span>
+        </div>
       </div>
 
       <div :class="['reward-banner', coinRewardBanner.class]">
