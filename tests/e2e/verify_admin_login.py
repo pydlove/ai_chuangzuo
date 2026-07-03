@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 import time
 
-BASE_URL = 'http://localhost:28586'
+BASE_URL = 'http://localhost:22346'
 
 
 def test_admin_login_page():

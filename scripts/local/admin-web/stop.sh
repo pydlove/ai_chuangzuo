@@ -2,7 +2,7 @@
 # 停止管理控制台前端开发服务器
 # 用法：./stop.sh
 
-PORT=28586
+PORT=22346
 PIDS=$(lsof -ti:"${PORT}" 2>/dev/null)
 
 if [ -n "${PIDS}" ]; then
