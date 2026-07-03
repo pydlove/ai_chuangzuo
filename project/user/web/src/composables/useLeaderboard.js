@@ -3,6 +3,8 @@ import { earningsRecords } from '@/composables/useStyleMarket.js'
 
 const INCOME_SUBMISSIONS_KEY = 'aichuangzuo_leaderboard_income_submissions'
 const REWARD_RECORDS_KEY = 'aichuangzuo_leaderboard_rewards'
+const EARNINGS_KEY = 'aichuangzuo_earnings_records'
+const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const USER_ID_KEY = 'aichuangzuo_user_id'
 
 function load(key, fallback = []) {
@@ -171,4 +173,84 @@ export function getIncomeLeaderboard(periodType, periodValue) {
 
   list.sort((a, b) => b.amount - a.amount)
   return list.map((item, index) => ({ ...item, rank: index + 1 }))
+}
+
+function getCurrentMonth() {
+  const now = new Date()
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+}
+
+function parseMonth(month) {
+  const [y, m] = month.split('-').map(Number)
+  return new Date(y, m - 1, 1)
+}
+
+function addMonths(month, delta) {
+  const d = parseMonth(month)
+  d.setMonth(d.getMonth() + delta)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function hasRewardAwarded(leaderboardType, periodValue, userId) {
+  return rewardRecords.value.some(
+    r => r.leaderboardType === leaderboardType && r.periodValue === periodValue && r.userId === userId
+  )
+}
+
+function awardTopUsers(leaderboardType, periodValue, getLeaderboardFn) {
+  const list = getLeaderboardFn()
+  const top10 = list.slice(0, 10)
+  let awardedCount = 0
+
+  top10.forEach(item => {
+    if (hasRewardAwarded(leaderboardType, periodValue, item.userId)) return
+
+    const record = {
+      periodType: 'month',
+      periodValue,
+      leaderboardType,
+      rank: item.rank,
+      userId: item.userId,
+      amount: 100,
+      awardedAt: new Date().toISOString()
+    }
+    rewardRecords.value.unshift(record)
+
+    if (item.isMe) {
+      const balance = parseFloat(localStorage.getItem(COIN_BALANCE_KEY) || '0')
+      localStorage.setItem(COIN_BALANCE_KEY, String(Number((balance + 100).toFixed(2))))
+
+      const earnings = load(EARNINGS_KEY, [])
+      earnings.unshift({
+        id: 'earn-' + Date.now().toString(36),
+        type: 'leaderboard_reward',
+        styleName: '',
+        styleId: '',
+        amount: 100,
+        description: `${leaderboardType === 'coin' ? '创作币榜' : '自媒体收入榜'} 月度第 ${item.rank} 名奖励`,
+        status: 'settled',
+        settlementWeek: '',
+        createdAt: new Date().toISOString()
+      })
+      save(EARNINGS_KEY, earnings)
+    }
+
+    awardedCount++
+  })
+
+  if (awardedCount > 0) {
+    save(REWARD_RECORDS_KEY, rewardRecords.value)
+  }
+  return awardedCount
+}
+
+export function simulateAwardMonthlyRewards(periodValue) {
+  awardTopUsers('coin', periodValue, () => getCoinLeaderboard(periodValue))
+  awardTopUsers('income', periodValue, () => getIncomeLeaderboard('month', periodValue))
+}
+
+export function maybeAwardMonthlyRewards() {
+  const currentMonth = getCurrentMonth()
+  const lastMonth = addMonths(currentMonth, -1)
+  simulateAwardMonthlyRewards(lastMonth)
 }
