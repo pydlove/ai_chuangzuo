@@ -47,8 +47,9 @@
 
 ```python
 from playwright.sync_api import sync_playwright, expect
+import re
 
-BASE_URL = "http://127.0.0.1:5173/"
+BASE_URL = "http://localhost:5173/"
 
 
 def test_home_mobile():
@@ -73,7 +74,7 @@ def test_home_mobile():
         # 3. 打开抽屉
         menu_btn.click()
         drawer = page.locator(".mobile-drawer")
-        expect(drawer).to_have_class(/open/)
+        expect(drawer).to_have_class(re.compile(r'open'))
 
         # 4. 抽屉内存在导航链接
         expect(page.locator(".mobile-drawer a:has-text('首页')")).to_be_visible()
@@ -84,7 +85,7 @@ def test_home_mobile():
         page.locator(".mobile-drawer a:has-text('玩法指南')").click()
         page.wait_for_timeout(300)
         expect(page).to_have_url(f"{BASE_URL}guide")
-        expect(page.locator(".mobile-drawer")).not_to_have_class(/open/)
+        expect(page.locator(".mobile-drawer")).not_to_have_class(re.compile(r'open'))
 
         # 6. 截图保存
         page.goto(BASE_URL)
