@@ -90,9 +90,23 @@ def test_guide_mobile():
             fab.click()
             sheet = page.locator(".gs-nav")
             expect(sheet).to_have_class(re.compile(r"\bopen\b"))
+            # 抽屉位置在屏幕底部,bottom=812
+            sheet_box = sheet.bounding_box()
+            assert sheet_box["y"] > 200, f"抽屉应在屏幕底部:y={sheet_box['y']}"
+            assert sheet_box["y"] + sheet_box["height"] >= 800, f"抽屉应贴底:y+h={sheet_box['y']+sheet_box['height']}"
+            # 内容超出可视区时可滚动
+            sheet_state = sheet.evaluate("el => ({scrollH: el.scrollHeight, clientH: el.clientHeight})")
+            # 默认状态截图(抽屉打开、未滚动)
             page.screenshot(path="tests/e2e/screenshots/guide_mobile_375_sheet.png")
-            # 点击蒙层 → 抽屉关闭
-            page.locator(".gs-backdrop").click()
+            if sheet_state["scrollH"] > sheet_state["clientH"]:
+                sheet.evaluate("el => { el.scrollTop = 200 }")
+                page.wait_for_timeout(200)
+                scrolled = sheet.evaluate("el => el.scrollTop")
+                assert scrolled > 0, f"抽屉内容应可滚动,scrollTop={scrolled}"
+                # 截图记录滚动后的状态
+                page.screenshot(path="tests/e2e/screenshots/guide_mobile_375_sheet_scrolled.png")
+            # 关闭抽屉:点击 sheet 上方可见的 backdrop 区域(屏幕顶部到 sheet 顶部之间)
+            page.mouse.click(187, 100)
             expect(sheet).not_to_have_class(re.compile(r"\bopen\b"))
 
         # 12. 暗色主题下导航与抽屉可见且有深色背景

@@ -168,6 +168,7 @@ const handleClick = (sectionId, articleId) => {
   }
   .gs-nav {
     position: fixed;
+    top: auto;
     left: 0;
     right: 0;
     bottom: 0;
