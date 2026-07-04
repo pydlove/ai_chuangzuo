@@ -86,8 +86,10 @@ public class AuthServiceImpl implements AuthService {
         userMapper.updatePassword(user.getId(), newHash);
 
         long refreshTtlSeconds = authProperties.getJwt().getRefreshExpiration();
+        // 按秒归一化时间戳，与 JWT iat（秒级精度）对齐，避免同秒内 iat 误判
+        long nowSec = System.currentTimeMillis() / 1000;
         cacheUtil.set(PASSWORD_RESET_AT_PREFIX + user.getId(),
-                new Date(),
+                new Date(nowSec * 1000),
                 refreshTtlSeconds,
                 TimeUnit.SECONDS);
 
@@ -245,6 +247,19 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthTokenVO refreshToken(RefreshTokenRequest request) {
         Long userId = jwtUtil.parseRefreshToken(request.getRefreshToken());
+
+        // 校验是否在密码重置之前签发
+        // 注：JWT iat 仅保留秒级精度，重置与登录连续触发常落在同一秒。
+        //   同秒情况下无法区分「重置前的旧 token」与「重置后的新 token」，
+        //   此处按秒比较采用严格 <，把同秒新 token 当作有效（与同秒旧 token 的 1 秒残留窗口权衡）。
+        Date resetAt = cacheUtil.get(PASSWORD_RESET_AT_PREFIX + userId);
+        if (resetAt != null) {
+            Date tokenIat = jwtUtil.getRefreshTokenIssuedAt(request.getRefreshToken());
+            if (tokenIat == null || tokenIat.getTime() / 1000 < resetAt.getTime() / 1000) {
+                throw new BusinessException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
+            }
+        }
+
         User user = userMapper.selectById(userId);
         if (user == null || user.getUserStatus() == 0) {
             throw new BusinessException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
