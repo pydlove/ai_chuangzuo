@@ -129,8 +129,11 @@ const toggleTheme = (event) => {
   const maxR = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy))
 
   const next = currentTheme.value === 'light' ? 'dark' : 'light'
-  // 圆形遮罩用新主题背景色,视觉上像"圆形把新主题铺开"
-  const maskColor = next === 'dark' ? '#141414' : '#f8f9fa'
+  // 多段 radial-gradient:中心 = 当前主题,过渡到中间灰,外圈 = 新主题
+  // 这样扩散时边缘有可见的灰度层次,而不是硬切到纯黑/纯白
+  const maskBg = next === 'dark'
+    ? 'radial-gradient(circle, #f8f9fa 0%, #d8d8d8 25%, #8a8a8a 55%, #3a3a3a 80%, #141414 100%)'
+    : 'radial-gradient(circle, #141414 0%, #3a3a3a 25%, #8a8a8a 55%, #d8d8d8 80%, #f8f9fa 100%)'
 
   const mask = document.createElement('div')
   Object.assign(mask.style, {
@@ -140,7 +143,7 @@ const toggleTheme = (event) => {
     width: '0px',
     height: '0px',
     borderRadius: '50%',
-    background: maskColor,
+    background: maskBg,
     transform: 'translate(-50%, -50%)',
     zIndex: '9999',
     pointerEvents: 'none',
