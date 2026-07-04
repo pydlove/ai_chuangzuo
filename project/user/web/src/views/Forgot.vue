@@ -16,6 +16,47 @@
         />
         <span class="nav-brand-name">爱创作</span>
       </div>
+      <div class="nav-links">
+        <router-link to="/" class="nav-link">首页</router-link>
+        <router-link to="/pricing" class="nav-link">会员</router-link>
+        <router-link to="/guide" class="nav-link">玩法指南</router-link>
+        <button
+          class="theme-toggle"
+          :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
+          @click="toggleTheme"
+        >
+          <svg
+            v-if="currentTheme === 'light'"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            v-else
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          >
+            <circle cx="12" cy="12" r="5" />
+            <line x1="12" y1="1" x2="12" y2="3" />
+            <line x1="12" y1="21" x2="12" y2="23" />
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+            <line x1="1" y1="12" x2="3" y2="12" />
+            <line x1="21" y1="12" x2="23" y2="12" />
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          </svg>
+        </button>
+      </div>
     </header>
 
     <!-- 重置密码卡片 -->
@@ -88,10 +129,27 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+
+// ---------- 主题切换 ----------
+const THEME_KEY = 'aichuangzuo_theme'
+const currentTheme = ref('light')
+
+const toggleTheme = () => {
+  const next = currentTheme.value === 'light' ? 'dark' : 'light'
+  currentTheme.value = next
+  document.body.setAttribute('data-theme', next)
+  localStorage.setItem(THEME_KEY, next)
+}
+
+const loadTheme = () => {
+  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  currentTheme.value = saved
+  document.body.setAttribute('data-theme', saved)
+}
 
 const form = reactive({
   email: '',
@@ -107,10 +165,12 @@ let countdownTimer = null
 const sendCode = () => {
   if (codeCountdown.value > 0) return
   codeCountdown.value = 60
+  if (countdownTimer) clearInterval(countdownTimer)
   countdownTimer = setInterval(() => {
     codeCountdown.value--
     if (codeCountdown.value <= 0) {
       clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }, 1000)
 }
@@ -119,6 +179,17 @@ const handleReset = () => {
   // TODO: 调用重置密码接口
   console.log('重置密码', form)
 }
+
+onMounted(() => {
+  loadTheme()
+})
+
+onBeforeUnmount(() => {
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+})
 </script>
 
 <style scoped>
@@ -170,6 +241,27 @@ const handleReset = () => {
   position: relative;
   z-index: 1;
   box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.nav-link {
+  font-size: 14px;
+  color: #262626;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  color: #FF2442;
 }
 
 .nav-brand {
@@ -189,6 +281,31 @@ const handleReset = () => {
   font-weight: 700;
   font-size: 18px;
   color: #1a1a1a;
+}
+
+.theme-toggle {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: #595959;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.theme-toggle:hover {
+  background: #FFF5F7;
+  color: #FF2442;
+}
+
+.theme-toggle svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 /* 重置密码卡片 */
@@ -340,5 +457,109 @@ const handleReset = () => {
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* ========== 暗色主题 ========== */
+body[data-theme="dark"] .forgot-page {
+  background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+}
+
+body[data-theme="dark"] .bg-circle {
+  background: rgba(255, 36, 66, 0.05);
+}
+
+body[data-theme="dark"] .forgot-nav {
+  background: rgba(31, 31, 31, 0.9);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+body[data-theme="dark"] .nav-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .nav-link:hover,
+body[data-theme="dark"] .nav-link.active {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .nav-brand-name {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .theme-toggle {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .theme-toggle:hover {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .forgot-card {
+  background: #1f1f1f;
+  box-shadow: 0 25px 80px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .form-title,
+body[data-theme="dark"] .form-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-subtitle,
+body[data-theme="dark"] .back-link {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .back-link:hover {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .form-input {
+  background: #262626;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .form-input:focus {
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .form-input::placeholder {
+  color: #666;
+}
+
+body[data-theme="dark"] .code-btn {
+  background: #1f1f1f;
+  border-color: #ff4d6f;
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .code-btn:hover:not(:disabled) {
+  background: #ff4d6f;
+  color: #fff;
+}
+
+body[data-theme="dark"] .code-btn:disabled {
+  border-color: #404040;
+  color: #666;
+}
+
+body[data-theme="dark"] .submit-btn {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+
+body[data-theme="dark"] .submit-btn:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .forgot-footer {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .forgot-footer span + span::before {
+  color: #303030;
 }
 </style>
