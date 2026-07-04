@@ -113,14 +113,61 @@ const props = defineProps({
 const route = useRoute()
 const mobileMenuOpen = ref(false)
 const currentTheme = ref('light')
+const isTransitioning = ref(false)
 
 const resolvedActive = computed(() => props.activePath || route.path)
 
-const toggleTheme = () => {
+const toggleTheme = (event) => {
+  if (isTransitioning.value) return
+  const btn = event?.currentTarget
+  const rect = btn?.getBoundingClientRect()
+  // 兜底:若按钮不可见(例如在抽屉里),从屏幕中心扩散
+  const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
+  const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const maxR = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy))
+
   const next = currentTheme.value === 'light' ? 'dark' : 'light'
-  currentTheme.value = next
-  document.body.setAttribute('data-theme', next)
-  localStorage.setItem(THEME_KEY, next)
+  // 圆形遮罩用新主题背景色,视觉上像"圆形把新主题铺开"
+  const maskColor = next === 'dark' ? '#141414' : '#f8f9fa'
+
+  const mask = document.createElement('div')
+  Object.assign(mask.style, {
+    position: 'fixed',
+    left: cx + 'px',
+    top: cy + 'px',
+    width: '0px',
+    height: '0px',
+    borderRadius: '50%',
+    background: maskColor,
+    transform: 'translate(-50%, -50%)',
+    zIndex: '9999',
+    pointerEvents: 'none',
+    willChange: 'width, height'
+  })
+  document.body.appendChild(mask)
+
+  // 强制 reflow,再加 transition,确保动画从 0 开始
+  void mask.offsetWidth
+  mask.style.transition = 'width 0.75s cubic-bezier(0.4, 0, 0.2, 1), height 0.75s cubic-bezier(0.4, 0, 0.2, 1)'
+  mask.style.width = (maxR * 2) + 'px'
+  mask.style.height = (maxR * 2) + 'px'
+
+  isTransitioning.value = true
+
+  // 动画进行到 60% 时切换主题,圆形已大部分覆盖,新主题色从圆形内透出来
+  setTimeout(() => {
+    currentTheme.value = next
+    document.body.setAttribute('data-theme', next)
+    localStorage.setItem(THEME_KEY, next)
+  }, 450)
+
+  // 动画结束后移除遮罩,避免拦截后续交互
+  setTimeout(() => {
+    if (mask.parentNode) mask.parentNode.removeChild(mask)
+    isTransitioning.value = false
+  }, 800)
 }
 
 const loadTheme = () => {
