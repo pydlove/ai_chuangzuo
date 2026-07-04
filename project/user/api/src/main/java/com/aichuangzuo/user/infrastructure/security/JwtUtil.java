@@ -85,4 +85,22 @@ public class JwtUtil {
                 .getPayload();
         return claims.getExpiration();
     }
+
+    /**
+     * 解析 refresh token 签发时间（iat），用于密码重置后的失效判断。
+     *
+     * @param token JWT refresh token
+     * @return 签发时间
+     * @throws UnauthorizedException 当签名错误或 token 过期时
+     */
+    public Date getRefreshTokenIssuedAt(String token) {
+        SecretKey key = Keys.hmacShaKeyFor(
+                authProperties.getJwt().getRefreshSecret().getBytes(StandardCharsets.UTF_8));
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        return claims.getIssuedAt();
+    }
 }
