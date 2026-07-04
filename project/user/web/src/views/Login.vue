@@ -105,7 +105,11 @@
         <button class="submit-btn" @click="handleLogin">登录</button>
 
         <div class="form-footer">
-          <span class="forgot-link" @click="$router.push('/forgot')">忘记密码？</span>
+          <span class="footer-text">还没有账号？</span>
+          <span class="footer-link" @click="activeTab = 'register'">请注册</span>
+          <span class="footer-sep">·</span>
+          <span class="footer-text">忘记密码？</span>
+          <span class="footer-link" @click="$router.push('/forgot')">请重置密码</span>
         </div>
       </div>
 
@@ -778,18 +782,32 @@ onBeforeUnmount(() => {
 .form-footer {
   display: flex;
   justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
   margin-top: 16px;
 }
 
-.forgot-link {
+.footer-text {
   font-size: 13px;
   color: #595959;
+}
+
+.footer-link {
+  font-size: 13px;
+  color: #FF2442;
   cursor: pointer;
   transition: color 0.2s;
 }
 
-.forgot-link:hover {
-  color: #FF2442;
+.footer-link:hover {
+  color: #E61E3A;
+}
+
+.footer-sep {
+  font-size: 13px;
+  color: #d9d9d9;
+  margin: 0 4px;
 }
 
 /* 底部 */
@@ -872,12 +890,20 @@ body[data-theme="dark"] .form-label {
 
 body[data-theme="dark"] .form-subtitle,
 body[data-theme="dark"] .form-label-optional,
-body[data-theme="dark"] .forgot-link {
+body[data-theme="dark"] .footer-text {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .forgot-link:hover {
+body[data-theme="dark"] .footer-link {
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .footer-link:hover {
+  color: #ff7a99;
+}
+
+body[data-theme="dark"] .footer-sep {
+  color: #404040;
 }
 
 body[data-theme="dark"] .form-input {
