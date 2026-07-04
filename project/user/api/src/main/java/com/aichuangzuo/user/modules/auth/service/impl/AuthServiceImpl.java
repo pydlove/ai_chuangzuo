@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.auth.converter.AuthConverter;
 import com.aichuangzuo.user.modules.auth.dto.request.LoginRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RefreshTokenRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
+import com.aichuangzuo.user.modules.auth.dto.request.ResetPasswordRequest;
 import com.aichuangzuo.user.modules.auth.entity.IpRegisterLimit;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
@@ -32,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -58,6 +60,40 @@ public class AuthServiceImpl implements AuthService {
     private static final int MAX_LOGIN_FAIL = 5;
     private static final long LOGIN_FAIL_WINDOW_MINUTES = 5;
     private static final long ACCOUNT_LOCK_MINUTES = 30;
+    private static final String PASSWORD_RESET_AT_PREFIX = "user:auth:password-reset-at:";
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetPassword(ResetPasswordRequest request, String clientIp) {
+        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
+            throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
+        }
+
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
+        }
+
+        User user = userMapper.selectByEmail(request.getEmail());
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+
+        if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {
+            throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+        }
+
+        String newHash = passwordEncoder.encode(request.getPassword());
+        userMapper.updatePassword(user.getId(), newHash);
+
+        long refreshTtlSeconds = authProperties.getJwt().getRefreshExpiration();
+        cacheUtil.set(PASSWORD_RESET_AT_PREFIX + user.getId(),
+                new Date(),
+                refreshTtlSeconds,
+                TimeUnit.SECONDS);
+
+        saveLoginLog(user.getId(), 3, clientIp, "reset-password", 1, null);
+    }
+
 
     @Override
     @Transactional(rollbackFor = Exception.class)

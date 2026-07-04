@@ -16,7 +16,8 @@ public enum UserAuthErrorCode implements ErrorCode {
     INVITE_CODE_INVALID(111009, "邀请码无效"),
     TOKEN_EXPIRED(111010, "登录已过期，请重新登录"),
     REFRESH_TOKEN_INVALID(111011, "refreshToken 无效或已过期"),
-    OPERATION_TOO_FREQUENT(111012, "操作过于频繁，请稍后再试");
+    OPERATION_TOO_FREQUENT(111012, "操作过于频繁，请稍后再试"),
+    USER_NOT_FOUND(111013, "用户不存在");
 
     private final int code;
     private final String message;
