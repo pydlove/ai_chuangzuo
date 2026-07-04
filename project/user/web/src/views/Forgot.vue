@@ -494,6 +494,47 @@ onBeforeUnmount(() => {
   color: #eee;
 }
 
+/* ========== 媒体查询：手机端 ≤768px ========== */
+@media (max-width: 768px) {
+  .forgot-card {
+    width: calc(100% - 32px);
+    padding: 24px 20px;
+    margin-top: 20px;
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  }
+  .form-title {
+    font-size: 20px;
+  }
+  .form-subtitle {
+    font-size: 13px;
+    margin-bottom: 20px;
+  }
+  .form-item {
+    margin-bottom: 14px;
+  }
+  .form-input {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+  .submit-btn {
+    padding: 12px;
+    font-size: 14px;
+  }
+  .bg-circle-1 {
+    width: 320px;
+    height: 320px;
+    top: -160px;
+    right: -100px;
+  }
+  .bg-circle-2 {
+    width: 280px;
+    height: 280px;
+    bottom: -120px;
+    left: -100px;
+  }
+}
+
 /* ========== 暗色主题 ========== */
 body[data-theme="dark"] .forgot-page {
   background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
