@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
   .forgot-card {
     width: calc(100% - 32px);
     padding: 24px 20px;
-    margin-top: 20px;
+    margin-top: 56px;
     border-radius: 16px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
   }
