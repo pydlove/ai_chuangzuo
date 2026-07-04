@@ -36,7 +36,7 @@
           <button
             class="code-btn"
             :disabled="codeCountdown > 0"
-            @click="sendCode"
+            @click="openCodeSlider"
           >
             {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
           </button>
@@ -75,13 +75,52 @@
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
       <span>浙ICP备XXXXXXXX号-1</span>
     </footer>
+
+    <!-- 发送邮箱验证码前的滑块弹框 -->
+    <a-modal
+      v-model:open="codeModalVisible"
+      title="人机验证"
+      :footer="null"
+      :mask-closable="false"
+      :keyboard="false"
+      width="420px"
+      class="slider-modal slider-modal-send-code"
+    >
+      <p class="slider-modal-tip">
+        拖动滑块完成验证后将向
+        <b>{{ form.email || '当前邮箱' }}</b>
+        发送 6 位邮箱验证码
+      </p>
+      <SliderCaptcha v-model="codeModalPassed" />
+    </a-modal>
+
+    <!-- 重置密码前的滑块弹框 -->
+    <a-modal
+      v-model:open="resetModalVisible"
+      title="人机验证"
+      :footer="null"
+      :mask-closable="false"
+      :keyboard="false"
+      width="420px"
+      class="slider-modal slider-modal-reset"
+    >
+      <p class="slider-modal-tip">
+        拖动滑块完成验证后将重置账号
+        <b v-if="form.email">「{{ form.email }}」</b>
+        的密码
+      </p>
+      <SliderCaptcha v-model="resetModalPassed" />
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import { getCaptcha, sendEmailCode, resetPassword } from '@/api/auth'
 
 const router = useRouter()
 
@@ -117,6 +156,23 @@ const onPageMouseMove = (e) => {
 
 // ---------- 主题切换由 NavBar 组件统一处理 ----------
 
+// ---------- 人机验证常量（与 Login.vue 一致） ----------
+const SLIDER_CAPTCHA_VALUE = 'TEST12'
+
+// ---------- 后端 captcha 会话 ----------
+const captchaKey = ref('')
+
+// ---------- 发送邮箱验证码弹框状态 ----------
+const codeModalVisible = ref(false)
+const codeModalPassed = ref(false)
+let codeModalSending = false
+
+// ---------- 重置密码弹框状态 ----------
+const resetModalVisible = ref(false)
+const resetModalPassed = ref(false)
+let resetModalSending = false
+
+
 const form = reactive({
   email: '',
   code: '',
@@ -128,10 +184,9 @@ const form = reactive({
 const codeCountdown = ref(0)
 let countdownTimer = null
 
-const sendCode = () => {
-  if (codeCountdown.value > 0) return
-  codeCountdown.value = 60
+const startCodeCountdown = () => {
   if (countdownTimer) clearInterval(countdownTimer)
+  codeCountdown.value = 60
   countdownTimer = setInterval(() => {
     codeCountdown.value--
     if (codeCountdown.value <= 0) {
@@ -141,10 +196,94 @@ const sendCode = () => {
   }, 1000)
 }
 
-const handleReset = () => {
-  // TODO: 调用重置密码接口
-  console.log('重置密码', form)
+// === 发送邮箱验证码：弹框拖滑块 → 通过后才调 sendEmailCode ===
+const openCodeSlider = async () => {
+  if (codeCountdown.value > 0) return
+  if (!form.email) {
+    message.warning('请先填写邮箱')
+    return
+  }
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.data.captchaKey
+    codeModalPassed.value = false
+    codeModalVisible.value = true
+  } catch (err) {
+    message.error(err?.message || '验证码加载失败')
+  }
 }
+
+watch(codeModalPassed, async (val) => {
+  if (!val || codeModalSending) return
+  codeModalSending = true
+  try {
+    await sendEmailCode({
+      email: form.email,
+      captchaKey: captchaKey.value,
+      captchaCode: SLIDER_CAPTCHA_VALUE
+    })
+    startCodeCountdown()
+    message.success('验证码已发送')
+    codeModalVisible.value = false
+  } catch (err) {
+    message.error(err?.message || '发送失败')
+    codeModalVisible.value = false
+  } finally {
+    codeModalSending = false
+  }
+})
+
+// === 重置密码：弹框拖滑块 → 通过后才调 resetPassword API ===
+const handleReset = async () => {
+  if (form.password !== form.confirmPassword) {
+    message.error('两次输入的密码不一致')
+    return
+  }
+  if (!form.email || !form.code || !form.password) {
+    message.warning('请完整填写表单')
+    return
+  }
+  if (codeCountdown.value <= 0) {
+    message.warning('请先获取邮箱验证码')
+    return
+  }
+  try {
+    const res = await getCaptcha()
+    captchaKey.value = res.data.captchaKey
+    resetModalPassed.value = false
+    resetModalVisible.value = true
+  } catch (err) {
+    message.error(err?.message || '验证码加载失败')
+  }
+}
+
+watch(resetModalPassed, async (val) => {
+  if (!val || resetModalSending) return
+  resetModalSending = true
+  try {
+    await resetPassword({
+      email: form.email,
+      emailCode: form.code,
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+      captchaKey: captchaKey.value,
+      captchaCode: SLIDER_CAPTCHA_VALUE
+    })
+    message.success('密码已重置，请重新登录')
+    resetModalVisible.value = false
+    if (countdownTimer) {
+      clearInterval(countdownTimer)
+      countdownTimer = null
+    }
+    codeCountdown.value = 0
+    router.push('/login')
+  } catch (err) {
+    message.error(err?.message || '重置失败')
+    resetModalVisible.value = false
+  } finally {
+    resetModalSending = false
+  }
+})
 
 onMounted(() => {
   window.addEventListener('mousemove', onPageMouseMove)
