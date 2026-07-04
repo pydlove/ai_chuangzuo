@@ -60,7 +60,7 @@
     </header>
 
     <!-- 登录卡片 -->
-    <div class="login-card" @mousemove="onCardMouseMove" @mouseleave="onCardMouseLeave">
+    <div ref="cardRef" class="login-card">
       <!-- 标签切换 -->
       <div class="auth-tabs">
         <button
@@ -262,22 +262,26 @@ import { getCaptcha, sendEmailCode, register as registerApi, login as loginApi }
 
 const router = useRouter()
 
-// ---------- 鼠标方向律动：卡片轻微 3D 倾斜跟随 ----------
-// 鼠标在卡片内移动时，根据偏离中心的比例计算 rotateX/Y，
-// 鼠标离开时复位。倾斜幅度限制在 ±4°，transition 给一点"律动"延迟感。
-const MAX_TILT_DEG = 4
-const onCardMouseMove = (e) => {
-  const card = e.currentTarget
+// ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移 ----------
+// 在 window 上监听 mousemove，根据鼠标相对卡片中心的距离，
+// 把卡片朝鼠标方向 translate 一个像素量（最大 ±8px）。
+// transition 让移动有一点"律动"延迟感。
+const cardRef = ref(null)
+const MAGNET_OFFSET_PX = 8
+
+const onPageMouseMove = (e) => {
+  const card = cardRef.value
+  if (!card) return
   const rect = card.getBoundingClientRect()
-  const nx = (e.clientX - rect.left) / rect.width - 0.5  // -0.5 ~ 0.5
-  const ny = (e.clientY - rect.top) / rect.height - 0.5
-  // 鼠标越靠下 → rotateX 越负（卡片上沿向后倾），同理水平
-  card.style.setProperty('--rx', `${-ny * 2 * MAX_TILT_DEG}deg`)
-  card.style.setProperty('--ry', `${nx * 2 * MAX_TILT_DEG}deg`)
-}
-const onCardMouseLeave = (e) => {
-  e.currentTarget.style.setProperty('--rx', '0deg')
-  e.currentTarget.style.setProperty('--ry', '0deg')
+  const cardCenterX = rect.left + rect.width / 2
+  const cardCenterY = rect.top + rect.height / 2
+  const dx = e.clientX - cardCenterX
+  const dy = e.clientY - cardCenterY
+  // 归一化到 [-1, 1]：鼠标越偏离屏幕中心，偏移越接近最大值
+  const nx = Math.max(-1, Math.min(1, dx / (window.innerWidth / 2)))
+  const ny = Math.max(-1, Math.min(1, dy / (window.innerHeight / 2)))
+  card.style.setProperty('--mx', `${nx * MAGNET_OFFSET_PX}px`)
+  card.style.setProperty('--my', `${ny * MAGNET_OFFSET_PX}px`)
 }
 
 // ---------- 主题切换 ----------
@@ -490,6 +494,7 @@ const handleRegister = async () => {
 onMounted(() => {
   loadTheme()
   loadCaptcha()
+  window.addEventListener('mousemove', onPageMouseMove)
   const ref = getRefFromUrl()
   if (ref) {
     setStoredRef(ref)
@@ -503,6 +508,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onPageMouseMove)
   if (countdownTimer) {
     clearInterval(countdownTimer)
     countdownTimer = null
@@ -636,10 +642,9 @@ onBeforeUnmount(() => {
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
   position: relative;
   z-index: 1;
-  /* 鼠标方向律动：轻微 3D 倾斜跟随 */
-  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
-  transform-style: preserve-3d;
-  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+  /* 鼠标方向律动：卡片朝鼠标方向轻微平移（最大 ±8px） */
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
               box-shadow 0.35s ease;
   will-change: transform;
 }
