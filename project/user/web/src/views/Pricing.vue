@@ -1,57 +1,6 @@
 <template>
   <div class="pricing-page">
-    <!-- 导航栏 -->
-    <header class="pricing-nav">
-      <div class="nav-brand">
-        <img
-          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
-          class="nav-logo"
-        />
-        <span class="nav-brand-name">爱创作</span>
-      </div>
-      <div class="nav-links">
-        <router-link to="/" class="nav-link">首页</router-link>
-        <router-link to="/pricing" class="nav-link active">价格</router-link>
-        <button
-          class="theme-toggle"
-          :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'"
-          @click="toggleTheme"
-        >
-          <svg
-            v-if="currentTheme === 'light'"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-          </svg>
-          <svg
-            v-else
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          >
-            <circle cx="12" cy="12" r="5" />
-            <line x1="12" y1="1" x2="12" y2="3" />
-            <line x1="12" y1="21" x2="12" y2="23" />
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-            <line x1="1" y1="12" x2="3" y2="12" />
-            <line x1="21" y1="12" x2="23" y2="12" />
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-          </svg>
-        </button>
-        <router-link to="/login" class="nav-cta">开始创作</router-link>
-      </div>
-    </header>
+    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 主内容 -->
     <div class="pricing-body">
@@ -110,29 +59,31 @@
       </div>
 
       <!-- 权益对比表 -->
-      <div id="pricing-compare" class="compare-section">
-        <div class="compare-header">
-          <h2>功能权益对比</h2>
-          <span class="compare-hint">✓ 包含 · ✗ 不包含</span>
+      <div class="compare-table-wrap">
+        <div id="pricing-compare" class="compare-section">
+          <div class="compare-header">
+            <h2>功能权益对比</h2>
+            <span class="compare-hint">✓ 包含 · ✗ 不包含</span>
+          </div>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th style="width: 32%;">权益</th>
+                <th>基础版</th>
+                <th class="recommended-col">专业版<span>最受欢迎</span></th>
+                <th>旗舰版</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="row in compareRows" :key="row.label">
+                <td>{{ row.label }}</td>
+                <td v-html="getCell(row, 'basic')"></td>
+                <td class="recommended-col" v-html="getCell(row, 'pro')"></td>
+                <td v-html="getCell(row, 'flagship')"></td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <table class="compare-table">
-          <thead>
-            <tr>
-              <th style="width: 32%;">权益</th>
-              <th>基础版</th>
-              <th class="recommended-col">专业版<span>最受欢迎</span></th>
-              <th>旗舰版</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in compareRows" :key="row.label">
-              <td>{{ row.label }}</td>
-              <td v-html="getCell(row, 'basic')"></td>
-              <td class="recommended-col" v-html="getCell(row, 'pro')"></td>
-              <td v-html="getCell(row, 'flagship')"></td>
-            </tr>
-          </tbody>
-        </table>
       </div>
     </div>
 
@@ -145,28 +96,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
+import NavBar from '@/components/layout/NavBar.vue'
 
-// ---------- 主题切换 ----------
-const THEME_KEY = 'aichuangzuo_theme'
-const currentTheme = ref('light')
-
-const toggleTheme = () => {
-  const next = currentTheme.value === 'light' ? 'dark' : 'light'
-  currentTheme.value = next
-  document.body.setAttribute('data-theme', next)
-  localStorage.setItem(THEME_KEY, next)
-}
-
-const loadTheme = () => {
-  const saved = localStorage.getItem(THEME_KEY) || 'light'
-  currentTheme.value = saved
-  document.body.setAttribute('data-theme', saved)
-}
-
-onMounted(() => {
-  loadTheme()
-})
+const navLinks = [
+  { to: '/', label: '首页' },
+  { to: '/pricing', label: '会员' },
+  { to: '/guide', label: '玩法指南' }
+]
+const ctaTo = '/login'
+const ctaLabel = '开始创作'
 
 const activeCycle = ref('month')
 const cycles = [
@@ -306,67 +245,6 @@ const scrollToCompare = () => {
   background: #f8f9fa;
   display: flex;
   flex-direction: column;
-}
-
-/* 导航栏 */
-.pricing-nav {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 24px;
-  background: #fff;
-  border-bottom: 1px solid #eee;
-}
-
-.nav-brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.nav-logo {
-  width: auto;
-  height: 32px;
-  object-fit: cover;
-}
-
-.nav-brand-name {
-  font-weight: 700;
-  font-size: 18px;
-  color: #1a1a1a;
-}
-
-.nav-links {
-  display: flex;
-  align-items: center;
-  gap: 24px;
-}
-
-.nav-link {
-  font-size: 14px;
-  color: #262626;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.nav-link:hover,
-.nav-link.active {
-  color: #FF2442;
-}
-
-.nav-cta {
-  padding: 8px 22px;
-  background: #FF2442;
-  color: #fff;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.nav-cta:hover {
-  background: #E61E3A;
 }
 
 /* 主内容 */
@@ -676,70 +554,82 @@ const scrollToCompare = () => {
   color: #eee;
 }
 
-/* 主题切换按钮 */
-.theme-toggle {
-  width: 32px;
-  height: 32px;
-  border-radius: 6px;
-  border: none;
-  background: transparent;
-  color: #595959;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s;
-}
-
-.theme-toggle:hover {
-  background: #FFF5F7;
-  color: #FF2442;
-}
-
-.theme-toggle svg {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
+/* ========== 媒体查询：手机端 ≤768px ========== */
+@media (max-width: 768px) {
+  .pricing-body {
+    padding: 24px 16px;
+  }
+  .pricing-title {
+    font-size: 22px;
+  }
+  .pricing-subtitle {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+  .billing-toggle {
+    margin-bottom: 8px;
+  }
+  .toggle-btn {
+    padding: 6px 14px;
+    font-size: 13px;
+  }
+  .toggle-badge {
+    font-size: 11px;
+  }
+  .compare-link {
+    margin-bottom: 20px;
+  }
+  .pricing-cards {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .pricing-card {
+    padding: 20px;
+  }
+  .plan-name {
+    font-size: 16px;
+  }
+  .plan-price {
+    font-size: 26px;
+  }
+  .compare-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    margin: 0 -16px;
+    padding: 0 16px;
+  }
+  .compare-section {
+    padding: 20px 16px;
+    min-width: 0;
+  }
+  .compare-table {
+    min-width: 480px;
+  }
+  .compare-header h2 {
+    font-size: 18px;
+  }
+  .compare-table th,
+  .compare-table td {
+    padding: 10px 8px;
+    font-size: 13px;
+  }
+  .pricing-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 12px;
+    padding: 16px 20px;
+  }
+  .pricing-footer span + span::before {
+    display: none;
+  }
 }
 
 /* ========== 暗色主题 ========== */
 body[data-theme="dark"] .pricing-page {
   background: #141414;
-}
-
-body[data-theme="dark"] .pricing-nav {
-  background: #1f1f1f;
-  border-bottom-color: #303030;
-}
-
-body[data-theme="dark"] .nav-brand-name {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .nav-link {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .nav-link:hover,
-body[data-theme="dark"] .nav-link.active {
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .nav-cta {
-  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
-}
-
-body[data-theme="dark"] .nav-cta:hover {
-  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
-}
-
-body[data-theme="dark"] .theme-toggle {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .theme-toggle:hover {
-  background: rgba(255, 36, 66, 0.15);
-  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .pricing-title {
