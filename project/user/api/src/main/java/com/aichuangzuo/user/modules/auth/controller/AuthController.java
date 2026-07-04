@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.auth.dto.request.LoginRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RefreshTokenRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
+import com.aichuangzuo.user.modules.auth.dto.request.ResetPasswordRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.SendEmailCodeRequest;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
 import com.aichuangzuo.user.modules.auth.service.CaptchaService;
@@ -59,6 +60,14 @@ public class AuthController {
         String clientIp = getClientIp(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
         return Result.success(authService.register(request, clientIp, userAgent));
+    }
+
+    @Operation(summary = "重置密码")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request,
+                                      HttpServletRequest httpRequest) {
+        authService.resetPassword(request, getClientIp(httpRequest));
+        return Result.success();
     }
 
     @Operation(summary = "刷新 Token")
