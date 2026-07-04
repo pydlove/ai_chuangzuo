@@ -60,7 +60,7 @@
     </header>
 
     <!-- 重置密码卡片 -->
-    <div class="forgot-card">
+    <div ref="cardRef" class="forgot-card">
       <h2 class="form-title">重置密码</h2>
       <p class="form-subtitle">验证邮箱后即可设置新密码</p>
 
@@ -134,6 +134,28 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 
+// ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移 ----------
+// 在 window 上监听 mousemove，根据鼠标相对卡片中心的距离，
+// 把卡片朝鼠标方向 translate 一个像素量（最大 ±8px）。
+// transition 让移动有一点"律动"延迟感。
+const cardRef = ref(null)
+const MAGNET_OFFSET_PX = 8
+
+const onPageMouseMove = (e) => {
+  const card = cardRef.value
+  if (!card) return
+  const rect = card.getBoundingClientRect()
+  const cardCenterX = rect.left + rect.width / 2
+  const cardCenterY = rect.top + rect.height / 2
+  const dx = e.clientX - cardCenterX
+  const dy = e.clientY - cardCenterY
+  // 归一化到 [-1, 1]：鼠标越偏离屏幕中心，偏移越接近最大值
+  const nx = Math.max(-1, Math.min(1, dx / (window.innerWidth / 2)))
+  const ny = Math.max(-1, Math.min(1, dy / (window.innerHeight / 2)))
+  card.style.setProperty('--mx', `${nx * MAGNET_OFFSET_PX}px`)
+  card.style.setProperty('--my', `${ny * MAGNET_OFFSET_PX}px`)
+}
+
 // ---------- 主题切换 ----------
 const THEME_KEY = 'aichuangzuo_theme'
 const currentTheme = ref('light')
@@ -182,9 +204,11 @@ const handleReset = () => {
 
 onMounted(() => {
   loadTheme()
+  window.addEventListener('mousemove', onPageMouseMove)
 })
 
 onBeforeUnmount(() => {
+  window.removeEventListener('mousemove', onPageMouseMove)
   if (countdownTimer) {
     clearInterval(countdownTimer)
     countdownTimer = null
@@ -318,6 +342,11 @@ onBeforeUnmount(() => {
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.1);
   position: relative;
   z-index: 1;
+  /* 鼠标方向律动：卡片朝鼠标方向轻微平移（最大 ±8px） */
+  transform: translate(var(--mx, 0px), var(--my, 0px));
+  transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.35s ease;
+  will-change: transform;
 }
 
 /* 表单 */
