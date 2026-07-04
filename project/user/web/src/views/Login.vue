@@ -60,7 +60,7 @@
     </header>
 
     <!-- 登录卡片 -->
-    <div class="login-card">
+    <div class="login-card" @mousemove="onCardMouseMove" @mouseleave="onCardMouseLeave">
       <!-- 标签切换 -->
       <div class="auth-tabs">
         <button
@@ -261,6 +261,24 @@ import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserC
 import { getCaptcha, sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const router = useRouter()
+
+// ---------- 鼠标方向律动：卡片轻微 3D 倾斜跟随 ----------
+// 鼠标在卡片内移动时，根据偏离中心的比例计算 rotateX/Y，
+// 鼠标离开时复位。倾斜幅度限制在 ±4°，transition 给一点"律动"延迟感。
+const MAX_TILT_DEG = 4
+const onCardMouseMove = (e) => {
+  const card = e.currentTarget
+  const rect = card.getBoundingClientRect()
+  const nx = (e.clientX - rect.left) / rect.width - 0.5  // -0.5 ~ 0.5
+  const ny = (e.clientY - rect.top) / rect.height - 0.5
+  // 鼠标越靠下 → rotateX 越负（卡片上沿向后倾），同理水平
+  card.style.setProperty('--rx', `${-ny * 2 * MAX_TILT_DEG}deg`)
+  card.style.setProperty('--ry', `${nx * 2 * MAX_TILT_DEG}deg`)
+}
+const onCardMouseLeave = (e) => {
+  e.currentTarget.style.setProperty('--rx', '0deg')
+  e.currentTarget.style.setProperty('--ry', '0deg')
+}
 
 // ---------- 主题切换 ----------
 const THEME_KEY = 'aichuangzuo_theme'
@@ -618,6 +636,12 @@ onBeforeUnmount(() => {
   box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
   position: relative;
   z-index: 1;
+  /* 鼠标方向律动：轻微 3D 倾斜跟随 */
+  transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+  transform-style: preserve-3d;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1),
+              box-shadow 0.35s ease;
+  will-change: transform;
 }
 
 /* 标签切换 */
