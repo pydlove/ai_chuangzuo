@@ -70,7 +70,8 @@ def test_guide_mobile():
         # 10. 点击抽屉内链接 → 跳转 + 抽屉自动关闭
         page.locator(".mobile-drawer a:has-text('会员')").click()
         page.wait_for_url(re.compile(r".*/pricing$"))
-        expect(page.locator(".mobile-drawer")).to_have_count(0)
+        # NavBar 现在所有页面都有,故 .mobile-drawer DOM 总在,应改为验证 closed 状态
+        expect(page.locator(".mobile-drawer.open")).to_have_count(0)
 
         # 11. 回到 guide,检查 sidebar 底部抽屉能正常开关
         page.goto(GUIDE_URL)
