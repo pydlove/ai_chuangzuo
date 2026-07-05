@@ -11,8 +11,9 @@ spring:
     password: local-dev-no-auth
     protocol: smtp
     properties:
-      mail.smtp.auth: false
+      mail.smtp.auth: true
       mail.smtp.ssl.enable: false
+      mail.smtp.starttls.enable: false
 
 logging:
   level:

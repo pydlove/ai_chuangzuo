@@ -1,10 +1,12 @@
 package com.aichuangzuo.user.modules.auth.mail;
 
 import com.icegreen.greenmail.util.GreenMail;
-import com.icegreen.greenmail.util.ServerSetupTest;
+import com.icegreen.greenmail.util.ServerSetup;
 import jakarta.annotation.PreDestroy;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+
+import java.util.Properties;
 
 /**
  * 在 @SpringBootTest 类里用 @Import(GreenMailTestConfig.class) 启用。
@@ -13,6 +15,11 @@ import org.springframework.context.annotation.Bean;
  *
  * 注：greenmail-spring 2.0.1 没有 JUnit 5 extension，只有纯 Java GreenMail。
  *     上下文关闭时 @PreDestroy 自动 stop。
+ *
+ *     测试 SMTP 会话走真实的 AUTH 流程：application-test.yml 启用了
+ *     mail.smtp.auth=true 并配了 test@local / local-dev-no-auth 凭据；
+ *     这里把同样的凭据通过 setUsers 注册到 GreenMail，握手 235 成功，
+ *     邮件正文才能顺利进 GreenMail 的接收队列。
  */
 @TestConfiguration
 public class GreenMailTestConfig {
@@ -21,8 +28,11 @@ public class GreenMailTestConfig {
 
     @Bean
     public GreenMail greenMail() {
-        // ServerSetupTest.SMTP = 127.0.0.1:3025
-        greenMail = new GreenMail(ServerSetupTest.SMTP);
+        ServerSetup setup = new ServerSetup(3025, "127.0.0.1", "smtp");
+        greenMail = new GreenMail(setup);
+        Properties users = new Properties();
+        users.setProperty("test@local", "local-dev-no-auth");
+        greenMail.setUsers(users);
         greenMail.start();
         return greenMail;
     }
