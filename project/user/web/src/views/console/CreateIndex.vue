@@ -3472,14 +3472,16 @@ const clearForm = () => {
   }
 
   .smart-defaults {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
+    flex-wrap: wrap;
+    overflow: visible;
+    padding-bottom: 0;
   }
 
-  .smart-defaults::-webkit-scrollbar {
-    display: none;
+  /* 让单个 chip 可以收缩到一行一半，避免文字溢出 */
+  .settings-chip {
+    flex: 0 1 auto;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .hero-action-row {

@@ -1055,6 +1055,96 @@ body[data-theme="dark"] .coin-section-header .invite-btn-secondary:hover {
   background: rgba(255, 36, 66, 0.15);
 }
 
+/* ============ 移动端 ============
+   - 页面 padding 缩小
+   - header 改为纵向：标题在上，返回按钮在下，避免遮挡
+   - 表单 1fr 1.4fr 双列 → 改为单列堆叠
+   - 3 列 stat-grid → 单列堆叠
+   - tip / 规则链接等小元素自适应
+*/
+@media (max-width: 768px) {
+  .coin-page {
+    padding: 16px 12px;
+    max-width: 100%;
+  }
+
+  /* 头部纵向排列：标题块占满一行，返回按钮下一行靠左 */
+  .coin-page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+
+  .coin-page-header .invite-btn-secondary {
+    align-self: flex-start;
+  }
+
+  .coin-page-title {
+    font-size: 19px;
+  }
+
+  .coin-page-desc {
+    font-size: 12px;
+  }
+
+  /* 实名认证表单：双列 → 单列堆叠 */
+  .coin-form-row {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .coin-form-input {
+    height: 40px;
+    font-size: 14px;
+  }
+
+  /* 账户概览：3 列 → 单列堆叠 */
+  .coin-stat-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .coin-stat-card {
+    padding: 14px;
+  }
+
+  .coin-stat-value {
+    font-size: 22px;
+  }
+
+  /* 提现申请块 */
+  .coin-section {
+    padding: 14px;
+  }
+
+  .coin-section-title {
+    font-size: 15px;
+  }
+
+  /* 提现记录列表 */
+  .coin-table {
+    font-size: 12px;
+  }
+
+  .coin-table th,
+  .coin-table td {
+    padding: 8px 6px;
+  }
+
+  /* 描述/提示文本 */
+  .coin-auth-tip {
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  /* 申请提现 modal 在手机端宽度铺满 */
+  .withdraw-modal .ant-modal {
+    max-width: calc(100vw - 24px);
+    margin: 12px;
+  }
+}
+
 .coin-apply-agreement {
   margin-bottom: 18px;
 }

@@ -1805,6 +1805,41 @@ const simulateApprove = (name) => {
   color: #8c8c8c;
 }
 
+/* ============ 移动端 ============
+   - 4 个 tab 总宽超 375px → 改为横向滚动，不换行截字
+   - 搜索框去除 min-width 限制，跟随容器宽度
+*/
+@media (max-width: 768px) {
+  .styles-index {
+    padding: 16px 12px;
+  }
+
+  .styles-tabs {
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    height: auto;
+    padding: 4px;
+  }
+
+  .styles-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .styles-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 8px 14px;
+  }
+
+  .styles-search-input {
+    min-width: 0;
+    max-width: none;
+  }
+}
+
 /* 深色模式 */
 body[data-theme="dark"] .styles-tabs {
   background: #1a1a1a;

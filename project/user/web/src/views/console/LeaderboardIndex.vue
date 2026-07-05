@@ -1151,7 +1151,7 @@ function handleSubmit() {
 /* 移动端适配 */
 @media (max-width: 768px) {
   .leaderboard-page {
-    padding: 16px;
+    padding: 16px 12px;
   }
 
   .leaderboard-tabs {

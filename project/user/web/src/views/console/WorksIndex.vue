@@ -689,6 +689,80 @@ body[data-theme="dark"] .primary-btn:hover {
   background: var(--color-primary-hover) !important;
   border-color: var(--color-primary-hover) !important;
 }
+
+/* ============ 移动端：搜索栏换行 + 各控件自适应宽度 ============
+   桌面端保持单行布局；≤768px 时：
+   - header 改为纵向排列，标题 / 筛选 / tabs 各自一行
+   - 筛选栏允许换行，搜索框占满宽度
+   - 平台 / 风格 两个下拉各占 50%（间距减半）
+   - 时间范围单选独占一行，按钮平均分布
+*/
+@media (max-width: 768px) {
+  .works-index {
+    padding: 12px;
+  }
+
+  .works-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .works-title {
+    font-size: 18px;
+  }
+
+  .works-tabs {
+    align-self: flex-end;
+  }
+
+  .works-filter-bar {
+    flex-wrap: wrap;
+    margin: 0;
+    gap: 8px;
+  }
+
+  .works-search {
+    flex: 1 1 100%;
+    width: 100%;
+  }
+
+  .works-filter-select {
+    flex: 1 1 calc(50% - 4px);
+    min-width: 0;
+  }
+
+  .works-filter-time {
+    flex: 1 1 100%;
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .works-filter-time :deep(.ant-radio-button-wrapper) {
+    flex: 1 1 0;
+    padding: 0 8px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* 暗色下移动端微调 */
+  .work-card {
+    padding: 12px;
+  }
+
+  .work-actions {
+    flex-wrap: wrap;
+  }
+
+  .work-actions .ant-btn,
+  .work-action-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+}
 </style>
 
 <style>

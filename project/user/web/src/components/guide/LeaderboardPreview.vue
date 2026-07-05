@@ -8,7 +8,7 @@
         :class="['lp-row', { me: item.isMe }]"
       >
         <span class="lp-rank">{{ item.rank }}</span>
-        <span class="lp-name">{{ item.nickname }}</span>
+        <span class="lp-name">{{ maskName(item.nickname, item.isMe) }}</span>
         <span class="lp-amount">{{ formatAmount(item.amount) }} 创作币</span>
       </div>
     </div>
@@ -38,6 +38,12 @@ function formatMonth(d) {
 
 function formatAmount(n) {
   return Number(n || 0).toLocaleString()
+}
+
+function maskName(name, isMe) {
+  if (isMe) return name
+  if (!name) return '***'
+  return name.charAt(0) + '***'
 }
 
 onMounted(async () => {

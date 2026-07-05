@@ -573,7 +573,7 @@ body[data-theme="dark"] .hot-search-trend.down {
 
 @media (max-width: 768px) {
   .hot-search-page {
-    padding: 20px 16px;
+    padding: 16px 12px;
   }
 
   .hot-search-header {
@@ -586,13 +586,67 @@ body[data-theme="dark"] .hot-search-trend.down {
     align-self: flex-start;
   }
 
+  /* 日期 chips：已经 overflow-x:auto，但缺可视提示，加右侧渐隐 + 隐藏滚动条 */
+  .date-bar {
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+  }
+
+  .date-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .date-chip {
+    min-width: 60px;
+    padding: 8px 12px;
+  }
+
+  .date-label,
+  .date-value {
+    font-size: 12px;
+  }
+
+  /* 平台 tabs：桌面默认 flex-wrap，移动端改为可横滑 */
   .platform-tabs {
-    gap: 8px;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin-left: -16px;
+    margin-right: -16px;
+    padding-left: 16px;
+    padding-right: 16px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+  }
+
+  .platform-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .platform-tab {
+    flex-shrink: 0;
     padding: 6px 12px;
     font-size: 12px;
+  }
+
+  /* 列表项：标题和热度数字压缩 */
+  .hot-search-item {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .hot-search-text {
+    font-size: 13px;
+  }
+
+  .hot-search-heat {
+    font-size: 11px;
+    min-width: 56px;
   }
 }
 </style>

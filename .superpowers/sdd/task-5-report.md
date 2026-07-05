@@ -1,33 +1,43 @@
-# Task 5 Report: Add publish meta card to preview.html
+# Task 5 Report: 更新路由 src/router/index.js
 
-## Status
-DONE
+## Status: DONE
 
-## What was done
-1. **Inserted PC publish meta card** after the `max-width: 680px` inner div and before the white card closing `</div>` in the PC mockup. The card includes:
-   - `id="pc-publish-meta-card"` container
-   - `id="pc-publish-desc"` textarea with "换一版" and "复制描述" buttons
-   - `id="pc-publish-tags"` tag container with "换一批" and "复制全部标签" buttons
+## What was implemented
 
-2. **Inserted mobile publish meta card** after the `.article-preview` closing `</div>` and before the white card closing `</div>` in the mobile mockup. The card includes:
-   - `id="mobile-publish-meta-card"` container
-   - `id="mobile-publish-desc"` textarea with "换一版" and "复制描述" buttons
-   - `id="mobile-publish-tags"` tag container with "换一批" and "复制全部标签" buttons
+Replaced the existing `project/admin/web/src/router/index.js` with the new nested-route structure specified in the brief:
 
-3. **Updated inline script** at the bottom of `preview.html` to call `renderPublishMeta()` on `DOMContentLoaded`.
+- `/login` → LoginView (unchanged, name `AdminLogin`)
+- `/console` → AdminLayout wrapper with `meta.requiresAuth = true`, redirect to `/console/users`, and child `users` route → UserListView (name `AdminUserList`)
+- `/` → `/console`
+- `beforeEach` guard preserves the unauthenticated-redirect-to-`/login` logic, and the logged-in-redirect target was updated from `/console` to `/console/users` per the brief
+- Formatting (single quotes, no semicolons, 2-space indent) matches the brief verbatim
+- `useUserStore` import unchanged
+- `ConsoleView.vue` left on disk as instructed (route no longer references it)
 
-4. **Ran verification** (Step 4 from brief): all assertions passed (`Task 5 checks passed`).
+## What was tested
 
-5. **Manual smoke test**: opened `http://localhost:28585/.superpowers/brainstorm/6491-1782131242/content/preview.html` in a headless browser via Playwright. Screenshot at `/tmp/preview_smoke_test_v2.png` confirms both PC and mobile mockups now show "发布描述" and "推荐标签" sections below the article content.
+1. **Build:** `cd project/admin/web && npm run build` — succeeded in 2.42s, generated `AdminLayout-*.js/css` and `UserListView-*.js/css` chunks as expected.
+2. **Dev server:** `cd project/admin/web && npm run dev` — Vite started on port 22346 in 143ms with no errors.
+3. **Route fetch check:** `curl http://localhost:22346/` returned 200 with the app shell HTML. The served `/src/router/index.js` shows the new nested `children: [{ path: 'users', name: 'AdminUserList', ... }]` shape, confirming the Vite transform is using the new file.
+4. **Cleanup:** Dev server stopped, port 22346 freed.
 
-6. **Committed** the change.
+## Files changed
 
-## Concerns
-- The `renderPublishMeta()`, `regeneratePublishDesc()`, `regeneratePublishTags()`, `copyPublishDesc()`, `copyPublishTags()`, and `copySingleTag()` functions are consumed from Task 4 (shared.js). During the smoke test, the description textarea and tags containers were empty, suggesting Task 4's `renderPublishMeta()` may not be fully populating content yet, or the platform state is not set. The UI structure is correct and the function calls are wired properly.
-- The Playwright test showed `pc_tags` and `mobile_tags` as not "visible" (likely because empty divs have zero dimensions), but the screenshot clearly shows the cards are rendered.
+- `project/admin/web/src/router/index.js` — replaced (1 file, +11 / -4 lines)
+- Commit: `0701728` on branch `feature/admin-login`
 
-## Commits
-- `7ef39f8` feat(platform): add publish meta card to preview page
+## Self-review
 
-## File modified
-- `.superpowers/brainstorm/6491-1782131242/content/preview.html`
+- [x] `/login` route preserved, name `AdminLogin`
+- [x] `/console` route now uses AdminLayout, requiresAuth true, redirects to `/console/users`
+- [x] `/console/users` child route renders UserListView, name `AdminUserList`
+- [x] `/` → `/console`
+- [x] `beforeEach` guard preserves both branches
+- [x] Logged-in redirect target is `/console/users` (per brief, was `/console` before)
+- [x] `npm run build` succeeded
+- [x] Dev server started on 22346 with no errors
+- [x] Committed
+
+## Issues / concerns
+
+None. Minor note: the `gitStatus` snapshot at conversation start showed branch `feature/publish-platform-seo`, but the actual current branch (and where prior Tasks 3 and 4 were committed) is `feature/admin-login`. Commit landed on the correct branch. No action required.

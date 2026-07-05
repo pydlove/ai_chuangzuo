@@ -751,6 +751,20 @@
         <span>浙ICP备XXXXXXXX号-1</span>
       </footer>
     </div>
+
+    <!-- 手机端底部 TabBar（只在 ≤768px 显示） -->
+    <nav class="console-tabbar" aria-label="主导航">
+      <router-link
+        v-for="tab in tabbarItems"
+        :key="tab.path"
+        :to="tab.path"
+        class="console-tabbar-item"
+        :class="{ active: isActive(tab.path) }"
+      >
+        <component :is="tab.icon" class="console-tabbar-icon" />
+        <span class="console-tabbar-label">{{ tab.label }}</span>
+      </router-link>
+    </nav>
   </div>
 
   <!-- 用户协议弹框 -->
@@ -932,7 +946,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch, nextTick } from 'vue'
+import { ref, computed, reactive, onMounted, watch, nextTick, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
@@ -948,7 +962,8 @@ import {
   FireOutlined,
   ShopOutlined,
   DollarOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  UserOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1002,6 +1017,15 @@ const navItems = [
   { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined }
+]
+
+// 手机端底部 TabBar：只保留 4 个高频入口，其余功能内聚到 "我的"
+// 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
+const tabbarItems = [
+  { path: '/console/create', label: '创作', icon: EditOutlined },
+  { path: '/console/works', label: '作品', icon: FolderOutlined },
+  { path: '/console/leaderboard', label: '排行榜', icon: TrophyOutlined },
+  { path: '/console/mine', label: '我的', icon: UserOutlined }
 ]
 
 const isActive = (path) => {
@@ -1989,6 +2013,41 @@ onMounted(() => {
   loadNotifications()
   seedNotifications()
   loadMembership()
+})
+
+// ---------- 向子页面（MineIndex）暴露弹框 / 主题 / 退出 / 用户状态 ----------
+// MineIndex 是 app-style "我的" 页，原本散落在 header 的 modal 触发都从这里
+// 注入，modal 的实际渲染仍由 ConsoleLayout 负责（状态/JSX 都在这里），
+// 避免把 4000 行 modal 模板再在 MineIndex 里复制一份。
+// 教程 / 反馈 / 关于 三个弹框原本只通过直接写 ref 打开，这里加一层包装方便注入。
+const openTutorialModal = () => { tutorialVisible.value = true }
+const openFeedbackModal = () => { feedbackVisible.value = true }
+const openAboutModal = () => { aboutVisible.value = true }
+
+provide('consoleActions', {
+  openInviteModal,
+  openRedeemModal,
+  openWithdrawModal,
+  openTutorialModal,
+  openFeedbackModal,
+  openAboutModal,
+  openTermsModal,
+  openPrivacyModal,
+  openWechatModal,
+  openPasswordModal,
+  openProfileModal,
+  openEmailModal,
+  toggleTheme,
+  handleLogout,
+  // 用户状态（响应式，子页面读它会跟着变）
+  currentTheme,
+  profileForm,
+  emailForm,
+  coinBalance,
+  inviteStats,
+  membershipLevel,
+  membershipExpiry,
+  hasMembership
 })
 </script>
 
@@ -4562,38 +4621,122 @@ body[data-theme="dark"] .email-submit:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
-/* 移动端：侧边栏收拢为图标栏 */
+/* 移动端：App-style 布局
+   - 隐藏左侧侧边栏（功能内聚到 /console/mine 的 "我的" 页）
+   - 隐藏右侧 header 的图标按钮（功能也内聚到 "我的"）
+   - 显示底部 TabBar（创作 / 作品 / 排行榜 / 我的）
+   - 主内容区底部留出 tabbar 高度的空间
+*/
+.console-tabbar {
+  display: none;
+}
+
 @media (max-width: 768px) {
+  .console-layout {
+    flex-direction: column;
+  }
+
+  /* 隐藏侧边栏 */
   .console-sidebar {
-    width: 64px;
+    display: none;
   }
 
-  .console-sidebar-brand {
-    justify-content: center;
+  /* 主内容区占满宽度，底部留出 tabbar + 安全区高度 */
+  .console-main {
+    width: 100%;
+    min-height: 100vh;
+    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+  }
+
+  /* 简化 header：隐藏所有图标按钮 / 头像 / 会员徽章
+     各页面（特别是 MineIndex）自带所需 UI */
+  .console-header {
+    height: 0;
+    min-height: 0;
     padding: 0;
+    border-bottom: none;
+    background: transparent;
+    overflow: hidden;
   }
 
-  .brand-logo {
-    margin-right: 0;
+  .console-header .header-right > * {
+    display: none !important;
   }
 
-  .brand-name {
+  /* 移动端不再显示新手横幅（MineIndex 顶部已有引导卡） */
+  .guide-banner {
+    margin: 8px 12px 0;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  /* 移动端隐藏底部 footer（TabBar 已经占位） */
+  .console-footer {
     display: none;
   }
 
-  .console-sidebar-nav {
-    padding: 12px 8px;
+  .console-content {
+    padding: 0;
+    min-height: auto;
+  }
+
+  /* ============ 底部 TabBar ============ */
+  .console-tabbar {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+    background: #fff;
+    border-top: 1px solid #f0f0f0;
+    box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
+    z-index: 50;
+  }
+
+  .console-tabbar-item {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-  }
-
-  .console-sidebar-item {
     justify-content: center;
-    padding: 10px;
+    gap: 2px;
+    color: #8c8c8c;
+    text-decoration: none;
+    transition: color 0.2s;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  .nav-label {
-    display: none;
+  .console-tabbar-icon {
+    font-size: 22px;
+    line-height: 1;
   }
+
+  .console-tabbar-label {
+    font-size: 11px;
+    line-height: 1;
+  }
+
+  .console-tabbar-item.active {
+    color: #FF2442;
+  }
+}
+
+/* 暗色主题 tabbar */
+body[data-theme="dark"] .console-tabbar {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .console-tabbar-item {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .console-tabbar-item.active {
+  color: #ff4d6f;
 }
 </style>
 

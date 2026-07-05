@@ -532,6 +532,12 @@ const cancel = () => {
   color: #595959;
 }
 
+@media (max-width: 768px) {
+  .edit-index {
+    padding: 16px 12px;
+  }
+}
+
 .edit-actions .save {
   background: #ff2442;
   color: #fff;

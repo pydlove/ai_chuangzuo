@@ -1,0 +1,16 @@
+[Unit]
+Description=爱创作 - 管理端后端服务
+After=network.target mysql.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/app/aichuangzuo/admin-api
+EnvironmentFile=-/root/app/aichuangzuo/.env
+ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m -Dspring.profiles.active=prod -Dserver.port=22348 -Dlogging.file.path=/root/app/aichuangzuo/logs /root/app/aichuangzuo/admin-api/admin-api.jar
+ExecStop=/bin/kill -15 $MAINPID
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

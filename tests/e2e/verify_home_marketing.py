@@ -16,12 +16,12 @@ def test_home_marketing():
         page.wait_for_timeout(800)
 
         # 1. Hero 重写文案
-        expect(page.locator(".hero-title")).to_have_text("会增值的自媒体账号,从第一篇文章开始")
-        expect(page.locator(".hero-btn")).to_be_visible()
-        expect(page.locator(".hero-btn-secondary")).to_have_attribute("href", "/guide")
+        expect(page.locator(".hero-title")).to_have_text("会增值的自媒体账号，从第一篇文章开始")
+        expect(page.locator(".hero .hero-btn")).to_be_visible()
+        expect(page.locator(".hero .hero-btn-secondary")).to_have_attribute("href", "/guide")
 
         # 2. 数据区 4 个数字与标签
-        nums = page.locator(".stat-num").all_text_inner_texts()
+        nums = page.locator(".stat-num").all_inner_texts()
         assert any("360 万" in n for n in nums), f"未找到 360 万 数字: {nums}"
         assert any("12 万" in n for n in nums), f"未找到 12 万 数字: {nums}"
         assert any("6" in n for n in nums), f"未找到 6 数字: {nums}"
@@ -43,7 +43,7 @@ def test_home_marketing():
         expect(step_items).to_have_count(3)
 
         # 6. 终 CTA 主+次双按钮
-        expect(page.locator(".cta-section .cta-title")).to_have_text("现在起号,3 个月后看复利")
+        expect(page.locator(".cta-section .cta-title")).to_have_text("现在起号，3 个月后看复利")
         expect(page.locator(".cta-section .hero-btn")).to_be_visible()
         expect(page.locator(".cta-section .hero-btn-secondary")).to_have_attribute("href", "/guide")
 
@@ -58,6 +58,10 @@ def test_home_marketing():
         page.goto(BASE_URL)
         page.wait_for_load_state("networkidle")
         page.wait_for_timeout(800)
+
+        # 重新创建手机端专用的 locators(避免跨 context)
+        feature_cards = page.locator(".features .feature-card")
+        earnings_cards = page.locator(".earnings-section .feature-card")
 
         # 7. 手机端:6 张特色卡单列、收益玩法 4 张单列
         expect(feature_cards.first).to_be_visible()

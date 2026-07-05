@@ -1142,8 +1142,98 @@ onMounted(() => {
 }
 
 @media (max-width: 768px) {
+  .preview-index {
+    padding: 16px 12px 160px;
+  }
+
+  .preview-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .preview-title-text {
+    font-size: 18px;
+    flex-basis: 100%;
+    order: 1;
+  }
+
+  .back-btn {
+    order: 0;
+  }
+
+  .preview-header-actions {
+    order: 2;
+    width: 100%;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .preview-header-actions .action-btn {
+    flex: 1;
+    min-width: 0;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+
+  .preview-article {
+    padding: 18px 16px;
+  }
+
+  .article-title {
+    font-size: 20px;
+  }
+
+  .article-body {
+    font-size: 15px;
+  }
+
+  .publish-meta-card {
+    margin-top: 24px;
+    padding-top: 20px;
+  }
+
+  /* 浮动操作栏在手机端占据底部，左=0，叠加在 tabbar 之上 */
+  .floating-action-bar {
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    gap: 6px;
+    padding: 8px 12px;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .floating-action-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .floating-action-bar .float-btn {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
   .edit-floating-bar {
-    left: 64px;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    padding: 8px 12px;
+    gap: 6px;
+  }
+
+  .edit-hint {
+    font-size: 11px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 弹框在窄屏下压低高度 */
+  .title-opt-box {
+    padding: 18px;
   }
 }
 

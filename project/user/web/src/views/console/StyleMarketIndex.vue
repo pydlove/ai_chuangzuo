@@ -374,6 +374,50 @@ body[data-theme="dark"] .style-market-tab.active {
   gap: 24px;
 }
 
+@media (max-width: 768px) {
+  .style-market-index {
+    padding: 16px 12px;
+  }
+
+  /* Tabs：横滑 + 隐藏滚动条 */
+  .style-market-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 100%;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
+  }
+  .style-market-tabs::-webkit-scrollbar { display: none; }
+  .style-market-tab { flex-shrink: 0; padding: 8px 14px; font-size: 13px; }
+
+  /* 搜索框：取消 min-width 限制 */
+  .style-market-search {
+    flex: 1;
+    min-width: 0;
+    width: 100%;
+  }
+  .style-market-search-input {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  /* 卡片网格：单列 */
+  .style-market-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+  .style-market-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  /* 卡片底部按钮：移动到自动换行 + 适应宽度 */
+  .style-market-card-actions {
+    flex-wrap: wrap;
+  }
+}
+
 .style-market-card {
   background: #fff;
   border: 1px solid #f0f0f0;

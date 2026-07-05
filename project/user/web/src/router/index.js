@@ -88,6 +88,11 @@ const routes = [
         path: 'leaderboard',
         name: 'ConsoleLeaderboard',
         component: () => import('@/views/console/LeaderboardIndex.vue')
+      },
+      {
+        path: 'mine',
+        name: 'ConsoleMine',
+        component: () => import('@/views/console/MineIndex.vue')
       }
     ]
   }

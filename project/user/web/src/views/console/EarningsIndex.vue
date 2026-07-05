@@ -691,6 +691,12 @@ const formatTime = (iso) => {
   }
 }
 
+@media (max-width: 768px) {
+  .account-index {
+    padding: 16px 12px;
+  }
+}
+
 /* 深色模式 */
 body[data-theme="dark"] .account-title,
 body[data-theme="dark"] .account-section-title,

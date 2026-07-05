@@ -96,6 +96,42 @@ button {
   font: inherit;
 }
 
+/* 全局自定义滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d9d9d9 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+body[data-theme="dark"] * {
+  scrollbar-color: #434343 transparent;
+}
+
+body[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #434343;
+}
+
+body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 /* 邀请创作币说明 tooltip（a-tooltip 内容渲染到 body，需全局） */
 .invite-coin-tooltip .ant-tooltip-inner {
   max-width: 260px;
