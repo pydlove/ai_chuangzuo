@@ -30,11 +30,28 @@ from playwright.sync_api import sync_playwright
 
 BASE_URL = "http://localhost:22345"
 API_URL = "http://localhost:25050/api/v1/user"
-EMAIL_CODE_MOCK = "000000"
+BACKEND_ROOT = "http://localhost:25050"
 OLD_PASSWORD = "OldPass123"
 NEW_PASSWORD = "BrandNew789"
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
+
+
+def fetch_email_code(email):
+    """从 backend test profile 暴露的 /__test/email-code 端点拿真实 6 位验证码。
+
+    sendEmailCode 把验证码同时写进 Caffeine 缓存和发出 SMTP 邮件；
+    DebugController(@Profile("test")) 从缓存里读码，方便 E2E 拿到真实验证码
+    走完 register / reset-password 链路。
+    """
+    url = f"{BACKEND_ROOT}/__test/email-code"
+    for _ in range(10):
+        resp = requests.get(url, params={"email": email}, timeout=5)
+        body = resp.json()
+        if body.get("found"):
+            return body["code"]
+        time.sleep(0.5)
+    raise RuntimeError(f"5 秒内未拿到 email={email} 的验证码")
 
 
 def drag_slider_to_end(page, modal_selector):
@@ -95,10 +112,12 @@ def register_via_api(email, password):
         "captchaKey": cap["data"]["captchaKey"],
         "captchaCode": "TEST12",
     })
+    # 真实验证码,非 mock 000000
+    real_code = fetch_email_code(email)
     cap2 = requests.get(f"{API_URL}/auth/captcha").json()
     resp = requests.post(f"{API_URL}/auth/register", json={
         "email": email,
-        "emailCode": EMAIL_CODE_MOCK,
+        "emailCode": real_code,
         "password": password,
         "confirmPassword": password,
         "captchaKey": cap2["data"]["captchaKey"],
@@ -143,7 +162,8 @@ def main():
         results.append(("滑块通过自动发送邮箱验证码", True))
 
         # 3. 填邮箱码 + 新密码
-        page.fill("input[placeholder='输入 6 位验证码']:visible", EMAIL_CODE_MOCK)
+        reset_email_code = fetch_email_code(email)
+        page.fill("input[placeholder='输入 6 位验证码']:visible", reset_email_code)
         page.fill("input[placeholder='6-20 位新密码']:visible", NEW_PASSWORD)
         page.fill("input[placeholder='再次输入新密码']:visible", NEW_PASSWORD)
 
@@ -164,6 +184,8 @@ def main():
         page.wait_for_selector(".slider-modal", state="visible", timeout=5000)
         drag_slider_to_end(page, ".slider-modal")
         page.wait_for_url(re.compile(r"/console"), timeout=15000)
+        # 等控制台 layout (异步 import) 完全挂载,再操作 .console-avatar
+        page.wait_for_selector(".console-avatar", timeout=10000)
         results.append(("用新密码登录成功跳转 /console", "/console" in page.url))
 
         new_access = page.evaluate(
