@@ -28,7 +28,7 @@ public class DebugController {
     private static final String EMAIL_CODE_PREFIX = "user:auth:email-code:";
 
     @GetMapping("/email-code")
-    public Map<String, Object> emailCode(@RequestParam String email) {
+    public Map<String, Object> emailCode(@RequestParam("email") String email) {
         String code = cacheUtil.get(EMAIL_CODE_PREFIX + email);
         if (code == null) {
             return Map.of("found", false, "email", email);

@@ -24,12 +24,30 @@ import sys
 import time
 from pathlib import Path
 
+import requests
 from playwright.sync_api import sync_playwright
 
 BASE_URL = "http://localhost:22345"
 API_URL = "http://localhost:25050/api/v1/user"
-EMAIL_CODE_MOCK = "000000"
+BACKEND_ROOT = "http://localhost:25050"
 PASSWORD = "Test123456"
+
+
+def fetch_email_code(email):
+    """从 backend test profile 暴露的 /__test/email-code 端点拿真实 6 位验证码。
+
+    sendEmailCode 把验证码同时写进 Caffeine 缓存和发出 SMTP 邮件；
+    DebugController(@Profile("test")) 从缓存里读码，方便 E2E 拿到真实验证码
+    走完 register 链路。
+    """
+    url = f"{BACKEND_ROOT}/__test/email-code"
+    for _ in range(10):
+        resp = requests.get(url, params={"email": email}, timeout=5)
+        body = resp.json()
+        if body.get("found"):
+            return body["code"]
+        time.sleep(0.5)
+    raise RuntimeError(f"5 秒内未拿到 email={email} 的验证码")
 
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
@@ -141,7 +159,8 @@ def main():
         page.screenshot(path=str(SCREENSHOT_DIR / "user_auth_01_after_slider.png"))
 
         # ============== 6. 填写剩余注册表单 ==============
-        page.fill("input[placeholder='输入 6 位验证码']:visible", EMAIL_CODE_MOCK)
+        real_email_code = fetch_email_code(email)
+        page.fill("input[placeholder='输入 6 位验证码']:visible", real_email_code)
         page.fill("input[placeholder='6-20 位密码']:visible", PASSWORD)
         page.fill("input[placeholder='再次输入密码']:visible", PASSWORD)
         page.screenshot(path=str(SCREENSHOT_DIR / "user_auth_02_register_filled.png"))
@@ -149,6 +168,8 @@ def main():
         # ============== 7. 提交注册 ==============
         page.click("button.submit-btn:has-text('注册')")
         page.wait_for_url(re.compile(r"/console"), timeout=15000)
+        # 等控制台 layout (异步 import) 完全挂载,再操作 .console-avatar
+        page.wait_for_selector(".console-avatar", timeout=10000)
         results.append(("注册成功跳转 /console", "/console" in page.url))
 
         # ============== 8. 验证 token 写入 ==============
@@ -192,6 +213,7 @@ def main():
         # 弹框内拖动滑块 → 通过后自动调后端登录接口 → 跳转 /console
         drag_slider_to_end(page)
         page.wait_for_url(re.compile(r"/console"), timeout=15000)
+        page.wait_for_selector(".console-avatar", timeout=10000)
         results.append(("滑块通过自动登录跳转 /console", "/console" in page.url))
 
         # 验证 token 再次写入
