@@ -2,9 +2,17 @@ auth:
   captcha:
     mock-enabled: true
     mock-code: "TEST12"
-  email-code:
-    mock-enabled: true
-    mock-code: "000000"
+
+spring:
+  mail:
+    host: 127.0.0.1
+    port: 3025
+    username: test@local
+    password: local-dev-no-auth
+    protocol: smtp
+    properties:
+      mail.smtp.auth: false
+      mail.smtp.ssl.enable: false
 
 logging:
   level:
