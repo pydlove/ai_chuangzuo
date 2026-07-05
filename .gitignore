@@ -44,3 +44,4 @@ data/local-db/*
 *.env
 !config/example.env
 /**/.gitkeep
+/project/user/web/dist/
