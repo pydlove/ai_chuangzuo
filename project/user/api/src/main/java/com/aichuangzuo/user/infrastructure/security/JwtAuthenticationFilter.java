@@ -36,10 +36,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     UsernamePasswordAuthenticationToken authentication =
                             new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                } else {
+                    // token 已被加入黑名单，视为未登录
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    return;
                 }
             } catch (Exception e) {
-                // token 无效或过期，保持匿名上下文
-                SecurityContextHolder.clearContext();
+                // token 无效或过期，返回 401，让前端跳转登录
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
             }
         }
         try {
