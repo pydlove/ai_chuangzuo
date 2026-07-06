@@ -65,7 +65,7 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch'
 
-const { platforms, loading, loadPlatforms, loadList } = useHotSearch()
+const { platforms, list, loading, loadPlatforms, loadList } = useHotSearch()
 
 const activePlatform = ref('')
 const activeDate = ref('')
