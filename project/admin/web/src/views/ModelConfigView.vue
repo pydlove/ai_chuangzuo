@@ -86,7 +86,7 @@
 </template>
 
 <script setup>
-import { onMounted, reactive } from 'vue'
+import { onMounted, reactive, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { useModelConfig } from '@/composables/useModelConfig.js'
 
@@ -104,8 +104,8 @@ const {
 const forms = reactive({})
 const modelOptions = reactive({})
 
-const initForms = () => {
-  providers.value.forEach((p) => {
+const initForms = (list) => {
+  list.forEach((p) => {
     if (!forms[p.providerType]) {
       forms[p.providerType] = {
         baseUrl: p.baseUrl || '',
@@ -120,6 +120,16 @@ const initForms = () => {
     }
   })
 }
+
+watch(
+  () => providers.value,
+  (list) => {
+    if (list && list.length) {
+      initForms(list)
+    }
+  },
+  { immediate: true }
+)
 
 const syncFormFromProvider = (providerType) => {
   const updated = providers.value.find((p) => p.providerType === providerType)
@@ -197,7 +207,7 @@ const handleDelete = async (providerType) => {
 
 onMounted(async () => {
   await fetchProviders()
-  initForms()
+  initForms(providers.value)
 })
 </script>
 
