@@ -37,14 +37,14 @@ public class AdminUserController {
 
     @Operation(summary = "查看用户详情")
     @GetMapping("/{id}")
-    public Result<AdminUserVO> getUser(@PathVariable Long id) {
+    public Result<AdminUserVO> getUser(@PathVariable(name = "id") Long id) {
         checkSuperAdmin();
         return Result.success(adminUserService.getUser(id));
     }
 
     @Operation(summary = "修改用户状态")
     @PatchMapping("/{id}/status")
-    public Result<Void> updateStatus(@PathVariable Long id,
+    public Result<Void> updateStatus(@PathVariable(name = "id") Long id,
                                      @Valid @RequestBody AdminUserStatusRequest request) {
         checkSuperAdmin();
         adminUserService.updateStatus(id, request);
@@ -53,7 +53,7 @@ public class AdminUserController {
 
     @Operation(summary = "重置用户密码")
     @PostMapping("/{id}/reset-password")
-    public Result<AdminUserResetPasswordVO> resetPassword(@PathVariable Long id) {
+    public Result<AdminUserResetPasswordVO> resetPassword(@PathVariable(name = "id") Long id) {
         checkSuperAdmin();
         return Result.success(adminUserService.resetPassword(id));
     }
