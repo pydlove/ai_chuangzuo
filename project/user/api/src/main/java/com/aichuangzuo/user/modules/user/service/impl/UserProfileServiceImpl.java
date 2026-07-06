@@ -71,10 +71,44 @@ public class UserProfileServiceImpl implements UserProfileService {
         return userConverter.toProfileVO(user);
     }
 
+    /**
+     * 修改当前用户的邮箱。
+     *
+     * <p>流程：
+     * <ol>
+     *   <li>校验新邮箱收到的验证码（一次性，验证后失效）</li>
+     *   <li>不允许新邮箱与旧邮箱相同</li>
+     *   <li>新邮箱不能已被他人注册</li>
+     *   <li>写入新邮箱并把 email_verified 置 1</li>
+     * </ol>
+     *
+     * @param request 新邮箱 + 6 位验证码
+     * @return 更新后的视图对象
+     * @throws BusinessException EMAIL_CODE_ERROR / EMAIL_SAME_AS_OLD / EMAIL_ALREADY_EXISTS / USER_NOT_FOUND
+     */
     @Override
     public UserProfileVO updateEmail(UpdateEmailRequest request) {
-        // 由 Task 7 实现
-        throw new UnsupportedOperationException("see Task 7");
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        String newEmail = request.getNewEmail().trim().toLowerCase();
+
+        if (!emailCodeService.validateEmailCode(newEmail, request.getEmailCode())) {
+            throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+        }
+        if (newEmail.equalsIgnoreCase(user.getEmail())) {
+            throw new BusinessException(UserAuthErrorCode.EMAIL_SAME_AS_OLD);
+        }
+        if (userMapper.existsByEmail(newEmail, userId)) {
+            throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+        user.setEmail(newEmail);
+        user.setEmailVerified(1);
+        userMapper.updateById(user);
+        log.info("邮箱已修改 userId={}, newEmail={}", userId, newEmail);
+        return userConverter.toProfileVO(user);
     }
 
     @Override
