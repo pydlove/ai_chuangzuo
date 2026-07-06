@@ -70,17 +70,18 @@
         @close="errorMessage = ''"
       />
 
-      <div class="form-item" :class="{ 'has-error': errors.account }">
+      <div class="form-item" :class="{ 'has-error': errors.username }">
         <label class="form-label">账号</label>
         <input
-          v-model="form.account"
+          v-model="form.username"
           type="text"
           class="form-input"
           placeholder="请输入管理员账号"
-          @blur="validateField('account')"
-          @input="clearError('account')"
+          @blur="validateField('username')"
+          @input="clearError('username')"
+          @keyup.enter="openSliderModal"
         />
-        <span v-if="errors.account" class="error-text">{{ errors.account }}</span>
+        <span v-if="errors.username" class="error-text">{{ errors.username }}</span>
       </div>
 
       <div class="form-item" :class="{ 'has-error': errors.password }">
@@ -93,7 +94,7 @@
             placeholder="请输入密码"
             @blur="validateField('password')"
             @input="clearError('password')"
-            @keyup.enter="handleLogin"
+            @keyup.enter="openSliderModal"
           />
           <button class="password-toggle" @click="showPassword = !showPassword">
             <svg
@@ -123,41 +124,15 @@
         <span v-if="errors.password" class="error-text">{{ errors.password }}</span>
       </div>
 
-      <div class="form-item" :class="{ 'has-error': errors.captcha }">
-        <label class="form-label">图形验证码</label>
-        <div class="captcha-row">
-          <input
-            v-model="form.captcha"
-            type="text"
-            class="form-input captcha-input"
-            placeholder="输入验证码"
-            maxlength="4"
-            @blur="validateField('captcha')"
-            @input="clearError('captcha')"
-            @keyup.enter="handleLogin"
-          />
-          <div class="captcha-box" @click="refreshCaptcha">{{ captchaText }}</div>
-        </div>
-        <span v-if="errors.captcha" class="error-text">{{ errors.captcha }}</span>
-      </div>
-
-      <div class="form-item remember-row">
-        <label class="remember-label">
-          <input v-model="rememberMe" type="checkbox" class="remember-checkbox" />
-          记住我
-        </label>
-      </div>
-
       <a-button
         type="primary"
         size="large"
         :loading="loading"
-        :disabled="isLocked"
         block
         class="submit-btn"
-        @click="handleLogin"
+        @click="openSliderModal"
       >
-        {{ isLocked ? '已锁定' : '登录' }}
+        登录
       </a-button>
     </div>
 
@@ -166,66 +141,64 @@
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
       <span>浙ICP备XXXXXXXX号-1</span>
     </footer>
+
+    <!-- 滑块验证弹框 -->
+    <a-modal
+      v-model:open="sliderVisible"
+      title="人机验证"
+      :footer="null"
+      :mask-closable="false"
+      :keyboard="false"
+      width="420px"
+      class="slider-modal"
+      @cancel="resetSlider"
+    >
+      <p class="slider-modal-tip">
+        拖动滑块完成验证后将登录账号
+        <b v-if="form.username">「{{ form.username }}」</b>
+      </p>
+      <SliderCaptcha v-model="sliderPassed" />
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useTheme } from '@/composables/useTheme.js'
 import { adminAuthLogin } from '@/api/auth.js'
 import { useUserStore } from '@/stores/user.js'
-import storage from '@/utils/storage.js'
 
 const router = useRouter()
 const userStore = useUserStore()
 const { currentTheme, loadTheme, toggleTheme } = useTheme()
 
-const REMEMBER_KEY = 'aichuangzuo_admin_remember_account'
-const MAX_FAIL_COUNT = 5
-
 const form = reactive({
-  account: '',
-  password: '',
-  captcha: ''
+  username: '',
+  password: ''
 })
 
 const errors = reactive({
-  account: '',
-  password: '',
-  captcha: ''
+  username: '',
+  password: ''
 })
 
-const rememberMe = ref(false)
 const showPassword = ref(false)
 const loading = ref(false)
 const errorMessage = ref('')
-const isLocked = ref(false)
-const failCount = ref(0)
 
-const captchaText = ref('')
-const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-
-const generateCaptcha = () => {
-  let result = ''
-  for (let i = 0; i < 4; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  captchaText.value = result
-}
-
-const refreshCaptcha = () => {
-  generateCaptcha()
-}
+const sliderVisible = ref(false)
+const sliderPassed = ref(false)
+let sliderSending = false
 
 const validateField = (field) => {
   errors[field] = ''
   if (!form[field]) {
     const labels = {
-      account: '请输入管理员账号',
-      password: '请输入密码',
-      captcha: '请输入验证码'
+      username: '请输入管理员账号',
+      password: '请输入密码'
     }
     errors[field] = labels[field]
     return false
@@ -238,64 +211,58 @@ const clearError = (field) => {
 }
 
 const validateForm = () => {
-  const results = [validateField('account'), validateField('password'), validateField('captcha')]
-  return results.every(Boolean)
+  return [validateField('username'), validateField('password')].every(Boolean)
 }
 
-const handleLogin = async () => {
-  if (isLocked.value) return
+const openSliderModal = () => {
+  if (loading.value) return
   if (!validateForm()) return
+  sliderPassed.value = false
+  sliderVisible.value = true
+}
 
+const resetSlider = () => {
+  sliderPassed.value = false
+  sliderVisible.value = false
+}
+
+watch(sliderPassed, async (val) => {
+  if (!val || sliderSending) return
+  sliderSending = true
   loading.value = true
   errorMessage.value = ''
 
   try {
     const res = await adminAuthLogin({
-      account: form.account,
-      password: form.password,
-      captcha: form.captcha
+      username: form.username,
+      password: form.password
     })
 
-    userStore.setToken(res.data?.token || 'mock-token')
-    userStore.setUserInfo(res.data?.userInfo || null)
+    userStore.setToken(res.data?.accessToken || '')
+    userStore.setUserInfo(res.data?.user || null)
 
-    if (rememberMe.value) {
-      storage.set(REMEMBER_KEY, form.account)
-    } else {
-      storage.remove(REMEMBER_KEY)
+    // 同时保存 refreshToken，便于后续续期
+    if (res.data?.refreshToken) {
+      localStorage.setItem('admin_refresh_token', res.data.refreshToken)
     }
 
     message.success('登录成功')
-    router.push('/console')
+    resetSlider()
+    router.push('/console/users')
   } catch (error) {
-    failCount.value++
-    errorMessage.value = '账号、密码或验证码错误'
-
-    if (failCount.value >= MAX_FAIL_COUNT) {
-      isLocked.value = true
-      errorMessage.value = '失败次数过多，请 15 分钟后重试或联系超级管理员'
-    }
-
-    refreshCaptcha()
+    errorMessage.value = error?.message || '登录失败，请稍后重试'
+    resetSlider()
   } finally {
     loading.value = false
+    sliderSending = false
   }
-}
+})
 
 onMounted(() => {
   loadTheme()
-  generateCaptcha()
-
-  // mock 开发账号，预填以方便演示
-  form.account = 'admin'
-  form.password = '123456'
-  form.captcha = captchaText.value
-
-  const remembered = storage.get(REMEMBER_KEY)
-  if (remembered) {
-    form.account = remembered
-    rememberMe.value = true
-  }
+  // 测试阶段预填内置管理员账号，避免反复输入
+  form.username = 'admin'
+  form.password = 'Root1qaz!QAZ'
 })
 </script>
 
@@ -456,6 +423,7 @@ onMounted(() => {
   font-size: 14px;
   color: #1a1a1a;
   transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
 }
 
 .form-input:focus {
@@ -502,57 +470,11 @@ onMounted(() => {
   height: 18px;
 }
 
-.captcha-row {
-  display: flex;
-  gap: 10px;
-}
-
-.captcha-input {
-  flex: 1;
-}
-
-.captcha-box {
-  width: 90px;
-  height: 42px;
-  background: linear-gradient(135deg, #fff0f0 0%, #fff 100%);
-  border: 1px solid #ffbdc5;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #ff2442;
-  letter-spacing: 4px;
-  cursor: pointer;
-  user-select: none;
-}
-
 .error-text {
   display: block;
   margin-top: 4px;
   font-size: 12px;
   color: #ff4d4f;
-}
-
-.remember-row {
-  margin-bottom: 8px;
-}
-
-.remember-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-}
-
-.remember-checkbox {
-  width: 14px;
-  height: 14px;
-  accent-color: #ff2442;
-  cursor: pointer;
 }
 
 .submit-btn {
@@ -583,12 +505,51 @@ onMounted(() => {
   text-align: center;
   background: #ffffff;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .login-footer span + span::before {
   content: '|';
   margin: 0 12px;
   color: #eeeeee;
+}
+
+/* 滑块弹框 */
+.slider-modal-tip {
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 16px;
+  line-height: 1.6;
+}
+
+.slider-modal-tip b {
+  color: #ff2442;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+body[data-theme='dark'] .slider-modal-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme='dark'] .slider-modal-tip b {
+  color: #ff4d6f;
+}
+
+.slider-modal :deep(.ant-modal-header) {
+  margin-bottom: 12px;
+}
+
+body[data-theme='dark'] .slider-modal :deep(.ant-modal-content) {
+  background: #1f1f1f;
+}
+
+body[data-theme='dark'] .slider-modal :deep(.ant-modal-header) {
+  background: transparent;
+}
+
+body[data-theme='dark'] .slider-modal :deep(.ant-modal-title) {
+  color: #e0e0e0;
 }
 
 /* 深色主题 */
@@ -633,8 +594,7 @@ body[data-theme='dark'] .form-label {
   color: #e0e0e0;
 }
 
-body[data-theme='dark'] .form-subtitle,
-body[data-theme='dark'] .remember-label {
+body[data-theme='dark'] .form-subtitle {
   color: #a6a6a6;
 }
 
@@ -651,12 +611,6 @@ body[data-theme='dark'] .form-input:focus {
 
 body[data-theme='dark'] .form-input::placeholder {
   color: #666666;
-}
-
-body[data-theme='dark'] .captcha-box {
-  background: linear-gradient(135deg, #2a1a1d 0%, #1f1f1f 100%);
-  border-color: rgba(255, 77, 111, 0.4);
-  color: #ff4d6f;
 }
 
 body[data-theme='dark'] .password-toggle {
@@ -684,5 +638,14 @@ body[data-theme='dark'] .submit-btn {
 
 body[data-theme='dark'] .submit-btn:hover {
   background: linear-gradient(135deg, #ff4d6f 0%, #e61e3a 100%);
+}
+
+/* ========== 媒体查询：手机端 ≤768px ========== */
+@media (max-width: 768px) {
+  .login-card {
+    width: calc(100% - 32px);
+    padding: 24px 20px;
+    margin-top: 56px;
+  }
 }
 </style>
