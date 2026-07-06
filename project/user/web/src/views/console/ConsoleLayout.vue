@@ -683,19 +683,19 @@
                   <div class="user-section-title">账号信息</div>
                   <div class="user-row">
                     <span class="user-row-label">用户ID</span>
-                    <span class="user-row-value">88886666</span>
+                    <span class="user-row-value">{{ userProfile.profile.value?.userId || '—' }}</span>
                   </div>
                   <div class="user-row" @click="openProfileModal">
                     <span class="user-row-label">昵称</span>
-                    <span class="user-row-value user-row-edit">爱创作用户 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.nickname || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
                   <div class="user-row" @click="openEmailModal">
                     <span class="user-row-label">邮箱</span>
-                    <span class="user-row-value user-row-edit">user@example.com <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.email || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
                   <div class="user-row">
                     <span class="user-row-label">本月已生成</span>
-                    <span class="user-row-value">12 篇</span>
+                    <span class="user-row-value">{{ monthlyWorks }} 篇</span>
                   </div>
                 </div>
 
@@ -732,6 +732,17 @@
         </div>
       </header>
 
+      <!-- 手机端子页面头部（只在非 TabBar 页面显示） -->
+      <div v-if="isMobile && !isTabbarPage" class="mobile-subpage-header">
+        <div class="mobile-subpage-back" @click="goBack">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          <span>返回</span>
+        </div>
+        <div v-if="subpageTitle" class="mobile-subpage-title">{{ subpageTitle }}</div>
+      </div>
+
       <!-- 玩法指南横幅 -->
       <div v-if="guideBannerVisible" class="guide-banner">
         <span class="guide-banner-text" @click="goToGuide">
@@ -742,7 +753,9 @@
 
       <!-- 内容区 -->
       <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
-        <router-view />
+        <PullToRefresh>
+          <router-view />
+        </PullToRefresh>
       </div>
 
       <!-- 底部 -->
@@ -753,7 +766,7 @@
     </div>
 
     <!-- 手机端底部 TabBar（只在 ≤768px 显示） -->
-    <nav class="console-tabbar" aria-label="主导航">
+    <nav class="console-tabbar" :class="{ 'tabbar-hidden': isMobile && !isTabbarPage }" aria-label="主导航">
       <router-link
         v-for="tab in tabbarItems"
         :key="tab.path"
@@ -951,7 +964,10 @@ import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
+import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi } from '@/api/auth'
+import { useUserProfile } from '@/composables/useUserProfile'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -968,6 +984,31 @@ import {
 
 const route = useRoute()
 const router = useRouter()
+
+const userProfile = useUserProfile()
+
+const isMobile = useIsMobile()
+
+// 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
+const tabbarPaths = ['/console/create', '/console/works', '/console/leaderboard', '/console/mine']
+const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
+
+// 手机端子页面顶部返回标题
+const pageTitleMap = {
+  '/console/create': '创作',
+  '/console/works': '我的作品',
+  '/console/styles': '我的风格',
+  '/console/style-market': '风格市场',
+  '/console/earnings': '我的账户',
+  '/console/hot-search': '热搜榜',
+  '/console/leaderboard': '收益排行榜',
+  '/console/mine': '我的',
+  '/console/edit': '编辑文章',
+  '/console/preview': '预览文章',
+  '/console/coin': '创作币'
+}
+const subpageTitle = computed(() => pageTitleMap[route.path] || '')
+const goBack = () => router.back()
 
 // 处理从提现页面"返回邀请有礼"时自动打开邀请弹框
 watch(
@@ -995,6 +1036,28 @@ const hasWorks = () => {
     return false
   }
 }
+
+// 本月已生成：复用 MineIndex 的 localStorage 算法（completed + 当月）
+const readMonthlyWorks = () => {
+  try {
+    const raw = localStorage.getItem(WORKS_KEY)
+    if (!raw) return 0
+    const list = JSON.parse(raw)
+    if (!Array.isArray(list)) return 0
+    const now = new Date()
+    const ymKey = `${now.getFullYear()}-${now.getMonth()}`
+    return list.filter((item) => {
+      if (item.status !== 'completed') return false
+      const t = item.completedAt || item.updatedAt || item.createdAt
+      if (!t) return false
+      const d = new Date(t)
+      return `${d.getFullYear()}-${d.getMonth()}` === ymKey
+    }).length
+  } catch {
+    return 0
+  }
+}
+const monthlyWorks = ref(readMonthlyWorks())
 
 const guideBannerVisible = ref(
   !localStorage.getItem(GUIDE_BANNER_DISMISSED_KEY) && !hasWorks()
@@ -1104,12 +1167,16 @@ const passwordVisible = ref(false)
 const profileVisible = ref(false)
 const emailVisible = ref(false)
 
+// 表单字段直接派生自 profile：profile 没加载时为 ''，加载后双向绑定。
+// 用 getter/setter 而非 computed：computed 在 reactive 里只读。
 const profileForm = reactive({
-  nickname: '爱创作用户'
+  get nickname() { return userProfile.profile.value?.nickname ?? '' },
+  set nickname(v) { userProfile.profile.value && (userProfile.profile.value.nickname = v) }
 })
 
 const emailForm = reactive({
-  email: 'user@example.com',
+  get email() { return userProfile.profile.value?.email ?? '' },
+  set email(v) { userProfile.profile.value && (userProfile.profile.value.email = v) },
   code: ''
 })
 
@@ -1129,27 +1196,41 @@ const sendEmailCode = () => {
 
 const openProfileModal = () => {
   userCenterVisible.value = false
-  profileForm.nickname = '爱创作用户'
+  // 表单字段已经是 profile 的派生值，无需重置
   profileVisible.value = true
 }
 
 const openEmailModal = () => {
   userCenterVisible.value = false
-  emailForm.email = 'user@example.com'
-  emailForm.code = ''
+  emailForm.code = ''  // 验证码每次重新输入
   emailVisible.value = true
 }
 
-const handleProfileSubmit = () => {
-  if (!profileForm.nickname.trim()) return
-  console.log('修改昵称', profileForm.nickname)
-  profileVisible.value = false
+const handleProfileSubmit = async () => {
+  if (!profileForm.nickname.trim()) {
+    message.warning('昵称不能为空')
+    return
+  }
+  try {
+    await userProfile.saveNickname(profileForm.nickname)
+    profileVisible.value = false
+  } catch {
+    // composable 已 message.error，弹框保持打开让用户修改
+  }
 }
 
-const handleEmailSubmit = () => {
-  if (!emailForm.email.trim() || !emailForm.code.trim()) return
-  console.log('修改邮箱', emailForm)
-  emailVisible.value = false
+const handleEmailSubmit = async () => {
+  if (!emailForm.email.trim() || !emailForm.code.trim()) {
+    message.warning('邮箱和验证码不能为空')
+    return
+  }
+  try {
+    await userProfile.saveEmail(emailForm.email, emailForm.code)
+    emailVisible.value = false
+    emailForm.code = ''
+  } catch {
+    // composable 已 message.error
+  }
 }
 
 const passwordForm = reactive({
@@ -1158,21 +1239,32 @@ const passwordForm = reactive({
   confirmPassword: ''
 })
 
-const handlePasswordSubmit = () => {
-  if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) return
+const handlePasswordSubmit = async () => {
+  if (!passwordForm.oldPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+    message.warning('请填写完整')
+    return
+  }
   if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-    console.log('两次密码不一致')
+    message.warning('两次密码不一致')
     return
   }
   if (passwordForm.newPassword.length < 6 || passwordForm.newPassword.length > 20) {
-    console.log('密码长度需6-20位')
+    message.warning('密码长度需 6-20 位')
     return
   }
-  console.log('修改密码', passwordForm)
-  passwordForm.oldPassword = ''
-  passwordForm.newPassword = ''
-  passwordForm.confirmPassword = ''
-  passwordVisible.value = false
+  try {
+    await userProfile.savePassword({
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword,
+      confirmPassword: passwordForm.confirmPassword
+    })
+    passwordForm.oldPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
+    passwordVisible.value = false
+  } catch {
+    // composable 已 message.error
+  }
 }
 
 const openTermsModal = () => {
@@ -2013,6 +2105,7 @@ onMounted(() => {
   loadNotifications()
   seedNotifications()
   loadMembership()
+  userProfile.loadProfile()
 })
 
 // ---------- 向子页面（MineIndex）暴露弹框 / 主题 / 退出 / 用户状态 ----------
@@ -4663,6 +4756,42 @@ body[data-theme="dark"] .email-submit:hover {
     display: none !important;
   }
 
+  /* 手机端子页面顶部返回栏 */
+  .mobile-subpage-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    height: 48px;
+    padding: 0 12px;
+    background: #fff;
+    border-bottom: 1px solid #f0f0f0;
+    z-index: 40;
+  }
+
+  .mobile-subpage-back {
+    position: absolute;
+    left: 12px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    color: #595959;
+    font-size: 14px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-subpage-back svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  .mobile-subpage-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #1a1a1a;
+  }
+
   /* 移动端不再显示新手横幅（MineIndex 顶部已有引导卡） */
   .guide-banner {
     margin: 8px 12px 0;
@@ -4679,6 +4808,7 @@ body[data-theme="dark"] .email-submit:hover {
   .console-content {
     padding: 0;
     min-height: auto;
+    overflow: hidden;
   }
 
   /* ============ 底部 TabBar ============ */
@@ -4694,6 +4824,10 @@ body[data-theme="dark"] .email-submit:hover {
     border-top: 1px solid #f0f0f0;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
     z-index: 50;
+  }
+
+  .console-tabbar.tabbar-hidden {
+    display: none;
   }
 
   .console-tabbar-item {
@@ -4737,6 +4871,19 @@ body[data-theme="dark"] .console-tabbar-item {
 
 body[data-theme="dark"] .console-tabbar-item.active {
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .mobile-subpage-header {
+  background: #1f1f1f;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .mobile-subpage-back {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mobile-subpage-title {
+  color: #e0e0e0;
 }
 </style>
 
@@ -4801,7 +4948,8 @@ body[data-theme="dark"] .about-modal .ant-modal-content,
 body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
 body[data-theme="dark"] .redeem-modal .ant-modal-content,
-body[data-theme="dark"] .password-modal .ant-modal-content {
+body[data-theme="dark"] .password-modal .ant-modal-content,
+body[data-theme="dark"] .withdraw-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
