@@ -23,3 +23,16 @@ auth:
     refresh-secret: ${ADMIN_JWT_REFRESH_SECRET:please-change-this-admin-refresh-secret-at-least-256-bits-long}
     access-expiration: 7200
     refresh-expiration: 604800
+
+hot-search:
+  crawl-enabled: true
+  cron: "0 0 2 * * ?"
+  platforms:
+    - douyin
+    - toutiao
+    - bilibili
+    - weibo
+    - baidu
+  top-n: 50
+  connect-timeout-millis: 10000
+  read-timeout-millis: 10000
