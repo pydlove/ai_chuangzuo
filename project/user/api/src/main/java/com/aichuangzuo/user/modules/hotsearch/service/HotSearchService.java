@@ -24,4 +24,9 @@ public interface HotSearchService {
      * @return 热搜项列表，按排名升序
      */
     List<HotSearchItemVO> listByPlatformAndDate(String platformCode, LocalDate date);
+
+    /**
+     * 手动触发一次热搜抓取（测试/补抓用）。
+     */
+    void crawl();
 }

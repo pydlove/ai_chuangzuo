@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchDaily;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchPlatform;
 import com.aichuangzuo.user.modules.hotsearch.enums.HotSearchErrorCode;
+import com.aichuangzuo.user.modules.hotsearch.job.HotSearchCrawlJob;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchDailyMapper;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchPlatformMapper;
 import com.aichuangzuo.user.modules.hotsearch.service.HotSearchService;
@@ -26,6 +27,12 @@ public class HotSearchServiceImpl implements HotSearchService {
 
     private final HotSearchPlatformMapper platformMapper;
     private final HotSearchDailyMapper dailyMapper;
+    private final HotSearchCrawlJob crawlJob;
+
+    @Override
+    public void crawl() {
+        crawlJob.crawl();
+    }
 
     @Override
     public List<HotSearchPlatformVO> listPlatforms() {
