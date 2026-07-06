@@ -18,7 +18,9 @@ public enum UserAuthErrorCode implements ErrorCode {
     REFRESH_TOKEN_INVALID(111011, "refreshToken 无效或已过期"),
     OPERATION_TOO_FREQUENT(111012, "操作过于频繁，请稍后再试"),
     USER_NOT_FOUND(111013, "用户不存在"),
-    EMAIL_SEND_FAILED(111014, "邮件发送失败,请稍后重试");
+    EMAIL_SEND_FAILED(111014, "邮件发送失败,请稍后重试"),
+    EMAIL_SAME_AS_OLD(111015, "新邮箱与原邮箱相同"),
+    PASSWORD_INCORRECT(111016, "原密码错误");
 
     private final int code;
     private final String message;
