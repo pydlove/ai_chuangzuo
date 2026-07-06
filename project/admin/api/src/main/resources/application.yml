@@ -24,6 +24,10 @@ auth:
     access-expiration: 7200
     refresh-expiration: 604800
 
+admin:
+  model:
+    api-key-secret: ${ADMIN_MODEL_API_KEY_SECRET:0123456789abcdef0123456789abcdef}
+
 hot-search:
   crawl-enabled: true
   cron: "0 0 2 * * ?"
