@@ -381,7 +381,35 @@ POST /api/v1/admin/auth/login
 
 ---
 
-## 11. 变更记录
+## 12. 本地开发脚本
+
+参考 `scripts/local/user-full-stack/`，新增 `scripts/local/admin-full-stack/`：
+
+```text
+scripts/local/admin-full-stack/
+├── start.sh    # 启动 admin/api + admin/web
+├── stop.sh     # 停止 admin/api + admin/web
+└── restart.sh  # 重启
+```
+
+| 服务 | 端口 | PID 文件 | 日志 |
+|---|---|---|---|
+| admin/api | 26060 | `logs/.pids/admin-api.pid` | `logs/admin-api.log` |
+| admin/web | 22346 | `logs/.pids/admin-web.pid` | `logs/admin-web.log` |
+
+`start.sh` 行为：
+1. 先 `mvn -pl shared install`。
+2. 启动 `admin/api` Spring Boot。
+3. 启动 `admin/web` Vite dev server。
+4. 等待端口就绪，输出访问地址：`http://localhost:22346/login`。
+
+环境变量默认：
+- `MYSQL_USERNAME` / `MYSQL_PASSWORD`：root / 123456
+- `ADMIN_JWT_SECRET`：可从 `.env` 注入；脚本提供仅开发使用的默认值（32 字节以上随机串）。
+
+---
+
+## 13. 变更记录
 
 | 日期 | 版本 | 说明 |
 |---|---|---|
