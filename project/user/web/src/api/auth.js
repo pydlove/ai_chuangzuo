@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // 开发环境：/api 由 Vite proxy 转发到后端（见 vite.config.js）
 // 生产环境：通过 VITE_API_BASE_URL 指定后端域名
-const api = axios.create({
+export const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1/user',
   timeout: 10000
 })
@@ -48,10 +48,6 @@ api.interceptors.response.use(
   }
 )
 
-export function getCaptcha() {
-  return api.get('/auth/captcha')
-}
-
 export function sendEmailCode(data) {
   return api.post('/auth/email-codes', data)
 }
@@ -79,8 +75,6 @@ export function logout() {
  * @param {string} data.emailCode      6 位邮箱验证码
  * @param {string} data.password       新密码
  * @param {string} data.confirmPassword
- * @param {string} data.captchaKey
- * @param {string} data.captchaCode
  */
 export function resetPassword(data) {
   return api.post('/auth/reset-password', data)
