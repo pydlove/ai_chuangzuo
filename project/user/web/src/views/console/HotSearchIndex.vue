@@ -30,53 +30,48 @@
       <div class="platform-tabs">
         <button
           v-for="platform in platforms"
-          :key="platform.key"
-          :class="['platform-tab', { active: activePlatform === platform.key }, platform.key]"
-          @click="activePlatform = platform.key"
+          :key="platform.code"
+          :class="['platform-tab', { active: activePlatform === platform.code }, platform.code]"
+          @click="activePlatform = platform.code"
         >
           <span class="platform-dot" />
-          {{ platform.label }}
+          {{ platform.name }}
         </button>
       </div>
 
       <div class="hot-search-list">
-        <div
-          v-for="(item, index) in currentList"
-          :key="`${activePlatform}-${index}`"
-          class="hot-search-item"
-          @click="copyTitle(item.title)"
-        >
-          <span :class="['hot-search-rank', `rank-${index + 1}`]">{{ index + 1 }}</span>
-          <span class="hot-search-text" :title="item.title">{{ item.title }}</span>
-          <span class="hot-search-heat">{{ item.heat }}</span>
-          <span :class="['hot-search-trend', item.trend]">{{ trendText(item.trend) }}</span>
-        </div>
+        <a-spin :spinning="loading">
+          <div
+            v-for="item in list"
+            :key="`${activePlatform}-${item.rank}`"
+            class="hot-search-item"
+            @click="item.url ? openUrl(item.url) : copyTitle(item.title)"
+          >
+            <span :class="['hot-search-rank', `rank-${item.rank}`]">{{ item.rank }}</span>
+            <span class="hot-search-text" :title="item.title">{{ item.title }}</span>
+            <span class="hot-search-heat">{{ item.hotValue }}</span>
+          </div>
+          <div v-if="!loading && list.length === 0" class="hot-search-empty">
+            暂无数据，请稍后再试
+          </div>
+        </a-spin>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
+import { useHotSearch } from '@/composables/useHotSearch'
 
-const activePlatform = ref('douyin')
+const { platforms, loading, loadPlatforms, loadList } = useHotSearch()
+
+const activePlatform = ref('')
 const activeDate = ref('')
-const cache = ref(new Map())
-
-const trendText = (trend) => {
-  switch (trend) {
-    case 'up': return '热'
-    case 'down': return '降'
-    case 'new': return '新'
-    default: return ''
-  }
-}
 
 const pad = (n) => String(n).padStart(2, '0')
-
 const formatDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
 const getWeekLabel = (d) => {
   const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   return days[d.getDay()]
@@ -87,13 +82,13 @@ const dateList = Array.from({ length: 5 }, (_, i) => {
   const d = new Date(today)
   d.setDate(d.getDate() - i)
   const value = formatDate(d)
-  if (i === 0) activeDate.value = value
   return {
     value,
     label: i === 0 ? '今天' : i === 1 ? '昨天' : getWeekLabel(d),
     short: `${pad(d.getMonth() + 1)}/${pad(d.getDate())}`
   }
 })
+activeDate.value = dateList[0].value
 
 const currentDateText = computed(() => {
   const item = dateList.find((d) => d.value === activeDate.value)
@@ -108,171 +103,23 @@ const copyTitle = (title) => {
   }
 }
 
-const shuffle = (list) => {
-  return [...list].sort(() => Math.random() - 0.5)
+const openUrl = (url) => {
+  if (url) window.open(url, '_blank')
 }
 
-const makeList = (titles) => {
-  return titles.map((title, i) => ({
-    title,
-    heat: `${(Math.random() * 500 + 50).toFixed(1)}万`,
-    trend: ['up', 'down', 'new'][Math.floor(Math.random() * 3)]
-  }))
+const refresh = async () => {
+  if (!activePlatform.value || !activeDate.value) return
+  await loadList(activePlatform.value, activeDate.value)
 }
 
-const basePlatforms = [
-  {
-    key: 'douyin',
-    label: '抖音',
-    titles: [
-      '这是属于我们的夏天',
-      '普通人如何靠副业月入过万',
-      '原来这些方法真的能让人变自律',
-      '90 后夫妻裸辞返乡创业日记',
-      '被这条视频治愈了一整天',
-      '打工人必备的高效休息法',
-      '当代年轻人的精神状态 be like',
-      '这个隐藏功能 90% 的人不知道',
-      '挑战 30 天早起会发生什么',
-      '终于有人把这件事说清楚了',
-      '看完这条视频我立刻去行动了',
-      '为什么我们越来越不爱发朋友圈',
-      '小户型显大的 5 个神操作',
-      '这届网友的评论区太有才了',
-      '一个动作改善圆肩驼背',
-      '周末去哪儿玩？这份清单收好',
-      '成年人最顶级的自律是什么',
-      '这些东西千万别再买了',
-      '学会这招，做饭快了一倍',
-      '全网都在找的BGM终于找到了'
-    ]
-  },
-  {
-    key: 'toutiao',
-    label: '今日头条',
-    titles: [
-      '多地出台楼市新政',
-      '新能源汽车销量再创新高',
-      '高考志愿填报避坑指南',
-      '存款利率下调意味着什么',
-      '专家建议年轻人先就业再择业',
-      '这个夏天去哪儿避暑',
-      '农村电商如何助力乡村振兴',
-      '养老第三支柱最新进展',
-      '职场人如何提升核心竞争力',
-      '人工智能会取代哪些岗位',
-      '健康管理从体检报告开始',
-      '中小微企业的减税新机遇',
-      '旅行热度飙升的十大小城',
-      '家庭教育中父母最容易犯的错',
-      '为什么现在年轻人爱存钱',
-      '医保改革最新政策解读',
-      '高温天气防范指南',
-      '退休人员养老金调整方案',
-      '农产品直播带货新趋势',
-      '城市更新带来的生活变化'
-    ]
-  },
-  {
-    key: 'bilibili',
-    label: 'B 站',
-    titles: [
-      '耗时三个月，我做出了什么',
-      '这部电影到底好在哪',
-      '一个视频看懂某学科',
-      '我在 B 站学习的一天',
-      '那些年被我们误解的梗',
-      '从零开始学剪辑',
-      '史上最难游戏挑战',
-      'UP 主的一天真实记录',
-      '这部番为什么封神',
-      '实验室里的大发现',
-      '我用代码实现了童年梦想',
-      '挑战 24 小时不用手机',
-      '深度解析某经典作品',
-      '普通人如何开始健身',
-      '这个BUG让程序员崩溃',
-      '我采访了 100 个陌生人',
-      '音乐区神仙打架现场',
-      '低成本改造出租屋',
-      '那些教科书里的隐藏彩蛋',
-      '科技改变生活的瞬间'
-    ]
-  },
-  {
-    key: 'weibo',
-    label: '微博',
-    titles: [
-      '#今日份好心情#',
-      '#这届网友太会了#',
-      '#明星同款穿搭#',
-      '#打工人的周一#',
-      '#电视剧名场面#',
-      '#夏日美食推荐#',
-      '#宠物成精了#',
-      '#旅行中的意外惊喜#',
-      '#养生从年轻开始#',
-      '#一部电影一句台词#',
-      '#童年回忆杀#',
-      '#朋友圈不敢发系列#',
-      '#成年人的崩溃瞬间#',
-      '#被陌生人暖到的瞬间#',
-      '#第一次见家长#',
-      '#我的租房改造#',
-      '#上班摸鱼指南#',
-      '#高温天气穿搭#',
-      '#电竞圈最新消息#',
-      '#偶像的新造型#'
-    ]
-  },
-  {
-    key: 'baidu',
-    label: '百度',
-    titles: [
-      '今天是什么日子',
-      '最新天气预报查询',
-      '国内油价调整时间',
-      '如何查询医保余额',
-      '个人所得税退税流程',
-      '附近医院挂号预约',
-      '火车票候补购票规则',
-      '身份证到期如何换领',
-      '驾驶证期满换证流程',
-      '异地就医备案怎么办理',
-      '公积金提取条件',
-      '社保断缴有什么影响',
-      '新生儿上户口需要什么',
-      '居住证办理流程',
-      '护照办理最新要求',
-      '签证进度怎么查询',
-      '手机话费套餐怎么改',
-      '宽带故障如何报修',
-      '快递单号查询入口',
-      '附近核酸检测点'
-    ]
+watch(activePlatform, refresh)
+watch(activeDate, refresh)
+
+onMounted(async () => {
+  await loadPlatforms()
+  if (platforms.value.length) {
+    activePlatform.value = platforms.value[0].code
   }
-]
-
-const generateData = (dateValue) => {
-  return basePlatforms.map((p) => ({
-    key: p.key,
-    label: p.label,
-    list: makeList(shuffle(p.titles))
-  }))
-}
-
-const getDataByDate = (dateValue) => {
-  if (!cache.value.has(dateValue)) {
-    cache.value.set(dateValue, generateData(dateValue))
-  }
-  return cache.value.get(dateValue)
-}
-
-const platforms = computed(() => getDataByDate(activeDate.value))
-
-const currentList = computed(() => {
-  const platform = platforms.value.find((p) => p.key === activePlatform.value)
-  return platform ? platform.list : []
 })
 </script>
 
@@ -489,27 +336,11 @@ const currentList = computed(() => {
   flex-shrink: 0;
 }
 
-.hot-search-trend {
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.hot-search-trend.up {
-  background: #fff1f0;
-  color: #cf1322;
-}
-
-.hot-search-trend.down {
-  background: #f5f5f5;
+.hot-search-empty {
+  text-align: center;
+  padding: 40px 0;
   color: #8c8c8c;
-}
-
-.hot-search-trend.new {
-  background: #fff7e6;
-  color: #d48806;
+  font-size: 14px;
 }
 
 /* 暗色主题 */
@@ -566,11 +397,6 @@ body[data-theme="dark"] .hot-search-item:hover {
   background: #262626;
 }
 
-body[data-theme="dark"] .hot-search-trend.down {
-  background: #262626;
-  color: rgba(255, 255, 255, 0.55);
-}
-
 @media (max-width: 768px) {
   .hot-search-page {
     padding: 16px 12px;
@@ -586,7 +412,6 @@ body[data-theme="dark"] .hot-search-trend.down {
     align-self: flex-start;
   }
 
-  /* 日期 chips：已经 overflow-x:auto，但缺可视提示，加右侧渐隐 + 隐藏滚动条 */
   .date-bar {
     margin-left: -16px;
     margin-right: -16px;
@@ -611,30 +436,15 @@ body[data-theme="dark"] .hot-search-trend.down {
     font-size: 12px;
   }
 
-  /* 平台 tabs：桌面默认 flex-wrap，移动端改为可横滑 */
   .platform-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin-left: -16px;
-    margin-right: -16px;
-    padding-left: 16px;
-    padding-right: 16px;
-    scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
-  }
-
-  .platform-tabs::-webkit-scrollbar {
-    display: none;
+    flex-wrap: wrap;
   }
 
   .platform-tab {
-    flex-shrink: 0;
     padding: 6px 12px;
     font-size: 12px;
   }
 
-  /* 列表项：标题和热度数字压缩 */
   .hot-search-item {
     padding: 10px 12px;
     gap: 8px;
