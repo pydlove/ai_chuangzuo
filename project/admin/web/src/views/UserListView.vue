@@ -89,7 +89,7 @@
     >
       <p>账号：<strong>{{ resetPasswordTarget?.account }}</strong></p>
       <p style="color: #8c8c8c; margin-top: 12px">
-        重置后密码将设为 <code>123456</code>，请通知用户及时修改。
+        重置后密码将设为 <code>adc123456</code>，请通知用户及时修改。
       </p>
     </a-modal>
 
