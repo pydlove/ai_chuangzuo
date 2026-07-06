@@ -517,7 +517,7 @@
         <div v-show="styleTab === 'learned'" class="style-grid">
           <div
             v-if="learnedStyles.length === 0"
-            class="style-empty"
+            class="style-empty style-empty-text"
           >
             还没有学习过的风格，请前往「我的风格」页面学习。
           </div>
@@ -596,6 +596,7 @@
       centered
       :closable="true"
       class="template-modal template-lib-modal"
+      wrap-class-name="template-modal-wrap"
     >
       <template #title>
         <div class="modal-title-wrap">
@@ -657,13 +658,17 @@ import {
   addCustomStyle,
   updateCustomStyle,
   removeCustomStyle,
-  learnedStyles
+  learnedStyles,
+  loadMyStyles
 } from '@/composables/useStyles.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
+import { useIsMobile } from '@/composables/useMobile.js'
+import { saveCurrentArticle } from '@/utils/articleStorage.js'
 import CardsModal from '@/components/CardsModal.vue'
 
 const router = useRouter()
 const route = useRoute()
+const isMobile = useIsMobile()
 
 // 恢复草稿（加载最新一个）
 onMounted(() => {
@@ -907,12 +912,13 @@ const expandedLearnedIdx = ref(null)
 const createStyleMode = ref(false)
 const editingStyle = reactive({ originalName: '', name: '', prompt: '', scope: '', isEdit: false })
 
-const openStyleModal = () => {
+const openStyleModal = async () => {
   styleTab.value = 'my'
   selectedStyleName.value = null
   expandedPromptIdx.value = null
   createStyleMode.value = false
   styleVisible.value = true
+  await loadMyStyles()
 }
 
 const selectStyle = (s) => {
@@ -951,31 +957,39 @@ const goBackToList = () => {
   createStyleMode.value = false
 }
 
-const saveStyle = () => {
+const saveStyle = async () => {
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
   const scope = editingStyle.scope.trim()
   if (!name || !prompt || !scope) return
   if (name.length > 20 || prompt.length > 1000 || scope.length > 50) return
-  if (editingStyle.isEdit) {
-    updateCustomStyle(editingStyle.originalName, {
-      name,
-      prompt,
-      scope
-    })
-  } else {
-    addCustomStyle({
-      name,
-      prompt,
-      scope
-    })
+  try {
+    if (editingStyle.isEdit) {
+      await updateCustomStyle(editingStyle.originalName, {
+        name,
+        prompt,
+        scope
+      })
+    } else {
+      await addCustomStyle({
+        name,
+        prompt,
+        scope
+      })
+    }
+    createStyleMode.value = false
+  } catch {
+    // composable 已 message.error
   }
-  createStyleMode.value = false
 }
 
-const deleteStyle = (name) => {
-  removeCustomStyle(name)
-  if (selectedStyleName.value === name) selectedStyleName.value = null
+const deleteStyle = async (name) => {
+  try {
+    await removeCustomStyle(name)
+    if (selectedStyleName.value === name) selectedStyleName.value = null
+  } catch {
+    // composable 已 message.error
+  }
 }
 
 const togglePrompt = (idx) => {
@@ -1209,7 +1223,12 @@ const openExportModal = (item) => {
           style: fullItem.style?.name || '专业严谨'
         }
         generateExportMeta()
-        exportModalVisible.value = true
+        if (isMobile.value) {
+          saveCurrentArticle(exportArticle.value)
+          router.push('/console/preview')
+        } else {
+          exportModalVisible.value = true
+        }
       }
     } catch (e) {
       console.error('load export article error', e)
@@ -3814,6 +3833,10 @@ body[data-theme="dark"] .wc-custom-input:focus {
 }
 
 /* 风格编辑内联表单 */
+body[data-theme="dark"] .style-editor-title {
+  color: #f0f0f0;
+}
+
 body[data-theme="dark"] .style-editor-label {
   color: #f0f0f0;
 }
@@ -4244,5 +4267,119 @@ body[data-theme="dark"] .style-modal .ant-modal-title,
 body[data-theme="dark"] .draft-box-modal .ant-modal-title,
 body[data-theme="dark"] .template-modal .ant-modal-title {
   color: #f0f0f0 !important;
+}
+
+@media (max-width: 768px) {
+  .template-modal-wrap {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+  }
+
+  .template-modal-wrap .template-modal,
+  .template-modal-wrap.ant-modal-centered .template-modal {
+    top: 0 !important;
+    margin: 0 auto !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+
+  .template-modal .ant-modal-content {
+    border-radius: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .template-modal .ant-modal-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 16px;
+  }
+
+  .template-modal .template-tabs {
+    flex-shrink: 0;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  .template-modal .template-body {
+    flex: 1;
+    flex-direction: column;
+    gap: 12px;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  /* 选择器放在上方，横向滚动 */
+  .template-modal .template-list-pane {
+    order: 1;
+    display: flex;
+    gap: 10px;
+    height: auto;
+    max-height: 130px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .template-modal .template-list-pane::-webkit-scrollbar {
+    display: none;
+  }
+
+  .template-modal .template-row {
+    flex: 0 0 132px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+    margin-bottom: 0;
+  }
+
+  .template-modal .template-row-name {
+    font-size: 13px;
+  }
+
+  .template-modal .template-row-desc {
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  /* 预览区放在下方，占据剩余空间 */
+  .template-modal .template-preview-pane {
+    order: 2;
+    flex: 1;
+    width: 100%;
+    height: auto;
+    max-height: 45vh;
+    min-height: 200px;
+    overflow-y: auto;
+  }
+
+  .template-modal .template-footer {
+    order: 3;
+    flex-shrink: 0;
+    margin-top: 12px;
+    padding: 12px 0 0;
+    border-top: 1px solid #f0f0f0;
+  }
+
+  .template-modal .template-apply-btn {
+    width: 100%;
+  }
+}
+
+body[data-theme="dark"] .template-modal .template-footer {
+  border-top-color: #303030;
 }
 </style>

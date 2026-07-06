@@ -1,4 +1,6 @@
 import { ref } from 'vue'
+import { getMyStyles, createStyle, updateStyle, deleteStyle } from '@/api/style'
+import { message } from 'ant-design-vue'
 
 export const systemStyles = [
   {
@@ -52,46 +54,92 @@ export const systemStyles = [
 ]
 
 export const myStyles = ref([])
-
 export const currentStyle = ref(systemStyles[0])
+
+/** 从异常负载里取出可读 message；兼容多种错误结构。 */
+function errMsg(e) {
+  if (!e) return '请求失败'
+  if (typeof e === 'string') return e
+  return e.message || e.msg || '请求失败'
+}
+
+/**
+ * 加载当前用户的自定义风格列表。
+ * @returns {Promise<void>}
+ */
+export async function loadMyStyles() {
+  try {
+    const res = await getMyStyles()
+    const list = res.data || res || []
+    myStyles.value = list.map(s => ({
+      bizNo: s.bizNo,
+      name: s.styleName,
+      desc: '自定义风格',
+      prompt: s.prompt,
+      scope: s.scope,
+      count: s.useCount || 0
+    }))
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
+  }
+}
 
 export const applyStyle = (style) => {
   currentStyle.value = style
 }
 
-export const addCustomStyle = (style) => {
-  myStyles.value.push({
-    name: style.name.trim(),
-    desc: style.desc || '自定义风格',
+export const addCustomStyle = async (style) => {
+  const trimmed = {
+    styleName: style.name.trim(),
     prompt: style.prompt.trim(),
-    scope: (style.scope || '').trim(),
-    count: 0
-  })
+    scope: (style.scope || '').trim()
+  }
+  try {
+    await createStyle(trimmed)
+    await loadMyStyles()
+    message.success('风格已保存')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
+  }
 }
 
-export const updateCustomStyle = (oldName, style) => {
-  const idx = myStyles.value.findIndex(x => x.name === oldName)
-  if (idx > -1) {
-    myStyles.value[idx] = {
-      ...myStyles.value[idx],
-      name: style.name.trim(),
-      desc: style.desc || '自定义风格',
-      prompt: style.prompt.trim(),
-      scope: (style.scope || '').trim()
-    }
+export const updateCustomStyle = async (oldName, style) => {
+  const target = myStyles.value.find(x => x.name === oldName)
+  if (!target) return
+  const trimmed = {
+    styleName: style.name.trim(),
+    prompt: style.prompt.trim(),
+    scope: (style.scope || '').trim()
+  }
+  try {
+    await updateStyle(target.bizNo, trimmed)
+    await loadMyStyles()
     if (currentStyle.value && currentStyle.value.name === oldName) {
-      currentStyle.value = myStyles.value[idx]
+      const updated = myStyles.value.find(s => s.name === trimmed.styleName)
+      if (updated) currentStyle.value = updated
     }
+    message.success('风格已更新')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
   }
 }
 
-export const removeCustomStyle = (name) => {
-  const idx = myStyles.value.findIndex(x => x.name === name)
-  if (idx > -1) {
-    myStyles.value.splice(idx, 1)
-  }
-  if (currentStyle.value && currentStyle.value.name === name) {
-    currentStyle.value = systemStyles[0]
+export const removeCustomStyle = async (name) => {
+  const target = myStyles.value.find(x => x.name === name)
+  if (!target) return
+  try {
+    await deleteStyle(target.bizNo)
+    await loadMyStyles()
+    if (currentStyle.value && currentStyle.value.name === name) {
+      currentStyle.value = systemStyles[0]
+    }
+    message.success('风格已删除')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
   }
 }
 

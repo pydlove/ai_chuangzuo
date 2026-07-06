@@ -496,7 +496,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   systemStyles,
@@ -515,7 +515,8 @@ import {
   isLearning,
   readFileAsText,
   readDocxAsText,
-  updateLearnedStyle
+  updateLearnedStyle,
+  loadMyStyles
 } from '@/composables/useStyles.js'
 import {
   marketStyles,
@@ -529,6 +530,10 @@ import {
 const router = useRouter()
 const activeTab = ref('my')
 const searchQuery = ref('')
+
+onMounted(() => {
+  loadMyStyles()
+})
 
 const MAX_SCOPE_TAGS = 3
 const MAX_SCOPE_TAG_LENGTH = 8
@@ -725,22 +730,26 @@ const goBack = () => {
   editorMode.value = false
 }
 
-const saveStyle = () => {
+const saveStyle = async () => {
   if (!validate()) return
-  if (editingStyle.originalName) {
-    updateCustomStyle(editingStyle.originalName, {
-      name: editingStyle.name,
-      prompt: editingStyle.prompt,
-      scope: editingStyle.scope
-    })
-  } else {
-    addCustomStyle({
-      name: editingStyle.name,
-      prompt: editingStyle.prompt,
-      scope: editingStyle.scope
-    })
+  try {
+    if (editingStyle.originalName) {
+      await updateCustomStyle(editingStyle.originalName, {
+        name: editingStyle.name,
+        prompt: editingStyle.prompt,
+        scope: editingStyle.scope
+      })
+    } else {
+      await addCustomStyle({
+        name: editingStyle.name,
+        prompt: editingStyle.prompt,
+        scope: editingStyle.scope
+      })
+    }
+    editorMode.value = false
+  } catch {
+    // composable 已 message.error，弹框保持打开让用户修改
   }
-  editorMode.value = false
 }
 
 const useStyle = (style) => {
@@ -757,8 +766,12 @@ const useFavoriteStyle = (style) => {
   }
 }
 
-const deleteStyle = (name) => {
-  removeCustomStyle(name)
+const deleteStyle = async (name) => {
+  try {
+    await removeCustomStyle(name)
+  } catch {
+    // composable 已 message.error
+  }
 }
 
 const openImportDialog = () => {
