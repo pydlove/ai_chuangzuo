@@ -4,7 +4,6 @@ import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
 import com.aichuangzuo.user.modules.auth.mail.EmailMessageFactory;
-import com.aichuangzuo.user.modules.auth.service.CaptchaService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
@@ -24,7 +23,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 @RequiredArgsConstructor
 public class EmailCodeServiceImpl implements EmailCodeService {
 
-    private final CaptchaService captchaService;
     private final CacheUtil cacheUtil;
     private final JavaMailSender mailSender;
 
@@ -39,10 +37,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     @Override
-    public void sendEmailCode(String email, String captchaKey, String captchaCode) {
-        if (!captchaService.validateCaptcha(captchaKey, captchaCode)) {
-            throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
-        }
+    public void sendEmailCode(String email) {
         checkEmailCodeLimit(email);
         String code = generateCode();
         cacheUtil.set(EMAIL_CODE_PREFIX + email, code, EMAIL_CODE_TTL_MINUTES, TimeUnit.MINUTES);
@@ -59,6 +54,17 @@ public class EmailCodeServiceImpl implements EmailCodeService {
         log.info("邮箱验证码已发送 email={}, code={}", email, code);
     }
 
+    /**
+     * 校验邮箱验证码：命中缓存则返回 true 并失效该验证码（防复用），否则返回 false。
+     *
+     * <p>调用方应根据返回值抛 {@code EMAIL_CODE_ERROR(111003)} 业务异常。
+     *
+     * <p>注意：本方法不会清掉"发送次数计数"（24h ≤10 次），仅清验证码本身。
+     *
+     * @param email     接收验证码的邮箱
+     * @param emailCode 用户提交的 6 位验证码
+     * @return true 表示校验通过（验证码已失效，不可再用）
+     */
     @Override
     public boolean validateEmailCode(String email, String emailCode) {
         String key = EMAIL_CODE_PREFIX + email;
