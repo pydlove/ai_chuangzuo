@@ -38,16 +38,3 @@ auth:
     refresh-expiration: 604800
   register:
     max-per-ip: 10
-
-hot-search:
-  crawl-enabled: true
-  cron: "0 0 2 * * ?"
-  platforms:
-    - douyin
-    - toutiao
-    - bilibili
-    - weibo
-    - baidu
-  top-n: 50
-  connect-timeout-millis: 10000
-  read-timeout-millis: 10000

@@ -4,7 +4,6 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchDaily;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchPlatform;
 import com.aichuangzuo.user.modules.hotsearch.enums.HotSearchErrorCode;
-import com.aichuangzuo.user.modules.hotsearch.job.HotSearchCrawlJob;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchDailyMapper;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchPlatformMapper;
 import com.aichuangzuo.user.modules.hotsearch.vo.HotSearchItemVO;
@@ -35,9 +34,6 @@ class HotSearchServiceTest {
 
     @Autowired
     private HotSearchDailyMapper dailyMapper;
-
-    @Autowired
-    private HotSearchCrawlJob crawlJob;
 
     @Test
     void shouldListEnabledPlatforms() {
@@ -72,12 +68,5 @@ class HotSearchServiceTest {
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> hotSearchService.listByPlatformAndDate("baidu", LocalDate.now()));
         assertEquals(HotSearchErrorCode.PLATFORM_DISABLED.getCode(), ex.getCode());
-    }
-
-    @Test
-    void shouldTriggerManualCrawl() {
-        hotSearchService.crawl();
-        // 由于真实平台可能抓取失败，只要执行不抛异常即可
-        assertTrue(true);
     }
 }

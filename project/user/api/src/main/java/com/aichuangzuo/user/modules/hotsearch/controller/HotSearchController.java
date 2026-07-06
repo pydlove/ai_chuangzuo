@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -32,13 +31,6 @@ public class HotSearchController {
     @GetMapping("/platforms")
     public Result<List<HotSearchPlatformVO>> listPlatforms() {
         return Result.success(hotSearchService.listPlatforms());
-    }
-
-    @Operation(summary = "手动触发热搜抓取（测试用）")
-    @PostMapping("/crawl")
-    public Result<Void> crawl() {
-        hotSearchService.crawl();
-        return Result.success();
     }
 
     @Operation(summary = "查询某日某平台热搜榜单")
