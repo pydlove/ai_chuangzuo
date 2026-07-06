@@ -699,6 +699,14 @@
                     <span class="user-row-label">邮箱</span>
                     <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.email || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
+                  <div
+                    v-if="userProfile.profile.value?.inviterUserId == null"
+                    class="user-row"
+                    @click="openInviteBindingModal"
+                  >
+                    <span class="user-row-label">邀请人</span>
+                    <span class="user-row-value user-row-edit">点击绑定 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                  </div>
                   <div class="user-row">
                     <span class="user-row-label">本月已生成</span>
                     <span class="user-row-value">{{ monthlyWorks }} 篇</span>
@@ -951,18 +959,63 @@
             v-model="emailForm.code"
             type="text"
             class="email-input email-code-input"
-            placeholder="输入 6 位验证码"
+            placeholder="请输入验证码"
+            maxlength="6"
           />
           <button
             class="email-code-btn"
             :disabled="codeCountdown > 0"
             @click="sendEmailCode"
           >
-            {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
+            {{ codeCountdown > 0 ? `${codeCountdown}s 后重发` : '获取验证码' }}
           </button>
         </div>
       </div>
-      <button class="email-submit" @click="handleEmailSubmit">保存</button>
+      <button class="email-submit" @click="handleEmailSubmit">确认修改</button>
+    </div>
+  </a-modal>
+
+  <!-- 手机端修改邮箱：发送验证码前的人机验证弹框 -->
+  <a-modal
+    v-model:open="emailSliderVisible"
+    title="人机验证"
+    :footer="null"
+    :mask-closable="false"
+    :keyboard="false"
+    :width="420"
+    centered
+    class="slider-modal email-slider-modal"
+  >
+    <p class="slider-modal-tip">
+      拖动滑块完成验证后将向
+      <b>{{ emailForm.email || '当前邮箱' }}</b>
+      发送 6 位邮箱验证码
+    </p>
+    <SliderCaptcha v-model="emailSliderPassed" />
+  </a-modal>
+
+  <!-- 绑定邀请人弹框 -->
+  <a-modal
+    v-model:open="inviteBindingVisible"
+    title="绑定邀请人"
+    :footer="null"
+    :width="400"
+    centered
+    class="invite-binding-modal"
+  >
+    <div class="invite-binding-modal-content">
+      <p class="invite-binding-hint">注册 7 天内可补绑一位邀请人，绑定后不可修改。</p>
+      <div class="invite-binding-item">
+        <label class="invite-binding-label">邀请码</label>
+        <input
+          v-model="inviteBindingForm.inviteCode"
+          type="text"
+          class="invite-binding-input"
+          placeholder="请输入 6 位邀请码"
+          maxlength="6"
+        />
+      </div>
+      <button class="invite-binding-submit" @click="handleInviteBindingSubmit">确认绑定</button>
     </div>
   </a-modal>
 </template>
@@ -974,8 +1027,9 @@ import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
+import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
-import { logout as logoutApi } from '@/api/auth'
+import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
@@ -1225,6 +1279,35 @@ const wechatVisible = ref(false)
 const passwordVisible = ref(false)
 const profileVisible = ref(false)
 const emailVisible = ref(false)
+const emailSliderVisible = ref(false)
+const emailSliderPassed = ref(false)
+let emailSliderSending = false
+const inviteBindingVisible = ref(false)
+
+const inviteBindingForm = reactive({
+  inviteCode: ''
+})
+
+const openInviteBindingModal = () => {
+  userCenterVisible.value = false
+  inviteBindingForm.inviteCode = ''
+  inviteBindingVisible.value = true
+}
+
+const handleInviteBindingSubmit = async () => {
+  const code = inviteBindingForm.inviteCode.trim()
+  if (!code) {
+    message.warning('请输入邀请码')
+    return
+  }
+  try {
+    await userProfile.saveInviteCode(code)
+    inviteBindingVisible.value = false
+    inviteBindingForm.inviteCode = ''
+  } catch {
+    // composable 已 message.error
+  }
+}
 
 // 表单字段直接派生自 profile：profile 没加载时为 ''，加载后双向绑定。
 // 用 getter/setter 而非 computed：computed 在 reactive 里只读。
@@ -1242,16 +1325,54 @@ const emailForm = reactive({
 const codeCountdown = ref(0)
 let countdownTimer = null
 
-const sendEmailCode = () => {
-  if (codeCountdown.value > 0) return
+const startEmailCodeCountdown = () => {
   codeCountdown.value = 60
+  if (countdownTimer) clearInterval(countdownTimer)
   countdownTimer = setInterval(() => {
     codeCountdown.value--
     if (codeCountdown.value <= 0) {
       clearInterval(countdownTimer)
+      countdownTimer = null
     }
   }, 1000)
 }
+
+const sendEmailCode = async () => {
+  if (codeCountdown.value > 0) return
+  const email = emailForm.email.trim()
+  if (!email) {
+    message.warning('请输入邮箱')
+    return
+  }
+  if (isMobile.value) {
+    emailSliderPassed.value = false
+    emailSliderVisible.value = true
+    return
+  }
+  try {
+    await sendEmailCodeApi({ email })
+    message.success('验证码已发送，请查收邮箱')
+    startEmailCodeCountdown()
+  } catch (e) {
+    message.error(e?.message || '验证码发送失败')
+  }
+}
+
+watch(emailSliderPassed, async (val) => {
+  if (!val || emailSliderSending) return
+  emailSliderSending = true
+  try {
+    const email = emailForm.email.trim()
+    await sendEmailCodeApi({ email })
+    startEmailCodeCountdown()
+    message.success('验证码已发送，请查收邮箱')
+  } catch (e) {
+    message.error(e?.message || '验证码发送失败')
+  } finally {
+    emailSliderVisible.value = false
+    emailSliderSending = false
+  }
+})
 
 const openProfileModal = () => {
   userCenterVisible.value = false
@@ -2189,6 +2310,7 @@ const openAboutModal = () => { aboutVisible.value = true }
 
 provide('consoleActions', {
   openInviteModal,
+  openInviteBindingModal,
   openRedeemModal,
   openWithdrawModal,
   openTutorialModal,
@@ -2210,7 +2332,8 @@ provide('consoleActions', {
   inviteStats,
   membershipLevel,
   membershipExpiry,
-  hasMembership
+  hasMembership,
+  profile: userProfile.profile
 })
 </script>
 
@@ -3477,6 +3600,92 @@ body[data-theme="dark"] .about-footer {
   background: var(--color-primary-hover);
 }
 
+/* 滑块人机验证弹框 */
+.slider-modal-tip {
+  font-size: 13px;
+  color: #595959;
+  margin: 0 0 16px;
+  line-height: 1.6;
+}
+
+.slider-modal-tip b {
+  color: #FF2442;
+  font-weight: 500;
+  word-break: break-all;
+}
+
+.slider-modal :deep(.ant-modal-header) {
+  margin-bottom: 12px;
+}
+
+/* 绑定邀请人 */
+.invite-binding-modal-content {
+  padding: 8px 0;
+}
+
+.invite-binding-hint {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 0 0 16px;
+  line-height: 1.5;
+}
+
+.invite-binding-item {
+  margin-bottom: 16px;
+}
+
+.invite-binding-label {
+  display: block;
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.invite-binding-input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  text-transform: uppercase;
+}
+
+.invite-binding-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.invite-binding-submit {
+  width: 100%;
+  padding: 10px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+  transition: background 0.2s;
+}
+
+.invite-binding-submit:hover {
+  background: var(--color-primary-hover);
+}
+
+body[data-theme="dark"] .slider-modal-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .slider-modal-tip b {
+  color: #ff4d6f;
+}
+
 /* 暗色主题 */
 body[data-theme="dark"] .profile-label,
 body[data-theme="dark"] .email-label {
@@ -3497,15 +3706,45 @@ body[data-theme="dark"] .email-input:focus {
 }
 
 body[data-theme="dark"] .email-code-btn {
-  background: #262626;
-  border-color: #404040;
-  color: #a6a6a6;
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .email-code-btn:hover:not(:disabled) {
   background: rgba(255, 36, 66, 0.15);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .email-code-btn:disabled {
+  border-color: #434343;
+  color: #737373;
+  background: transparent;
+}
+
+/* 绑定邀请人弹框 - 暗色主题 */
+body[data-theme="dark"] .invite-binding-hint {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-binding-label {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-binding-input {
+  background: #262626;
+  border-color: #404040;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .invite-binding-input::placeholder {
+  color: #737373;
+}
+
+body[data-theme="dark"] .invite-binding-input:focus {
   border-color: #ff4d6f;
-  color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
 
 /* 暗色主题 */
@@ -5036,6 +5275,8 @@ body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
 body[data-theme="dark"] .redeem-modal .ant-modal-content,
 body[data-theme="dark"] .password-modal .ant-modal-content,
+body[data-theme="dark"] .invite-binding-modal .ant-modal-content,
+body[data-theme="dark"] .email-slider-modal .ant-modal-content,
 body[data-theme="dark"] .withdraw-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
@@ -5075,6 +5316,7 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close,
 body[data-theme="dark"] .about-modal .ant-modal-close,
 body[data-theme="dark"] .profile-modal .ant-modal-close,
 body[data-theme="dark"] .email-modal .ant-modal-close,
+body[data-theme="dark"] .invite-binding-modal .ant-modal-close,
 body[data-theme="dark"] .redeem-modal .ant-modal-close,
 body[data-theme="dark"] .password-modal .ant-modal-close {
   color: #a6a6a6;
@@ -5088,23 +5330,29 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close:hover,
 body[data-theme="dark"] .about-modal .ant-modal-close:hover,
 body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-modal .ant-modal-close:hover,
+body[data-theme="dark"] .invite-binding-modal .ant-modal-close:hover,
+body[data-theme="dark"] .email-slider-modal .ant-modal-close:hover,
 body[data-theme="dark"] .redeem-modal .ant-modal-close:hover,
 body[data-theme="dark"] .password-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 修改昵称 / 修改邮箱 / 修改密码 的 Ant 标题头在暗色下需改为深底 */
+/* 修改昵称 / 修改邮箱 / 修改密码 / 绑定邀请人 的 Ant 标题头在暗色下需改为深底 */
 body[data-theme="dark"] .profile-modal .ant-modal-header,
 body[data-theme="dark"] .email-modal .ant-modal-header,
-body[data-theme="dark"] .password-modal .ant-modal-header {
+body[data-theme="dark"] .password-modal .ant-modal-header,
+body[data-theme="dark"] .invite-binding-modal .ant-modal-header,
+body[data-theme="dark"] .email-slider-modal .ant-modal-header {
   background: #141414;
   border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .profile-modal .ant-modal-title,
 body[data-theme="dark"] .email-modal .ant-modal-title,
-body[data-theme="dark"] .password-modal .ant-modal-title {
+body[data-theme="dark"] .password-modal .ant-modal-title,
+body[data-theme="dark"] .invite-binding-modal .ant-modal-title,
+body[data-theme="dark"] .email-slider-modal .ant-modal-title {
   color: #e0e0e0;
 }
 

@@ -1,6 +1,6 @@
 package com.aichuangzuo.user.modules.auth.service;
 
-import com.aichuangzuo.user.modules.auth.mail.GreenMailTestConfig;
+import com.aichuangzuo.user.modules.auth.mail.EmbeddedSmtpTestConfig;
 import com.icegreen.greenmail.util.GreenMail;
 import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeMessage;
@@ -8,36 +8,33 @@ import jakarta.mail.internet.MimeMultipart;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * 真实链路测试：JavaMailSender 默认走 127.0.0.1:3025 → GreenMail。
- * Spring profile=test + @Import GreenMailTestConfig 启嵌入式 SMTP。
+ * Spring profile=test 自动激活 EmbeddedSmtpTestConfig 启嵌入式 SMTP，
+ * Spring 自动注册 GreenMail bean，省去 @Import。
  */
 @SpringBootTest
-@Import(GreenMailTestConfig.class)
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class EmailCodeServiceTest {
 
     @Autowired
     private EmailCodeService emailCodeService;
     @Autowired
-    private CaptchaService captchaService;
-    @Autowired
     private GreenMail greenMail;
 
     @Test
     void shouldSendEmailAndGreenMailReceives() throws Exception {
-        var captcha = captchaService.generateCaptcha();
         String toEmail = "greenmail-recv@example.com";
 
-        emailCodeService.sendEmailCode(toEmail, captcha.getCaptchaKey(), "TEST12");
+        emailCodeService.sendEmailCode(toEmail);
 
         // 等一小段时间确保 GreenMail 收齐
         Thread.sleep(200);
@@ -61,12 +58,5 @@ class EmailCodeServiceTest {
         }
         assertTrue(body.toString().matches("(?s).*\\d{6}.*"),
                 "正文应该包含 6 位数字验证码,实际: " + body);
-    }
-
-    @Test
-    void shouldRejectInvalidCaptcha() {
-        var ex = assertThrows(com.aichuangzuo.shared.exception.BusinessException.class, () ->
-                emailCodeService.sendEmailCode("test@example.com", "invalid-key", "invalid-code"));
-        assertEquals(com.aichuangzuo.shared.enums.error.UserAuthErrorCode.CAPTCHA_ERROR.getCode(), ex.getCode());
     }
 }

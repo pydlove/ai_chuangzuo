@@ -21,5 +21,6 @@ public interface UserConverter {
      * @return 视图对象；user 为 null 时返回 null（MapStruct 默认行为）
      */
     @Mapping(source = "bizNo", target = "userId")
+    @Mapping(target = "inviterUserId", ignore = true)
     UserProfileVO toProfileVO(User user);
 }

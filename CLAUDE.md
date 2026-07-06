@@ -150,3 +150,4 @@ Navigation between pages is plain `<a>`/`<button onclick="location.href='...'">`
 - Keep the prototype frontend-only; do not add a backend or build step without explicit user approval.
 - When adding new templates, styles, or presets, keep keys consistent with the existing naming (`wechat`, `xiaohongshu`, `toutiao`, `baijiahao`, `zhihu`, `douyin`, `general`).
 - The split standalone pages are the source of truth; the legacy single-file prototype is read-only.
+- **不用的代码开发结束后必须删掉**：不用的 Controller / Service / 配置 / 注释 / 迁移 / 测试 / E2E 脚本不能注释或保留。验证方式：`grep` 确认无任何调用方（包括配置文件、测试、E2E、文档），然后删除。前端改了实现方式（如弹框滑块取代图形验证码）→ 后端不再被引用的旧逻辑（Controller、DTO 字段、Service 方法、依赖、配置）要同步移除。

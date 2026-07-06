@@ -1,5 +1,6 @@
 <template>
-  <div class="login-page">
+  <PullToRefresh :full-page="true">
+    <div class="login-page">
     <!-- 背景装饰 -->
     <div class="login-bg">
       <div class="bg-circle bg-circle-1"></div>
@@ -199,6 +200,7 @@
       <SliderCaptcha v-model="loginModalPassed" />
     </a-modal>
   </div>
+  </PullToRefresh>
 </template>
 
 <script setup>
@@ -208,8 +210,9 @@ import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import PullToRefresh from '@/components/PullToRefresh.vue'
 import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserCoins } from '@/composables/useInviteCode'
-import { getCaptcha, sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
+import { sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const router = useRouter()
 
@@ -249,27 +252,19 @@ const activeTab = ref('login')
 const showInviteBanner = ref(false)
 
 const loginForm = reactive({
-  email: '',
-  password: ''
+  email: 'py_world@163.com',
+  password: '123456'
 })
 
 const registerForm = reactive({
-  email: '',
+  email: 'py_world@163.com',
   code: '',
   password: '',
   confirmPassword: '',
   inviteCode: ''
 })
 
-// ---------- 后端 captcha 会话 ----------
-// 滑块是纯前端 UX mock；后端 captcha 接口仍调用以拿到 captchaKey
-// （限流/会话锚点），但前端不再展示图形码图片。
-const captchaKey = ref('')
-
-// 滑块拖到末端后，前端把该值写入 form.captcha 随接口发出
-// dev/test profile 后端 captcha mock 模式固定返回该值
-const SLIDER_CAPTCHA_VALUE = 'TEST12'
-
+// ---------- 滑块弹框：纯前端 UX mock，通过后直接调后端 ----------
 // 注册流程：滑块弹框状态
 const sliderModalVisible = ref(false)
 const sliderModalPassed = ref(false)
@@ -285,19 +280,13 @@ watch(sliderModalPassed, async (val) => {
   if (!val || modalSending) return
   modalSending = true
   try {
-    await sendEmailCode({
-      email: registerForm.email,
-      captchaKey: captchaKey.value,
-      captchaCode: SLIDER_CAPTCHA_VALUE
-    })
+    await sendEmailCode({ email: registerForm.email })
     startCodeCountdown()
     message.success('验证码已发送')
-    sliderModalVisible.value = false
-    loadCaptcha()  // 重新拿 captchaKey 给下次发送
   } catch (err) {
     message.error(err?.message || '发送失败')
-    sliderModalVisible.value = false
   } finally {
+    sliderModalVisible.value = false
     modalSending = false
   }
 })
@@ -309,9 +298,7 @@ watch(loginModalPassed, async (val) => {
   try {
     const res = await loginApi({
       email: loginForm.email,
-      password: loginForm.password,
-      captchaKey: captchaKey.value,
-      captchaCode: SLIDER_CAPTCHA_VALUE
+      password: loginForm.password
     })
     persistTokens(res.data)
     message.success('登录成功')
@@ -320,39 +307,23 @@ watch(loginModalPassed, async (val) => {
   } catch (err) {
     message.error(err?.message || '登录失败')
     loginSliderModalVisible.value = false
-    loadCaptcha()
   } finally {
     loginModalSending = false
   }
 })
 
-const loadCaptcha = async () => {
-  try {
-    const res = await getCaptcha()
-    captchaKey.value = res.data.captchaKey
-  } catch (err) {
-    message.error(err?.message || '验证码加载失败')
-  }
-}
-
-// 打开注册滑块弹框前先取一个 captchaKey（限流锚点）
-const openSliderModal = async () => {
+// 打开注册滑块弹框
+const openSliderModal = () => {
   if (codeCountdown.value > 0) return
   if (!registerForm.email) {
     message.warning('请先填写邮箱')
     return
   }
-  try {
-    const res = await getCaptcha()
-    captchaKey.value = res.data.captchaKey
-    sliderModalPassed.value = false
-    sliderModalVisible.value = true
-  } catch (err) {
-    message.error(err?.message || '验证码加载失败')
-  }
+  sliderModalPassed.value = false
+  sliderModalVisible.value = true
 }
 
-// 打开登录滑块弹框：先校验邮箱/密码，再取 captchaKey
+// 打开登录滑块弹框
 const openLoginSliderModal = async () => {
   if (!loginForm.email) {
     message.warning('请填写邮箱')
@@ -362,14 +333,8 @@ const openLoginSliderModal = async () => {
     message.warning('请填写密码')
     return
   }
-  try {
-    const res = await getCaptcha()
-    captchaKey.value = res.data.captchaKey
-    loginModalPassed.value = false
-    loginSliderModalVisible.value = true
-  } catch (err) {
-    message.error(err?.message || '验证码加载失败')
-  }
+  loginModalPassed.value = false
+  loginSliderModalVisible.value = true
 }
 
 // ---------- 邮箱验证码倒计时 ----------
@@ -431,12 +396,10 @@ const handleRegister = async () => {
     router.push('/console')
   } catch (err) {
     message.error(err?.message || '注册失败')
-    loadCaptcha()
   }
 }
 
 onMounted(() => {
-  loadCaptcha()
   window.addEventListener('mousemove', onPageMouseMove)
   const ref = getRefFromUrl()
   if (ref) {

@@ -4,6 +4,8 @@ import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.auth.entity.User;
+import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
+import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import com.aichuangzuo.user.modules.user.converter.UserConverter;
@@ -42,6 +44,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     private static final int MAX_PASSWORD_LENGTH = 20;
 
     private final UserMapper userMapper;
+    private final UserInviteRelationMapper userInviteRelationMapper;
     private final EmailCodeService emailCodeService;
     private final PasswordEncoder passwordEncoder;
     private final UserConverter userConverter;
@@ -53,7 +56,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         if (user == null) {
             throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
         }
-        return userConverter.toProfileVO(user);
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
     }
 
     /**
@@ -73,7 +76,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         user.setNickname(request.getNickname().trim());
         userMapper.updateById(user);
         log.info("昵称已修改 userId={}", userId);
-        return userConverter.toProfileVO(user);
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
     }
 
     /**
@@ -113,7 +116,7 @@ public class UserProfileServiceImpl implements UserProfileService {
         user.setEmailVerified(1);
         userMapper.updateById(user);
         log.info("邮箱已修改 userId={}, newEmail={}", userId, newEmail);
-        return userConverter.toProfileVO(user);
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
     }
 
     /**
@@ -144,5 +147,25 @@ public class UserProfileServiceImpl implements UserProfileService {
         user.setPasswordHash(passwordEncoder.encode(newPwd));
         userMapper.updateById(user);
         log.info("密码已修改 userId={}", userId);
+    }
+
+    /**
+     * 把邀请人主键 ID 回填到视图对象。
+     *
+     * <p>u_user 表不存邀请关系，需要从 u_user_invite_relation 查询。
+     *
+     * @param vo     已转换的 UserProfileVO
+     * @param userId 当前用户主键 ID
+     * @return 回填后的 VO
+     */
+    private UserProfileVO fillInviter(UserProfileVO vo, Long userId) {
+        if (vo == null) {
+            return null;
+        }
+        UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(userId);
+        if (relation != null) {
+            vo.setInviterUserId(relation.getInviterId());
+        }
+        return vo;
     }
 }

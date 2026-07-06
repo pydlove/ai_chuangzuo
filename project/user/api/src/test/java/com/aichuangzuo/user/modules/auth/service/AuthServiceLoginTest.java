@@ -11,7 +11,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.transaction.annotation.Transactional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -25,15 +28,11 @@ class AuthServiceLoginTest {
     @MockBean
     private EmailCodeService emailCodeService;
 
-    @MockBean
-    private CaptchaService captchaService;
-
     @Test
-    void shouldLoginWithValidCredentialsAndCaptcha() {
+    void shouldLoginWithValidCredentials() {
         String email = "login_test@example.com";
         String password = "123456";
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setEmail(email);
@@ -45,8 +44,6 @@ class AuthServiceLoginTest {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail(email);
         loginRequest.setPassword(password);
-        loginRequest.setCaptchaKey("mock-key");
-        loginRequest.setCaptchaCode("mock-code");
 
         AuthTokenVO token = authService.login(loginRequest, "127.0.0.1", "test-agent");
         assertNotNull(token.getAccessToken());
@@ -58,26 +55,10 @@ class AuthServiceLoginTest {
     }
 
     @Test
-    void shouldRejectInvalidCaptcha() {
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(false);
-
-        LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("any@example.com");
-        loginRequest.setPassword("123456");
-        loginRequest.setCaptchaKey("mock-key");
-        loginRequest.setCaptchaCode("wrong-code");
-
-        BusinessException exception = assertThrows(BusinessException.class,
-                () -> authService.login(loginRequest, "127.0.0.1", "test-agent"));
-        assertEquals(UserAuthErrorCode.CAPTCHA_ERROR.getCode(), exception.getCode());
-    }
-
-    @Test
     void shouldRejectWrongPassword() {
         String email = "login_wrong@example.com";
         String password = "123456";
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setEmail(email);
@@ -89,8 +70,6 @@ class AuthServiceLoginTest {
         LoginRequest loginRequest = new LoginRequest();
         loginRequest.setEmail(email);
         loginRequest.setPassword("wrong-password");
-        loginRequest.setCaptchaKey("mock-key");
-        loginRequest.setCaptchaCode("mock-code");
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> authService.login(loginRequest, "127.0.0.1", "test-agent"));

@@ -1158,7 +1158,7 @@ onMounted(() => {
   }
 
   .back-btn {
-    order: 0;
+    display: none;
   }
 
   .preview-header-actions {

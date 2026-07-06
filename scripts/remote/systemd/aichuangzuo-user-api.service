@@ -7,7 +7,7 @@ Type=simple
 User=root
 WorkingDirectory=/root/app/aichuangzuo/user-api
 EnvironmentFile=-/root/app/aichuangzuo/.env
-ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m -Dspring.profiles.active=prod -Dserver.port=22346 -Dlogging.file.path=/root/app/aichuangzuo/logs /root/app/aichuangzuo/user-api/user-api.jar
+ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m -Djava.awt.headless=true -Dspring.profiles.active=prod -Dserver.port=22346 -Dlogging.file.name=/root/app/aichuangzuo/logs/user-api.log /root/app/aichuangzuo/user-api/user-api.jar
 ExecStop=/bin/kill -15 $MAINPID
 Restart=on-failure
 RestartSec=10

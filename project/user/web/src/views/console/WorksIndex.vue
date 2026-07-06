@@ -671,6 +671,14 @@ body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper) {
   color: #a6a6a6 !important;
 }
 
+body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper)::before {
+  background-color: #434343 !important;
+}
+
+body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper-checked)::before {
+  background-color: var(--color-primary, #ff2442) !important;
+}
+
 body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper:hover) {
   color: #f0f0f0 !important;
 }

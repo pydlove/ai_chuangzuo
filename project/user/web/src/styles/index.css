@@ -120,6 +120,16 @@ button {
   background: #bfbfbf;
 }
 
+/* 手机端：隐藏滚动条 */
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: none;
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 body[data-theme="dark"] * {
   scrollbar-color: #434343 transparent;
 }

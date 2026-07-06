@@ -14,7 +14,7 @@
   2. 期望返回 REFRESH_TOKEN_INVALID（密码重置前签发，已失效）
 
 前置：
-  - 后端 SPRING_PROFILES_ACTIVE=test 启动（captcha=TEST12, email=000000）
+  - 后端 SPRING_PROFILES_ACTIVE=test 启动（启 GreenMail 接 SMTP，不需真实邮箱）
   - 前端 22345 运行
 
 用法：
@@ -40,9 +40,8 @@ SCREENSHOT_DIR.mkdir(exist_ok=True)
 def fetch_email_code(email):
     """从 backend test profile 暴露的 /__test/email-code 端点拿真实 6 位验证码。
 
-    sendEmailCode 把验证码同时写进 Caffeine 缓存和发出 SMTP 邮件；
-    DebugController(@Profile("test")) 从缓存里读码，方便 E2E 拿到真实验证码
-    走完 register / reset-password 链路。
+    TestEmailCodeController(@Profile("test")) 从 GreenMail 抓最近一封该邮箱的邮件，
+    正则提取 6 位数字验证码，让 E2E 走完整 JavaMailSender → SMTP → GreenMail 邮件链路。
     """
     url = f"{BACKEND_ROOT}/__test/email-code"
     for _ in range(10):
@@ -106,22 +105,16 @@ def drag_slider_to_end(page, modal_selector):
 
 def register_via_api(email, password):
     """通过后端 API（不经过 UI）注册一个账号，拿到 refresh token 用于场景 B。"""
-    cap = requests.get(f"{API_URL}/auth/captcha").json()
     requests.post(f"{API_URL}/auth/email-codes", json={
         "email": email,
-        "captchaKey": cap["data"]["captchaKey"],
-        "captchaCode": "TEST12",
     })
     # 真实验证码,非 mock 000000
     real_code = fetch_email_code(email)
-    cap2 = requests.get(f"{API_URL}/auth/captcha").json()
     resp = requests.post(f"{API_URL}/auth/register", json={
         "email": email,
         "emailCode": real_code,
         "password": password,
         "confirmPassword": password,
-        "captchaKey": cap2["data"]["captchaKey"],
-        "captchaCode": "TEST12",
     })
     assert resp.status_code == 200, f"register failed: {resp.text}"
     body = resp.json()

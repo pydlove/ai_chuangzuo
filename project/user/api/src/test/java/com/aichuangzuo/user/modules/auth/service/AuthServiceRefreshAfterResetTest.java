@@ -41,8 +41,6 @@ class AuthServiceRefreshAfterResetTest {
 
     @MockBean
     private EmailCodeService emailCodeService;
-    @MockBean
-    private CaptchaService captchaService;
 
     @org.junit.jupiter.api.BeforeEach
     void cleanResetCache() {
@@ -55,7 +53,6 @@ class AuthServiceRefreshAfterResetTest {
 
     private AuthTokenVO registerUser(String email, String password) {
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         RegisterRequest request = new RegisterRequest();
         request.setEmail(email);
@@ -67,26 +64,19 @@ class AuthServiceRefreshAfterResetTest {
 
     private void resetPassword(String email, String oldPwd, String newPwd) {
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         ResetPasswordRequest rp = new ResetPasswordRequest();
         rp.setEmail(email);
         rp.setEmailCode("000000");
         rp.setPassword(newPwd);
         rp.setConfirmPassword(newPwd);
-        rp.setCaptchaKey("k");
-        rp.setCaptchaCode("c");
         authService.resetPassword(rp, "127.0.0.1");
     }
 
     private AuthTokenVO login(String email, String password) {
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
-
         LoginRequest req = new LoginRequest();
         req.setEmail(email);
         req.setPassword(password);
-        req.setCaptchaKey("k");
-        req.setCaptchaCode("c");
         return authService.login(req, "127.0.0.1", "test-agent");
     }
 

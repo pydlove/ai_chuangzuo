@@ -45,12 +45,9 @@ class AuthServiceResetPasswordTest {
 
     @MockBean
     private EmailCodeService emailCodeService;
-    @MockBean
-    private CaptchaService captchaService;
 
     private AuthTokenVO registerUser(String email, String password) {
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         RegisterRequest request = new RegisterRequest();
         request.setEmail(email);
@@ -66,25 +63,12 @@ class AuthServiceResetPasswordTest {
         req.setEmailCode("000000");
         req.setPassword(pwd);
         req.setConfirmPassword(pwd);
-        req.setCaptchaKey("test-key");
-        req.setCaptchaCode("TEST12");
         return req;
     }
 
     private Long jwtUserId(AuthTokenVO token) {
         JwtUtil jwtUtil = applicationContext.getBean(JwtUtil.class);
         return jwtUtil.parseAccessToken(token.getAccessToken());
-    }
-
-    @Test
-    void shouldRejectWhenCaptchaInvalid() {
-        registerUser("reset_captcha@example.com", "OldPass123");
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(false);
-
-        BusinessException ex = assertThrows(BusinessException.class,
-                () -> authService.resetPassword(buildRequest("reset_captcha@example.com", "NewPass456"),
-                        "127.0.0.1"));
-        assertEquals(UserAuthErrorCode.CAPTCHA_ERROR.getCode(), ex.getCode());
     }
 
     @Test
@@ -95,9 +79,7 @@ class AuthServiceResetPasswordTest {
         req.setEmail("reset_mismatch@example.com");
         req.setEmailCode("000000");
         req.setPassword("NewPass456");
-        req.setConfirmPassword("NewPass789");
-        req.setCaptchaKey("k");
-        req.setCaptchaCode("c");
+        req.setConfirmPassword("Different789");
 
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> authService.resetPassword(req, "127.0.0.1"));
@@ -106,8 +88,6 @@ class AuthServiceResetPasswordTest {
 
     @Test
     void shouldRejectWhenUserNotFound() {
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
-
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> authService.resetPassword(buildRequest("no_such@example.com", "NewPass456"),
                         "127.0.0.1"));

@@ -1,5 +1,6 @@
 <template>
-  <div class="forgot-page">
+  <PullToRefresh :full-page="true">
+    <div class="forgot-page">
     <!-- 背景装饰 -->
     <div class="forgot-bg">
       <div class="bg-circle bg-circle-1"></div>
@@ -112,6 +113,7 @@
       <SliderCaptcha v-model="resetModalPassed" />
     </a-modal>
   </div>
+  </PullToRefresh>
 </template>
 
 <script setup>
@@ -120,7 +122,8 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
-import { getCaptcha, sendEmailCode, resetPassword } from '@/api/auth'
+import PullToRefresh from '@/components/PullToRefresh.vue'
+import { sendEmailCode, resetPassword } from '@/api/auth'
 
 const router = useRouter()
 
@@ -155,12 +158,6 @@ const onPageMouseMove = (e) => {
 }
 
 // ---------- 主题切换由 NavBar 组件统一处理 ----------
-
-// ---------- 人机验证常量（与 Login.vue 一致） ----------
-const SLIDER_CAPTCHA_VALUE = 'TEST12'
-
-// ---------- 后端 captcha 会话 ----------
-const captchaKey = ref('')
 
 // ---------- 发送邮箱验证码弹框状态 ----------
 const codeModalVisible = ref(false)
@@ -197,38 +194,27 @@ const startCodeCountdown = () => {
 }
 
 // === 发送邮箱验证码：弹框拖滑块 → 通过后才调 sendEmailCode ===
-const openCodeSlider = async () => {
+const openCodeSlider = () => {
   if (codeCountdown.value > 0) return
   if (!form.email) {
     message.warning('请先填写邮箱')
     return
   }
-  try {
-    const res = await getCaptcha()
-    captchaKey.value = res.data.captchaKey
-    codeModalPassed.value = false
-    codeModalVisible.value = true
-  } catch (err) {
-    message.error(err?.message || '验证码加载失败')
-  }
+  codeModalPassed.value = false
+  codeModalVisible.value = true
 }
 
 watch(codeModalPassed, async (val) => {
   if (!val || codeModalSending) return
   codeModalSending = true
   try {
-    await sendEmailCode({
-      email: form.email,
-      captchaKey: captchaKey.value,
-      captchaCode: SLIDER_CAPTCHA_VALUE
-    })
+    await sendEmailCode({ email: form.email })
     startCodeCountdown()
     message.success('验证码已发送')
-    codeModalVisible.value = false
   } catch (err) {
     message.error(err?.message || '发送失败')
-    codeModalVisible.value = false
   } finally {
+    codeModalVisible.value = false
     codeModalSending = false
   }
 })
@@ -247,14 +233,8 @@ const handleReset = async () => {
     message.warning('请先获取邮箱验证码')
     return
   }
-  try {
-    const res = await getCaptcha()
-    captchaKey.value = res.data.captchaKey
-    resetModalPassed.value = false
-    resetModalVisible.value = true
-  } catch (err) {
-    message.error(err?.message || '验证码加载失败')
-  }
+  resetModalPassed.value = false
+  resetModalVisible.value = true
 }
 
 watch(resetModalPassed, async (val) => {
@@ -265,9 +245,7 @@ watch(resetModalPassed, async (val) => {
       email: form.email,
       emailCode: form.code,
       password: form.password,
-      confirmPassword: form.confirmPassword,
-      captchaKey: captchaKey.value,
-      captchaCode: SLIDER_CAPTCHA_VALUE
+      confirmPassword: form.confirmPassword
     })
     message.success('密码已重置，请重新登录')
     resetModalVisible.value = false

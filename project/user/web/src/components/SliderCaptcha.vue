@@ -22,7 +22,7 @@
         class="slider-handle"
         :style="{ left: progress + '%' }"
         @mousedown="onDragStart"
-        @touchstart.passive="onDragStart"
+        @touchstart.prevent="onDragStart"
       >
         <svg v-if="!passed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <polyline points="9 18 15 12 9 6"/>
@@ -63,13 +63,14 @@ const onDragStart = (e) => {
   startProgress = progress.value
   document.addEventListener('mousemove', onDragMove)
   document.addEventListener('mouseup', onDragEnd)
-  document.addEventListener('touchmove', onDragMove)
+  document.addEventListener('touchmove', onDragMove, { passive: false })
   document.addEventListener('touchend', onDragEnd)
   e.preventDefault()
 }
 
 const onDragMove = (e) => {
   if (!isDragging || !trackRef.value) return
+  if (e.type.startsWith('touch')) e.preventDefault()
   const clientX = e.clientX ?? e.touches?.[0]?.clientX
   if (clientX === undefined) return
   const trackRect = trackRef.value.getBoundingClientRect()
@@ -111,6 +112,8 @@ const onDragEnd = () => {
   border: 1px solid #e8e8e8;
   overflow: hidden;
   cursor: default;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .slider-fill {
@@ -171,6 +174,8 @@ const onDragEnd = () => {
   box-shadow: 0 2px 8px rgba(255, 36, 66, 0.18);
   transition: box-shadow 0.2s, transform 0.1s;
   z-index: 2;
+  touch-action: none;
+  -webkit-touch-callout: none;
 }
 
 .slider-handle:hover {

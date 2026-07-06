@@ -178,6 +178,7 @@
       :footer="null"
       :width="560"
       centered
+      class="coin-rules-modal"
     >
       <ol class="coin-rules-list">
         <li>仅<span class="coin-rules-highlight">付费邀请用户</span>可申请提现，且需至少邀请 <span class="coin-rules-highlight">3</span> 位<span class="coin-rules-highlight">付费好友</span>。</li>
@@ -195,6 +196,7 @@
       :footer="null"
       :width="560"
       centered
+      class="coin-rules-modal"
     >
       <ol class="coin-rules-list">
         <li>用户承诺提现资金来源合法，不得利用本平台进行洗钱、套现、赌博、诈骗等违法活动。</li>
@@ -1186,5 +1188,50 @@ body[data-theme="dark"] .coin-apply-agreement-link {
 
 body[data-theme="dark"] .coin-apply-agreement-link:hover {
   color: #e61e3a;
+}
+</style>
+
+<style>
+/* 创作币/提现页面下的 a-modal（提现规则、提现服务协议）深色主题 */
+body[data-theme="dark"] .coin-rules-modal .ant-modal-content {
+  background: #141414;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .coin-rules-modal .ant-modal-header {
+  background: #141414;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .coin-rules-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .coin-rules-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .coin-rules-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* 弹框内正文（scoped 样式无法作用到 portal 内的元素，这里强制覆盖） */
+body[data-theme="dark"] .coin-rules-modal .coin-rules-list {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .coin-rules-modal .coin-rules-footer {
+  border-top-color: #303030;
+  color: rgba(255, 255, 255, 0.45);
+}
+
+body[data-theme="dark"] .coin-rules-modal .coin-rules-highlight {
+  color: #ff4d6f;
+}
+
+/* 深色主题下弹框遮罩更深，避免弹框视觉不突出 */
+body[data-theme="dark"] .ant-modal-mask {
+  background: rgba(0, 0, 0, 0.75) !important;
 }
 </style>

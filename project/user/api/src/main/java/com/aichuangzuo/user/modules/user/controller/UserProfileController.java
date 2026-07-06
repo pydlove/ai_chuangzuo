@@ -1,9 +1,11 @@
 package com.aichuangzuo.user.modules.user.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.modules.user.dto.request.BindInviteCodeRequest;
 import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
+import com.aichuangzuo.user.modules.user.service.UserInviteBindingService;
 import com.aichuangzuo.user.modules.user.service.UserProfileService;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,6 +33,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
+    private final UserInviteBindingService userInviteBindingService;
 
     /**
      * 获取当前登录用户的个人资料。
@@ -72,10 +76,16 @@ public class UserProfileController {
      * @param request 旧/新/确认密码
      * @return 成功响应（无 data）
      */
-    @Operation(summary = "修改密码")
-    @PutMapping("/password")
-    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        userProfileService.changePassword(request);
+    /**
+     * 绑定邀请人。注册 7 天内且未绑定过邀请人时可补绑。
+     *
+     * @param request 6 位邀请码
+     * @return 成功响应（无 data）
+     */
+    @Operation(summary = "绑定邀请人")
+    @PostMapping("/invite-binding")
+    public Result<Void> bindInviteCode(@Valid @RequestBody BindInviteCodeRequest request) {
+        userInviteBindingService.bindInviteCode(request);
         return Result.success();
     }
 }

@@ -8,26 +8,24 @@
       </p>
     </div>
 
-    <div class="style-market-filter-bar">
-      <div class="style-market-tabs">
-        <button
-          v-for="tab in tabOptions"
-          :key="tab.key"
-          :class="['style-market-tab', { active: activeTab === tab.key }]"
-          @click="activeTab = tab.key"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
+    <div class="style-market-search-bar">
+      <input
+        v-model="searchQuery"
+        type="text"
+        class="style-market-search-input"
+        placeholder="搜索风格名或适用范围"
+      />
+    </div>
 
-      <div class="style-market-search">
-        <input
-          v-model="searchQuery"
-          type="text"
-          class="style-market-search-input"
-          placeholder="搜索风格名或适用范围"
-        />
-      </div>
+    <div class="style-market-tabs">
+      <button
+        v-for="tab in tabOptions"
+        :key="tab.key"
+        :class="['style-market-tab', { active: activeTab === tab.key }]"
+        @click="activeTab = tab.key"
+      >
+        {{ tab.label }}
+      </button>
     </div>
 
     <div v-if="filteredStyles.length === 0" class="style-market-empty">
@@ -283,12 +281,8 @@ body[data-theme="dark"] .style-market-rules-footer {
   color: #8c8c8c;
 }
 
-.style-market-filter-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 20px;
-  flex-wrap: wrap;
+.style-market-search-bar {
+  margin-bottom: 12px;
 }
 
 .style-market-tabs {
@@ -300,6 +294,7 @@ body[data-theme="dark"] .style-market-rules-footer {
   border-radius: 8px;
   height: 44px;
   width: fit-content;
+  margin-bottom: 20px;
 }
 
 .style-market-tab {
@@ -391,7 +386,7 @@ body[data-theme="dark"] .style-market-tab.active {
   .style-market-tabs::-webkit-scrollbar { display: none; }
   .style-market-tab { flex-shrink: 0; padding: 8px 14px; font-size: 13px; }
 
-  /* 搜索框：取消 min-width 限制 */
+  /* 搜索框：单独一行 */
   .style-market-search {
     flex: 1;
     min-width: 0;

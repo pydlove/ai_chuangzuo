@@ -22,10 +22,4 @@ public class ResetPasswordRequest {
     @NotBlank(message = "确认密码不能为空")
     @Size(min = 6, max = 20, message = "密码长度需在 6-20 位之间")
     private String confirmPassword;
-
-    @NotBlank(message = "图形验证码标识不能为空")
-    private String captchaKey;
-
-    @NotBlank(message = "图形验证码不能为空")
-    private String captchaCode;
 }

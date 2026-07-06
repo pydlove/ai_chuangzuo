@@ -93,6 +93,16 @@ const routes = [
         path: 'mine',
         name: 'ConsoleMine',
         component: () => import('@/views/console/MineIndex.vue')
+      },
+      {
+        path: 'invite',
+        name: 'ConsoleInvite',
+        component: () => import('@/views/console/InviteIndex.vue')
+      },
+      {
+        path: 'invite-rules',
+        name: 'ConsoleInviteRules',
+        component: () => import('@/views/console/InviteRulesIndex.vue')
       }
     ]
   }

@@ -706,10 +706,12 @@ body[data-theme="dark"] .plan-btn:hover {
 body[data-theme="dark"] .plan-btn.primary {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
   border: none;
+  color: #fff;
 }
 
 body[data-theme="dark"] .plan-btn.primary:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+  color: #fff;
 }
 
 body[data-theme="dark"] .compare-section {

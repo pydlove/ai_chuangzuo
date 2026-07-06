@@ -20,7 +20,6 @@ import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserLoginLogMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
-import com.aichuangzuo.user.modules.auth.service.CaptchaService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
 import com.aichuangzuo.user.modules.auth.vo.UserVO;
@@ -47,7 +46,6 @@ public class AuthServiceImpl implements AuthService {
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final IpRegisterLimitMapper ipRegisterLimitMapper;
     private final EmailCodeService emailCodeService;
-    private final CaptchaService captchaService;
     private final JwtUtil jwtUtil;
     private final CacheUtil cacheUtil;
     private final AuthConverter authConverter;
@@ -65,10 +63,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void resetPassword(ResetPasswordRequest request, String clientIp) {
-        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
-            throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
-        }
-
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
         }
@@ -204,10 +198,6 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokenVO login(LoginRequest request, String clientIp, String userAgent) {
-        if (!captchaService.validateCaptcha(request.getCaptchaKey(), request.getCaptchaCode())) {
-            throw new BusinessException(UserAuthErrorCode.CAPTCHA_ERROR);
-        }
-
         String failKey = "user:auth:login-fail:" + request.getEmail();
         String lockKey = "user:auth:account-lock:" + request.getEmail();
 

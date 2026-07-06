@@ -20,7 +20,11 @@ public enum UserAuthErrorCode implements ErrorCode {
     USER_NOT_FOUND(111013, "用户不存在"),
     EMAIL_SEND_FAILED(111014, "邮件发送失败,请稍后重试"),
     EMAIL_SAME_AS_OLD(111015, "新邮箱与原邮箱相同"),
-    PASSWORD_INCORRECT(111016, "原密码错误");
+    PASSWORD_INCORRECT(111016, "原密码错误"),
+    INVITE_ALREADY_BOUND(111017, "已绑定邀请人，不可修改"),
+    INVITE_SELF_NOT_ALLOWED(111018, "不能绑定自己为邀请人"),
+    INVITE_CIRCULAR_NOT_ALLOWED(111019, "不能形成循环邀请关系"),
+    INVITE_BINDING_EXPIRED(111020, "邀请人绑定已过期");
 
     private final int code;
     private final String message;

@@ -14,7 +14,7 @@
 
 前置条件：
   - 后端运行在 25050，前端运行在 22345
-  - 后端以 SPRING_PROFILES_ACTIVE=test 启动（启用 mock 验证码：captcha=TEST12, email=000000）
+  - 后端以 SPRING_PROFILES_ACTIVE=test 启动（启 GreenMail 接 SMTP，不需真实邮箱）
 
 用法：
   python3 tests/e2e/verify_user_auth.py
@@ -36,9 +36,9 @@ PASSWORD = "Test123456"
 def fetch_email_code(email):
     """从 backend test profile 暴露的 /__test/email-code 端点拿真实 6 位验证码。
 
-    sendEmailCode 把验证码同时写进 Caffeine 缓存和发出 SMTP 邮件；
-    DebugController(@Profile("test")) 从缓存里读码，方便 E2E 拿到真实验证码
-    走完 register 链路。
+    TestEmailCodeController(@Profile("test")) 从 GreenMail 抓最近一封该邮箱的邮件，
+    正则提取 6 位数字验证码，让 E2E 走完整 sendEmailCode → JavaMailSender →
+    SMTP → GreenMail 邮件链路。
     """
     url = f"{BACKEND_ROOT}/__test/email-code"
     for _ in range(10):

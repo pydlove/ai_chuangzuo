@@ -23,12 +23,8 @@ class AuthServiceTokenTest {
     @MockBean
     private EmailCodeService emailCodeService;
 
-    @MockBean
-    private CaptchaService captchaService;
-
     private AuthTokenVO registerUser() {
         when(emailCodeService.validateEmailCode(anyString(), anyString())).thenReturn(true);
-        when(captchaService.validateCaptcha(anyString(), anyString())).thenReturn(true);
 
         RegisterRequest request = new RegisterRequest();
         request.setEmail("token_test@example.com");

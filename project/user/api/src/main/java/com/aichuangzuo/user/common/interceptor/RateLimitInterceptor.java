@@ -43,7 +43,6 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         if (path.contains("/email-codes")) return 5;
         if (path.contains("/login")) return 10;
         if (path.contains("/register")) return 5;
-        if (path.contains("/captcha")) return 30;
         return 100;
     }
 

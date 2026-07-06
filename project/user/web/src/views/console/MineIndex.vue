@@ -45,7 +45,8 @@
     </section>
 
     <!-- 我的资产 -->
-    <section class="mine-section">
+    <!-- 我的资产 -->
+    <section class="mine-block">
       <h3 class="mine-section-title">我的资产</h3>
       <ul class="mine-list">
         <li class="mine-list-item" @click="$router.push('/console/earnings')">
@@ -53,7 +54,7 @@
           <span class="mine-list-label">我的账户</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
-        <li class="mine-list-item" @click="actions.openWithdrawModal">
+        <li class="mine-list-item" @click="$router.push('/console/coin')">
           <WalletOutlined class="mine-list-icon" />
           <span class="mine-list-label">创作币提现</span>
           <span class="mine-list-extra">{{ coinBalance }} 币</span>
@@ -63,7 +64,7 @@
     </section>
 
     <!-- 我的创作 -->
-    <section class="mine-section">
+    <section class="mine-block">
       <h3 class="mine-section-title">我的创作</h3>
       <ul class="mine-list">
         <li class="mine-list-item" @click="$router.push('/console/styles')">
@@ -85,10 +86,19 @@
     </section>
 
     <!-- 邀请与帮助 -->
-    <section class="mine-section">
+    <section class="mine-block">
       <h3 class="mine-section-title">邀请与帮助</h3>
       <ul class="mine-list">
-        <li class="mine-list-item" @click="actions.openInviteModal">
+        <li
+          v-if="actions.profile?.value?.inviterUserId == null"
+          class="mine-list-item"
+          @click="actions.openInviteBindingModal"
+        >
+          <UserAddOutlined class="mine-list-icon" />
+          <span class="mine-list-label">绑定邀请人</span>
+          <RightOutlined class="mine-list-arrow" />
+        </li>
+        <li class="mine-list-item" @click="$router.push('/console/invite')">
           <GiftOutlined class="mine-list-icon mine-list-icon-gift" />
           <span class="mine-list-label">邀请有礼</span>
           <span class="mine-list-tag mine-list-tag-hot">HOT</span>
@@ -113,7 +123,7 @@
     </section>
 
     <!-- 设置 -->
-    <section class="mine-section">
+    <section class="mine-block">
       <h3 class="mine-section-title">设置</h3>
       <ul class="mine-list">
         <li class="mine-list-item" @click="actions.toggleTheme">
@@ -141,7 +151,7 @@
     </section>
 
     <!-- 关于 -->
-    <section class="mine-section">
+    <section class="mine-block">
       <h3 class="mine-section-title">关于</h3>
       <ul class="mine-list">
         <li class="mine-list-item" @click="actions.openAboutModal">
@@ -209,7 +219,8 @@ import {
   WechatOutlined,
   GlobalOutlined,
   RightOutlined,
-  LogoutOutlined
+  LogoutOutlined,
+  UserAddOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -455,7 +466,7 @@ const openOfficialSite = () => {
 }
 
 /* ========== 通用 section ========== */
-.mine-section {
+.mine-block {
   margin-top: 18px;
 }
 
@@ -463,8 +474,8 @@ const openOfficialSite = () => {
   font-size: 13px;
   font-weight: 600;
   color: #8c8c8c;
-  padding: 0 4px;
-  margin-bottom: 8px;
+  padding: 8px 16px 12px;
+  margin-bottom: 0;
   letter-spacing: 0.5px;
 }
 
@@ -602,6 +613,10 @@ const openOfficialSite = () => {
   .mine-list-item {
     padding: 14px 12px;
   }
+
+  .mine-section-title {
+    padding: 8px 12px 12px;
+  }
 }
 
 /* ========== 暗色主题 ========== */
@@ -625,6 +640,11 @@ body[data-theme="dark"] .mine-stat-divider {
 
 body[data-theme="dark"] .mine-section-title {
   color: #a6a6a6;
+  background: #141414;
+}
+
+body[data-theme="dark"] .mine-block {
+  background: #141414;
 }
 
 body[data-theme="dark"] .mine-list {

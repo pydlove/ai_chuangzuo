@@ -12,6 +12,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mail.MailSendException;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Properties;
@@ -25,12 +26,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
  */
 @SpringBootTest
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 class EmailCodeServiceSmtpFailTest {
 
     @Autowired
     private EmailCodeService emailCodeService;
-    @Autowired
-    private CaptchaService captchaService;
 
     @MockBean
     private JavaMailSender mailSender;
@@ -45,10 +45,8 @@ class EmailCodeServiceSmtpFailTest {
 
     @Test
     void shouldThrowEmailSendFailedWhenSmtpFails() {
-        var captcha = captchaService.generateCaptcha();
         BusinessException ex = assertThrows(BusinessException.class, () ->
-                emailCodeService.sendEmailCode("fail@example.com",
-                        captcha.getCaptchaKey(), "TEST12"));
+                emailCodeService.sendEmailCode("fail@example.com"));
         assertEquals(UserAuthErrorCode.EMAIL_SEND_FAILED.getCode(), ex.getCode());
     }
 }

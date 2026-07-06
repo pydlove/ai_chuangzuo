@@ -4,7 +4,8 @@ import {
   getMyProfile,
   updateNickname,
   updateEmail,
-  changePassword
+  changePassword,
+  bindInviteCode
 } from '@/api/user'
 
 // 模块级 ref：单例模式，整个 console 共享一份 profile。
@@ -75,12 +76,25 @@ export function useUserProfile() {
     }
   }
 
+  async function saveInviteCode(inviteCode) {
+    const trimmed = inviteCode.trim().toUpperCase()
+    try {
+      await bindInviteCode(trimmed)
+      await loadProfile()
+      message.success('邀请人绑定成功')
+    } catch (e) {
+      message.error(errMsg(e))
+      throw e
+    }
+  }
+
   return {
     profile,
     loading,
     loadProfile,
     saveNickname,
     saveEmail,
-    savePassword
+    savePassword,
+    saveInviteCode
   }
 }
