@@ -63,11 +63,13 @@ import { UserOutlined, AuditOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
+import { adminAuthLogout } from '@/api/auth.js'
+
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
 
-const userName = computed(() => userStore.userInfo?.name || '管理员')
+const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
@@ -79,8 +81,14 @@ const handleMenuClick = ({ key }) => {
   router.push(key)
 }
 
-const handleLogout = () => {
+const handleLogout = async () => {
+  try {
+    await adminAuthLogout()
+  } catch (err) {
+    // 忽略网络错误，继续清理前端状态
+  }
   userStore.clearToken()
+  localStorage.removeItem('admin_refresh_token')
   message.success('已退出登录')
   router.push('/login')
 }

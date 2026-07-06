@@ -21,6 +21,7 @@
     <modules>
         <module>shared</module>
         <module>user/api</module>
+        <module>admin/api</module>
     </modules>
 
     <dependencyManagement>
