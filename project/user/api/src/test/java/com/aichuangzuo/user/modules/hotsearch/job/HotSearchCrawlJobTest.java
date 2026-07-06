@@ -13,7 +13,7 @@ import java.time.LocalDate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@SpringBootTest
+@SpringBootTest(properties = {"hot-search.platforms="})
 @Transactional
 @Rollback
 class HotSearchCrawlJobTest {
