@@ -32,8 +32,9 @@ export function useUserProfile() {
   async function loadProfile() {
     loading.value = true
     try {
-      // auth.js 拦截器已剥外层，res 即 data
-      profile.value = await getMyProfile()
+      // auth.js 拦截器返回 {code:0, data:{...}}，再取 data 才是 profile
+      const res = await getMyProfile()
+      profile.value = res.data || res
     } finally {
       loading.value = false
     }
