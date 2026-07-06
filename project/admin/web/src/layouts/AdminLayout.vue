@@ -16,8 +16,10 @@
       <a-menu
         mode="inline"
         :selected-keys="[$route.path]"
+        :open-keys="openKeys"
         class="admin-menu"
         @click="handleMenuClick"
+        @openChange="onOpenChange"
       >
         <a-menu-item key="/console/users">
           <template #icon>
@@ -31,6 +33,18 @@
           </template>
           风格审核
         </a-menu-item>
+        <a-sub-menu key="/console/settings">
+          <template #icon>
+            <SettingOutlined />
+          </template>
+          <template #title>系统设置</template>
+          <a-menu-item key="/console/model-configs">
+            <template #icon>
+              <ApiOutlined />
+            </template>
+            模型配置
+          </a-menu-item>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
 
@@ -57,9 +71,9 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -71,9 +85,14 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
+const openKeys = ref(['/console/settings'])
+const onOpenChange = (keys) => {
+  openKeys.value = keys
+}
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
   if (route.path === '/console/styles') return '风格审核'
+  if (route.path === '/console/model-configs') return '模型配置'
   return ''
 })
 

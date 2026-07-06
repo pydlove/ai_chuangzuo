@@ -22,6 +22,11 @@ const routes = [
         path: 'styles',
         name: 'AdminStyleReview',
         component: () => import('@/views/StyleReviewView.vue')
+      },
+      {
+        path: 'model-configs',
+        name: 'AdminModelConfig',
+        component: () => import('@/views/ModelConfigView.vue')
       }
     ]
   },
