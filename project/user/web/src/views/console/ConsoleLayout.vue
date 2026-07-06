@@ -663,7 +663,7 @@
             :trigger="['click']"
             placement="bottomRight"
           >
-            <div class="console-avatar">U</div>
+            <div class="console-avatar"><UserOutlined /></div>
             <template #overlay>
               <div class="user-center-panel">
                 <!-- 会员卡 -->
@@ -787,6 +787,7 @@
     :footer="null"
     :width="640"
     centered
+    class="terms-modal legal-modal"
   >
     <div class="terms-content">
       <p>欢迎使用爱创作服务（以下简称"本服务"）。在您使用本服务之前，请仔细阅读本用户协议。</p>
@@ -817,6 +818,7 @@
     :footer="null"
     :width="640"
     centered
+    class="privacy-modal legal-modal"
   >
     <div class="terms-content">
       <p>我们非常重视您的个人隐私保护，在您使用爱创作服务时，我们会按照本隐私政策的规定收集、使用、存储和保护您的个人信息。</p>
@@ -840,6 +842,7 @@
     :footer="null"
     :width="400"
     centered
+    class="wechat-modal"
   >
     <div class="wechat-modal-content">
       <img
@@ -1098,12 +1101,62 @@ const isActive = (path) => {
 // ---------- 主题切换 ----------
 const THEME_KEY = 'aichuangzuo_theme'
 const currentTheme = ref('light')
+const isThemeTransitioning = ref(false)
 
-const toggleTheme = () => {
+const toggleTheme = (event) => {
+  if (isThemeTransitioning.value) return
+
+  const btn = event?.currentTarget
+  const rect = btn?.getBoundingClientRect()
+  // 兜底：若触发源不可见（例如从手机端列表行触发），从屏幕中心扩散
+  const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
+  const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
+  const vw = window.innerWidth
+  const vh = window.innerHeight
+  const maxR = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy))
+
   const next = currentTheme.value === 'light' ? 'dark' : 'light'
-  currentTheme.value = next
-  document.body.setAttribute('data-theme', next)
-  localStorage.setItem(THEME_KEY, next)
+  // 多段 radial-gradient：中心 = 当前主题，过渡到中间灰，外圈 = 新主题
+  const maskBg = next === 'dark'
+    ? 'radial-gradient(circle, #f8f9fa 0%, #d8d8d8 25%, #8a8a8a 55%, #3a3a3a 80%, #141414 100%)'
+    : 'radial-gradient(circle, #141414 0%, #3a3a3a 25%, #8a8a8a 55%, #d8d8d8 80%, #f8f9fa 100%)'
+
+  const mask = document.createElement('div')
+  Object.assign(mask.style, {
+    position: 'fixed',
+    left: cx + 'px',
+    top: cy + 'px',
+    width: '0px',
+    height: '0px',
+    borderRadius: '50%',
+    background: maskBg,
+    transform: 'translate(-50%, -50%)',
+    zIndex: '9999',
+    pointerEvents: 'none',
+    willChange: 'width, height'
+  })
+  document.body.appendChild(mask)
+
+  // 强制 reflow，确保动画从 0 开始
+  void mask.offsetWidth
+  mask.style.transition = 'width 0.75s cubic-bezier(0.4, 0, 0.2, 1), height 0.75s cubic-bezier(0.4, 0, 0.2, 1)'
+  mask.style.width = (maxR * 2) + 'px'
+  mask.style.height = (maxR * 2) + 'px'
+
+  isThemeTransitioning.value = true
+
+  // 动画 60% 时切换主题，新主题从圆形内透出来
+  setTimeout(() => {
+    currentTheme.value = next
+    document.body.setAttribute('data-theme', next)
+    localStorage.setItem(THEME_KEY, next)
+  }, 450)
+
+  // 动画结束后移除遮罩
+  setTimeout(() => {
+    if (mask.parentNode) mask.parentNode.removeChild(mask)
+    isThemeTransitioning.value = false
+  }, 800)
 }
 
 const loadTheme = () => {
@@ -5019,6 +5072,75 @@ body[data-theme="dark"] .profile-modal .ant-modal-title,
 body[data-theme="dark"] .email-modal .ant-modal-title,
 body[data-theme="dark"] .password-modal .ant-modal-title {
   color: #e0e0e0;
+}
+
+/* 用户协议 / 隐私政策弹框暗色主题 */
+body[data-theme="dark"] .legal-modal .ant-modal-content {
+  background: #141414;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .legal-modal .ant-modal-header {
+  background: #141414;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .legal-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .legal-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .legal-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .terms-content {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .terms-content h4 {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .terms-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+body[data-theme="dark"] .terms-content::-webkit-scrollbar-thumb {
+  background: #434343;
+  border-radius: 2px;
+}
+
+/* 客服微信弹框暗色主题 */
+body[data-theme="dark"] .wechat-modal .ant-modal-content {
+  background: #141414;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .wechat-modal .ant-modal-header {
+  background: #141414;
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .wechat-modal .ant-modal-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .wechat-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .wechat-modal .ant-modal-close:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+body[data-theme="dark"] .wechat-modal-content .wechat-hint {
+  color: #a6a6a6;
 }
 
 /* 注意：class="invite-rules-drawer" 直接挂在 .ant-drawer-content 上（同一元素），
