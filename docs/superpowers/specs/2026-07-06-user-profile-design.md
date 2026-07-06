@@ -64,7 +64,7 @@
 | 新增 | `project/user/api/.../modules/user/dto/request/ChangePasswordRequest.java` | oldPassword + newPassword + confirmPassword |
 | 新增 | `project/user/api/.../modules/user/converter/UserConverter.java` | `User → UserProfileVO` |
 | 修改 | `project/user/api/.../modules/auth/mapper/UserMapper.java` | 新增 `existsByEmail(@Param("email") String email, @Param("excludeUserId") Long excludeUserId)`，方法 Javadoc |
-| 修改 | `shared/.../enums/error/UserAuthErrorCode.java` | 新增 `EMAIL_ALREADY_REGISTERED(111015)` / `EMAIL_SAME_AS_OLD(111016)` / `PASSWORD_INCORRECT(111017)` / `PASSWORD_TOO_WEAK(111018)` |
+| 修改 | `shared/.../enums/error/UserAuthErrorCode.java` | 新增 `EMAIL_SAME_AS_OLD(111015)` / `PASSWORD_INCORRECT(111016)`；复用已有 `EMAIL_ALREADY_EXISTS(111006)` 和 `PASSWORD_FORMAT_ERROR(111008)` |
 | 修改 | `project/user/api/.../modules/auth/entity/User.java` | 给 8 个非自明字段补字段级注释（biz_no/nickname/email/avatar_url/invite_code/user_status/email_verified/tenant_id） |
 | 修改 | `project/user/web/src/api/user.js` | 新文件，4 个 API 调用 |
 | 新增 | `project/user/web/src/composables/useUserProfile.js` | composable：loadProfile/updateNickname/updateEmail/changePassword，ant message 提示 |
@@ -99,13 +99,13 @@
 ### 3.3 `PUT /api/v1/user/me/email`
 
 - **请求**：`{"newEmail": "new@example.com", "emailCode": "123456"}`
-- **失败**：验证码错误/过期 / 邮箱已被他人注册 / 新邮箱与旧邮箱相同
+- **失败**：验证码错误/过期(`EMAIL_CODE_ERROR` 111003) / 邮箱已被他人注册(`EMAIL_ALREADY_EXISTS` 111006) / 新邮箱与旧邮箱相同(`EMAIL_SAME_AS_OLD` 111015)
 - **成功**：返回最新 `UserProfileVO`，同时把 `email_verified` 置 1
 
 ### 3.4 `PUT /api/v1/user/me/password`
 
 - **请求**：`{"oldPassword": "xxx", "newPassword": "yyy", "confirmPassword": "yyy"}`
-- **失败**：旧密码错 / 新密码 < 6 位 / 两次不一致
+- **失败**：旧密码错(`PASSWORD_INCORRECT` 111016) / 新密码 < 6 位(`PASSWORD_FORMAT_ERROR` 111008) / 两次不一致(`PASSWORD_NOT_MATCH` 111007)
 - **成功**：204 No Content
 
 ## 4. 前端集成
@@ -150,7 +150,7 @@ export const changePassword = (payload) => api.put('/api/v1/user/me/password', p
 
 ## 6. 测试
 
-- `UserProfileServiceImpl` 单元测试：getMyProfile / updateNickname 长度校验 / updateEmail 验证码错/邮箱冲突/与旧邮箱相同 / changePassword 旧密码错/新密码太弱/两次不一致/正常改密成功
+- `UserProfileServiceImpl` 单元测试：getMyProfile / updateNickname 长度校验 / updateEmail 验证码错(`EMAIL_CODE_ERROR`)/邮箱冲突(`EMAIL_ALREADY_EXISTS`)/与旧邮箱相同(`EMAIL_SAME_AS_OLD`) / changePassword 旧密码错(`PASSWORD_INCORRECT`)/新密码太弱(`PASSWORD_FORMAT_ERROR`)/两次不一致(`PASSWORD_NOT_MATCH`)/正常改密成功
 - `UserMapper#existsByEmail` SQL 正确性测试（排除自己邮箱后应能查到已被他人注册）
 - 前端：useUserProfile composable 单元测试（mock api 调用 + 错误处理）
 
