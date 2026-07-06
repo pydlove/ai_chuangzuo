@@ -36,6 +36,11 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class UserProfileServiceImpl implements UserProfileService {
 
+    /** 密码长度下限。service 层集中校验，方便调整时只改一处。 */
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    /** 密码长度上限；与 register 接口保持一致。 */
+    private static final int MAX_PASSWORD_LENGTH = 20;
+
     private final UserMapper userMapper;
     private final EmailCodeService emailCodeService;
     private final PasswordEncoder passwordEncoder;
@@ -111,9 +116,33 @@ public class UserProfileServiceImpl implements UserProfileService {
         return userConverter.toProfileVO(user);
     }
 
+    /**
+     * 修改当前用户的密码。需要原密码校验通过，新密码长度 ≥6 且 ≤20，新密码两次一致。
+     *
+     * <p>成功后仅更新密码字段，不签发新 token —— 客户端继续使用旧 access token。
+     *
+     * @param request 旧/新/确认密码
+     * @throws BusinessException PASSWORD_INCORRECT / PASSWORD_FORMAT_ERROR / PASSWORD_NOT_MATCH / USER_NOT_FOUND
+     */
     @Override
     public void changePassword(ChangePasswordRequest request) {
-        // 由 Task 8 实现
-        throw new UnsupportedOperationException("see Task 8");
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
+            throw new BusinessException(UserAuthErrorCode.PASSWORD_INCORRECT);
+        }
+        String newPwd = request.getNewPassword();
+        if (newPwd.length() < MIN_PASSWORD_LENGTH || newPwd.length() > MAX_PASSWORD_LENGTH) {
+            throw new BusinessException(UserAuthErrorCode.PASSWORD_FORMAT_ERROR);
+        }
+        if (!newPwd.equals(request.getConfirmPassword())) {
+            throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
+        }
+        user.setPasswordHash(passwordEncoder.encode(newPwd));
+        userMapper.updateById(user);
+        log.info("密码已修改 userId={}", userId);
     }
 }
