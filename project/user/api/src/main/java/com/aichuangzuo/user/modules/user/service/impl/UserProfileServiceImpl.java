@@ -51,10 +51,24 @@ public class UserProfileServiceImpl implements UserProfileService {
         return userConverter.toProfileVO(user);
     }
 
+    /**
+     * 修改当前用户的昵称。会 trim 后再写库，避免前后空格污染展示。
+     *
+     * @param request 新昵称（已通过 Bean Validation，1-20 字符）
+     * @return 更新后的视图对象
+     * @throws BusinessException USER_NOT_FOUND
+     */
     @Override
     public UserProfileVO updateNickname(UpdateNicknameRequest request) {
-        // 由 Task 6 实现
-        throw new UnsupportedOperationException("see Task 6");
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        user.setNickname(request.getNickname().trim());
+        userMapper.updateById(user);
+        log.info("昵称已修改 userId={}", userId);
+        return userConverter.toProfileVO(user);
     }
 
     @Override
