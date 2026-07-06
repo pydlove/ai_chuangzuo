@@ -683,7 +683,13 @@
                   <div class="user-section-title">账号信息</div>
                   <div class="user-row">
                     <span class="user-row-label">用户ID</span>
-                    <span class="user-row-value">{{ userProfile.profile.value?.userId || '—' }}</span>
+                    <span class="user-row-value user-row-copy" @click="copyAccountUserId">
+                      {{ userProfile.profile.value?.userId || '—' }}
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                      </svg>
+                    </span>
                   </div>
                   <div class="user-row" @click="openProfileModal">
                     <span class="user-row-label">昵称</span>
@@ -1257,6 +1263,17 @@ const openEmailModal = () => {
   userCenterVisible.value = false
   emailForm.code = ''  // 验证码每次重新输入
   emailVisible.value = true
+}
+
+const copyAccountUserId = async () => {
+  const id = userProfile.profile.value?.userId
+  if (!id) return
+  try {
+    await navigator.clipboard.writeText(id)
+    message.success('用户ID已复制')
+  } catch {
+    message.error('复制失败')
+  }
 }
 
 const handleProfileSubmit = async () => {
@@ -3304,6 +3321,23 @@ body[data-theme="dark"] .about-footer {
 }
 
 .user-row-edit:hover {
+  opacity: 0.75;
+}
+
+.user-row-copy {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.user-row-copy svg {
+  width: 14px;
+  height: 14px;
+  color: var(--color-primary);
+}
+
+.user-row-copy:hover {
   opacity: 0.75;
 }
 
