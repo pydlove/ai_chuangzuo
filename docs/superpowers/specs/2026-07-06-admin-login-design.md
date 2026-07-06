@@ -330,7 +330,7 @@ POST /api/v1/admin/auth/login
 2. **字段对齐**：前端表单字段从 `account` 改为 `username`，与后端 `AdminLoginRequest.username` 保持一致。
 3. **接入滑块弹框**：点击登录按钮后先校验账号密码格式，再打开滑块验证弹框；验证通过后调用 `adminAuthLogin`。
 3. **更新 `src/api/auth.js`**：删除 mock，调用真实后端接口。
-4. **预填开发账号**：`admin / Root1qaz!QAZ`（仅开发环境）。
+4. **预填开发账号**：登录表单默认填写 `admin / Root1qaz!QAZ`（仅开发环境），避免测试时反复输入。
 5. **Token 存储**：保存 `accessToken` 和 `refreshToken`。
 6. **请求拦截**：`request.js` 已携带 `Authorization: Bearer {token}`，无需改动。
 7. **路由守卫**：已根据 token 判断登录态，无需改动。
@@ -349,7 +349,7 @@ POST /api/v1/admin/auth/login
 调用 POST /api/v1/admin/auth/login
         ↓
 成功：保存 token + userInfo，跳转 /console/users
-失败：message.error，关闭弹框，不清空账号密码
+失败：message.error，关闭弹框，不清空账号密码（表单仍保留预填的 admin/Root1qaz!QAZ）
 ```
 
 ---
