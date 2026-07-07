@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.hotsearch.crawler.HotSearchItem;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchDaily;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchPlatform;
 import com.aichuangzuo.admin.modules.hotsearch.enums.AdminHotSearchErrorCode;
+import com.aichuangzuo.admin.modules.hotsearch.event.HotSearchConfigChangedEvent;
 import com.aichuangzuo.admin.modules.hotsearch.mapper.HotSearchDailyMapper;
 import com.aichuangzuo.admin.modules.hotsearch.mapper.HotSearchPlatformMapper;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchConfigService;
@@ -16,7 +17,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
@@ -48,13 +49,22 @@ public class HotSearchCrawlJob {
     public HotSearchCrawlJob(HotSearchPlatformMapper platformMapper,
                              HotSearchDailyMapper dailyMapper,
                              List<HotSearchFetcher> fetchers,
-                             @Lazy HotSearchConfigService configService,
+                             HotSearchConfigService configService,
                              ThreadPoolTaskScheduler hotSearchTaskScheduler) {
         this.platformMapper = platformMapper;
         this.dailyMapper = dailyMapper;
         this.fetchers = fetchers;
         this.configService = configService;
         this.taskScheduler = hotSearchTaskScheduler;
+    }
+
+    /**
+     * 监听配置变更事件，触发 reschedule。
+     */
+    @EventListener
+    public void onConfigChanged(HotSearchConfigChangedEvent event) {
+        log.info("收到配置变更事件，adminId={}，开始 reschedule", event.adminId());
+        reschedule();
     }
 
     @PostConstruct

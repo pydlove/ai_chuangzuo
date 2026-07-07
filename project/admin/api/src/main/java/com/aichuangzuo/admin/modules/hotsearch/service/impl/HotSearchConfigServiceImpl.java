@@ -3,13 +3,14 @@ package com.aichuangzuo.admin.modules.hotsearch.service.impl;
 import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchConfigRequest;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchConfig;
 import com.aichuangzuo.admin.modules.hotsearch.enums.AdminHotSearchErrorCode;
-import com.aichuangzuo.admin.modules.hotsearch.job.HotSearchCrawlJob;
+import com.aichuangzuo.admin.modules.hotsearch.event.HotSearchConfigChangedEvent;
 import com.aichuangzuo.admin.modules.hotsearch.mapper.HotSearchConfigMapper;
 import com.aichuangzuo.admin.modules.hotsearch.properties.HotSearchProperties;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchConfigService;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,7 +26,7 @@ public class HotSearchConfigServiceImpl implements HotSearchConfigService {
 
     private final HotSearchConfigMapper configMapper;
     private final HotSearchProperties properties;
-    private final HotSearchCrawlJob crawlJob;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Override
     public HotSearchConfig getConfig() {
@@ -62,8 +63,8 @@ public class HotSearchConfigServiceImpl implements HotSearchConfigService {
             configMapper.updateById(entity);
         }
 
-        // 重建定时 Trigger
-        crawlJob.reschedule();
+        // 通知 CrawlJob 重建定时 Trigger（事件解耦避免循环依赖）
+        eventPublisher.publishEvent(new HotSearchConfigChangedEvent(updatedBy));
         return entity;
     }
 
