@@ -2,6 +2,8 @@ package com.aichuangzuo.admin.modules.hotsearch.crawler;
 
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchPlatform;
 import com.aichuangzuo.admin.modules.hotsearch.properties.HotSearchProperties;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
@@ -21,6 +23,14 @@ import java.util.List;
  *
  * <p>由于各平台反爬策略和页面结构经常变化，本实现以“尽力抓取”为原则：
  * 单平台失败时返回空列表并记录 warning，不影响其他平台。
+ *
+ * <p>各平台数据源说明：
+ * <ul>
+ *   <li>百度：通过 jsoup 抓公开热搜页（依赖 truststore 中含 DLP CA）</li>
+ *   <li>抖音：通过 aweme/v1/web/hot/search/list JSON 接口（无需登录）</li>
+ *   <li>微博 / B 站 / 头条：需要登录态 cookie（mb、bv、vid等），本实现不可用，
+ *       调用 fetch() 时返回空列表并 warn。</li>
+ * </ul>
  */
 @Slf4j
 @Component
@@ -28,6 +38,7 @@ import java.util.List;
 public class JsoupHotSearchFetcher implements HotSearchFetcher {
 
     private final HotSearchProperties properties;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Override
     public boolean supports(HotSearchPlatform platform) {
@@ -83,97 +94,43 @@ public class JsoupHotSearchFetcher implements HotSearchFetcher {
         }
     }
 
-    private List<HotSearchItem> fetchWeibo() {
-        try {
-            Document doc = fetchDocument("https://s.weibo.com/top/summary");
-            Elements rows = doc.select("#pl_top_realtimehot tbody tr");
-            List<HotSearchItem> list = new ArrayList<>();
-            int rank = 1;
-            for (Element row : rows) {
-                if (rank > properties.getTopN()) break;
-                Element ranktop = row.selectFirst("td.ranktop");
-                if (ranktop != null) {
-                    continue;
-                }
-                Element linkEl = row.selectFirst("td.td-02 a");
-                Element hotEl = row.selectFirst("td.td-02 span");
-                if (linkEl == null) continue;
-                HotSearchItem item = new HotSearchItem();
-                item.setRank(rank++);
-                item.setTitle(linkEl.text().trim());
-                item.setHotValue(hotEl == null ? null : hotEl.text().trim());
-                String href = linkEl.attr("href");
-                item.setUrl(href.startsWith("http") ? href : "https://s.weibo.com" + href);
-                list.add(item);
-            }
-            return list;
-        } catch (Exception e) {
-            log.warn("微博热搜抓取失败: {}", e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
-    private List<HotSearchItem> fetchBilibili() {
-        try {
-            Document doc = fetchDocument("https://www.bilibili.com/v/popular/rank/all");
-            Elements rows = doc.select(".rank-list .rank-item");
-            List<HotSearchItem> list = new ArrayList<>();
-            int rank = 1;
-            for (Element row : rows) {
-                if (rank > properties.getTopN()) break;
-                Element titleEl = row.selectFirst(".info a.title");
-                Element hotEl = row.selectFirst(".info .detail .data-box");
-                if (titleEl == null) continue;
-                HotSearchItem item = new HotSearchItem();
-                item.setRank(rank++);
-                item.setTitle(titleEl.text().trim());
-                item.setHotValue(hotEl == null ? null : hotEl.text().trim());
-                String href = titleEl.attr("href");
-                item.setUrl(href.startsWith("http") ? href : "https:" + href);
-                list.add(item);
-            }
-            return list;
-        } catch (Exception e) {
-            log.warn("B 站热门抓取失败: {}", e.getMessage());
-            return new ArrayList<>();
-        }
-    }
-
     private List<HotSearchItem> fetchToutiao() {
-        try {
-            Document doc = fetchDocument("https://www.toutiao.com/hot-event/hot-board/?origin=toutiao_pc");
-            Elements rows = doc.select("[class*='hot-board']");
-            List<HotSearchItem> list = new ArrayList<>();
-            int rank = 1;
-            for (Element row : rows) {
-                if (rank > Math.min(properties.getTopN(), 5)) break;
-                HotSearchItem item = new HotSearchItem();
-                item.setRank(rank++);
-                item.setTitle(row.text().trim());
-                item.setHotValue(null);
-                item.setUrl(null);
-                list.add(item);
-            }
-            return list;
-        } catch (Exception e) {
-            log.warn("今日头条热搜抓取失败: {}", e.getMessage());
-            return new ArrayList<>();
-        }
+        // 头条公开热搜页 URL 已弃用，热搜数据需登录态。无登录可用数据源，跳过。
+        log.warn("今日头条暂不支持：需要登录态 cookie 才能拿到热搜");
+        return new ArrayList<>();
     }
 
     private List<HotSearchItem> fetchDouyin() {
+        // 抖音热搜走 aweme/v1/web/hot/search/list JSON 接口，无登录可用
         try {
-            String keyword = URLEncoder.encode("热点", StandardCharsets.UTF_8);
-            Document doc = fetchDocument("https://www.douyin.com/search/" + keyword);
-            Elements rows = doc.select("[data-e2e='search-card-title'], .search-card-title");
+            String url = "https://www.douyin.com/aweme/v1/web/hot/search/list/"
+                    + "?device_platform=webapp&aid=6383&channel=channel_pc_web"
+                    + "&version_code=190500&version_name=19.5.0"
+                    + "&cookie_enabled=true&platform=PC";
+            String body = Jsoup.connect(url)
+                    .userAgent("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                            + "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36")
+                    .header("Referer", "https://www.douyin.com/")
+                    .ignoreContentType(true)
+                    .timeout(properties.getReadTimeoutMillis())
+                    .get()
+                    .body()
+                    .text();
+            JsonNode root = objectMapper.readTree(body);
+            JsonNode wordList = root.path("data").path("word_list");
+            if (!wordList.isArray()) {
+                log.warn("抖音热搜响应格式异常：无 word_list");
+                return new ArrayList<>();
+            }
             List<HotSearchItem> list = new ArrayList<>();
             int rank = 1;
-            for (Element row : rows) {
-                if (rank > Math.min(properties.getTopN(), 5)) break;
+            for (JsonNode w : wordList) {
+                if (rank > properties.getTopN()) break;
                 HotSearchItem item = new HotSearchItem();
                 item.setRank(rank++);
-                item.setTitle(row.text().trim());
-                item.setHotValue(null);
+                item.setTitle(w.path("word").asText(""));
+                JsonNode hv = w.path("hot_value");
+                item.setHotValue(hv.isNumber() ? String.valueOf(hv.asLong()) : hv.asText(null));
                 item.setUrl(null);
                 list.add(item);
             }
@@ -182,5 +139,18 @@ public class JsoupHotSearchFetcher implements HotSearchFetcher {
             log.warn("抖音热搜抓取失败: {}", e.getMessage());
             return new ArrayList<>();
         }
+    }
+
+    private List<HotSearchItem> fetchBilibili() {
+        // B 站 ranking API 需要登录态 SESSDATA，否则 -352 风控。无登录可用数据源，跳过。
+        log.warn("B 站暂不支持：ranking API 需要登录 SESSDATA cookie 才能拿到数据");
+        return new ArrayList<>();
+    }
+
+    private List<HotSearchItem> fetchWeibo() {
+        // 微博 s.weibo.com/top/summary 走 Sina Visitor System 反爬墙，HTML 是空 JS 挑战页。
+        // m.weibo.cn 移动 API 也走同一套。无登录可用数据源，跳过。
+        log.warn("微博暂不支持：Sina Visitor System 反爬墙阻挡，需要 JS 引擎或登录 cookie");
+        return new ArrayList<>();
     }
 }

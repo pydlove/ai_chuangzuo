@@ -39,10 +39,10 @@ keytool -import -trustcacerts -alias dlp_ca_root \
 
 ## 平台根因表（不要再来回试）
 
-| 平台 | 修了 truststore 后 | 真因 |
-|---|---|---|
-| baidu | ✅ 50 条数据 | — |
-| weibo | ❌ PKIX 通过但 HTML 是"Sina Visitor System"反爬墙 | 需 JS 引擎才能拿到热搜表 |
-| bilibili | ❌ HTML 仅 ~4KB，只剩 footer | JS 渲染 SPA，jsoup 拿不到 |
-| toutiao | ❌ URL 404 + `Content-Type: text/plain` | URL 已弃用，需找新接口 |
-| douyin | ❌ URL 404 + JS 渲染 | jsoup 无法处理 |
+| 平台 | 修了 truststore 后 | 数据源 | 真因（未支持的原因） |
+|---|---|---|---|
+| baidu | ✅ 50 条数据 | jsoup 抓 `top.baidu.com/board` | — |
+| douyin | ✅ 50 条数据 | `aweme/v1/web/hot/search/list` JSON | — |
+| toutiao | ❌ | — | URL 已 404 弃用，备用 API 需登录态 |
+| bilibili | ❌ | — | `ranking/v2` API 需 SESSDATA cookie（-352 风控） |
+| weibo | ❌ | — | `s.weibo.com/top/summary` + `m.weibo.cn` 都走 Sina Visitor System 反爬墙，需 JS 引擎 |
