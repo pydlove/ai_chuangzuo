@@ -27,6 +27,21 @@ const routes = [
         path: 'model-configs',
         name: 'AdminModelConfig',
         component: () => import('@/views/ModelConfigView.vue')
+      },
+      {
+        path: 'hot-search/platforms',
+        name: 'AdminHotSearchPlatforms',
+        component: () => import('@/views/HotSearchPlatformView.vue')
+      },
+      {
+        path: 'hot-search/daily',
+        name: 'AdminHotSearchDaily',
+        component: () => import('@/views/HotSearchDailyView.vue')
+      },
+      {
+        path: 'hot-search/config',
+        name: 'AdminHotSearchConfig',
+        component: () => import('@/views/HotSearchConfigView.vue')
       }
     ]
   },

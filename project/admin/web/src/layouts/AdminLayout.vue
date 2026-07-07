@@ -45,6 +45,15 @@
             模型配置
           </a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="/console/hot-search">
+          <template #icon>
+            <FireOutlined />
+          </template>
+          <template #title>热度榜</template>
+          <a-menu-item key="/console/hot-search/platforms">平台管理</a-menu-item>
+          <a-menu-item key="/console/hot-search/daily">今日榜单</a-menu-item>
+          <a-menu-item key="/console/hot-search/config">抓取配置</a-menu-item>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
 
@@ -73,7 +82,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined, FireOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -85,7 +94,7 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/settings'])
+const openKeys = ref(['/console/settings', '/console/hot-search'])
 const onOpenChange = (keys) => {
   openKeys.value = keys
 }
@@ -93,6 +102,9 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
   if (route.path === '/console/styles') return '风格审核'
   if (route.path === '/console/model-configs') return '模型配置'
+  if (route.path === '/console/hot-search/platforms') return '平台管理'
+  if (route.path === '/console/hot-search/daily') return '今日榜单'
+  if (route.path === '/console/hot-search/config') return '抓取配置'
   return ''
 })
 
