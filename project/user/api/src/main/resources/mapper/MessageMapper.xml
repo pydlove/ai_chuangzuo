@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.message.mapper.MessageMapper">
+
+    <select id="selectVisibleMessages" resultType="com.aichuangzuo.user.modules.message.vo.MessageVO">
+        SELECT
+            m.id AS id,
+            m.msg_type AS type,
+            m.title AS title,
+            m.summary AS summary,
+            m.link_url AS link,
+            m.created_at AS createdAt,
+            (mr.id IS NOT NULL) AS `read`
+        FROM u_message m
+        LEFT JOIN u_message_read mr
+            ON mr.message_id = m.id
+            AND mr.user_id = #{userId}
+            AND mr.is_deleted = 0
+        WHERE m.is_deleted = 0
+          AND (
+              m.scope = 1
+              OR (m.scope = 2 AND m.target_user_id = #{userId})
+          )
+        ORDER BY m.created_at DESC
+        LIMIT 200
+    </select>
+
+    <select id="selectVisibleMessageId" resultType="java.lang.Long">
+        SELECT m.id
+        FROM u_message m
+        WHERE m.is_deleted = 0
+          AND m.id = #{messageId}
+          AND (
+              m.scope = 1
+              OR (m.scope = 2 AND m.target_user_id = #{userId})
+          )
+        LIMIT 1
+    </select>
+
+</mapper>

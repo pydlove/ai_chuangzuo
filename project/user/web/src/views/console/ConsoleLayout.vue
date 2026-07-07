@@ -1031,6 +1031,7 @@ import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
+import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1226,7 +1227,6 @@ const loadTheme = () => {
 }
 
 // ---------- 消息通知 ----------
-const STORAGE_KEY = 'aichuangzuo_notifications'
 const notifVisible = ref(false)
 const activeTab = ref('generation')
 const notifications = ref([])
@@ -1483,7 +1483,6 @@ const handleLogout = async () => {
   localStorage.removeItem('aichuangzuo_access_token')
   localStorage.removeItem('aichuangzuo_refresh_token')
   localStorage.removeItem('aichuangzuo_membership')
-  localStorage.removeItem('aichuangzuo_notif_seeded')
   router.push('/login')
 }
 
@@ -2203,30 +2202,39 @@ const switchTab = (type) => {
   activeTab.value = type
 }
 
-const loadNotifications = () => {
+const loadNotifications = async () => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    notifications.value = raw ? JSON.parse(raw) : []
-  } catch {
+    const res = await getMessages()
+    notifications.value = res.data || []
+  } catch (err) {
     notifications.value = []
   }
 }
 
-const saveNotifications = () => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(notifications.value))
+const markAllRead = async () => {
+  try {
+    await markAllMessagesRead()
+    notifications.value.forEach(n => { n.read = true })
+  } catch {
+    // composable 已处理错误提示
+  }
 }
 
-const markAllRead = () => {
-  notifications.value.forEach(n => { n.read = true })
-  saveNotifications()
-}
-
-const handleNotifClick = (n) => {
+const handleNotifClick = async (n) => {
   if (!n.read) {
-    n.read = true
-    saveNotifications()
+    try {
+      await markMessageRead(n.id)
+      n.read = true
+    } catch {
+      // 即使接口失败也允许跳转
+    }
   }
   notifVisible.value = false
+
+  if (n.link) {
+    router.push(n.link)
+    return
+  }
   if (n.type === 'generation') {
     router.push('/console/works')
   } else if (n.type === 'membership') {
@@ -2234,56 +2242,8 @@ const handleNotifClick = (n) => {
   }
 }
 
-// 种子数据
-const seedNotifications = () => {
-  const seeded = localStorage.getItem('aichuangzuo_notif_seeded')
-  if (seeded) return
-  notifications.value = [
-    {
-      id: '1',
-      type: 'announcement',
-      title: '系统维护通知',
-      summary: '爱创作将于 6 月 30 日 22:00-23:00 进行系统维护，届时部分功能暂停使用',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 5).toISOString()
-    },
-    {
-      id: '2',
-      type: 'feature',
-      title: '新功能上线：标题优化器',
-      summary: '预览页新增 AI 标题优化，一键生成多平台爆款标题',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 10).toISOString()
-    },
-    {
-      id: '3',
-      type: 'promotion',
-      title: '限时优惠：年会员 7 折',
-      summary: '即日起至月底，年会员低至 199 元，点击了解详情',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 30).toISOString()
-    },
-    {
-      id: '4',
-      type: 'membership',
-      title: '会员即将到期提醒',
-      summary: '您的会员将于 7 天后到期，续费可享续费优惠',
-      read: false,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString()
-    },
-    {
-      id: '5',
-      type: 'generation',
-      title: '文章生成完成',
-      summary: '《如何写出爆款小红书文案》已生成完毕，点击查看',
-      read: true,
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString()
-    }
-  ]
-  saveNotifications()
-  localStorage.setItem('aichuangzuo_notif_seeded', '1')
-
-  // 演示用：默认开通年会员
+// 演示用：默认开通年会员
+const seedMembership = () => {
   if (!localStorage.getItem(MEMBERSHIP_KEY)) {
     localStorage.setItem(MEMBERSHIP_KEY, '年会员')
     hasMembership.value = true
@@ -2291,10 +2251,10 @@ const seedNotifications = () => {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   loadTheme()
-  loadNotifications()
-  seedNotifications()
+  await loadNotifications()
+  seedMembership()
   loadMembership()
   userProfile.loadProfile()
 })
