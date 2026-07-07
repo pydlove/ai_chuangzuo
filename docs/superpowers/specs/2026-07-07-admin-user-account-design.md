@@ -51,13 +51,13 @@
 
 ```
 收益排行榜
-├── 账户明细          /admin/earnings/accounts
-├── 结算中心          /admin/earnings/settlements
-├── 自媒体审核        /admin/earnings/self-media-review
-└── 榜单发奖          /admin/earnings/leaderboard-awards
+├── 账户明细          /console/earnings/accounts
+├── 结算中心          /console/earnings/settlements
+├── 自媒体审核        /console/earnings/self-media-review
+└── 榜单发奖          /console/earnings/leaderboard-awards
 ```
 
-> 前端路径统一以 `/admin/earnings/` 为前缀，与现有 `/admin/users`、`/admin/model-configs` 风格一致。
+> 前端路径统一以 `/console/earnings/` 为前缀，与现有 `/console/users`、`/console/model-configs` 风格一致。
 
 ---
 
@@ -382,10 +382,10 @@ project/admin/web/src/
   icon: 'DollarOutlined',
   label: '收益排行榜',
   children: [
-    { key: '/admin/earnings/accounts', label: '账户明细' },
-    { key: '/admin/earnings/settlements', label: '结算中心' },
-    { key: '/admin/earnings/self-media-review', label: '自媒体审核' },
-    { key: '/admin/earnings/leaderboard-awards', label: '榜单发奖' }
+    { key: '/console/earnings/accounts', label: '账户明细' },
+    { key: '/console/earnings/settlements', label: '结算中心' },
+    { key: '/console/earnings/self-media-review', label: '自媒体审核' },
+    { key: '/console/earnings/leaderboard-awards', label: '榜单发奖' }
   ]
 }
 ```
