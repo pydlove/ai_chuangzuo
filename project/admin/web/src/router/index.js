@@ -42,6 +42,16 @@ const routes = [
         path: 'hot-search/config',
         name: 'AdminHotSearchConfig',
         component: () => import('@/views/HotSearchConfigView.vue')
+      },
+      {
+        path: 'leaderboard/review',
+        name: 'AdminLeaderboardReview',
+        component: () => import('@/views/LeaderboardReviewView.vue')
+      },
+      {
+        path: 'leaderboard/award',
+        name: 'AdminLeaderboardAward',
+        component: () => import('@/views/LeaderboardAwardView.vue')
       }
     ]
   },
