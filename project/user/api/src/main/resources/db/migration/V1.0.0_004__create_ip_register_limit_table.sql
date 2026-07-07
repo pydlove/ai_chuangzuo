@@ -1,0 +1,12 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_ip_register_limit (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    client_ip VARCHAR(45) NOT NULL COMMENT '客户端IP',
+    register_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累计成功注册数',
+    is_blocked TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否永久封禁：0-否，1-是',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_ip_register_limit_client_ip (client_ip)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='IP注册累计限制表';

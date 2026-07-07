@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS u_user_coin_record (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    biz_no VARCHAR(64) NOT NULL COMMENT '业务唯一编号',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '所属用户ID',
+    biz_type VARCHAR(32) NOT NULL COMMENT '业务类型：leaderboard_reward / admin_adjust / invite_reward 等',
+    direction TINYINT UNSIGNED NOT NULL COMMENT '方向：1-收入，2-支出',
+    amount DECIMAL(19,4) NOT NULL COMMENT '本次金额（始终为正）',
+    balance_after DECIMAL(19,4) NOT NULL COMMENT '本次入账后余额快照',
+    ref_id VARCHAR(64) DEFAULT NULL COMMENT '关联业务ID',
+    remark VARCHAR(256) DEFAULT NULL COMMENT '备注',
+    biz_time DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '业务发生时间',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_user_coin_record_biz_no (biz_no),
+    KEY idx_u_user_coin_record_user_time (user_id, biz_time),
+    KEY idx_u_user_coin_record_user_type (user_id, biz_type),
+    KEY idx_u_user_coin_record_biz_time (biz_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户创作币流水表';

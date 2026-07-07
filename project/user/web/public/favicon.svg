@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+  <mask id="m">
+    <rect width="64" height="64" rx="14" ry="14" fill="white"/>
+  </mask>
+  <image href="/src/assets/images/common/logo-fav.png" width="64" height="64" mask="url(#m)"/>
+</svg>

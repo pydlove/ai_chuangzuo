@@ -1,0 +1,275 @@
+:root {
+  /* 品牌色 */
+  --color-primary: #FF2442;
+  --color-primary-hover: #E61E3A;
+  --color-primary-active: #CC1730;
+  --color-primary-light: #FFE5EB;
+  --color-primary-bg: #FFF5F7;
+
+  /* 中性色 */
+  --color-text-primary: #1a1a1a;
+  --color-text-regular: #262626;
+  --color-text-secondary: #595959;
+  --color-text-placeholder: #8c8c8c;
+  --color-border-default: #d9d9d9;
+  --color-border-light: #eee;
+  --color-bg-page: #f8f9fa;
+  --color-bg-card: #ffffff;
+  --color-bg-hover: #f5f5f5;
+
+  /* 功能色 */
+  --color-success: #07c160;
+  --color-warning: #fa8c16;
+  --color-error: #ff4d4f;
+  --color-info: #1989fa;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+  --radius-full: 9999px;
+
+  /* 间距 */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* 阴影 */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-sm2: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.15);
+
+  /* 字号 */
+  --font-h1: 24px;
+  --font-h2: 20px;
+  --font-h3: 18px;
+  --font-body: 14px;
+  --font-small: 12px;
+  --font-caption: 11px;
+}
+
+/* 深色主题变量覆盖 */
+body[data-theme="dark"] {
+  --color-text-primary: #f0f0f0;
+  --color-text-regular: #d9d9d9;
+  --color-text-secondary: #a6a6a6;
+  --color-text-placeholder: #737373;
+  --color-border-default: #434343;
+  --color-border-light: #303030;
+  --color-bg-page: #141414;
+  --color-bg-card: #1f1f1f;
+  --color-bg-hover: #2a2a2a;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #app {
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  font-size: var(--font-body);
+  color: var(--color-text-primary);
+  background-color: var(--color-bg-page);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+/* 全局自定义滚动条 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d9d9d9 transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #bfbfbf;
+}
+
+/* 手机端：隐藏滚动条 */
+@media (max-width: 768px) {
+  * {
+    scrollbar-width: none;
+  }
+  ::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+body[data-theme="dark"] * {
+  scrollbar-color: #434343 transparent;
+}
+
+body[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #434343;
+}
+
+body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* 邀请创作币说明 tooltip（a-tooltip 内容渲染到 body，需全局） */
+.invite-coin-tooltip .ant-tooltip-inner {
+  max-width: 260px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #262626;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.invite-coin-tooltip .ant-tooltip-arrow::before {
+  background: #fff;
+}
+
+.invite-coin-tooltip-content {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.invite-coin-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.invite-coin-tooltip-desc {
+  margin-bottom: 8px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-desc b {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.invite-coin-tooltip-section + .invite-coin-tooltip-section {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #eee;
+}
+
+.invite-coin-tooltip-section-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.invite-coin-tooltip-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: disc;
+}
+
+.invite-coin-tooltip-list li {
+  margin-bottom: 2px;
+  font-size: 12px;
+  color: #595959;
+}
+
+.invite-coin-tooltip-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* 邀请创作币说明 tooltip 暗色主题 */
+body[data-theme="dark"] .invite-coin-tooltip .ant-tooltip-inner {
+  background: #1f1f1f;
+  color: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .invite-coin-tooltip .ant-tooltip-arrow::before {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-content {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-title,
+body[data-theme="dark"] .invite-coin-tooltip-section-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-desc,
+body[data-theme="dark"] .invite-coin-tooltip-list li {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-coin-tooltip-section + .invite-coin-tooltip-section {
+  border-top-color: #303030;
+}
+
+/* Console 内容区深色模式兜底：卡片/区块/面板/列表项/筛选/标签暗色化 */
+body[data-theme="dark"] .console-content [class*="-card"]:not([class*="-card-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-section"]:not([class*="-section-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-panel"]:not([class*="-panel-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-box"]:not([class*="-box-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-wrap"]:not([class*="-wrap-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-empty"]:not([class*="-empty-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-modal-content"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-form"]:not([class*="-form-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class*="-table"]:not([class*="-table-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-item"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-filter"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
+body[data-theme="dark"] .console-content [class$="-tab"]:not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]) {
+  background-color: #1f1f1f;
+  border-color: #303030;
+}
+
+/* Console 内容区深色模式兜底：主标题/名称/描述/标签文字亮色化 */
+body[data-theme="dark"] .console-content [class$="-title"],
+body[data-theme="dark"] .console-content [class$="-name"] {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .console-content [class$="-desc"],
+body[data-theme="dark"] .console-content [class$="-label"],
+body[data-theme="dark"] .console-content [class$="-hint"],
+body[data-theme="dark"] .console-content [class$="-text"],
+body[data-theme="dark"] .console-content [class$="-count"],
+body[data-theme="dark"] .console-content [class$="-meta"] {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .console-content [class$="-list"] {
+  color: #a6a6a6;
+}

@@ -1,46 +1,43 @@
-# Task 5 Report: Add Preview-Page Cards and Styles for 30 Templates
+# Task 5 Report: 更新路由 src/router/index.js
 
 ## Status: DONE
 
-## Commits Created
-- `c5e846a` feat(template): add preview-page cards and styles for 30 templates
+## What was implemented
 
-## Verification Results
-- **PC template cards**: 30 cards (all preset keys have matching cards)
-- **Mobile pills**: 15 pills (wechat, toutiao, xiaohongshu, baijiahao, zhihu-answer, business, marketing, story, magazine, academic, wechat-minimal, xiaohongshu-list, toutiao-news, checklist, dark)
-- **templateHeadingTexts**: 18 new entries exist for new templates; 12 original keys missing headingTexts (pre-existing gap from Task 14/17)
-- **JS syntax**: VALID (node -c check passed)
-- **Invalid mobile pills**: NONE (all 15 data-template values match preset keys)
+Replaced the existing `project/admin/web/src/router/index.js` with the new nested-route structure specified in the brief:
 
-## Concerns
-- **Pre-existing gap**: The 12 original template keys (wechat, business, marketing, academic, toutiao, xiaohongshu, baijiahao, story, magazine, card, checklist, dark) are missing `templateHeadingTexts` entries. This was not introduced by this task - it existed before Task 5 work. A prior task (Task 14/17) was supposed to add these but only added the 18 new keys.
-- **zhihu pill**: Was already correctly set to `zhihu-answer` (not the broken "zhihu" state mentioned in the task description)
-- **Mobile pills already at 15**: The mobile pill section already had all 15 pills including the 5 new ones (wechat-minimal, xiaohongshu-list, toutiao-news, checklist, dark)
+- `/login` → LoginView (unchanged, name `AdminLogin`)
+- `/console` → AdminLayout wrapper with `meta.requiresAuth = true`, redirect to `/console/users`, and child `users` route → UserListView (name `AdminUserList`)
+- `/` → `/console`
+- `beforeEach` guard preserves the unauthenticated-redirect-to-`/login` logic, and the logged-in-redirect target was updated from `/console` to `/console/users` per the brief
+- Formatting (single quotes, no semicolons, 2-space indent) matches the brief verbatim
+- `useUserStore` import unchanged
+- `ConsoleView.vue` left on disk as instructed (route no longer references it)
 
-## Task 5 Follow-Up: templateHeadingTexts Verification
+## What was tested
 
-### What Was Checked
-Verified whether `templateHeadingTexts` in `full-prototype-v20.html` had all 30 entries (12 original + 18 new).
+1. **Build:** `cd project/admin/web && npm run build` — succeeded in 2.42s, generated `AdminLayout-*.js/css` and `UserListView-*.js/css` chunks as expected.
+2. **Dev server:** `cd project/admin/web && npm run dev` — Vite started on port 22346 in 143ms with no errors.
+3. **Route fetch check:** `curl http://localhost:22346/` returned 200 with the app shell HTML. The served `/src/router/index.js` shows the new nested `children: [{ path: 'users', name: 'AdminUserList', ... }]` shape, confirming the Vite transform is using the new file.
+4. **Cleanup:** Dev server stopped, port 22346 freed.
 
-### Finding
-All 30 entries are already present in the committed file (HEAD). The entries were added in a prior session.
+## Files changed
 
-### Verification Output
-```
-User script Count: 12          # BUG: pattern ([\\w-]+) does not match quoted keys like 'wechat-minimal'
-Fixed script Count: 30         # CORRECT: pattern ['\"]?([\\w-]+)['\"]? matches both quoted and unquoted
-Missing (fixed): []            # All 18 new keys present
-Git diff: 0 lines              # No uncommitted changes
-```
+- `project/admin/web/src/router/index.js` — replaced (1 file, +11 / -4 lines)
+- Commit: `0701728` on branch `feature/admin-login`
 
-### Note on User Verification Script
-The script provided has a regex bug:
-- Pattern `([\w-]+)` only matches unquoted keys (wechat, toutiao, etc.)
-- Quoted keys like `'wechat-minimal'`, `'zhihu-answer'` are missed
-- Fixed pattern: `['\"]?([\w-]+)['\"]?\s*:` handles both quoted and unquoted
+## Self-review
 
-### Conclusion
-No fix needed. Entries were already committed. Commit `c5e846a` already contains all 30 `templateHeadingTexts` entries.
+- [x] `/login` route preserved, name `AdminLogin`
+- [x] `/console` route now uses AdminLayout, requiresAuth true, redirects to `/console/users`
+- [x] `/console/users` child route renders UserListView, name `AdminUserList`
+- [x] `/` → `/console`
+- [x] `beforeEach` guard preserves both branches
+- [x] Logged-in redirect target is `/console/users` (per brief, was `/console` before)
+- [x] `npm run build` succeeded
+- [x] Dev server started on 22346 with no errors
+- [x] Committed
 
-## Report File Path
-/Users/panyong/aio_project/ai_chuangzuo/.superpowers/sdd/task-5-report.md
+## Issues / concerns
+
+None. Minor note: the `gitStatus` snapshot at conversation start showed branch `feature/publish-platform-seo`, but the actual current branch (and where prior Tasks 3 and 4 were committed) is `feature/admin-login`. Commit landed on the correct branch. No action required.

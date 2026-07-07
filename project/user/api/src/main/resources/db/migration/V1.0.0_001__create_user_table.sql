@@ -1,0 +1,23 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_user (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    biz_no VARCHAR(64) NOT NULL COMMENT '用户唯一编号',
+    nickname VARCHAR(64) DEFAULT NULL COMMENT '昵称',
+    email VARCHAR(128) NOT NULL COMMENT '邮箱',
+    password_hash VARCHAR(256) NOT NULL COMMENT '密码哈希（BCrypt）',
+    avatar_url VARCHAR(512) DEFAULT NULL COMMENT '头像URL',
+    invite_code VARCHAR(16) DEFAULT NULL COMMENT '个人邀请码',
+    user_status TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态：0-禁用，1-正常',
+    email_verified TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '邮箱是否验证：0-否，1-是',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_user_biz_no (biz_no),
+    UNIQUE KEY uk_u_user_email (email),
+    UNIQUE KEY uk_u_user_invite_code (invite_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';

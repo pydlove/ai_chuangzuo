@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.leaderboard.mapper.LeaderboardAggregateMapper">
+
+    <select id="selectCoinRanking" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_user_coin_record
+        WHERE biz_time &gt;= #{start}
+          AND biz_time &lt; #{end}
+          AND direction = 1
+          AND is_deleted = 0
+        GROUP BY user_id
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectCoinAmountByUser" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_user_coin_record
+        WHERE biz_time &gt;= #{start}
+          AND biz_time &lt; #{end}
+          AND direction = 1
+          AND is_deleted = 0
+          AND user_id = #{userId}
+        GROUP BY user_id
+    </select>
+
+    <select id="selectIncomeRankingMonth" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_leaderboard_income_submission
+        WHERE period_month = #{periodMonth}
+          AND audit_status = 1
+          AND is_deleted = 0
+        GROUP BY user_id
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectIncomeRankingYear" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_leaderboard_income_submission
+        WHERE period_month LIKE CONCAT(#{year}, '-%')
+          AND audit_status = 1
+          AND is_deleted = 0
+        GROUP BY user_id
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectIncomeAmountByUserMonth" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_leaderboard_income_submission
+        WHERE period_month = #{periodMonth}
+          AND audit_status = 1
+          AND is_deleted = 0
+          AND user_id = #{userId}
+        GROUP BY user_id
+    </select>
+
+    <select id="selectIncomeAmountByUserYear" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT user_id AS userId, SUM(amount) AS amount
+        FROM u_leaderboard_income_submission
+        WHERE period_month LIKE CONCAT(#{year}, '-%')
+          AND audit_status = 1
+          AND is_deleted = 0
+          AND user_id = #{userId}
+        GROUP BY user_id
+    </select>
+
+</mapper>

@@ -28,7 +28,10 @@ package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
-# Logs
+# Build artifacts
+/target/
+target/
+
 *.log
 logs/*
 !logs/.gitkeep
@@ -37,7 +40,13 @@ logs/*
 data/local-db/*
 !data/local-db/.gitkeep
 
+# Local SSL truststores (per-machine cert state — do not commit)
+config/ssl/*.p12
+
 # Environment files
 *.env
 !config/example.env
 /**/.gitkeep
+/project/user/web/dist/
+# Local worktrees
+/.worktrees/
