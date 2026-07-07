@@ -13,24 +13,12 @@ import org.jsoup.select.Elements;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 基于 jsoup 的公开页面抓取器。
- *
- * <p>由于各平台反爬策略和页面结构经常变化，本实现以“尽力抓取”为原则：
- * 单平台失败时返回空列表并记录 warning，不影响其他平台。
- *
- * <p>各平台数据源说明：
- * <ul>
- *   <li>百度：通过 jsoup 抓公开热搜页（依赖 truststore 中含 DLP CA）</li>
- *   <li>抖音：通过 aweme/v1/web/hot/search/list JSON 接口（无需登录）</li>
- *   <li>微博 / B 站 / 头条：需要登录态 cookie（mb、bv、vid等），本实现不可用，
- *       调用 fetch() 时返回空列表并 warn。</li>
- * </ul>
+ * 基于 jsoup 的公开页面 / JSON 抓取器：仅处理无需 JS 引擎的平台（百度、抖音）。
+ * 微博 / B 站 / 头条 由 CdpHotSearchFetcher 处理。
  */
 @Slf4j
 @Component
@@ -43,20 +31,13 @@ public class JsoupHotSearchFetcher implements HotSearchFetcher {
     @Override
     public boolean supports(HotSearchPlatform platform) {
         String code = platform.getCode();
-        return "douyin".equals(code)
-                || "toutiao".equals(code)
-                || "bilibili".equals(code)
-                || "weibo".equals(code)
-                || "baidu".equals(code);
+        return "baidu".equals(code) || "douyin".equals(code);
     }
 
     @Override
     public List<HotSearchItem> fetch(HotSearchPlatform platform) {
         return switch (platform.getCode()) {
             case "baidu" -> fetchBaidu();
-            case "weibo" -> fetchWeibo();
-            case "bilibili" -> fetchBilibili();
-            case "toutiao" -> fetchToutiao();
             case "douyin" -> fetchDouyin();
             default -> new ArrayList<>();
         };
@@ -92,12 +73,6 @@ public class JsoupHotSearchFetcher implements HotSearchFetcher {
             log.warn("百度热搜抓取失败: {}", e.getMessage());
             return new ArrayList<>();
         }
-    }
-
-    private List<HotSearchItem> fetchToutiao() {
-        // 头条公开热搜页 URL 已弃用，热搜数据需登录态。无登录可用数据源，跳过。
-        log.warn("今日头条暂不支持：需要登录态 cookie 才能拿到热搜");
-        return new ArrayList<>();
     }
 
     private List<HotSearchItem> fetchDouyin() {
@@ -139,18 +114,5 @@ public class JsoupHotSearchFetcher implements HotSearchFetcher {
             log.warn("抖音热搜抓取失败: {}", e.getMessage());
             return new ArrayList<>();
         }
-    }
-
-    private List<HotSearchItem> fetchBilibili() {
-        // B 站 ranking API 需要登录态 SESSDATA，否则 -352 风控。无登录可用数据源，跳过。
-        log.warn("B 站暂不支持：ranking API 需要登录 SESSDATA cookie 才能拿到数据");
-        return new ArrayList<>();
-    }
-
-    private List<HotSearchItem> fetchWeibo() {
-        // 微博 s.weibo.com/top/summary 走 Sina Visitor System 反爬墙，HTML 是空 JS 挑战页。
-        // m.weibo.cn 移动 API 也走同一套。无登录可用数据源，跳过。
-        log.warn("微博暂不支持：Sina Visitor System 反爬墙阻挡，需要 JS 引擎或登录 cookie");
-        return new ArrayList<>();
     }
 }

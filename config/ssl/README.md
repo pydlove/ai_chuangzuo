@@ -39,10 +39,12 @@ keytool -import -trustcacerts -alias dlp_ca_root \
 
 ## 平台根因表（不要再来回试）
 
-| 平台 | 修了 truststore 后 | 数据源 | 真因（未支持的原因） |
+| 平台 | 状态 | 数据源 | 说明 |
 |---|---|---|---|
-| baidu | ✅ 50 条数据 | jsoup 抓 `top.baidu.com/board` | — |
-| douyin | ✅ 50 条数据 | `aweme/v1/web/hot/search/list` JSON | — |
-| toutiao | ❌ | — | URL 已 404 弃用，备用 API 需登录态 |
-| bilibili | ❌ | — | `ranking/v2` API 需 SESSDATA cookie（-352 风控） |
-| weibo | ❌ | — | `s.weibo.com/top/summary` + `m.weibo.cn` 都走 Sina Visitor System 反爬墙，需 JS 引擎 |
+| baidu | ✅ 50 条数据 | jsoup 抓 `top.baidu.com/board` | 需 dev truststore（DLP CA） |
+| douyin | ✅ 50 条数据 | jsoup 抓 `aweme/v1/web/hot/search/list` JSON | — |
+| toutiao | ✅ 50 条数据 | CDP 抓 `toutiao.com/hot-event/hot-board` JSON | `/trending/` 是 JS 空壳，热榜数据走 JSON 接口 |
+| bilibili | ✅ 50 条数据 | CDP 抓 `bilibili.com/v/popular/rank/all` 渲染后 DOM | 原 `ranking/v2` API 需 SESSDATA cookie |
+| weibo | ✅ 50 条数据 | CDP 抓 `s.weibo.com/top/summary` 渲染后 DOM | 原页面走 Sina Visitor System 反爬墙 |
+
+> CDP = Chrome DevTools Protocol，由 `ChromeDevToolsFetcher` 启动本地 Chrome 并驱动。见 `project/admin/api/src/main/java/com/aichuangzuo/admin/modules/hotsearch/crawler/`。
