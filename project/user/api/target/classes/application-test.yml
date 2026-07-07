@@ -1,0 +1,15 @@
+spring:
+  mail:
+    host: 127.0.0.1
+    port: 3025
+    username: test@local
+    password: local-dev-no-auth
+    protocol: smtp
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: false
+      mail.smtp.starttls.enable: false
+
+logging:
+  level:
+    com.aichuangzuo: INFO

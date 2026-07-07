@@ -1,0 +1,19 @@
+spring:
+  mail:
+    host: smtp.126.com
+    port: 465
+    username: aiocloud@126.com
+    password: ENC(hHb3OUbIanYmYyMYLSBz1WBtSIgAGZCSeNrIw5SG7BAnQnx6z7/bWx5UGyfI7XRl47T/HC7i3DQjamBSRIOujQ==)
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: false
+      mail.smtp.ssl.enable: true
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+logging:
+  level:
+    com.aichuangzuo: INFO

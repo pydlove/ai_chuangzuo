@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.earnings.mapper.AccountAdminMapper">
+
+    <select id="selectAccountList" resultType="com.aichuangzuo.admin.modules.earnings.vo.UserAccountVO">
+        SELECT
+            u.id AS userId,
+            u.nickname,
+            u.email,
+            u.created_at AS registeredAt,
+            u.coin_balance AS coinBalance,
+            COALESCE(SUM(er.amount), 0) AS totalEarnings,
+            COALESCE(SUM(CASE WHEN er.status = 0 THEN er.amount ELSE 0 END), 0) AS unsettledEarnings
+        FROM u_user u
+        LEFT JOIN u_earnings_record er ON er.user_id = u.id AND er.is_deleted = 0
+        WHERE u.is_deleted = 0
+        <if test="userId != null">
+            AND u.id = #{userId}
+        </if>
+        <if test="nickname != null and nickname != ''">
+            AND u.nickname LIKE CONCAT('%', #{nickname}, '%')
+        </if>
+        <if test="email != null and email != ''">
+            AND u.email LIKE CONCAT('%', #{email}, '%')
+        </if>
+        GROUP BY u.id, u.nickname, u.email, u.created_at, u.coin_balance
+        ORDER BY u.id DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countAccountList" resultType="long">
+        SELECT COUNT(DISTINCT u.id)
+        FROM u_user u
+        WHERE u.is_deleted = 0
+        <if test="userId != null">
+            AND u.id = #{userId}
+        </if>
+        <if test="nickname != null and nickname != ''">
+            AND u.nickname LIKE CONCAT('%', #{nickname}, '%')
+        </if>
+        <if test="email != null and email != ''">
+            AND u.email LIKE CONCAT('%', #{email}, '%')
+        </if>
+    </select>
+
+    <select id="selectCoinRank" resultType="java.lang.Integer">
+        SELECT user_rank FROM (
+            SELECT
+                user_id,
+                ROW_NUMBER() OVER (ORDER BY SUM(amount) DESC) AS user_rank
+            FROM u_user_coin_record
+            WHERE direction = 1
+              AND biz_time >= CONCAT(#{month}, '-01')
+              AND biz_time &lt; DATE_ADD(CONCAT(#{month}, '-01'), INTERVAL 1 MONTH)
+              AND is_deleted = 0
+            GROUP BY user_id
+        ) r
+        WHERE r.user_id = #{userId}
+    </select>
+
+    <select id="selectIncomeRank" resultType="java.lang.Integer">
+        SELECT user_rank FROM (
+            SELECT
+                user_id,
+                ROW_NUMBER() OVER (ORDER BY SUM(amount) DESC) AS user_rank
+            FROM u_leaderboard_income_submission
+            WHERE audit_status = 1
+              AND period_month = #{month}
+              AND is_deleted = 0
+            GROUP BY user_id
+        ) r
+        WHERE r.user_id = #{userId}
+    </select>
+</mapper>

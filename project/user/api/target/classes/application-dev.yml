@@ -1,0 +1,21 @@
+spring:
+  mail:
+    host: ${SPRING_MAIL_HOST:smtp.126.com}
+    port: ${SPRING_MAIL_PORT:465}
+    username: ${SPRING_MAIL_USERNAME:aiocloud@126.com}
+    password: ${SPRING_MAIL_PASSWORD:}
+    protocol: smtp
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.starttls.enable: false
+      mail.smtp.ssl.enable: true
+      # 本地 DLP 会用自签证书替换远端证书，仅 dev 关闭 SSL 校验
+      mail.smtp.ssl.trust: ${SPRING_MAIL_SSL_TRUST:smtp.126.com}
+      mail.smtp.connectiontimeout: 10000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
+
+logging:
+  level:
+    com.aichuangzuo: INFO

@@ -1,0 +1,17 @@
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/mail/EmailMessageFactoryTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceLoginTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceRefreshAfterResetTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceResetPasswordTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceTokenTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/EmailCodeServiceSmtpFailTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/EmailCodeServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/mapper/UserMapperExistsByEmailTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserProfileServiceEmailTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserProfileServiceGetTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserProfileServiceNicknameTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserProfileServicePasswordTest.java

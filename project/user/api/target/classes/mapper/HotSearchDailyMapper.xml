@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchDailyMapper">
+
+    <select id="selectByPlatformAndDate" resultType="com.aichuangzuo.user.modules.hotsearch.entity.HotSearchDaily">
+        SELECT id, platform_code, rank_num, title, hot_value, url, search_count, snapshot_date, created_at
+        FROM hot_search_daily
+        WHERE platform_code = #{platformCode}
+          AND snapshot_date = #{snapshotDate}
+        ORDER BY rank_num ASC
+    </select>
+
+</mapper>

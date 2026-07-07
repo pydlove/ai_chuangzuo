@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.earnings.mapper.SettlementAdminMapper">
+
+    <select id="selectPendingUsers" resultType="com.aichuangzuo.admin.modules.earnings.vo.PendingSettlementUserVO">
+        SELECT
+            er.user_id AS userId,
+            u.nickname,
+            COUNT(*) AS recordCount,
+            SUM(er.amount) AS unsettledAmount
+        FROM u_earnings_record er
+        JOIN u_user u ON u.id = er.user_id AND u.is_deleted = 0
+        WHERE er.status = 0
+          AND er.settlement_month = #{month}
+          AND er.is_deleted = 0
+        GROUP BY er.user_id, u.nickname
+        ORDER BY unsettledAmount DESC
+    </select>
+
+    <select id="countPendingUsers" resultType="long">
+        SELECT COUNT(DISTINCT er.user_id)
+        FROM u_earnings_record er
+        WHERE er.status = 0
+          AND er.settlement_month = #{month}
+          AND er.is_deleted = 0
+    </select>
+
+    <select id="selectPendingAmountBeforeSettle" resultType="com.aichuangzuo.admin.modules.earnings.vo.PendingSettlementUserVO">
+        SELECT
+            er.user_id AS userId,
+            COUNT(*) AS recordCount,
+            SUM(er.amount) AS unsettledAmount
+        FROM u_earnings_record er
+        WHERE er.status = 0
+          AND er.settlement_month = #{month}
+          AND er.is_deleted = 0
+        <if test="userIds != null and userIds.size() > 0">
+            AND er.user_id IN
+            <foreach collection="userIds" item="id" open="(" separator="," close=")">
+                #{id}
+            </foreach>
+        </if>
+        GROUP BY er.user_id
+    </select>
+</mapper>

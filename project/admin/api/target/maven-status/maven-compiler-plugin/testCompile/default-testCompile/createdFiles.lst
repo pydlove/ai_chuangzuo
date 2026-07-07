@@ -1,0 +1,8 @@
+com/aichuangzuo/admin/modules/hotsearch/service/HotSearchPlatformAdminServiceTest.class
+com/aichuangzuo/admin/modules/hotsearch/job/HotSearchCrawlJobTest.class
+com/aichuangzuo/admin/modules/hotsearch/service/HotSearchConfigServiceTest.class
+com/aichuangzuo/admin/modules/earnings/service/LeaderboardAwardServiceTest.class
+com/aichuangzuo/admin/modules/earnings/service/SettlementAdminServiceTest.class
+com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigServiceTest.class
+com/aichuangzuo/admin/modules/user/service/AdminUserServiceTest.class
+com/aichuangzuo/shared/utils/AesUtilTest.class
