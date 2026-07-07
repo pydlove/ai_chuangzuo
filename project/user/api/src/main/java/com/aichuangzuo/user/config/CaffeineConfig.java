@@ -3,12 +3,17 @@ package com.aichuangzuo.user.config;
 import com.aichuangzuo.user.infrastructure.cache.CacheValue;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Expiry;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cache.caffeine.CaffeineCacheManager;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 
 import java.util.concurrent.TimeUnit;
 
 @Configuration
+@EnableCaching
 public class CaffeineConfig {
 
     @Bean("authCache")
@@ -34,5 +39,15 @@ public class CaffeineConfig {
                     }
                 })
                 .build();
+    }
+
+    @Primary
+    @Bean
+    public CacheManager cacheManager() {
+        CaffeineCacheManager manager = new CaffeineCacheManager();
+        manager.setCaffeine(Caffeine.newBuilder()
+                .maximumSize(1000)
+                .expireAfterWrite(5, TimeUnit.MINUTES));
+        return manager;
     }
 }

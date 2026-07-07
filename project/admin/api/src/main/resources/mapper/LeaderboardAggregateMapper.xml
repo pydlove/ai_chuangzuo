@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.leaderboard.mapper.LeaderboardAggregateMapper">
+
+    <select id="selectCoinRankingMonth" resultType="com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO">
+        SELECT r.user_id AS userId, u.nickname AS nickname, SUM(r.amount) AS amount
+        FROM u_user_coin_record r
+        LEFT JOIN u_user u ON u.id = r.user_id AND u.is_deleted = 0
+        WHERE r.biz_time &gt;= #{start}
+          AND r.biz_time &lt; #{end}
+          AND r.direction = 1
+          AND r.is_deleted = 0
+        GROUP BY r.user_id, u.nickname
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectIncomeRankingMonth" resultType="com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO">
+        SELECT s.user_id AS userId, u.nickname AS nickname, SUM(s.amount) AS amount
+        FROM u_leaderboard_income_submission s
+        LEFT JOIN u_user u ON u.id = s.user_id AND u.is_deleted = 0
+        WHERE s.period_month = #{periodMonth}
+          AND s.audit_status = 1
+          AND s.is_deleted = 0
+        GROUP BY s.user_id, u.nickname
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+</mapper>
