@@ -6,7 +6,8 @@ import {
   deleteConfig,
   fetchModels,
   testConnection,
-  toggleActive
+  toggleActive,
+  chatTest
 } from '@/api/modelConfig.js'
 
 export function useModelConfig() {
@@ -52,6 +53,10 @@ export function useModelConfig() {
     await fetchProviders()
   }
 
+  const chatTestProvider = async (providerType, payload) => {
+    return await chatTest(providerType, payload)
+  }
+
   return {
     providers,
     loading,
@@ -60,6 +65,7 @@ export function useModelConfig() {
     removeProvider,
     fetchModelOptions,
     testProviderConnection,
-    toggleProviderActive
+    toggleProviderActive,
+    chatTestProvider
   }
 }

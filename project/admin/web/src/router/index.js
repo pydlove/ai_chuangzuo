@@ -52,6 +52,26 @@ const routes = [
         path: 'leaderboard/award',
         name: 'AdminLeaderboardAward',
         component: () => import('@/views/LeaderboardAwardView.vue')
+      },
+      {
+        path: 'earnings/accounts',
+        name: 'AdminEarningsAccounts',
+        component: () => import('@/views/AccountQueryView.vue')
+      },
+      {
+        path: 'earnings/settlements',
+        name: 'AdminEarningsSettlements',
+        component: () => import('@/views/SettlementView.vue')
+      },
+      {
+        path: 'earnings/self-media-review',
+        name: 'AdminEarningsSelfMediaReview',
+        component: () => import('@/views/SelfMediaReviewView.vue')
+      },
+      {
+        path: 'earnings/leaderboard-awards',
+        name: 'AdminEarningsLeaderboardAwards',
+        component: () => import('@/views/LeaderboardAwardView.vue')
       }
     ]
   },

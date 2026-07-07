@@ -62,6 +62,16 @@
           <a-menu-item key="/console/leaderboard/review">收入审核</a-menu-item>
           <a-menu-item key="/console/leaderboard/award">奖励发放</a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="/console/earnings">
+          <template #icon>
+            <DollarOutlined />
+          </template>
+          <template #title>收益管理</template>
+          <a-menu-item key="/console/earnings/accounts">账户明细</a-menu-item>
+          <a-menu-item key="/console/earnings/settlements">结算中心</a-menu-item>
+          <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
+          <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
 
@@ -90,7 +100,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -102,7 +112,7 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/settings', '/console/hot-search', '/console/leaderboard'])
+const openKeys = ref(['/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings'])
 const onOpenChange = (keys) => {
   openKeys.value = keys
 }
@@ -115,6 +125,10 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/hot-search/config') return '抓取配置'
   if (route.path === '/console/leaderboard/review') return '收入审核'
   if (route.path === '/console/leaderboard/award') return '奖励发放'
+  if (route.path === '/console/earnings/accounts') return '账户明细'
+  if (route.path === '/console/earnings/settlements') return '结算中心'
+  if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
+  if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
   return ''
 })
 

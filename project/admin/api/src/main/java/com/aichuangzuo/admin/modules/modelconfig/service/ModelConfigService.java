@@ -1,8 +1,10 @@
 package com.aichuangzuo.admin.modules.modelconfig.service;
 
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigActiveRequest;
+import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigChatTestRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigConnectionRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigSaveRequest;
+import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigChatTestVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelOptionVO;
 
@@ -23,4 +25,6 @@ public interface ModelConfigService {
     boolean testConnection(String providerType, ModelConfigConnectionRequest request);
 
     void toggleActive(String providerType, ModelConfigActiveRequest request);
+
+    ModelConfigChatTestVO chatTest(String providerType, ModelConfigChatTestRequest request);
 }

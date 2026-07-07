@@ -78,6 +78,38 @@
                 </a-space>
               </a-form-item>
             </a-form>
+
+            <a-divider style="margin: 12px 0;">问答测试</a-divider>
+
+            <a-form layout="vertical">
+              <a-form-item label="问题">
+                <a-textarea
+                  v-model:value="chatForms[provider.providerType].prompt"
+                  :rows="3"
+                  placeholder="例如：用一句话介绍你自己"
+                  allow-clear
+                />
+              </a-form-item>
+              <a-form-item>
+                <a-space>
+                  <a-switch
+                    v-model:checked="chatForms[provider.providerType].stream"
+                    checked-children="流式"
+                    un-checked-children="非流式"
+                  />
+                  <a-button
+                    type="primary"
+                    :loading="chatLoading[provider.providerType]"
+                    @click="handleChatTest(provider.providerType)"
+                  >
+                    发送测试
+                  </a-button>
+                </a-space>
+              </a-form-item>
+              <a-form-item v-if="chatResults[provider.providerType]" label="原始响应">
+                <pre class="chat-result">{{ chatResults[provider.providerType] }}</pre>
+              </a-form-item>
+            </a-form>
           </a-card>
         </a-col>
       </a-row>
@@ -98,18 +130,22 @@ const {
   removeProvider,
   fetchModelOptions,
   testProviderConnection,
-  toggleProviderActive
+  toggleProviderActive,
+  chatTestProvider
 } = useModelConfig()
 
 const forms = reactive({})
 const modelOptions = reactive({})
+const chatForms = reactive({})
+const chatLoading = reactive({})
+const chatResults = reactive({})
 
 const initForms = (list) => {
   list.forEach((p) => {
     if (!forms[p.providerType]) {
       forms[p.providerType] = {
         baseUrl: p.baseUrl || '',
-        apiKey: '',
+        apiKey: p.apiKey || '',
         modelCode: p.modelCode || '',
         modelName: p.modelName || '',
         isActive: p.isActive
@@ -117,6 +153,15 @@ const initForms = (list) => {
     }
     if (!modelOptions[p.providerType]) {
       modelOptions[p.providerType] = []
+    }
+    if (!chatForms[p.providerType]) {
+      chatForms[p.providerType] = {
+        prompt: '用一句话介绍你自己',
+        stream: false
+      }
+    }
+    if (chatLoading[p.providerType] === undefined) {
+      chatLoading[p.providerType] = false
     }
   })
 }
@@ -136,7 +181,7 @@ const syncFormFromProvider = (providerType) => {
   if (!updated) return
   forms[providerType] = {
     baseUrl: updated.baseUrl || '',
-    apiKey: '',
+    apiKey: updated.apiKey || '',
     modelCode: updated.modelCode || '',
     modelName: updated.modelName || '',
     isActive: updated.isActive
@@ -160,7 +205,7 @@ const handleFetchModels = async (providerType) => {
     }))
     message.success('获取模型成功')
   } catch (error) {
-    // composable 已提示错误
+    message.error(error.message || '获取模型失败')
   }
 }
 
@@ -176,7 +221,7 @@ const handleTestConnection = async (providerType) => {
       apiKey: form.apiKey
     })
   } catch (error) {
-    // composable 已提示错误
+    message.error(error.message || '测试连接失败')
   }
 }
 
@@ -205,6 +250,53 @@ const handleDelete = async (providerType) => {
   syncFormFromProvider(providerType)
 }
 
+const formatChatResult = (vo) => {
+  if (!vo) return ''
+  const lines = []
+  if (vo.statusCode !== undefined && vo.statusCode !== null) {
+    lines.push(`HTTP ${vo.statusCode}`)
+  }
+  if (vo.requestHeaders) {
+    lines.push('--- 请求头 ---')
+    lines.push(vo.requestHeaders)
+  }
+  if (vo.requestBody) {
+    lines.push('--- 请求体 ---')
+    lines.push(vo.requestBody)
+  }
+  lines.push('--- 响应体 ---')
+  lines.push(vo.responseBody || '(空)')
+  return lines.join('\n')
+}
+
+const handleChatTest = async (providerType) => {
+  const form = forms[providerType]
+  const chat = chatForms[providerType]
+  if (!form.baseUrl || !form.apiKey || !form.modelCode) {
+    message.warning('请先填写 Base URL、API Key 并选择模型')
+    return
+  }
+  if (!chat.prompt || !chat.prompt.trim()) {
+    message.warning('请输入问题')
+    return
+  }
+  chatLoading[providerType] = true
+  try {
+    const result = await chatTestProvider(providerType, {
+      baseUrl: form.baseUrl,
+      apiKey: form.apiKey,
+      modelCode: form.modelCode,
+      prompt: chat.prompt,
+      stream: chat.stream
+    })
+    chatResults[providerType] = formatChatResult(result)
+  } catch (error) {
+    chatResults[providerType] = `请求失败：${error.message || '未知错误'}`
+  } finally {
+    chatLoading[providerType] = false
+  }
+}
+
 onMounted(async () => {
   await fetchProviders()
   initForms(providers.value)
@@ -225,5 +317,20 @@ onMounted(async () => {
 
 .config-card {
   border-radius: 8px;
+}
+
+.chat-result {
+  background: #fafafa;
+  border: 1px solid #e8e8e8;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 360px;
+  overflow: auto;
+  margin: 0;
 }
 </style>

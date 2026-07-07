@@ -40,3 +40,8 @@ hot-search:
   top-n: 50
   connect-timeout-millis: 10000
   read-timeout-millis: 10000
+
+user:
+  api:
+    base-url: ${USER_API_BASE_URL:http://localhost:25050}
+    internal-key: ${USER_API_INTERNAL_KEY:default-change-me}

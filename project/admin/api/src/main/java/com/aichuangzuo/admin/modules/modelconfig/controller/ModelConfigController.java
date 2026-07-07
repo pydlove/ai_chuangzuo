@@ -3,9 +3,11 @@ package com.aichuangzuo.admin.modules.modelconfig.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigActiveRequest;
+import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigChatTestRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigConnectionRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigSaveRequest;
 import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigService;
+import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigChatTestVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelOptionVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
@@ -87,6 +89,15 @@ public class ModelConfigController {
         checkSuperAdmin();
         modelConfigService.toggleActive(providerType, request);
         return Result.success();
+    }
+
+    @Operation(summary = "问答测试：调用厂商 chat 接口并返回原始请求/响应")
+    @PostMapping("/{providerType}/actions/chat-test")
+    public Result<ModelConfigChatTestVO> chatTest(
+            @PathVariable(name = "providerType") String providerType,
+            @Valid @RequestBody ModelConfigChatTestRequest request) {
+        checkSuperAdmin();
+        return Result.success(modelConfigService.chatTest(providerType, request));
     }
 
     private void checkSuperAdmin() {

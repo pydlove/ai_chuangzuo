@@ -15,9 +15,15 @@ request.interceptors.request.use((config) => {
 })
 
 request.interceptors.response.use(
-  (response) => response.data,
+  (response) => {
+    const body = response.data
+    if (body && typeof body === 'object' && typeof body.code === 'number' && body.code !== 0) {
+      return Promise.reject(new Error(body.message || '请求失败'))
+    }
+    return body
+  },
   (error) => {
-    const message = error.response?.data?.message || '请求失败，请稍后重试'
+    const message = error.response?.data?.message || error.message || '请求失败，请稍后重试'
     return Promise.reject(new Error(message))
   }
 )

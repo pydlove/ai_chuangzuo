@@ -6,11 +6,13 @@ import com.aichuangzuo.admin.infrastructure.ai.KimiProviderClient;
 import com.aichuangzuo.admin.infrastructure.ai.MinimaxProviderClient;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigActiveRequest;
+import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigChatTestRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigConnectionRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigSaveRequest;
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
 import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigService;
+import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigChatTestVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelConfigVO;
 import com.aichuangzuo.admin.modules.modelconfig.vo.ModelOptionVO;
 import com.aichuangzuo.shared.enums.error.AdminModelConfigErrorCode;
@@ -127,6 +129,18 @@ public class ModelConfigServiceImpl implements ModelConfigService {
     }
 
     @Override
+    public ModelConfigChatTestVO chatTest(String providerType, ModelConfigChatTestRequest request) {
+        AiProvider provider = resolveProvider(providerType);
+        boolean stream = Boolean.TRUE.equals(request.getStream());
+        return clientFor(provider).chatTest(
+                request.getBaseUrl(),
+                request.getApiKey(),
+                request.getModelCode(),
+                request.getPrompt(),
+                stream);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void toggleActive(String providerType, ModelConfigActiveRequest request) {
         resolveProvider(providerType);
@@ -164,16 +178,30 @@ public class ModelConfigServiceImpl implements ModelConfigService {
         if (entity != null) {
             vo.setId(entity.getId());
             vo.setBaseUrl(entity.getBaseUrl());
+            vo.setApiKey(decryptApiKeyOrEmpty(entity.getApiKeyEncrypted()));
             vo.setModelCode(entity.getModelCode());
             vo.setModelName(entity.getModelName());
             vo.setIsActive(entity.getIsActive());
         } else {
             vo.setBaseUrl("");
+            vo.setApiKey("");
             vo.setModelCode("");
             vo.setModelName("");
             vo.setIsActive(0);
         }
         return vo;
+    }
+
+    private String decryptApiKeyOrEmpty(String encrypted) {
+        if (!StringUtils.hasText(encrypted)) {
+            return "";
+        }
+        try {
+            return AesUtil.decrypt(encrypted, apiKeySecret);
+        } catch (Exception e) {
+            log.warn("decrypt api key failed", e);
+            return "";
+        }
     }
 
     private String encryptApiKey(String plain) {

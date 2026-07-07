@@ -27,3 +27,7 @@ export function testConnection(providerType, data) {
 export function toggleActive(providerType, data) {
   return request.post(`/api/v1/admin/model-configs/${providerType}/actions/toggle-active`, data)
 }
+
+export function chatTest(providerType, data) {
+  return request.post(`/api/v1/admin/model-configs/${providerType}/actions/chat-test`, data).then((res) => res.data)
+}
