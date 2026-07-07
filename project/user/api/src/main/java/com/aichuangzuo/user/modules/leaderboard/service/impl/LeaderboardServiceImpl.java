@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.leaderboard.vo.IncomeLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -39,6 +40,7 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     private final UserMapper userMapper;
 
     @Override
+    @Cacheable(value = "leaderboard", key = "'coin:' + #month + ':' + #currentUserId")
     public CoinLeaderboardVO getCoinLeaderboard(Long currentUserId, String month) {
         YearMonth ym = parseMonth(month);
         LocalDateTime start = ym.atDay(1).atStartOfDay();
@@ -57,6 +59,7 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     }
 
     @Override
+    @Cacheable(value = "leaderboard", key = "'income:' + #periodType + ':' + #periodValue + ':' + #currentUserId")
     public IncomeLeaderboardVO getIncomeLeaderboard(Long currentUserId, String periodType, String periodValue) {
         List<LeaderboardEntryVO> topList;
         Function<Long, LeaderboardEntryVO> meSupplier;
