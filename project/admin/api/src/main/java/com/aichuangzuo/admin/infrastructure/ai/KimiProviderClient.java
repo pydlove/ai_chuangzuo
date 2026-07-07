@@ -70,6 +70,13 @@ public class KimiProviderClient implements AiProviderClient {
     }
 
     private String trim(String baseUrl) {
-        return baseUrl == null ? "" : baseUrl.trim().replaceAll("/+$", "");
+        if (baseUrl == null) return "";
+        String s = baseUrl.trim().replaceAll("/+$", "");
+        int schemeEnd = s.indexOf("://");
+        if (schemeEnd >= 0) {
+            int pathStart = s.indexOf('/', schemeEnd + 3);
+            if (pathStart > 0) s = s.substring(0, pathStart);
+        }
+        return s;
     }
 }
