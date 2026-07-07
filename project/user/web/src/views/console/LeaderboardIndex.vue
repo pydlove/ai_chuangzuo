@@ -241,10 +241,22 @@
           />
         </div>
         <div class="form-row">
+          <label class="form-label">自媒体平台</label>
+          <select v-model="submitPlatform" class="form-select">
+            <option
+              v-for="option in PLATFORM_OPTIONS"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+        <div class="form-row">
           <label class="form-label">收益截图 <span class="form-label-hint">可上传多张，支持多平台</span></label>
           <div class="form-upload-grid">
             <div
-              v-for="(src, index) in submitScreenshots"
+              v-for="(src, index) in submitPreviews"
               :key="index"
               class="form-upload-item"
             >
@@ -274,7 +286,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   getCoinLeaderboard,
@@ -311,6 +323,7 @@ const incomePeriodType = ref('month')
 const incomePeriodValue = ref(monthOptions[0])
 const rulesVisible = ref(false)
 const submitVisible = ref(false)
+const loading = ref(false)
 
 const incomePeriodLabel = computed(() => {
   return incomePeriodType.value === 'month' ? currentIncomeMonth : currentIncomeYear
@@ -321,13 +334,45 @@ function setIncomePeriodType(type) {
   incomePeriodValue.value = type === 'month' ? currentIncomeMonth : currentIncomeYear
 }
 
-const coinList = computed(() => getCoinLeaderboard(currentCoinMonth))
+const coinList = ref([])
+const incomeList = ref([])
+const mySubmissions = ref([])
+
+async function loadCoinLeaderboard() {
+  try {
+    loading.value = true
+    coinList.value = await getCoinLeaderboard(currentCoinMonth)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadIncomeLeaderboard() {
+  try {
+    loading.value = true
+    incomeList.value = await getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function loadMySubmissions() {
+  mySubmissions.value = await getMyIncomeSubmissions()
+}
+
+onMounted(async () => {
+  await loadCoinLeaderboard()
+  await loadIncomeLeaderboard()
+  await loadMySubmissions()
+})
+
+watch([incomePeriodType, incomePeriodValue], () => {
+  loadIncomeLeaderboard()
+})
+
 const coinTop3 = computed(() => coinList.value.slice(0, 3))
 const coinListAfter3 = computed(() => coinList.value.slice(3))
 
-const incomeList = computed(() =>
-  getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
-)
 const incomeTop3 = computed(() => incomeList.value.slice(0, 3))
 const incomeListAfter3 = computed(() => incomeList.value.slice(3))
 
@@ -402,8 +447,6 @@ function incomeRewardLabel(item) {
   return null
 }
 
-const mySubmissions = computed(() => getMyIncomeSubmissions())
-
 function statusText(status) {
   const map = { pending: '审核中', approved: '已通过', rejected: '已拒绝' }
   return map[status] || status
@@ -412,12 +455,23 @@ function statusText(status) {
 // 申报表单
 const currentMonth = monthOptions[0]
 const submitAmount = ref('')
-const submitScreenshots = ref([])
+const submitPlatform = ref('other')
+const submitFiles = ref([])
+const submitPreviews = ref([])
 const fileInput = ref(null)
+
+const PLATFORM_OPTIONS = [
+  { value: 'wechat', label: '微信公众号' },
+  { value: 'xiaohongshu', label: '小红书' },
+  { value: 'douyin', label: '抖音' },
+  { value: 'other', label: '其他' }
+]
 
 function openSubmitModal() {
   submitAmount.value = ''
-  submitScreenshots.value = []
+  submitPlatform.value = 'other'
+  submitFiles.value = []
+  submitPreviews.value = []
   if (fileInput.value) fileInput.value.value = ''
   submitVisible.value = true
 }
@@ -428,8 +482,11 @@ function closeSubmitModal() {
 }
 
 function resetSubmitForm() {
+  submitPreviews.value.forEach(url => URL.revokeObjectURL(url))
   submitAmount.value = ''
-  submitScreenshots.value = []
+  submitPlatform.value = 'other'
+  submitFiles.value = []
+  submitPreviews.value = []
   if (fileInput.value) fileInput.value.value = ''
 }
 
@@ -437,39 +494,44 @@ function handleFileChange(e) {
   const files = Array.from(e.target.files || [])
   if (!files.length) return
   files.forEach(file => {
-    const reader = new FileReader()
-    reader.onload = (event) => {
-      submitScreenshots.value.push(event.target.result)
-    }
-    reader.readAsDataURL(file)
+    submitFiles.value.push(file)
+    submitPreviews.value.push(URL.createObjectURL(file))
   })
   if (fileInput.value) fileInput.value.value = ''
 }
 
 function removeScreenshot(index) {
-  submitScreenshots.value.splice(index, 1)
+  URL.revokeObjectURL(submitPreviews.value[index])
+  submitFiles.value.splice(index, 1)
+  submitPreviews.value.splice(index, 1)
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   const amount = Number(submitAmount.value)
   if (!Number.isFinite(amount) || amount <= 0) {
     message.error('请输入有效的收入金额')
     return
   }
-  if (submitScreenshots.value.length === 0) {
+  if (submitFiles.value.length === 0) {
     message.error('请上传收益截图')
     return
   }
   try {
-    submitIncomeSubmission({
-      month: currentMonth,
-      amount,
-      screenshots: submitScreenshots.value
-    })
+    loading.value = true
+    const formData = new FormData()
+    formData.append('periodMonth', currentMonth)
+    formData.append('amount', amount)
+    formData.append('platform', submitPlatform.value)
+    submitFiles.value.forEach(file => formData.append('screenshots', file))
+    await submitIncomeSubmission(formData)
     message.success('收入申报已提交，等待审核')
     closeSubmitModal()
+    await loadMySubmissions()
+    await loadIncomeLeaderboard()
   } catch (err) {
     message.error(err.message || '提交失败')
+  } finally {
+    loading.value = false
   }
 }
 </script>
