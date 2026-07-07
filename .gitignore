@@ -48,3 +48,6 @@ config/ssl/*.p12
 !config/example.env
 /**/.gitkeep
 /project/user/web/dist/
+
+# Local worktrees
+.worktrees/
