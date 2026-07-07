@@ -11,7 +11,11 @@ import lombok.Getter;
 @Getter
 public enum LeaderboardErrorCode implements ErrorCode {
 
-    COIN_BALANCE_INSUFFICIENT(114001, "创作币余额不足");
+    COIN_BALANCE_INSUFFICIENT(114001, "创作币余额不足"),
+    INCOME_AMOUNT_INVALID(114002, "申报金额必须大于 0"),
+    INCOME_PERIOD_INVALID(114003, "申报月份格式不正确"),
+    INCOME_SCREENSHOT_REQUIRED(114004, "请至少上传一张收益截图"),
+    INCOME_FILE_INVALID(114005, "截图必须是 jpg/png 且不超过 5MB");
 
     private final int code;
     private final String message;
