@@ -59,13 +59,13 @@ public class HotSearchAdminController {
     }
 
     @PutMapping("/platforms/{id}")
-    public Result<HotSearchPlatform> updatePlatform(@PathVariable Long id, @Valid @RequestBody HotSearchPlatformRequest req) {
+    public Result<HotSearchPlatform> updatePlatform(@PathVariable("id") Long id, @Valid @RequestBody HotSearchPlatformRequest req) {
         checkSuperAdmin();
         return Result.success(platformService.update(id, req));
     }
 
     @DeleteMapping("/platforms/{id}")
-    public Result<Void> deletePlatform(@PathVariable Long id) {
+    public Result<Void> deletePlatform(@PathVariable("id") Long id) {
         checkSuperAdmin();
         platformService.delete(id);
         return Result.success();
@@ -85,20 +85,20 @@ public class HotSearchAdminController {
     }
 
     @PutMapping("/daily/{id}")
-    public Result<HotSearchDailyAdminVO> updateDaily(@PathVariable Long id, @Valid @RequestBody HotSearchDailyRequest req) {
+    public Result<HotSearchDailyAdminVO> updateDaily(@PathVariable("id") Long id, @Valid @RequestBody HotSearchDailyRequest req) {
         checkSuperAdmin();
         return Result.success(dailyService.update(id, req));
     }
 
     @DeleteMapping("/daily/{id}")
-    public Result<Void> deleteDaily(@PathVariable Long id) {
+    public Result<Void> deleteDaily(@PathVariable("id") Long id) {
         checkSuperAdmin();
         dailyService.delete(id);
         return Result.success();
     }
 
     @PostMapping("/daily/{id}/re-crawl")
-    public Result<CrawlResultVO> recrawlDaily(@PathVariable Long id) {
+    public Result<CrawlResultVO> recrawlDaily(@PathVariable("id") Long id) {
         checkSuperAdmin();
         HotSearchDailyAdminVO vo = dailyService.get(id);
         return Result.success(crawlJob.recrawlPlatform(vo.getPlatformCode()));
