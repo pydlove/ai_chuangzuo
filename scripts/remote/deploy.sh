@@ -232,6 +232,7 @@ retry_scp "$DEPLOY_DIR/scripts/start-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scrip
 retry_scp "$DEPLOY_DIR/scripts/stop-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
 retry_scp "$DEPLOY_DIR/scripts/restart-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
 retry_scp "$DEPLOY_DIR/scripts/status.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
+retry_scp "$DEPLOY_DIR/scripts/setup-hotsearch-env.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
 eval "$SSH_CMD $REMOTE_HOST 'chmod +x $REMOTE_APP_DIR/scripts/*.sh && \
   cp $REMOTE_APP_DIR/scripts/start-all.sh $REMOTE_APP_DIR/start-all.sh && \
   cp $REMOTE_APP_DIR/scripts/stop-all.sh $REMOTE_APP_DIR/stop-all.sh && \

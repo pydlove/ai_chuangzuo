@@ -7,6 +7,8 @@ Type=simple
 User=root
 WorkingDirectory=/root/app/aichuangzuo/admin-api
 EnvironmentFile=-/root/app/aichuangzuo/.env
+# 首次启动时探测 Chrome、生成 DLP CA truststore，幂等
+ExecStartPre=/root/app/aichuangzuo/scripts/setup-hotsearch-env.sh
 ExecStart=/usr/bin/java -jar -Xms512m -Xmx1024m -Dspring.profiles.active=prod -Dserver.port=22348 -Dlogging.file.path=/root/app/aichuangzuo/logs /root/app/aichuangzuo/admin-api/admin-api.jar
 ExecStop=/bin/kill -15 $MAINPID
 Restart=on-failure
