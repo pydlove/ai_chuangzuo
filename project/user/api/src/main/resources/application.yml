@@ -38,3 +38,6 @@ auth:
     refresh-expiration: 604800
   register:
     max-per-ip: 10
+
+internal:
+  api-key: ${INTERNAL_API_KEY:default-change-me}
