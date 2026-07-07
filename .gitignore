@@ -40,6 +40,9 @@ logs/*
 data/local-db/*
 !data/local-db/.gitkeep
 
+# Local SSL truststores (per-machine cert state — do not commit)
+config/ssl/*.p12
+
 # Environment files
 *.env
 !config/example.env
