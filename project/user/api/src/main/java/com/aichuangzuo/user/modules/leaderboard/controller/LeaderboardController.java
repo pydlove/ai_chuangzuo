@@ -28,22 +28,22 @@ public class LeaderboardController {
     private final IncomeSubmissionService incomeSubmissionService;
 
     @GetMapping("/coin")
-    public Result<CoinLeaderboardVO> coin(@RequestParam String month) {
+    public Result<CoinLeaderboardVO> coin(@RequestParam(name = "month") String month) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(leaderboardService.getCoinLeaderboard(userId, month));
     }
 
     @GetMapping("/income")
-    public Result<IncomeLeaderboardVO> income(@RequestParam String periodType,
-                                                 @RequestParam String periodValue) {
+    public Result<IncomeLeaderboardVO> income(@RequestParam(name = "periodType") String periodType,
+                                                 @RequestParam(name = "periodValue") String periodValue) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(leaderboardService.getIncomeLeaderboard(userId, periodType, periodValue));
     }
 
     @PostMapping(value = "/income-submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<IncomeSubmissionVO> submit(@RequestParam String periodMonth,
-                                              @RequestParam BigDecimal amount,
-                                              @RequestParam String platform,
+    public Result<IncomeSubmissionVO> submit(@RequestParam(name = "periodMonth") String periodMonth,
+                                              @RequestParam(name = "amount") BigDecimal amount,
+                                              @RequestParam(name = "platform") String platform,
                                               @RequestParam("screenshots") List<MultipartFile> screenshots) {
         Long userId = SecurityUserContext.getCurrentUserId();
         List<String> paths = incomeSubmissionService.uploadScreenshots(userId, screenshots);

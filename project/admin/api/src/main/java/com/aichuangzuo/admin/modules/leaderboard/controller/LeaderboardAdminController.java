@@ -30,27 +30,27 @@ public class LeaderboardAdminController {
     private final LeaderboardAwardService awardService;
 
     @GetMapping("/income-submissions")
-    public Result<IPage<IncomeSubmissionAdminVO>> page(@RequestParam(required = false) Integer status,
-                                                          @RequestParam(defaultValue = "1") int page,
-                                                          @RequestParam(defaultValue = "20") int size) {
+    public Result<IPage<IncomeSubmissionAdminVO>> page(@RequestParam(name = "status", required = false) Integer status,
+                                                          @RequestParam(name = "page", defaultValue = "1") int page,
+                                                          @RequestParam(name = "size", defaultValue = "20") int size) {
         return Result.success(reviewService.page(status, new Page<>(page, size)));
     }
 
     @PostMapping("/income-submissions/{id}/approve")
-    public Result<Void> approve(@PathVariable Long id) {
+    public Result<Void> approve(@PathVariable(name = "id") Long id) {
         reviewService.approve(id, currentAdminId());
         return Result.success();
     }
 
     @PostMapping("/income-submissions/{id}/reject")
-    public Result<Void> reject(@PathVariable Long id, @Valid @RequestBody LeaderboardRejectRequest request) {
+    public Result<Void> reject(@PathVariable(name = "id") Long id, @Valid @RequestBody LeaderboardRejectRequest request) {
         reviewService.reject(id, currentAdminId(), request.getReason());
         return Result.success();
     }
 
     @GetMapping("/rewards/preview")
-    public Result<List<LeaderboardTop10VO>> previewTop10(@RequestParam Integer leaderboardType,
-                                                         @RequestParam String periodMonth) {
+    public Result<List<LeaderboardTop10VO>> previewTop10(@RequestParam(name = "leaderboardType") Integer leaderboardType,
+                                                         @RequestParam(name = "periodMonth") String periodMonth) {
         return Result.success(awardService.previewTop10(leaderboardType, periodMonth));
     }
 
@@ -60,10 +60,10 @@ public class LeaderboardAdminController {
     }
 
     @GetMapping("/rewards")
-    public Result<IPage<RewardRecordAdminVO>> rewards(@RequestParam(required = false) Integer leaderboardType,
-                                                         @RequestParam(required = false) String periodMonth,
-                                                         @RequestParam(defaultValue = "1") int page,
-                                                         @RequestParam(defaultValue = "20") int size) {
+    public Result<IPage<RewardRecordAdminVO>> rewards(@RequestParam(name = "leaderboardType", required = false) Integer leaderboardType,
+                                                         @RequestParam(name = "periodMonth", required = false) String periodMonth,
+                                                         @RequestParam(name = "page", defaultValue = "1") int page,
+                                                         @RequestParam(name = "size", defaultValue = "20") int size) {
         return Result.success(awardService.rewardHistory(leaderboardType, periodMonth, new Page<>(page, size)));
     }
 
