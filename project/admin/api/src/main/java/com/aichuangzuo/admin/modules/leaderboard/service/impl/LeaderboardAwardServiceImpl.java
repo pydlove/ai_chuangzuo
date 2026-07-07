@@ -9,7 +9,12 @@ import com.aichuangzuo.admin.modules.leaderboard.mapper.RewardRecordMapper;
 import com.aichuangzuo.admin.modules.leaderboard.service.LeaderboardAwardService;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardGrantResultVO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO;
+import com.aichuangzuo.admin.modules.leaderboard.vo.RewardRecordAdminVO;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -95,6 +100,38 @@ public class LeaderboardAwardServiceImpl implements LeaderboardAwardService {
             granted++;
         }
         return new LeaderboardGrantResultVO(granted, skipped);
+    }
+
+    @Override
+    public IPage<RewardRecordAdminVO> rewardHistory(Integer leaderboardType, String periodMonth, IPage<RewardRecordAdminVO> pageParam) {
+        LambdaQueryWrapper<RewardRecord> wrapper = Wrappers.lambdaQuery();
+        wrapper.eq(RewardRecord::getIsDeleted, 0);
+        if (leaderboardType != null) {
+            wrapper.eq(RewardRecord::getLeaderboardType, leaderboardType);
+        }
+        if (periodMonth != null && !periodMonth.isBlank()) {
+            wrapper.eq(RewardRecord::getPeriodMonth, periodMonth);
+        }
+        wrapper.orderByDesc(RewardRecord::getGrantedAt);
+        Page<RewardRecord> entityPage = new Page<>(pageParam.getCurrent(), pageParam.getSize());
+        rewardRecordMapper.selectPage(entityPage, wrapper);
+        return entityPage.convert(this::toRewardRecordVo);
+    }
+
+    private RewardRecordAdminVO toRewardRecordVo(RewardRecord entity) {
+        RewardRecordAdminVO vo = new RewardRecordAdminVO();
+        vo.setId(entity.getId());
+        vo.setBizNo(entity.getBizNo());
+        vo.setLeaderboardType(entity.getLeaderboardType());
+        vo.setPeriodMonth(entity.getPeriodMonth());
+        vo.setRankNo(entity.getRankNo());
+        vo.setUserId(entity.getUserId());
+        vo.setAmount(entity.getAmount());
+        vo.setCoinRecordBizNo(entity.getCoinRecordBizNo());
+        vo.setGrantedBy(entity.getGrantedBy());
+        vo.setGrantedAt(entity.getGrantedAt());
+        vo.setCreatedAt(entity.getCreatedAt());
+        return vo;
     }
 
     private void validateLeaderboardType(Integer leaderboardType) {
