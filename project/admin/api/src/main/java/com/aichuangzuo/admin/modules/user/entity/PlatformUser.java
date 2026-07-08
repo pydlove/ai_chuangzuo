@@ -21,6 +21,7 @@ public class PlatformUser {
     private Integer userStatus;
     private Integer userType;
     private LocalDateTime membershipExpireAt;
+    private String membershipPlan;
     private Integer emailVerified;
     private Long tenantId;
     @TableLogic

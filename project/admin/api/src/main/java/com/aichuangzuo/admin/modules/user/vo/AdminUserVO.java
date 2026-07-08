@@ -14,6 +14,7 @@ public class AdminUserVO {
     private String userType;
     private String inviteCode;
     private LocalDateTime membershipExpireAt;
+    private String membershipPlan;
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 }

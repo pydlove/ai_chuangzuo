@@ -188,6 +188,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
         user.setUserType(request.getUserType());
         user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
+        user.setMembershipPlan(request.getMembershipPlan());
         platformUserMapper.updateById(user);
         return toAdminUserVO(user);
     }
@@ -220,6 +221,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
         vo.setInviteCode(user.getInviteCode());
         vo.setMembershipExpireAt(user.getMembershipExpireAt());
+        vo.setMembershipPlan(user.getMembershipPlan());
         vo.setCreatedAt(user.getCreatedAt());
         vo.setLastLoginAt(platformUserLoginLogMapper.selectLastLoginAtByUserId(user.getId()));
         return vo;

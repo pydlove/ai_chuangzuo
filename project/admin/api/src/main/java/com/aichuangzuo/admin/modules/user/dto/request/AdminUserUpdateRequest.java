@@ -32,4 +32,7 @@ public class AdminUserUpdateRequest {
 
     @JsonFormat(pattern = "yyyy-MM-dd")
     private LocalDate expireDate;
+
+    /** monthly / quarterly / yearly，null 表示无套餐 */
+    private String membershipPlan;
 }

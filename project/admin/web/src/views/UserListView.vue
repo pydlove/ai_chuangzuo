@@ -51,6 +51,10 @@
             <span v-if="record.membershipExpireAt">{{ record.membershipExpireAt }}</span>
             <span v-else style="color: #8c8c8c">非会员</span>
           </template>
+          <template v-else-if="column.key === 'membershipPlan'">
+            <span v-if="record.membershipPlan">{{ planLabel(record.membershipPlan) }}</span>
+            <span v-else style="color: #8c8c8c">—</span>
+          </template>
           <template v-else-if="column.key === 'lastLoginAt'">
             {{ record.lastLoginAt || '—' }}
           </template>
@@ -143,6 +147,13 @@
             <a-radio :value="0">机器人</a-radio>
           </a-radio-group>
         </a-form-item>
+        <a-form-item label="会员套餐" name="membershipPlan">
+          <a-select v-model:value="editForm.membershipPlan" allow-clear placeholder="选择会员套餐（清空=无套餐）" style="width: 100%">
+            <a-select-option value="monthly">月度会员</a-select-option>
+            <a-select-option value="quarterly">季度会员</a-select-option>
+            <a-select-option value="yearly">年度会员</a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="会员到期" name="expireDate">
           <a-date-picker
             v-model:value="editForm.expireDate"
@@ -178,6 +189,10 @@
           </a-tag>
         </a-descriptions-item>
         <a-descriptions-item label="邀请码">{{ detailUser.inviteCode }}</a-descriptions-item>
+        <a-descriptions-item label="会员套餐">
+          <span v-if="detailUser.membershipPlan">{{ planLabel(detailUser.membershipPlan) }}</span>
+          <span v-else>—</span>
+        </a-descriptions-item>
         <a-descriptions-item label="会员到期">
           <span v-if="detailUser.membershipExpireAt">{{ detailUser.membershipExpireAt }}</span>
           <span v-else>非会员</span>
@@ -259,6 +274,7 @@ const columns = [
   { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 120 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
+  { title: '会员套餐', dataIndex: 'membershipPlan', key: 'membershipPlan', width: 100 },
   { title: '会员到期', dataIndex: 'membershipExpireAt', key: 'membershipExpireAt', width: 170 },
   { title: '注册时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '最后登录', key: 'lastLoginAt', width: 170 },
@@ -278,6 +294,7 @@ const editForm = reactive({
   nickname: '',
   status: 'enabled',
   userType: 1,
+  membershipPlan: null,
   expireDate: null
 })
 const editLoading = ref(false)
@@ -322,6 +339,11 @@ const createRules = {
   ]
 }
 
+const planLabel = (code) => {
+  const map = { monthly: '月度会员', quarterly: '季度会员', yearly: '年度会员' }
+  return map[code] || code
+}
+
 const openEditModal = async (user) => {
   editLoading.value = true
   try {
@@ -331,6 +353,7 @@ const openEditModal = async (user) => {
     editForm.nickname = detail.nickname
     editForm.status = detail.status
     editForm.userType = detail.userType === 'robot' ? 0 : 1
+    editForm.membershipPlan = detail.membershipPlan || null
     editForm.expireDate = detail.membershipExpireAt ? detail.membershipExpireAt.substring(0, 10) : null
     editModalVisible.value = true
   } finally {
@@ -352,6 +375,7 @@ const submitEditForm = () => {
         nickname: editForm.nickname.trim(),
         status: editForm.status,
         userType: editForm.userType,
+        membershipPlan: editForm.membershipPlan || null,
         expireDate: editForm.expireDate || null
       })
       message.success('用户信息已更新')
