@@ -62,6 +62,7 @@ public class UserStyleServiceImpl implements UserStyleService {
         style.setPrompt(prompt);
         style.setScope(scope);
         style.setSourceType(SOURCE_TYPE_CUSTOM);
+        style.setAuditStatus(0);
         style.setUseCount(0);
 
         userStyleMapper.insert(style);
@@ -175,11 +176,16 @@ public class UserStyleServiceImpl implements UserStyleService {
         vo.setBizNo(style.getBizNo());
         vo.setStyleName(style.getStyleName());
         vo.setPrompt(style.getPrompt());
+        vo.setDescription(style.getDescription());
+        vo.setPromptSummary(style.getPromptSummary());
         vo.setScope(style.getScope());
+        vo.setEnableStatus(style.getEnableStatus());
         vo.setSourceType(style.getSourceType());
         vo.setUseCount(style.getUseCount());
         vo.setCreatedAt(style.getCreatedAt());
         vo.setUpdatedAt(style.getUpdatedAt());
+        vo.setAuditStatus(style.getAuditStatus());
+        vo.setRejectReason(style.getRejectReason());
         return vo;
     }
 }

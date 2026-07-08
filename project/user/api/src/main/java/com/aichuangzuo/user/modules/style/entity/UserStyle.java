@@ -33,10 +33,19 @@ public class UserStyle {
     /** 风格提示词，生成文章时使用。 */
     private String prompt;
 
+    /** 简短描述（系统预选用）。 */
+    private String description;
+
+    /** 提示词摘要，UI 卡片展示用（系统预选用）。 */
+    private String promptSummary;
+
     /** 适用范围标签，逗号分隔。 */
     private String scope;
 
-    /** 来源类型：1-自定义，2-学习。 */
+    /** 启用状态：0-禁用，1-启用（仅系统预设有意义）。 */
+    private Integer enableStatus;
+
+    /** 来源类型：1-自定义，2-学习，3-系统预设。 */
     private Integer sourceType;
 
     /** 累计使用次数。 */
@@ -51,4 +60,16 @@ public class UserStyle {
 
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
+
+    /** 审核状态：0-待审核，1-已通过，2-已拒绝。 */
+    private Integer auditStatus;
+
+    /** 审核管理员ID。 */
+    private Long auditedBy;
+
+    /** 审核时间。 */
+    private LocalDateTime auditedAt;
+
+    /** 打回原因。 */
+    private String rejectReason;
 }

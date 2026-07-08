@@ -24,6 +24,12 @@ public class MessageVO {
     /** 摘要。 */
     private String summary;
 
+    /** 完整正文，前端详情弹框用，可空（无 content 时回退到 summary）。 */
+    private String content;
+
+    /** 子类型，可空（如 membership.subscribed / membership.expiring）。 */
+    private String subType;
+
     /** 点击跳转路由，可能为 null。 */
     private String link;
 

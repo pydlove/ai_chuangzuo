@@ -69,20 +69,20 @@
           <div class="work-meta">
             <span>{{ work.platformName }}</span>
             <span>·</span>
-            <span>{{ work.raw.wordCount }} 字</span>
+            <span>{{ work.wordCount }} 字</span>
             <span>·</span>
-            <span>{{ formatDate(work.raw.completedAt) }}</span>
+            <span>{{ formatDate(work.completedAt) }}</span>
           </div>
           <div class="work-actions">
             <a-button
               type="primary"
               class="primary-btn"
-              @click="openArticle(work.raw)"
+              @click="openArticle(work.id)"
             >
               导出&生成贴图
             </a-button>
-            <button class="work-action-btn" @click="editWork(work.raw)">编辑内容</button>
-            <button class="work-action-btn danger" @click="deleteWork(work.raw.id)">删除</button>
+            <button class="work-action-btn" @click="editWork(work.id)">编辑内容</button>
+            <button class="work-action-btn danger" @click="deleteWork(work.id)">删除</button>
           </div>
         </div>
       </div>
@@ -106,13 +106,13 @@
           <div class="work-meta">
             <span>{{ draft.platformName }}</span>
             <span>·</span>
-            <span>{{ draft.raw.wordCount?.count || 0 }} 字</span>
+            <span>{{ draft.wordCount }} 字</span>
             <span>·</span>
-            <span>保存于 {{ formatDate(draft.raw.savedAt) }}</span>
+            <span>保存于 {{ formatDate(draft.savedAt) }}</span>
           </div>
           <div class="work-actions">
-            <button class="work-action-btn primary" @click="resumeDraft(draft.raw)">继续编辑</button>
-            <button class="work-action-btn" @click="deleteDraft(draft.raw.id)">删除</button>
+            <button class="work-action-btn primary" @click="resumeDraft(draft.id)">继续编辑</button>
+            <button class="work-action-btn" @click="deleteDraft(draft.id)">删除</button>
           </div>
         </div>
       </div>
@@ -123,6 +123,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useWorks } from '@/composables/useWorks.js'
+import { useDrafts } from '@/composables/useDrafts.js'
+import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
+import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -161,72 +165,30 @@ const selectedPlatforms = ref([])
 const selectedStyles = ref([])
 const timeRange = ref('all')
 
-const WORKS_KEY = 'aichuangzuo_generation_queue'
-const DRAFTS_KEY = 'aichuangzuo_drafts'
-
-// 草稿列表
-const draftsList = computed(() => {
-  const raw = localStorage.getItem(DRAFTS_KEY) || '[]'
-  try {
-    return JSON.parse(raw)
-  } catch {
-    return []
-  }
-})
-
-// 作品列表
-const worksList = ref([])
-
-const loadWorks = () => {
-  const saved = localStorage.getItem(WORKS_KEY)
-  if (!saved) {
-    worksList.value = []
-    return
-  }
-  try {
-    const queue = JSON.parse(saved)
-    worksList.value = queue
-      .filter(item => item.status === 'completed')
-      .map(item => ({
-        id: item.id,
-        title: item.title,
-        platform: item.platform,
-        wordCount: item.wordCount,
-        style: item.style,
-        template: item.template || '未选择',
-        completedAt: item.completedAt,
-        content: item.content
-      }))
-      .sort((a, b) => new Date(b.completedAt || 0) - new Date(a.completedAt || 0))
-  } catch {
-    worksList.value = []
-  }
-}
-
-onMounted(() => {
-  loadWorks()
-  if (route.query.tab === 'drafts') {
-    activeTab.value = 'drafts'
-  }
-})
+const { articles: worksList, load: loadWorks } = useWorks()
+const { drafts: draftsList, load: loadDrafts } = useDrafts()
 
 const normalizeItems = (items, type) => {
   return items.map(item => {
     if (type === 'draft') {
       return {
-        id: item.id,
-        title: item.customTitle || '未命名草稿',
-        platformName: item.platform?.name || '未选择平台',
-        styleName: item.style?.name || '未选择',
+        id: item.bizNo,
+        title: item.title,
+        platformName: item.platformName,
+        styleName: item.styleName,
+        wordCount: item.wordCount,
+        savedAt: item.savedAt,
         date: item.savedAt ? new Date(item.savedAt) : null,
         raw: item
       }
     }
     return {
-      id: item.id,
+      id: item.bizNo,
       title: item.title,
-      platformName: item.platform || '未选择',
-      styleName: item.style || '未选择',
+      platformName: item.platformName,
+      styleName: item.styleName,
+      wordCount: item.wordCount,
+      completedAt: item.completedAt,
       date: item.completedAt ? new Date(item.completedAt) : null,
       raw: item
     }
@@ -248,6 +210,17 @@ const platformMap = {
   douyin: '抖音图文',
   zhihu: '知乎'
 }
+
+onMounted(async () => {
+  try {
+    await Promise.all([loadWorks(), loadDrafts()])
+  } catch (e) {
+    console.warn('加载作品/草稿失败', e)
+  }
+  if (route.query.tab === 'drafts') {
+    activeTab.value = 'drafts'
+  }
+})
 
 const matchesFilters = (item) => {
   if (searchKeyword.value.trim()) {
@@ -304,49 +277,81 @@ const formatDate = (dateStr) => {
   return `${month}月${day}日 ${hour}:${min}`
 }
 
-const resumeDraft = (draft) => {
-  // 将选中草稿移到最前面，然后跳转到创作页
-  const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
-  const idx = drafts.findIndex(d => d.id === draft.id)
-  if (idx > -1) {
-    drafts.splice(idx, 1)
-    drafts.unshift(draft)
-    localStorage.setItem('aichuangzuo_drafts', JSON.stringify(drafts))
+const resumeDraft = async (bizNo) => {
+  try {
+    const draft = await getDraft(bizNo)
+    if (!draft) return
+    // create 页 onMounted 优先读取 aichuangzuo_current_article
+    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
+      customTitle: draft.customTitle,
+      customRequirement: draft.customRequirement,
+      platform: draft.platform,
+      wordCount: draft.wordCount,
+      style: draft.style,
+      template: draft.template,
+      fromDraft: true
+    }))
+    router.push('/console/create')
+  } catch (e) {
+    console.warn('加载草稿失败', e)
   }
-  router.push('/console/create')
 }
 
-const deleteDraft = (id) => {
-  const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
-  const idx = drafts.findIndex(d => d.id === id)
-  if (idx > -1) {
-    drafts.splice(idx, 1)
-    localStorage.setItem('aichuangzuo_drafts', JSON.stringify(drafts))
+const deleteDraft = async (bizNo) => {
+  try {
+    await deleteDraftApi(bizNo)
+    draftsList.value = draftsList.value.filter((item) => item.bizNo !== bizNo)
+  } catch (e) {
+    console.warn('删除草稿失败', e)
   }
 }
 
-const deleteWork = (id) => {
-  const idx = worksList.value.findIndex(w => w.id === id)
-  if (idx > -1) worksList.value.splice(idx, 1)
-}
-
-const openArticle = (work) => {
-  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(work.content))
-  router.push('/console/preview')
-}
-
-const editWork = (work) => {
-  const article = {
-    id: work.id,
-    title: work.title,
-    body: work.content?.body || '',
-    wordCount: work.wordCount,
-    completedAt: work.completedAt,
-    style: work.style,
-    platform: work.platform
+const deleteWork = async (bizNo) => {
+  try {
+    await deleteArticleApi(bizNo)
+    worksList.value = worksList.value.filter((item) => item.bizNo !== bizNo)
+  } catch (e) {
+    console.warn('删除作品失败', e)
   }
-  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(article))
-  router.push('/console/edit')
+}
+
+const openArticle = async (bizNo) => {
+  try {
+    const article = await getArticle(bizNo)
+    if (!article) return
+    // preview 页读取 aichuangzuo_current_article，结构是 {title, body, style, ...}
+    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
+      title: article.title,
+      body: article.body,
+      style: article.style,
+      platform: article.platform,
+      styleOverrides: article.styleOverrides
+    }))
+    router.push('/console/preview')
+  } catch (e) {
+    console.warn('加载作品失败', e)
+  }
+}
+
+const editWork = async (bizNo) => {
+  try {
+    const article = await getArticle(bizNo)
+    if (!article) return
+    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
+      id: article.bizNo,
+      title: article.title,
+      body: article.body,
+      wordCount: article.wordCount,
+      completedAt: article.completedAt,
+      style: article.style,
+      platform: article.platform,
+      template: article.template,
+      styleOverrides: article.styleOverrides
+    }))
+    router.push('/console/edit')
+  } catch (e) {
+    console.warn('加载作品失败', e)
+  }
 }
 </script>
 

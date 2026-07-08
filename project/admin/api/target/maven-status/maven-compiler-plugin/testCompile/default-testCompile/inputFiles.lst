@@ -1,8 +1,12 @@
-/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/earnings/service/LeaderboardAwardServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/earnings/service/SettlementAdminServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/globalstyle/service/GlobalStyleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/hotsearch/job/HotSearchCrawlJobTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/hotsearch/service/HotSearchConfigServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/hotsearch/service/HotSearchPlatformAdminServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/leaderboard/service/LeaderboardAwardServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/reminder/service/ExpireReminderServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylemarket/service/StyleMarketAdminServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylereview/service/StyleReviewServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/user/service/AdminUserServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/shared/utils/AesUtilTest.java

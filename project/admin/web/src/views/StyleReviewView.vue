@@ -8,6 +8,12 @@
 
       <!-- 工具栏 -->
       <div class="style-review-toolbar">
+        <a-select
+          v-model:value="status"
+          style="width: 140px"
+          :options="statusOptions"
+          @change="handleSearch"
+        />
         <a-input
           v-model:value="keyword"
           placeholder="风格名称或创作者"
@@ -37,8 +43,12 @@
             {{ record.sourceType === 'my' ? '我的风格' : '学习的风格' }}
           </template>
           <template v-else-if="column.key === 'status'">
-            <a-tag :color="record.status === 'pending' ? '#ff4d6f' : 'error'">
-              {{ record.status === 'pending' ? '待审核' : '已打回' }}
+            <a-tag :color="record.status === 'pending' ? '#ff4d6f'
+                          : record.status === 'approved' ? 'green'
+                          : 'error'">
+              {{ record.status === 'pending' ? '待审核'
+                  : record.status === 'approved' ? '已通过'
+                  : '已打回' }}
             </a-tag>
             <a-button
               v-if="record.status === 'rejected'"
@@ -127,12 +137,20 @@ const {
   page,
   pageSize,
   keyword,
+  status,
   fetchStyles,
   handleSearch,
   handleReset,
   handlePageChange,
   handleReject
 } = useStyleReview()
+
+const statusOptions = [
+  { label: '待审核', value: 0 },
+  { label: '已通过', value: 1 },
+  { label: '已拒绝', value: 2 },
+  { label: '全部', value: '' }
+]
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },

@@ -7,16 +7,18 @@ export function useStyleReview() {
   const total = ref(0)
   const loading = ref(false)
   const page = ref(1)
-  const pageSize = ref(10)
+  const pageSize = ref(20)
   const keyword = ref('')
+  const status = ref(0)
 
   const fetchStyles = async () => {
     loading.value = true
     try {
       const res = await listStyles({
         keyword: keyword.value,
-        page: page.value,
-        pageSize: pageSize.value
+        pageNum: page.value,
+        pageSize: pageSize.value,
+        status: status.value === '' || status.value === null ? undefined : status.value
       })
       styles.value = res.list
       total.value = res.total
@@ -63,6 +65,7 @@ export function useStyleReview() {
     page,
     pageSize,
     keyword,
+    status,
     fetchStyles,
     handleSearch,
     handleReset,

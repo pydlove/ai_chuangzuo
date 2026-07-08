@@ -1,1 +1,0 @@
-import{g as o,D as t,k as s}from"./index-fe-DAs-K.js";function d(e=768){const n=s(window.innerWidth<=e),i=()=>{n.value=window.innerWidth<=e};return o(()=>{window.addEventListener("resize",i)}),t(()=>{window.removeEventListener("resize",i)}),n}export{d as u};

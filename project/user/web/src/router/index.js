@@ -113,4 +113,11 @@ const router = createRouter({
   routes
 })
 
+router.beforeEach((to) => {
+  const token = localStorage.getItem('aichuangzuo_access_token')
+  if (token && to.path === '/login') {
+    return { path: '/console' }
+  }
+})
+
 export default router

@@ -33,6 +33,12 @@ public class Message {
     /** 摘要。 */
     private String summary;
 
+    /** 完整正文，前端详情弹框用，summary 是列表摘要。 */
+    private String content;
+
+    /** 子类型，如 membership.subscribed / membership.expiring。 */
+    private String subType;
+
     /** 点击跳转路由，空则前端按类型默认跳转。 */
     private String linkUrl;
 

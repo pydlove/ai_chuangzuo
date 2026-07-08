@@ -27,7 +27,7 @@
     <div v-show="activeTab === 'overview'" class="account-content">
       <div class="account-stats">
         <div class="account-stat-card primary">
-          <div class="account-stat-value">{{ coinBalance.toFixed(2) }} <span class="account-stat-unit">创作币</span></div>
+          <div class="account-stat-value">{{ summary.coinBalance.toFixed(2) }} <span class="account-stat-unit">创作币</span></div>
           <div class="account-stat-label-row">
             <CoinInfoTooltip>
               <div class="account-stat-label account-stat-label-tooltip">
@@ -43,42 +43,42 @@
           </div>
         </div>
         <div class="account-stat-card">
-          <div class="account-stat-value">{{ totalEarnings.toFixed(2) }}</div>
+          <div class="account-stat-value">{{ summary.totalEarnings.toFixed(2) }}</div>
           <div class="account-stat-label">累计收益</div>
         </div>
         <div class="account-stat-card">
-          <div class="account-stat-value">{{ settledEarnings.toFixed(2) }}</div>
+          <div class="account-stat-value">{{ summary.settledEarnings.toFixed(2) }}</div>
           <div class="account-stat-label">已结算</div>
         </div>
         <div class="account-stat-card">
-          <div class="account-stat-value">{{ unsettledEarnings.toFixed(2) }}</div>
+          <div class="account-stat-value">{{ summary.unsettledEarnings.toFixed(2) }}</div>
           <div class="account-stat-label">未结算</div>
         </div>
       </div>
 
       <div class="account-section">
         <div class="account-section-header">
-          <span class="account-section-title">按周结算</span>
+          <span class="account-section-title">按月结算</span>
           <button
-            v-if="canSettleLastWeek"
+            v-if="canSettleLastMonth"
             class="account-settle-btn"
-            @click="handleWeeklySettle"
+            @click="handleMonthlySettle"
           >
-            结算上周
+            结算上月
           </button>
         </div>
-        <div v-if="weeklyList.length === 0" class="account-empty">
+        <div v-if="monthlyList.length === 0" class="account-empty">
           <div>还没有收益</div>
           <router-link to="/guide" class="guide-link">看看怎么赚创作币 →</router-link>
         </div>
         <div v-else class="monthly-list">
           <div
-            v-for="item in weeklyList"
-            :key="item.week"
+            v-for="item in monthlyList"
+            :key="item.month"
             class="monthly-item"
           >
             <div class="monthly-info">
-              <div class="monthly-title">{{ item.week }}</div>
+              <div class="monthly-title">{{ item.month }}</div>
               <div class="monthly-count">{{ item.count }} 笔收益</div>
             </div>
             <div class="monthly-amounts">
@@ -109,8 +109,8 @@
       class="account-rules-modal"
     >
       <ol class="account-rules-list">
-        <li>收益按<span class="account-rules-highlight">自然周（周一至周日）</span>统计，<span class="account-rules-highlight">每周一</span>可手动结算上周收益。</li>
-        <li>点击「<span class="account-rules-highlight">结算上周</span>」后，上周未结算收益将<span class="account-rules-highlight">立即</span>转入账户余额。</li>
+        <li>收益按<span class="account-rules-highlight">自然月</span>统计，每月<span class="account-rules-highlight">1 日</span>起可手动结算上月收益。</li>
+        <li>点击「<span class="account-rules-highlight">结算上月</span>」后，上月未结算收益将<span class="account-rules-highlight">立即</span>转入账户余额。</li>
         <li>账户余额满 <span class="account-rules-highlight">100 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">1 创作币 = 1 元</span>人民币。</li>
         <li><span class="account-rules-highlight">未结算收益不可提现</span>，结算前请确认收益明细无误。</li>
       </ol>
@@ -131,17 +131,17 @@
       </div>
 
       <div v-if="activeFilter === 'monthly'" class="account-section">
-        <div v-if="weeklyList.length === 0" class="account-empty">
-          暂无按周结算数据
+        <div v-if="monthlyList.length === 0" class="account-empty">
+          暂无按月结算数据
         </div>
         <div v-else class="monthly-list">
           <div
-            v-for="item in weeklyList"
-            :key="item.week"
+            v-for="item in monthlyList"
+            :key="item.month"
             class="monthly-item"
           >
             <div class="monthly-info">
-              <div class="monthly-title">{{ item.week }}</div>
+              <div class="monthly-title">{{ item.month }}</div>
               <div class="monthly-count">{{ item.count }} 笔收益</div>
             </div>
             <div class="monthly-amounts">
@@ -172,13 +172,13 @@
           class="earnings-item"
         >
           <div class="earnings-item-left">
-            <div class="earnings-item-title">{{ r.description }}</div>
+            <div class="earnings-item-title">{{ r.title }}</div>
             <div class="earnings-item-meta">
-              {{ r.styleName }} · {{ formatType(r.type) }} · {{ formatTime(r.createdAt) }}
+              {{ r.typeLabel }} · {{ r.statusLabel }} · {{ formatTime(r.createdAt) }}
             </div>
           </div>
           <div class="earnings-item-right">
-            <span :class="['earnings-status', r.status]">{{ statusText(r.status) }}</span>
+            <span :class="['earnings-status', r.status]">{{ r.statusLabel }}</span>
             <span class="earnings-item-amount" :class="{ negative: r.amount < 0 }">
               {{ r.amount > 0 ? '+' : '' }}{{ r.amount.toFixed(2) }}
             </span>
@@ -190,22 +190,21 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
-import {
-  earningsRecords,
-  getCoinBalance,
-  getTotalEarnings,
-  getSettledEarnings,
-  getUnsettledEarnings,
-  getWeeklySettlementList,
-  weeklySettle,
-  getPreviousWeek
-} from '@/composables/useStyleMarket.js'
+import { useEarnings } from '@/composables/useEarnings.js'
 
 const router = useRouter()
+const {
+  summary,
+  monthlyList,
+  records,
+  previousMonth,
+  refreshAll,
+  settle
+} = useEarnings()
 
 const activeTab = ref('overview')
 const activeFilter = ref('all')
@@ -215,28 +214,25 @@ const filters = [
   { key: 'all', label: '全部' },
   { key: 'settled', label: '已结算' },
   { key: 'unsettled', label: '未结算' },
-  { key: 'monthly', label: '按周结算' }
+  { key: 'monthly', label: '按月结算' }
 ]
 
-const coinBalance = computed(() => getCoinBalance())
-const totalEarnings = computed(() => getTotalEarnings())
-const settledEarnings = computed(() => getSettledEarnings())
-const unsettledEarnings = computed(() => getUnsettledEarnings())
-const weeklyList = computed(() => getWeeklySettlementList())
-
-const previousWeek = getPreviousWeek()
-const canSettleLastWeek = computed(() => {
-  return weeklyList.value.some(
-    (item) => item.week === previousWeek && item.unsettled > 0
+const canSettleLastMonth = computed(() => {
+  return monthlyList.value.some(
+    (item) => item.month === previousMonth.value && item.unsettled > 0
   )
 })
 
-const handleWeeklySettle = () => {
-  const amount = weeklySettle(previousWeek)
-  if (amount > 0) {
-    message.success(`上周收益已结算：${amount.toFixed(2)} 创作币`)
-  } else {
-    message.info('上周没有可结算的收益')
+const handleMonthlySettle = async () => {
+  try {
+    const result = await settle()
+    if (result.settledCount > 0) {
+      message.success(`上月收益已结算：${Number(result.settledAmount).toFixed(2)} 创作币`)
+    } else {
+      message.info('上月没有可结算的收益')
+    }
+  } catch (e) {
+    message.error(e?.message || '结算失败')
   }
 }
 
@@ -245,19 +241,9 @@ const goToWithdraw = () => {
 }
 
 const filteredRecords = computed(() => {
-  if (activeFilter.value === 'all') return earningsRecords.value
-  return earningsRecords.value.filter((r) => r.status === activeFilter.value)
+  if (activeFilter.value === 'all') return records.value
+  return records.value.filter((r) => r.status === activeFilter.value)
 })
-
-const formatType = (type) => {
-  const map = { usage: '使用收益', milestone: '里程碑奖励' }
-  return map[type] || type
-}
-
-const statusText = (status) => {
-  const map = { settled: '已结算', unsettled: '未结算' }
-  return map[status] || status
-}
 
 const formatTime = (iso) => {
   if (!iso) return ''
@@ -265,6 +251,10 @@ const formatTime = (iso) => {
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+
+onMounted(() => {
+  refreshAll()
+})
 </script>
 
 <style scoped>

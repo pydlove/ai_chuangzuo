@@ -8,6 +8,8 @@
             m.msg_type AS type,
             m.title AS title,
             m.summary AS summary,
+            m.content AS content,
+            m.sub_type AS subType,
             m.link_url AS link,
             m.created_at AS createdAt,
             (mr.id IS NOT NULL) AS `read`

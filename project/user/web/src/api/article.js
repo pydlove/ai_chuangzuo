@@ -1,0 +1,44 @@
+import { api } from '@/api/auth'
+
+/**
+ * 分页查询我的作品。
+ * @param {{keyword?:string, page?:number, pageSize?:number}} params
+ * @returns {Promise<{list:Array, total:number, page:number, pageSize:number}>}
+ */
+export function listArticles(params = {}) {
+  return api.get('/articles', { params }).then((res) => res.data || { list: [], total: 0 })
+}
+
+/**
+ * 获取作品详情。
+ * @param {string} bizNo
+ */
+export function getArticle(bizNo) {
+  return api.get(`/articles/${bizNo}`).then((res) => res.data || null)
+}
+
+/**
+ * 保存作品（生成完成时调用）。
+ * @param {{title:string, body:string, styleOverrides?:string, platform?:string, style?:string, template?:string, wordCount?:number, completedAt?:string}} payload
+ * @returns {Promise<string>} bizNo
+ */
+export function saveArticle(payload) {
+  return api.post('/articles', payload).then((res) => res.data)
+}
+
+/**
+ * 修改作品。
+ * @param {string} bizNo
+ * @param {{title?:string, body?:string, styleOverrides?:string}} payload
+ */
+export function updateArticle(bizNo, payload) {
+  return api.put(`/articles/${bizNo}`, payload)
+}
+
+/**
+ * 删除作品。
+ * @param {string} bizNo
+ */
+export function deleteArticle(bizNo) {
+  return api.delete(`/articles/${bizNo}`)
+}

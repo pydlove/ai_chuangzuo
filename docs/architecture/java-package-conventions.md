@@ -250,6 +250,28 @@ shared / infrastructure
 - 禁止工具类依赖业务模块。
 - 禁止 Entity 类名保留 `u_` / `a_` 表前缀。
 
+### 9.1 例外：领域聚合根下允许二级模块
+
+当某个业务领域由多个强内聚的子领域组成，且它们共用同一张聚合根表或同一组上下游概念时，允许在该领域目录下再按子领域分包。例如：
+
+```text
+com.aichuangzuo.admin.modules.style/
+├── entity/UserStyleAggregate.java        # 聚合根实体（表 u_user_style）
+├── preset/                               # 平台预设风格
+│   ├── controller/、service/、mapper/、dto/、vo/、enums/
+├── market/                               # 风格广场
+│   └── ...
+└── review/                               # 风格审核
+    └── ...
+```
+
+规则：
+
+- 仅当父目录名 + 子目录名组合仍是清晰的领域命名空间（如 `style.preset` / `style.market` / `style.review`）时才允许嵌套。
+- 嵌套层级最多两级：`modules/<领域>/<子领域>/<技术层>/`。
+- 同一聚合根的 Entity 放在领域根下的 `entity/`，子领域不重复声明。
+- 不得用嵌套逃避 §9 的「禁止纯技术层平铺」——子领域内部仍必须按 §6 分技术层。
+
 ---
 
 ## 10. 示例：文章模块完整包结构

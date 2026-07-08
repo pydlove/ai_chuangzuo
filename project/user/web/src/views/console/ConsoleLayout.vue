@@ -436,6 +436,44 @@
             </div>
           </a-modal>
 
+          <!-- 消息详情弹框（announcement / feature / promotion / membership.subscribed） -->
+          <a-modal
+            v-model:open="notifDetailVisible"
+            :width="640"
+            centered
+            class="notif-detail-modal"
+            :destroy-on-close="true"
+          >
+            <div v-if="notifDetail" class="notif-detail-panel">
+              <div class="notif-detail-type-chip">{{ notifTypeLabel(notifDetail) }}</div>
+              <h3 class="notif-detail-title">{{ notifDetail.title }}</h3>
+              <div class="notif-detail-time">{{ formatTime(notifDetail.createdAt) }}</div>
+              <div class="notif-detail-content">{{ notifDetail.content || notifDetail.summary }}</div>
+            </div>
+            <template #footer>
+              <a-button type="primary" @click="notifDetailVisible = false">我知道了</a-button>
+            </template>
+          </a-modal>
+
+          <!-- 会员到期续订弹框 -->
+          <a-modal
+            v-model:open="renewalVisible"
+            :width="520"
+            centered
+            class="renewal-modal"
+            :destroy-on-close="true"
+          >
+            <div class="renewal-panel">
+              <div class="renewal-icon">⏰</div>
+              <h3 class="renewal-title">{{ expiringNotif?.title || '您的会员即将到期' }}</h3>
+              <div class="renewal-body">{{ expiringNotif?.content || RENEWAL_FALLBACK_COPY }}</div>
+            </div>
+            <template #footer>
+              <a-button @click="renewalVisible = false">取消</a-button>
+              <a-button type="primary" @click="goRenewal">去续订</a-button>
+            </template>
+          </a-modal>
+
           <!-- 消息铃铛 -->
           <div class="bell-wrap">
             <a-tooltip title="消息">
@@ -1230,6 +1268,28 @@ const loadTheme = () => {
 const notifVisible = ref(false)
 const activeTab = ref('generation')
 const notifications = ref([])
+
+// 消息详情弹框(announcement / feature / promotion / membership.subscribed)
+const notifDetailVisible = ref(false)
+const notifDetail = ref(null)
+
+// 会员到期续订弹框
+const renewalVisible = ref(false)
+const expiringNotif = ref(null)
+
+// 续订 fallback 文案,后端无 content 时前端兜底
+const RENEWAL_FALLBACK_COPY = '您的会员即将到期。\n续订后可继续享受无限生成、多平台爆款标题优化、专属客服等全部权益。\n错过将影响您的创作节奏,建议尽快续订。'
+
+// 消息类型 → 显示名(membership 单独按 subType 区分)
+const notifTypeLabel = (n) => {
+  if (n.type === 'membership') {
+    if (n.subType === 'expiring') return '会员到期'
+    if (n.subType === 'subscribed') return '订阅成功'
+    return '会员提醒'
+  }
+  const tab = notifTabs.find(t => t.type === n.type)
+  return tab ? tab.label : n.type
+}
 
 // ---------- 教程 ----------
 const tutorialVisible = ref(false)
@@ -2237,9 +2297,22 @@ const handleNotifClick = async (n) => {
   }
   if (n.type === 'generation') {
     router.push('/console/works')
-  } else if (n.type === 'membership') {
-    router.push('/pricing')
+    return
   }
+  if (n.type === 'membership' && n.subType === 'expiring') {
+    expiringNotif.value = n
+    renewalVisible.value = true
+    return
+  }
+  // 其余(announcement / feature / promotion / membership.subscribed):通用详情弹框
+  notifDetail.value = n
+  notifDetailVisible.value = true
+}
+
+const goRenewal = async () => {
+  renewalVisible.value = false
+  await nextTick()
+  router.push('/pricing')
 }
 
 // 演示用：默认开通年会员
@@ -2685,6 +2758,84 @@ provide('consoleActions', {
 .notif-empty-text {
   font-size: 13px;
   color: #8c8c8c;
+}
+
+/* 消息详情弹框 */
+.notif-detail-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 24px 28px 8px;
+}
+
+.notif-detail-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notif-detail-type-chip {
+  display: inline-block;
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 3px 10px;
+  border-radius: 12px;
+  background: #fff0f2;
+  color: #ff2442;
+  font-weight: 500;
+}
+
+.notif-detail-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.notif-detail-time {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.notif-detail-content {
+  white-space: pre-wrap;
+  line-height: 1.75;
+  font-size: 14px;
+  color: #1a1a1a;
+  padding: 12px 0 0;
+  word-break: break-word;
+}
+
+/* 会员到期续订弹框 */
+.renewal-panel {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.renewal-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.renewal-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 14px;
+  line-height: 1.4;
+}
+
+.renewal-body {
+  white-space: pre-wrap;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.8;
+  text-align: left;
+  background: #fafafa;
+  padding: 16px 18px;
+  border-radius: 8px;
+  border-left: 3px solid #ff2442;
 }
 
 .notif-item {
@@ -5174,6 +5325,37 @@ body[data-theme="dark"] .mobile-subpage-title {
 </style>
 
 <style>
+/* 消息中心弹框 - ant-modal-body 由 ant-design-vue 生成在 scoped 块外,
+   必须放在全局块里才能命中:notif-detail-modal/renewal-modal 类挂在 .ant-modal 上,
+   ant-modal-body 是它的后代。 */
+.notif-detail-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 24px 28px 8px;
+}
+
+.renewal-modal .ant-modal-body {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 28px 28px 8px;
+}
+
+/* 消息详情 / 续订弹框 primary 按钮统一用品牌红(#FF2442,小红书/爱创作主色),
+   ant-design-vue 默认 primary 是蓝色,这里显式覆盖。 */
+.notif-detail-modal .ant-btn-primary,
+.renewal-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.notif-detail-modal .ant-btn-primary:hover,
+.renewal-modal .ant-btn-primary:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #fff;
+}
+
 /* 邀请有礼 - 通用按钮样式（全局，供其他页面复用） */
 .invite-btn {
   padding: 8px 16px;
@@ -5237,7 +5419,9 @@ body[data-theme="dark"] .redeem-modal .ant-modal-content,
 body[data-theme="dark"] .password-modal .ant-modal-content,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-content,
 body[data-theme="dark"] .email-slider-modal .ant-modal-content,
-body[data-theme="dark"] .withdraw-modal .ant-modal-content {
+body[data-theme="dark"] .withdraw-modal .ant-modal-content,
+body[data-theme="dark"] .notif-detail-modal .ant-modal-content,
+body[data-theme="dark"] .renewal-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
@@ -5266,6 +5450,34 @@ body[data-theme="dark"] .about-modal .ant-modal-header,
 body[data-theme="dark"] .redeem-modal .ant-modal-header {
   background: #1f1f1f;
   border-bottom-color: #303030;
+}
+
+/* 消息详情 / 续订弹框：暗色样式 */
+body[data-theme="dark"] .notif-detail-modal .ant-modal-content,
+body[data-theme="dark"] .renewal-modal .ant-modal-content {
+  background: #1f1f1f;
+  border: 1px solid #303030;
+}
+
+body[data-theme="dark"] .notif-detail-title,
+body[data-theme="dark"] .renewal-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .notif-detail-time,
+body[data-theme="dark"] .notif-detail-content {
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .notif-detail-type-chip {
+  background: rgba(255, 77, 111, 0.18);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .renewal-body {
+  background: #262626;
+  color: #d9d9d9;
+  border-left-color: #ff4d6f;
 }
 
 body[data-theme="dark"] .invite-modal .ant-modal-close,

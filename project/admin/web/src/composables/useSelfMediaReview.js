@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listIncomeSubmissions, approveIncomeSubmission, rejectIncomeSubmission } from '@/api/earnings.js'
+import { getSubmissions, approveSubmission, rejectSubmission } from '@/api/leaderboard.js'
 
 export function useSelfMediaReview() {
   const status = ref(0)
@@ -17,7 +17,7 @@ export function useSelfMediaReview() {
   const fetchSubmissions = async () => {
     loading.value = true
     try {
-      const res = await listIncomeSubmissions({
+      const res = await getSubmissions({
         status: status.value,
         periodMonth: periodMonth.value,
         page: page.value,
@@ -34,7 +34,7 @@ export function useSelfMediaReview() {
 
   const approve = async (id) => {
     try {
-      await approveIncomeSubmission(id)
+      await approveSubmission(id)
       message.success('已通过')
       await fetchSubmissions()
     } catch (error) {
@@ -54,7 +54,7 @@ export function useSelfMediaReview() {
       return
     }
     try {
-      await rejectIncomeSubmission(rejectTarget.value.id, { rejectReason: rejectReason.value })
+      await rejectSubmission(rejectTarget.value.id, rejectReason.value)
       message.success('已拒绝')
       rejectVisible.value = false
       await fetchSubmissions()

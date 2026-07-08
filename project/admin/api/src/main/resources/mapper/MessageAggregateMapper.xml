@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.message.mapper.MessageAggregateMapper">
+
+    <!-- 列表分页查询：按 msgType 过滤 + keyword 模糊匹配，按 biz_no 聚合 -->
+    <select id="selectAdminPage" resultType="com.aichuangzuo.admin.modules.message.vo.MessageAdminVO">
+        SELECT
+            MAX(m.id) AS id,
+            m.biz_no AS bizNo,
+            ANY_VALUE(m.msg_type) AS msgType,
+            ANY_VALUE(m.title) AS title,
+            ANY_VALUE(m.summary) AS summary,
+            ANY_VALUE(m.link_url) AS linkUrl,
+            ANY_VALUE(m.scope) AS scope,
+            COUNT(*) AS audienceCount,
+            MAX(m.created_at) AS createdAt,
+            ANY_VALUE(m.created_by) AS createdBy,
+            (SELECT COUNT(DISTINCT mr.user_id)
+               FROM u_message_read mr
+               INNER JOIN u_message mm ON mm.id = mr.message_id
+              WHERE mm.biz_no = m.biz_no
+                AND mm.is_deleted = 0) AS readCount
+        FROM u_message m
+        WHERE m.is_deleted = 0
+          AND m.msg_type = #{msgType}
+        <if test="keyword != null and keyword != ''">
+          AND (m.title LIKE CONCAT('%', #{keyword}, '%')
+               OR m.summary LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        GROUP BY m.biz_no
+        ORDER BY MAX(m.created_at) DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <!-- 列表总数：按 biz_no 去重计数 -->
+    <select id="countAdminPage" resultType="long">
+        SELECT COUNT(DISTINCT m.biz_no)
+        FROM u_message m
+        WHERE m.is_deleted = 0
+          AND m.msg_type = #{msgType}
+        <if test="keyword != null and keyword != ''">
+          AND (m.title LIKE CONCAT('%', #{keyword}, '%')
+               OR m.summary LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
+    <!-- 按 biz_no 查询 campaign 内全部 u_message 行 -->
+    <select id="selectByBizNo" resultType="com.aichuangzuo.admin.modules.message.entity.MessageAggregate">
+        SELECT
+            id,
+            biz_no AS bizNo,
+            msg_type AS msgType,
+            scope,
+            target_user_id AS targetUserId,
+            title,
+            summary,
+            link_url AS linkUrl,
+            tenant_id AS tenantId,
+            is_deleted AS isDeleted,
+            created_at AS createdAt,
+            updated_at AS updatedAt,
+            created_by AS createdBy,
+            updated_by AS updatedBy
+        FROM u_message
+        WHERE biz_no = #{bizNo}
+          AND is_deleted = 0
+        ORDER BY id ASC
+    </select>
+
+    <!-- 详情-受众列表（仅指定人消息） -->
+    <select id="selectAudienceByBizNo" resultType="com.aichuangzuo.admin.modules.message.vo.MessageAudienceVO">
+        SELECT
+            m.id AS messageId,
+            m.target_user_id AS userId,
+            u.nickname,
+            u.email,
+            m.created_at AS bizTime,
+            mr.read_at AS readAt
+        FROM u_message m
+        LEFT JOIN u_user u
+               ON u.id = m.target_user_id
+              AND u.is_deleted = 0
+        LEFT JOIN u_message_read mr
+               ON mr.message_id = m.id
+              AND mr.user_id = m.target_user_id
+              AND mr.is_deleted = 0
+        WHERE m.biz_no = #{bizNo}
+          AND m.is_deleted = 0
+          AND m.scope = 2
+        ORDER BY m.id ASC
+    </select>
+
+    <!-- 全体消息已读统计：总用户数 -->
+    <select id="countAllActiveUsers" resultType="long">
+        SELECT COUNT(*) FROM u_user WHERE is_deleted = 0
+    </select>
+</mapper>

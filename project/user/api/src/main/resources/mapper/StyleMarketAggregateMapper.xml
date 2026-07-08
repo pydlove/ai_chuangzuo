@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.style.market.mapper.StyleMarketAggregateMapper">
+
+    <select id="selectEnabledMarketStyles" resultType="com.aichuangzuo.user.modules.style.market.dto.MarketStyleRow">
+        SELECT s.biz_no          AS bizNo,
+               s.style_name      AS styleName,
+               s.description     AS description,
+               s.prompt_summary  AS promptSummary,
+               s.prompt          AS prompt,
+               s.scope           AS scope,
+               s.publisher_user_id AS publisherUserId,
+               u.nickname        AS publisherName,
+               s.price           AS price,
+               s.total_uses      AS totalUses,
+               s.weekly_uses     AS weeklyUses,
+               s.weekly_earnings AS weeklyEarnings,
+               s.milestone_bonus AS milestoneBonus,
+               s.last_settlement_at AS lastSettlementAt,
+               s.created_at      AS createdAt
+        FROM u_style_market s
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND s.enable_status = 1
+          AND s.audit_status = 1
+        ORDER BY s.id DESC
+    </select>
+
+</mapper>

@@ -4,6 +4,7 @@ com/aichuangzuo/shared/enums/error/SystemErrorCode.class
 com/aichuangzuo/shared/exception/ForbiddenException.class
 com/aichuangzuo/shared/result/Result.class
 com/aichuangzuo/shared/enums/error/AdminUserErrorCode.class
+com/aichuangzuo/shared/entity/BaseEntity.class
 com/aichuangzuo/shared/enums/error/AdminModelConfigErrorCode.class
 com/aichuangzuo/shared/enums/error/AdminAuthErrorCode.class
 com/aichuangzuo/shared/exception/SystemException.class

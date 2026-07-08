@@ -84,32 +84,36 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public Long pushPersonal(Long userId, String msgType, String title, String summary, String linkUrl) {
+    public Long pushPersonal(Long userId, String msgType, String title, String summary, String linkUrl, String content, String subType) {
         Message message = new Message();
         message.setMsgType(msgType);
         message.setScope(MessageScope.PERSONAL.getCode());
         message.setTargetUserId(userId);
         message.setTitle(title);
         message.setSummary(summary);
+        message.setContent(content);
+        message.setSubType(subType);
         message.setLinkUrl(linkUrl);
         message.setTenantId(0L);
         messageMapper.insert(message);
-        log.info("推送个人消息 userId={}, msgType={}, messageId={}", userId, msgType, message.getId());
+        log.info("推送个人消息 userId={}, msgType={}, subType={}, messageId={}", userId, msgType, subType, message.getId());
         return message.getId();
     }
 
     @Override
     @Transactional
-    public Long publishBroadcast(String msgType, String title, String summary, String linkUrl) {
+    public Long publishBroadcast(String msgType, String title, String summary, String linkUrl, String content, String subType) {
         Message message = new Message();
         message.setMsgType(msgType);
         message.setScope(MessageScope.BROADCAST.getCode());
         message.setTitle(title);
         message.setSummary(summary);
+        message.setContent(content);
+        message.setSubType(subType);
         message.setLinkUrl(linkUrl);
         message.setTenantId(0L);
         messageMapper.insert(message);
-        log.info("发布广播消息 msgType={}, messageId={}", msgType, message.getId());
+        log.info("发布广播消息 msgType={}, subType={}, messageId={}", msgType, subType, message.getId());
         return message.getId();
     }
 }

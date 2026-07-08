@@ -33,3 +33,12 @@ export function updateStyle(bizNo, data) {
 export function deleteStyle(bizNo) {
   return api.delete(`/styles/${bizNo}`)
 }
+
+/**
+ * 获取系统预设风格（启用中的 source_type=3）。
+ * @param {string} [keyword]
+ */
+export function getSystemStyles(keyword = '') {
+  const params = keyword ? { keyword } : {}
+  return api.get('/styles/system-styles', { params })
+}

@@ -106,14 +106,15 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   marketStyles,
   useMarketStyle,
   simulateExternalUse,
   toggleFavorite,
-  isFavorite
+  isFavorite,
+  loadMarketStyles
 } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
@@ -195,6 +196,10 @@ const handleSimulate = (s) => {
     alert(err.message)
   }
 }
+
+onMounted(() => {
+  loadMarketStyles()
+})
 </script>
 
 <style scoped>

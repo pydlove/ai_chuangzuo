@@ -598,7 +598,7 @@ const filterText = (s) => {
 const filteredMyStyles = computed(() => myStyles.value.filter(filterText))
 const filteredLearnedStyles = computed(() => learnedStyles.value.filter(filterText))
 const filteredSystemStyles = computed(() =>
-  systemStyles.filter(s => {
+  systemStyles.value.filter(s => {
     const q = searchQuery.value.trim().toLowerCase()
     if (!q) return true
     return (

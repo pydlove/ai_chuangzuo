@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.style.preset.mapper.GlobalStyleAggregateMapper">
+
+    <select id="selectGlobalStylePage" resultType="com.aichuangzuo.admin.modules.style.preset.dto.SystemStyleRow">
+        SELECT s.biz_no         AS bizNo,
+               s.style_name     AS styleName,
+               s.description    AS description,
+               s.prompt_summary AS promptSummary,
+               s.prompt         AS prompt,
+               s.scope          AS scope,
+               s.source_type    AS sourceType,
+               s.enable_status  AS enableStatus,
+               s.audit_status   AS auditStatus,
+               s.created_at     AS createdAt
+        FROM u_user_style s
+        WHERE s.source_type = 3
+          AND s.is_deleted  = 0
+          <if test="enableStatus != null">AND s.enable_status = #{enableStatus}</if>
+          <if test="keyword != null and keyword != ''">
+              AND s.style_name LIKE CONCAT('%', #{keyword}, '%')
+          </if>
+        ORDER BY s.id ASC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countGlobalStylePage" resultType="long">
+        SELECT COUNT(*)
+        FROM u_user_style s
+        WHERE s.source_type = 3
+          AND s.is_deleted  = 0
+          <if test="enableStatus != null">AND s.enable_status = #{enableStatus}</if>
+          <if test="keyword != null and keyword != ''">
+              AND s.style_name LIKE CONCAT('%', #{keyword}, '%')
+          </if>
+    </select>
+
+</mapper>

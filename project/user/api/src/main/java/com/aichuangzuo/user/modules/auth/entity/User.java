@@ -35,6 +35,8 @@ public class User {
     private BigDecimal coinBalance;
     /** 用户状态：0-禁用 / 1-正常；禁用时 JwtAuthenticationFilter 仍能解析 token 但登录接口拒绝。 */
     private Integer userStatus;
+    /** 用户类型：0-机器人 / 1-真实用户。 */
+    private Integer userType;
     /** 邮箱是否验证：0-否 / 1-是；改邮箱成功后置 1。 */
     private Integer emailVerified;
     /** 租户ID；当前统一为 0，预留多租户扩展。 */

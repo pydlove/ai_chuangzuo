@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.style.review.mapper.StyleReviewAggregateMapper">
+
+    <select id="selectReviewPage" resultType="com.aichuangzuo.admin.modules.style.review.dto.StyleReviewRow">
+        SELECT s.biz_no        AS bizNo,
+               s.user_id       AS userId,
+               u.nickname      AS creatorName,
+               s.style_name    AS styleName,
+               s.source_type   AS sourceType,
+               s.audit_status  AS auditStatus,
+               s.reject_reason AS rejectReason,
+               s.created_at    AS createdAt
+        FROM u_user_style s
+        LEFT JOIN u_user u ON u.id = s.user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+          <if test="status != null">AND s.audit_status = #{status}</if>
+          <if test="keyword != null and keyword != ''">
+              AND (s.style_name LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname    LIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+        ORDER BY s.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countReviewPage" resultType="long">
+        SELECT COUNT(*)
+        FROM u_user_style s
+        LEFT JOIN u_user u ON u.id = s.user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+          <if test="status != null">AND s.audit_status = #{status}</if>
+          <if test="keyword != null and keyword != ''">
+              AND (s.style_name LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname    LIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+    </select>
+
+</mapper>

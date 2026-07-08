@@ -1,25 +1,12 @@
 import { ref, computed } from 'vue'
+import { getMarketStyles } from '@/api/marketStyle.js'
 
-const MARKET_KEY = 'aichuangzuo_style_market'
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const USER_ID_KEY = 'aichuangzuo_user_id'
 const FAVORITES_KEY = 'aichuangzuo_favorite_styles'
 
 const PRICE_PER_USE = 0.2
-
-function loadMarketStyles() {
-  try {
-    const raw = localStorage.getItem(MARKET_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveMarketStyles() {
-  localStorage.setItem(MARKET_KEY, JSON.stringify(marketStyles.value))
-}
 
 function loadEarningsRecords() {
   try {
@@ -74,9 +61,17 @@ function setCoinBalance(balance) {
   localStorage.setItem(COIN_BALANCE_KEY, String(balance))
 }
 
-export const marketStyles = ref(loadMarketStyles())
+export const marketStyles = ref([])
 export const earningsRecords = ref(loadEarningsRecords())
 export const favoriteIds = ref(loadFavoriteIds())
+
+export async function loadMarketStyles() {
+  try {
+    marketStyles.value = await getMarketStyles()
+  } catch (e) {
+    console.warn('[loadMarketStyles]', e?.message || '加载失败')
+  }
+}
 
 export const favoriteStyles = computed(() =>
   marketStyles.value.filter(s => s.status === 'approved' && favoriteIds.value.includes(s.id))
@@ -138,7 +133,6 @@ export function shareStyleToMarket(style, sourceType) {
     lastSettlementAt: new Date().toISOString(),
     createdAt: new Date().toISOString()
   })
-  saveMarketStyles()
   return id
 }
 
@@ -146,8 +140,7 @@ export function approveMarketStyle(marketId) {
   const s = marketStyles.value.find(x => x.id === marketId)
   if (s) {
     s.status = 'approved'
-    saveMarketStyles()
-  }
+    }
 }
 
 export function useMarketStyle(marketId) {
@@ -162,7 +155,6 @@ export function useMarketStyle(marketId) {
   s.weeklyUses += 1
   s.totalUses += 1
   s.weeklyEarnings = Number((s.weeklyUses * PRICE_PER_USE).toFixed(2))
-  saveMarketStyles()
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
@@ -219,7 +211,6 @@ export function settleWeeklyMilestone() {
     s.milestoneBonus = 0
     s.lastSettlementAt = now.toISOString()
   })
-  saveMarketStyles()
 }
 
 export function simulateExternalUse(marketId) {
@@ -234,7 +225,6 @@ export function simulateExternalUse(marketId) {
   s.weeklyUses += 1
   s.totalUses += 1
   s.weeklyEarnings = Number((s.weeklyUses * PRICE_PER_USE).toFixed(2))
-  saveMarketStyles()
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),

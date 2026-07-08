@@ -19,7 +19,8 @@ export const mySubmissions = ref([])
 function mergeTopListAndMe(vo) {
   const list = [...(vo?.topList || [])]
   const me = vo?.me
-  if (me && !list.some(item => item.isMe)) {
+  // 仅当用户实际有排名（rank 非空）时合并 me，避免未上榜用户以 rank=null 出现在列表中
+  if (me && me.rank != null && !list.some(item => item.isMe)) {
     list.push(me)
   }
   return list

@@ -418,14 +418,14 @@ function myRewardStatus(item, type) {
 
 const myCoinStatus = computed(() => {
   if (!myCoinItem.value) return null
-  if (myCoinItem.value.rank > 10) return null
+  if (!myCoinItem.value.rank || myCoinItem.value.rank > 10) return null
   return myRewardStatus(myCoinItem.value, 'coin')
 })
 
 const myIncomeStatus = computed(() => {
   if (incomePeriodType.value !== 'month') return null
   if (!myIncomeItem.value) return null
-  if (myIncomeItem.value.rank > 10) return null
+  if (!myIncomeItem.value.rank || myIncomeItem.value.rank > 10) return null
   return myRewardStatus(myIncomeItem.value, 'income')
 })
 

@@ -1,0 +1,32 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_style_market (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    biz_no VARCHAR(64) NOT NULL COMMENT '业务唯一编号，对外暴露',
+    style_name VARCHAR(64) NOT NULL COMMENT '风格名称',
+    description VARCHAR(256) DEFAULT NULL COMMENT '简短描述',
+    prompt_summary VARCHAR(512) DEFAULT NULL COMMENT '提示词摘要，UI 卡片展示用',
+    prompt TEXT NOT NULL COMMENT '完整风格提示词',
+    scope VARCHAR(256) DEFAULT NULL COMMENT '适用范围标签，逗号分隔',
+    publisher_user_id BIGINT UNSIGNED NOT NULL COMMENT '发布者用户ID（u_user.id）',
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.20 COMMENT '单次使用价格（创作币），本期固定 0.2',
+    total_uses INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累计使用次数（管理端可维护）',
+    weekly_uses INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '本周使用次数（结算用，本期只读）',
+    weekly_earnings DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '本周基础收益（本期只读）',
+    milestone_bonus DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '本周已发放里程碑奖励（本期只读）',
+    last_settlement_at DATETIME(3) DEFAULT NULL COMMENT '上次结算时间（本期只读）',
+    enable_status TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '启用状态：0-禁用，1-启用',
+    audit_status TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '审核状态：0-待审核，1-已通过，2-已拒绝',
+    source_type TINYINT UNSIGNED NOT NULL DEFAULT 3 COMMENT '来源：1-用户自定义，2-学习风格，3-平台运营',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_style_market_biz_no (biz_no),
+    KEY idx_style_market_publisher (publisher_user_id),
+    KEY idx_style_market_enable_deleted (enable_status, is_deleted),
+    KEY idx_style_market_audit (audit_status),
+    KEY idx_style_market_name (style_name)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='风格市场表';

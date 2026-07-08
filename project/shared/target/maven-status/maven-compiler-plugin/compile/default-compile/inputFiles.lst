@@ -1,4 +1,5 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/SharedModuleMarker.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/BaseEntity.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/error/AdminAuthErrorCode.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/error/AdminModelConfigErrorCode.java

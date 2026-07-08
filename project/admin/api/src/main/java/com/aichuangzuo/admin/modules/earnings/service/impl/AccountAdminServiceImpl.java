@@ -2,12 +2,12 @@ package com.aichuangzuo.admin.modules.earnings.service.impl;
 
 import com.aichuangzuo.admin.modules.earnings.dto.request.AccountQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.entity.EarningsRecord;
-import com.aichuangzuo.admin.modules.earnings.entity.RewardRecord;
 import com.aichuangzuo.admin.modules.earnings.entity.UserCoinRecord;
 import com.aichuangzuo.admin.modules.earnings.mapper.AccountAdminMapper;
 import com.aichuangzuo.admin.modules.earnings.mapper.EarningsRecordMapper;
-import com.aichuangzuo.admin.modules.earnings.mapper.RewardRecordMapper;
 import com.aichuangzuo.admin.modules.earnings.mapper.UserCoinRecordMapper;
+import com.aichuangzuo.admin.modules.leaderboard.entity.RewardRecord;
+import com.aichuangzuo.admin.modules.leaderboard.mapper.RewardRecordMapper;
 import com.aichuangzuo.admin.modules.earnings.service.AccountAdminService;
 import com.aichuangzuo.admin.modules.earnings.vo.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;

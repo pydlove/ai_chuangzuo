@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper">
+
+    <select id="selectMonthlySettlementList" resultType="com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO">
+        SELECT
+            settlement_month AS month,
+            COUNT(*) AS count,
+            SUM(amount) AS total,
+            SUM(CASE WHEN status = 1 THEN amount ELSE 0 END) AS settled,
+            SUM(CASE WHEN status = 0 THEN amount ELSE 0 END) AS unsettled
+        FROM u_earnings_record
+        WHERE user_id = #{userId}
+          AND is_deleted = 0
+        GROUP BY settlement_month
+        ORDER BY settlement_month DESC
+    </select>
+
+</mapper>

@@ -664,26 +664,52 @@ import {
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { saveCurrentArticle } from '@/utils/articleStorage.js'
+import { saveDraft } from '@/api/draft.js'
+import { saveArticle } from '@/api/article.js'
 import CardsModal from '@/components/CardsModal.vue'
 
 const router = useRouter()
 const route = useRoute()
 const isMobile = useIsMobile()
 
-// 恢复草稿（加载最新一个）
+// 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(() => {
-  const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
-  if (drafts.length > 0) {
-    const data = drafts[0]
-    customTitle.value = data.customTitle || ''
-    customRequirement.value = data.customRequirement || ''
-    if (data.platform) {
-      const p = platforms.find(x => x.key === data.platform.key)
-      if (p) currentPlatform.value = p
+  const resume = localStorage.getItem('aichuangzuo_current_article')
+  if (resume) {
+    try {
+      const data = JSON.parse(resume)
+      if (data.fromDraft) {
+        customTitle.value = data.customTitle || ''
+        customRequirement.value = data.customRequirement || ''
+        if (data.platform) {
+          const p = platforms.find(x => x.key === data.platform)
+          if (p) currentPlatform.value = p
+        }
+        if (data.wordCount) {
+          const wc = wordCountPresets.tier.find(x => x.count === data.wordCount)
+            || wordCountPresets.scenario.find(x => x.count === data.wordCount)
+            || Object.values(wordCountPresets.platform).flat().find(x => x.count === data.wordCount)
+            || { count: data.wordCount, label: '自定义' }
+          currentWordCount.value = wc
+        }
+        if (data.style) {
+          currentStyle.value = { name: data.style }
+        }
+        if (data.template) {
+          const t = allTemplates.find(x => x.name === data.template)
+          if (t) selectedTemplateKey.value = t.key
+        }
+        localStorage.removeItem('aichuangzuo_current_article')
+      }
+    } catch (e) {
+      console.warn('恢复草稿失败', e)
     }
-    if (data.wordCount) currentWordCount.value = data.wordCount
-    if (data.style) currentStyle.value = data.style
-    if (data.template) currentTemplate.value = data.template
+  } else {
+    const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
+    if (drafts.length > 0) {
+      const data = drafts[0]
+      restoreDraft(data)
+    }
   }
 
   // 从风格市场跳转过来时自动应用风格
@@ -750,6 +776,7 @@ const continueGeneration = (id) => {
       current.completedAt = new Date().toISOString()
       current.content = generateMockContent(current)
       saveMiniQueue()
+      persistCompletedArticle(current)
       clearInterval(interval)
     } else {
       saveMiniQueue()
@@ -927,7 +954,7 @@ const selectStyle = (s) => {
 
 const applyStyle = () => {
   if (!selectedStyleName.value) return
-  const s = systemStyles.find(x => x.name === selectedStyleName.value) ||
+  const s = systemStyles.value.find(x => x.name === selectedStyleName.value) ||
             myStyles.value.find(x => x.name === selectedStyleName.value)
   if (s) {
     applyStyleShared(s)
@@ -1080,12 +1107,30 @@ const restoreDraft = (draft) => {
   customTitle.value = draft.customTitle || ''
   customRequirement.value = draft.customRequirement || ''
   if (draft.platform) {
-    const p = platforms.find(x => x.key === draft.platform.key)
+    const platformKey = typeof draft.platform === 'object' ? draft.platform.key : draft.platform
+    const p = platforms.find(x => x.key === platformKey)
     if (p) currentPlatform.value = p
   }
-  if (draft.wordCount) currentWordCount.value = draft.wordCount
-  if (draft.style) currentStyle.value = draft.style
-  if (draft.template) currentTemplate.value = draft.template
+  if (draft.wordCount) {
+    const count = typeof draft.wordCount === 'object' ? draft.wordCount.count : draft.wordCount
+    const wc = wordCountPresets.tier.find(x => x.count === count)
+      || wordCountPresets.scenario.find(x => x.count === count)
+      || Object.values(wordCountPresets.platform).flat().find(x => x.count === count)
+      || { count, label: '自定义' }
+    currentWordCount.value = wc
+  }
+  if (draft.style) {
+    currentStyle.value = typeof draft.style === 'object' ? draft.style : { name: draft.style }
+  }
+  if (draft.template) {
+    if (typeof draft.template === 'object') {
+      const t = allTemplates.find(x => x.key === draft.template.key)
+      if (t) selectedTemplateKey.value = t.key
+    } else {
+      const t = allTemplates.find(x => x.name === draft.template)
+      if (t) selectedTemplateKey.value = t.key
+    }
+  }
   draftBoxVisible.value = false
   message.success('已恢复草稿')
 }
@@ -1373,23 +1418,21 @@ const generateExportCards = () => {
 }
 
 // 操作
-const handleSaveDraft = () => {
-  const data = {
-    id: Date.now(),
-    customTitle: customTitle.value,
-    customRequirement: customRequirement.value,
-    platform: currentPlatform.value,
-    wordCount: currentWordCount.value,
-    style: currentStyle.value,
-    template: currentTemplate.value,
-    savedAt: new Date().toISOString()
+const handleSaveDraft = async () => {
+  try {
+    const data = {
+      customTitle: customTitle.value,
+      customRequirement: customRequirement.value,
+      platform: currentPlatform.value?.name,
+      wordCount: currentWordCount.value?.count,
+      style: currentStyle.value?.name,
+      template: currentTemplate.value?.name
+    }
+    await saveDraft(data)
+    message.success('草稿已保存')
+  } catch (e) {
+    console.warn('保存草稿失败', e)
   }
-  console.log('saving draft:', data)
-  const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
-  drafts.unshift(data)
-  localStorage.setItem('aichuangzuo_drafts', JSON.stringify(drafts))
-  draftBoxKey.value++
-  message.success('草稿已保存')
 }
 
 const handlePreview = () => {
@@ -1466,6 +1509,7 @@ const addToMiniQueue = (taskData) => {
       current.completedAt = new Date().toISOString()
       current.content = generateMockContent(current)
       saveMiniQueue()
+      persistCompletedArticle(current)
       clearInterval(interval)
     } else {
       saveMiniQueue()
@@ -1475,6 +1519,23 @@ const addToMiniQueue = (taskData) => {
 
 const saveMiniQueue = () => {
   localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify(miniQueueList.value))
+}
+
+const persistCompletedArticle = async (item) => {
+  try {
+    await saveArticle({
+      title: item.title,
+      body: item.content?.body || '',
+      styleOverrides: JSON.stringify({ blocks: {}, inlines: [] }),
+      platform: item.platform,
+      style: item.style,
+      template: item.template,
+      wordCount: item.wordCount,
+      completedAt: item.completedAt
+    })
+  } catch (e) {
+    console.warn('保存已完成作品失败', e)
+  }
 }
 
 const clearForm = () => {

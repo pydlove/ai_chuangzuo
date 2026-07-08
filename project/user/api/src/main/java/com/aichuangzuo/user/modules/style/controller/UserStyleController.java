@@ -3,7 +3,9 @@ package com.aichuangzuo.user.modules.style.controller;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.style.dto.request.CreateStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.UpdateStyleRequest;
+import com.aichuangzuo.user.modules.style.service.SystemStyleService;
 import com.aichuangzuo.user.modules.style.service.UserStyleService;
+import com.aichuangzuo.user.modules.style.vo.SystemStyleVO;
 import com.aichuangzuo.user.modules.style.vo.UserStyleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,6 +27,7 @@ import java.util.List;
 public class UserStyleController {
 
     private final UserStyleService userStyleService;
+    private final SystemStyleService systemStyleService;
 
     /**
      * 获取当前登录用户的风格列表。
@@ -77,5 +80,15 @@ public class UserStyleController {
     public Result<Void> deleteStyle(@PathVariable String bizNo) {
         userStyleService.deleteStyle(bizNo);
         return Result.success();
+    }
+
+    /**
+     * 获取当前启用的系统预设风格。
+     */
+    @Operation(summary = "获取系统预设风格")
+    @GetMapping("/system-styles")
+    public Result<List<SystemStyleVO>> listSystemStyles(
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        return Result.success(systemStyleService.listEnabled(keyword));
     }
 }
