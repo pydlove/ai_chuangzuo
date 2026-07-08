@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listUsers, updateUserStatus, resetUserPassword } from '@/api/user.js'
+import { listUsers, updateUserStatus, resetUserPassword, createUser } from '@/api/user.js'
 
 export function useUserManagement() {
   const users = ref([])
@@ -64,6 +64,13 @@ export function useUserManagement() {
     }
   }
 
+  const handleCreateUser = async (values) => {
+    const res = await createUser(values)
+    message.success('用户创建成功')
+    fetchUsers()
+    return res
+  }
+
   return {
     users,
     total,
@@ -76,6 +83,7 @@ export function useUserManagement() {
     handleReset,
     handlePageChange,
     handleStatusChange,
-    handleResetPassword
+    handleResetPassword,
+    handleCreateUser
   }
 }

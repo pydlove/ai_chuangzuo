@@ -33,6 +33,7 @@
         :data-source="users"
         :loading="loading"
         :pagination="false"
+        :scroll="{ x: 'max-content' }"
         row-key="id"
         size="middle"
       >
@@ -48,7 +49,7 @@
             </a-tag>
           </template>
           <template v-else-if="column.key === 'membershipExpireAt'">
-            <span v-if="record.membershipExpireAt">{{ record.membershipExpireAt }}</span>
+            <span v-if="record.membershipExpireAt">{{ formatDateTime(record.membershipExpireAt) }}</span>
             <span v-else style="color: #8c8c8c">非会员</span>
           </template>
           <template v-else-if="column.key === 'membershipPlan'">
@@ -59,27 +60,22 @@
             {{ record.lastLoginAt || '—' }}
           </template>
           <template v-else-if="column.key === 'actions'">
-            <a-space>
-              <a-popconfirm
-                :title="record.status === 'enabled' ? '确定禁用该用户？' : '确定启用该用户？'"
-                ok-text="确认"
-                cancel-text="取消"
-                @confirm="handleStatusChange(record)"
-              >
-                <a-button type="link" size="small">
-                  {{ record.status === 'enabled' ? '禁用' : '启用' }}
-                </a-button>
-              </a-popconfirm>
-              <a-button type="link" size="small" @click="openEditModal(record)">
-                编辑
+            <a-dropdown>
+              <a-button size="small">
+                设置
+                <DownOutlined />
               </a-button>
-              <a-button type="link" size="small" @click="openResetPasswordModal(record)">
-                重置密码
-              </a-button>
-              <a-button type="link" size="small" @click="openDetailDrawer(record)">
-                查看详情
-              </a-button>
-            </a-space>
+              <template #overlay>
+                <a-menu>
+                  <a-menu-item @click="confirmStatusChange(record)">
+                    {{ record.status === 'enabled' ? '禁用' : '启用' }}
+                  </a-menu-item>
+                  <a-menu-item @click="openEditModal(record)">编辑</a-menu-item>
+                  <a-menu-item @click="openResetPasswordModal(record)">重置密码</a-menu-item>
+                  <a-menu-item @click="openDetailDrawer(record)">查看详情</a-menu-item>
+                </a-menu>
+              </template>
+            </a-dropdown>
           </template>
         </template>
       </a-table>
@@ -175,8 +171,7 @@
     >
       <a-descriptions v-if="detailUser" :column="1" bordered>
         <a-descriptions-item label="ID">{{ detailUser.id }}</a-descriptions-item>
-        <a-descriptions-item label="账号">{{ detailUser.account }}</a-descriptions-item>
-        <a-descriptions-item label="邮箱">{{ detailUser.email }}</a-descriptions-item>
+        <a-descriptions-item label="邮箱/账号">{{ detailUser.email }}</a-descriptions-item>
         <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
         <a-descriptions-item label="状态">
           <a-tag :color="detailUser.status === 'enabled' ? 'green' : 'red'">
@@ -194,11 +189,11 @@
           <span v-else>—</span>
         </a-descriptions-item>
         <a-descriptions-item label="会员到期">
-          <span v-if="detailUser.membershipExpireAt">{{ detailUser.membershipExpireAt }}</span>
+          <span v-if="detailUser.membershipExpireAt">{{ formatDateTime(detailUser.membershipExpireAt) }}</span>
           <span v-else>非会员</span>
         </a-descriptions-item>
-        <a-descriptions-item label="注册时间">{{ detailUser.createdAt }}</a-descriptions-item>
-        <a-descriptions-item label="最后登录">{{ detailUser.lastLoginAt || '—' }}</a-descriptions-item>
+        <a-descriptions-item label="注册时间">{{ formatDateTime(detailUser.createdAt) }}</a-descriptions-item>
+        <a-descriptions-item label="最后登录">{{ formatDateTime(detailUser.lastLoginAt) || '—' }}</a-descriptions-item>
       </a-descriptions>
       <template #footer>
         <a-button @click="detailVisible = false">关闭</a-button>
@@ -246,8 +241,8 @@
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
-import { message } from 'ant-design-vue'
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
+import { DownOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { getUser, updateUser } from '@/api/user.js'
 
@@ -269,16 +264,15 @@ const {
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-  { title: '账号', dataIndex: 'account', key: 'account', width: 140 },
-  { title: '邮箱', dataIndex: 'email', key: 'email', width: 200 },
-  { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 120 },
+  { title: '邮箱/账号', dataIndex: 'email', key: 'email', width: 220 },
+  { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 140 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
   { title: '会员套餐', dataIndex: 'membershipPlan', key: 'membershipPlan', width: 100 },
   { title: '会员到期', dataIndex: 'membershipExpireAt', key: 'membershipExpireAt', width: 170 },
   { title: '注册时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '最后登录', key: 'lastLoginAt', width: 170 },
-  { title: '操作', key: 'actions', width: 320 }
+  { title: '操作', key: 'actions', fixed: 'right', width: 100 }
 ]
 
 const resetPasswordVisible = ref(false)
@@ -342,6 +336,21 @@ const createRules = {
 const planLabel = (code) => {
   const map = { monthly: '月度会员', quarterly: '季度会员', yearly: '年度会员' }
   return map[code] || code
+}
+
+const formatDateTime = (s) => {
+  if (!s) return ''
+  return s.replace('T', ' ').slice(0, 19)
+}
+
+const confirmStatusChange = (user) => {
+  const nextStatus = user.status === 'enabled' ? 'disabled' : 'enabled'
+  Modal.confirm({
+    title: `确定${nextStatus === 'enabled' ? '启用' : '禁用'}该用户？`,
+    okText: '确认',
+    cancelText: '取消',
+    onOk: () => handleStatusChange(user)
+  })
 }
 
 const openEditModal = async (user) => {

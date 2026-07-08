@@ -1,16 +1,20 @@
 package com.aichuangzuo.admin.modules.user.service;
 
+import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.admin.modules.user.service.impl.AdminUserServiceImpl;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,5 +90,98 @@ class AdminUserServiceTest {
         assertEquals("adc123456", result.getNewPassword());
         verify(platformUserMapper).updateById(user);
         assertEquals("hashed", user.getPasswordHash());
+    }
+
+    @Test
+    void createUser_realUser_shouldInsertWithDefaults() {
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        request.setEmail("new@example.com");
+        request.setNickname("新用户");
+        request.setUserType(1);
+
+        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(passwordEncoder.encode("adc123456")).thenReturn("hashed");
+
+        AdminUserVO result = adminUserService.createUser(request);
+
+        assertEquals("new@example.com", result.getEmail());
+        assertEquals("新用户", result.getNickname());
+        assertEquals("real", result.getUserType());
+        assertEquals("enabled", result.getStatus());
+
+        ArgumentCaptor<PlatformUser> captor = ArgumentCaptor.forClass(PlatformUser.class);
+        verify(platformUserMapper).insert(captor.capture());
+        PlatformUser saved = captor.getValue();
+        assertNotNull(saved.getBizNo());
+        assertTrue(saved.getBizNo().startsWith("U"));
+        assertEquals("hashed", saved.getPasswordHash());
+        assertEquals(1, saved.getUserStatus());
+        assertEquals(1, saved.getUserType());
+        assertEquals(1, saved.getEmailVerified());
+        assertNotNull(saved.getInviteCode());
+        assertEquals(6, saved.getInviteCode().length());
+    }
+
+    @Test
+    void createUser_robotUser_shouldMarkRobot() {
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        request.setEmail("robot@example.com");
+        request.setNickname("机器人");
+        request.setUserType(0);
+
+        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(passwordEncoder.encode("adc123456")).thenReturn("hashed");
+
+        AdminUserVO result = adminUserService.createUser(request);
+
+        assertEquals("robot", result.getUserType());
+        ArgumentCaptor<PlatformUser> captor = ArgumentCaptor.forClass(PlatformUser.class);
+        verify(platformUserMapper).insert(captor.capture());
+        assertEquals(0, captor.getValue().getUserType());
+    }
+
+    @Test
+    void createUser_duplicateEmail_shouldThrow() {
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        request.setEmail("dup@example.com");
+        request.setNickname("重复");
+        request.setUserType(1);
+
+        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> adminUserService.createUser(request));
+        assertEquals(AdminUserErrorCode.EMAIL_ALREADY_EXISTS.getCode(), ex.getCode());
+        verify(platformUserMapper, never()).insert(any(PlatformUser.class));
+    }
+
+    @Test
+    void createUser_invalidUserType_shouldThrow() {
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        request.setEmail("type@example.com");
+        request.setNickname("类型错误");
+        request.setUserType(2);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> adminUserService.createUser(request));
+        assertEquals(AdminUserErrorCode.USER_TYPE_INVALID.getCode(), ex.getCode());
+    }
+
+    @Test
+    void createUser_customPassword_shouldUseProvidedPassword() {
+        AdminUserCreateRequest request = new AdminUserCreateRequest();
+        request.setEmail("custom@example.com");
+        request.setNickname("自定义密码");
+        request.setPassword("mySecret123");
+        request.setUserType(1);
+
+        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(passwordEncoder.encode("mySecret123")).thenReturn("customHash");
+
+        adminUserService.createUser(request);
+
+        ArgumentCaptor<PlatformUser> captor = ArgumentCaptor.forClass(PlatformUser.class);
+        verify(platformUserMapper).insert(captor.capture());
+        assertEquals("customHash", captor.getValue().getPasswordHash());
     }
 }

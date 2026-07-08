@@ -75,8 +75,12 @@
               {{ record.remainingDays }} 天
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'membershipExpireAt'">
+            <span v-if="record.membershipExpireAt">{{ formatDateTime(record.membershipExpireAt) }}</span>
+            <span v-else style="color: #8c8c8c">非会员</span>
+          </template>
           <template v-else-if="column.key === 'lastRemindedAt'">
-            <span v-if="record.lastRemindedAt">{{ record.lastRemindedAt }}（{{ record.lastReminderChannel }}）</span>
+            <span v-if="record.lastRemindedAt">{{ formatDateTime(record.lastRemindedAt) }}（{{ record.lastReminderChannel }}）</span>
             <span v-else>—</span>
           </template>
           <template v-else-if="column.key === 'actions'">
@@ -173,6 +177,11 @@ const handleTableChange = (pagination) => {
   page.value = pagination.current
   pageSize.value = pagination.pageSize
   fetchUsers()
+}
+
+const formatDateTime = (s) => {
+  if (!s) return ''
+  return s.replace('T', ' ').slice(0, 19)
 }
 
 onMounted(() => {
