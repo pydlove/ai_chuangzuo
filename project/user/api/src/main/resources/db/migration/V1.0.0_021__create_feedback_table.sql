@@ -1,0 +1,22 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_feedback (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '提交人',
+    type VARCHAR(32) NOT NULL COMMENT '反馈类型',
+    content VARCHAR(2000) NOT NULL COMMENT '反馈正文',
+    contact VARCHAR(128) DEFAULT NULL COMMENT '联系方式（可选）',
+    reply_content VARCHAR(2000) DEFAULT NULL COMMENT '管理员回复',
+    reply_admin_id BIGINT UNSIGNED DEFAULT NULL COMMENT '回复管理员',
+    replied_at DATETIME(3) DEFAULT NULL COMMENT '回复时间',
+    status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '0 待回复 / 1 已回复',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_u_feedback_user_created (user_id, created_at),
+    KEY idx_u_feedback_status_created (status, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户反馈';
