@@ -22,7 +22,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -150,17 +149,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserResetPasswordVO vo = new AdminUserResetPasswordVO();
         vo.setNewPassword(RESET_PASSWORD);
         return vo;
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void updateMembership(Long id, LocalDate expireDate, Long updatedBy) {
-        PlatformUser user = platformUserMapper.selectById(id);
-        if (user == null || user.getIsDeleted() == 1) {
-            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
-        }
-        user.setMembershipExpireAt(expireDate == null ? null : expireDate.plusDays(1).atStartOfDay());
-        platformUserMapper.updateById(user);
     }
 
     @Override

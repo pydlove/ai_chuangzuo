@@ -3,7 +3,6 @@ package com.aichuangzuo.admin.modules.user.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
-import com.aichuangzuo.admin.modules.user.dto.request.AdminUserMembershipRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
@@ -69,16 +68,6 @@ public class AdminUserController {
     public Result<AdminUserResetPasswordVO> resetPassword(@PathVariable(name = "id") Long id) {
         checkSuperAdmin();
         return Result.success(adminUserService.resetPassword(id));
-    }
-
-    @Operation(summary = "设置会员到期时间（null=非会员）")
-    @PatchMapping("/{id}/membership")
-    public Result<Void> updateMembership(@PathVariable(name = "id") Long id,
-                                          @RequestBody AdminUserMembershipRequest request) {
-        checkSuperAdmin();
-        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
-        adminUserService.updateMembership(id, request.getExpireDate(), adminId);
-        return Result.success();
     }
 
     @Operation(summary = "编辑用户全部可改信息")

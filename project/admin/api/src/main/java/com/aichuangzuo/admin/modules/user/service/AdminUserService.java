@@ -8,7 +8,6 @@ import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public interface AdminUserService {
@@ -18,6 +17,5 @@ public interface AdminUserService {
     AdminUserResetPasswordVO resetPassword(Long id);
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserVO createUser(AdminUserCreateRequest request);
-    void updateMembership(Long id, LocalDate expireDate, Long updatedBy);
     AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
 }

@@ -20,10 +20,6 @@ export function resetUserPassword(id) {
   return request.post(`/api/v1/admin/users/${id}/reset-password`).then((res) => res.data)
 }
 
-export function updateUserMembership(id, expireDate) {
-  return request.patch(`/api/v1/admin/users/${id}/membership`, { expireDate }).then((res) => res.data)
-}
-
 export function updateUser(id, data) {
   return request.put(`/api/v1/admin/users/${id}`, data).then((res) => res.data)
 }
