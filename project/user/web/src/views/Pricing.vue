@@ -45,7 +45,11 @@
             </div>
             <div class="plan-articles">{{ getArticles(plan) }}</div>
             <div v-if="getSavings(plan)" class="plan-savings">年付立省 ¥{{ getSavings(plan) }}</div>
-            <button class="plan-btn" :class="{ primary: plan.recommended }">
+            <button
+              class="plan-btn"
+              :class="{ primary: plan.recommended }"
+              @click="handleSubscribe(plan)"
+            >
               立即订阅
             </button>
             <ul class="plan-features">
@@ -92,11 +96,37 @@
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
       <span>浙ICP备XXXXXXXX号-1</span>
     </footer>
+    <!-- 订阅支付弹框 -->
+    <a-modal
+      v-model:open="modalVisible"
+      :title="`确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
+      :width="420"
+      centered
+      class="subscribe-modal"
+      @ok="handlePay"
+      :confirm-loading="subscribeLoading"
+    >
+      <div class="subscribe-pay-panel">
+        <p class="subscribe-pay-tip">
+          测试阶段，请输入支付码 <strong>123456</strong> 完成订阅。
+        </p>
+        <a-input
+          v-model:value="payCode"
+          placeholder="请输入 6 位支付码"
+          maxlength="6"
+          size="large"
+          @pressEnter="handlePay"
+        />
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
+import { subscribe } from '@/api/membership'
 import NavBar from '@/components/layout/NavBar.vue'
 
 const navLinks = [
@@ -106,6 +136,64 @@ const navLinks = [
 ]
 const ctaTo = '/login'
 const ctaLabel = '开始创作'
+
+const router = useRouter()
+
+const modalVisible = ref(false)
+const selectedPlan = ref(null)
+const payCode = ref('')
+const subscribeLoading = ref(false)
+
+const planKeyToName = {
+  basic: '基础版',
+  pro: '专业版',
+  flagship: '旗舰版'
+}
+
+const cycleLabel = {
+  month: '月度',
+  quarter: '季度',
+  year: '年度'
+}
+
+const handleSubscribe = (plan) => {
+  selectedPlan.value = plan
+  payCode.value = ''
+  modalVisible.value = true
+}
+
+const handlePay = async () => {
+  if (!payCode.value || payCode.value.length !== 6) {
+    message.warning('请输入 6 位支付码')
+    return
+  }
+
+  const plan = selectedPlan.value
+  const cycle = activeCycle.value
+  const price = plan[cycle === 'month' ? 'monthly' : cycle]
+
+  subscribeLoading.value = true
+  try {
+    const res = await subscribe({
+      planKey: plan.key,
+      cycle,
+      payCode: payCode.value,
+      amount: price.current
+    })
+    const data = res.data
+    message.success('订阅成功')
+    localStorage.setItem('aichuangzuo_membership', JSON.stringify({
+      level: planKeyToName[data.level] || plan.name,
+      expiresAt: data.expiresAt
+    }))
+    modalVisible.value = false
+    router.push('/console/create')
+  } catch (err) {
+    message.error(err.message || '订阅失败，请重试')
+  } finally {
+    subscribeLoading.value = false
+  }
+}
 
 const activeCycle = ref('month')
 const cycles = [
@@ -762,5 +850,27 @@ body[data-theme="dark"] .pricing-footer {
 
 body[data-theme="dark"] .pricing-footer span + span::before {
   color: #303030;
+}
+
+.subscribe-pay-panel {
+  padding: 8px 0 16px;
+}
+
+.subscribe-pay-tip {
+  color: #595959;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.subscribe-pay-tip strong {
+  color: #FF2442;
+}
+
+body[data-theme="dark"] .subscribe-pay-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .subscribe-pay-tip strong {
+  color: #ff4d6f;
 }
 </style>
