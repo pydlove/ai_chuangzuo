@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.feedback.mapper.AdminFeedbackMapper">
+
+    <resultMap id="fbMap" type="com.aichuangzuo.admin.modules.feedback.entity.AdminFeedbackView">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="userEmail" column="user_email"/>
+        <result property="userBizNo" column="user_biz_no"/>
+        <result property="type" column="type"/>
+        <result property="content" column="content"/>
+        <result property="contact" column="contact"/>
+        <result property="replyContent" column="reply_content"/>
+        <result property="replyAdminId" column="reply_admin_id"/>
+        <result property="replyAdminName" column="reply_admin_name"/>
+        <result property="repliedAt" column="replied_at"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="selectCols">
+        SELECT f.id, f.user_id,
+               u.email AS user_email, u.biz_no AS user_biz_no,
+               f.type, f.content, f.contact,
+               f.reply_content, f.reply_admin_id, a.real_name AS reply_admin_name,
+               f.replied_at, f.status, f.created_at
+        FROM u_feedback f
+        LEFT JOIN u_user u ON u.id = f.user_id AND u.is_deleted = 0
+        LEFT JOIN a_admin_user a ON a.id = f.reply_admin_id AND a.is_deleted = 0
+        WHERE f.is_deleted = 0
+        <if test="status != null">
+            AND f.status = #{status}
+        </if>
+    </sql>
+
+    <select id="selectPage" resultMap="fbMap">
+        <include refid="selectCols"/>
+        ORDER BY f.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*) FROM u_feedback f
+        <where>
+            f.is_deleted = 0
+            <if test="status != null">
+                AND f.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultMap="fbMap">
+        <include refid="selectCols"/>
+        AND f.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="markReplied">
+        UPDATE u_feedback
+        SET reply_content = #{replyContent},
+            reply_admin_id = #{replyAdminId},
+            replied_at = #{now},
+            status = 1,
+            updated_by = #{updatedBy},
+            updated_at = #{now}
+        WHERE id = #{id} AND is_deleted = 0 AND status = 0
+    </update>
+</mapper>

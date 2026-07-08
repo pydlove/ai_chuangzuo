@@ -43,6 +43,12 @@ public class MessageAggregate extends BaseEntity {
     /** 点击跳转路由，空则前端按类型默认跳转。 */
     private String linkUrl;
 
+    /** 完整正文（MEDIUMTEXT），summary 是列表摘要，弹框用。 */
+    private String content;
+
+    /** 子类型，例如 membership.subscribed / membership.expiring / feedback.reply。 */
+    private String subType;
+
     /** 租户ID。 */
     private Long tenantId;
 }

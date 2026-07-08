@@ -4,7 +4,9 @@ import com.aichuangzuo.admin.modules.message.entity.MessageAggregate;
 import com.aichuangzuo.admin.modules.message.vo.MessageAdminVO;
 import com.aichuangzuo.admin.modules.message.vo.MessageAudienceVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Options;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
@@ -47,4 +49,13 @@ public interface MessageAggregateMapper extends BaseMapper<MessageAggregate> {
      * 全体消息已读统计所需：u_user 总数（逻辑未删）。
      */
     long countAllActiveUsers();
+
+    /**
+     * 按用户写入一条消息（admin 端发反馈回复通知用，绕过 BaseMapper 的 BaseEntity 审计字段约束）。
+     * content / sub_type 由 V1.0.0_019 迁移新增。
+     */
+    @Insert("INSERT INTO u_message (biz_no, msg_type, scope, target_user_id, title, summary, link_url, content, sub_type, tenant_id, is_deleted, created_by, updated_by) " +
+            "VALUES (#{bizNo}, #{msgType}, #{scope}, #{targetUserId}, #{title}, #{summary}, #{linkUrl}, #{content}, #{subType}, #{tenantId}, 0, #{createdBy}, #{updatedBy})")
+    @Options(useGeneratedKeys = true, keyProperty = "id")
+    int insertReply(MessageAggregate entity);
 }
