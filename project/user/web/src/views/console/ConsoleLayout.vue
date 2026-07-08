@@ -567,9 +567,21 @@
                   class="feedback-textarea"
                   placeholder="请详细描述你的问题或建议..."
                   rows="6"
+                  maxlength="2000"
                 ></textarea>
               </div>
-              <button class="feedback-submit" @click="submitFeedback">提交反馈</button>
+              <div class="feedback-contact">
+                <label class="feedback-label">联系方式（可选）</label>
+                <input
+                  v-model="feedbackContact"
+                  class="feedback-input"
+                  placeholder="手机或邮箱，方便我们回复你"
+                  maxlength="128"
+                />
+              </div>
+              <button class="feedback-submit" :disabled="feedbackSubmitting" @click="submitFeedback">
+                {{ feedbackSubmitting ? '提交中...' : '提交反馈' }}
+              </button>
             </div>
           </a-modal>
 
@@ -1071,6 +1083,7 @@ import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/au
 import { useUserProfile } from '@/composables/useUserProfile'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
+import { submitFeedback as submitFeedbackApi } from '@/api/feedback'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1306,13 +1319,36 @@ const feedbackVisible = ref(false)
 const feedbackType = ref('功能建议')
 const feedbackTypes = ['功能建议', '问题反馈', '其他']
 const feedbackContent = ref('')
+const feedbackContact = ref('')
+const feedbackSubmitting = ref(false)
 
-const submitFeedback = () => {
-  if (!feedbackContent.value.trim()) return
-  console.log('反馈:', { type: feedbackType.value, content: feedbackContent.value })
-  feedbackContent.value = ''
-  feedbackType.value = '功能建议'
-  feedbackVisible.value = false
+const submitFeedback = async () => {
+  if (!feedbackContent.value.trim()) {
+    message.warning('请填写反馈内容')
+    return
+  }
+  if (feedbackSubmitting.value) return
+  feedbackSubmitting.value = true
+  try {
+    await submitFeedbackApi({
+      type: feedbackType.value,
+      content: feedbackContent.value,
+      contact: feedbackContact.value || undefined
+    })
+    message.success('反馈已收到，我们会尽快处理')
+    feedbackVisible.value = false
+    feedbackContent.value = ''
+    feedbackContact.value = ''
+    feedbackType.value = '功能建议'
+  } catch (e) {
+    if (e?.code === 117001) {
+      message.warning(e.message || '今日反馈次数已达上限，明天再来')
+    } else {
+      message.error(e?.message || '提交失败，请稍后再试')
+    }
+  } finally {
+    feedbackSubmitting.value = false
+  }
 }
 
 // ---------- 关于我们 ----------
@@ -1550,7 +1586,7 @@ const handleLogout = async () => {
 // ---------- 会员 ----------
 const MEMBERSHIP_KEY = 'aichuangzuo_membership'
 const hasMembership = ref(false)
-const membershipLevel = ref('年会员')
+const membershipLevel = ref('会员')
 const membershipExpiry = ref('')
 
 const loadMembership = () => {
@@ -1559,10 +1595,16 @@ const loadMembership = () => {
     hasMembership.value = false
     return
   }
+  // 清理旧的演示数据（仅一个“年会员”字符串）
+  if (raw === '年会员') {
+    localStorage.removeItem(MEMBERSHIP_KEY)
+    hasMembership.value = false
+    return
+  }
   try {
     const parsed = JSON.parse(raw)
     if (parsed && typeof parsed === 'object') {
-      membershipLevel.value = parsed.level || '年会员'
+      membershipLevel.value = parsed.level || '会员'
       membershipExpiry.value = parsed.expiresAt || ''
       hasMembership.value = true
       return
@@ -1593,7 +1635,7 @@ const extendMembership = (days, level) => {
   const newExpiry = new Date(base.getTime() + days * 24 * 60 * 60 * 1000)
   const isoDate = newExpiry.toISOString().split('T')[0]
 
-  membershipLevel.value = level || membershipLevel.value || '年会员'
+  membershipLevel.value = level || membershipLevel.value || '会员'
   membershipExpiry.value = isoDate
   hasMembership.value = true
 
@@ -2334,19 +2376,9 @@ const goRenewal = async () => {
   router.push('/pricing')
 }
 
-// 演示用：默认开通年会员
-const seedMembership = () => {
-  if (!localStorage.getItem(MEMBERSHIP_KEY)) {
-    localStorage.setItem(MEMBERSHIP_KEY, '年会员')
-    hasMembership.value = true
-    membershipLevel.value = '年会员'
-  }
-}
-
 onMounted(async () => {
   loadTheme()
   await loadNotifications()
-  seedMembership()
   loadMembership()
   refreshMembershipFromApi()
   userProfile.loadProfile()
@@ -3085,6 +3117,29 @@ provide('consoleActions', {
   color: #bfbfbf;
 }
 
+.feedback-contact { margin-top: 12px; }
+
+.feedback-input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  color: #1a1a1a;
+  box-sizing: border-box;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.feedback-input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.feedback-input::placeholder { color: #bfbfbf; }
+
 .feedback-submit {
   width: 100%;
   padding: 10px;
@@ -3373,6 +3428,17 @@ body[data-theme="dark"] .feedback-textarea {
 }
 
 body[data-theme="dark"] .feedback-textarea:focus {
+  border-color: #ff4d6f;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .feedback-input {
+  background: #262626;
+  border-color: #404040;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .feedback-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
