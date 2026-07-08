@@ -77,6 +77,12 @@
           </template>
           消息管理
         </a-menu-item>
+        <a-menu-item key="/console/feedbacks">
+          <template #icon>
+            <CommentOutlined />
+          </template>
+          用户反馈
+        </a-menu-item>
         <a-sub-menu key="/console/settings">
           <template #icon>
             <SettingOutlined />
@@ -117,7 +123,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined, CommentOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 

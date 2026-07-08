@@ -89,6 +89,11 @@ const routes = [
         component: () => import('@/views/MessageAdminView.vue')
       },
       {
+        path: 'feedbacks',
+        name: 'AdminFeedbacks',
+        component: () => import('@/views/FeedbackView.vue')
+      },
+      {
         path: 'expire-reminder',
         name: 'AdminExpireReminder',
         component: () => import('@/views/ExpireReminderView.vue')
