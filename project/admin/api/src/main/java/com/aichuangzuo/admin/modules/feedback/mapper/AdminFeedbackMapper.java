@@ -13,7 +13,7 @@ public interface AdminFeedbackMapper {
                                        @Param("offset") long offset,
                                        @Param("size") long size);
     long countPage(@Param("status") Integer status);
-    AdminFeedbackView selectById(@Param("id") Long id);
+    AdminFeedbackView selectById(@Param("id") Long id, @Param("status") Integer status);
     int markReplied(@Param("id") Long id,
                     @Param("replyContent") String replyContent,
                     @Param("replyAdminId") Long replyAdminId,

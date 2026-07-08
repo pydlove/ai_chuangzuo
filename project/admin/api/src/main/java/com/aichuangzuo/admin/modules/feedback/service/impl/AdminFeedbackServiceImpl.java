@@ -40,7 +40,7 @@ public class AdminFeedbackServiceImpl implements AdminFeedbackService {
 
     @Override
     public AdminFeedbackVO detail(Long id) {
-        AdminFeedbackView v = feedbackMapper.selectById(id);
+        AdminFeedbackView v = feedbackMapper.selectById(id, null);
         if (v == null) throw new BusinessException(AdminFeedbackErrorCode.FEEDBACK_NOT_FOUND);
         return toVO(v);
     }
@@ -48,7 +48,7 @@ public class AdminFeedbackServiceImpl implements AdminFeedbackService {
     @Override
     @Transactional
     public void reply(Long id, Long adminId, String content) {
-        AdminFeedbackView v = feedbackMapper.selectById(id);
+        AdminFeedbackView v = feedbackMapper.selectById(id, null);
         if (v == null) throw new BusinessException(AdminFeedbackErrorCode.FEEDBACK_NOT_FOUND);
         if (v.getStatus() != null && v.getStatus() == 1) {
             throw new BusinessException(AdminFeedbackErrorCode.ALREADY_REPLIED);
