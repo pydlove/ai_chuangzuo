@@ -1070,6 +1070,7 @@ import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
+import { getMyMembership } from '@/api/membership'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1600,6 +1601,24 @@ const extendMembership = (days, level) => {
     level: membershipLevel.value,
     expiresAt: isoDate
   }))
+}
+
+const refreshMembershipFromApi = async () => {
+  try {
+    const res = await getMyMembership()
+    const data = res.data
+    if (data && data.hasMembership) {
+      membershipLevel.value = data.levelName || data.level
+      membershipExpiry.value = data.expiresAt
+      hasMembership.value = true
+      localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+        level: membershipLevel.value,
+        expiresAt: membershipExpiry.value
+      }))
+    }
+  } catch (err) {
+    // 静默失败，继续使用本地缓存
+  }
 }
 
 // ---------- 邀请有礼 ----------
@@ -2329,6 +2348,7 @@ onMounted(async () => {
   await loadNotifications()
   seedMembership()
   loadMembership()
+  refreshMembershipFromApi()
   userProfile.loadProfile()
 })
 
