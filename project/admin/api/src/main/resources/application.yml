@@ -45,3 +45,9 @@ user:
   api:
     base-url: ${USER_API_BASE_URL:http://localhost:25050}
     internal-key: ${USER_API_INTERNAL_KEY:default-change-me}
+
+reminder:
+  enabled: true
+  advance-days: 7
+  notify-hour: 9
+  notify-channel: message
