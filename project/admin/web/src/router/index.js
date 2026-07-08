@@ -24,6 +24,16 @@ const routes = [
         component: () => import('@/views/StyleReviewView.vue')
       },
       {
+        path: 'global-styles',
+        name: 'AdminGlobalStyleList',
+        component: () => import('@/views/GlobalStyleListView.vue')
+      },
+      {
+        path: 'market-styles',
+        name: 'AdminMarketStyleList',
+        component: () => import('@/views/MarketStyleListView.vue')
+      },
+      {
         path: 'model-configs',
         name: 'AdminModelConfig',
         component: () => import('@/views/ModelConfigView.vue')
@@ -72,6 +82,16 @@ const routes = [
         path: 'earnings/leaderboard-awards',
         name: 'AdminEarningsLeaderboardAwards',
         component: () => import('@/views/LeaderboardAwardView.vue')
+      },
+      {
+        path: 'messages',
+        name: 'AdminMessageManagement',
+        component: () => import('@/views/MessageAdminView.vue')
+      },
+      {
+        path: 'expire-reminder',
+        name: 'AdminExpireReminder',
+        component: () => import('@/views/ExpireReminderView.vue')
       }
     ]
   },

@@ -21,28 +21,27 @@
         @click="handleMenuClick"
         @openChange="onOpenChange"
       >
-        <a-menu-item key="/console/users">
+        <a-sub-menu key="/console/user-management">
           <template #icon>
             <UserOutlined />
           </template>
-          用户管理
-        </a-menu-item>
-        <a-menu-item key="/console/styles">
+          <template #title>用户管理</template>
+          <a-menu-item key="/console/users">注册用户</a-menu-item>
+          <a-menu-item key="/console/expire-reminder">到期提醒</a-menu-item>
+        </a-sub-menu>
+        <a-sub-menu key="/console/style-management">
           <template #icon>
-            <AuditOutlined />
+            <BookOutlined />
           </template>
-          风格审核
-        </a-menu-item>
-        <a-sub-menu key="/console/settings">
-          <template #icon>
-            <SettingOutlined />
-          </template>
-          <template #title>系统设置</template>
-          <a-menu-item key="/console/model-configs">
-            <template #icon>
-              <ApiOutlined />
-            </template>
-            模型配置
+          <template #title>风格管理</template>
+          <a-menu-item key="/console/styles">
+            风格审核
+          </a-menu-item>
+          <a-menu-item key="/console/global-styles">
+            预设风格
+          </a-menu-item>
+          <a-menu-item key="/console/market-styles">
+            风格市场
           </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/hot-search">
@@ -72,6 +71,24 @@
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
         </a-sub-menu>
+        <a-menu-item key="/console/messages">
+          <template #icon>
+            <MessageOutlined />
+          </template>
+          消息管理
+        </a-menu-item>
+        <a-sub-menu key="/console/settings">
+          <template #icon>
+            <SettingOutlined />
+          </template>
+          <template #title>系统设置</template>
+          <a-menu-item key="/console/model-configs">
+            <template #icon>
+              <ApiOutlined />
+            </template>
+            模型配置
+          </a-menu-item>
+        </a-sub-menu>
       </a-menu>
     </a-layout-sider>
 
@@ -100,7 +117,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -112,13 +129,13 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings'])
+const openKeys = ref(['/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management'])
 const onOpenChange = (keys) => {
   openKeys.value = keys
 }
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
-  if (route.path === '/console/styles') return '风格审核'
+  if (route.path === '/console/styles' || route.path === '/console/global-styles' || route.path === '/console/market-styles') return '风格管理'
   if (route.path === '/console/model-configs') return '模型配置'
   if (route.path === '/console/hot-search/platforms') return '平台管理'
   if (route.path === '/console/hot-search/daily') return '今日榜单'
@@ -129,6 +146,8 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/earnings/settlements') return '结算中心'
   if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
   if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
+  if (route.path === '/console/messages') return '消息管理'
+  if (route.path === '/console/expire-reminder') return '到期提醒'
   return ''
 })
 
