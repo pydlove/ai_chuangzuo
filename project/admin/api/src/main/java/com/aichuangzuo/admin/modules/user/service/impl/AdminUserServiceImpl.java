@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.user.service.impl;
 
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
@@ -160,6 +161,35 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
         user.setMembershipExpireAt(expireDate == null ? null : expireDate.plusDays(1).atStartOfDay());
         platformUserMapper.updateById(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AdminUserVO updateUser(Long id, AdminUserUpdateRequest request) {
+        PlatformUser user = platformUserMapper.selectById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+        if (request.getUserType() == null || (request.getUserType() != 0 && request.getUserType() != 1)) {
+            throw new BusinessException(AdminUserErrorCode.USER_TYPE_INVALID);
+        }
+
+        String email = request.getEmail().trim();
+        LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+        existsWrapper.eq(PlatformUser::getEmail, email)
+                .eq(PlatformUser::getIsDeleted, 0)
+                .ne(PlatformUser::getId, id);
+        if (platformUserMapper.selectCount(existsWrapper) > 0) {
+            throw new BusinessException(AdminUserErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        user.setEmail(email);
+        user.setNickname(request.getNickname().trim());
+        user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
+        user.setUserType(request.getUserType());
+        user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
+        platformUserMapper.updateById(user);
+        return toAdminUserVO(user);
     }
 
     @Override

@@ -47,6 +47,10 @@
               {{ record.userType === 'robot' ? '机器人' : '真实用户' }}
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'membershipExpireAt'">
+            <span v-if="record.membershipExpireAt">{{ record.membershipExpireAt }}</span>
+            <span v-else style="color: #8c8c8c">非会员</span>
+          </template>
           <template v-else-if="column.key === 'lastLoginAt'">
             {{ record.lastLoginAt || '—' }}
           </template>
@@ -62,6 +66,9 @@
                   {{ record.status === 'enabled' ? '禁用' : '启用' }}
                 </a-button>
               </a-popconfirm>
+              <a-button type="link" size="small" @click="openEditModal(record)">
+                编辑
+              </a-button>
               <a-button type="link" size="small" @click="openResetPasswordModal(record)">
                 重置密码
               </a-button>
@@ -102,6 +109,52 @@
       </p>
     </a-modal>
 
+    <!-- 编辑用户弹框 -->
+    <a-modal
+      v-model:open="editModalVisible"
+      title="编辑用户"
+      ok-text="保存"
+      cancel-text="取消"
+      :confirm-loading="editLoading"
+      @ok="submitEditForm"
+      @cancel="closeEditModal"
+    >
+      <a-form
+        ref="editFormRef"
+        :model="editForm"
+        :rules="editRules"
+        layout="vertical"
+      >
+        <a-form-item label="邮箱" name="email">
+          <a-input v-model:value="editForm.email" placeholder="请输入邮箱" />
+        </a-form-item>
+        <a-form-item label="昵称" name="nickname">
+          <a-input v-model:value="editForm.nickname" placeholder="请输入昵称" />
+        </a-form-item>
+        <a-form-item label="状态" name="status">
+          <a-radio-group v-model:value="editForm.status">
+            <a-radio value="enabled">启用</a-radio>
+            <a-radio value="disabled">禁用</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="用户类型" name="userType">
+          <a-radio-group v-model:value="editForm.userType">
+            <a-radio :value="1">真实用户</a-radio>
+            <a-radio :value="0">机器人</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="会员到期" name="expireDate">
+          <a-date-picker
+            v-model:value="editForm.expireDate"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+            placeholder="选择到期日（清空=非会员）"
+            allow-clear
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 查看详情抽屉 -->
     <a-drawer
       v-model:open="detailVisible"
@@ -126,31 +179,8 @@
         </a-descriptions-item>
         <a-descriptions-item label="邀请码">{{ detailUser.inviteCode }}</a-descriptions-item>
         <a-descriptions-item label="会员到期">
-          <template v-if="editingMembership">
-            <a-space>
-              <a-date-picker
-                v-model:value="membershipDate"
-                value-format="YYYY-MM-DD"
-                placeholder="选择到期日（清空=非会员）"
-              />
-              <a-button type="link" size="small" @click="confirmMembership">保存</a-button>
-              <a-button type="link" size="small" @click="cancelMembership">取消</a-button>
-            </a-space>
-          </template>
-          <template v-else>
-            <span>{{ detailUser?.membershipExpireAt || '非会员' }}</span>
-            <a-button type="link" size="small" @click="startEditMembership">
-              {{ detailUser?.membershipExpireAt ? '修改' : '设置' }}
-            </a-button>
-            <a-button
-              v-if="detailUser?.membershipExpireAt"
-              type="link"
-              size="small"
-              @click="clearMembership"
-            >
-              清空
-            </a-button>
-          </template>
+          <span v-if="detailUser.membershipExpireAt">{{ detailUser.membershipExpireAt }}</span>
+          <span v-else>非会员</span>
         </a-descriptions-item>
         <a-descriptions-item label="注册时间">{{ detailUser.createdAt }}</a-descriptions-item>
         <a-descriptions-item label="最后登录">{{ detailUser.lastLoginAt || '—' }}</a-descriptions-item>
@@ -204,7 +234,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
-import { getUser, updateUserMembership } from '@/api/user.js'
+import { getUser, updateUser } from '@/api/user.js'
 
 const {
   users,
@@ -229,15 +259,41 @@ const columns = [
   { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 120 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
+  { title: '会员到期', dataIndex: 'membershipExpireAt', key: 'membershipExpireAt', width: 170 },
   { title: '注册时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '最后登录', key: 'lastLoginAt', width: 170 },
-  { title: '操作', key: 'actions', width: 280 }
+  { title: '操作', key: 'actions', width: 320 }
 ]
 
 const resetPasswordVisible = ref(false)
 const resetPasswordTarget = ref(null)
 const detailVisible = ref(false)
 const detailUser = ref(null)
+
+const editModalVisible = ref(false)
+const editFormRef = ref()
+const editForm = reactive({
+  id: null,
+  email: '',
+  nickname: '',
+  status: 'enabled',
+  userType: 1,
+  expireDate: null
+})
+const editLoading = ref(false)
+
+const editRules = {
+  email: [
+    { required: true, message: '请输入邮箱', trigger: 'blur' },
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+  ],
+  nickname: [
+    { required: true, message: '请输入昵称', trigger: 'blur' },
+    { min: 1, max: 64, message: '昵称长度 1-64 字符', trigger: 'blur' }
+  ],
+  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
+  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }]
+}
 
 const createModalVisible = ref(false)
 const createFormRef = ref()
@@ -248,38 +304,6 @@ const createForm = reactive({
   userType: 1
 })
 const createLoading = ref(false)
-
-const editingMembership = ref(false)
-const membershipDate = ref(null)
-
-const startEditMembership = () => {
-  membershipDate.value = detailUser.value?.membershipExpireAt
-    ? detailUser.value.membershipExpireAt.substring(0, 10)
-    : null
-  editingMembership.value = true
-}
-
-const cancelMembership = () => {
-  editingMembership.value = false
-  membershipDate.value = null
-}
-
-const confirmMembership = async () => {
-  if (!detailUser.value) return
-  await updateUserMembership(detailUser.value.id, membershipDate.value || null)
-  message.success('会员到期时间已更新')
-  editingMembership.value = false
-  detailUser.value = await getUser(detailUser.value.id)
-  fetchUsers()
-}
-
-const clearMembership = async () => {
-  if (!detailUser.value) return
-  await updateUserMembership(detailUser.value.id, null)
-  message.success('已清空会员到期时间')
-  detailUser.value = await getUser(detailUser.value.id)
-  fetchUsers()
-}
 
 const createRules = {
   email: [
@@ -296,6 +320,47 @@ const createRules = {
   userType: [
     { required: true, message: '请选择用户类型', trigger: 'change' }
   ]
+}
+
+const openEditModal = async (user) => {
+  editLoading.value = true
+  try {
+    const detail = await getUser(user.id)
+    editForm.id = detail.id
+    editForm.email = detail.email
+    editForm.nickname = detail.nickname
+    editForm.status = detail.status
+    editForm.userType = detail.userType === 'robot' ? 0 : 1
+    editForm.expireDate = detail.membershipExpireAt ? detail.membershipExpireAt.substring(0, 10) : null
+    editModalVisible.value = true
+  } finally {
+    editLoading.value = false
+  }
+}
+
+const closeEditModal = () => {
+  editModalVisible.value = false
+  editFormRef.value?.resetFields()
+}
+
+const submitEditForm = () => {
+  editFormRef.value?.validate().then(async () => {
+    editLoading.value = true
+    try {
+      await updateUser(editForm.id, {
+        email: editForm.email.trim(),
+        nickname: editForm.nickname.trim(),
+        status: editForm.status,
+        userType: editForm.userType,
+        expireDate: editForm.expireDate || null
+      })
+      message.success('用户信息已更新')
+      closeEditModal()
+      fetchUsers()
+    } finally {
+      editLoading.value = false
+    }
+  })
 }
 
 const openCreateModal = () => {
@@ -344,7 +409,6 @@ const openDetailDrawer = async (user) => {
     detailUser.value = await getUser(user.id)
     detailVisible.value = true
   } catch (error) {
-    // 失败时使用列表中的数据兜底
     detailUser.value = user
     detailVisible.value = true
   }

@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserMembershipRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
@@ -78,6 +79,14 @@ public class AdminUserController {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         adminUserService.updateMembership(id, request.getExpireDate(), adminId);
         return Result.success();
+    }
+
+    @Operation(summary = "编辑用户全部可改信息")
+    @PutMapping("/{id}")
+    public Result<AdminUserVO> updateUser(@PathVariable(name = "id") Long id,
+                                          @Valid @RequestBody AdminUserUpdateRequest request) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.updateUser(id, request));
     }
 
     @Operation(summary = "用户下拉选项（发布者选择）")

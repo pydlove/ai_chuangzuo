@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.user.service;
 
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
@@ -18,4 +19,5 @@ public interface AdminUserService {
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserVO createUser(AdminUserCreateRequest request);
     void updateMembership(Long id, LocalDate expireDate, Long updatedBy);
+    AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
 }
