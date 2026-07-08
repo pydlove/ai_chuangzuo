@@ -20,7 +20,7 @@ public enum MembershipErrorCode implements ErrorCode {
     }
 
     @Override
-    public Integer getCode() {
+    public int getCode() {
         return code;
     }
 
