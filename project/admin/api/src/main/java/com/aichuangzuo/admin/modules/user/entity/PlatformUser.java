@@ -19,6 +19,8 @@ public class PlatformUser {
     private String avatarUrl;
     private String inviteCode;
     private Integer userStatus;
+    private Integer userType;
+    private LocalDateTime membershipExpireAt;
     private Integer emailVerified;
     private Long tenantId;
     @TableLogic

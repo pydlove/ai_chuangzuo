@@ -11,7 +11,9 @@ public class AdminUserVO {
     private String email;
     private String nickname;
     private String status;
+    private String userType;
     private String inviteCode;
+    private LocalDateTime membershipExpireAt;
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 }
