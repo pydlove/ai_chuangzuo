@@ -537,43 +537,129 @@
               </svg>
             </button>
           </a-tooltip>
-          <!-- 反馈弹框 -->
+          <!-- 反馈弹框(提交 / 我的反馈 tabs) -->
           <a-modal
             v-model:open="feedbackVisible"
             :footer="null"
-            :width="560"
+            :width="640"
             centered
             class="feedback-modal"
+            :destroy-on-close="true"
+            @cancel="closeFeedbackModal"
           >
-            <div class="feedback-panel">
-              <div class="feedback-title">意见反馈</div>
-              <div class="feedback-type">
-                <label class="feedback-label">反馈类型</label>
-                <div class="feedback-type-btns">
-                  <button
-                    v-for="t in feedbackTypes"
-                    :key="t"
-                    :class="['type-btn', { active: feedbackType === t }]"
-                    @click="feedbackType = t"
-                  >
-                    {{ t }}
+            <a-tabs v-model:active-key="feedbackTab" class="feedback-tabs">
+              <a-tab-pane key="submit" tab="提交反馈">
+                <div class="feedback-panel">
+                  <div class="feedback-title">请告诉我们你的想法</div>
+                  <div class="feedback-type">
+                    <label class="feedback-label">反馈类型</label>
+                    <div class="feedback-type-btns">
+                      <button
+                        v-for="t in feedbackTypes"
+                        :key="t"
+                        :class="['type-btn', { active: feedbackType === t }]"
+                        @click="feedbackType = t"
+                      >
+                        {{ t }}
+                      </button>
+                    </div>
+                  </div>
+                  <div class="feedback-content">
+                    <label class="feedback-label">反馈内容</label>
+                    <textarea
+                      v-model="feedbackContent"
+                      class="feedback-textarea"
+                      placeholder="请详细描述你的问题或建议..."
+                      rows="6"
+                      maxlength="2000"
+                    ></textarea>
+                  </div>
+                  <button class="feedback-submit" :disabled="feedbackSubmitting" @click="submitFeedback">
+                    {{ feedbackSubmitting ? '提交中...' : '提交反馈' }}
                   </button>
                 </div>
-              </div>
-              <div class="feedback-content">
-                <label class="feedback-label">反馈内容</label>
-                <textarea
-                  v-model="feedbackContent"
-                  class="feedback-textarea"
-                  placeholder="请详细描述你的问题或建议..."
-                  rows="6"
-                  maxlength="2000"
-                ></textarea>
-              </div>
-              <button class="feedback-submit" :disabled="feedbackSubmitting" @click="submitFeedback">
-                {{ feedbackSubmitting ? '提交中...' : '提交反馈' }}
-              </button>
-            </div>
+              </a-tab-pane>
+              <a-tab-pane key="history" tab="我的反馈">
+                <div v-if="!historyDetail" class="history-list-pane">
+                  <a-segmented
+                    v-model:value="historyFilter"
+                    :options="historyFilterOptions"
+                    block
+                    class="history-filter"
+                    @change="onHistoryFilterChange"
+                  />
+                  <a-spin :spinning="historyLoading">
+                    <div v-if="historyList.length === 0 && !historyLoading" class="history-empty">
+                      <p>还没有反馈记录</p>
+                      <a-button type="primary" @click="feedbackTab = 'submit'">去提交</a-button>
+                    </div>
+                    <ul v-else class="history-list">
+                      <li
+                        v-for="fb in historyList"
+                        :key="fb.id"
+                        class="history-item"
+                        @click="openHistoryDetail(fb)"
+                      >
+                        <div class="history-item-row1">
+                          <a-tag color="blue">{{ fb.type }}</a-tag>
+                          <a-tag :color="fb.status === 0 ? 'orange' : 'green'">
+                            {{ fb.status === 0 ? '待回复' : '已回复' }}
+                          </a-tag>
+                          <span class="history-item-time">{{ formatTime(fb.createdAt) }}</span>
+                        </div>
+                        <div class="history-item-content">{{ fb.content }}</div>
+                        <div v-if="fb.status === 1 && fb.replyContent" class="history-item-reply-preview">
+                          管理员回复:{{ fb.replyContent }}
+                        </div>
+                      </li>
+                    </ul>
+                    <a-pagination
+                      v-if="historyTotal > historySize"
+                      :current="historyPage"
+                      :page-size="historySize"
+                      :total="historyTotal"
+                      simple
+                      class="history-pager"
+                      @change="onHistoryPageChange"
+                    />
+                  </a-spin>
+                </div>
+                <div v-else class="history-detail-pane">
+                  <a-button type="link" class="history-back-btn" @click="closeHistoryDetail">
+                    ← 返回列表
+                  </a-button>
+                  <div class="detail-row">
+                    <span class="detail-label">类型</span>
+                    <a-tag color="blue">{{ historyDetail.type }}</a-tag>
+                    <a-tag :color="historyDetail.status === 0 ? 'orange' : 'green'">
+                      {{ historyDetail.status === 0 ? '待回复' : '已回复' }}
+                    </a-tag>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">提交时间</span>
+                    <span>{{ formatTime(historyDetail.createdAt) }}</span>
+                  </div>
+                  <div class="detail-row detail-row-stack">
+                    <span class="detail-label">反馈内容</span>
+                    <pre class="detail-content">{{ historyDetail.content }}</pre>
+                  </div>
+                  <template v-if="historyDetail.status === 1">
+                    <a-divider />
+                    <div class="detail-row detail-row-stack">
+                      <span class="detail-label">管理员回复</span>
+                      <pre class="detail-content detail-content-admin">{{ historyDetail.replyContent }}</pre>
+                    </div>
+                    <div class="detail-row">
+                      <span class="detail-label">回复时间</span>
+                      <span>{{ formatTime(historyDetail.repliedAt) }}</span>
+                    </div>
+                  </template>
+                  <div v-else class="history-pending-hint">
+                    提交成功,我们会尽快处理,谢谢反馈!
+                  </div>
+                </div>
+              </a-tab-pane>
+            </a-tabs>
           </a-modal>
 
           <!-- 反馈按钮 -->
@@ -1074,7 +1160,7 @@ import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/au
 import { useUserProfile } from '@/composables/useUserProfile'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
-import { submitFeedback as submitFeedbackApi } from '@/api/feedback'
+import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1307,10 +1393,72 @@ const handleTutorial = (type) => {
 
 // ---------- 反馈 ----------
 const feedbackVisible = ref(false)
+const feedbackTab = ref('submit')
+const historyFilter = ref('all')
+const historyFilterOptions = [
+  { label: '全部',   value: 'all' },
+  { label: '待回复', value: '0' },
+  { label: '已回复', value: '1' }
+]
+const historyList = ref([])
+const historyLoading = ref(false)
+const historyTotal = ref(0)
+const historyPage = ref(1)
+const historySize = ref(20)
+const historyDetail = ref(null)
 const feedbackType = ref('功能建议')
 const feedbackTypes = ['功能建议', '问题反馈', '其他']
 const feedbackContent = ref('')
 const feedbackSubmitting = ref(false)
+
+const loadHistory = async () => {
+  historyLoading.value = true
+  try {
+    const params = { page: historyPage.value, size: historySize.value }
+    if (historyFilter.value !== 'all') params.status = Number(historyFilter.value)
+    const res = await pageMyFeedbacks(params)
+    historyList.value = res.list || []
+    historyTotal.value = res.total || 0
+    historyPage.value = res.page
+    historySize.value = res.size
+  } catch (e) {
+    message.error(e?.message || '加载失败')
+  } finally {
+    historyLoading.value = false
+  }
+}
+
+const onHistoryFilterChange = () => {
+  historyPage.value = 1
+  loadHistory()
+}
+
+const onHistoryPageChange = (p) => {
+  historyPage.value = p
+  loadHistory()
+}
+
+const openHistoryDetail = (fb) => {
+  historyDetail.value = fb
+}
+
+const closeHistoryDetail = () => {
+  historyDetail.value = null
+}
+
+const closeFeedbackModal = () => {
+  feedbackTab.value = 'submit'
+  historyDetail.value = null
+  historyList.value = []
+  historyPage.value = 1
+  historyFilter.value = 'all'
+}
+
+watch(feedbackTab, (t) => {
+  if (t === 'history' && historyList.value.length === 0 && !historyDetail.value) {
+    loadHistory()
+  }
+})
 
 const submitFeedback = async () => {
   if (!feedbackContent.value.trim()) {
@@ -1325,9 +1473,13 @@ const submitFeedback = async () => {
       content: feedbackContent.value
     })
     message.success('反馈已收到，我们会尽快处理')
-    feedbackVisible.value = false
     feedbackContent.value = ''
     feedbackType.value = '功能建议'
+    // 切到「我的反馈」tab 并刷新,让用户立刻看到自己的新记录
+    feedbackTab.value = 'history'
+    historyPage.value = 1
+    historyList.value = []  // 强制 watch 重新触发 load
+    await loadHistory()
   } catch (e) {
     if (e?.code === 117001) {
       message.warning(e.message || '今日反馈次数已达上限，明天再来')
@@ -2274,6 +2426,7 @@ const loadInviteData = () => {
 
 const notifTabs = [
   { type: 'announcement', label: '公告' },
+  { type: 'feedback', label: '我的反馈' },
   { type: 'generation', label: '生成完成' },
   { type: 'membership', label: '会员提醒' },
   { type: 'feature', label: '新功能' },
@@ -3020,6 +3173,62 @@ provide('consoleActions', {
 }
 
 /* ========== 反馈面板 ========== */
+.feedback-modal .ant-modal-body { max-height: 70vh; overflow-y: auto; }
+.feedback-tabs { margin-top: -8px; }
+.feedback-tabs :deep(.ant-tabs-nav) { margin-bottom: 16px; }
+
+.history-list-pane { padding: 0 4px; }
+.history-filter { margin-bottom: 12px; }
+.history-list { list-style: none; padding: 0; margin: 0; }
+.history-item {
+  padding: 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.history-item:hover { background: #fafafa; }
+.history-item-row1 {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 6px; flex-wrap: wrap;
+}
+.history-item-time { font-size: 12px; color: #8c8c8c; margin-left: auto; }
+.history-item-content {
+  font-size: 14px; color: #1a1a1a;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.5;
+}
+.history-item-reply-preview {
+  font-size: 12px; color: #1677ff; margin-top: 6px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.history-empty { text-align: center; padding: 32px 0; color: #8c8c8c; }
+.history-empty p { margin-bottom: 12px; }
+.history-pager { text-align: center; margin-top: 12px; }
+
+.history-detail-pane { padding: 0 4px; }
+.history-back-btn { padding-left: 0; margin-bottom: 8px; }
+.detail-row {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+}
+.detail-row-stack { align-items: flex-start; flex-direction: column; gap: 6px; }
+.detail-label {
+  display: inline-block; min-width: 80px;
+  color: #8c8c8c; font-size: 13px;
+}
+.detail-content {
+  margin: 0; white-space: pre-wrap; word-break: break-word;
+  background: #f7f7f7; padding: 12px; border-radius: 6px;
+  font-family: inherit; font-size: 13px; line-height: 1.7;
+  width: 100%; box-sizing: border-box;
+}
+.detail-content-admin { background: #e6f7ff; }
+.history-pending-hint {
+  text-align: center; color: #8c8c8c; padding: 16px 0; font-size: 13px;
+}
+
 .feedback-panel {
   width: 100%;
   background: #fff;
