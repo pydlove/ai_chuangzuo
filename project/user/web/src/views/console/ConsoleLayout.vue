@@ -1417,10 +1417,10 @@ const loadHistory = async () => {
     const params = { page: historyPage.value, size: historySize.value }
     if (historyFilter.value !== 'all') params.status = Number(historyFilter.value)
     const res = await pageMyFeedbacks(params)
-    historyList.value = res.list || []
-    historyTotal.value = res.total || 0
-    historyPage.value = res.page
-    historySize.value = res.size
+    historyList.value = res.data?.list || []
+    historyTotal.value = res.data?.total || 0
+    historyPage.value = res.data?.page || 1
+    historySize.value = res.data?.size || 20
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {
