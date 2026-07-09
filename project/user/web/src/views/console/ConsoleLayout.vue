@@ -464,7 +464,6 @@
             :destroy-on-close="true"
           >
             <div class="renewal-panel">
-              <div class="renewal-icon">⏰</div>
               <h3 class="renewal-title">{{ expiringNotif?.title || '您的会员即将到期' }}</h3>
               <div class="renewal-body">{{ expiringNotif?.content || RENEWAL_FALLBACK_COPY }}</div>
             </div>
@@ -3005,12 +3004,6 @@ provide('consoleActions', {
   padding: 8px 0;
 }
 
-.renewal-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-  line-height: 1;
-}
-
 .renewal-title {
   font-size: 20px;
   font-weight: 600;
@@ -3020,11 +3013,13 @@ provide('consoleActions', {
 }
 
 .renewal-body {
+  max-height: 50vh;
+  overflow-y: auto;
+  text-align: left;
   white-space: pre-wrap;
   font-size: 14px;
   color: #595959;
   line-height: 1.8;
-  text-align: left;
   background: #fafafa;
   padding: 16px 18px;
   border-radius: 8px;
@@ -5603,10 +5598,9 @@ body[data-theme="dark"] .mobile-subpage-title {
   padding: 24px 28px 8px;
 }
 
+/* 续订弹框:滚动放在 .renewal-body 内部(不是 .ant-modal-body)。 */
 .renewal-modal .ant-modal-body {
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 28px 28px 8px;
+  padding: 24px 28px 8px;
 }
 
 /* 消息详情 / 续订弹框 primary 按钮统一用品牌红(#FF2442,小红书/爱创作主色),
