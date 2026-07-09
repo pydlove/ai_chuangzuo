@@ -82,7 +82,7 @@ def test_submit_and_reply_and_notify():
         r = requests.post(
             f"{USER_API}/api/v1/user/feedback/submit",
             headers={"Authorization": f"Bearer {token}"},
-            json={"type": "功能建议", "content": f"测试 {i}", "contact": "13800001111"},
+            json={"type": "功能建议", "content": f"测试 {i}"},
             timeout=10,
         )
         assert r.status_code == 200, r.text

@@ -12,7 +12,6 @@ public class AdminFeedbackView {
     private String userBizNo;
     private String type;
     private String content;
-    private String contact;
     private String replyContent;
     private Long replyAdminId;
     private String replyAdminName;

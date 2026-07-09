@@ -40,7 +40,6 @@ public class FeedbackServiceImpl implements FeedbackService {
         fb.setUserId(userId);
         fb.setType(request.getType());
         fb.setContent(request.getContent());
-        fb.setContact(request.getContact());
         fb.setStatus(0);
         fb.setTenantId(0L);
         fb.setCreatedBy(userId);

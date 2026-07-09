@@ -12,7 +12,4 @@ public class SubmitFeedbackRequest {
     @NotBlank(message = "反馈内容不能为空")
     @Size(max = 2000, message = "反馈内容最多 2000 字")
     private String content;
-
-    @Size(max = 128, message = "联系方式最多 128 字")
-    private String contact;
 }

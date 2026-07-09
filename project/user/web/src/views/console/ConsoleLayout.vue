@@ -570,15 +570,6 @@
                   maxlength="2000"
                 ></textarea>
               </div>
-              <div class="feedback-contact">
-                <label class="feedback-label">联系方式（可选）</label>
-                <input
-                  v-model="feedbackContact"
-                  class="feedback-input"
-                  placeholder="手机或邮箱，方便我们回复你"
-                  maxlength="128"
-                />
-              </div>
               <button class="feedback-submit" :disabled="feedbackSubmitting" @click="submitFeedback">
                 {{ feedbackSubmitting ? '提交中...' : '提交反馈' }}
               </button>
@@ -1319,7 +1310,6 @@ const feedbackVisible = ref(false)
 const feedbackType = ref('功能建议')
 const feedbackTypes = ['功能建议', '问题反馈', '其他']
 const feedbackContent = ref('')
-const feedbackContact = ref('')
 const feedbackSubmitting = ref(false)
 
 const submitFeedback = async () => {
@@ -1332,13 +1322,11 @@ const submitFeedback = async () => {
   try {
     await submitFeedbackApi({
       type: feedbackType.value,
-      content: feedbackContent.value,
-      contact: feedbackContact.value || undefined
+      content: feedbackContent.value
     })
     message.success('反馈已收到，我们会尽快处理')
     feedbackVisible.value = false
     feedbackContent.value = ''
-    feedbackContact.value = ''
     feedbackType.value = '功能建议'
   } catch (e) {
     if (e?.code === 117001) {
@@ -3117,29 +3105,6 @@ provide('consoleActions', {
   color: #bfbfbf;
 }
 
-.feedback-contact { margin-top: 12px; }
-
-.feedback-input {
-  width: 100%;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  background: #fff;
-  font-size: 13px;
-  color: #1a1a1a;
-  box-sizing: border-box;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.feedback-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.feedback-input::placeholder { color: #bfbfbf; }
-
 .feedback-submit {
   width: 100%;
   padding: 10px;
@@ -3428,17 +3393,6 @@ body[data-theme="dark"] .feedback-textarea {
 }
 
 body[data-theme="dark"] .feedback-textarea:focus {
-  border-color: #ff4d6f;
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
-}
-
-body[data-theme="dark"] .feedback-input {
-  background: #262626;
-  border-color: #404040;
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .feedback-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }

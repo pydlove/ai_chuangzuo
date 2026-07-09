@@ -67,10 +67,6 @@
           <pre class="reply-content">{{ current.content }}</pre>
         </div>
         <div class="reply-row">
-          <span class="reply-label">联系方式</span>
-          <span>{{ current.contact || '—' }}</span>
-        </div>
-        <div class="reply-row">
           <span class="reply-label">提交时间</span>
           <span>{{ formatTime(current.createdAt) }}</span>
         </div>
@@ -132,7 +128,6 @@ const columns = [
   { title: '用户', key: 'userEmail', width: 220 },
   { title: '类型', key: 'type', width: 100 },
   { title: '反馈内容', key: 'content', ellipsis: true },
-  { title: '联系方式', dataIndex: 'contact', width: 160 },
   { title: '提交时间', key: 'createdAt', width: 180 },
   { title: '操作', key: 'action', width: 80, fixed: 'right' }
 ]

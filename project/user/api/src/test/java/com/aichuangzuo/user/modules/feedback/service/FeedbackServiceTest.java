@@ -35,7 +35,6 @@ class FeedbackServiceTest {
         SubmitFeedbackRequest req = new SubmitFeedbackRequest();
         req.setType("功能建议");
         req.setContent("希望增加 XX 功能");
-        req.setContact("13800001111");
 
         Long id = feedbackService.submit(u.getId(), req);
         Feedback persisted = feedbackMapper.selectById(id);
@@ -43,7 +42,6 @@ class FeedbackServiceTest {
         assertEquals(u.getId(), persisted.getUserId());
         assertEquals("功能建议", persisted.getType());
         assertEquals("希望增加 XX 功能", persisted.getContent());
-        assertEquals("13800001111", persisted.getContact());
         assertEquals(0, persisted.getStatus());
     }
 
@@ -79,7 +77,6 @@ class FeedbackServiceTest {
         SubmitFeedbackRequest req = new SubmitFeedbackRequest();
         req.setType("功能建议");
         req.setContent("测试内容");
-        req.setContact("test@x.com");
         return req;
     }
 

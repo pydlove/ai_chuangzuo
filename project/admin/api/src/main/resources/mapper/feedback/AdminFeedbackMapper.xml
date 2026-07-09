@@ -9,7 +9,6 @@
         <result property="userBizNo" column="user_biz_no"/>
         <result property="type" column="type"/>
         <result property="content" column="content"/>
-        <result property="contact" column="contact"/>
         <result property="replyContent" column="reply_content"/>
         <result property="replyAdminId" column="reply_admin_id"/>
         <result property="replyAdminName" column="reply_admin_name"/>
@@ -21,7 +20,7 @@
     <sql id="selectCols">
         SELECT f.id, f.user_id,
                u.email AS user_email, u.biz_no AS user_biz_no,
-               f.type, f.content, f.contact,
+               f.type, f.content,
                f.reply_content, f.reply_admin_id, a.real_name AS reply_admin_name,
                f.replied_at, f.status, f.created_at
         FROM u_feedback f

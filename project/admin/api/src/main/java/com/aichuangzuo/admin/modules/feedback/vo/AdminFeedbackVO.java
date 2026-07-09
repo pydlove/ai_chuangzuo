@@ -12,7 +12,6 @@ public class AdminFeedbackVO {
     private String userBizNo;
     private String type;
     private String content;
-    private String contact;
     private String replyContent;
     private LocalDateTime repliedAt;
     private Integer status;

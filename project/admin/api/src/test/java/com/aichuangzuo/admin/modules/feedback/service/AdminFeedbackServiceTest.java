@@ -58,8 +58,8 @@ class AdminFeedbackServiceTest {
     }
 
     private Long insertFeedback(Long userId, int status, String replyContent) {
-        jdbc.update("INSERT INTO u_feedback (user_id, type, content, contact, reply_content, reply_admin_id, replied_at, status, tenant_id, is_deleted, created_by, updated_by) " +
-                        "VALUES (?, '功能建议', '测试', '13800001111', ?, NULL, NULL, ?, 0, 0, ?, ?)",
+        jdbc.update("INSERT INTO u_feedback (user_id, type, content, reply_content, reply_admin_id, replied_at, status, tenant_id, is_deleted, created_by, updated_by) " +
+                        "VALUES (?, '功能建议', '测试', ?, NULL, NULL, ?, 0, 0, ?, ?)",
                 userId, replyContent, status, userId, userId);
         return jdbc.queryForObject("SELECT LAST_INSERT_ID()", Long.class);
     }
