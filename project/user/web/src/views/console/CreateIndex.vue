@@ -41,7 +41,7 @@
             <span class="chip-caret">▾</span>
           </button>
           <button class="settings-chip" @click="openStyleModal">
-            <span>{{ currentStyle.name }}</span>
+            <span>{{ currentStyle?.name }}</span>
             <span class="chip-caret">▾</span>
           </button>
           <button class="settings-chip" @click="openTemplateModal">
@@ -659,13 +659,15 @@ import {
   updateCustomStyle,
   removeCustomStyle,
   learnedStyles,
-  loadMyStyles
+  loadMyStyles,
+  loadSystemStyles
 } from '@/composables/useStyles.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { saveCurrentArticle } from '@/utils/articleStorage.js'
 import { saveDraft } from '@/api/draft.js'
 import { saveArticle } from '@/api/article.js'
+import { getQueueLimit, getCurrentPlanName } from '@/utils/membershipLimits.js'
 import CardsModal from '@/components/CardsModal.vue'
 
 const router = useRouter()
@@ -673,7 +675,9 @@ const route = useRoute()
 const isMobile = useIsMobile()
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
-onMounted(() => {
+onMounted(async () => {
+  await loadSystemStyles()
+
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
     try {
@@ -1446,6 +1450,19 @@ const handleGenerate = () => {
   }
   if (!customRequirement.value.trim()) {
     message.warning('请补充你的核心观点和要求')
+    return
+  }
+
+  // 队列上限校验:免费/已过期 = 0,基础 = 1,专业 = 5,旗舰 = 10
+  const limit = getQueueLimit()
+  if (limit === 0) {
+    message.warning('您当前是免费用户,无法使用 AI 生成队列。开通会员后即可开始创作')
+    return
+  }
+  const activeCount = miniQueueList.value.filter(x => x.status === 'generating').length
+  if (activeCount >= limit) {
+    const planName = getCurrentPlanName()
+    message.warning(`队列已满,${planName}最多同时运行 ${limit} 个任务。请等待当前任务完成,或前往【会员中心】升级更高档位`)
     return
   }
 

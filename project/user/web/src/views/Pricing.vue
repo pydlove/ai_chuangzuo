@@ -157,6 +157,11 @@ const cycleLabel = {
 }
 
 const handleSubscribe = (plan) => {
+  if (!localStorage.getItem('aichuangzuo_access_token')) {
+    message.info('请先登录后再订阅')
+    router.push('/login')
+    return
+  }
   selectedPlan.value = plan
   payCode.value = ''
   modalVisible.value = true
@@ -230,6 +235,7 @@ const plans = [
       { text: '批量导出', included: false },
       { text: '30 天历史记录', included: true },
       { text: '标准生成队列', included: true },
+      { text: '队列最多 1 个任务', included: true },
     ]
   },
   {
@@ -254,6 +260,7 @@ const plans = [
       { text: '批量导出', included: false },
       { text: '永久历史记录', included: true },
       { text: '优先生成队列', included: true },
+      { text: '队列最多 5 个任务', included: true },
     ]
   },
   {
@@ -278,6 +285,7 @@ const plans = [
       { text: '批量导出', included: true },
       { text: '永久历史记录', included: true },
       { text: '极速生成通道', included: true },
+      { text: '队列最多 10 个任务', included: true },
     ]
   }
 ]
@@ -313,6 +321,7 @@ const compareRows = [
   { label: '批量导出', basic: false, pro: false, flagship: true },
   { label: '历史记录', basic: '30 天', pro: '永久', flagship: '永久' },
   { label: '生成队列优先级', basic: '标准', pro: '优先', flagship: '极速' },
+  { label: '队列任务数', basic: '1 个', pro: '5 个', flagship: '10 个' },
 ]
 
 const getCell = (row, col) => {
