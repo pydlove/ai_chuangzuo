@@ -53,16 +53,17 @@ AI 只能识别"低级 AI 味"（"综上所述""值得深思"），识别不了"
 - **✅ AI**：调 LLM 完成该阶段
 - **🔶 混合**：部分步骤 deterministic（程序化），部分需要 LLM
 
-### 第 1 阶段：意图锚定（组装提示词）
+### 第 1 阶段：意图锚定（组装用户上下文块）
 
-**目的**：基于用户提供的 4 项输入，**组装**成下游阶段可用的统一数据契约。不访问 AI，纯程序化组装。
+**目的**：把用户提供的 4 项输入，组装成下游阶段可嵌入 prompt 的标准化用户上下文块。不访问 AI，纯程序化组装。
 
 **AI 调用**：❌ 不访问
 
 **为什么需要这个阶段**：
-- 用户的 4 项输入是分散字段，下游阶段需要统一数据格式
-- 把组装逻辑放在明确阶段，下游只引用装配结果，不必关心数据来源
-- 易于缓存：相同 4 项输入可复用同一个 context 对象
+- 用户的 4 项输入是分散字段
+- 下游各阶段（2-9）的 prompt 都需要引用这些用户输入
+- Stage 1 把它们拼成统一文本块，下游只需在自己的 prompt 里插入 `[user_context_block]`，不必每次重复拼装
+- 4 项输入原文不变，可被多个下游阶段复用
 
 **输入（用户必须提供，铁律）**：
 - **标题**
@@ -70,31 +71,33 @@ AI 只能识别"低级 AI 味"（"综上所述""值得深思"），识别不了"
 - **目标读者**
 - **用户风格**
 
-**组装函数**（伪代码，定义如何产生输出）：
+**组装函数**（伪代码，定义输出如何产生）：
 
 ```python
-def assemble_context(title, core_viewpoint, target_reader, style_prompt):
+def assemble_user_context(title, core_viewpoint, target_reader, style_prompt):
     """
-    把用户的 4 项输入组装成下游统一引用的数据契约。
-    纯字符串拼接，无任何 AI 调用。
+    把用户的 4 项输入组装成下游 prompt 可嵌入的标准化上下文块。
+    纯字符串拼接，无任何 AI 调用，不添加任何 AI 指令。
     """
+    context = {
+        "title": title,
+        "core_viewpoint": core_viewpoint,
+        "target_reader": target_reader,
+        "style_prompt": style_prompt,
+    }
+    user_context_block = (
+        f"标题：{title}\n"
+        f"核心观点：{core_viewpoint}\n"
+        f"目标读者：{target_reader}\n"
+        f"风格：{style_prompt}"
+    )
     return {
-        "context": {
-            "title": title,
-            "core_viewpoint": core_viewpoint,
-            "target_reader": target_reader,
-            "style_prompt": style_prompt,
-        },
-        "assembled_prompt": (
-            f"标题：{title}\n"
-            f"核心观点：{core_viewpoint}\n"
-            f"目标读者：{target_reader}\n"
-            f"风格：{style_prompt}"
-        ),
+        "context": context,                 # 结构化对象，供下游引用具体字段
+        "user_context_block": user_context_block,  # 文本块，供下游 prompt 直接嵌入
     }
 ```
 
-**输出**（函数返回值，下游直接引用）：
+**输出**（函数返回值）：
 
 ```yaml
 context:
@@ -103,23 +106,26 @@ context:
   target_reader: [用户原文]
   style_prompt: [用户原文]
 
-assembled_prompt: |
+user_context_block: |
   标题：[用户原文]
   核心观点：[用户原文]
   目标读者：[用户原文]
   风格：[用户原文]
 ```
 
-下游（如 Stage 2）通过 `context.title`、`context.core_viewpoint` 等字段引用，或直接使用 `assembled_prompt` 字符串。
+**重要**：`user_context_block` 里**只有用户提供的原文，不写任何 AI 指令**（如"请生成""请输出"）。指令由下游阶段各自的 prompt 模板负责。
 
 **关键约束**：
 - 4 项输入原文不变 —— 不修改、不润色、不"优化"
-- 组装逻辑固定（纯字符串拼接 / 模板填充），不做任何 AI 处理
+- 纯字符串拼接 / 模板填充，不做任何 AI 处理
 - 风格提示词原文嵌入，不转述、不概括
+- 不添加用户没提供的字段（如"阅读场景"）
+- 不添加任何"请 AI 返回什么"的指令
 
 **常见陷阱**：
 - **越俎代庖**：在组装时偷偷"润色"用户输入
-- **偷偷加字段**：组装时添加用户没提供的字段（如"阅读场景"）
+- **偷偷加字段**：组装时添加用户没提供的字段
+- **在上下文块里塞指令**：`user_context_block` 变成完整 prompt，混进 AI 指令
 - **调用 AI 优化**：违反"不访问 AI"原则
 
 ---
@@ -130,7 +136,7 @@ assembled_prompt: |
 
 **AI 调用**：✅ AI
 
-**输入**：第 1 阶段产出
+**输入**：第 1 阶段产出的 `user_context_block`
 
 **输出**：每段的"职责"列表
 
@@ -142,6 +148,34 @@ assembled_prompt: |
 - 建立好奇 / 制造反差 / 打破常识 / 提供新视角
 - 抛出问题 / 给出答案 / 提供证据
 - 引发共鸣 / 制造紧迫感 / 给出行动指引
+
+**结构骨架 Prompt 模板**：
+```
+你是一位资深编辑。请根据以下文章意图，为这篇文章生成一份职责式大纲。
+
+[user_context_block]
+
+任务：
+- 把全文拆成若干段落
+- 每段只写"职责"，不写"主题"或具体内容
+- 职责要明确、不重复、不抽象
+- 风格提示词可间接影响结构选择
+
+输出格式（JSON）：
+{
+  "paragraphs": [
+    {"index": 1, "responsibility": "建立好奇：让读者想知道答案"},
+    {"index": 2, "responsibility": "打破常识：指出读者原有认知的漏洞"},
+    {"index": 3, "responsibility": "给出新视角：提供读者想不到的角度"},
+    ...
+  ]
+}
+
+约束：
+- 职责不能用"展开论述"这种抽象词
+- 相邻段落职责不能重复
+- 全文围绕核心观点服务，不要偏离
+```
 
 **关键约束**：
 - 段落职责不重复（两段不能都是"举例说明"）
