@@ -145,13 +145,13 @@ public Result<Map<String, Object>> mine(
 
 ### 前端 user-web
 
-**改** `views/console/MineIndex.vue` 的「意见反馈」弹框:
+**改** `views/console/ConsoleLayout.vue` 的「意见反馈」弹框(原 line 540-577,提交逻辑在 line 1308-1340):
 
-- 弹框宽度 480 → 640(放得下历史 tab 内容)
-- 在标题下方加 `<a-tabs v-model:active-key="feedbackTab">`,两个 pane:「提交反馈」/「我的反馈」
-- 「提交反馈」tab:把现有 type select + content textarea + submit button 包进来
+- 弹框宽度 560 → 640(放得下历史 tab 内容)
+- 弹框内容改成 `<a-tabs v-model:active-key="feedbackTab">`,两个 pane:「提交反馈」/「我的反馈」
+- 「提交反馈」tab:把现有 type 按钮 + content textarea + submit button 包进来
 - 「我的反馈」tab:见下方代码骨架
-- 提交成功回调里:`message.success('反馈已收到')` → 清表单 → `feedbackTab.value = 'history'` → `loadHistory()`
+- 提交成功回调里:清表单 + 切 `feedbackTab.value = 'history'` + `loadHistory()`
 
 **改** `api/feedback.js`:
 
@@ -159,7 +159,7 @@ public Result<Map<String, Object>> mine(
 export const pageMyFeedbacks = (params) => request.get('/feedback/mine', { params })
 ```
 
-**新建状态**(挂在 MineIndex setup 内,与现有 feedbackVisible 平级):
+**新建状态**(挂在 ConsoleLayout setup 内,与现有 `feedbackVisible` 平级,line 1309 附近):
 
 ```js
 const feedbackTab = ref('submit')
@@ -279,7 +279,7 @@ const closeHistoryDetail = () => {
 </template>
 ```
 
-**切换 tab 钩子**:在 MineIndex 加 `watch(feedbackTab, ...)`:
+**切换 tab 钩子**:在 ConsoleLayout 加 `watch(feedbackTab, ...)`:
 
 ```js
 watch(feedbackTab, (t) => {
@@ -289,7 +289,7 @@ watch(feedbackTab, (t) => {
 })
 ```
 
-**样式**(新加在 MineIndex 现有 `<style scoped>` 内):
+**样式**(新加在 ConsoleLayout 现有 `<style scoped>` 内,`.feedback-panel` 选择器附近,line 3024 之后):
 
 ```css
 .feedback-modal .ant-modal-body { max-height: 70vh; overflow-y: auto; }
@@ -411,7 +411,7 @@ def test_user_history_in_modal():
 ## 关键文件清单
 
 - 后端 user-api:3 个改(Mapper/Service/Controller)
-- 前端 user-web:2 个改(`api/feedback.js` 加一个导出;`MineIndex.vue` 弹框重构)
+- 前端 user-web:2 个改(`api/feedback.js` 加一个导出;`ConsoleLayout.vue` 弹框重构)
 - 测试:1 个改(`FeedbackServiceTest` 加 3 用例;`verify_feedback.py` 追加 1 段)
 - 设计文档:本文档
 - **无 Flyway 迁移 / 无新枚举 / 无新依赖 / 无新路由**
@@ -426,7 +426,7 @@ def test_user_history_in_modal():
 ## 实施顺序
 
 1. 后端:`FeedbackMapper` → `FeedbackService` → `FeedbackController` → 单测(必须先绿)
-2. 前端:`api/feedback.js` 导出 → MineIndex 弹框重构 → `npm run build` 通过
+2. 前端:`api/feedback.js` 导出 → ConsoleLayout 弹框重构 → `npm run build` 通过
 3. E2E:扩展 `verify_feedback.py`,加 1 段新断言
 4. 手动浏览器回归:打开弹框 → 提交 1 条 → 自动跳历史 → 点详情 → 验证显示
 
