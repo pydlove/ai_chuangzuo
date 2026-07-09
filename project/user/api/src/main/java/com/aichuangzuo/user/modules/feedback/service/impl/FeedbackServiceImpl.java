@@ -8,10 +8,12 @@ import com.aichuangzuo.user.modules.feedback.enums.FeedbackErrorCode;
 import com.aichuangzuo.user.modules.feedback.enums.FeedbackType;
 import com.aichuangzuo.user.modules.feedback.mapper.FeedbackMapper;
 import com.aichuangzuo.user.modules.feedback.service.FeedbackService;
+import com.aichuangzuo.user.modules.feedback.vo.FeedbackVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -47,5 +49,31 @@ public class FeedbackServiceImpl implements FeedbackService {
         feedbackMapper.insert(fb);
         SecurityUserContext.clear();
         return fb.getId();
+    }
+
+    @Override
+    public List<FeedbackVO> pageByUser(Long userId, Integer status, int page, int size) {
+        int safeSize = Math.min(Math.max(1, size), 100);
+        int safePage = Math.max(1, page);
+        int offset = (safePage - 1) * safeSize;
+        List<Feedback> rows = feedbackMapper.pageByUser(userId, status, offset, safeSize);
+        return rows.stream().map(this::toVO).toList();
+    }
+
+    @Override
+    public long countByUser(Long userId, Integer status) {
+        return feedbackMapper.countByUser(userId, status);
+    }
+
+    private FeedbackVO toVO(Feedback fb) {
+        FeedbackVO vo = new FeedbackVO();
+        vo.setId(fb.getId());
+        vo.setType(fb.getType());
+        vo.setContent(fb.getContent());
+        vo.setStatus(fb.getStatus());
+        vo.setReplyContent(fb.getReplyContent());
+        vo.setRepliedAt(fb.getRepliedAt());
+        vo.setCreatedAt(fb.getCreatedAt());
+        return vo;
     }
 }
