@@ -728,7 +728,7 @@ def count_words(draft_json, target):
 
 ### 第 11 阶段：字数调整（AI）
 
-**目的**：根据第 10 阶段的字数统计报告，决定删什么或补什么。字数是派生结果，质量优先。
+**目的**：根据第 10 阶段的字数统计报告，只在文章**超过**目标字数时决定删什么。字数是派生结果，质量优先；字数不足时无需硬补。
 
 **AI 调用**：✅ AI
 
@@ -746,12 +746,11 @@ def count_words(draft_json, target):
 
 任务：
 - 如果 actual > target：找出"删掉不损失意思"的句子/段落
-- 如果 actual < target：找出"因为篇幅限制被砍掉的重要内容"并建议补回
-- 如果 actual ≈ target：只检查是否有冗余过渡句，无需大改
+- 如果 actual ≤ target：无需增删，直接返回原文，action 为 keep
 
 输出格式：
 {
-  "action": "cut" | "add" | "keep",
+  "action": "cut" | "keep",
   "reason": "整体调整理由",
   "recommendations": [
     {
@@ -760,11 +759,6 @@ def count_words(draft_json, target):
       "original": "原句",
       "action": "delete",
       "reason": "信息密度低，删掉不损失意思"
-    },
-    {
-      "paragraph_index": 5,
-      "action": "expand",
-      "reason": "这里被压缩了，其实对读者很重要"
     }
   ],
   "estimated_final_count": 820
@@ -773,6 +767,7 @@ def count_words(draft_json, target):
 原则：
 - 不硬砍到 X 字，而是问"哪些删掉不损失意思"
 - 长一点也没关系，质量优先
+- 字数不足时不硬补，避免灌水
 - 优先删：信息密度低的过渡句、重复论证、空话
 - 绝对不删：核心观点句、关键证据、用户风格口癖
 ```
@@ -781,8 +776,8 @@ def count_words(draft_json, target):
 
 **关键约束**：
 - 调整目标是"质量优先"，不是"严格达标"
+- 只处理超字数情况，不处理欠字数情况
 - 优先删过渡句和重复内容，不删核心论点
-- 如果字数严重不足，允许低于目标字数，但要补回重要内容
 - 不破坏用户风格
 
 ---
