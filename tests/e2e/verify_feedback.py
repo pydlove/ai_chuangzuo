@@ -153,6 +153,78 @@ def test_submit_and_reply_and_notify():
     print("PASS  反馈提交、限频、回复、消息通知")
 
 
+def test_user_feedback_history_api():
+    """用户端 GET /feedback/mine:分页 + status 过滤 + 跨用户隔离。"""
+    uid_a, token_a, email_a = make_user()
+    uid_b, token_b, email_b = make_user()
+    print(f"  + created user A id={uid_a} email={email_a}")
+    print(f"  + created user B id={uid_b} email={email_b}")
+
+    # 用户 A 提交 2 条待回复
+    for i in range(2):
+        r = requests.post(
+            f"{USER_API}/api/v1/user/feedback/submit",
+            headers={"Authorization": f"Bearer {token_a}"},
+            json={"type": "功能建议", "content": f"A 的反馈 {i}"},
+            timeout=10,
+        )
+        assert r.status_code == 200 and r.json()["code"] == 0, r.text
+    # 用户 B 提交 1 条
+    r = requests.post(
+        f"{USER_API}/api/v1/user/feedback/submit",
+        headers={"Authorization": f"Bearer {token_b}"},
+        json={"type": "问题反馈", "content": "B 的反馈"},
+        timeout=10,
+    )
+    assert r.status_code == 200, r.text
+    print("  + A 提交 2 条, B 提交 1 条")
+
+    # A 查自己的历史 → 应只看到 2 条
+    list_a = requests.get(
+        f"{USER_API}/api/v1/user/feedback/mine",
+        headers={"Authorization": f"Bearer {token_a}"},
+        timeout=10,
+    )
+    assert list_a.status_code == 200, list_a.text
+    body_a = list_a.json()
+    assert body_a["code"] == 0, body_a
+    assert body_a["data"]["total"] == 2, body_a
+    assert len(body_a["data"]["list"]) == 2
+    print("  + A 调 /mine 只看到自己 2 条,跨用户隔离 OK")
+
+    # A 加 status=0 过滤 → 应还是 2 条(都待回复)
+    list_pending = requests.get(
+        f"{USER_API}/api/v1/user/feedback/mine?status=0",
+        headers={"Authorization": f"Bearer {token_a}"},
+        timeout=10,
+    )
+    assert list_pending.json()["data"]["total"] == 2, list_pending.text
+    # A 加 status=1 过滤 → 应是 0 条
+    list_replied = requests.get(
+        f"{USER_API}/api/v1/user/feedback/mine?status=1",
+        headers={"Authorization": f"Bearer {token_a}"},
+        timeout=10,
+    )
+    assert list_replied.json()["data"]["total"] == 0, list_replied.text
+    print("  + status 过滤 OK(0→2 条,1→0 条)")
+
+    # 字段齐全
+    item = body_a["data"]["list"][0]
+    for key in ("id", "type", "content", "status", "createdAt"):
+        assert key in item, f"missing key: {key}"
+    print("  + VO 字段齐全")
+
+    # 未登录访问应 401
+    noauth = requests.get(
+        f"{USER_API}/api/v1/user/feedback/mine", timeout=10
+    )
+    assert noauth.status_code in (401, 403), f"expected 401/403, got {noauth.status_code}"
+    print(f"  + 未登录返回 {noauth.status_code}")
+
+    print("PASS  反馈历史 API:分页 / status 过滤 / 跨用户隔离")
+
+
 if __name__ == "__main__":
     test_submit_and_reply_and_notify()
+    test_user_feedback_history_api()
     sys.exit(0)
