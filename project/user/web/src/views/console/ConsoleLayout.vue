@@ -601,7 +601,7 @@
                         @click="openHistoryDetail(fb)"
                       >
                         <div class="history-item-row1">
-                          <a-tag color="blue">{{ fb.type }}</a-tag>
+                          <a-tag class="history-type-tag">{{ fb.type }}</a-tag>
                           <a-tag :color="fb.status === 0 ? 'orange' : 'green'">
                             {{ fb.status === 0 ? '待回复' : '已回复' }}
                           </a-tag>
@@ -630,7 +630,7 @@
                   </a-button>
                   <div class="detail-row">
                     <span class="detail-label">类型</span>
-                    <a-tag color="blue">{{ historyDetail.type }}</a-tag>
+                    <a-tag class="history-type-tag">{{ historyDetail.type }}</a-tag>
                     <a-tag :color="historyDetail.status === 0 ? 'orange' : 'green'">
                       {{ historyDetail.status === 0 ? '待回复' : '已回复' }}
                     </a-tag>
@@ -3176,6 +3176,9 @@ provide('consoleActions', {
 .feedback-modal .ant-modal-body { max-height: 70vh; overflow-y: auto; }
 .feedback-tabs { margin-top: -8px; }
 .feedback-tabs :deep(.ant-tabs-nav) { margin-bottom: 16px; }
+.feedback-tabs :deep(.ant-tabs-ink-bar) { background: #ff2442; }
+.feedback-tabs :deep(.ant-tabs-tab.ant-tabs-tab-active .ant-tabs-tab-btn) { color: #ff2442; }
+.feedback-tabs :deep(.ant-tabs-tab:hover) { color: #ff2442; }
 
 .history-list-pane { padding: 0 4px; }
 .history-filter { margin-bottom: 12px; }
@@ -3201,12 +3204,18 @@ provide('consoleActions', {
   line-height: 1.5;
 }
 .history-item-reply-preview {
-  font-size: 12px; color: #1677ff; margin-top: 6px;
+  font-size: 12px; color: #ff2442; margin-top: 6px;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .history-empty { text-align: center; padding: 32px 0; color: #8c8c8c; }
 .history-empty p { margin-bottom: 12px; }
 .history-pager { text-align: center; margin-top: 12px; }
+
+:deep(.history-type-tag) {
+  background: #fff0f2;
+  color: #ff2442;
+  border: 1px solid #ffd6dd;
+}
 
 .history-detail-pane { padding: 0 4px; }
 .history-back-btn { padding-left: 0; margin-bottom: 8px; }
@@ -3224,7 +3233,7 @@ provide('consoleActions', {
   font-family: inherit; font-size: 13px; line-height: 1.7;
   width: 100%; box-sizing: border-box;
 }
-.detail-content-admin { background: #e6f7ff; }
+.detail-content-admin { background: #fff0f2; }
 .history-pending-hint {
   text-align: center; color: #8c8c8c; padding: 16px 0; font-size: 13px;
 }
