@@ -591,7 +591,7 @@
                   <a-spin :spinning="historyLoading">
                     <div v-if="historyList.length === 0 && !historyLoading" class="history-empty">
                       <p>还没有反馈记录</p>
-                      <a-button type="primary" @click="feedbackTab = 'submit'">去提交</a-button>
+                      <a-button type="primary" class="history-go-submit" @click="feedbackTab = 'submit'">去提交</a-button>
                     </div>
                     <ul v-else class="history-list">
                       <li
@@ -3210,6 +3210,17 @@ provide('consoleActions', {
 .history-empty { text-align: center; padding: 32px 0; color: #8c8c8c; }
 .history-empty p { margin-bottom: 12px; }
 .history-pager { text-align: center; margin-top: 12px; }
+
+/* 空状态 "去提交" 按钮：覆盖 ant-design 默认蓝,用品牌红 */
+:deep(.history-go-submit.ant-btn-primary) {
+  background: #ff2442;
+  border-color: #ff2442;
+}
+:deep(.history-go-submit.ant-btn-primary:hover),
+:deep(.history-go-submit.ant-btn-primary:focus) {
+  background: #e61e3a;
+  border-color: #e61e3a;
+}
 
 :deep(.history-type-tag) {
   background: #fff0f2;
