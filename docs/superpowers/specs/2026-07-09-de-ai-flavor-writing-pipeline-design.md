@@ -297,19 +297,36 @@ user_context_block: |
 - 每个抽象论点配具体例子（仅限已知素材）
 - 句子长短交替
 - 不要主动补全不知道的数据
-- 段落开头标明对应职责
 
-输出：[分块初稿]
+输出格式（JSON）：
+{
+  "draft": [
+    {
+      "paragraph_index": 1,
+      "responsibility": "建立好奇",
+      "content": "第 1 段完整文本"
+    },
+    {
+      "paragraph_index": 2,
+      "responsibility": "打破常识",
+      "content": "第 2 段完整文本"
+    }
+  ]
+}
+
+要求：
+- `content` 是自然段落，不是 bullet list
+- 每段 content 控制在 2-6 句话
+- 段落之间用 JSON 结构分隔，不要在 content 里塞"第 X 段"标记
 ```
+
+**输出**：JSON 格式的分块初稿，每个段落包含 `paragraph_index`、`responsibility`、`content` 三个字段。
 
 **关键约束**：
 - 风格提示词**原文粘贴**，不转述、不概括
 - 素材清单只列"已知项"，推断项必须明确标注
 - 段落对应职责明确
-
-**常见陷阱**：
-- 模型在第 4 段偷偷塞了第 2 段的内容（结构漂移）
-- 模型在缺素材的地方编造 —— 必须 catch 并回退到第 3 阶段
+- 输出必须是合法 JSON，下游阶段需要解析
 
 ---
 
