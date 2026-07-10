@@ -1,9 +1,13 @@
 package com.aichuangzuo.user.modules.generation.service;
 
 import com.aichuangzuo.shared.entity.GenerationTask;
+import com.aichuangzuo.shared.entity.PromptTemplate;
+import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.user.modules.generation.dto.request.GenerationSubmitRequest;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationActiveModelConfigMapper;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper;
+import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
+import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.style.entity.UserStyle;
 import com.aichuangzuo.user.modules.style.mapper.UserStyleMapper;
@@ -30,6 +34,9 @@ class GenerationTaskServiceTest {
 
     @Mock
     private GenerationTaskMapper taskMapper;
+
+    @Mock
+    private UserPromptTemplateMapper promptTemplateMapper;
 
     @Mock
     private GenerationActiveModelConfigMapper activeModelConfigMapper;
@@ -67,6 +74,12 @@ class GenerationTaskServiceTest {
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(coinRecordService.getBalance(userId)).thenReturn(BigDecimal.TEN);
         when(benefitResolver.retentionDays(userId)).thenReturn(30);
+        // 默认模板 id=1 已发布，latestPublishedVersion=1（submit 路径需要）
+        PromptTemplate tpl = new PromptTemplate();
+        tpl.setId(com.aichuangzuo.shared.creative.CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
+        tpl.setTemplateStatus(com.aichuangzuo.shared.creative.TemplateStatus.PUBLISHED.code);
+        tpl.setLatestPublishedVersion(1);
+        when(promptTemplateMapper.selectById(any())).thenReturn(tpl);
     }
 
     @Test
@@ -116,5 +129,42 @@ class GenerationTaskServiceTest {
         assertEquals("", parsed.get("userStylePrompt"));
         // styleRef 为空时根本不应查 DB
         verify(userStyleMapper, never()).selectOne(any());
+    }
+
+    @Test
+    void getProgress_shouldReturnProgressPctFromTask() {
+        Long userId = 5L;
+        GenerationTask task = new GenerationTask();
+        task.setId(99L);
+        task.setTargetUserId(userId);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        task.setRetryCount(0);
+        task.setMaxRetry(3);
+        task.setProgressPct(42);  // worker 已跑到 42%
+        task.setInputParam("{\"title\":\"测试\"}");
+        when(taskMapper.selectById(99L)).thenReturn(task);
+
+        GenerationTaskVO vo = service.getProgress(99L, userId);
+
+        assertEquals(99L, vo.getId());
+        assertEquals(42, vo.getProgressPct());
+        assertEquals(GenerationTaskStatus.PROCESSING.getCode(), vo.getStatus());
+    }
+
+    @Test
+    void getProgress_shouldReturnNullProgressForNewTask() {
+        Long userId = 5L;
+        GenerationTask task = new GenerationTask();
+        task.setId(100L);
+        task.setTargetUserId(userId);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        task.setRetryCount(0);
+        task.setMaxRetry(3);
+        task.setProgressPct(null);  // 还没 worker 拿过
+        when(taskMapper.selectById(100L)).thenReturn(task);
+
+        GenerationTaskVO vo = service.getProgress(100L, userId);
+
+        assertEquals(null, vo.getProgressPct());
     }
 }
