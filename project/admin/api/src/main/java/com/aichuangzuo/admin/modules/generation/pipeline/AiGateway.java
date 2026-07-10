@@ -1,5 +1,7 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
+import java.util.Map;
+
 /**
  * AI 统一调用入口。
  *
@@ -24,6 +26,18 @@ public interface AiGateway {
      * @throws RuntimeException           LLM 调用失败
      */
     String call(GenerationContext ctx, String systemMsg, String userMsg);
+
+    /**
+     * 调 AI 一次，携带模型参数（覆盖默认 temperature / max_tokens / top_p）。
+     *
+     * <p>默认实现 delegate 到 3 参版本，保持向后兼容；子类按需重写。
+     *
+     * @param modelParams 可选；null 或空 map = 用 GenerationAiService 内置默认值
+     */
+    default String call(GenerationContext ctx, String systemMsg, String userMsg,
+                        Map<String, Object> modelParams) {
+        return call(ctx, systemMsg, userMsg);
+    }
 
     /**
      * 预算耗尽异常（区别于普通失败：不退币，是用户配置的高级流程问题）。
