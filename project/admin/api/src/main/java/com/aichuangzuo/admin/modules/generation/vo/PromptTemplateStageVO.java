@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.generation.vo;
 import lombok.Data;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 12 阶段配置详情（前端用）。
@@ -19,6 +20,9 @@ public class PromptTemplateStageVO {
 
     private String aiPrompt;
     private String ruleConfig;
+
+    /** AI 阶段可配参数：temperature / max_tokens / top_p；null=用全局默认。 */
+    private Map<String, Object> modelParams;
 
     /** AI 阶段或可消费阶段可用占位符（前端 chip 渲染）。 */
     private List<StagePlaceholderVO> placeholders;

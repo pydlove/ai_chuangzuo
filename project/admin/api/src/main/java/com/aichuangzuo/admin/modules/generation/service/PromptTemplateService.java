@@ -11,6 +11,7 @@ import com.aichuangzuo.admin.modules.generation.mapper.PromptTemplateVersionMapp
 import com.aichuangzuo.admin.modules.generation.pipeline.ConfigField;
 import com.aichuangzuo.admin.modules.generation.pipeline.Placeholder;
 import com.aichuangzuo.admin.modules.generation.pipeline.PipelineStage;
+import com.aichuangzuo.admin.modules.generation.pipeline.PromptTemplateStageValidator;
 import com.aichuangzuo.admin.modules.generation.pipeline.StageType;
 import com.aichuangzuo.admin.modules.generation.vo.PromptTemplateAdminPageVO;
 import com.aichuangzuo.admin.modules.generation.vo.PromptTemplateAdminVO;
@@ -340,6 +341,7 @@ public class PromptTemplateService {
               .append(",\"stageType\":").append(jsonStr(r.getStageType()))
               .append(",\"aiPrompt\":").append(jsonStrOrNull(r.getAiPrompt()))
               .append(",\"ruleConfig\":").append(jsonStrOrNull(r.getRuleConfig()))
+              .append(",\"modelParams\":").append(jsonStrOrNull(r.getModelParams()))
               .append(",\"enabled\":").append(nullSafe(r.getEnabled()))
               .append('}');
         }
@@ -397,6 +399,7 @@ public class PromptTemplateService {
                 s.setStageType(n.has("stageType") && !n.get("stageType").isNull() ? n.get("stageType").asText() : null);
                 s.setAiPrompt(n.has("aiPrompt") && !n.get("aiPrompt").isNull() ? n.get("aiPrompt").asText() : null);
                 s.setRuleConfig(n.has("ruleConfig") && !n.get("ruleConfig").isNull() ? n.get("ruleConfig").toString() : null);
+                s.setModelParams(n.has("modelParams") && !n.get("modelParams").isNull() ? n.get("modelParams").asText() : null);
                 s.setEnabled(n.has("enabled") && !n.get("enabled").isNull() ? n.get("enabled").asInt() : 1);
                 result.add(s);
             }
@@ -417,12 +420,16 @@ public class PromptTemplateService {
     /**
      * 把请求里的 12 个 stage 转成 entity。
      * 某 stage 用户没传值时，从 {@link PipelineStage} 默认值兜底。
+     *
+     * <p>注：只入库 index 1-12 的真实阶段；{@link PipelineStage#PERSIST_ARTICLE}（index=100）
+     * 是 orchestrator 的合成收尾步骤，不是模板配置的一部分，跳过。
      */
     private List<PromptTemplateStage> buildStages(Long templateId,
                                                  List<PromptTemplateStageSaveItem> items,
                                                  Long adminUserId) {
         List<PromptTemplateStage> result = new ArrayList<>();
         for (PipelineStage def : PipelineStage.ALL) {
+            if (def == PipelineStage.PERSIST_ARTICLE) continue;
             PromptTemplateStageSaveItem item = items == null ? null
                     : items.stream()
                             .filter(x -> x.getStageIndex() != null && x.getStageIndex() == def.index)
@@ -435,6 +442,17 @@ public class PromptTemplateService {
             s.setStageType(def.type.code);
             s.setStageKey(def.key);
             s.setEnabled(item != null && item.getEnabled() != null ? item.getEnabled() : 1);
+
+            // AI 阶段：校验 + 序列化 modelParams（PASSTHROUGH / RULE_CONFIG 不接受）
+            if (item != null && item.getModelParams() != null && !item.getModelParams().isEmpty()) {
+                if (def.type != StageType.AI_PROMPT) {
+                    throw new com.aichuangzuo.shared.exception.BusinessException(
+                            com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode
+                                    .GENERATION_MODEL_PARAMS_INVALID);
+                }
+                PromptTemplateStageValidator.validate(item.getModelParams());
+                s.setModelParams(toJson(item.getModelParams()));
+            }
 
             switch (def.type) {
                 case AI_PROMPT:
@@ -461,6 +479,27 @@ public class PromptTemplateService {
         return result;
     }
 
+    private static String toJson(Object obj) {
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(obj);
+        } catch (Exception e) {
+            throw new com.aichuangzuo.shared.exception.BusinessException(
+                    com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode
+                            .GENERATION_MODEL_PARAMS_INVALID);
+        }
+    }
+
+    private static java.util.Map<String, Object> parseModelParamsJson(String json) {
+        if (json == null || json.isBlank()) return null;
+        try {
+            return new com.fasterxml.jackson.databind.ObjectMapper()
+                    .readValue(json, new com.fasterxml.jackson.core.type.TypeReference<>() {});
+        } catch (Exception e) {
+            log.warn("modelParams JSON 反序列化失败，前端按 null 显示: {}", e.getMessage());
+            return null;
+        }
+    }
+
     private PromptTemplateAdminVO toVo(PromptTemplate t) {
         PromptTemplateAdminVO vo = new PromptTemplateAdminVO();
         BeanUtils.copyProperties(t, vo);
@@ -472,6 +511,7 @@ public class PromptTemplateService {
             // 补全 stageIndex=rows[0..] 不足 12 的部分（用 PipelineStage 默认填展示用）
             List<PromptTemplateStageVO> stageVos = new ArrayList<>();
             for (PipelineStage def : PipelineStage.ALL) {
+                if (def == PipelineStage.PERSIST_ARTICLE) continue;
                 PromptTemplateStage row = rows.stream()
                         .filter(r -> r.getStageIndex() != null && r.getStageIndex() == def.index)
                         .findFirst()
@@ -491,7 +531,7 @@ public class PromptTemplateService {
                 }
             }
             vo.setStages(stageVos);
-            vo.setStagesInitialized(rows.size() == PipelineStage.ALL.length);
+            vo.setStagesInitialized(rows.size() == PipelineStage.ALL.length - 1);
         }
         vo.setIsBuiltin(t.getId() != null && t.getId() == CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
         TemplateStatus st = TemplateStatus.fromCode(t.getTemplateStatus());
@@ -512,6 +552,7 @@ public class PromptTemplateService {
         vo.setEnabled(row.getEnabled() == null ? 1 : row.getEnabled());
         vo.setAiPrompt(row.getAiPrompt() != null ? row.getAiPrompt() : def.defaultAiPrompt);
         vo.setRuleConfig(row.getRuleConfig() != null ? row.getRuleConfig() : def.defaultRuleConfigJson);
+        vo.setModelParams(parseModelParamsJson(row.getModelParams()));
         // 占位符
         List<PromptTemplateStageVO.StagePlaceholderVO> phs = new ArrayList<>();
         for (Placeholder p : def.placeholders) {
