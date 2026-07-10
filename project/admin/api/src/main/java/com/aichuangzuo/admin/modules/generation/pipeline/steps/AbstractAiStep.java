@@ -12,6 +12,10 @@ import lombok.extern.slf4j.Slf4j;
  * AI 阶段基类：处理 ai_prompt 渲染 → 调 AI → 解析 JSON → 把结果存到 ctx。
  *
  * <p>子类只需实现 {@link #parseAndStore(JsonNode, GenerationContext)}。
+ *
+ * <p>modelParams 取自 {@code ctx.modelParams}，由 {@code GenerationPipeline.setupStageModelParams}
+ * 在调用 {@link #process} 前根据当前阶段模板的 {@code model_params} 列注入；为 null 时
+ * {@code AiGateway} 走默认参数（由 {@code GenerationAiService} 提供）。
  */
 @Slf4j
 public abstract class AbstractAiStep implements GenerationStep {
@@ -32,7 +36,8 @@ public abstract class AbstractAiStep implements GenerationStep {
         if (userPrompt.isBlank()) {
             throw new RuntimeException("stage " + stageIndex() + " (" + name() + ") 的 ai_prompt 为空");
         }
-        String aiResp = aiGateway.call(ctx, systemMessage(), userPrompt);
+        // 用 4 参版本：把 ctx.modelParams（由 pipeline 在 step.process 之前注入）传给 Gateway
+        String aiResp = aiGateway.call(ctx, systemMessage(), userPrompt, ctx.getModelParams());
         JsonNode root = PipelineUtils.parseAiJson(aiResp);
         parseAndStore(root, ctx);
         log.debug("stage {} ({}) 完成", stageIndex(), name());
