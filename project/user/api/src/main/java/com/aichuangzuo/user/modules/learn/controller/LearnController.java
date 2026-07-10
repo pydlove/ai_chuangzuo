@@ -15,7 +15,7 @@ import java.util.List;
 
 @Tag(name = "创作学院公共浏览")
 @RestController
-@RequestMapping("/api/v1/learn")
+@RequestMapping("/api/v1/user/learn")
 @RequiredArgsConstructor
 public class LearnController {
 
