@@ -65,6 +65,9 @@ public class GenerationTaskService {
     /**
      * 标记任务失败。若 retry_count < max_retry，回 queued 让 worker 再试；否则置 FAILED。
      *
+     * <p>回 queued 路径会重置 progress_pct=0：让 worker 下一次运行时从头累加进度，
+     * 避免 user 端看到「卡在上次失败的 30%」后又被重置。
+     *
      * @param refundRequired  最终失败时是否需要退额度（completed-or-failed 时由调用方决定）
      */
     @Transactional
@@ -77,11 +80,12 @@ public class GenerationTaskService {
 
         int max = task.getMaxRetry() == null ? 3 : task.getMaxRetry();
         if (nextRetry <= max) {
-            // 回 queued，释放 lease
+            // 回 queued，释放 lease，重置进度（让下一轮 worker 从头累计）
             task.setStatus(GenerationTaskStatus.QUEUED);
             task.setLockedAt(null);
             task.setLockedBy(null);
             task.setLeaseUntil(null);
+            task.setProgressPct(0);
             mapper.updateById(task);
             log.info("task={} retry {}/{}, queued back, reason={}", taskId, nextRetry, max, reason);
         } else {
