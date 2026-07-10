@@ -72,7 +72,9 @@ public class PipelineTemplateResolver {
             stages.put(row.getStageIndex(), row);
         }
         // 用 PipelineStage 默认值补齐缺失的 stage
+        // （PERSIST_ARTICLE index=100 是 orchestrator 合成步骤，不进 stage 表，跳过）
         for (PipelineStage def : PipelineStage.ALL) {
+            if (def == PipelineStage.PERSIST_ARTICLE) continue;
             stages.computeIfAbsent(def.index, idx -> buildDefaultStage(def, template.getId()));
         }
         ctx.setStages(stages);

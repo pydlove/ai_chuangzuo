@@ -1,7 +1,7 @@
 # 12 阶段流水线运行时增强设计
 
 > 日期：2026-07-10
-> 状态：设计稿（待审核）
+> 状态：已实施（commit `a47f8c0..d7c6204`，见 §11 偏差记录）
 > 范围：在现有 12 阶段流水线基础上，补齐任务级 retry、AI 参数可配、用户进度可见性、导出样式分工
 > 不改：模板管理 UI、12 阶段结构、阶段级 fallback 策略（按用户确认一律不引入）
 
@@ -351,3 +351,66 @@ DTO `PromptTemplateStageSaveItem` 加可选字段 `private Map<String, Object> m
 10. 文档同步更新
 
 每步独立 commit。
+
+---
+
+## 11. 实施结果（2026-07-10 已落地）
+
+按 plan 18 个 task 全部完成（commit `a47f8c0..d7c6204`）。与上述设计稿的偏差如下，记录备查。
+
+### 11.1 Migration 版本号顺延
+
+实施时发现 `V2.0.0_020` 已被占用（创作模板 version 锁定），顺延：
+- `progress_pct` → `V2.0.0_021__add_progress_pct_to_generation_task.sql`
+- `model_params` → `V2.0.0_022__add_model_params_to_prompt_template_stage.sql`
+
+### 11.2 任务级 retry 实现位置
+
+设计稿 §5.1 / §6.2 描述了一个独立 `markRetry()` 方法；实施时直接复用了
+`GenerationTaskService.markFailed()` 的 retry 分支（nextRetry <= max 时回 queued）：
+
+- 该分支补一行 `task.setProgressPct(0)` 重置进度（满足 §6 / 单测 5.3 第 3 条）
+- `ai_call_history` 不在 retry 时清空：`t_generation_call_log` 是 append-only 审计表，
+  retry 后新一轮 worker 跑会产生新的 attempt 编号（attempt=1 重新计数），
+  旧记录保留便于回溯，与 §6.2 的"干净开始"语义一致（ctx 是 pipeline.run 每次新 new 的）
+
+### 11.3 PipelineStage.PERSIST_ARTICLE 不入库
+
+`PipelineStage.ALL` 含 13 项（12 阶段 + 1 个合成 PERSIST_ARTICLE index=100）。
+`PromptTemplateService.buildStages` / `toVo` 显式跳过 PERSIST_ARTICLE，
+保证 `t_prompt_template_stage` 每张模板只有 12 行。
+
+### 11.4 Pipeline 进度回调签名
+
+`GenerationPipeline.run(task)` 保留向后兼容；新增 `run(task, BiConsumer<Long,Integer> onStageComplete)`
+让 worker 在每个 step 完成后实时写库。`GenerationTaskWorker.processOne` 完成后强制
+`updateProgress(taskId, 100)` 兜底，避免 weight 累加边界问题。
+
+### 11.5 错误码约定
+
+`PromptTemplateStageValidator` 抛 `BusinessException(GENERATION_MODEL_PARAMS_INVALID)`，
+不带自定义 message（项目 `BusinessException` 只支持 `ErrorCode` 构造器）。
+详细原因通过 `log.warn` 落到日志，不进 error response。
+
+### 11.6 E2E 脚本路径
+
+设计稿 §8.2 写的是 `tests/e2e/verify_12_stage_runtime.py`；实施命名为
+`tests/integration/pipeline_e2e.py`（integration 目录更适合需要真实服务的冒烟测试，
+与 Playwright 前端 e2e 区分）。端口按 tech-stack 约定 user-api=25050 / admin-api=26060。
+
+### 11.7 测试覆盖
+
+新增 / 扩展单测 10 个文件，全部 green：
+
+| 测试类 | 覆盖点 |
+|--------|--------|
+| `ProgressWeightTest` | 12 + PERSIST_ARTICLE 权重累加 = 100 |
+| `GenerationAiServiceModelParamsTest` | 4 参 call 透传 modelParams + 默认值兜底 |
+| `DefaultAiGatewayModelParamsTest` | 4 参 gateway 把 params 透传给 aiService |
+| `DefaultAiGatewayRetryTest`（修） | 现有重试用例签名 3 参 → 4 参 |
+| `GenerationPipelineTest`（扩） | 进度回调 + 向后兼容 1 参 run |
+| `AbstractAiStepTest` | 4 参 gateway 调用 + ctx.modelParams 透传 |
+| `PromptTemplateStageValidatorTest` | 20 个 case：白名单 key / 越界 / 类型错误 / JSON 解析 |
+| `GenerationTaskServiceTest`（扩） | markFailed retry 重置 progress / updateProgress clamp |
+| `GenerationTaskServiceTest`（user-api 扩） | getProgress 返回 progressPct 映射 |
+| `ExportRenderStepTest` | markdown 规范文 + platform 提取 + fallback |
