@@ -41,8 +41,16 @@ public class GenerationContext {
     private Map<String, Object> input = new HashMap<>();
 
     // ===== AI 调用预算与追踪 =====
-    /** 任务允许调 AI 的总次数（默认 3，worker 写入；可按会员等级调整）。 */
-    private int aiCallBudget = 3;
+    /**
+     * 任务允许调 AI 的总次数（默认 50）。
+     *
+     * <p>覆盖 12 阶段流水线最坏情况：8 个 AI 阶段 × 4 次最坏尝试（1 首次 + 3 重试）= 32，
+     * 留余量到 50。如果未来加阶段或调高重试上限需要重评此值。
+     *
+     * <p>为什么保留 budget 而不是只用 retry 上限：budget 是「防失控」兜底，
+     * 比如某个 step 内部 bug 绕过 retry 时强制停止。详见 spec §5.5。
+     */
+    private int aiCallBudget = 50;
 
     /** 已用 AI 调用次数（每次 AiGateway.call 自增，含 retry 内部尝试）。 */
     private int aiCallUsed = 0;
