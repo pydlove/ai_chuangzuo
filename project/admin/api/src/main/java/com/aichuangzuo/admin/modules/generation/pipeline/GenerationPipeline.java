@@ -48,12 +48,16 @@ public class GenerationPipeline {
                 continue;
             }
             log.info("→ stage {} ({})", step.stageIndex(), step.name());
+            // 把当前 stage 的 modelParams 塞进 ctx，供 AbstractAiStep 调用 AiGateway 用
+            setupStageModelParams(ctx, step.stageIndex());
             try {
                 StepResult r = step.process(ctx);
                 if (r == StepResult.STOP) {
                     log.info("stage {} ({}) 要求 STOP，pipeline 提前结束", step.stageIndex(), step.name());
                     break;
                 }
+                // 累加进度（worker 也会通过 ctx.progressPct 拿到这个值，但实时写库由 worker 负责）
+                ctx.addProgress(PipelineStage.byIndex(step.stageIndex()).weight);
             } catch (RuntimeException e) {
                 log.error("✗ stage {} ({}) 失败: {}", step.stageIndex(), step.name(), e.getMessage());
                 throw e;
@@ -72,6 +76,26 @@ public class GenerationPipeline {
         } catch (Exception e) {
             log.warn("inputParam 解析失败，用空 map", e);
             return new HashMap<>();
+        }
+    }
+
+    /**
+     * 解析当前 stage 的 modelParams JSON 字符串，注入 ctx。
+     * 失败时回退到 null（用 GenerationAiService 默认值）。
+     */
+    private void setupStageModelParams(GenerationContext ctx, int stageIndex) {
+        com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage stageRow =
+                ctx.getStages().get(stageIndex);
+        if (stageRow != null && stageRow.getModelParams() != null && !stageRow.getModelParams().isBlank()) {
+            try {
+                ctx.setModelParams(new com.fasterxml.jackson.databind.ObjectMapper()
+                        .readValue(stageRow.getModelParams(), new com.fasterxml.jackson.core.type.TypeReference<>() {}));
+            } catch (Exception parseEx) {
+                log.warn("stage {} modelParams 解析失败，用默认: {}", stageIndex, parseEx.getMessage());
+                ctx.setModelParams(null);
+            }
+        } else {
+            ctx.setModelParams(null);
         }
     }
 }

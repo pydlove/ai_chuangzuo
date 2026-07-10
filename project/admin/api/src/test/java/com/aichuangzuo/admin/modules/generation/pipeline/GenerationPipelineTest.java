@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -67,7 +69,7 @@ class GenerationPipelineTest {
             }
             ctx.setStages(stages);
             return null;
-        }).when(resolver).resolveInto(any());
+        }).when(resolver).resolveInto(any(), isNull(), isNull());
 
         // mock AiGateway 返回有效 JSON（每个 stage 都返回 draft 数组）
         when(aiGateway.call(any(), anyString(), anyString()))
@@ -100,7 +102,7 @@ class GenerationPipelineTest {
             stages.put(50, makeStage(50, "ai_prompt", "throw"));
             ctx.setStages(stages);
             return null;
-        }).when(resolver).resolveInto(any());
+        }).when(resolver).resolveInto(any(), isNull(), isNull());
 
         GenerationTask task = new GenerationTask();
         task.setId(1L);
@@ -205,7 +207,7 @@ class GenerationPipelineTest {
         }
 
         @Override
-        public int stageIndex() { return 99; }
+        public int stageIndex() { return 100; }
 
         @Override
         public String name() { return "mock-ai"; }
