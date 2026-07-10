@@ -14,9 +14,28 @@ import java.util.Map;
 /**
  * 第 12 阶段：导出模板渲染（rule_config）
  *
- * <p>按用户选的平台模板把 finalDraft 渲染成对应平台的可发布格式。
- * 本期先实现「按 templateId 套样式」的简化版：套一个平台特定的 markdown wrapper；
- * 真正完整的渲染逻辑（卡片图 / 排版 / 标签）可在后续迭代。
+ * <p><b>双层导出架构（设计文档 §8）：</b>
+ * <ol>
+ *   <li><b>后端（本 step）：</b>把 {@code finalDraft}（结构化 JSON：每段 paragraph_index / responsibility /
+ *       content）展开成<b>平台无关的 markdown 规范文</b>，写入 {@code ctx.exportResult.renderedDocument}。
+ *       markdown 是唯一权威的「内容真源」，后续所有展示形式都从它派生，避免多处维护同一份内容。</li>
+ *   <li><b>前端 templatePresets：</b>用户在预览页选平台（微信公众号 / 小红书 / 知乎 ...），前端按
+ *       {@code ctx.exportResult.platform}（来自 {@code rule_config.templateId} 前缀）从
+ *       {@code shared.js::templatePresets} 取对应样式模板，套到 markdown 上做可视化（卡片图 / 字号 / 标签）。</li>
+ * </ol>
+ *
+ * <p><b>为什么不让后端直接把 HTML 写死：</b>
+ * <ul>
+ *   <li>平台模板样式频繁迭代（小红书要加话题标签 / 知乎要加参考链接位），放在前端 JS 可以热更新；后端写死要重启。</li>
+ *   <li>用户在预览页切换平台是高频操作，前端本地切换零延迟；如果每次换平台都打后端会慢且费额度。</li>
+ *   <li>后端只负责「内容对不对」，前端负责「好不好看」——关注点分离。</li>
+ * </ul>
+ *
+ * <p><b>渲染失败回退：</b>{@code rule_config.fallbackToPlainText=true}（默认）时，
+ * 若 finalDraft 解析失败，{@link #renderDraft} 会把原文 JSON 当字符串返回，保证用户至少看到文字。
+ *
+ * <p><b>本期实现范围：</b>后端 markdown wrapper 仅加平台特定的开头/结尾装饰（emoji / 话题标签），
+ * 作为「后端也做了一点样式」的最小示意；真正的排版细节由前端 templatePresets 接管。
  */
 @Slf4j
 @Component
@@ -47,7 +66,8 @@ public class ExportRenderStep implements GenerationStep {
         String templateId = String.valueOf(config.getOrDefault("templateId", "wechat_default"));
         String title = ctx.getInput() == null ? "" : String.valueOf(ctx.getInput().getOrDefault("title", ""));
 
-        // 简化渲染：把 draft 数组的 content 拼成 markdown，前后套模板 wrapper
+        // 后端层：把 draft 数组的 content 拼成平台无关 markdown，前后套模板 wrapper
+        // （前端 layer 会按 platform 取 templatePresets 进一步装饰）
         String body = renderDraft(ctx, title);
         String rendered = wrapByTemplate(templateId, title, body);
 
@@ -57,10 +77,21 @@ public class ExportRenderStep implements GenerationStep {
         result.setRenderedDocument(rendered);
         result.setSourceDraftJson(ctx.getFinalDraftJson());
         ctx.setExportResult(result);
-        log.info("导出模板渲染完成 platform={} format=markdown", result.getPlatform());
+        log.info("导出模板渲染完成 platform={} format=markdown templateId={}",
+                result.getPlatform(), templateId);
         return StepResult.CONTINUE;
     }
 
+    /**
+     * 把 finalDraft JSON 展开成平台无关 markdown：
+     * <ul>
+     *   <li>title 作为一级标题</li>
+     *   <li>每段 content 拼成段落，按 paragraph_index 顺序</li>
+     *   <li>responsibility 作为二级小标题（调试用；前端 layer 可忽略）</li>
+     * </ul>
+     *
+     * <p>解析失败时回退到 finalDraftJson 原文（fallback 策略由外层 fallbackToPlainText 配置）。
+     */
     private String renderDraft(GenerationContext ctx, String title) {
         try {
             JsonNode root = MAPPER.readTree(ctx.getFinalDraftJson());
