@@ -105,7 +105,7 @@
     >
       <p>账号：<strong>{{ resetPasswordTarget?.account }}</strong></p>
       <p style="color: #8c8c8c; margin-top: 12px">
-        重置后密码将设为 <code>adc123456</code>，请通知用户及时修改。
+        重置后密码将设为 <code>Aichuangzuo@123</code>，请通知用户及时修改。
       </p>
     </a-modal>
 
@@ -225,7 +225,7 @@
         <a-form-item label="密码" name="password">
           <a-input-password
             v-model:value="createForm.password"
-            placeholder="留空则使用默认密码 adc123456"
+            placeholder="留空则使用默认密码 Aichuangzuo@123"
           />
         </a-form-item>
         <a-form-item label="用户类型" name="userType">

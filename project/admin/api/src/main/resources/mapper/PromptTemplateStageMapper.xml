@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.generation.mapper.PromptTemplateStageMapper">
+
+    <select id="selectByTemplateId" resultType="com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage">
+        SELECT id, template_id, stage_index, stage_type, stage_key,
+               ai_prompt, rule_config, enabled,
+               tenant_id, is_deleted, created_at, updated_at, created_by, updated_by
+        FROM t_prompt_template_stage
+        WHERE template_id = #{templateId}
+          AND is_deleted = 0
+        ORDER BY stage_index ASC
+    </select>
+
+    <update id="deleteByTemplateId">
+        UPDATE t_prompt_template_stage
+        SET is_deleted = 1, updated_at = NOW(3)
+        WHERE template_id = #{templateId} AND is_deleted = 0
+    </update>
+
+</mapper>

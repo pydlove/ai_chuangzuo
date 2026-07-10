@@ -65,3 +65,11 @@ reminder:
   advance-days: 7
   notify-hour: 9
   notify-channel: message
+
+# 文章生成 worker 配置
+generation:
+  pool-size: 2            # worker 线程数
+  poll-interval-ms: 500   # 空轮询间隔
+  lease-minutes: 5        # lease 持续分钟（超时回收）
+  worker-id: worker-1     # 单实例约定
+  max-retry: 3            # 单任务最大重试

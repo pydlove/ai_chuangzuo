@@ -1171,7 +1171,8 @@ import {
   ShopOutlined,
   DollarOutlined,
   TrophyOutlined,
-  UserOutlined
+  UserOutlined,
+  RobotOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1266,6 +1267,7 @@ const goToGuide = () => {
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
+  { path: '/console/ai-generate', label: 'AI 创作', icon: RobotOutlined },
   { path: '/console/works', label: '我的作品', icon: FolderOutlined },
   { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },

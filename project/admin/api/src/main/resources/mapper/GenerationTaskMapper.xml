@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper">
+
+    <!-- 抢占一批待处理任务：FIFO 按 created_at ASC，lease 过期的不抢 -->
+    <select id="claimBatch" resultType="com.aichuangzuo.shared.entity.GenerationTask">
+        SELECT id, biz_no, target_user_id, status, model_config_id, prompt_template_id,
+               input_param, word_limit_target, retry_count, max_retry,
+               locked_at, locked_by, lease_until, failed_reason, completed_at,
+               retention_days, tenant_id, is_deleted, created_at, updated_at, created_by, updated_by
+        FROM a_generation_task
+        WHERE status = 0
+          AND (lease_until IS NULL OR lease_until &lt; NOW(3))
+        ORDER BY created_at ASC
+        LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <!-- 释放 lease 过期：回 queued，重置 locked_by -->
+    <update id="releaseExpiredLeases">
+        UPDATE a_generation_task
+        SET status = 0,
+            locked_at = NULL,
+            locked_by = NULL,
+            lease_until = NULL,
+            retry_count = retry_count + 1
+        WHERE status = 1
+          AND lease_until IS NOT NULL
+          AND lease_until &lt; #{now}
+    </update>
+
+    <!-- 找出需要归档的任务 ID 列表（completed / failed 且 retention_days 非空并过期） -->
+    <select id="selectExpiredTaskIds" resultType="java.lang.Long">
+        SELECT id
+        FROM a_generation_task
+        WHERE status IN (2, 3)
+          AND completed_at IS NOT NULL
+          AND retention_days IS NOT NULL
+          AND DATE_ADD(completed_at, INTERVAL retention_days DAY) &lt; #{now}
+        ORDER BY completed_at ASC
+        LIMIT #{limit}
+    </select>
+
+    <!-- Admin 端-创作任务列表（含用户昵称） -->
+    <select id="selectAdminList" resultType="com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow">
+        SELECT t.id            AS id,
+               t.biz_no        AS bizNo,
+               t.target_user_id AS userId,
+               u.nickname      AS userNickname,
+               t.status        AS status,
+               t.model_config_id AS modelConfigId,
+               t.word_limit_target AS wordLimitTarget,
+               t.retry_count   AS retryCount,
+               t.max_retry     AS maxRetry,
+               t.locked_by     AS lockedBy,
+               t.locked_at     AS lockedAt,
+               t.lease_until   AS leaseUntil,
+               t.failed_reason AS failedReason,
+               t.completed_at  AS completedAt,
+               t.created_at    AS createdAt
+        FROM a_generation_task t
+        LEFT JOIN u_user u ON u.id = t.target_user_id AND u.is_deleted = 0
+        WHERE t.is_deleted = 0
+          <if test="status != null">AND t.status = #{status}</if>
+          <if test="keyword != null and keyword != ''">
+              AND (t.biz_no LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+        ORDER BY t.created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countAdminList" resultType="long">
+        SELECT COUNT(*)
+        FROM a_generation_task t
+        LEFT JOIN u_user u ON u.id = t.target_user_id AND u.is_deleted = 0
+        WHERE t.is_deleted = 0
+          <if test="status != null">AND t.status = #{status}</if>
+          <if test="keyword != null and keyword != ''">
+              AND (t.biz_no LIKE CONCAT('%', #{keyword}, '%')
+                OR u.nickname LIKE CONCAT('%', #{keyword}, '%'))
+          </if>
+    </select>
+
+</mapper>

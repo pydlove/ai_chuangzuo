@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper">
+
+    <!-- 用户视角任务列表（新→旧） -->
+    <select id="selectUserTasks" resultType="com.aichuangzuo.shared.entity.GenerationTask">
+        SELECT id, biz_no, target_user_id, status, model_config_id, prompt_template_id,
+               input_param, word_limit_target, retry_count, max_retry,
+               locked_at, locked_by, lease_until, failed_reason, completed_at,
+               retention_days, tenant_id, is_deleted, created_at, updated_at, created_by, updated_by
+        FROM a_generation_task
+        WHERE target_user_id = #{targetUserId}
+          AND is_deleted = 0
+          <if test="statuses != null and statuses.size() > 0">
+              AND status IN
+              <foreach collection="statuses" item="s" open="(" separator="," close=")">
+                  #{s}
+              </foreach>
+          </if>
+        ORDER BY created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countUserTasks" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM a_generation_task
+        WHERE target_user_id = #{targetUserId}
+          AND is_deleted = 0
+          <if test="statuses != null and statuses.size() > 0">
+              AND status IN
+              <foreach collection="statuses" item="s" open="(" separator="," close=")">
+                  #{s}
+              </foreach>
+          </if>
+    </select>
+
+    <!-- 限流：1 分钟内 submit 任务数 (status 仅排除已 completed/failed) -->
+    <select id="countSubmittedInLastMinute" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM a_generation_task
+        WHERE target_user_id = #{targetUserId}
+          AND is_deleted = 0
+          AND UNIX_TIMESTAMP(created_at) &gt;= #{sinceEpochSecond}
+    </select>
+
+</mapper>

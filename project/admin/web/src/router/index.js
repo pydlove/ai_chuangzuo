@@ -39,6 +39,31 @@ const routes = [
         component: () => import('@/views/ModelConfigView.vue')
       },
       {
+        path: 'prompt-templates',
+        name: 'AdminPromptTemplateList',
+        component: () => import('@/views/PromptTemplateListView.vue')
+      },
+      {
+        path: 'prompt-templates/new',
+        name: 'AdminPromptTemplateCreate',
+        component: () => import('@/views/PromptTemplateEditView.vue')
+      },
+      {
+        path: 'prompt-templates/:id',
+        name: 'AdminPromptTemplateEdit',
+        component: () => import('@/views/PromptTemplateEditView.vue')
+      },
+      {
+        path: 'creation-queue',
+        name: 'AdminCreationQueue',
+        component: () => import('@/views/CreationQueueView.vue')
+      },
+      {
+        path: 'creation-settings',
+        name: 'AdminCreationSettings',
+        component: () => import('@/views/CreationSettingsView.vue')
+      },
+      {
         path: 'hot-search/platforms',
         name: 'AdminHotSearchPlatforms',
         component: () => import('@/views/HotSearchPlatformView.vue')

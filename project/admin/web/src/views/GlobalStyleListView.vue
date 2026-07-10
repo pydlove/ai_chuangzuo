@@ -35,6 +35,7 @@
         :data-source="list"
         :loading="loading"
         :pagination="false"
+        :scroll="{ x: 1050 }"
         row-key="id"
         size="middle"
       >
@@ -48,7 +49,9 @@
             <span class="cell-ellipsis">{{ record.description || '—' }}</span>
           </template>
           <template v-else-if="column.key === 'promptSummary'">
-            <span class="cell-ellipsis">{{ record.promptSummary || '—' }}</span>
+            <a-tooltip :title="record.promptSummary || '—'">
+              <span class="cell-ellipsis">{{ record.promptSummary || '—' }}</span>
+            </a-tooltip>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
@@ -173,7 +176,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 140 },
   { title: '风格名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 180 },
-  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 240 },
+  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 120 },
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 80 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },

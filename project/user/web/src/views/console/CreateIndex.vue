@@ -662,6 +662,7 @@ import {
   loadMyStyles,
   loadSystemStyles
 } from '@/composables/useStyles.js'
+import { listPromptTemplates } from '@/api/generation.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { saveCurrentArticle } from '@/utils/articleStorage.js'
@@ -674,9 +675,26 @@ const router = useRouter()
 const route = useRoute()
 const isMobile = useIsMobile()
 
+// 阶段 3：可用的创作模板（默认 = 内置模板）
+const availableTemplates = ref([])
+const selectedTemplateId = ref(null)
+async function loadAvailableTemplates() {
+  try {
+    const list = await listPromptTemplates()
+    availableTemplates.value = list
+    // 默认选中第一个（内置）
+    if (list.length > 0 && !selectedTemplateId.value) {
+      const builtIn = list.find((t) => t.isBuiltin)
+      selectedTemplateId.value = builtIn ? builtIn.id : list[0].id
+    }
+  } catch (e) {
+    console.warn('加载模板列表失败', e)
+  }
+}
+
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
-  await loadSystemStyles()
+  await Promise.all([loadSystemStyles(), loadAvailableTemplates()])
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
@@ -1453,36 +1471,27 @@ const handleGenerate = () => {
     return
   }
 
-  // 队列上限校验:免费/已过期 = 0,基础 = 1,专业 = 5,旗舰 = 10
-  const limit = getQueueLimit()
-  if (limit === 0) {
-    message.warning('您当前是免费用户,无法使用 AI 生成队列。开通会员后即可开始创作')
-    return
-  }
-  const activeCount = miniQueueList.value.filter(x => x.status === 'generating').length
-  if (activeCount >= limit) {
-    const planName = getCurrentPlanName()
-    message.warning(`队列已满,${planName}最多同时运行 ${limit} 个任务。请等待当前任务完成,或前往【会员中心】升级更高档位`)
-    return
-  }
+  // 跳转到 AI 创作队列页（后端实际队列）并预填标题 / 描述
+  const platformValue = typeof currentPlatform.value === 'object'
+    ? (currentPlatform.value?.key || '')
+    : (currentPlatform.value || '')
+  const styleValue = typeof currentStyle.value === 'object'
+    ? (currentStyle.value?.id || currentStyle.value?.name || '')
+    : (currentStyle.value || '')
+  const wordCountValue = typeof currentWordCount.value === 'object'
+    ? (currentWordCount.value?.count || 800)
+    : (Number(currentWordCount.value) || 800)
 
-  // 构建任务数据
-  const taskData = {
-    title: customTitle.value,
-    platform: currentPlatform.value,
-    wordCount: currentWordCount.value,
-    style: currentStyle.value,
-    template: currentTemplate.value,
-    customTitle: customTitle.value,
-    customRequirement: customRequirement.value
-  }
-
-  // 直接添加到本地队列并开始模拟生成
-  addToMiniQueue(taskData)
-
-  // 清空表单
-  clearForm()
-  message.success('已加入生成队列')
+  router.push({
+    path: '/console/ai-generate',
+    query: {
+      title: customTitle.value,
+      description: customRequirement.value,
+      platform: platformValue,
+      wordCount: String(wordCountValue),
+      styleRef: styleValue
+    }
+  })
 }
 
 // 生成模拟文章内容

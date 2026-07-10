@@ -34,7 +34,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PlatformUserLoginLogMapper platformUserLoginLogMapper;
     private final PasswordEncoder passwordEncoder;
 
-    private static final String RESET_PASSWORD = "adc123456";
+    private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 

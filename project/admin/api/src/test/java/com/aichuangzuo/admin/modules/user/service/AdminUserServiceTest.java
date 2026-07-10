@@ -83,11 +83,11 @@ class AdminUserServiceTest {
         user.setId(1L);
         user.setIsDeleted(0);
         when(platformUserMapper.selectById(1L)).thenReturn(user);
-        when(passwordEncoder.encode("adc123456")).thenReturn("hashed");
+        when(passwordEncoder.encode("Aichuangzuo@123")).thenReturn("hashed");
 
         AdminUserResetPasswordVO result = adminUserService.resetPassword(1L);
 
-        assertEquals("adc123456", result.getNewPassword());
+        assertEquals("Aichuangzuo@123", result.getNewPassword());
         verify(platformUserMapper).updateById(user);
         assertEquals("hashed", user.getPasswordHash());
     }
@@ -100,7 +100,7 @@ class AdminUserServiceTest {
         request.setUserType(1);
 
         when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(passwordEncoder.encode("adc123456")).thenReturn("hashed");
+        when(passwordEncoder.encode("Aichuangzuo@123")).thenReturn("hashed");
 
         AdminUserVO result = adminUserService.createUser(request);
 
@@ -130,7 +130,7 @@ class AdminUserServiceTest {
         request.setUserType(0);
 
         when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(passwordEncoder.encode("adc123456")).thenReturn("hashed");
+        when(passwordEncoder.encode("Aichuangzuo@123")).thenReturn("hashed");
 
         AdminUserVO result = adminUserService.createUser(request);
 

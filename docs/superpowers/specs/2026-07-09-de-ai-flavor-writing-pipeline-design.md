@@ -881,3 +881,1157 @@ generation:
 | 第 9 阶段 | 回退到第 8 阶段输出 |
 | 第 11 阶段 | 跳过字数调整，直接输出第 9 阶段结果 |
 
+## 5. 创作模板配置化设计
+
+前文描述的 12 阶段流水线作为**默认创作模板**。产品需要支持用户/运营基于这 12 阶段创建自定义创作模板：每个阶段可独立配置类型、提示词与规则参数，新建模板时自动填充默认值。
+
+---
+
+### 5.1 模板 = 12 个阶段配置
+
+每个创作模板由 12 个阶段配置组成，阶段索引 1–12 与第 3 节完全对应，顺序固定、不可增删。模板运行时按顺序执行阶段，上一阶段的输出作为下一阶段的输入。
+
+### 5.2 阶段类型
+
+每个阶段必须选择以下三种类型之一：
+
+| 类型 | 说明 | 是否调用 LLM | 典型阶段 |
+|------|------|--------------|----------|
+| **AI** | 通过可编辑提示词调用大模型完成该阶段 | 是 | 2、3、4、6、7、8、9、11 |
+| **RULE** | 程序化规则，参数可配置 | 否 | 5、10 |
+| **STATIC** | 固定输出或内容展示，不调用 AI | 否 | 1、12 |
+
+- **AI 类型**：需要写提示词，运行时调用 LLM。
+- **RULE 类型**：不需要提示词，只需要配置规则与阈值。
+- **STATIC 类型**：不需要提示词，只展示该阶段产出的固定内容说明。
+
+### 5.3 新建模板默认填充
+
+用户创建新模板时，系统自动复制默认 12 阶段配置作为初始值：
+
+- **AI 阶段**：自动填入第 3 节各阶段 Prompt 模板作为默认提示词。
+- **RULE 阶段**：自动填入默认规则参数（如第 5 阶段的阈值、第 10 阶段的统计规则）。
+- **STATIC 阶段**：自动填入默认输出说明（如第 1 阶段生成 `user_context_block`、第 12 阶段按平台模板渲染）。
+
+运营/用户可在此基础上修改，无需从零编写提示词。
+
+### 5.4 模板数据结构示例
+
+```yaml
+creative_template:
+  id: "default-v1"
+  name: "默认去 AI 味模板"
+  description: "标准 12 阶段去 AI 味写作流水线"
+  stages:
+    - index: 1
+      name: "意图锚定"
+      type: "STATIC"
+      enabled: true
+      static_config:
+        output_format: "user_context_block"
+        description: "把用户的标题、核心观点、目标读者、风格提示词原文拼接为标准化上下文块，不做任何 AI 处理。"
+
+    - index: 2
+      name: "结构骨架"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          你是一位资深编辑。请根据以下文章意图，为这篇文章生成一份职责式大纲。
+          [user_context_block]
+          ...
+        placeholders:
+          - user_context_block
+        model_params:
+          temperature: 0.7
+
+    - index: 5
+      name: "韵律检测"
+      type: "RULE"
+      enabled: true
+      rule_config:
+        metrics:
+          - name: "uniform_length"
+            enabled: true
+            threshold: 5
+            description: "连续 3 句字数差异在 ±5 字以内判为 AI 均匀节律"
+          - name: "no_breath"
+            enabled: true
+            threshold: 35
+            description: "超过 35 个汉字未出现句末标点判为长句无气口"
+          - name: "monotonous_start"
+            enabled: true
+            threshold: 3
+            description: "连续 5 句开头词中 3 个以上词性相同判为句首单调"
+```
+
+### 5.5 UI 展示与编辑
+
+模板编辑页面以 12 个卡片（或折叠面板）展示阶段：
+
+- 每个卡片默认收起，显示：阶段序号、阶段名称、类型标签（AI / RULE / STATIC）、启用开关。
+- 点击卡片展开后，根据阶段类型显示不同编辑区：
+  - **AI 类型**：显示可编辑的 Prompt 文本框，占位符（如 `[user_context_block]`）高亮显示；下方显示模型参数（temperature、max_tokens 等）。
+  - **RULE 类型**：显示规则参数表单，可增删规则、调整阈值、设置风格豁免项。
+  - **STATIC 类型**：只读显示该阶段产出的内容说明，不展示 Prompt 编辑框。
+- 若某阶段不需要 AI，则界面不显示提示词编辑区，只显示"提供的内容"或规则配置。
+- AI 阶段若关闭，运行时按第 4 节重试耗尽后的回退策略处理。
+
+### 5.6 提示词占位符
+
+AI 阶段 Prompt 模板使用占位符引用上游输出，运行时引擎按顺序填充：
+
+| 占位符 | 来源阶段 | 说明 |
+|--------|----------|------|
+| `[user_context_block]` | 第 1 阶段 | 用户上下文块 |
+| `[outline]` | 第 2 阶段 | 职责式大纲 |
+| `[materials]` | 第 3 阶段 | 素材清单 |
+| `[draft]` | 第 4 / 6 / 8 / 9 阶段 | 分块初稿 |
+| `[rhythm_issues]` | 第 5 阶段 | 韵律问题清单 |
+| `[toxic_review]` | 第 7 阶段 | 毒舌同行点评清单 |
+| `[word_count_report]` | 第 10 阶段 | 字数统计报告 |
+
+### 5.7 规则可配置项
+
+第 5 阶段（韵律检测）和第 10 阶段（字数统计）的规则参数必须可配置：
+
+| 阶段 | 可配置项 | 默认值 | 说明 |
+|------|----------|--------|------|
+| 第 5 阶段 | `uniform_length.threshold` | 5 字 | 连续 3 句字数差异阈值 |
+| 第 5 阶段 | `no_breath.threshold` | 35 字 | 无句末标点的最长字符数 |
+| 第 5 阶段 | `monotonous_start.threshold` | 3 个 | 连续 5 句句首中相同词性数量阈值 |
+| 第 5 阶段 | `style_exemptions` | 空列表 | 用户风格中明确要求的元素，检测时豁免 |
+| 第 10 阶段 | `count_punctuation` | false | 字数统计是否包含标点 |
+| 第 10 阶段 | `count_whitespace` | false | 字数统计是否包含空格 |
+| 第 10 阶段 | `word_count_mode` | `chinese_char` | 汉字按字计，英文按词计 |
+
+### 5.8 阶段启用与回退
+
+每个阶段可独立启用/禁用：
+
+- **AI 阶段禁用**：等同于该阶段 LLM 调用失败且重试耗尽，按第 4 节回退表处理。
+- **RULE 阶段禁用**：跳过该阶段，下游使用上一阶段输出继续执行。
+- **STATIC 阶段禁用**：必须指定替代输入来源，否则运行时直接报错。
+
+### 5.9 关键约束
+
+1. **阶段顺序固定**：模板必须包含且仅包含 12 个阶段，顺序不可调整，以保证输入/输出依赖链稳定。
+2. **第 1 阶段必须为 STATIC**：确保用户 4 项输入被原文组装，不被 AI 修改。
+3. **第 12 阶段必须为 STATIC 或 RULE**：只做平台模板渲染，不修改文章内容。
+4. **提示词必须可编辑**：所有 AI 阶段的默认提示词允许用户修改，但修改后需校验占位符完整性。
+5. **模板版本化**：模板修改后生成新版本，已开始运行的生成任务仍按旧版本执行，避免中途变更导致输出不一致。
+
+### 5.10 默认创作模板完整配置
+
+下面是系统内置默认模板 `default-v1` 的完整配置。新建模板时，系统复制该配置作为初始值。AI 阶段的默认提示词全文见第 3 节对应阶段，这里用占位符和结构说明标注。
+
+```yaml
+creative_template:
+  id: "default-v1"
+  name: "默认去 AI 味模板"
+  description: "标准 12 阶段去 AI 味写作流水线"
+  version: 1
+  is_builtin: true
+  is_default: true
+  stages:
+    - index: 1
+      name: "意图锚定"
+      type: "STATIC"
+      enabled: true
+      static_config:
+        output_format: "user_context_block"
+        output_schema:
+          type: "object"
+          required: ["context", "user_context_block"]
+        description: |
+          把用户的标题、核心观点、目标读者、风格提示词原文拼接为标准化上下文块。
+          不调用 AI，不修改、不润色、不添加任何用户未提供的字段。
+
+    - index: 2
+      name: "结构骨架"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 2 阶段：结构骨架」
+          # 占位符：[user_context_block]
+          ...
+        placeholders:
+          - "user_context_block"
+        required_inputs:
+          - "user_context_block"
+        output_schema:
+          type: "object"
+          required: ["paragraphs"]
+        model_params:
+          temperature: 0.7
+          max_tokens: 2000
+
+    - index: 3
+      name: "素材清单"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 3 阶段：素材清单」
+          # 占位符：[user_context_block]、[outline]
+          ...
+        placeholders:
+          - "user_context_block"
+          - "outline"
+        required_inputs:
+          - "user_context_block"
+          - "outline"
+        output_schema:
+          type: "object"
+          required: ["materials"]
+        model_params:
+          temperature: 0.5
+          max_tokens: 3000
+
+    - index: 4
+      name: "分块初稿"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 4 阶段：分块初稿」
+          # 占位符：[user_context_block]、[outline]、[materials]
+          ...
+        placeholders:
+          - "user_context_block"
+          - "outline"
+          - "materials"
+        required_inputs:
+          - "user_context_block"
+          - "outline"
+          - "materials"
+        output_schema:
+          type: "object"
+          required: ["draft"]
+        model_params:
+          temperature: 0.8
+          max_tokens: 4000
+
+    - index: 5
+      name: "韵律检测"
+      type: "RULE"
+      enabled: true
+      rule_config:
+        description: "对第 4 阶段产出的 JSON 分块初稿进行三项韵律指标扫描，只检测、不改写。"
+        input_ref: "draft"
+        output_schema:
+          type: "array"
+          items:
+            type: "object"
+        metrics:
+          - name: "uniform_length"
+            enabled: true
+            threshold: 5
+            window_size: 3
+            description: "连续 3 句字数差异在 ±5 字以内判为 AI 均匀节律"
+          - name: "no_breath"
+            enabled: true
+            threshold: 35
+            description: "超过 35 个汉字未出现句末标点判为长句无气口"
+          - name: "monotonous_start"
+            enabled: true
+            threshold: 3
+            window_size: 5
+            description: "连续 5 句开头词中 3 个以上词性相同判为句首单调"
+        style_exemptions: []
+
+    - index: 6
+      name: "韵律改写"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 6 阶段：韵律改写」
+          # 占位符：[draft]、[rhythm_issues]
+          ...
+        placeholders:
+          - "draft"
+          - "rhythm_issues"
+        required_inputs:
+          - "draft"
+          - "rhythm_issues"
+        output_schema:
+          type: "object"
+          required: ["draft"]
+        model_params:
+          temperature: 0.6
+          max_tokens: 4000
+
+    - index: 7
+      name: "外部审视"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 7 阶段：外部审视」
+          # 占位符：[draft]
+          ...
+        placeholders:
+          - "draft"
+        required_inputs:
+          - "draft"
+        output_schema:
+          type: "array"
+        model_params:
+          temperature: 0.9
+          max_tokens: 3000
+
+    - index: 8
+      name: "定向改写"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 8 阶段：定向改写」
+          # 占位符：[draft]、[toxic_review]
+          ...
+        placeholders:
+          - "draft"
+          - "toxic_review"
+        required_inputs:
+          - "draft"
+          - "toxic_review"
+        output_schema:
+          type: "object"
+          required: ["draft"]
+        model_params:
+          temperature: 0.7
+          max_tokens: 4000
+
+    - index: 9
+      name: "节奏打磨"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 9 阶段：节奏打磨」
+          # 占位符：[draft]、[user_context_block]
+          ...
+        placeholders:
+          - "draft"
+          - "user_context_block"
+        required_inputs:
+          - "draft"
+          - "user_context_block"
+        output_schema:
+          type: "object"
+          required: ["draft"]
+        model_params:
+          temperature: 0.6
+          max_tokens: 4000
+
+    - index: 10
+      name: "字数统计"
+      type: "RULE"
+      enabled: true
+      rule_config:
+        description: "统计实际字数与目标字数的差距，只统计、不做判断。"
+        input_ref: "draft"
+        output_schema:
+          type: "object"
+          required: ["target", "actual", "diff", "status"]
+        count_config:
+          count_punctuation: false
+          count_whitespace: false
+          word_count_mode: "chinese_char"
+          # chinese_char: 汉字按字，英文按词
+          # char_all: 所有字符
+          # word_all: 所有词
+
+    - index: 11
+      name: "字数调整"
+      type: "AI"
+      enabled: true
+      ai_config:
+        prompt_template: |
+          # 默认提示词见第 3 节「第 11 阶段：字数调整」
+          # 占位符：[draft]、[word_count_report]
+          ...
+        placeholders:
+          - "draft"
+          - "word_count_report"
+        required_inputs:
+          - "draft"
+          - "word_count_report"
+        output_schema:
+          type: "object"
+          required: ["action", "recommendations"]
+        model_params:
+          temperature: 0.5
+          max_tokens: 3000
+
+    - index: 12
+      name: "导出模板渲染"
+      type: "STATIC"
+      enabled: true
+      static_config:
+        output_format: "platform_rendered_document"
+        output_schema:
+          type: "object"
+          required: ["format", "platform", "rendered_document", "source_draft"]
+        description: |
+          根据用户选择的导出模板（微信公众号、小红书、今日头条、知乎、百家号、抖音图文、通用），
+          把第 11 阶段产出的最终文章渲染成对应平台的可发布格式。
+          只改呈现样式，不改文章内容。
+```
+
+### 5.11 模板运行时流程
+
+模板执行引擎负责按配置运行 12 个阶段。核心流程如下：
+
+#### 5.11.1 执行流程
+
+```
+加载模板 → 绑定版本 → 校验依赖 → 顺序执行阶段 → 输出最终文档
+            ↑            ↓         ↑
+          用户选择模板  占位符替换   失败重试/回退
+```
+
+#### 5.11.2 详细步骤
+
+1. **加载模板**
+   - 根据生成任务创建时选择的 `template_id` 加载模板配置。
+   - 同时绑定模板版本号到任务，后续模板修改不影响已创建任务。
+
+2. **校验阶段依赖**
+   - 检查每个启用阶段的 `required_inputs` 是否能在上游阶段找到输出。
+   - 检查 AI 阶段 Prompt 中的占位符是否都在 `placeholders` 列表中声明。
+   - 检查第 1 阶段是否为 STATIC、第 12 阶段是否为 STATIC 或 RULE。
+
+3. **初始化上下文**
+   - 创建 `stage_outputs` 字典，用于保存每个阶段的输出。
+   - 第 1 阶段（STATIC）直接根据用户输入生成 `user_context_block`。
+
+4. **顺序执行阶段**
+   - 按 index 1–12 依次执行每个阶段。
+   - **STATIC**：执行固定逻辑，结果写入 `stage_outputs`。
+   - **RULE**：按 `rule_config` 运行程序化规则，结果写入 `stage_outputs`。
+   - **AI**：替换 Prompt 中的占位符为 `stage_outputs` 中的上游输出，调用 LLM，解析输出并校验 schema。
+
+5. **占位符替换规则**
+   - `[user_context_block]` → `stage_outputs[1].user_context_block`
+   - `[outline]` → `stage_outputs[2]`
+   - `[materials]` → `stage_outputs[3]`
+   - `[draft]` → 最近一次 `draft` 输出（第 4 / 6 / 8 / 9 阶段）
+   - `[rhythm_issues]` → `stage_outputs[5]`
+   - `[toxic_review]` → `stage_outputs[7]`
+   - `[word_count_report]` → `stage_outputs[10]`
+
+6. **失败重试与回退**
+   - AI 阶段失败按第 4 节重试机制处理。
+   - 重试耗尽后按对应阶段的回退策略执行。
+
+7. **阶段禁用处理**
+   - AI 阶段禁用 → 按回退策略执行。
+   - RULE 阶段禁用 → 跳过，下游使用上一阶段输出。
+   - STATIC 阶段禁用 → 若未指定替代输入则报错。
+
+8. **输出最终文档**
+   - 第 12 阶段输出即为最终可发布文档。
+   - 保留所有中间阶段输出，便于调试和二次编辑。
+
+#### 5.11.3 运行时上下文示例
+
+```yaml
+runtime_context:
+  task_id: "task-xxx"
+  template_id: "default-v1"
+  template_version: 1
+  user_inputs:
+    title: "..."
+    core_viewpoint: "..."
+    target_reader: "..."
+    style_prompt: "..."
+  target_word_count: 800
+  selected_export_template: "wechat-default"
+  stage_outputs:
+    1: { user_context_block: "...", context: {...} }
+    2: { paragraphs: [...] }
+    3: { materials: [...] }
+    4: { draft: [...] }
+    5: [ ... ]
+    6: { draft: [...] }
+    7: [ ... ]
+    8: { draft: [...] }
+    9: { draft: [...] }
+    10: { target: 800, actual: 1150, diff: 350, status: "over" }
+    11: { action: "cut", recommendations: [...] }
+    12: { format: "html", platform: "wechat", rendered_document: "...", source_draft: {...} }
+```
+
+#### 5.11.4 关键约束
+
+- 阶段执行必须严格按 1–12 顺序，不能并行。
+- 每个阶段只能读取上游阶段输出，不能读取下游阶段。
+- AI 阶段输出必须能通过 JSON Schema 校验，否则触发重试。
+- 模板版本在任务创建时锁定，运行时不可切换版本。
+
+### 5.12 示例自定义模板
+
+下面给出三个基于默认模板改造而来的自定义模板示例，展示如何修改 AI 提示词和 RULE 参数。
+
+#### 5.12.1 小红书爆款体模板
+
+目标：生成适合小红书发布的短图文，段落更短、节奏更快、emoji 克制，并相应放宽韵律检测。
+
+**核心改动**：
+
+| 阶段 | 改动 |
+|------|------|
+| 第 2 阶段 | 大纲职责强调"第一句必须抓眼球""每段 1-3 行" |
+| 第 4 阶段 | 提示词要求"每段最多 3 句话，多用短句和口语" |
+| 第 5 阶段 | `no_breath` 阈值从 35 调整为 25（短平台气口更短） |
+| 第 9 阶段 | 打磨目标增加"砍掉书面语，保留口语感" |
+| 第 11 阶段 | 超字数时优先删过渡句，保留情绪词和具体画面 |
+
+**第 4 阶段提示词片段示例**：
+
+```yaml
+prompt_template: |
+  你是一位小红书博主，请用口语化风格写初稿。
+
+  [user_context_block]
+  [outline]
+  [materials]
+
+  写作要求：
+  - 每段最多 3 句话，整体段落短而有力
+  - 少用"我觉得""其实""说实话"等弱化表达
+  - 多给具体画面，少给抽象结论
+  - 禁用"在当今社会""值得深思""综上所述"
+  - 风格提示词原文注入，不转述
+```
+
+#### 5.12.2 数据严谨风模板
+
+目标：用于财经、科普类文章，对素材真实性要求更高，减少 AI 推测。
+
+**核心改动**：
+
+| 阶段 | 改动 |
+|------|------|
+| 第 3 阶段 | 素材清单中所有"推断"项必须标注来源，禁止把推断标为已知 |
+| 第 4 阶段 | 提示词要求"每个数据论点必须引用素材清单中的已知项，否则降级" |
+| 第 7 阶段 | 毒舌同行额外审查"数据是否被滥用""因果推断是否过度" |
+| 第 10 阶段 | 字数统计采用 `word_all` 模式，中英文统一按词计 |
+
+**第 3 阶段提示词片段示例**：
+
+```yaml
+prompt_template: |
+  你是一位事实核查编辑。列出每段需要的支撑素材，并严格标注来源可靠性。
+
+  [user_context_block]
+  [outline]
+
+  规则：
+  - 只有用户明确提供或你能 100% 验证的才能标"已知"
+  - 所有 AI 推测必须标"推断"，并说明推断依据
+  - 无可靠来源的数据，建议降级为类比、对比或提问
+  - 严禁编造数据、案例、人名、时间
+```
+
+#### 5.12.3 极简二稿模板
+
+目标：只保留最核心的 4 个 AI 阶段，其余关闭，用于快速出稿。
+
+**阶段启用配置**：
+
+| 阶段 | 类型 | 启用 | 说明 |
+|------|------|------|------|
+| 1 | STATIC | 是 | 意图锚定 |
+| 2 | AI | 是 | 结构骨架 |
+| 4 | AI | 是 | 分块初稿 |
+| 9 | AI | 是 | 节奏打磨 |
+| 12 | STATIC | 是 | 导出渲染 |
+| 其余 | - | 否 | 跳过 |
+
+**回退说明**：
+
+- 第 6、7、8 阶段关闭 → 不执行韵律改写、外部审视、定向改写。
+- 第 11 阶段关闭 → 不调整字数，直接输出第 9 阶段结果。
+- 风险：AI 味和字数控制较弱，但出稿速度最快，适合草稿或内部备忘。
+
+#### 5.12.4 自定义模板设计建议
+
+1. **先复制默认模板**：不要从零写，避免遗漏阶段依赖或占位符。
+2. **一次只改一个阶段**：便于对比效果，出问题容易定位。
+3. **保留核心阶段**：第 1、4、9、12 阶段建议保留，分别负责输入、主体、打磨、输出。
+4. **规则阈值要配合平台**：小红书、抖音图文用短句规则更严；知乎、公众号可适当放宽。
+5. **提示词修改后要做回归测试**：用同一组输入跑默认模板和自定义模板，对比输出差异。
+
+### 5.13 前端模板编辑页线框
+
+本节描述创作模板后台管理页的布局与交互，目标是让用户能直观看到 12 个阶段、快速判断每个阶段类型、并进入对应编辑区。
+
+#### 5.13.1 页面整体布局
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  顶部操作栏                                                    │
+│  [返回列表]  模板名称输入框  [保存草稿] [发布] [复制模板] [删除]    │
+├─────────────────────────────────────────────────────────────┤
+│  左侧：模板信息                                                │
+│  ───────────────                                             │
+│  ID: default-v1-copy                                         │
+│  版本: 1                                                     │
+│  内置模板: 否                                                │
+│  状态: 草稿 / 已发布                                          │
+│                                                              │
+│  描述：                                                       │
+│  [多行文本框]                                                 │
+├─────────────────────────────────────────────────────────────┤
+│  右侧：12 阶段流水线（垂直时间轴）                              │
+│  ─────────────────────                                       │
+│  ○ 1  意图锚定            [STATIC]  [启用●]  [展开▼]          │
+│  ○ 2  结构骨架            [AI]      [启用●]  [展开▼]          │
+│  ○ 3  素材清单            [AI]      [启用●]  [展开▼]          │
+│  ...                                                         │
+│  ○ 12 导出模板渲染        [STATIC]  [启用●]  [展开▼]          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### 5.13.2 阶段卡片收起态
+
+每个阶段以卡片形式展示，收起时显示：
+
+- 左侧序号圆圈（1–12）
+- 阶段名称
+- 类型标签：`AI` / `RULE` / `STATIC`
+- 启用开关
+- 展开/收起箭头
+- （可选）快捷提示：如 AI 阶段显示"提示词 N 个占位符"，RULE 阶段显示"N 条规则"
+
+#### 5.13.3 AI 阶段展开态
+
+展开后显示：
+
+```
+┌────────────────────────────────────────┐
+│ 2. 结构骨架                    [AI]    │
+│ ────────────────────────────────────── │
+│ 模型参数                                │
+│ temperature: [0.7]  max_tokens: [2000] │
+│                                        │
+│ 占位符声明                              │
+│ [user_context_block]                    │
+│                                        │
+│ Prompt 编辑区                           │
+│ ┌────────────────────────────────────┐ │
+│ │ 你是一位资深编辑...                │ │
+│ │ [user_context_block]               │ │
+│ │ ...                                │ │
+│ └────────────────────────────────────┘ │
+│                                        │
+│ [恢复默认提示词]  [占位符自动补全]       │
+└────────────────────────────────────────┘
+```
+
+交互细节：
+
+- Prompt 文本框支持占位符高亮（如 `[user_context_block]` 显示为蓝色背景标签）。
+- 点击"占位符自动补全"弹出可插入占位符列表，自动插入光标位置。
+- "恢复默认提示词"二次确认后覆盖当前 Prompt 为 `default-v1` 对应阶段的默认提示词。
+- 模型参数只暴露 `temperature` 和 `max_tokens`，其他参数隐藏。
+
+#### 5.13.4 RULE 阶段展开态
+
+展开后显示规则配置表单：
+
+```
+┌────────────────────────────────────────┐
+│ 5. 韵律检测                    [RULE]  │
+│ ────────────────────────────────────── │
+│ 输入引用: [draft]                       │
+│                                        │
+│ 规则列表                                │
+│ ┌────────────────────────────────────┐ │
+│ │ ☑ uniform_length                   │ │
+│ │   阈值: [5]  窗口: [3]              │ │
+│ │   描述: 连续 3 句字数差异...        │ │
+│ ├────────────────────────────────────┤ │
+│ │ ☑ no_breath                        │ │
+│ │   阈值: [35]                        │ │
+│ │   描述: 超过 35 个汉字...           │ │
+│ ├────────────────────────────────────┤ │
+│ │ ☑ monotonous_start                 │ │
+│ │   阈值: [3]  窗口: [5]              │ │
+│ │   描述: 连续 5 句句首...            │ │
+│ └────────────────────────────────────┘ │
+│                                        │
+│ 风格豁免项                              │
+│ [+ 添加]                                │
+│ ┌────────────────────────────────────┐ │
+│ │ 用户风格中明确要求保留的元素        │ │
+│ └────────────────────────────────────┘ │
+└────────────────────────────────────────┘
+```
+
+交互细节：
+
+- 每条规则可单独启用/禁用。
+- 阈值和窗口大小为数字输入框。
+- 风格豁免项为字符串标签列表，可增删。
+
+#### 5.13.5 STATIC 阶段展开态
+
+展开后只读展示：
+
+```
+┌────────────────────────────────────────┐
+│ 1. 意图锚定                 [STATIC]   │
+│ ────────────────────────────────────── │
+│ 输出格式: user_context_block            │
+│                                        │
+│ 说明：                                   │
+│ 把用户的标题、核心观点、目标读者、风格    │
+│ 提示词原文拼接为标准化上下文块。不调用    │
+│ AI，不修改、不润色。                     │
+│                                        │
+│ 输出 schema:                            │
+│ { context, user_context_block }         │
+└────────────────────────────────────────┘
+```
+
+STATIC 阶段不可编辑内容，但可切换启用/禁用。
+
+#### 5.13.6 全局校验与提示
+
+- 保存时校验：
+  - 第 1 阶段是否为 STATIC
+  - 第 12 阶段是否为 STATIC 或 RULE
+  - 每个启用 AI 阶段的 Prompt 占位符是否在 `placeholders` 中声明
+  - 每个启用阶段的 `required_inputs` 是否能在上游找到输出
+- 校验未通过时，错误阶段卡片边框变红，顶部显示错误摘要。
+- 发布前必须至少启用 1 个 AI 阶段用于生成主体内容。
+
+#### 5.13.7 与生成任务的关联
+
+- 模板保存为草稿后，可被复制但不可被生成任务引用。
+- 模板发布后，生成任务创建页面才能选择该模板。
+- 模板发布后修改会自动生成新版本，旧版本仍被历史任务引用。
+
+### 5.14 模板生命周期管理
+
+本节描述模板从创建到废弃的完整生命周期，以及围绕生命周期的权限与状态管理。
+
+#### 5.14.1 模板类型
+
+| 类型 | 来源 | 能否编辑 | 能否删除 |
+|------|------|----------|----------|
+| **内置模板**（`is_builtin: true`） | 系统随产品发布预置 | 仅超级管理员可改 | 不可删除 |
+| **用户模板**（`is_builtin: false`） | 管理员在后台创建 | 创建者与超级管理员可改 | 创建者与超级管理员可删 |
+
+内置模板 `default-v1` 是所有用户模板的复制源。
+
+#### 5.14.2 状态机
+
+```
+                  ┌─────────┐
+                  │  草稿   │
+                  └────┬────┘
+                       │ 发布
+                       ▼
+                  ┌─────────┐         ┌─────────┐
+                  │  已发布  │ ──────▶ │  已下线  │
+                  └────┬────┘  下线    └─────────┘
+                       │                ▲
+                       └────────────────┘
+                          重新发布
+```
+
+| 状态 | 是否可被生成任务引用 | 是否可编辑 |
+|------|----------------------|------------|
+| 草稿 | 否 | 是 |
+| 已发布 | 是 | 是（修改会产生新版本） |
+| 已下线 | 否 | 是（重新发布需创建新版本） |
+
+#### 5.14.3 核心操作
+
+| 操作 | 触发 | 效果 |
+|------|------|------|
+| **复制模板** | 从模板列表/详情页"复制模板"按钮 | 创建新模板，类型为用户模板，状态为草稿，内容是源模板的完整拷贝（含全部 12 阶段配置） |
+| **保存草稿** | 编辑页"保存草稿"按钮 | 校验通过后写入数据库，状态保持草稿；不创建新版本 |
+| **发布** | 编辑页"发布"按钮 | 校验通过后写入数据库，状态变为已发布；首次发布创建版本 1，后续发布基于草稿递增版本号 |
+| **编辑已发布** | 编辑页修改已发布模板 | 提示用户"将创建新版本"，确认后进入草稿态编辑 |
+| **下线** | 模板详情页"下线"按钮 | 状态变为已下线，正在运行的生成任务继续完成，新任务不能再引用 |
+| **重新发布** | 已下线模板的"重新发布"按钮 | 创建新版本并发布，旧版本保留 |
+| **删除** | 模板详情页"删除"按钮 | 仅草稿或已下线可物理删除；已发布模板执行软删除 |
+
+#### 5.14.4 版本管理
+
+- 模板每次发布生成新版本号（自增整数）。
+- 同一模板多个版本共存，旧版本不可修改但可被历史任务引用。
+- 生成任务创建时锁定模板版本（见 5.11.4），保证可复现。
+- 模板列表展示"最新版本号"，详情页提供版本切换器查看历史版本（只读）。
+
+#### 5.14.5 权限模型
+
+| 角色 | 权限 |
+|------|------|
+| 超级管理员 | 内置模板可改、用户模板可改可删、任何模板可发布/下线 |
+| 模板管理员 | 创建用户模板、编辑自己创建的模板、发布/下线自己创建的模板 |
+| 普通运营 | 查看模板列表、复制模板到自己名下、不能直接编辑 |
+| 普通用户 | 仅在生成任务页面选择已发布的用户模板或默认模板 |
+
+权限模型基于现有管理端 RBAC 体系（见 `docs/architecture/security-conventions.md`），不引入新的角色。
+
+#### 5.14.6 删除策略
+
+- 草稿模板可直接物理删除。
+- 已发布模板必须先下线，再物理删除。
+- 物理删除前检查是否被生成任务引用：
+  - 若有引用，禁止删除，提示"请先下线，等待历史任务归档后再删除"。
+  - 归档策略：超过 30 天未活跃的生成任务自动归档，归档后任务引用变为弱引用（仅保留模板 ID 快照，不影响模板删除）。
+
+#### 5.14.7 关键约束
+
+- 内置模板不可删除，但可被超级管理员修改并发布新版本。
+- 用户模板不可重置为内置模板，反之亦然。
+- 模板一旦发布，结构（12 阶段数量、顺序）不可调整，仅允许调整阶段配置（提示词、参数、启用状态）。
+- 阶段结构变更（如增删阶段）必须通过创建新模板实现。
+
+### 5.15 数据表与接口设计
+
+本节定义模板配置的数据库表与管理端/用户端接口。命名遵循 `docs/architecture/mysql-table-conventions.md` 与 `docs/architecture/api-interface-conventions.md`。
+
+> **实施说明（2026-07-09 落地）**
+>
+> 阶段 1 + 阶段 2 已落地（迁移 `V2.0.0_017`、`V2.0.0_018`，管理端 plan `2026-07-09-creative-template-stage1-default-seed.md` 与 `2026-07-09-creative-template-stage2-lifecycle.md`）。实际表名与本节初稿略有差异：
+>
+> - **逻辑身份表**：`a_creative_template` → 复用已有 `t_prompt_template`（V2.0.0_011）
+> - **12 阶段配置**：`config_json` blob → 拆为独立行存 `t_prompt_template_stage`（V2.0.0_014），运行时按 stage_index 12 行装配
+> - **版本快照表**：`a_creative_template_version` → 新增 `t_prompt_template_version`（V2.0.0_018）
+> - **12 阶段配置作为版本快照**：`config_json` 内 `stages[]` 数组，结构与 §5.10 一致
+> - **生成任务侧消费版本**：stage 1 / 2 未做，§5.15.4 / §5.15.6 留待阶段 3 落地
+
+#### 5.15.1 数据表
+
+模板实际分三张表：`t_prompt_template`（逻辑身份）+ `t_prompt_template_stage`（12 阶段行）+ `t_prompt_template_version`（版本快照）。逻辑身份表保存当前元数据；阶段表保存当前草稿/已发布阶段的 12 行配置；版本表保存每次发布的历史快照。
+
+```sql
+-- 模板逻辑身份表（已存在，V2.0.0_011 / V2.0.0_018 加 template_status + latest_published_version）
+CREATE TABLE IF NOT EXISTS t_prompt_template (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    name VARCHAR(64) NOT NULL COMMENT '模板名称（管理后台显示）',
+    base_content MEDIUMTEXT COMMENT '基础内容（已废弃，保留兼容）',
+    enabled TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否启用（与 template_status=PUBLISHED 等价）',
+    template_status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '模板状态：0-草稿，1-已发布，2-已下线（V2.0.0_018 新增）',
+    latest_published_version INT UNSIGNED DEFAULT NULL COMMENT '当前最新已发布版本号（V2.0.0_018 新增）',
+    remark VARCHAR(256) DEFAULT NULL COMMENT '备注',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    KEY idx_t_pt_enabled (enabled),
+    KEY idx_t_pt_template_status (template_status, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='创作提示词模板';
+
+-- 12 阶段配置表（已存在，V2.0.0_014）
+CREATE TABLE IF NOT EXISTS t_prompt_template_stage (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    template_id BIGINT UNSIGNED NOT NULL COMMENT '所属模板ID',
+    stage_index TINYINT UNSIGNED NOT NULL COMMENT '阶段序号 1-12（设计文档固定 12 阶段）',
+    stage_type VARCHAR(16) NOT NULL COMMENT 'ai_prompt / rule_config / passthrough',
+    stage_key VARCHAR(32) NOT NULL COMMENT '阶段稳定标识符：outline / draft / ...',
+    ai_prompt MEDIUMTEXT COMMENT '仅 stage_type=ai_prompt 有值',
+    rule_config JSON COMMENT '仅 stage_type=rule_config 有值',
+    enabled TINYINT UNSIGNED NOT NULL DEFAULT 1,
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_template_stage (template_id, stage_index)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='创作提示词模板 12 阶段配置';
+
+-- 模板版本快照表（V2.0.0_018 新增）
+CREATE TABLE IF NOT EXISTS t_prompt_template_version (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    template_id BIGINT UNSIGNED NOT NULL COMMENT '所属模板ID',
+    version INT UNSIGNED NOT NULL COMMENT '版本号，从 1 开始自增',
+    version_status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '版本状态：0-草稿，1-已发布，2-已下线',
+    config_json JSON NOT NULL COMMENT '12 阶段配置完整快照（stages[] 数组，结构对齐 §5.10）',
+    change_note VARCHAR(512) DEFAULT NULL COMMENT '本次发布变更说明',
+    published_at DATETIME(3) DEFAULT NULL COMMENT '发布时间',
+    published_by BIGINT UNSIGNED DEFAULT NULL COMMENT '发布人ID',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_t_pt_version (template_id, version),
+    KEY idx_t_pt_version_status (version_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='创作模板版本快照';
+```
+
+`config_json` 的数据结构与 §5.10 `creative_template.stages[]` 一致。运行时按 (template_id, version) 读取，12 阶段从 stage 表装配。
+
+> 关于 `config_hash`：阶段 2 未实现 `config_json` SHA-256 比对；发布时无去重检测。后续可加（不属于本阶段范围）。
+
+#### 5.15.2 Flyway 脚本位置
+
+```
+project/admin/api/src/main/resources/db/migration/
+├── V2.0.0_011__create_prompt_template_table.sql       # 模板主表
+├── V2.0.0_012__drop_prompt_template_style_and_system_columns.sql
+├── V2.0.0_014__create_prompt_template_stage_table.sql # 12 阶段
+├── V2.0.0_017__seed_default_prompt_template.sql       # 阶段 1：seed 默认模板
+└── V2.0.0_018__add_template_status_and_version_table.sql # 阶段 2：状态机 + 版本表
+```
+
+#### 5.15.3 管理端接口
+
+模块前缀 `/api/v1/admin/prompt-templates`（命名沿用已有 `t_prompt_template` 表，复用 `AdminGenerationErrorCode` 308xxx 错误码段）。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/admin/prompt-templates` | 模板列表，支持按关键字筛选 |
+| `GET` | `/api/v1/admin/prompt-templates/{id}` | 模板详情（含 12 阶段配置） |
+| `POST` | `/api/v1/admin/prompt-templates` | 创建模板，自动建 12 阶段默认值（状态=草稿） |
+| `PUT` | `/api/v1/admin/prompt-templates/{id}` | 更新模板（含 12 阶段） |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/init-stages` | 老模板补齐 12 阶段默认值 |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/enable` | 启用模板（保留兼容，状态机等价于 `actions/publish`） |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/disable` | 停用模板（保留兼容，状态机等价于 `actions/offline`） |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/actions/publish` | **阶段 2**：发布当前 12 阶段为新版本号（`PublishTemplateRequest`，含 `changeNote`） |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/actions/offline` | **阶段 2**：下线模板（仅 PUBLISHED 可下线） |
+| `POST` | `/api/v1/admin/prompt-templates/{id}/actions/clone` | **阶段 2**：克隆源模板为新草稿（`CloneTemplateRequest`，支持 `sourceVersion`） |
+| `GET` | `/api/v1/admin/prompt-templates/{id}/versions` | **阶段 2**：模板全部版本快照摘要 |
+| `DELETE` | `/api/v1/admin/prompt-templates/{id}` | 删除草稿/已下线模板；内置模板（id=1）抛 `308012` |
+
+请求体命名沿用 `PromptTemplateSaveRequest` / `PromptTemplateStageSaveItem` / `PublishTemplateRequest` / `CloneTemplateRequest`。
+
+响应体：
+- 列表项：`PromptTemplateAdminVO`（含 `isBuiltin`、`templateStatus`、`templateStatusLabel`、`latestPublishedVersion`）
+- 详情：复用 `PromptTemplateAdminVO`（含 12 阶段 `PromptTemplateStageVO[]`）
+- 版本摘要：`PromptTemplateVersionVO`（不含 `config_json` 全文）
+
+#### 5.15.4 用户端接口（阶段 3 落地）
+
+用户端只读访问，用于生成任务创建时选择模板。**当前未实现**，留给阶段 3。
+
+预期端点（设计）：
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| `GET` | `/api/v1/user/creative-templates` | 列出已发布的模板（仅返回 `template_status = 1` 的最新版本配置） |
+| `GET` | `/api/v1/user/creative-templates/{id}` | 查看已发布模板详情，用于任务创建预览 |
+
+注：实际命名可能沿用 `/api/v1/user/prompt-templates`，与表名 `t_prompt_template` 对齐。
+
+#### 5.15.5 业务错误码
+
+实际落地的错误码在 `AdminGenerationErrorCode`（308xxx 段）：
+
+| 错误码 | 含义 | 来源 |
+|--------|------|------|
+| `308001` | 提示词模板不存在 | 已存在 |
+| `308002` | 模板占位符不合法 | 已存在 |
+| `308003` | 已有启用的提示词模板 | 已存在 |
+| `308010` | 当前没有启用的提示词模板 | 已存在 |
+| `308012` | **内置模板不可删除** | 阶段 1 新增 |
+| `308013` | **模板状态不允许该操作** | 阶段 2 新增 |
+
+> 原设计 `125xxx` 模块编码 `25` 未启用；实际沿用 `AdminGenerationErrorCode` 308xxx 段，理由是与已有 `308001`–`308010` 模板相关错误码同段，便于管理端统一处理。
+
+#### 5.15.6 与生成任务的关联（数据层，阶段 3 落地）
+
+> **当前未实现**。阶段 1 / 2 未对 `u_generation_task` 加列；运行时 `PipelineTemplateResolver` 直接读 `t_prompt_template.enabled=1` 的模板（无版本概念）。
+>
+> 阶段 3 落地时预期加：
+
+```sql
+ALTER TABLE u_generation_task
+    ADD COLUMN creative_template_id BIGINT UNSIGNED DEFAULT NULL COMMENT '创作模板ID',
+    ADD COLUMN creative_template_version INT UNSIGNED DEFAULT NULL COMMENT '创作模板版本号';
+```
+
+任务创建时锁定版本，删除模板前查询 `u_generation_task` 中是否存在未归档的引用（详见 5.14.6 归档策略）。
+
+#### 5.15.7 关键约束
+
+- 模板配置仅由管理端写入，用户端只能读取已发布的最新版本（阶段 3）。
+- 草稿版本不暴露给用户端。
+- 模板版本号在同一 template_id 下单调递增，不复用。
+- 内置模板（`isBuiltin` 由 `id == 1L` 判定）不可删除，但可派生新版本。
+- `config_hash` 字段本节设计存在但未实现，发布时无去重检测（已知 gap）。
+
+### 5.16 实施路径与待讨论问题
+
+#### 5.16.1 实施分阶段
+
+| 阶段 | 目标 | 主要交付物 |
+|------|------|------------|
+| **阶段 1：固化默认模板** | 把现有 12 阶段流水线的提示词与规则固化为内置模板 `default-v1`，无需任何 UI | 数据表 Flyway 脚本、模板配置 JSON 文件、运行时按固定配置加载 |
+| **阶段 2：管理端模板管理** | 让运营能复制/编辑/发布/下线模板 | 管理端 CRUD + 生命周期接口（5.15.3）、模板编辑页线框（5.13）落地 |
+| **阶段 3：用户端模板选择** | 任务创建时能选择已发布模板 | 用户端只读接口（5.15.4）、生成任务侧消费模板版本（5.15.6）落地 |
+| **阶段 4：自定义模板生效** | 用户模板能真正影响生成结果 | 运行时按 (template_id, version) 读取配置、替换占位符、调度 12 阶段执行 |
+| **阶段 5：示例模板库** | 提供开箱即用的自定义模板 | 把 5.12 节的三个示例发布为预设模板 |
+
+每个阶段结束都需完成对应的端到端验证（参考 `docs/superpowers/plans/` 现有规范格式）。
+
+#### 5.16.2 关键接口请求/响应示例
+
+**创建模板**：
+
+```text
+POST /api/v1/admin/creative-templates
+Idempotency-Key: uuid
+```
+
+```json
+{
+  "name": "小红书爆款体",
+  "description": "适用于小红书图文短文案的模板",
+  "sourceTemplateId": 1,
+  "sourceTemplateVersion": 1
+}
+```
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 10001,
+    "name": "小红书爆款体",
+    "draftVersion": 1,
+    "templateStatus": 0
+  }
+}
+```
+
+**更新草稿配置**：
+
+```text
+PUT /api/v1/admin/creative-templates/10001/versions/1
+```
+
+```json
+{
+  "stages": [
+    { "index": 1, "type": "STATIC", "enabled": true, "...": "..." },
+    { "index": 2, "type": "AI", "enabled": true, "aiConfig": { "promptTemplate": "...", "...": "..." } }
+  ]
+}
+```
+
+**发布草稿**：
+
+```text
+POST /api/v1/admin/creative-templates/10001/actions/publish
+```
+
+```json
+{
+  "changeNote": "调整第 4 阶段提示词，要求每段不超过 3 句话"
+}
+```
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "templateId": 10001,
+    "publishedVersion": 2,
+    "publishedAt": "2026-07-09T14:30:00.000+08:00"
+  }
+}
+```
+
+#### 5.16.3 待讨论问题
+
+| 编号 | 问题 | 影响范围 | 建议方向 |
+|------|------|----------|----------|
+| Q1 | 是否允许非 12 阶段结构？如运营想加"13 阶段：标题打分"。 | 配置模型、运行时分发 | 短期固定 12 阶段，长期通过 `stages[]` 长度可变 + 必填阶段校验实现 |
+| Q2 | 内置模板 `default-v1` 升级时，是否要保留旧版供历史任务继续使用？ | 版本管理 | 必须保留，发布升级自动建新版本 |
+| Q3 | 用户模板是否可以"基于某个用户模板再复制"？ | 复制操作 | 允许，但禁止循环引用（必须以内置模板为根） |
+| Q4 | 模板编辑是否要做"提示词版本对比"功能（diff 视图）？ | 前端复杂度 | 后续迭代，阶段 2 不强求 |
+| Q5 | LLM 调用失败重试是否对所有 AI 阶段一视同仁？ | 运行时 | 暂统一，后续按阶段成本区分 |
+| Q6 | 模板占用额度如何计算？是否单独计费？ | 额度体系 | 模板自身不计费，使用模板生成的生成任务按既有规则计费 |
+| Q7 | 模板配置的 Schema 校验用 JSON Schema 还是手写？ | 后端 | 建议 JSON Schema，可维护性更高 |
+
+#### 5.16.4 风险与边界
+
+- **配置复杂度**：12 阶段 × 3 种类型 × 多版本组合可能让配置爆炸。需要在阶段 1 提供可视化编辑器或在线模板预览能力。
+- **运行时一致性**：模板配置变更可能与正在运行的任务冲突，5.11.4 通过版本锁定已规避，但需在监控中观察是否有跨版本污染。
+- **LLM 成本**：每个 AI 阶段都可能产生调用费用，建议在阶段 4 上线前建立"每模板平均调用次数"的监控指标。
+- **数据迁移**：已发布但被引用的模板下线后，仍可能被 30 天内的任务引用，需要保留快照至少 30 天。
+
+### 5.17 监控与可观测性
+
+12 阶段流水线涉及多次 LLM 调用、规则检测、模板渲染，需要在生产环境具备完整的监控能力。本节定义关键指标、日志与告警。
+
+#### 5.17.1 核心指标
+
+按维度分为四类：
+
+| 维度 | 指标 | 说明 |
+|------|------|------|
+| **业务** | 任务成功率 | 单个任务 12 阶段全部成功的比例 |
+| **业务** | 平均完成时长 | 从任务创建到第 12 阶段产出的耗时 |
+| **业务** | 各阶段平均调用次数 | 按模板 × 阶段统计 LLM 调用次数，用于成本核算 |
+| **业务** | 字数一次达标率 | 第 11 阶段无需删减即达标的概率 |
+| **性能** | 单阶段 P50/P95/P99 耗时 | 按阶段拆分 |
+| **性能** | LLM 调用 QPS | 按阶段和模板拆分 |
+| **质量** | 第 7 阶段毒舌评分均值 | 模板质量好坏的间接指标 |
+| **质量** | 第 5 阶段检测出问题数均值 | 模板规则命中密度 |
+| **成本** | 单任务平均 token 消耗 | 按模板 × 阶段 |
+| **成本** | 单任务平均成本（元） | 用于对账 |
+
+#### 5.17.2 日志规范
+
+日志命名遵循 `docs/architecture/logging-conventions.md`，并补充：
+
+- 每个阶段的进入与退出都打一条 `INFO` 日志，包含：`taskId`、`templateId`、`templateVersion`、`stageIndex`、`stageName`、`durationMs`、`status`。
+- 失败阶段打 `WARN`（重试）或 `ERROR`（耗尽）日志，包含错误类型、上次响应片段。
+- AI 阶段把 prompt 与 response 摘要（截断 500 字）写入 `DEBUG` 日志，便于回溯。
+- 用户输入与生成结果原文不写入日志，仅保留元数据，避免泄露。
+
+#### 5.17.3 Trace
+
+- 每个生成任务生成一个 `traceId`，贯穿 12 个阶段的所有日志。
+- 阶段之间传递 `spanId`，按 `parentSpanId → spanId` 形成调用树。
+- 第 11 阶段的回退路径要在 trace 中单独成 span，便于对比正常 vs 回退的耗时。
+
+#### 5.17.4 告警阈值建议
+
+| 告警 | 阈值 | 触发条件 |
+|------|------|----------|
+| 阶段失败率突增 | 单阶段失败率 > 20%（5 分钟滑动窗口） | 立即告警 |
+| 任务平均耗时突增 | 较昨日同时段 P95 > 2 倍 | 立即告警 |
+| LLM 调用 5xx 比例 | 单模板 > 10% | 立即告警 |
+| 单任务成本异常 | 单任务 > ¥5 | 立即告警 |
+| 模板被批量下线 | 5 分钟内下线 > 3 个模板 | 立即告警 |
+
+#### 5.17.5 仪表盘建议
+
+- **运营视角**：各模板近 7 天成功率、平均耗时、平均成本、字数一次达标率。
+- **质量视角**：第 7 阶段毒舌评分分布、第 5 阶段问题类型分布。
+- **成本视角**：按模板 × 阶段拆分的 token 消耗与金额。
+- **运行视角**：实时任务队列长度、各阶段并发数、LLM 调用 QPS。
+
+#### 5.17.6 关键约束
+
+- 监控指标必须在阶段 1 就埋点，避免后续补埋点导致历史数据缺失。
+- 日志和 trace 中不得包含用户输入原文与生成结果原文。
+- 告警阈值上线后应持续观察 2 周，根据实际数据微调。
+
+---
+
+至此，去 AI 味文章生成流水线的设计已经覆盖：12 阶段方法论、配置模型、运行时、生命周期、前端线框、数据表与接口、实施路径与待讨论问题、监控可观测性。后续按阶段 1–5 落地，每个阶段配套单独的实施方案（见 `docs/superpowers/plans/`）。
+

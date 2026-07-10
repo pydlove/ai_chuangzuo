@@ -67,7 +67,7 @@ def test_admin_user_management():
         page.wait_for_selector('.ant-modal-content', timeout=5000)
         assert '重置用户密码' in page.inner_text('.ant-modal-title')
         modal_text = page.inner_text('.ant-modal-content')
-        assert 'adc123456' in modal_text, f'弹框应显示重置密码 adc123456，实际：{modal_text}'
+        assert 'Aichuangzuo@123' in modal_text, f'弹框应显示重置密码 Aichuangzuo@123，实际：{modal_text}'
         page.click('.ant-modal-content button:has-text("取 消")')
         page.wait_for_selector('.ant-modal-content', state='hidden', timeout=5000)
 

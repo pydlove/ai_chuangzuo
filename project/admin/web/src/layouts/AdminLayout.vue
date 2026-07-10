@@ -21,6 +21,30 @@
         @click="handleMenuClick"
         @openChange="onOpenChange"
       >
+        <a-sub-menu key="/console/creation">
+          <template #icon>
+            <ExperimentOutlined />
+          </template>
+          <template #title>创作管理</template>
+          <a-menu-item key="/console/creation-queue">
+            <template #icon>
+              <UnorderedListOutlined />
+            </template>
+            创作队列
+          </a-menu-item>
+          <a-menu-item key="/console/creation-settings">
+            <template #icon>
+              <SlidersOutlined />
+            </template>
+            创作设置
+          </a-menu-item>
+          <a-menu-item key="/console/prompt-templates">
+            <template #icon>
+              <FileTextOutlined />
+            </template>
+            创作提示词
+          </a-menu-item>
+        </a-sub-menu>
         <a-sub-menu key="/console/user-management">
           <template #icon>
             <UserOutlined />
@@ -123,7 +147,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined, CommentOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -135,7 +159,7 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management'])
+const openKeys = ref(['/console/creation', '/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management', '/console/feedbacks'])
 const onOpenChange = (keys) => {
   openKeys.value = keys
 }
@@ -143,6 +167,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
   if (route.path === '/console/styles' || route.path === '/console/global-styles' || route.path === '/console/market-styles') return '风格管理'
   if (route.path === '/console/model-configs') return '模型配置'
+  if (route.path === '/console/prompt-templates' || route.path.startsWith('/console/prompt-templates/')) return '创作提示词'
   if (route.path === '/console/hot-search/platforms') return '平台管理'
   if (route.path === '/console/hot-search/daily') return '今日榜单'
   if (route.path === '/console/hot-search/config') return '抓取配置'
@@ -154,6 +179,8 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
   if (route.path === '/console/messages') return '消息管理'
   if (route.path === '/console/expire-reminder') return '到期提醒'
+  if (route.path === '/console/creation-queue') return '创作队列'
+  if (route.path === '/console/creation-settings') return '创作设置'
   return ''
 })
 

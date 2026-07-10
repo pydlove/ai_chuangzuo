@@ -42,7 +42,12 @@ const routes = [
       },
       {
         path: 'queue',
-        redirect: '/console/works'
+        redirect: '/console/create'
+      },
+      {
+        path: 'ai-generate',
+        name: 'ConsoleAiGenerate',
+        component: () => import('@/views/console/GenerationQueueIndex.vue')
       },
       {
         path: 'works',
