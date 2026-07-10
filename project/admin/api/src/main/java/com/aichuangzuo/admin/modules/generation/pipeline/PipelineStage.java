@@ -29,7 +29,9 @@ public enum PipelineStage {
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
                     new Placeholder("userStylePrompt", "用户写作风格")
-            )
+            ),
+            List.of(),
+            3
     ),
 
     // ===== 2. 结构骨架（AI）=====
@@ -66,7 +68,9 @@ public enum PipelineStage {
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
                     new Placeholder("userStylePrompt", "用户写作风格")
-            )
+            ),
+            List.of(),
+            8
     ),
 
     // ===== 3. 素材清单（AI）=====
@@ -118,7 +122,9 @@ public enum PipelineStage {
                     new Placeholder("targetReader", "目标读者"),
                     new Placeholder("userStylePrompt", "用户写作风格"),
                     new Placeholder("outline", "结构骨架（来自第 2 阶段）")
-            )
+            ),
+            List.of(),
+            8
     ),
 
     // ===== 4. 分块初稿（AI）=====
@@ -169,7 +175,9 @@ public enum PipelineStage {
                     new Placeholder("userStylePrompt", "用户写作风格"),
                     new Placeholder("outline", "结构骨架"),
                     new Placeholder("materials", "素材清单")
-            )
+            ),
+            List.of(),
+            22
     ),
 
     // ===== 5. 韵律检测（规则）=====
@@ -197,7 +205,8 @@ public enum PipelineStage {
                             .type("number").defaultValue(3).min(2).max(5)
                             .description("连续 5 个句子的开头词中 N 个以上词性相同 → 判句首单调")
                             .build()
-            )
+            ),
+            3
     ),
 
     // ===== 6. 韵律改写（AI）=====
@@ -230,7 +239,9 @@ public enum PipelineStage {
             List.of(
                     new Placeholder("draft", "分块初稿"),
                     new Placeholder("rhythmIssues", "韵律问题清单")
-            )
+            ),
+            List.of(),
+            9
     ),
 
     // ===== 7. 外部审视（AI）=====
@@ -273,7 +284,9 @@ public enum PipelineStage {
             null,
             List.of(
                     new Placeholder("draft", "韵律改写后的初稿")
-            )
+            ),
+            List.of(),
+            8
     ),
 
     // ===== 8. 定向改写（AI）=====
@@ -306,7 +319,9 @@ public enum PipelineStage {
             List.of(
                     new Placeholder("draft", "韵律改写后的初稿"),
                     new Placeholder("toxicComments", "毒舌点评清单")
-            )
+            ),
+            List.of(),
+            10
     ),
 
     // ===== 9. 节奏打磨（AI）=====
@@ -351,7 +366,9 @@ public enum PipelineStage {
             List.of(
                     new Placeholder("draft", "定向改写后的初稿"),
                     new Placeholder("userStylePrompt", "用户写作风格")
-            )
+            ),
+            List.of(),
+            12
     ),
 
     // ===== 10. 字数统计（规则）=====
@@ -375,7 +392,8 @@ public enum PipelineStage {
                             .type("boolean").defaultValue(true)
                             .description("勾选 = 统计时不计入空格 / 换行")
                             .build()
-            )
+            ),
+            3
     ),
 
     // ===== 11. 字数调整（AI）=====
@@ -421,7 +439,9 @@ public enum PipelineStage {
             List.of(
                     new Placeholder("draft", "节奏打磨后的初稿"),
                     new Placeholder("wordStats", "字数统计报告")
-            )
+            ),
+            List.of(),
+            8
     ),
 
     // ===== 12. 导出模板渲染（规则）=====
@@ -454,15 +474,28 @@ public enum PipelineStage {
                             .type("boolean").defaultValue(true)
                             .description("模板渲染失败时的回退策略")
                             .build()
-            )
+            ),
+            4
+    ),
+
+    // ===== 100. 落库（非 12 阶段之一，用于 GenerationPipeline 编排器排序）=====
+    PERSIST_ARTICLE(
+            100, "persist_article", "持久化文章", StageType.PASSTHROUGH,
+            "pipeline 收尾：把 exportResult 或 finalDraft 写到 article。",
+            null,
+            null,
+            List.of(),
+            List.of(),
+            2
     );
 
-    /** 所有 12 个 stage（按 index 升序）。 */
+    /** 所有 12 个 stage + persist 收尾阶段（按 index 升序）。 */
     public static final PipelineStage[] ALL = new PipelineStage[]{
             INTENT_ANCHOR, OUTLINE, MATERIAL_LIST, DRAFT,
             RHYTHM_DETECT, RHYTHM_REWRITE, EXTERNAL_REVIEW,
             TARGETED_REWRITE, RHYTHM_POLISH,
-            WORD_COUNT, WORD_ADJUST, EXPORT_RENDER
+            WORD_COUNT, WORD_ADJUST, EXPORT_RENDER,
+            PERSIST_ARTICLE
     };
 
     public final int index;
@@ -474,6 +507,7 @@ public enum PipelineStage {
     public final String defaultRuleConfigJson;    // type=RULE_CONFIG 有值
     public final List<Placeholder> placeholders;  // AI 阶段才有；规则阶段仅表示可消费
     public final List<ConfigField> configFields;  // 仅 RULE_CONFIG 阶段有
+    public final int weight;                      // 进度权重（合计 100）
 
     PipelineStage(int index, String key, String displayName, StageType type,
                   String description,
@@ -482,7 +516,7 @@ public enum PipelineStage {
                   List<Placeholder> placeholders) {
         this(index, key, displayName, type, description,
                 defaultAiPrompt, defaultRuleConfigJson,
-                placeholders, java.util.List.of());
+                placeholders, java.util.List.of(), 0);
     }
 
     PipelineStage(int index, String key, String displayName, StageType type,
@@ -491,6 +525,18 @@ public enum PipelineStage {
                   String defaultRuleConfigJson,
                   List<Placeholder> placeholders,
                   List<ConfigField> configFields) {
+        this(index, key, displayName, type, description,
+                defaultAiPrompt, defaultRuleConfigJson,
+                placeholders, configFields, 0);
+    }
+
+    PipelineStage(int index, String key, String displayName, StageType type,
+                  String description,
+                  String defaultAiPrompt,
+                  String defaultRuleConfigJson,
+                  List<Placeholder> placeholders,
+                  List<ConfigField> configFields,
+                  int weight) {
         this.index = index;
         this.key = key;
         this.displayName = displayName;
@@ -500,6 +546,7 @@ public enum PipelineStage {
         this.defaultRuleConfigJson = defaultRuleConfigJson;
         this.placeholders = placeholders;
         this.configFields = configFields;
+        this.weight = weight;
     }
 
     public static PipelineStage byIndex(int index) {
