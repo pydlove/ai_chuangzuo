@@ -41,6 +41,9 @@ public class GenerationContext {
     private Map<String, Object> input = new HashMap<>();
 
     // ===== AI 调用预算与追踪 =====
+    /** 当前任务进度 0-100；每 step 完成后 += PipelineStage.weight。 */
+    private int progressPct = 0;
+
     /**
      * 任务允许调 AI 的总次数（默认 50）。
      *
@@ -66,6 +69,9 @@ public class GenerationContext {
 
     /** AI 调用历史（每条 step 自己 append）。 */
     private List<AiCallRecord> aiCallHistory = new ArrayList<>();
+
+    /** 当前 stage 的 AI 调用参数（来自 stage.modelParams）。每 step 启动时由编排器设入。 */
+    private Map<String, Object> modelParams;
 
     // ===== 12 阶段产出（按 stageIndex 顺序填充）=====
 
@@ -118,6 +124,19 @@ public class GenerationContext {
 
     public Object getExtra(String key) {
         return input.get(key);
+    }
+
+    /**
+     * 累加当前 stage 的进度权重；进度上限 100。
+     * 用于 pipeline 编排器在 step 完成后调用。
+     */
+    public void addProgress(int weight) {
+        this.progressPct = Math.min(100, this.progressPct + weight);
+    }
+
+    /** 重置进度（任务 retry 时使用）。 */
+    public void resetProgress() {
+        this.progressPct = 0;
     }
 
     /**
