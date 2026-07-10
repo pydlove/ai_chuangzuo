@@ -45,7 +45,7 @@ class DefaultAiGatewayRetryTest {
         when(configService.getCurrent()).thenReturn(cfg);
 
         // 第 1 次抛错，第 2 次成功
-        when(genAiService.call(any(), anyString(), anyString()))
+        when(genAiService.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("timeout-1"))
                 .thenReturn("{\"ok\":true}");
 
@@ -70,7 +70,7 @@ class DefaultAiGatewayRetryTest {
         GenerationConfig cfg = newCfg(3, 100, 2);
         when(configService.getCurrent()).thenReturn(cfg);
 
-        when(genAiService.call(any(), anyString(), anyString()))
+        when(genAiService.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("始终失败"));
 
         DefaultAiGateway gw = newGatewayWithFakeClock(0);
@@ -116,7 +116,7 @@ class DefaultAiGatewayRetryTest {
     void call_shouldUseDefaultConfigWhenConfigServiceReturnsNull() {
         when(configService.getCurrent()).thenReturn(null);
 
-        when(genAiService.call(any(), anyString(), anyString()))
+        when(genAiService.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("err"));
 
         DefaultAiGateway gw = newGatewayWithFakeClock(0);
@@ -149,7 +149,7 @@ class DefaultAiGatewayRetryTest {
         when(configService.getCurrent()).thenReturn(cfg);
 
         List<String> receivedUserMsgs = new ArrayList<>();
-        when(genAiService.call(any(), anyString(), anyString()))
+        when(genAiService.call(any(), anyString(), anyString(), any()))
                 .thenAnswer(inv -> {
                     receivedUserMsgs.add(inv.getArgument(2));
                     if (receivedUserMsgs.size() == 1) {

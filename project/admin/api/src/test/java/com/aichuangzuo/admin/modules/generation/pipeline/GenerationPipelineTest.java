@@ -146,7 +146,7 @@ class GenerationPipelineTest {
         ctx.putExtra("__currentStageIndex", 4);
         ctx.putExtra("__currentStepName", "draft");
 
-        org.mockito.Mockito.when(genAiSvc.call(any(), anyString(), anyString()))
+        org.mockito.Mockito.when(genAiSvc.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("AI 故障"));
 
         try {
@@ -175,7 +175,7 @@ class GenerationPipelineTest {
         ctx.setAiCallBudget(5);
         ctx.setTask(new GenerationTask());
 
-        org.mockito.Mockito.when(genAiSvc.call(any(), anyString(), anyString()))
+        org.mockito.Mockito.when(genAiSvc.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("网络超时"));
 
         RuntimeException ex = assertThrows(RuntimeException.class,

@@ -34,6 +34,14 @@ public class DefaultAiGateway implements AiGateway {
     };
 
     @Override
+    public String call(GenerationContext ctx, String systemMsg, String userMsg,
+                       java.util.Map<String, Object> modelParams) {
+        // 把 modelParams 暂存到 ctx，3 参 call 会自动读 ctx.modelParams
+        ctx.setModelParams(modelParams);
+        return call(ctx, systemMsg, userMsg);
+    }
+
+    @Override
     public String call(GenerationContext ctx, String systemMsg, String userMsg) {
         int maxAttempts = readMaxAttempts(ctx);
         int baseDelay = readBaseDelay(ctx);
@@ -61,7 +69,7 @@ public class DefaultAiGateway implements AiGateway {
             String content = null;
             Throwable err = null;
             try {
-                content = aiService.call(modelConfigId, systemMsg, currentUserMsg);
+                content = aiService.call(modelConfigId, systemMsg, currentUserMsg, ctx.getModelParams());
             } catch (Throwable t) {
                 err = t;
                 lastThrowable = t;
