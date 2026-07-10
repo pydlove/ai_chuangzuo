@@ -41,6 +41,9 @@ public class PromptTemplateStage {
     /** 仅 stage_type=rule_config 有值（JSON 字符串）。 */
     private String ruleConfig;
 
+    /** 仅 stage_type=ai_prompt 有值（JSON 字符串）：temperature / max_tokens / top_p 等。 */
+    private String modelParams;
+
     /** 该 stage 是否启用。 */
     private Integer enabled;
 

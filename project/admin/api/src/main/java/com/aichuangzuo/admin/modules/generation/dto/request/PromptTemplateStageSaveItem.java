@@ -3,6 +3,8 @@ package com.aichuangzuo.admin.modules.generation.dto.request;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+import java.util.Map;
+
 /**
  * 12 阶段配置中单个 stage 的更新项。
  *
@@ -22,4 +24,7 @@ public class PromptTemplateStageSaveItem {
 
     /** stage_type=rule_config 时填（JSON 字符串）。 */
     private String ruleConfig;
+
+    /** 可选：AI 阶段可配参数（JSON 对象，如 {"temperature":0.7,"max_tokens":2000}）。 */
+    private Map<String, Object> modelParams;
 }

@@ -68,6 +68,9 @@ public class GenerationTask extends BaseEntity {
     /** 最大重试次数，默认 3。 */
     private Integer maxRetry;
 
+    /** 任务进度 0-100；worker 每阶段结束后写回；user 端轮询可见。 */
+    private Integer progressPct;
+
     /** worker 锁定（开始处理）时间。IGNORE_NULL：允许 set null 时写入 SQL。 */
     @TableField(updateStrategy = FieldStrategy.IGNORED)
     private LocalDateTime lockedAt;

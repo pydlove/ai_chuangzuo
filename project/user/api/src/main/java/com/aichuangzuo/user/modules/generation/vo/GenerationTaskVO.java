@@ -29,6 +29,9 @@ public class GenerationTaskVO {
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
 
+    /** 任务进度 0-100；worker 每阶段结束后写回。 */
+    private Integer progressPct;
+
     /** 归一化映射。 */
     public static GenerationTaskVO from(GenerationTask t, ObjectMapper objectMapper) {
         GenerationTaskVO vo = new GenerationTaskVO();
@@ -45,6 +48,7 @@ public class GenerationTaskVO {
         vo.failedReason = t.getFailedReason();
         vo.completedAt = t.getCompletedAt();
         vo.createdAt = t.getCreatedAt();
+        vo.progressPct = t.getProgressPct();
         return vo;
     }
 
