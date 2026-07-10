@@ -3,6 +3,8 @@ package com.aichuangzuo.admin.modules.learn.entity;
 import com.aichuangzuo.admin.modules.learn.enums.ArticleStatus;
 import com.aichuangzuo.admin.modules.learn.enums.ContentType;
 import com.aichuangzuo.shared.entity.BaseEntity;
+import com.baomidou.mybatisplus.annotation.IdType;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableName;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +18,9 @@ import java.time.LocalDateTime;
 @Setter
 @TableName("t_article")
 public class LearnArticleEntity extends BaseEntity {
+
+    @TableId(type = IdType.AUTO)
+    private Long id;
 
     private Long categoryId;
     private String title;
