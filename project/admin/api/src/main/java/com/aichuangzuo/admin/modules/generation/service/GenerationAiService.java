@@ -50,8 +50,11 @@ public class GenerationAiService {
 
     /**
      * 调用模型，返回 AI 原始 assistant content（字符串）。
+     *
+     * @param modelParams 可选；非空时 merge 进请求体（覆盖默认 temperature）
      */
-    public String call(Long modelConfigId, String systemMessage, String userMessage) {
+    public String call(Long modelConfigId, String systemMessage, String userMessage,
+                       Map<String, Object> modelParams) {
         ModelConfig cfg = modelConfigMapper.selectById(modelConfigId);
         if (cfg == null || cfg.getIsActive() == null || cfg.getIsActive() != 1) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
@@ -65,22 +68,25 @@ public class GenerationAiService {
         }
 
         String url = resolveUrl(cfg);
-        Map<String, Object> body = Map.of(
-                "model", cfg.getModelCode(),
-                "messages", List.of(
-                        Map.of("role", "system", "content", systemMessage),
-                        Map.of("role", "user", "content", userMessage)
-                ),
-                "temperature", 0.7,
-                "stream", false
-        );
+
+        // 请求体改用 LinkedHashMap，允许覆盖默认值；Map.of() 不允许 null 值
+        Map<String, Object> body = new java.util.LinkedHashMap<>();
+        body.put("model", cfg.getModelCode());
+        body.put("messages", List.of(
+                Map.of("role", "system", "content", systemMessage),
+                Map.of("role", "user", "content", userMessage)
+        ));
+        body.put("temperature", pickDouble(modelParams, "temperature", 0.7));
+        body.put("max_tokens", pickInt(modelParams, "max_tokens", 2000));
+        body.put("top_p", pickDouble(modelParams, "top_p", 1.0));
+        body.put("stream", false);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
         try {
-            ResponseEntity<String> response = restTemplate.exchange(
+            ResponseEntity<String> response = getRestTemplate().exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
             return extractAssistantContent(response.getBody(), cfg.getProviderType());
         } catch (HttpClientErrorException e) {
@@ -89,6 +95,42 @@ public class GenerationAiService {
         } catch (RestClientException e) {
             log.warn("AI 调用 transport error provider={} msg={}", cfg.getProviderType(), e.getMessage());
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
+        }
+    }
+
+    /** 保留旧 3 参签名（向后兼容），内部 delegate 到 4 参版本。 */
+    public String call(Long modelConfigId, String systemMessage, String userMessage) {
+        return call(modelConfigId, systemMessage, userMessage, null);
+    }
+
+    /** 测试用：暴露 RestTemplate 给子类 override。 */
+    protected RestTemplate getRestTemplate() {
+        return this.restTemplate;
+    }
+
+    private static Double pickDouble(Map<String, Object> params, String key, double def) {
+        if (params == null) return def;
+        Object v = params.get(key);
+        if (v == null) return def;
+        if (v instanceof Number n) return n.doubleValue();
+        try {
+            return Double.parseDouble(v.toString());
+        } catch (NumberFormatException e) {
+            log.warn("AI 参数 {} 不是合法数字，使用默认 {}: value={}", key, def, v);
+            return def;
+        }
+    }
+
+    private static Integer pickInt(Map<String, Object> params, String key, int def) {
+        if (params == null) return def;
+        Object v = params.get(key);
+        if (v == null) return def;
+        if (v instanceof Number n) return n.intValue();
+        try {
+            return Integer.parseInt(v.toString());
+        } catch (NumberFormatException e) {
+            log.warn("AI 参数 {} 不是合法整数，使用默认 {}: value={}", key, def, v);
+            return def;
         }
     }
 
