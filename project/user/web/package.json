@@ -12,6 +12,8 @@
     "@ant-design/icons-vue": "^7.0.0",
     "ant-design-vue": "^4.2.0",
     "axios": "^1.18.1",
+    "highlight.js": "^11.11.1",
+    "markdown-it": "^14.3.0",
     "pinia": "^2.1.0",
     "qrcode": "^1.5.4",
     "vue": "^3.4.0",
