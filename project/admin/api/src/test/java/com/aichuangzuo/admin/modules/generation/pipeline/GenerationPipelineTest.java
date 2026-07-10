@@ -113,6 +113,72 @@ class GenerationPipelineTest {
     }
 
     @Test
+    void run_shouldInvokeProgressCallbackAfterEachStage() {
+        GenerationPipeline pipeline = new GenerationPipeline(
+                List.of(new IntentAnchorStep(), new PersistArticleStepMock(aiGateway)),
+                resolver);
+
+        doAnswer(inv -> {
+            GenerationContext ctx = inv.getArgument(0);
+            ctx.setTemplate(new PromptTemplate());
+            Map<Integer, PromptTemplateStage> stages = new HashMap<>();
+            for (int i = 1; i <= 12; i++) {
+                stages.put(i, makeStage(i, "ai_prompt", "test prompt for stage " + i));
+            }
+            ctx.setStages(stages);
+            return null;
+        }).when(resolver).resolveInto(any(), isNull(), isNull());
+
+        when(aiGateway.call(any(), anyString(), anyString()))
+                .thenReturn("{\"draft\":[{\"paragraph_index\":1,\"content\":\"测试段落。\"}]}");
+
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setTargetUserId(10L);
+        task.setModelConfigId(20L);
+        task.setWordLimitTarget(1500);
+        task.setInputParam("{\"title\":\"T\",\"description\":\"D\",\"platform\":\"wechat\",\"userStylePrompt\":\"S\",\"wordCount\":1500}");
+
+        java.util.concurrent.atomic.AtomicInteger callbackCount = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicInteger lastPct = new java.util.concurrent.atomic.AtomicInteger(0);
+        java.util.concurrent.atomic.AtomicLong callbackTaskId = new java.util.concurrent.atomic.AtomicLong(0);
+
+        pipeline.run(task, (tid, pct) -> {
+            callbackTaskId.set(tid);
+            lastPct.set(pct);
+            callbackCount.incrementAndGet();
+        });
+
+        // 2 个 step（IntentAnchor=stage 1, PersistArticleStepMock=stage 100）
+        assertEquals(2, callbackCount.get());
+        assertEquals(1L, callbackTaskId.get());
+        // 最后 pct 应该等于 stage1.weight(3) + stage100.weight(2) = 5
+        assertEquals(5, lastPct.get());
+    }
+
+    @Test
+    void run_withoutCallback_shouldStillWork() {
+        // 旧 1 参 run(task)：无回调也能跑
+        GenerationPipeline pipeline = new GenerationPipeline(
+                List.of(new IntentAnchorStep()),
+                resolver);
+
+        doAnswer(inv -> {
+            GenerationContext ctx = inv.getArgument(0);
+            ctx.setTemplate(new PromptTemplate());
+            ctx.setStages(new HashMap<>());
+            return null;
+        }).when(resolver).resolveInto(any(), isNull(), isNull());
+
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setInputParam("{\"title\":\"T\"}");
+
+        GenerationContext ctx = pipeline.run(task);
+        assertNotNull(ctx);
+    }
+
+    @Test
     void aiGateway_shouldThrowWhenBudgetExceeded() {
         // 用一个跟踪 budget 的 lambda AiGateway
         AiGateway gw = (ctx, sys, user) -> {

@@ -132,6 +132,47 @@ class GenerationTaskServiceTest {
     }
 
     @Test
+    void updateProgress_shouldClampAndPersist() {
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        taskService.updateProgress(1L, 50);
+
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(1L, captor.getValue().getId());
+        assertEquals(50, captor.getValue().getProgressPct());
+    }
+
+    @Test
+    void updateProgress_shouldClampOverRange() {
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+
+        taskService.updateProgress(1L, 150);
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(100, captor.getValue().getProgressPct());
+    }
+
+    @Test
+    void updateProgress_shouldClampNegative() {
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+
+        taskService.updateProgress(1L, -10);
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(0, captor.getValue().getProgressPct());
+    }
+
+    @Test
+    void updateProgress_shouldNoopWhenTaskIdNull() {
+        taskService.updateProgress(null, 50);
+        verify(taskMapper, never()).updateById(any(GenerationTask.class));
+    }
+
+    @Test
+    void updateProgress_shouldSwallowMapperException() {
+        when(taskMapper.updateById(any(GenerationTask.class))).thenThrow(new RuntimeException("db error"));
+        // 进度回写失败不应抛出（不影响主流程）
+        assertDoesNotThrow(() -> taskService.updateProgress(1L, 50));
+    }
+
+    @Test
     void releaseExpiredLeases_shouldReturnUpdatedRows() {
         when(taskMapper.releaseExpiredLeases(any(LocalDateTime.class))).thenReturn(2);
 

@@ -9,6 +9,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
 
 /**
  * 12 阶段流水线编排器。
@@ -31,6 +32,20 @@ public class GenerationPipeline {
      * 任意 step 抛异常 → 整条 task 失败（让 worker 走 retry / 退币）。
      */
     public GenerationContext run(GenerationTask task) {
+        return run(task, null);
+    }
+
+    /**
+     * 跑完整流水线，每个 step 完成后回调 {@code onStageComplete}。
+     *
+     * <p>回调签名：(taskId, 累计 progressPct)。worker 用它来实时写回 DB，
+     * user 端轮询能看到 0 → 3 → 11 → ... → 100 的进度推进。
+     * 回调抛异常会被吞掉（不影响主流程），由 worker 自己记录日志。
+     *
+     * @param task            任务
+     * @param onStageComplete 每阶段结束后的回调；可为 null
+     */
+    public GenerationContext run(GenerationTask task, BiConsumer<Long, Integer> onStageComplete) {
         GenerationContext ctx = new GenerationContext();
         ctx.setTask(task);
         ctx.setInput(parseInput(task.getInputParam()));
@@ -58,6 +73,15 @@ public class GenerationPipeline {
                 }
                 // 累加进度（worker 也会通过 ctx.progressPct 拿到这个值，但实时写库由 worker 负责）
                 ctx.addProgress(PipelineStage.byIndex(step.stageIndex()).weight);
+                // 通知调用方（worker 写回 DB 进度）
+                if (onStageComplete != null) {
+                    try {
+                        onStageComplete.accept(task.getId(), ctx.getProgressPct());
+                    } catch (Exception cbErr) {
+                        log.warn("进度回调异常 task={} pct={}: {}",
+                                task.getId(), ctx.getProgressPct(), cbErr.getMessage());
+                    }
+                }
             } catch (RuntimeException e) {
                 log.error("✗ stage {} ({}) 失败: {}", step.stageIndex(), step.name(), e.getMessage());
                 throw e;

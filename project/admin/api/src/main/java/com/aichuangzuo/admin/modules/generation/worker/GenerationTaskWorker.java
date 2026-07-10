@@ -135,10 +135,14 @@ public class GenerationTaskWorker {
         Long taskId = task.getId();
         GenerationContext ctx = null;
         try {
-            ctx = pipeline.run(task);
+            // 进度回调：每个 stage 完成后回写 progress_pct，user 端轮询可见
+            ctx = pipeline.run(task, (tid, pct) -> taskService.updateProgress(tid, pct));
             if (ctx.getArticleBizNo() == null) {
                 throw new BusinessException(AdminGenerationErrorCode.GENERATION_ARTICLE_PERSIST_FAILED);
             }
+            // 强制写 100%：避免最后一步（PersistArticleStep weight=2）累加后 ctx.progressPct=100
+            // 但回调可能没有恰好触发到 100 的情况（理论上会，这里兜底保证一致性）
+            taskService.updateProgress(taskId, 100);
             taskService.markCompleted(taskId, ctx.getArticleBizNo());
             log.info("task={} 完成 articleBizNo={} aiCalls={} aiFailed={} totalMs={}",
                     taskId, ctx.getArticleBizNo(),

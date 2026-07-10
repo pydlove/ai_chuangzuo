@@ -98,6 +98,30 @@ public class GenerationTaskService {
     }
 
     /**
+     * 实时回写任务进度（worker 每个 stage 完成后回调）。
+     *
+     * <p>不重试 / 不改 status：纯字段更新，避免和 status 状态机冲突。
+     * 失败时仅记录日志（进度丢失不影响任务最终成功 / 失败判定）。
+     *
+     * @param taskId 任务 ID
+     * @param pct    0-100 累计进度
+     */
+    @Transactional
+    public void updateProgress(Long taskId, int pct) {
+        if (taskId == null) return;
+        int clamped = Math.max(0, Math.min(100, pct));
+        try {
+            GenerationTask task = new GenerationTask();
+            task.setId(taskId);
+            task.setProgressPct(clamped);
+            mapper.updateById(task);
+            log.debug("task={} 进度回写 progressPct={}", taskId, clamped);
+        } catch (Exception e) {
+            log.warn("task={} 进度回写失败 pct={}: {}", taskId, clamped, e.getMessage());
+        }
+    }
+
+    /**
      * 释放 lease 已过期的 processing 任务回 queued。
      * 返回受影响行数（监控用）。
      */
