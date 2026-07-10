@@ -20,7 +20,7 @@ import java.util.List;
 
 @Tag(name = "创作学院管理")
 @RestController
-@RequestMapping("/admin/learn")
+@RequestMapping("/api/v1/admin/learn")
 @RequiredArgsConstructor
 public class LearnAdminController {
 
