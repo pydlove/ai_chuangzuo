@@ -3338,3 +3338,75 @@ git commit -m "docs: 创作学院模块交付完成，更新进度表"
 8. ✅ 管理端 + 用户端 Playwright E2E
 9. ✅ `markdown-it` 配置 `html: false`
 10. ✅ `published_at` 仅草稿→发布首次写入
+
+---
+
+## §11 实施修正：项目约定对齐
+
+落地过程中发现 5 处本计划与项目既有约定不一致，已在编码时即时修正并补齐提交。此处集中记录，便于后续 spec/plan 编写时直接对齐。
+
+### 11.1 后端路径前缀：统一到 `/api/v1/<role>/**`
+
+项目现状：`user/api` 全部 Controller（17 个）均在 `/api/v1/user/**`；`admin/api` 全部 Controller（22 个）均在 `/api/v1/admin/**`。
+
+计划原文（错误）：
+- user 端 `@RequestMapping("/api/v1/learn")`
+- admin 端 `@RequestMapping("/admin/learn")`
+
+修正：
+- user：`@RequestMapping("/api/v1/user/learn")`
+- admin：`@RequestMapping("/api/v1/admin/learn")`
+
+**Why**：前端 `request` 实例是按 role baseURL 拼接的（user `/api/v1/user`、admin 走 `VITE_API_BASE_URL` 完整路径），原路径前缀会导致前端拼出来的 URL 404。统一前缀后所有管理/用户 API 入口路径一致。
+
+### 11.2 匿名访问：`SecurityConfig` 放行 `/api/v1/user/learn/**`
+
+项目 user/api `SecurityConfig` 默认 `anyRequest().authenticated()`，仅放行 `/api/v1/user/auth/**`、`/api/v1/user/internal/**`、`/__test/**`、`swagger`。
+
+`/learn` 是面向未登录用户的公开浏览页（spec 明确），故需新增：
+```java
+.requestMatchers("/api/v1/user/learn/**").permitAll()
+```
+
+### 11.3 枚举 JSON 双向：`@JsonValue` + `@JsonCreator`
+
+`ContentType`/`ArticleStatus` 原仅有 MyBatis-Plus `@EnumValue`（DB 映射），未配 Jackson 注解，导致：
+- 序列化：返回前端的是 `"MARKDOWN"`/`"PUBLISHED"`（枚举 name），前端按小写 code 比较全部失败。
+- 反序列化：admin 前端 POST `{contentType:"markdown"}` 无法绑定到枚举。
+
+修正：admin、user 两端各两个枚举（共 4 个文件）均加：
+```java
+@EnumValue @JsonValue private final String code;
+@JsonCreator public static Xxx fromCode(String code) { ... }
+```
+
+### 11.4 查询参数枚举绑定：`String` + `fromCode`
+
+`LearnArticlePageQuery.status` 原类型为 `ArticleStatus`。Spring `@ModelAttribute`（查询参数）走 `Converter`/`valueOf`，**不走 Jackson `@JsonCreator`**，故 `?status=draft` 会抛 `MethodArgumentTypeMismatchException`。
+
+修正：DTO 改为 `String status`，Service 内解析：
+```java
+if (q.getStatus() != null && !q.getStatus().isBlank()) {
+    try { qw.eq("status", ArticleStatus.fromCode(q.getStatus()).getCode()); }
+    catch (IllegalArgumentException ignored) { /* 非法值忽略 */ }
+}
+```
+
+`ContentType` 在查询参数场景若后续引入，按同模式处理。
+
+### 11.5 前端约定：路由嵌套 / 视图命名 / Vite 端口
+
+| 项目 | 计划原文（错误） | 实际项目约定 | 修正 |
+| --- | --- | --- | --- |
+| admin 路由前缀 | `/learn/...` 直挂 | 全部在 `/console` 下（`AdminLayout` 嵌套） | `/console/learn/{category,article,article/edit/:id?}` |
+| admin 视图命名 | `views/learn/CategoryManage.vue` 等 | 扁平 `views/*View.vue`（与项目 25 个既有视图一致） | `LearnCategoryView.vue`/`LearnArticleListView.vue`/`LearnArticleEditView.vue` |
+| admin request baseURL | `/admin/learn/...` | `VITE_API_BASE_URL`（无默认），调用方写完整 `/api/v1/admin/...` | api/learn.js 内联 `BASE = '/api/v1/admin/learn'` |
+| user request baseURL | `/api/v1/learn/...` | `/api/v1/user`（默认），调用方写相对 `/learn/...` | api/learn.js 调 `request.get('/learn/...')` |
+| admin Vite 端口 | 8080 | 22346 | E2E 脚本改 `ADMIN_URL=http://localhost:22346` |
+| user Vite 端口 | 5173 | 22345 | E2E 脚本改 `USER_URL=http://localhost:22345` |
+
+**Why**：admin 与 user 前端的 axios baseURL 策略不同；admin 路由必须嵌套在 `AdminLayout` 之下才会渲染侧边栏菜单；视图命名沿用项目扁平约定可避免新建子目录造成不一致。
+
+### 11.6 附带修复：父 POM 注解处理器
+
+父 `pom.xml` 的 `maven-compiler-plugin` 仅声明了 `-parameters`，未显式注册 Lombok + MapStruct 注解处理器，导致 `user/api` 模块 Lombok `@Data`/`@Slf4j` 不生效（编译报 `找不到符号 log`、`找不到方法 getTemplate()` 等）。补齐 `annotationProcessorPaths`（lombok + lombok-mapstruct-binding + mapstruct-processor）后 `user/api` 全模块编译通过，无回归。
