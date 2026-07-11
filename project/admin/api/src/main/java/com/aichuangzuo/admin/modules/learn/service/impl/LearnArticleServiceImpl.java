@@ -37,7 +37,13 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         Page<LearnArticleEntity> page = new Page<>(q.getPage(), q.getSize());
         QueryWrapper<LearnArticleEntity> qw = new QueryWrapper<>();
         if (q.getCategoryId() != null) qw.eq("category_id", q.getCategoryId());
-        if (q.getStatus() != null) qw.eq("status", q.getStatus().getCode());
+        if (q.getStatus() != null && !q.getStatus().isBlank()) {
+            try {
+                qw.eq("status", ArticleStatus.fromCode(q.getStatus()).getCode());
+            } catch (IllegalArgumentException ignored) {
+                // 非法状态值：忽略该过滤条件
+            }
+        }
         if (q.getKeyword() != null && !q.getKeyword().isBlank()) {
             qw.and(w -> w.like("title", q.getKeyword()).or().like("summary", q.getKeyword()));
         }
