@@ -122,6 +122,21 @@ const routes = [
         path: 'expire-reminder',
         name: 'AdminExpireReminder',
         component: () => import('@/views/ExpireReminderView.vue')
+      },
+      {
+        path: 'learn/category',
+        name: 'AdminLearnCategory',
+        component: () => import('@/views/LearnCategoryView.vue')
+      },
+      {
+        path: 'learn/article',
+        name: 'AdminLearnArticleList',
+        component: () => import('@/views/LearnArticleListView.vue')
+      },
+      {
+        path: 'learn/article/edit/:id?',
+        name: 'AdminLearnArticleEdit',
+        component: () => import('@/views/LearnArticleEditView.vue')
       }
     ]
   },

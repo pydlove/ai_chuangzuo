@@ -68,6 +68,14 @@
             风格市场
           </a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="/console/learn">
+          <template #icon>
+            <ReadOutlined />
+          </template>
+          <template #title>创作学院</template>
+          <a-menu-item key="/console/learn/category">分类管理</a-menu-item>
+          <a-menu-item key="/console/learn/article">文章管理</a-menu-item>
+        </a-sub-menu>
         <a-sub-menu key="/console/hot-search">
           <template #icon>
             <FireOutlined />
@@ -147,7 +155,7 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -159,7 +167,7 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/creation', '/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management', '/console/feedbacks'])
+const openKeys = ref(['/console/creation', '/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management', '/console/feedbacks', '/console/learn'])
 const onOpenChange = (keys) => {
   openKeys.value = keys
 }
@@ -181,6 +189,9 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/expire-reminder') return '到期提醒'
   if (route.path === '/console/creation-queue') return '创作队列'
   if (route.path === '/console/creation-settings') return '创作设置'
+  if (route.path === '/console/learn/category') return '分类管理'
+  if (route.path === '/console/learn/article') return '文章管理'
+  if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'
   return ''
 })
 

@@ -10,8 +10,12 @@
   },
   "dependencies": {
     "@ant-design/icons-vue": "^7.0.0",
+    "@tiptap/extension-image": "^3.27.3",
+    "@tiptap/starter-kit": "^3.27.3",
+    "@tiptap/vue-3": "^3.27.3",
     "ant-design-vue": "^4.2.0",
     "axios": "^1.7.0",
+    "mavon-editor": "^2.10.4",
     "pinia": "^2.1.0",
     "vue": "^3.4.0",
     "vue-router": "^4.3.0"
