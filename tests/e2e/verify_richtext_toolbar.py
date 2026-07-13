@@ -18,23 +18,11 @@ def test_richtext_toolbar():
             'wordCount': 100,
             'style': '专业严谨'
         }
-        queue = [{
-            'id': 'test-richtext-001',
-            'status': 'completed',
-            'title': article['title'],
-            'platform': '微信公众号',
-            'wordCount': 100,
-            'style': '专业严谨',
-            'completedAt': '2026-07-01',
-            'content': {'title': article['title'], 'body': article['body']}
-        }]
-
         page.goto(BASE + '/')
         page.wait_for_load_state('networkidle')
-        page.evaluate("""(data) => {
-            localStorage.setItem('aichuangzuo_current_article', JSON.stringify(data.article));
-            localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify(data.queue));
-        }""", {'article': article, 'queue': queue})
+        page.evaluate("""(article) => {
+            localStorage.setItem('aichuangzuo_current_article', JSON.stringify(article));
+        }""", article)
 
         page.goto(BASE + '/console/edit')
         page.wait_for_load_state('networkidle')

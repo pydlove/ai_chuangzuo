@@ -4,82 +4,13 @@ from playwright.sync_api import sync_playwright
 
 BASE = "http://localhost:22347"
 
-# Sample queue items to populate the mini-queue panel.
+# Mini-queue panel and works list now load from backend; only set theme here.
 QUEUE_JS = """
 localStorage.setItem('aichuangzuo_theme', 'dark');
-localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify([
-  {
-    id: 'q1',
-    title: '小红书爆款标题写作技巧分享',
-    prompt: '帮我写一篇小红书爆款标题技巧',
-    platform: 'xiaohongshu',
-    wordCount: 800,
-    styleName: '种草达人',
-    templateKey: 'general',
-    status: 'completed',
-    progress: 100,
-    createdAt: Date.now() - 60000,
-    completedAt: Date.now() - 30000,
-    article: { title: '标题技巧分享', summary: '摘要', body: '内容...' }
-  },
-  {
-    id: 'q2',
-    title: '如何在职场保持高效',
-    prompt: '写职场高效技巧',
-    platform: 'wechat',
-    wordCount: 1500,
-    styleName: '深度好文',
-    templateKey: 'general',
-    status: 'generating',
-    progress: 45,
-    createdAt: Date.now() - 20000
-  },
-  {
-    id: 'q3',
-    title: 'AI 写作新趋势',
-    prompt: 'AI 写作分析',
-    platform: 'toutiao',
-    wordCount: 1200,
-    styleName: '资讯快报',
-    templateKey: 'general',
-    status: 'queued',
-    progress: 0,
-    createdAt: Date.now() - 5000
-  }
-]));
 """
 
 WORKS_JS = """
 localStorage.setItem('aichuangzuo_theme', 'dark');
-localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify([
-  {
-    id: 'w1',
-    title: '职场新人的5个高效习惯',
-    prompt: '写一篇职场新人指南',
-    status: 'completed',
-    progress: 100,
-    createdAt: Date.now() - 3600000,
-    completedAt: Date.now() - 3500000,
-    article: { title: '职场新人的5个高效习惯', summary: '...', body: '正文内容' }
-  },
-  {
-    id: 'w2',
-    title: '（未命名草稿）',
-    prompt: '一个未完成的草稿',
-    status: 'draft',
-    createdAt: Date.now() - 7200000
-  },
-  {
-    id: 'w3',
-    title: '小红书种草爆款公式',
-    prompt: '小红书爆款分析',
-    status: 'completed',
-    progress: 100,
-    createdAt: Date.now() - 86400000,
-    completedAt: Date.now() - 86000000,
-    article: { title: '小红书种草爆款公式', summary: '...', body: '正文' }
-  }
-]));
 """
 
 

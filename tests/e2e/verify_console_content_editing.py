@@ -23,24 +23,12 @@ def test_console_content_editing():
             'style': '专业严谨'
         }
 
-        queue = [{
-            'id': 'test-edit-001',
-            'status': 'completed',
-            'title': article['title'],
-            'platform': '微信公众号',
-            'wordCount': article['wordCount'],
-            'style': article['style'],
-            'completedAt': article['completedAt'],
-            'content': {'title': article['title'], 'body': article['body']}
-        }]
-
         # Seed data
         page.goto(BASE + '/')
         page.wait_for_load_state('networkidle')
-        page.evaluate("""(data) => {
-            localStorage.setItem('aichuangzuo_current_article', JSON.stringify(data.article));
-            localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify(data.queue));
-        }""", {'article': article, 'queue': queue})
+        page.evaluate("""(article) => {
+            localStorage.setItem('aichuangzuo_current_article', JSON.stringify(article));
+        }""", article)
 
         # 1. Open preview
         page.goto(BASE + '/console/preview')
@@ -66,16 +54,9 @@ def test_console_content_editing():
         page.click('.edit-actions .save')
         page.wait_for_timeout(500)
 
-        # 5. Verify back on preview and queue sync
+        # 5. Verify back on preview
         assert page.url.endswith('/console/preview'), 'did not redirect to preview after edit page save'
         assert page.locator('.article-title:has-text("用户修改后的标题")').count() > 0, 'edit page save not reflected'
-
-        saved_queue = page.evaluate("""() => {
-            try {
-                return JSON.parse(localStorage.getItem('aichuangzuo_generation_queue') || '[]');
-            } catch(e) { return []; }
-        }""")
-        assert any(item['title'] == '用户修改后的标题' for item in saved_queue), 'queue not synced after edit'
 
         # 6. Open standalone edit page again
         page.goto(BASE + '/console/edit')
