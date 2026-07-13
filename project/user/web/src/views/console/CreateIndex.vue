@@ -102,7 +102,7 @@
     <div class="queue-panel">
       <div class="queue-panel-header">
         <h3 class="queue-panel-title">生成队列</h3>
-        <button class="queue-more-btn" @click="router.push('/console/works')">查看更多 →</button>
+        <button class="queue-more-btn" @click="router.push('/console/ai-generate')">查看更多 →</button>
       </div>
       <div v-if="miniQueueList.length === 0" class="queue-panel-empty">
         <InboxOutlined class="empty-icon" />
@@ -139,118 +139,12 @@
               <div class="progress-fill" :style="{ width: Math.min(100, Math.round(item.progress)) + '%' }"></div>
             </div>
           </div>
-
-          <!-- 已完成操作 -->
-          <div v-if="item.status === 'completed'" class="queue-item-footer">
-            <button class="queue-export-btn" @click="openExportModal(item)">
-              <span>去导出</span>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M5 12h14M12 5l7 7-7 7"/>
-              </svg>
-            </button>
-          </div>
         </div>
         <div v-if="miniQueueList.length > 5" class="queue-panel-more">
-          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/works')">去我的作品查看 →</button>
+          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/ai-generate')">去生成队列查看 →</button>
         </div>
       </div>
     </div>
-
-    <!-- 预览导出弹框 -->
-    <a-modal
-      v-model:open="exportModalVisible"
-      :footer="null"
-      :width="800"
-      centered
-      class="export-modal"
-    >
-      <template #title>
-        <span class="modal-title-text">预览/导出</span>
-      </template>
-
-      <div v-if="exportArticle" class="export-modal-content">
-        <div class="export-article">
-          <h1 class="export-title">{{ exportArticle.title }}</h1>
-          <div class="export-meta">
-            <span>{{ exportArticle.completedAt }}</span>
-            <span>·</span>
-            <span>约 {{ exportArticle.wordCount }} 字</span>
-            <span class="export-style-badge">风格:专业严谨</span>
-          </div>
-          <div class="export-body" v-html="formattedExportBody"></div>
-        </div>
-
-        <!-- 发布描述 -->
-        <div class="export-publish-meta">
-          <div class="export-meta-title">发布描述</div>
-          <textarea
-            v-model="exportPublishDesc"
-            class="export-desc-input"
-            placeholder="输入发布描述..."
-          ></textarea>
-          <div class="export-meta-actions">
-            <button class="export-meta-btn" @click="regenerateExportDesc">换一版</button>
-            <button class="export-meta-btn primary" @click="copyExportDesc">复制描述</button>
-          </div>
-
-          <div class="export-meta-title" style="margin-top: 20px;">推荐标签</div>
-          <div class="export-tags">
-            <span v-for="tag in exportTags" :key="tag" class="export-tag">{{ tag }}</span>
-          </div>
-          <div class="export-meta-actions">
-            <button class="export-meta-btn" @click="regenerateExportTags">换一批</button>
-            <button class="export-meta-btn primary" @click="copyExportTags">复制全部标签</button>
-          </div>
-        </div>
-
-        <!-- 浮动操作栏 -->
-        <div class="export-floating-bar">
-          <button class="export-float-btn" @click="editExportArticle">编辑正文</button>
-          <button class="export-float-btn" @click="optimizeExportTitle">✧ AI 优化标题</button>
-          <button class="export-float-btn primary" @click="handleExportWord">导出 Word</button>
-          <button class="export-float-btn outline" @click="copyExportText">复制正文</button>
-          <button class="export-float-btn danger" @click="generateExportCards">生成贴图</button>
-        </div>
-      </div>
-    </a-modal>
-
-    <!-- AI 标题优化弹框 -->
-    <a-modal
-      v-model:open="titleOptVisible"
-      :footer="null"
-      :width="560"
-      centered
-      class="title-opt-modal"
-    >
-      <template #title>
-        <span class="modal-title-text">AI 标题优化</span>
-      </template>
-
-      <div v-if="exportArticle" class="title-opt-content">
-        <div class="title-opt-original">
-          <span>原标题</span>{{ exportArticle.title }}
-        </div>
-        <div class="title-opt-section-label">AI 推荐标题</div>
-        <div class="title-opt-list">
-          <div
-            v-for="(title, index) in titleOptSuggestions"
-            :key="`ai-${index}`"
-            :class="['title-opt-item', { selected: selectedOptTitle === title }]"
-            @click="selectOptTitle(title)"
-          >
-            <div class="title-opt-radio"></div>
-            <div class="title-opt-item-text">{{ title }}</div>
-          </div>
-        </div>
-        <div class="title-opt-footer">
-          <button class="title-opt-btn-cancel" @click="closeTitleOpt">取消</button>
-          <button class="title-opt-btn-confirm" :disabled="!selectedOptTitle" @click="confirmOptTitle">确认替换</button>
-        </div>
-      </div>
-    </a-modal>
-
-    <!-- 贴图生成弹框 -->
-    <CardsModal v-model:visible="cardsModalVisible" :article="exportArticle" />
   </div>
 
     <!-- 发布平台选择弹框 -->
@@ -662,14 +556,12 @@ import {
   loadMyStyles,
   loadSystemStyles
 } from '@/composables/useStyles.js'
-import { listPromptTemplates } from '@/api/generation.js'
+import { listPromptTemplates, listGenerationTasks } from '@/api/generation.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { saveCurrentArticle } from '@/utils/articleStorage.js'
 import { saveDraft } from '@/api/draft.js'
-import { saveArticle } from '@/api/article.js'
 import { getQueueLimit, getCurrentPlanName } from '@/utils/membershipLimits.js'
-import CardsModal from '@/components/CardsModal.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -751,59 +643,32 @@ onMounted(async () => {
 
   loadMiniQueue()
   // 定时刷新队列
-  setInterval(loadMiniQueue, 2000)
+  setInterval(loadMiniQueue, 5000)
 })
 
-// 加载简化队列数据
+// 加载简化队列数据（从后端按当前用户查询）
 const miniQueueList = ref([])
 
-const loadMiniQueue = () => {
-  const saved = localStorage.getItem('aichuangzuo_generation_queue')
-  if (saved) {
-    try {
-      const list = JSON.parse(saved)
-      // 排序：generating > queued > completed
-      const sorted = list.sort((a, b) => {
-        const order = { generating: 0, queued: 1, completed: 2, failed: 3 }
-        return order[a.status] - order[b.status]
-      })
-      miniQueueList.value = sorted.slice(0, 20)
-
-      // 恢复正在生成的任务进度
-      list.forEach(item => {
-        if (item.status === 'generating') {
-          continueGeneration(item.id)
-        }
-      })
-    } catch (e) {
-      miniQueueList.value = []
-    }
-  } else {
-    miniQueueList.value = []
-  }
+const mapStatus = (code) => {
+  return code === 0 ? 'queued' : code === 1 ? 'generating' : code === 2 ? 'completed' : code === 3 ? 'failed' : 'queued'
 }
 
-// 继续模拟生成
-const continueGeneration = (id) => {
-  const interval = setInterval(() => {
-    const current = miniQueueList.value.find(x => x.id === id)
-    if (!current || current.status !== 'generating') {
-      clearInterval(interval)
-      return
-    }
-    current.progress = Math.min(100, Math.round((current.progress + Math.random() * 15 + 5) * 10) / 10)
-    if (current.progress >= 100) {
-      current.progress = 100
-      current.status = 'completed'
-      current.completedAt = new Date().toISOString()
-      current.content = generateMockContent(current)
-      saveMiniQueue()
-      persistCompletedArticle(current)
-      clearInterval(interval)
-    } else {
-      saveMiniQueue()
-    }
-  }, 500)
+const loadMiniQueue = async () => {
+  try {
+    const data = await listGenerationTasks({ page: 1, pageSize: 5 })
+    miniQueueList.value = (data.list || []).map(t => ({
+      id: t.id,
+      title: t.title || t.inputParam?.title || '未命名',
+      platform: t.inputParam?.platform || '未选择',
+      wordCount: t.wordLimitTarget || 0,
+      status: mapStatus(t.status),
+      progress: t.progressPct || 0,
+      createdAt: t.createdAt,
+      completedAt: t.completedAt
+    }))
+  } catch (e) {
+    miniQueueList.value = []
+  }
 }
 
 const miniStatusText = (status) => {
@@ -1263,182 +1128,6 @@ const formatDate = (dateStr) => {
   return `${month}月${day}日 ${hour}:${min}`
 }
 
-// 导出弹框
-const exportModalVisible = ref(false)
-const exportArticle = ref(null)
-const exportPublishDesc = ref('')
-const exportTags = ref([])
-const titleOptVisible = ref(false)
-const titleOptSuggestions = ref([])
-const selectedOptTitle = ref('')
-const cardsModalVisible = ref(false)
-
-const openExportModal = (item) => {
-  // 从完整队列数据中获取文章内容
-  const saved = localStorage.getItem('aichuangzuo_generation_queue')
-  if (saved) {
-    try {
-      const list = JSON.parse(saved)
-      const fullItem = list.find(x => x.id === item.id)
-      if (fullItem && fullItem.content) {
-        exportArticle.value = {
-          id: fullItem.id,
-          title: fullItem.title,
-          body: fullItem.content.body || '',
-          wordCount: item.wordCount,
-          completedAt: item.completedAt ? formatDate(item.completedAt) : '',
-          style: fullItem.style?.name || '专业严谨'
-        }
-        generateExportMeta()
-        if (isMobile.value) {
-          saveCurrentArticle(exportArticle.value)
-          router.push('/console/preview')
-        } else {
-          exportModalVisible.value = true
-        }
-      }
-    } catch (e) {
-      console.error('load export article error', e)
-    }
-  }
-}
-
-const editExportArticle = () => {
-  if (!exportArticle.value) return
-  localStorage.setItem('aichuangzuo_current_article', JSON.stringify(exportArticle.value))
-  exportModalVisible.value = false
-  router.push('/console/edit')
-}
-
-const generateExportMeta = () => {
-  const descOptions = [
-    '深度解析时间管理的核心技巧，帮助你从忙碌中解脱出来',
-    '学会这5个时间管理方法，让你的效率提升300%',
-    '自律从管理时间开始，这篇文章告诉你如何做到'
-  ]
-  const tagOptions = ['时间管理', '效率提升', '自我管理', '职场成长', '习惯养成', '目标规划']
-  exportPublishDesc.value = descOptions[Math.floor(Math.random() * descOptions.length)]
-  exportTags.value = tagOptions.sort(() => Math.random() - 0.5).slice(0, 4)
-}
-
-const formattedExportBody = computed(() => {
-  if (!exportArticle.value?.body) return ''
-  return exportArticle.value.body
-    .replace(/\n\n/g, '</p><p style="margin-bottom: 16px;">')
-    .replace(/\n/g, '<br>')
-    .replace(/^/, '<p style="margin-bottom: 16px;">')
-    .replace(/$/, '</p>')
-    .replace(/【([^】]+)】/g, '<h2 style="font-size: 18px; font-weight: 600; color: #1a1a1a; margin: 24px 0 12px;">$1</h2>')
-})
-
-const copyExportText = () => {
-  if (!exportArticle.value) return
-  const text = `${exportArticle.value.title}\n\n${exportArticle.value.body}`
-  navigator.clipboard.writeText(text).then(() => {
-    message.success('已复制到剪贴板')
-  }).catch(() => {
-    message.error('复制失败')
-  })
-}
-
-const handleExportWord = () => {
-  if (!exportArticle.value) return
-
-  const title = exportArticle.value.title || '未命名文章'
-  const bodyHtml = formattedExportBody.value
-
-  const html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
-      <head>
-        <meta charset="UTF-8">
-        <title>${title}</title>
-      </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; color: #262626;">
-        <h1 style="font-size: 24px; margin-bottom: 16px; line-height: 1.4; color: #1a1a1a;">${title}</h1>
-        <div style="font-size: 16px; line-height: 1.8;">${bodyHtml}</div>
-      </body>
-    </html>
-  `
-
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = title.replace(/[\\\\/:*?"<>|]/g, '_') + '.doc'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-
-  message.success('Word 导出成功')
-}
-
-const copyExportDesc = () => {
-  navigator.clipboard.writeText(exportPublishDesc.value).then(() => {
-    message.success('描述已复制')
-  }).catch(() => {
-    message.error('复制失败')
-  })
-}
-
-const regenerateExportDesc = () => {
-  generateExportMeta()
-  message.success('已生成新描述')
-}
-
-const copyExportTags = () => {
-  navigator.clipboard.writeText(exportTags.value.join(' ')).then(() => {
-    message.success('标签已复制')
-  }).catch(() => {
-    message.error('复制失败')
-  })
-}
-
-const regenerateExportTags = () => {
-  const allTags = ['时间管理', '效率提升', '自我管理', '职场成长', '习惯养成', '目标规划', '专注力', '计划执行']
-  exportTags.value = allTags.sort(() => Math.random() - 0.5).slice(0, 4)
-  message.success('已生成新标签')
-}
-
-const optimizeExportTitle = () => {
-  if (!exportArticle.value) return
-  titleOptSuggestions.value = generateTitleSuggestions(exportArticle.value.title)
-  selectedOptTitle.value = ''
-  titleOptVisible.value = true
-}
-
-const generateTitleSuggestions = (title) => {
-  return [
-    `${title}：从入门到精通的完整指南`,
-    `为什么${title}？看完这篇你就懂了`,
-    `${title}，方法其实很简单`,
-    `关于${title}，你必须知道的 5 件事`,
-    `${title}：实测有效的经验分享`
-  ]
-}
-
-const selectOptTitle = (title) => {
-  selectedOptTitle.value = title
-}
-
-const confirmOptTitle = () => {
-  if (selectedOptTitle.value && exportArticle.value) {
-    exportArticle.value.title = selectedOptTitle.value
-    message.success('标题已替换')
-  }
-  titleOptVisible.value = false
-}
-
-const closeTitleOpt = () => {
-  titleOptVisible.value = false
-}
-
-const generateExportCards = () => {
-  if (!exportArticle.value) return
-  exportModalVisible.value = false
-  cardsModalVisible.value = true
-}
-
 // 操作
 const handleSaveDraft = async () => {
   try {
@@ -1492,76 +1181,6 @@ const handleGenerate = () => {
       styleRef: styleValue
     }
   })
-}
-
-// 生成模拟文章内容
-const generateMockContent = (item) => {
-  const title = item.title
-  return {
-    title,
-    body: `【引言】\n\n在快节奏的当下，${title}成为许多人关注的焦点。无论是职场新人还是资深从业者，掌握正确的方法都能带来显著的效率提升。\n\n【方法一：明确目标，拆解任务】\n\n首先要做的是把大目标拆成可执行的小任务。模糊的目标容易让人拖延，而清晰的步骤能帮助你快速启动。建议每天早晨列出当天最重要的三件事，并预估完成时间。\n\n【方法二：建立节奏，减少切换】\n\n频繁切换任务会大量消耗注意力。尝试用番茄工作法或时间块管理，把同类工作集中处理，减少上下文切换带来的损耗。\n\n【方法三：复盘迭代，持续优化】\n\n每完成一个阶段，花五分钟回顾：哪些做得好？哪些可以改进？长期积累下来，你会形成一套适合自己的高效 workflow。\n\n【结语】\n\n${title}并不难，关键在于从今天开始行动。选择适合自己的方法，坚持下去，效果会逐渐显现。`,
-    style: item.style || '专业严谨'
-  }
-}
-
-// 添加到本地队列并模拟生成
-const addToMiniQueue = (taskData) => {
-  const item = {
-    id: Date.now(),
-    title: taskData.title,
-    platform: taskData.platform?.name || '未选择',
-    wordCount: taskData.wordCount?.count || 0,
-    style: taskData.style?.name || '未选择',
-    template: taskData.template?.name || '未选择',
-    status: 'generating',
-    progress: 0,
-    createdAt: new Date().toISOString(),
-    completedAt: null
-  }
-  miniQueueList.value.unshift(item)
-  saveMiniQueue()
-
-  // 模拟生成进度
-  const interval = setInterval(() => {
-    const current = miniQueueList.value.find(x => x.id === item.id)
-    if (!current || current.status !== 'generating') {
-      clearInterval(interval)
-      return
-    }
-    current.progress = Math.min(100, Math.round((current.progress + Math.random() * 15 + 5) * 10) / 10)
-    if (current.progress >= 100) {
-      current.progress = 100
-      current.status = 'completed'
-      current.completedAt = new Date().toISOString()
-      current.content = generateMockContent(current)
-      saveMiniQueue()
-      persistCompletedArticle(current)
-      clearInterval(interval)
-    } else {
-      saveMiniQueue()
-    }
-  }, 500)
-}
-
-const saveMiniQueue = () => {
-  localStorage.setItem('aichuangzuo_generation_queue', JSON.stringify(miniQueueList.value))
-}
-
-const persistCompletedArticle = async (item) => {
-  try {
-    await saveArticle({
-      title: item.title,
-      body: item.content?.body || '',
-      styleOverrides: JSON.stringify({ blocks: {}, inlines: [] }),
-      platform: item.platform,
-      style: item.style,
-      template: item.template,
-      wordCount: item.wordCount,
-      completedAt: item.completedAt
-    })
-  } catch (e) {
-    console.warn('保存已完成作品失败', e)
-  }
 }
 
 const clearForm = () => {
