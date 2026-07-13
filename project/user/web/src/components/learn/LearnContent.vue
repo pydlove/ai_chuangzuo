@@ -13,6 +13,35 @@
         <LearnMarkdown v-if="article.contentType === 'markdown'" :source="article.content" />
         <LearnRichText v-else :html="article.content" />
       </article>
+
+      <nav v-if="article.prevArticle || article.nextArticle" class="learn-nav">
+        <router-link
+          v-if="article.prevArticle"
+          :to="`/learn/article/${article.prevArticle.id}`"
+          class="learn-nav-card learn-nav-prev"
+        >
+          <span class="learn-nav-dir">← 上一篇</span>
+          <span class="learn-nav-title">{{ article.prevArticle.title }}</span>
+          <span
+            v-if="currentCategoryName && article.prevArticle.categoryName !== currentCategoryName"
+            class="learn-nav-cat"
+          >《{{ article.prevArticle.categoryName }}》</span>
+        </router-link>
+
+        <router-link
+          v-if="article.nextArticle"
+          :to="`/learn/article/${article.nextArticle.id}`"
+          class="learn-nav-card learn-nav-next"
+        >
+          <span class="learn-nav-dir">下一篇 →</span>
+          <span class="learn-nav-title">{{ article.nextArticle.title }}</span>
+          <span
+            v-if="currentCategoryName && article.nextArticle.categoryName !== currentCategoryName"
+            class="learn-nav-cat"
+          >《{{ article.nextArticle.categoryName }}》</span>
+        </router-link>
+      </nav>
+
       <footer class="learn-content-foot">
         <router-link to="/login" class="learn-cta">想把自己的账号也做成这样？立即开始创作 →</router-link>
       </footer>
@@ -51,7 +80,8 @@ import LearnRichText from './LearnRichText.vue'
 
 defineProps({
   article: { type: Object, default: null },
-  category: { type: Object, default: null }
+  category: { type: Object, default: null },
+  currentCategoryName: { type: String, default: '' }
 })
 defineEmits(['load-article'])
 
@@ -80,4 +110,58 @@ function formatDate(d) {
 .learn-article-item a:hover { color: #FF2442; }
 .learn-article-summary { color: #666; font-size: 14px; margin: 6px 0 0; }
 .learn-article-meta { color: #999; font-size: 12px; margin-top: 6px; }
+
+/* 上下篇导航 */
+.learn-nav {
+  display: flex;
+  gap: 12px;
+  margin: 32px 0;
+}
+.learn-nav-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px 20px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+  color: #1a1a1a;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+  min-width: 0;
+}
+.learn-nav-card:hover {
+  border-color: #FF2442;
+  color: #FF2442;
+}
+.learn-nav-prev { text-align: left; align-items: flex-start; }
+.learn-nav-next { text-align: right; align-items: flex-end; }
+.learn-nav-dir {
+  font-size: 12px;
+  color: #999;
+  font-weight: 500;
+}
+.learn-nav-card:hover .learn-nav-dir { color: #FF2442; }
+.learn-nav-title {
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  max-width: 100%;
+}
+.learn-nav-cat {
+  font-size: 12px;
+  color: #999;
+  font-weight: 400;
+}
+@media (max-width: 991px) {
+  .learn-nav { flex-direction: column; }
+  .learn-nav-prev,
+  .learn-nav-next { text-align: left; align-items: flex-start; }
+}
 </style>

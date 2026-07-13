@@ -17,6 +17,7 @@
         <LearnContent
           :article="currentArticle"
           :category="currentCategory"
+          :current-category-name="currentCategoryName"
           @load-article="loadArticle"
         />
       </main>
@@ -62,6 +63,23 @@ const isMobile = ref(window.innerWidth < 992)
 const activeCategoryId = computed(() => {
   if (route.params.id) return currentArticle.value?.categoryId ?? null
   return route.query.cat ? Number(route.query.cat) : null
+})
+
+// 反查当前文章所属分类的名称，用于跨分类跳转提示
+const currentCategoryName = computed(() => {
+  if (!currentArticle.value?.categoryId) return ''
+  const targetId = currentArticle.value.categoryId
+  const walk = nodes => {
+    for (const n of nodes) {
+      if (n.id === targetId) return n.name
+      if (n.children?.length) {
+        const found = walk(n.children)
+        if (found) return found
+      }
+    }
+    return ''
+  }
+  return walk(categoryTree.value)
 })
 
 const navLinks = [
@@ -116,7 +134,13 @@ window.addEventListener('resize', () => {
 })
 
 onMounted(bootstrap)
-watch(() => route.fullPath, bootstrap)
+watch(() => route.fullPath, (newPath, oldPath) => {
+  bootstrap()
+  // 仅当切换的是文章（params.id 存在且路径变化）时滚动到顶部，分类切换不动
+  if (route.params.id && newPath !== oldPath) {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+})
 </script>
 
 <style scoped>
@@ -125,7 +149,19 @@ watch(() => route.fullPath, bootstrap)
 .learn-sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 88px; align-self: flex-start; max-height: calc(100vh - 88px); overflow-y: auto; background: #fff; border-radius: 8px; padding: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .learn-main { flex: 1; min-width: 0; background: #fff; border-radius: 8px; padding: 28px 32px; }
 .learn-empty { padding: 32px 16px; text-align: center; color: #999; }
-.learn-footer { padding: 32px 16px; text-align: center; color: #999; font-size: 13px; display: flex; flex-direction: column; gap: 4px; }
+.learn-footer {
+  padding: 16px 24px;
+  border-top: 1px solid #eee;
+  color: #595959;
+  font-size: 13px;
+  text-align: center;
+  background: #fff;
+}
+.learn-footer span + span::before {
+  content: '|';
+  margin: 0 12px;
+  color: #eee;
+}
 .learn-tree-fab {
   position: fixed; bottom: 24px; right: 24px;
   background: #FF2442; color: #fff; border: 0; border-radius: 24px;
@@ -137,5 +173,15 @@ watch(() => route.fullPath, bootstrap)
   .learn-sidebar { display: none; }
   .learn-tree-fab { display: inline-flex; }
   .learn-main { padding: 20px 16px; }
+}
+
+/* 暗色主题（footer 与 Home 对齐） */
+body[data-theme="dark"] .learn-footer {
+  background: #1f1f1f;
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .learn-footer span + span::before {
+  color: #303030;
 }
 </style>
