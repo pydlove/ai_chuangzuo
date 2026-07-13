@@ -21,7 +21,7 @@ import java.util.Map;
  * 流水线模板解析器：从 t_prompt_template + t_prompt_template_stage 加载当前任务用的模板 + 12 阶段配置。
  *
  * <p>阶段 3 起：resolveInto(ctx, templateId, templateVersion) 接任务锁定的版本号。
- * 老任务（templateId=null 或 templateVersion=null）走 fallback：找当前 enabled=1。
+ * 老任务（templateId=null 或 templateVersion=null）走 fallback：找当前唯一已发布（template_status=1）。
  *
  * <p>stage 表里没有的行（老模板没初始化）会用 {@link PipelineStage} 默认值兜底，保证 12 个 stage 一定齐全。
  */
@@ -59,10 +59,10 @@ public class PipelineTemplateResolver {
             }
             log.debug("resolved template id={} version={} (locked)", templateId, templateVersion);
         } else {
-            // fallback：找当前 enabled=1
-            template = templateService.findEnabled()
-                    .orElseThrow(() -> new BusinessException(AdminGenerationErrorCode.PROMPT_TEMPLATE_NO_ENABLED));
-            log.debug("resolved template id={} (fallback to enabled)", template.getId());
+            // fallback：找当前唯一已发布
+            template = templateService.findPublished()
+                    .orElseThrow(() -> new BusinessException(AdminGenerationErrorCode.PROMPT_TEMPLATE_NO_PUBLISHED));
+            log.debug("resolved template id={} (fallback to published)", template.getId());
         }
         ctx.setTemplate(template);
 

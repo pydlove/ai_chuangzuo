@@ -39,9 +39,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Admin 端-提示词模板服务：CRUD + 启用 / 停用 + 12 阶段配置管理。
+ * Admin 端-提示词模板服务：CRUD + 发布 / 下线 + 12 阶段配置管理。
  *
- * <p>启用策略：runtime 仅允许 1 个 enabled=1，由事务保证。
+ * <p>生效策略：全表最多 1 条 PUBLISHED，由发布事务保证。
  */
 @Slf4j
 @Service
@@ -52,8 +52,8 @@ public class PromptTemplateService {
     private final PromptTemplateStageMapper stageMapper;
     private final PromptTemplateVersionMapper versionMapper;
 
-    public Optional<PromptTemplate> findEnabled() {
-        List<PromptTemplate> list = mapper.selectEnabled();
+    public Optional<PromptTemplate> findPublished() {
+        List<PromptTemplate> list = mapper.selectPublished();
         return list.isEmpty() ? Optional.empty() : Optional.of(list.get(0));
     }
 
@@ -83,7 +83,6 @@ public class PromptTemplateService {
     public Long create(PromptTemplateSaveRequest req, Long adminUserId) {
         PromptTemplate t = new PromptTemplate();
         BeanUtils.copyProperties(req, t, "id", "stages");
-        t.setEnabled(0);
         t.setTemplateStatus(TemplateStatus.DRAFT.code);
         t.setLatestPublishedVersion(null);
         t.setTenantId(0L);
@@ -105,7 +104,7 @@ public class PromptTemplateService {
     @Transactional
     public void update(Long id, PromptTemplateSaveRequest req, Long adminUserId) {
         PromptTemplate exist = requireById(id);
-        BeanUtils.copyProperties(req, exist, "id", "enabled", "stages");
+        BeanUtils.copyProperties(req, exist, "id", "stages");
         exist.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         mapper.updateById(exist);
 
@@ -141,36 +140,6 @@ public class PromptTemplateService {
     }
 
     @Transactional
-    public void enable(Long id, Long adminUserId) {
-        PromptTemplate exist = requireById(id);
-        LambdaUpdateWrapper<PromptTemplate> clearAll = Wrappers.lambdaUpdate(PromptTemplate.class)
-                .eq(PromptTemplate::getEnabled, 1)
-                .set(PromptTemplate::getEnabled, 0)
-                .set(PromptTemplate::getTemplateStatus, TemplateStatus.OFFLINE.code);
-        mapper.update(null, clearAll);
-        PromptTemplate t = new PromptTemplate();
-        t.setId(id);
-        t.setEnabled(1);
-        t.setTemplateStatus(TemplateStatus.PUBLISHED.code);
-        t.setLatestPublishedVersion(exist.getLatestPublishedVersion());
-        t.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
-        mapper.updateById(t);
-        log.info("admin={} 启用 prompt template id={}", adminUserId, id);
-    }
-
-    @Transactional
-    public void disable(Long id, Long adminUserId) {
-        PromptTemplate exist = requireById(id);
-        PromptTemplate t = new PromptTemplate();
-        t.setId(id);
-        t.setEnabled(0);
-        t.setTemplateStatus(TemplateStatus.OFFLINE.code);
-        t.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
-        mapper.updateById(t);
-        log.info("admin={} 停用 prompt template id={}", adminUserId, id);
-    }
-
-    @Transactional
     public void delete(Long id, Long adminUserId) {
         PromptTemplate t = requireById(id);
         if (t.getId() != null && t.getId() == CreativeTemplateConstants.DEFAULT_TEMPLATE_ID) {
@@ -192,6 +161,18 @@ public class PromptTemplateService {
     public Long publish(Long id, String changeNote, Long adminUserId) {
         PromptTemplate t = requireById(id);
         int nextVersion = (t.getLatestPublishedVersion() == null ? 0 : t.getLatestPublishedVersion()) + 1;
+
+        // 0. 唯一生效：先把其他已发布模板及其已发布版本置为已下线
+        LambdaUpdateWrapper<PromptTemplate> offlineOthers = Wrappers.lambdaUpdate(PromptTemplate.class)
+                .eq(PromptTemplate::getTemplateStatus, TemplateStatus.PUBLISHED.code)
+                .ne(PromptTemplate::getId, id)
+                .set(PromptTemplate::getTemplateStatus, TemplateStatus.OFFLINE.code);
+        mapper.update(null, offlineOthers);
+        LambdaUpdateWrapper<PromptTemplateVersion> offlineOtherVersions = Wrappers.lambdaUpdate(PromptTemplateVersion.class)
+                .eq(PromptTemplateVersion::getVersionStatus, TemplateStatus.PUBLISHED.code)
+                .ne(PromptTemplateVersion::getTemplateId, id)
+                .set(PromptTemplateVersion::getVersionStatus, TemplateStatus.OFFLINE.code);
+        versionMapper.update(null, offlineOtherVersions);
 
         // 1. 快照 12 阶段到 version 表
         List<PromptTemplateStage> rows = stageMapper.selectByTemplateId(id);
@@ -225,7 +206,6 @@ public class PromptTemplateService {
 
         // 3. 更新主表
         t.setTemplateStatus(TemplateStatus.PUBLISHED.code);
-        t.setEnabled(1);
         t.setLatestPublishedVersion(nextVersion);
         t.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         mapper.updateById(t);
@@ -235,7 +215,7 @@ public class PromptTemplateService {
     }
 
     /**
-     * 下线模板：把状态置为 OFFLINE，enabled=0。
+     * 下线模板：把状态置为 OFFLINE。
      *
      * <p>仅当前为 PUBLISHED 状态的模板允许下线；草稿不可下线（草稿本就不生效）。
      */
@@ -247,7 +227,6 @@ public class PromptTemplateService {
             throw new BusinessException(AdminGenerationErrorCode.PROMPT_TEMPLATE_INVALID_STATUS);
         }
         t.setTemplateStatus(TemplateStatus.OFFLINE.code);
-        t.setEnabled(0);
         t.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         mapper.updateById(t);
 
@@ -273,14 +252,13 @@ public class PromptTemplateService {
 
         // 1. 插新模板主表
         PromptTemplate copy = new PromptTemplate();
-        BeanUtils.copyProperties(src, copy, "id", "enabled", "latestPublishedVersion",
+        BeanUtils.copyProperties(src, copy, "id", "latestPublishedVersion",
                 "createdAt", "updatedAt");
         copy.setName(req.getName());
         if (req.getRemark() != null) {
             copy.setRemark(req.getRemark());
         }
         copy.setTemplateStatus(TemplateStatus.DRAFT.code);
-        copy.setEnabled(0);
         copy.setLatestPublishedVersion(null);
         copy.setCreatedBy(adminUserId == null ? 0L : adminUserId);
         copy.setUpdatedBy(adminUserId == null ? 0L : adminUserId);

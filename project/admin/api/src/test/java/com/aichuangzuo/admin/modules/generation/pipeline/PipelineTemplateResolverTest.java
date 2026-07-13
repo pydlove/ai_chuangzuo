@@ -68,7 +68,7 @@ class PipelineTemplateResolverTest {
         enabled.setId(1L);
         enabled.setName("默认模板");
 
-        when(templateService.findEnabled()).thenReturn(Optional.of(enabled));
+        when(templateService.findPublished()).thenReturn(Optional.of(enabled));
         when(stageMapper.selectByTemplateId(1L)).thenReturn(List.of());
 
         GenerationContext ctx = new GenerationContext();
@@ -77,7 +77,7 @@ class PipelineTemplateResolverTest {
         assertSame(enabled, ctx.getTemplate());
         assertNull(ctx.getConfigJsonSnapshot());
         assertEquals(12, ctx.getStages().size());
-        verify(templateService).findEnabled();
+        verify(templateService).findPublished();
         verifyNoInteractions(templateMapper);
         verifyNoInteractions(versionMapper);
     }
@@ -132,12 +132,12 @@ class PipelineTemplateResolverTest {
 
     @Test
     void resolveInto_fallbackNoEnabled_throws() {
-        when(templateService.findEnabled()).thenReturn(Optional.empty());
+        when(templateService.findPublished()).thenReturn(Optional.empty());
 
         GenerationContext ctx = new GenerationContext();
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> resolver.resolveInto(ctx));
 
-        assertEquals(AdminGenerationErrorCode.PROMPT_TEMPLATE_NO_ENABLED.getCode(), ex.getCode());
+        assertEquals(AdminGenerationErrorCode.PROMPT_TEMPLATE_NO_PUBLISHED.getCode(), ex.getCode());
     }
 }

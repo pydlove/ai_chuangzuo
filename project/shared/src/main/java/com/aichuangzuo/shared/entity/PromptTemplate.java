@@ -19,7 +19,7 @@ import lombok.Setter;
  * 快照到 {@code a_generation_task.input_param.userStylePrompt}，executor 拼装
  * 时直接读取。
  *
- * <p>运行时约束：只有 1 个 {@code enabled = 1}。事务内先全表置 0 再启用目标。
+ * <p>运行时约束：全表最多 1 条 template_status=PUBLISHED，由发布事务保证。
  */
 @Getter
 @Setter
@@ -34,9 +34,6 @@ public class PromptTemplate extends BaseEntity {
 
     /** 基础内容（去 AI 味），支持 {{title}} {{description}} {{platform}} {{wordCount}} {{userStylePrompt}} 占位符。 */
     private String baseContent;
-
-    /** 是否启用（与 template_status=PUBLISHED 等价，保留兼容字段）。 */
-    private Integer enabled;
 
     /** 模板状态：0-草稿，1-已发布，2-已下线。详见 {@code TemplateStatus}。 */
     private Integer templateStatus;

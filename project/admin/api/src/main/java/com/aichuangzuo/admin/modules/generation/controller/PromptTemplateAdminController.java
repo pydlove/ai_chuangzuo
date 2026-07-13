@@ -59,20 +59,6 @@ public class PromptTemplateAdminController {
         return Result.success(inserted);
     }
 
-    @PostMapping("/{id}/enable")
-    public Result<Void> enable(@PathVariable Long id) {
-        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        service.enable(id, adminUserId);
-        return Result.success();
-    }
-
-    @PostMapping("/{id}/disable")
-    public Result<Void> disable(@PathVariable Long id) {
-        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        service.disable(id, adminUserId);
-        return Result.success();
-    }
-
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();

@@ -11,11 +11,6 @@ import java.util.List;
 public interface PromptTemplateMapper extends BaseMapper<PromptTemplate> {
 
     /**
-     * 取所有 enabled=1 的模板（理论上 ≤ 1 条，受事务约束）。
-     */
-    List<PromptTemplate> selectEnabled();
-
-    /**
      * 取所有已发布（template_status=1）且未删除的模板，按 id 升序。
      * 阶段 3 user 端只读接口使用。
      */

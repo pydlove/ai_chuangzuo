@@ -58,7 +58,6 @@ class PromptTemplateServiceStageTest {
         PromptTemplate t = new PromptTemplate();
         t.setId(id);
         t.setName("测试模板");
-        t.setEnabled(0);
         t.setIsDeleted(0);
         t.setTenantId(0L);
         return t;
@@ -303,7 +302,6 @@ class PromptTemplateServiceStageTest {
         assertEquals(1, saved.getVersion());
         assertEquals(TemplateStatus.PUBLISHED.code, exist.getTemplateStatus());
         assertEquals(1, exist.getLatestPublishedVersion());
-        assertEquals(Integer.valueOf(1), exist.getEnabled());
     }
 
     @Test
@@ -327,14 +325,12 @@ class PromptTemplateServiceStageTest {
     void offline_shouldSetStatusToOffline() {
         PromptTemplate exist = sampleTemplate(1L);
         exist.setTemplateStatus(TemplateStatus.PUBLISHED.code);
-        exist.setEnabled(1);
         when(templateMapper.selectById(1L)).thenReturn(exist);
         when(versionMapper.selectLatestPublished(1L)).thenReturn(null);
 
         service.offline(1L, 1L);
 
         assertEquals(TemplateStatus.OFFLINE.code, exist.getTemplateStatus());
-        assertEquals(Integer.valueOf(0), exist.getEnabled());
     }
 
     @Test
@@ -353,7 +349,6 @@ class PromptTemplateServiceStageTest {
     void clone_shouldCreateDraftWithCopiedStages() {
         PromptTemplate src = sampleTemplate(1L);
         src.setTemplateStatus(TemplateStatus.PUBLISHED.code);
-        src.setEnabled(1);
         src.setLatestPublishedVersion(2);
         when(templateMapper.selectById(1L)).thenReturn(src);
         org.mockito.Mockito.doAnswer((inv) -> {
@@ -384,7 +379,6 @@ class PromptTemplateServiceStageTest {
         PromptTemplate inserted = tCaptor.getValue();
         assertEquals("默认-副本", inserted.getName());
         assertEquals(TemplateStatus.DRAFT.code, inserted.getTemplateStatus());
-        assertEquals(Integer.valueOf(0), inserted.getEnabled());
         assertNull(inserted.getLatestPublishedVersion());
         verify(stageMapper, times(3)).insert(any(PromptTemplateStage.class));
     }
