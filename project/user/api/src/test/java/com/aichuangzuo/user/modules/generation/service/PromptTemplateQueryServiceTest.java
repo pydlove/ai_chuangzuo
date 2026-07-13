@@ -86,7 +86,6 @@ class PromptTemplateQueryServiceTest {
         t.setId(id);
         t.setName(name);
         t.setTemplateStatus(TemplateStatus.PUBLISHED.code);
-        t.setEnabled(1);
         if (id.equals(CreativeTemplateConstants.DEFAULT_TEMPLATE_ID)) {
             t.setLatestPublishedVersion(1);
         }
