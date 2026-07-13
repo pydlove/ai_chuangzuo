@@ -55,11 +55,6 @@ const routes = [
         redirect: '/console/create'
       },
       {
-        path: 'ai-generate',
-        name: 'ConsoleAiGenerate',
-        component: () => import('@/views/console/GenerationQueueIndex.vue')
-      },
-      {
         path: 'works',
         name: 'ConsoleWorks',
         component: () => import('@/views/console/WorksIndex.vue')

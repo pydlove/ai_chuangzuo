@@ -102,7 +102,7 @@
     <div class="queue-panel">
       <div class="queue-panel-header">
         <h3 class="queue-panel-title">生成队列</h3>
-        <button class="queue-more-btn" @click="router.push('/console/ai-generate')">查看更多 →</button>
+        <button class="queue-more-btn" @click="router.push('/console/works')">查看更多 →</button>
       </div>
       <div v-if="miniQueueList.length === 0" class="queue-panel-empty">
         <InboxOutlined class="empty-icon" />
@@ -114,6 +114,8 @@
           v-for="item in miniQueueList.slice(0, 5)"
           :key="item.id"
           :class="['queue-panel-item', item.status]"
+          :style="item.status === 'completed' ? 'cursor: pointer' : ''"
+          @click="item.status === 'completed' && router.push('/console/works')"
         >
           <div class="queue-item-top">
             <div class="queue-item-icon">
@@ -141,7 +143,7 @@
           </div>
         </div>
         <div v-if="miniQueueList.length > 5" class="queue-panel-more">
-          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/ai-generate')">去生成队列查看 →</button>
+          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/works')">去我的作品查看 →</button>
         </div>
       </div>
     </div>
@@ -556,7 +558,7 @@ import {
   loadMyStyles,
   loadSystemStyles
 } from '@/composables/useStyles.js'
-import { listPromptTemplates, listGenerationTasks } from '@/api/generation.js'
+import { listGenerationTasks, submitGeneration } from '@/api/generation.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { saveCurrentArticle } from '@/utils/articleStorage.js'
@@ -567,26 +569,9 @@ const router = useRouter()
 const route = useRoute()
 const isMobile = useIsMobile()
 
-// 阶段 3：可用的创作模板（默认 = 内置模板）
-const availableTemplates = ref([])
-const selectedTemplateId = ref(null)
-async function loadAvailableTemplates() {
-  try {
-    const list = await listPromptTemplates()
-    availableTemplates.value = list
-    // 默认选中第一个（内置）
-    if (list.length > 0 && !selectedTemplateId.value) {
-      const builtIn = list.find((t) => t.isBuiltin)
-      selectedTemplateId.value = builtIn ? builtIn.id : list[0].id
-    }
-  } catch (e) {
-    console.warn('加载模板列表失败', e)
-  }
-}
-
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
-  await Promise.all([loadSystemStyles(), loadAvailableTemplates()])
+  await loadSystemStyles()
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
@@ -1150,7 +1135,7 @@ const handlePreview = () => {
   router.push('/console/preview')
 }
 
-const handleGenerate = () => {
+const handleGenerate = async () => {
   if (!customTitle.value.trim()) {
     message.warning('请输入文章标题')
     return
@@ -1160,7 +1145,6 @@ const handleGenerate = () => {
     return
   }
 
-  // 跳转到 AI 创作队列页（后端实际队列）并预填标题 / 描述
   const platformValue = typeof currentPlatform.value === 'object'
     ? (currentPlatform.value?.key || '')
     : (currentPlatform.value || '')
@@ -1171,16 +1155,19 @@ const handleGenerate = () => {
     ? (currentWordCount.value?.count || 800)
     : (Number(currentWordCount.value) || 800)
 
-  router.push({
-    path: '/console/ai-generate',
-    query: {
+  try {
+    await submitGeneration({
       title: customTitle.value,
       description: customRequirement.value,
       platform: platformValue,
-      wordCount: String(wordCountValue),
-      styleRef: styleValue
-    }
-  })
+      styleRef: styleValue,
+      wordCount: wordCountValue
+    })
+    message.success('已加入生成队列')
+    loadMiniQueue()
+  } catch (e) {
+    message.error(e?.message || '提交失败，请稍后重试')
+  }
 }
 
 const clearForm = () => {

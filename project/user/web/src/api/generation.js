@@ -15,8 +15,3 @@ export function retryGenerationTask(id) {
 export function listGenerationTasks(params = {}) {
   return request.get('/generation-tasks', { params }).then((res) => res.data)
 }
-
-/** 列出已发布的创作模板（创作页下拉选择用）。 */
-export function listPromptTemplates() {
-  return request.get('/prompt-templates').then((res) => res.data)
-}
