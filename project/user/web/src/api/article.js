@@ -42,3 +42,11 @@ export function updateArticle(bizNo, payload) {
 export function deleteArticle(bizNo) {
   return api.delete(`/articles/${bizNo}`)
 }
+
+/**
+ * 查询当前用户本月已生成作品数。
+ * @returns {Promise<number>}
+ */
+export function getMonthlyCount() {
+  return api.get('/articles/monthly-count').then((res) => res.data)
+}

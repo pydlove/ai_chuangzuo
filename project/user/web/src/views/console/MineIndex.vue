@@ -193,7 +193,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { inject } from 'vue'
 import { Modal } from 'ant-design-vue'
@@ -222,6 +222,7 @@ import {
   LogoutOutlined,
   UserAddOutlined
 } from '@ant-design/icons-vue'
+import { getMonthlyCount } from '@/api/article'
 
 const router = useRouter()
 const actions = inject('consoleActions')
@@ -240,25 +241,13 @@ const avatarLetter = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 
-// 本月已生成：简单从 localStorage 读取 queue 中本月已 completed 的篇数
-const WORKS_KEY = 'aichuangzuo_generation_queue'
-const monthlyWorks = computed(() => {
+// 本月已生成：从后端统计接口读取
+const monthlyWorks = ref(0)
+onMounted(async () => {
   try {
-    const raw = localStorage.getItem(WORKS_KEY)
-    if (!raw) return 0
-    const list = JSON.parse(raw)
-    if (!Array.isArray(list)) return 0
-    const now = new Date()
-    const ymKey = `${now.getFullYear()}-${now.getMonth()}`
-    return list.filter((item) => {
-      if (item.status !== 'completed') return false
-      const t = item.completedAt || item.updatedAt || item.createdAt
-      if (!t) return false
-      const d = new Date(t)
-      return `${d.getFullYear()}-${d.getMonth()}` === ymKey
-    }).length
+    monthlyWorks.value = await getMonthlyCount()
   } catch {
-    return 0
+    monthlyWorks.value = 0
   }
 })
 

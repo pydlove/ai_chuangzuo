@@ -1160,6 +1160,7 @@ import { useUserProfile } from '@/composables/useUserProfile'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
+import { listArticles, getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1216,45 +1217,28 @@ watch(
 )
 
 // ---------- 玩法指南新手横幅 ----------
-const WORKS_KEY = 'aichuangzuo_generation_queue'
 const GUIDE_BANNER_DISMISSED_KEY = 'aichuangzuo_guide_banner_dismissed'
 
-const hasWorks = () => {
+const hasWorks = async () => {
   try {
-    const raw = localStorage.getItem(WORKS_KEY)
-    if (!raw) return false
-    const list = JSON.parse(raw)
-    return Array.isArray(list) && list.some(item => item.status === 'completed')
+    const data = await listArticles({ page: 1, pageSize: 1 })
+    return (data.total || 0) > 0
   } catch {
     return false
   }
 }
 
-// 本月已生成：复用 MineIndex 的 localStorage 算法（completed + 当月）
-const readMonthlyWorks = () => {
+// 本月已生成：从后端统计接口读取
+const readMonthlyWorks = async () => {
   try {
-    const raw = localStorage.getItem(WORKS_KEY)
-    if (!raw) return 0
-    const list = JSON.parse(raw)
-    if (!Array.isArray(list)) return 0
-    const now = new Date()
-    const ymKey = `${now.getFullYear()}-${now.getMonth()}`
-    return list.filter((item) => {
-      if (item.status !== 'completed') return false
-      const t = item.completedAt || item.updatedAt || item.createdAt
-      if (!t) return false
-      const d = new Date(t)
-      return `${d.getFullYear()}-${d.getMonth()}` === ymKey
-    }).length
+    return await getMonthlyCount()
   } catch {
     return 0
   }
 }
-const monthlyWorks = ref(readMonthlyWorks())
+const monthlyWorks = ref(0)
 
-const guideBannerVisible = ref(
-  !localStorage.getItem(GUIDE_BANNER_DISMISSED_KEY) && !hasWorks()
-)
+const guideBannerVisible = ref(!localStorage.getItem(GUIDE_BANNER_DISMISSED_KEY))
 
 const dismissGuideBanner = () => {
   guideBannerVisible.value = false
@@ -2524,6 +2508,9 @@ onMounted(async () => {
   loadMembership()
   refreshMembershipFromApi()
   userProfile.loadProfile()
+
+  monthlyWorks.value = await readMonthlyWorks()
+  guideBannerVisible.value = guideBannerVisible.value && !(await hasWorks())
 })
 
 // ---------- 向子页面（MineIndex）暴露弹框 / 主题 / 退出 / 用户状态 ----------
