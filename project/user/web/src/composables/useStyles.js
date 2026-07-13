@@ -127,35 +127,29 @@ export const isStyleNameExists = (name, excludeName = null) => {
   return inSystem || inCustom
 }
 
-// ============ 文章风格学习（前端 mock，后端替换点） ============
+// ============ 学习的风格（后端 u_user_style source_type=2） ============
 
-const LEARNED_STORAGE_KEY = 'aichuangzuo_learned_styles'
+export const learnedStyles = ref([])
+export const isLearning = ref(false)
 
-function loadLearnedStyles() {
+/** 加载当前用户的学习风格列表（sourceType=2）。 */
+export async function loadLearnedStyles() {
   try {
-    const raw = localStorage.getItem(LEARNED_STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
+    const res = await getMyStyles(2)
+    const list = res.data || res || []
+    learnedStyles.value = list.map(s => ({
+      bizNo: s.bizNo,
+      name: s.styleName,
+      prompt: s.prompt,
+      scope: s.scope,
+      count: s.useCount || 0,
+      createdAt: s.createdAt
+    }))
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
   }
 }
-
-function saveLearnedStyles() {
-  localStorage.setItem(LEARNED_STORAGE_KEY, JSON.stringify(learnedStyles.value))
-}
-
-async function simpleHash(text) {
-  const sample = text.slice(0, 1000) + '|' + text.length
-  const bytes = new TextEncoder().encode(sample)
-  const buffer = await crypto.subtle.digest('SHA-1', bytes)
-  const hex = Array.from(new Uint8Array(buffer))
-    .map(b => b.toString(16).padStart(2, '0'))
-    .join('')
-  return hex.slice(0, 16)
-}
-
-export const learnedStyles = ref(loadLearnedStyles())
-export const isLearning = ref(false)
 
 export function readFileAsText(file) {
   return new Promise((resolve, reject) => {
@@ -173,11 +167,10 @@ export async function readDocxAsText(file) {
   return result.value
 }
 
-// 风格分析（前端 mock，async 接口为后端预留）
+// 风格分析（前端 mock，async 接口为后端 AI 分析预留）
 export async function analyzeArticleStyle(text, meta) {
   isLearning.value = true
   try {
-    const fileHash = await simpleHash(text)
     const paragraphs = text.split(/\n\s*\n/).filter(p => p.trim().length > 20)
     const first = paragraphs[0]?.trim() || ''
     const mid = paragraphs[Math.floor(paragraphs.length / 2)]?.trim() || ''
@@ -202,7 +195,6 @@ export async function analyzeArticleStyle(text, meta) {
       excerpt2: longest,
       prompt,
       scope: '',     // 适用范围，由用户在结果页手填
-      fileHash,
       createdAt: new Date().toISOString()
     }
   } finally {
@@ -210,7 +202,7 @@ export async function analyzeArticleStyle(text, meta) {
   }
 }
 
-// 命名去重（仅在学习风格之间检查；与 myStyles 共用 isStyleNameExists）
+// 命名去重（在学习风格列表内检查；与 myStyles 共用 isStyleNameExists）
 export function isLearnedStyleNameExists(name, excludeName = null) {
   const target = name.trim().toLowerCase()
   if (!target) return false
@@ -218,43 +210,44 @@ export function isLearnedStyleNameExists(name, excludeName = null) {
   return learnedStyles.value.some(s => s.name.trim().toLowerCase() === target)
 }
 
-export function addLearnedStyle(style) {
-  learnedStyles.value.unshift({
-    name: style.name.trim(),
-    sourceType: style.sourceType,
-    excerpt1: style.excerpt1,
-    excerpt2: style.excerpt2,
-    prompt: style.prompt.trim(),
-    scope: (style.scope || '').trim(),
-    fileHash: style.fileHash,
-    createdAt: style.createdAt
-  })
-  saveLearnedStyles()
-}
-
-export function removeLearnedStyle(name) {
-  const idx = learnedStyles.value.findIndex(s => s.name === name)
-  if (idx > -1) learnedStyles.value.splice(idx, 1)
-  saveLearnedStyles()
-}
-
-export function updateLearnedStyle(oldName, style) {
-  const idx = learnedStyles.value.findIndex(s => s.name === oldName)
-  if (idx > -1) {
-    const updated = {
-      ...learnedStyles.value[idx],
-      name: style.name.trim(),
+export async function addLearnedStyle(style) {
+  try {
+    await createStyle({
+      styleName: style.name.trim(),
       prompt: style.prompt.trim(),
-      scope: (style.scope || '').trim()
-    }
-    learnedStyles.value[idx] = updated
-    if (currentStyle.value && currentStyle.value.name === oldName) {
-      currentStyle.value = updated
-    }
-    saveLearnedStyles()
+      scope: (style.scope || '').trim(),
+      sourceType: 2
+    })
+    await loadLearnedStyles()
+    message.success('风格已保存')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
   }
 }
 
-export function findLearnedStyleByHash(hash) {
-  return learnedStyles.value.find(s => s.fileHash === hash)
+export async function updateLearnedStyle(bizNo, style) {
+  try {
+    await updateStyle(bizNo, {
+      styleName: style.name.trim(),
+      prompt: style.prompt.trim(),
+      scope: (style.scope || '').trim()
+    })
+    await loadLearnedStyles()
+    message.success('风格已更新')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
+  }
+}
+
+export async function removeLearnedStyle(bizNo) {
+  try {
+    await deleteStyle(bizNo)
+    await loadLearnedStyles()
+    message.success('风格已删除')
+  } catch (e) {
+    message.error(errMsg(e))
+    throw e
+  }
 }

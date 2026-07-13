@@ -257,10 +257,10 @@
                 </div>
               </div>
               <div class="style-card-meta">
-                {{ s.sourceType.toUpperCase() }} · {{ s.createdAt.slice(0, 10) }}
+                学习 · {{ (s.createdAt || '').slice(0, 10) }}
               </div>
             </div>
-            <button class="style-card-remove" @click.stop="deleteLearnedStyle(s.name)">删除</button>
+            <button class="style-card-remove" @click.stop="deleteLearnedStyle(s)">删除</button>
           </div>
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
@@ -510,13 +510,13 @@ import {
   removeLearnedStyle,
   analyzeArticleStyle,
   isLearnedStyleNameExists,
-  findLearnedStyleByHash,
   addLearnedStyle,
   isLearning,
   readFileAsText,
   readDocxAsText,
   updateLearnedStyle,
-  loadMyStyles
+  loadMyStyles,
+  loadLearnedStyles
 } from '@/composables/useStyles.js'
 import {
   marketStyles,
@@ -533,6 +533,7 @@ const searchQuery = ref('')
 
 onMounted(() => {
   loadMyStyles()
+  loadLearnedStyles()
 })
 
 const MAX_SCOPE_TAGS = 3
@@ -865,15 +866,6 @@ const submitUpload = async () => {
 
 const runAnalysis = async (text, sourceType) => {
   const tempResult = await analyzeArticleStyle(text, { sourceType })
-  const dup = findLearnedStyleByHash(tempResult.fileHash)
-  if (dup) {
-    if (sourceType === 'paste') {
-      pasteError.value = '已学过这篇文章（命名：「' + dup.name + '」）'
-    } else {
-      uploadError.value = '已学过这篇文章（命名：「' + dup.name + '」）'
-    }
-    return
-  }
   learnedResult.value = { ...tempResult, name: '' }
 }
 
@@ -897,7 +889,7 @@ const learnedNameConflict = computed(() => {
   return isStyleNameExists(name, excludeName) || isLearnedStyleNameExists(name, excludeName)
 })
 
-const saveLearnedResult = () => {
+const saveLearnedResult = async () => {
   if (!learnedResult.value) return
   const name = learnedResult.value.name.trim()
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
@@ -922,17 +914,21 @@ const saveLearnedResult = () => {
     learnedResultError.value = scopeError
     return
   }
-  if (isEditingLearned.value) {
-    updateLearnedStyle(editingLearnedOriginalName.value, learnedResult.value)
-  } else {
-    addLearnedStyle(learnedResult.value)
+  try {
+    if (isEditingLearned.value) {
+      await updateLearnedStyle(learnedResult.value.bizNo, learnedResult.value)
+    } else {
+      await addLearnedStyle(learnedResult.value)
+    }
+    closeImportDialog()
+  } catch {
+    // 错误提示已在 composable 内 message.error
   }
-  closeImportDialog()
 }
 
-const deleteLearnedStyle = (name) => {
-  if (!confirm('确定要删除「' + name + '」吗？')) return
-  removeLearnedStyle(name)
+const deleteLearnedStyle = async (s) => {
+  if (!confirm('确定要删除「' + s.name + '」吗？')) return
+  await removeLearnedStyle(s.bizNo)
 }
 
 const getMarketStatus = (name) => {

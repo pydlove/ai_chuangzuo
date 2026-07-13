@@ -353,7 +353,7 @@
           </button>
           <button
             :class="['style-tab', { active: styleTab === 'learned' }]"
-            @click="styleTab = 'learned'; createStyleMode = false"
+            @click="styleTab = 'learned'; createStyleMode = false; loadLearnedStyles()"
           >
             学习的风格
           </button>
@@ -556,6 +556,7 @@ import {
   removeCustomStyle,
   learnedStyles,
   loadMyStyles,
+  loadLearnedStyles,
   loadSystemStyles
 } from '@/composables/useStyles.js'
 import { listGenerationTasks, submitGeneration } from '@/api/generation.js'
