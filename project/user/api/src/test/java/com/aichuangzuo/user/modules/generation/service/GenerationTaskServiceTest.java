@@ -21,6 +21,7 @@ import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -74,12 +75,12 @@ class GenerationTaskServiceTest {
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(coinRecordService.getBalance(userId)).thenReturn(BigDecimal.TEN);
         when(benefitResolver.retentionDays(userId)).thenReturn(30);
-        // 默认模板 id=1 已发布，latestPublishedVersion=1（submit 路径需要）
+        // 唯一已发布模板 id=1，latestPublishedVersion=1（submit 路径需要）
         PromptTemplate tpl = new PromptTemplate();
         tpl.setId(com.aichuangzuo.shared.creative.CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
         tpl.setTemplateStatus(com.aichuangzuo.shared.creative.TemplateStatus.PUBLISHED.code);
         tpl.setLatestPublishedVersion(1);
-        when(promptTemplateMapper.selectById(any())).thenReturn(tpl);
+        when(promptTemplateMapper.selectPublished()).thenReturn(List.of(tpl));
     }
 
     @Test
@@ -129,6 +130,42 @@ class GenerationTaskServiceTest {
         assertEquals("", parsed.get("userStylePrompt"));
         // styleRef 为空时根本不应查 DB
         verify(userStyleMapper, never()).selectOne(any());
+    }
+
+    @Test
+    void submit_shouldLockUniquePublishedTemplate() {
+        Long userId = 9L;
+        stubCommonFlow(userId);
+        PromptTemplate tpl = new PromptTemplate();
+        tpl.setId(7L);
+        tpl.setTemplateStatus(com.aichuangzuo.shared.creative.TemplateStatus.PUBLISHED.code);
+        tpl.setLatestPublishedVersion(3);
+        when(promptTemplateMapper.selectPublished()).thenReturn(List.of(tpl));
+
+        service.submit(sampleRequest(""), userId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).insert(captor.capture());
+        assertEquals(7L, captor.getValue().getPromptTemplateId());
+        assertEquals(3, captor.getValue().getPromptTemplateVersion());
+    }
+
+    @Test
+    void submit_shouldFailWhenNoPublishedTemplate() {
+        Long userId = 10L;
+        when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
+        when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
+        when(coinRecordService.getBalance(userId)).thenReturn(BigDecimal.TEN);
+        when(promptTemplateMapper.selectPublished()).thenReturn(List.of());
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequest(""), userId));
+        assertEquals(
+                com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                        .GENERATION_TEMPLATE_DISABLED.getCode(),
+                e.getCode());
     }
 
     @Test

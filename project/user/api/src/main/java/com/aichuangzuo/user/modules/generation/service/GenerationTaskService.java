@@ -1,7 +1,5 @@
 package com.aichuangzuo.user.modules.generation.service;
 
-import com.aichuangzuo.shared.creative.CreativeTemplateConstants;
-import com.aichuangzuo.shared.creative.TemplateStatus;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.entity.PromptTemplate;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
@@ -82,16 +80,12 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_QUOTA_NOT_ENOUGH);
         }
 
-        // 4. 解析模板（阶段 3：task 锁定版本）
-        Long requestedTemplateId = req.getTemplateId() != null
-                ? req.getTemplateId()
-                : CreativeTemplateConstants.DEFAULT_TEMPLATE_ID;
-        PromptTemplate template = promptTemplateMapper.selectById(requestedTemplateId);
-        if (template == null
-                || template.getTemplateStatus() == null
-                || template.getTemplateStatus() != TemplateStatus.PUBLISHED.code) {
+        // 4. 锁定唯一已发布模板（task 锁定版本）
+        List<PromptTemplate> published = promptTemplateMapper.selectPublished();
+        if (published.isEmpty()) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
         }
+        PromptTemplate template = published.get(0);
         Integer lockedVersion = template.getLatestPublishedVersion();
         if (lockedVersion == null) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
@@ -108,7 +102,7 @@ public class GenerationTaskService {
         task.setTargetUserId(userId);
         task.setStatus(GenerationTaskStatus.QUEUED);
         task.setModelConfigId(modelConfigId);
-        task.setPromptTemplateId(requestedTemplateId);
+        task.setPromptTemplateId(template.getId());
         task.setPromptTemplateVersion(lockedVersion);
         task.setInputParam(inputParam);
         task.setWordLimitTarget(req.getWordCount());
@@ -122,7 +116,7 @@ public class GenerationTaskService {
         taskMapper.insert(task);
 
         log.info("user={} 提交生成 task={} bizNo={} templateId={} version={} wordCount={}",
-                userId, task.getId(), bizNo, requestedTemplateId, lockedVersion, req.getWordCount());
+                userId, task.getId(), bizNo, template.getId(), lockedVersion, req.getWordCount());
         return GenerationTaskVO.from(task, objectMapper);
     }
 

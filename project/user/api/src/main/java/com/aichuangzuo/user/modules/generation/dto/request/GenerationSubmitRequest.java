@@ -36,10 +36,4 @@ public class GenerationSubmitRequest {
 
     /** 可选；为空时系统选当前 active 模型。 */
     private Long modelConfigId;
-
-    /**
-     * 可选；为空时默认用内置模板 id=1。
-     * 任务创建时会快照模板当前的 latestPublishedVersion 到 prompt_template_version。
-     */
-    private Long templateId;
 }
