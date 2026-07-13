@@ -185,7 +185,7 @@ import { message } from 'ant-design-vue'
 
 const router = useRouter()
 import { CopyOutlined } from '@ant-design/icons-vue'
-import { loadCurrentArticle, saveCurrentArticle, syncArticleToQueue } from '@/utils/articleStorage.js'
+import { loadCurrentArticle, saveCurrentArticle } from '@/utils/articleStorage.js'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES } from '@/utils/articleBlocks.js'
 import CardsModal from '@/components/CardsModal.vue'
 
@@ -346,7 +346,6 @@ const saveEdit = () => {
     return
   }
 
-  syncArticleToQueue(updated)
   article.value = updated
   isEditing.value = false
   modifiedIndices.value = new Set()

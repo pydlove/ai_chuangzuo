@@ -115,7 +115,7 @@
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { loadCurrentArticle, saveCurrentArticle, syncArticleToQueue } from '@/utils/articleStorage.js'
+import { loadCurrentArticle, saveCurrentArticle } from '@/utils/articleStorage.js'
 import { bodyToHtmlWithStyles, htmlToBodyWithStyles } from '@/utils/articleBlocks.js'
 
 const router = useRouter()
@@ -299,7 +299,6 @@ const save = () => {
     return
   }
 
-  syncArticleToQueue(article)
   message.success('内容已保存')
   router.push('/console/preview')
 }
