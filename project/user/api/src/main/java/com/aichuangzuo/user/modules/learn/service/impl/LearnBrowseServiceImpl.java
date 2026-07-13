@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.learn.enums.ContentType;
 import com.aichuangzuo.user.modules.learn.mapper.LearnArticleMapper;
 import com.aichuangzuo.user.modules.learn.mapper.LearnCategoryMapper;
 import com.aichuangzuo.user.modules.learn.service.LearnBrowseService;
+import com.aichuangzuo.user.modules.learn.vo.LearnArticleRefVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
@@ -16,7 +17,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,34 +27,12 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
 
     @Override
     public List<LearnCategoryTreeVO> tree() {
-        List<LearnCategoryEntity> allCats = categoryMapper.selectList(null); // @TableLogic 自动过滤
+        // 分类树始终返回全部有效分类（@TableLogic 自动过滤 is_deleted）。
+        // 不管分类下是否已有 PUBLISHED 文章，都要展示出来，让管理端建好的分类在用户端立即可见。
+        // 空分类由前端显示"内容筹备中"占位，而不是后端过滤掉。
+        List<LearnCategoryEntity> allCats = categoryMapper.selectList(null);
         if (allCats.isEmpty()) return List.of();
-
-        // 已发布文章涉及到的分类
-        Set<Long> leafIds = articleMapper.selectList(new QueryWrapper<LearnArticleEntity>()
-                        .eq("status", ArticleStatus.PUBLISHED.getCode()))
-                .stream()
-                .map(LearnArticleEntity::getCategoryId)
-                .collect(Collectors.toSet());
-
-        if (leafIds.isEmpty()) return List.of();
-
-        // 父级分类一并保留
-        Map<Long, LearnCategoryEntity> byId = allCats.stream()
-                .collect(Collectors.toMap(LearnCategoryEntity::getId, c -> c));
-        Set<Long> keep = new HashSet<>(leafIds);
-        for (Long cid : leafIds) {
-            LearnCategoryEntity c = byId.get(cid);
-            while (c != null && c.getParentId() != null) {
-                keep.add(c.getId());
-                c = byId.get(c.getParentId());
-            }
-            keep.add(cid); // 确保叶子节点自身也算入
-        }
-
-        List<LearnCategoryEntity> filtered = allCats.stream()
-                .filter(c -> keep.contains(c.getId())).toList();
-        return buildTree(filtered);
+        return buildTree(allCats);
     }
 
     private List<LearnCategoryTreeVO> buildTree(List<LearnCategoryEntity> nodes) {
@@ -122,10 +100,75 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
 
     @Override
     public LearnArticleVO articleDetail(Long id) {
-        LearnArticleEntity e = articleMapper.selectOne(new QueryWrapper<LearnArticleEntity>()
+        LearnArticleEntity current = articleMapper.selectOne(new QueryWrapper<LearnArticleEntity>()
                 .eq("id", id)
                 .eq("status", ArticleStatus.PUBLISHED.getCode()));
-        return e == null ? null : toVo(e);
+        if (current == null) return null;
+
+        LearnArticleVO vo = toVo(current);
+
+        List<LearnArticleEntity> chain = buildReadingChain();
+        Map<Long, String> catNames = loadCategoryNames();
+
+        int idx = -1;
+        for (int i = 0; i < chain.size(); i++) {
+            if (chain.get(i).getId().equals(id)) { idx = i; break; }
+        }
+        if (idx > 0) {
+            vo.setPrevArticle(toRef(chain.get(idx - 1), catNames));
+        }
+        if (idx >= 0 && idx < chain.size() - 1) {
+            vo.setNextArticle(toRef(chain.get(idx + 1), catNames));
+        }
+        return vo;
+    }
+
+    /**
+     * 构建全学院阅读链：分类按 DFS 前序展开（sort ASC），分类内文章按 sort ASC, updated_at DESC。
+     * <p>NULL 行为对齐 MySQL：sort ASC NULL 在前，updated_at DESC NULL 在后。</p>
+     */
+    private List<LearnArticleEntity> buildReadingChain() {
+        List<LearnCategoryEntity> allCats = categoryMapper.selectList(null);
+        if (allCats.isEmpty()) return List.of();
+        List<LearnCategoryTreeVO> tree = buildTree(allCats);
+        List<Long> orderedCatIds = new ArrayList<>();
+        flattenTreeIds(tree, orderedCatIds);
+
+        Map<Long, Integer> catOrder = new HashMap<>();
+        for (int i = 0; i < orderedCatIds.size(); i++) {
+            catOrder.put(orderedCatIds.get(i), i);
+        }
+
+        List<LearnArticleEntity> all = articleMapper.selectList(new QueryWrapper<LearnArticleEntity>()
+                .eq("status", ArticleStatus.PUBLISHED.getCode()));
+        all.sort(Comparator
+                .comparingInt((LearnArticleEntity a) -> catOrder.getOrDefault(a.getCategoryId(), Integer.MAX_VALUE))
+                .thenComparing(LearnArticleEntity::getSort, Comparator.nullsFirst(Comparator.naturalOrder()))
+                .thenComparing(LearnArticleEntity::getUpdatedAt, Comparator.nullsLast(Comparator.reverseOrder())));
+        return all;
+    }
+
+    private void flattenTreeIds(List<LearnCategoryTreeVO> nodes, List<Long> out) {
+        if (nodes == null) return;
+        for (LearnCategoryTreeVO n : nodes) {
+            out.add(n.getId());
+            flattenTreeIds(n.getChildren(), out);
+        }
+    }
+
+    private Map<Long, String> loadCategoryNames() {
+        List<LearnCategoryEntity> all = categoryMapper.selectList(null);
+        Map<Long, String> map = new HashMap<>();
+        for (LearnCategoryEntity c : all) map.put(c.getId(), c.getName());
+        return map;
+    }
+
+    private LearnArticleRefVO toRef(LearnArticleEntity e, Map<Long, String> catNames) {
+        LearnArticleRefVO r = new LearnArticleRefVO();
+        r.setId(e.getId());
+        r.setTitle(e.getTitle());
+        r.setCategoryName(catNames.get(e.getCategoryId()));
+        return r;
     }
 
     private LearnArticleVO toVo(LearnArticleEntity e) {

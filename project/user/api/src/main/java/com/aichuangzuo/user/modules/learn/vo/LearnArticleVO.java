@@ -15,4 +15,8 @@ public class LearnArticleVO {
     private String content;
     private LocalDateTime publishedAt;
     private LocalDateTime updatedAt;
+    /** 上一篇，首篇为 null。 */
+    private LearnArticleRefVO prevArticle;
+    /** 下一篇，末篇为 null。 */
+    private LearnArticleRefVO nextArticle;
 }
