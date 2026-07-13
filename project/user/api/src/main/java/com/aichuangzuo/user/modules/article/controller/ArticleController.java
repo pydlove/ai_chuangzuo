@@ -95,4 +95,14 @@ public class ArticleController {
         articleService.delete(userId, bizNo);
         return Result.success();
     }
+
+    /**
+     * 查询当前用户本月已生成作品数。
+     */
+    @Operation(summary = "本月已生成作品数")
+    @GetMapping("/monthly-count")
+    public Result<Long> monthlyCount() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(articleService.monthlyCount(userId));
+    }
 }

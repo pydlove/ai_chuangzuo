@@ -36,4 +36,9 @@ public interface ArticleService {
      * 软删除作品。
      */
     void delete(Long userId, String bizNo);
+
+    /**
+     * 查询用户本月已生成作品数。
+     */
+    Long monthlyCount(Long userId);
 }

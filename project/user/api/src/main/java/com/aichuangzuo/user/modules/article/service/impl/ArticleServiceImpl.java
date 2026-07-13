@@ -177,6 +177,18 @@ public class ArticleServiceImpl implements ArticleService {
         }
     }
 
+    @Override
+    public Long monthlyCount(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime start = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+        LocalDateTime end = start.plusMonths(1);
+        LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Article::getUserId, userId)
+                .ge(Article::getCompletedAt, start)
+                .lt(Article::getCompletedAt, end);
+        return articleMapper.selectCount(wrapper);
+    }
+
     private String generateBizNo() {
         return "A" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
