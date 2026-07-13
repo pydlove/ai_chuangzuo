@@ -61,7 +61,7 @@
 - 新迁移 `V2.0.0_024__drop_template_enabled_and_enforce_single_published.sql`（admin-api）：
   - 数据修正：保留 id 最小（内置默认模板）的已发布记录，其余 `template_status=1` 的置为 `2`；
   - `ALTER TABLE t_prompt_template DROP COLUMN enabled`。
-- 同步删除：`PromptTemplate.enabled` 字段、`PromptTemplateAdminController` 的 `POST /{id}/enable` 与 `POST /{id}/disable`、`PromptTemplateService.enable/disable/findEnabled`、Mapper XML 相关 SQL、快照 JSON 中的 enabled 字段（L345）。
+- 同步删除：`PromptTemplate.enabled` 字段、`PromptTemplateAdminController` 的 `POST /{id}/enable` 与 `POST /{id}/disable`、`PromptTemplateService.enable/disable/findEnabled`、Mapper 的 `selectEnabled`（接口 + XML）。
 - 注意：阶段表 `t_prompt_template_stage.enabled`（阶段级开关）是另一字段，**保留不动**。
 - `PipelineTemplateResolver` fallback（老任务无锁定版本，L62-64）：从 `findEnabled()` 改为查唯一 `template_status=1` 的 `findPublished()`。
 
