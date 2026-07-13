@@ -35,7 +35,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'templateStatus'">
-            <a-tag v-if="record.templateStatus === 1" color="green">{{ record.templateStatusLabel }}</a-tag>
+            <a-tag v-if="record.templateStatus === 1" color="green">生效中</a-tag>
             <a-tag v-else-if="record.templateStatus === 2" color="default">{{ record.templateStatusLabel }}</a-tag>
             <a-tag v-else color="orange">{{ record.templateStatusLabel || '草稿' }}</a-tag>
             <span v-if="record.latestPublishedVersion" class="version-tag">
@@ -142,9 +142,7 @@ const gotoEdit = (id) => router.push(`/console/prompt-templates/${id}`)
 const onPublish = (record) => {
   Modal.confirm({
     title: `${record.templateStatus === 2 ? '重新发布' : '发布'}「${record.name}」？`,
-    content: record.templateStatus === 2
-      ? `当前已下线，将创建新版本（v${(record.latestPublishedVersion || 0) + 1}）。`
-      : `当前是草稿，将创建版本 v${(record.latestPublishedVersion || 0) + 1}。`,
+    content: `发布后将自动下线当前已发布模板。将创建版本 v${(record.latestPublishedVersion || 0) + 1}。`,
     okText: '发布',
     cancelText: '取消',
     onOk: async () => {

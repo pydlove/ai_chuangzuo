@@ -4,8 +4,6 @@ import {
   listTemplates,
   createTemplate,
   updateTemplate,
-  enableTemplate,
-  disableTemplate,
   deleteTemplate,
   getTemplate,
   initTemplateStages,
@@ -84,18 +82,6 @@ export function usePromptTemplate() {
     message.success('已保存')
   }
 
-  const handleEnable = async (id) => {
-    await enableTemplate(id)
-    message.success('已启用')
-    await fetch()
-  }
-
-  const handleDisable = async (id) => {
-    await disableTemplate(id)
-    message.success('已停用')
-    await fetch()
-  }
-
   const handleDelete = async (id) => {
     await deleteTemplate(id)
     message.success('已删除')
@@ -166,8 +152,6 @@ export function usePromptTemplate() {
     handlePageChange,
     handleCreate,
     handleUpdate,
-    handleEnable,
-    handleDisable,
     handleDelete,
     handleInitStages,
     handlePublish,

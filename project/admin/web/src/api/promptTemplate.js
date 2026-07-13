@@ -16,14 +16,6 @@ export function updateTemplate(id, data) {
   return request.put(`/api/v1/admin/prompt-templates/${id}`, data).then((res) => res.data)
 }
 
-export function enableTemplate(id) {
-  return request.post(`/api/v1/admin/prompt-templates/${id}/enable`)
-}
-
-export function disableTemplate(id) {
-  return request.post(`/api/v1/admin/prompt-templates/${id}/disable`)
-}
-
 export function deleteTemplate(id) {
   return request.delete(`/api/v1/admin/prompt-templates/${id}`)
 }
