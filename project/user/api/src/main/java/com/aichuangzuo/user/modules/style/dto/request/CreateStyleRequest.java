@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.style.dto.request;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -20,4 +22,9 @@ public class CreateStyleRequest {
 
     @Size(max = 256, message = "适用范围过长")
     private String scope;
+
+    /** 来源类型：1-自定义（默认），2-学习；系统预设（3）不允许用户创建。 */
+    @Min(value = 1, message = "来源类型不合法")
+    @Max(value = 2, message = "来源类型不合法")
+    private Integer sourceType;
 }

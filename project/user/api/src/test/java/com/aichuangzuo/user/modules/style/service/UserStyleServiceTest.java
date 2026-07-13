@@ -64,6 +64,40 @@ class UserStyleServiceTest {
     }
 
     @Test
+    void shouldCreateLearnedStyleWithSourceType2() {
+        User user = createUser("create-learned@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateStyleRequest request = new CreateStyleRequest();
+        request.setStyleName("学习的情感文风");
+        request.setPrompt("模仿参考文的克制语气...");
+        request.setScope("公众号,情感文");
+        request.setSourceType(2);
+
+        UserStyleVO vo = userStyleService.createStyle(request);
+
+        assertNotNull(vo.getBizNo());
+        assertEquals(2, vo.getSourceType());
+        // sourceType=2 只出现在学习列表，不出现在自定义列表
+        assertEquals(1, userStyleService.listMyStyles(2).size());
+        assertEquals(0, userStyleService.listMyStyles(1).size());
+    }
+
+    @Test
+    void shouldDefaultSourceTypeToCustomWhenNull() {
+        User user = createUser("create-default@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateStyleRequest request = new CreateStyleRequest();
+        request.setStyleName("未传来源");
+        request.setPrompt("prompt");
+
+        UserStyleVO vo = userStyleService.createStyle(request);
+
+        assertEquals(1, vo.getSourceType());
+    }
+
+    @Test
     void shouldRejectDuplicateStyleName() {
         User user = createUser("duplicate-style@test.com");
         SecurityUserContext.setCurrentUserId(user.getId());

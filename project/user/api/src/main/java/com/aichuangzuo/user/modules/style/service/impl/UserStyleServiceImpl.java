@@ -61,7 +61,7 @@ public class UserStyleServiceImpl implements UserStyleService {
         style.setStyleName(styleName);
         style.setPrompt(prompt);
         style.setScope(scope);
-        style.setSourceType(SOURCE_TYPE_CUSTOM);
+        style.setSourceType(request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType());
         style.setAuditStatus(0);
         style.setUseCount(0);
 
