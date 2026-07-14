@@ -23,6 +23,10 @@ public class AiCallRecord {
     private String error;
     /** 是否成功。 */
     private boolean success;
+    /** 本次尝试实际发送给 AI 的完整 userMsg（含变量替换结果；重试时包含注入的错误上下文）。 */
+    private String userMsg;
+    /** AI 完整返回内容（成功时）；失败时为 null。 */
+    private String responseContent;
     /** 第几次尝试（1=首次，2=第 1 次重试，...）。 */
     private int attempt;
 }
