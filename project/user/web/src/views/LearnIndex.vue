@@ -27,6 +27,7 @@
           :article="currentArticle"
           :category="currentCategory"
           :current-category-name="currentCategoryName"
+          :category-path="currentCategoryPath"
           @load-article="loadArticle"
         />
       </main>
@@ -89,6 +90,29 @@ const currentCategoryName = computed(() => {
     return ''
   }
   return walk(categoryTree.value)
+})
+
+// 反查当前分类的完整路径（用于面包屑；文章详情和分类列表通用）
+const currentCategoryPath = computed(() => {
+  // 文章详情：用文章所属分类；分类列表：用 query.cat
+  const targetId = route.params.id
+    ? (currentArticle.value?.categoryId ?? null)
+    : (route.query.cat ? Number(route.query.cat) : null)
+  if (!targetId) return []
+  const result = []
+  const walk = (nodes, trail) => {
+    for (const n of nodes) {
+      const current = [...trail, { id: n.id, name: n.name }]
+      if (n.id === targetId) {
+        result.push(...current)
+        return true
+      }
+      if (n.children?.length && walk(n.children, current)) return true
+    }
+    return false
+  }
+  walk(categoryTree.value, [])
+  return result
 })
 
 const navLinks = [

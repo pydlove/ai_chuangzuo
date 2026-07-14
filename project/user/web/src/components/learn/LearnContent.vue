@@ -3,10 +3,44 @@
     <!-- 文章详情 -->
     <template v-if="article">
       <header class="learn-content-head">
+        <!-- 面包屑 -->
+        <nav v-if="categoryPath.length" class="learn-breadcrumb">
+          <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
+          <template v-for="(seg, i) in categoryPath" :key="seg.id">
+            <span class="learn-breadcrumb-sep">›</span>
+            <router-link
+              :to="`/learn?cat=${seg.id}`"
+              class="learn-breadcrumb-item"
+              :class="{ active: i === categoryPath.length - 1 }"
+            >{{ seg.name }}</router-link>
+          </template>
+        </nav>
+
         <h1 class="learn-content-title">{{ article.title }}</h1>
         <p v-if="article.summary" class="learn-content-summary">{{ article.summary }}</p>
-        <div class="learn-content-meta">
-          发布于 {{ formatDate(article.publishedAt || article.updatedAt) }}
+
+        <!-- 元信息条 -->
+        <div class="learn-meta-bar">
+          <span class="learn-meta-item">
+            <CalendarOutlined class="learn-meta-icon" />
+            {{ formatDate(article.publishedAt || article.updatedAt) }}
+          </span>
+          <span class="learn-meta-item">
+            <ClockCircleOutlined class="learn-meta-icon" />
+            约 {{ readingMinutes }} 分钟
+          </span>
+          <span class="learn-meta-item">
+            <FileTextOutlined class="learn-meta-icon" />
+            {{ wordCount }} 字
+          </span>
+          <router-link
+            v-if="currentCategoryName"
+            :to="`/learn?cat=${article.categoryId}`"
+            class="learn-meta-tag"
+          >
+            <TagOutlined class="learn-meta-icon" />
+            {{ currentCategoryName }}
+          </router-link>
         </div>
       </header>
       <article class="learn-content-body">
@@ -75,15 +109,30 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import LearnMarkdown from './LearnMarkdown.vue'
 import LearnRichText from './LearnRichText.vue'
+import {
+  CalendarOutlined,
+  ClockCircleOutlined,
+  FileTextOutlined,
+  TagOutlined
+} from '@ant-design/icons-vue'
 
-defineProps({
+const props = defineProps({
   article: { type: Object, default: null },
   category: { type: Object, default: null },
-  currentCategoryName: { type: String, default: '' }
+  currentCategoryName: { type: String, default: '' },
+  categoryPath: { type: Array, default: () => [] }
 })
 defineEmits(['load-article'])
+
+const readingMinutes = computed(() => {
+  if (!props.article?.content) return 0
+  return Math.max(1, Math.ceil(props.article.content.length / 300))
+})
+
+const wordCount = computed(() => props.article?.content?.length || 0)
 
 function formatDate(d) {
   if (!d) return ''
@@ -95,9 +144,57 @@ function formatDate(d) {
 <style scoped>
 .learn-content { min-height: 320px; }
 .learn-content-head { border-bottom: 1px solid #eee; padding-bottom: 16px; margin-bottom: 24px; }
+
+/* 面包屑 */
+.learn-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.learn-breadcrumb-item {
+  color: #8c8c8c;
+  text-decoration: none;
+}
+.learn-breadcrumb-item:hover { color: #FF2442; }
+.learn-breadcrumb-item.active { color: #262626; font-weight: 600; }
+.learn-breadcrumb-sep { color: #d9d9d9; }
+
+/* 元信息条 */
+.learn-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.learn-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.learn-meta-icon { font-size: 14px; }
+.learn-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  background: #FFF5F7;
+  color: #FF2442;
+  border-radius: 9999px;
+  font-size: 12px;
+  text-decoration: none;
+}
+.learn-meta-tag:hover { background: #FFE8EC; }
 .learn-content-title { font-size: 28px; font-weight: 700; color: #1a1a1a; margin: 0; }
 .learn-content-summary { color: #666; font-size: 14px; margin: 8px 0 0; }
-.learn-content-meta { color: #999; font-size: 13px; margin-top: 12px; }
 .learn-content-body { margin-bottom: 36px; }
 .learn-content-foot { border-top: 1px solid #eee; padding-top: 24px; text-align: center; }
 .learn-cta { color: #FF2442; font-weight: 600; text-decoration: none; }
