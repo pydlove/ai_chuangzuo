@@ -117,4 +117,13 @@ class PipelineUtilsTest {
         assertEquals("用反差感开场", root.path("responsibility").asText());
         assertEquals("two", root.path("items").get(1).asText());
     }
+
+    @Test
+    void parseAiJson_shouldAcceptUnquotedFieldNames() {
+        // 第 5 类瑕疵：M3 偶尔用裸 key（Python/JS literal 风格 `{a:1}`）
+        String unquoted = "{paragraph_index:1, responsibility:\"用反差感开场\"}";
+        JsonNode root = PipelineUtils.parseAiJson(unquoted);
+        assertEquals(1, root.path("paragraph_index").asInt());
+        assertEquals("用反差感开场", root.path("responsibility").asText());
+    }
 }

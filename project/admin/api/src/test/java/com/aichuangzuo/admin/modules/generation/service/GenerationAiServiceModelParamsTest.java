@@ -156,6 +156,22 @@ class GenerationAiServiceModelParamsTest {
         assertEquals(1.0, body.get("top_p"));
     }
 
+    @Test
+    void call_shouldSendResponseFormatJsonObject() {
+        // API 层强制 JSON 模式：让模型必须输出合法 JSON
+        service.call(1L, "sys", "user", null);
+
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                any(String.class), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rf = (Map<String, Object>) body.get("response_format");
+        assertEquals("json_object", rf.get("type"));
+    }
+
     /**
      * 测试用子类：注入 mock RestTemplate，避免真实 HTTP 调用。
      */

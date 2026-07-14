@@ -97,6 +97,11 @@ public class GenerationAiService {
         body.put("max_tokens", pickInt(modelParams, "max_tokens", maxTokensDefault));
         body.put("top_p", pickDouble(modelParams, "top_p", topPDefault));
         body.put("stream", false);
+        // API 层强制 JSON 模式：让模型必须输出合法 JSON，不再裸 prose。
+        // 多数 OpenAI 兼容厂商（含 chatcompletion_v2）支持；不支持时会静默忽略，
+        // 不至于报错崩任务。配合解析器侧开启 ALLOW_UNQUOTED_FIELD_NAMES 等
+        // 兜底，覆盖绝大多数 M3 输出瑕疵。
+        body.put("response_format", Map.of("type", "json_object"));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
