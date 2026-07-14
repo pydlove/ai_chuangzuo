@@ -85,6 +85,10 @@ public class DefaultAiGateway implements AiGateway {
             rec.setSuccess(err == null);
             rec.setError(err == null ? null : err.getClass().getSimpleName() + ":" + err.getMessage());
             rec.setAttempt(attempt);
+            rec.setUserMsg(currentUserMsg);
+            if (err == null) {
+                rec.setResponseContent(content);
+            }
             ctx.getAiCallHistory().add(rec);
             ctx.setAiCallUsed(ctx.getAiCallUsed() + 1);
             ctx.setAiCallTotalMs(ctx.getAiCallTotalMs() + attemptDuration);
