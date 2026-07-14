@@ -77,6 +77,7 @@
                     :is="getCategoryIcon(cat.name)"
                     class="learn-recommend-icon"
                   />
+                  <span v-else class="learn-recommend-icon-fallback">{{ cat.name.charAt(0) }}</span>
                 </div>
                 <span class="learn-recommend-name">{{ cat.name }}</span>
                 <span v-if="cat.children?.length" class="learn-recommend-count">
@@ -560,6 +561,12 @@ body[data-theme="dark"] .learn-banner-carousel :deep(.slick-dots li button) {
   transition: all 0.25s ease;
 }
 .learn-recommend-icon { font-size: 22px; color: #FF2442; transition: color 0.25s ease; }
+.learn-recommend-icon-fallback {
+  font-size: 20px; font-weight: 700; color: #FF2442;
+  line-height: 1;
+  transition: color 0.25s ease;
+}
+.learn-recommend-card:hover .learn-recommend-icon-fallback { color: #fff; }
 .learn-recommend-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; transition: color 0.25s ease; }
 .learn-recommend-count { font-size: 12px; color: #8c8c8c; }
 .learn-recommend-arrow {
