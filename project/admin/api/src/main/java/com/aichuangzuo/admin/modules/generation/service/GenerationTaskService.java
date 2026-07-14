@@ -114,6 +114,8 @@ public class GenerationTaskService {
             GenerationTask task = new GenerationTask();
             task.setId(taskId);
             task.setProgressPct(clamped);
+            // worker 线程无登录上下文，MetaObjectHandler 不会填 updatedBy；显式置 0（=system，同 insertFill 约定）
+            task.setUpdatedBy(0L);
             mapper.updateById(task);
             log.debug("task={} 进度回写 progressPct={}", taskId, clamped);
         } catch (Exception e) {

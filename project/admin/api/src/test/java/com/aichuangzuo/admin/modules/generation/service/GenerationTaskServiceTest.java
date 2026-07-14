@@ -139,6 +139,8 @@ class GenerationTaskServiceTest {
         verify(taskMapper).updateById(captor.capture());
         assertEquals(1L, captor.getValue().getId());
         assertEquals(50, captor.getValue().getProgressPct());
+        // worker 线程无登录上下文，必须显式带 updatedBy，否则 NOT NULL 列报错
+        assertEquals(0L, captor.getValue().getUpdatedBy());
     }
 
     @Test
