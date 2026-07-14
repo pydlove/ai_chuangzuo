@@ -28,7 +28,9 @@
           :category="currentCategory"
           :current-category-name="currentCategoryName"
           :category-path="currentCategoryPath"
+          :top-categories="topCategories"
           @load-article="loadArticle"
+          @select-category="onSelectCategory"
         />
       </main>
     </div>
@@ -114,6 +116,9 @@ const currentCategoryPath = computed(() => {
   walk(categoryTree.value, [])
   return result
 })
+
+// 空状态快捷入口：前 4 个顶级分类
+const topCategories = computed(() => categoryTree.value.slice(0, 4))
 
 const navLinks = [
   { to: '/', label: '首页' },

@@ -91,13 +91,32 @@
     <!-- 分类详情（列表） -->
     <template v-else-if="category && category.articles && category.articles.length">
       <header class="learn-content-head">
+        <nav v-if="categoryPath.length" class="learn-breadcrumb">
+          <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
+          <template v-for="(seg, i) in categoryPath" :key="seg.id">
+            <span class="learn-breadcrumb-sep">›</span>
+            <router-link
+              :to="`/learn?cat=${seg.id}`"
+              class="learn-breadcrumb-item"
+              :class="{ active: i === categoryPath.length - 1 }"
+            >{{ seg.name }}</router-link>
+          </template>
+        </nav>
         <h1 class="learn-content-title">{{ category.name }}</h1>
+        <p class="learn-content-count">本分类下共 {{ category.total || category.articles.length }} 篇文章</p>
       </header>
       <ul class="learn-article-list">
-        <li v-for="a in category.articles" :key="a.id" class="learn-article-item">
-          <a @click.prevent="$emit('load-article', a.id)" href="#">{{ a.title }}</a>
-          <p v-if="a.summary" class="learn-article-summary">{{ a.summary }}</p>
-          <div class="learn-article-meta">{{ formatDate(a.publishedAt || a.updatedAt) }}</div>
+        <li v-for="a in category.articles" :key="a.id" class="learn-article-card">
+          <a @click.prevent="$emit('load-article', a.id)" href="#" class="learn-article-card-link">
+            <div class="learn-article-card-title">{{ a.title }}</div>
+            <p v-if="a.summary" class="learn-article-card-summary">{{ a.summary }}</p>
+            <div class="learn-article-card-meta">
+              <span class="learn-meta-item">
+                <CalendarOutlined class="learn-meta-icon" />
+                {{ formatDate(a.publishedAt || a.updatedAt) }}
+              </span>
+            </div>
+          </a>
         </li>
       </ul>
     </template>
@@ -106,11 +125,27 @@
       <header class="learn-content-head">
         <h1 class="learn-content-title">{{ category.name }}</h1>
       </header>
-      <div class="learn-content-empty">该分类下暂无已发布文章</div>
+      <div class="learn-content-empty">
+        <ReadOutlined class="learn-empty-icon" />
+        <div class="learn-empty-title">该分类下暂无已发布文章</div>
+      </div>
     </template>
 
     <template v-else>
-      <div class="learn-content-empty">从左侧选择一个分类查看内容</div>
+      <div class="learn-content-empty">
+        <ReadOutlined class="learn-empty-icon" />
+        <div class="learn-empty-title">欢迎来到创作学院</div>
+        <div class="learn-empty-subtitle">从左侧选择一个分类开始学习</div>
+        <div v-if="topCategories.length" class="learn-empty-chips">
+          <a
+            v-for="cat in topCategories"
+            :key="cat.id"
+            class="learn-empty-chip"
+            @click.prevent="$emit('select-category', cat.id)"
+            href="#"
+          >{{ cat.name }}</a>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -124,16 +159,18 @@ import {
   ClockCircleOutlined,
   FileTextOutlined,
   TagOutlined,
-  BulbOutlined
+  BulbOutlined,
+  ReadOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
   article: { type: Object, default: null },
   category: { type: Object, default: null },
   currentCategoryName: { type: String, default: '' },
-  categoryPath: { type: Array, default: () => [] }
+  categoryPath: { type: Array, default: () => [] },
+  topCategories: { type: Array, default: () => [] }
 })
-defineEmits(['load-article'])
+defineEmits(['load-article', 'select-category'])
 
 const readingMinutes = computed(() => {
   if (!props.article?.content) return 0
@@ -204,14 +241,101 @@ function formatDate(d) {
 .learn-content-title { font-size: 28px; font-weight: 700; color: #1a1a1a; margin: 0; }
 .learn-content-summary { color: #666; font-size: 14px; margin: 8px 0 0; }
 .learn-content-body { margin-bottom: 36px; }
-.learn-content-empty { color: #999; padding: 80px 0; text-align: center; font-size: 14px; }
 
+/* 分类标题区 */
+.learn-content-count {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 8px 0 0;
+}
+
+/* 文章卡片列表 */
 .learn-article-list { list-style: none; margin: 0; padding: 0; }
-.learn-article-item { padding: 18px 0; border-bottom: 1px solid #f0f0f0; }
-.learn-article-item a { font-size: 16px; font-weight: 600; color: #1a1a1a; cursor: pointer; }
-.learn-article-item a:hover { color: #FF2442; }
-.learn-article-summary { color: #666; font-size: 14px; margin: 6px 0 0; }
-.learn-article-meta { color: #999; font-size: 12px; margin-top: 6px; }
+.learn-article-card {
+  margin-bottom: 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+  transition: all 0.2s ease;
+}
+.learn-article-card:hover {
+  border-color: #FF2442;
+  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
+}
+.learn-article-card-link {
+  display: block;
+  padding: 16px 20px;
+  text-decoration: none;
+  color: inherit;
+}
+.learn-article-card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.learn-article-card:hover .learn-article-card-title { color: #FF2442; }
+.learn-article-card-summary {
+  font-size: 14px;
+  color: #595959;
+  margin: 6px 0 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.learn-article-card-meta {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+/* 空状态 */
+.learn-content-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 12px;
+  color: #8c8c8c;
+  text-align: center;
+}
+.learn-empty-icon {
+  font-size: 64px;
+  color: #FFE8EC;
+}
+.learn-empty-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.learn-empty-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+.learn-empty-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 8px;
+}
+.learn-empty-chip {
+  display: inline-block;
+  padding: 8px 16px;
+  border: 1px solid #eee;
+  border-radius: 9999px;
+  background: #fff;
+  color: #262626;
+  font-size: 14px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.learn-empty-chip:hover {
+  border-color: #FF2442;
+  color: #FF2442;
+}
 
 /* 上下篇导航 */
 .learn-nav {
