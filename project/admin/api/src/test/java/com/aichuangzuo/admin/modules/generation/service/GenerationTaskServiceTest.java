@@ -15,6 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -241,5 +242,40 @@ class GenerationTaskServiceTest {
 
         assertEquals(2, rows);
         verify(taskMapper).releaseExpiredLeases(any(LocalDateTime.class));
+    }
+
+    @Test
+    void renewLease_shouldExtendLeaseUntilByMinutes() {
+        when(taskMapper.renewLease(eq(1L), eq("worker-1"), any(LocalDateTime.class))).thenReturn(1);
+
+        LocalDateTime before = LocalDateTime.now();
+        taskService.renewLease(1L, "worker-1", 5);
+
+        ArgumentCaptor<LocalDateTime> captor = ArgumentCaptor.forClass(LocalDateTime.class);
+        verify(taskMapper).renewLease(eq(1L), eq("worker-1"), captor.capture());
+        // 续约目标时间应在 now+5min 附近（允许秒级误差）
+        assertTrue(captor.getValue().isAfter(before.plusMinutes(4)));
+        assertTrue(captor.getValue().isBefore(LocalDateTime.now().plusMinutes(6)));
+    }
+
+    @Test
+    void renewLease_shouldSwallowMapperException() {
+        when(taskMapper.renewLease(any(), any(), any(LocalDateTime.class)))
+                .thenThrow(new RuntimeException("db error"));
+        // 心跳失败不应抛出（不影响主流程）
+        assertDoesNotThrow(() -> taskService.renewLease(1L, "worker-1", 5));
+    }
+
+    @Test
+    void renewLease_shouldNoopWhenTaskIdNull() {
+        taskService.renewLease(null, "worker-1", 5);
+        verify(taskMapper, never()).renewLease(any(), any(), any(LocalDateTime.class));
+    }
+
+    @Test
+    void renewLease_shouldNoopWhenWorkerIdNull() {
+        // workerId 为 null 时 SQL 守卫必然不匹配，直接不调 mapper
+        taskService.renewLease(1L, null, 5);
+        verify(taskMapper, never()).renewLease(any(), any(), any(LocalDateTime.class));
     }
 }

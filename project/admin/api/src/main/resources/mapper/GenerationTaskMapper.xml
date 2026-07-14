@@ -31,6 +31,15 @@
           AND (lease_until IS NULL OR lease_until &lt; #{now})
     </update>
 
+    <!-- 续约 lease：仅 processing 且本 worker 持有时延长。心跳防慢模型被误判卡死。 -->
+    <update id="renewLease">
+        UPDATE a_generation_task
+        SET lease_until = #{leaseUntil}
+        WHERE id = #{id}
+          AND status = 1
+          AND locked_by = #{workerId}
+    </update>
+
     <!-- 找出需要归档的任务 ID 列表（completed / failed 且 retention_days 非空并过期） -->
     <select id="selectExpiredTaskIds" resultType="java.lang.Long">
         SELECT id

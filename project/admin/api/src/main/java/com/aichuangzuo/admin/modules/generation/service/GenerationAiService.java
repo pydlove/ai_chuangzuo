@@ -45,10 +45,11 @@ public class GenerationAiService {
         this.generationConfigService = generationConfigService;
         this.apiKeySecret = apiKeySecret;
         this.objectMapper = new ObjectMapper();
-        // generation 可能慢，默认 60s 超时
+        // 推理模型（MiniMax-M3）在整稿改写类 stage 上耗时较长：read 超时给足 180s，
+        // 避免「模型还在算，客户端先断」的假失败；connect 10s 足够发现网络不通。
         var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(60_000);
+        factory.setReadTimeout(180_000);
         this.restTemplate = new RestTemplate(factory);
     }
 

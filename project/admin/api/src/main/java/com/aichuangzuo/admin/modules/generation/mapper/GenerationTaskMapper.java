@@ -32,6 +32,19 @@ public interface GenerationTaskMapper extends BaseMapper<GenerationTask> {
     int releaseExpiredLeases(@Param("now") LocalDateTime now);
 
     /**
+     * 续约 lease：仅当任务仍处于 processing 且由该 worker 持有时才延长 lease_until。
+     *
+     * <p>心跳用——慢模型（MiniMax-M3）跑 12 阶段可能超过 lease_minutes，
+     * worker 每完成一个 stage 就续约一次，避免被同池其他 worker 误判卡死而
+     * 回收重提（重复处理）。WHERE 条件保证不会复活已被回收的任务。
+     *
+     * @return 影响行数（0 = 任务已非 processing 或非本 worker 持有，跳过）
+     */
+    int renewLease(@Param("id") Long id,
+                   @Param("workerId") String workerId,
+                   @Param("leaseUntil") LocalDateTime leaseUntil);
+
+    /**
      * 归档过期任务到 history（在事务中调用）。
      * 选取 completed/failed 且 (retention_days 是 null 不归档) + (created_at + retention_days < now) 的行。
      * 返回选中的 task id 列表，便于 service 层逐行迁 history 后从主表删除。

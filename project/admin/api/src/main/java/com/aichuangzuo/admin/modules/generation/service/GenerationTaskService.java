@@ -143,6 +143,32 @@ public class GenerationTaskService {
         return rows;
     }
 
+    /**
+     * 续约 lease（心跳）：worker 每完成一个 stage 调一次，把 lease_until 顺延
+     * {@code leaseMinutes} 分钟。慢模型（MiniMax-M3）跑全流程可能超过单个 lease
+     * 周期，心跳让活跃 worker 始终持有任务，避免被同池其他 worker 误判卡死回收、
+     * 重复处理。
+     *
+     * <p>底层 SQL 带 {@code status=1 AND locked_by=workerId} 守卫：任务已被回收 /
+     * 易主时影响 0 行，不会复活。失败仅记日志（续约失败不影响主流程）。
+     *
+     * @param taskId       任务 ID
+     * @param workerId     持有该任务的 worker（取 task.lockedBy，非当前配置）
+     * @param leaseMinutes 顺延分钟数
+     */
+    public void renewLease(Long taskId, String workerId, int leaseMinutes) {
+        if (taskId == null || workerId == null) return;
+        try {
+            int rows = mapper.renewLease(taskId, workerId,
+                    LocalDateTime.now().plusMinutes(leaseMinutes));
+            if (rows == 0) {
+                log.debug("task={} 续约跳过：非 processing 或非 {} 持有", taskId, workerId);
+            }
+        } catch (Exception e) {
+            log.warn("task={} 续约失败: {}", taskId, e.getMessage());
+        }
+    }
+
     private GenerationTask requireById(Long id) {
         GenerationTask task = mapper.selectById(id);
         if (task == null) throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_NOT_FOUND);

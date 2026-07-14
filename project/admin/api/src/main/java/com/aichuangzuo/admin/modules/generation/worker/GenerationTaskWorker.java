@@ -133,11 +133,20 @@ public class GenerationTaskWorker {
      */
     private void processOne(GenerationTask task) {
         Long taskId = task.getId();
+        // 续约心跳参数：用任务自身的 lockedBy（抢占者），lease 时长取当前配置
+        GenerationConfig cfg = configService.getCurrent();
+        int leaseMin = cfg.getLeaseMinutes() == null ? 5 : cfg.getLeaseMinutes();
+        String owner = task.getLockedBy();
         // ctx 提前创建：pipeline 抛异常时也要能拿到 AI 调用留痕落库
         GenerationContext ctx = new GenerationContext();
         try {
-            // 进度回调：每个 stage 完成后回写 progress_pct，user 端轮询可见
-            ctx = pipeline.runInto(ctx, task, (tid, pct) -> taskService.updateProgress(tid, pct));
+            // 进度回调：每个 stage 完成后回写 progress_pct（user 端轮询可见）
+            // 并顺手续约 lease——慢模型（MiniMax-M3）全流程可能超过单个 lease 周期，
+            // 心跳让活跃 worker 不被同池其他 worker 误判卡死而回收重提（重复处理）
+            ctx = pipeline.runInto(ctx, task, (tid, pct) -> {
+                taskService.updateProgress(tid, pct);
+                taskService.renewLease(tid, owner, leaseMin);
+            });
             if (ctx.getArticleBizNo() == null) {
                 throw new BusinessException(AdminGenerationErrorCode.GENERATION_ARTICLE_PERSIST_FAILED);
             }
