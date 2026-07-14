@@ -21,6 +21,17 @@
         <a-form-item label="摘要">
           <a-textarea v-model:value="form.summary" :rows="2" maxlength="255" />
         </a-form-item>
+        <a-form-item label="封面图链接">
+          <a-input v-model:value="form.coverImageUrl" maxlength="512" placeholder="https://... 图片 URL" />
+          <img
+            v-if="form.coverImageUrl"
+            :src="form.coverImageUrl"
+            class="cover-preview"
+            @error="coverImgError = true"
+            @load="coverImgError = false"
+          />
+          <div v-if="coverImgError" style="color: #ff4d4f; font-size: 12px; margin-top: 4px">图片加载失败，请检查链接</div>
+        </a-form-item>
         <a-form-item label="排序">
           <a-input-number v-model:value="form.sort" :min="0" />
           <span style="margin-left: 16px">
@@ -99,6 +110,7 @@ const form = reactive({
   categoryId: null,
   title: '',
   summary: '',
+  coverImageUrl: '',
   sort: 0,
   contentType: 'markdown',
   content: ''
@@ -107,6 +119,7 @@ const dirty = ref(false)
 const saving = ref(false)
 const importing = ref(false)
 const updatePublishedAt = ref(false)
+const coverImgError = ref(false)
 const originalStatus = ref(null)
 const switching = ref(false)
 
@@ -122,6 +135,7 @@ async function load() {
       categoryId: a.categoryId,
       title: a.title,
       summary: a.summary,
+      coverImageUrl: a.coverImageUrl || '',
       sort: a.sort,
       contentType: a.contentType,
       content: a.content
@@ -155,6 +169,7 @@ function buildPayload(target) {
     categoryId: form.categoryId,
     title: form.title,
     summary: form.summary,
+    coverImageUrl: form.coverImageUrl,
     sort: form.sort,
     contentType: form.contentType,
     content: form.content,
@@ -307,4 +322,5 @@ onMounted(load)
 
 <style scoped>
 .article-editor { padding: 0; }
+.cover-preview { margin-top: 8px; max-width: 240px; max-height: 135px; border-radius: 8px; display: block; }
 </style>

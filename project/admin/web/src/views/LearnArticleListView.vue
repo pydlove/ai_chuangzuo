@@ -39,7 +39,15 @@
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
+          <template v-if="column.key === 'coverImageUrl'">
+            <img
+              v-if="record.coverImageUrl"
+              :src="record.coverImageUrl"
+              style="width: 64px; height: 36px; object-fit: cover; border-radius: 4px; display: block"
+            />
+            <span v-else style="color: #bfbfbf">—</span>
+          </template>
+          <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 'published' ? 'green' : 'orange'">
               {{ record.status === 'published' ? '已发布' : '草稿' }}
             </a-tag>
@@ -107,6 +115,7 @@ function flatten(tree, depth = 0, acc = []) {
 }
 
 const columns = [
+  { title: '封面', key: 'coverImageUrl', width: 80 },
   { title: '标题', dataIndex: 'title', key: 'title', ellipsis: true },
   { title: '分类', key: 'category', customRender: ({ record }) => categoryNameMap.value[record.categoryId] || record.categoryId },
   { title: '类型', key: 'contentType', width: 100 },
