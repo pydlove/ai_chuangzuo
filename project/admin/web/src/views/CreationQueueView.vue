@@ -37,7 +37,7 @@
         :data-source="list"
         :loading="loading"
         :pagination="false"
-        :scroll="{ x: 1380 }"
+        :scroll="{ x: 1440 }"
         row-key="id"
         size="middle"
       >
@@ -66,6 +66,11 @@
           <template v-else-if="column.key === 'actions'">
             <a-space>
               <a-button
+                type="link"
+                size="small"
+                @click="openCallLogs(record)"
+              >执行过程</a-button>
+              <a-button
                 v-if="record.status !== 2"
                 type="link"
                 size="small"
@@ -89,6 +94,88 @@
         </template>
       </a-table>
 
+      <!-- 执行过程抽屉：12 阶段时间线（仅 AI 阶段有调用日志） -->
+      <a-drawer
+        v-model:open="callLogDrawer.open"
+        title="执行过程"
+        width="600"
+        :body-style="{ paddingTop: '8px' }"
+      >
+        <template #extra>
+          <span v-if="callLogDrawer.task" class="drawer-biz">
+            {{ callLogDrawer.task.bizNo }}
+          </span>
+        </template>
+
+        <a-spin :spinning="callLogDrawer.loading">
+          <a-alert
+            v-if="callLogDrawer.task"
+            type="info"
+            show-icon
+            class="drawer-tip"
+            :message="`规则/直通阶段（意图锚定、韵律检测、字数统计、导出渲染）不产生 AI 调用，故无单独日志；其余 AI 阶段全部可见。`"
+          />
+
+          <a-empty
+            v-if="!callLogDrawer.loading && !hasAnyCallLog"
+            description="该任务暂无调用日志（可能仍在执行中，或尚未开始）"
+          />
+
+          <a-timeline v-else class="stage-timeline">
+            <a-timeline-item
+              v-for="s in stageView"
+              :key="s.meta.index"
+              :color="s.color"
+            >
+              <div class="stage-head">
+                <span class="stage-name">{{ s.meta.index }}. {{ s.meta.name }}</span>
+                <a-tag :color="s.tagColor" class="stage-status">{{ s.status }}</a-tag>
+                <span v-if="s.meta.ai && s.attempts" class="stage-dur">
+                  {{ formatMs(s.totalDuration) }}
+                </span>
+                <span v-if="s.attempts > 1" class="stage-attempts">
+                  尝试 {{ s.attempts }} 次
+                </span>
+              </div>
+
+              <div v-if="!s.meta.ai" class="stage-note">规则/直通处理，无 AI 调用</div>
+
+              <div v-if="s.meta.ai && s.attempts === 0" class="stage-note">未执行</div>
+
+              <div v-if="s.errorText" class="stage-error">{{ s.errorText }}</div>
+
+              <a-collapse
+                v-if="s.meta.ai && s.attempts"
+                ghost
+                size="small"
+                class="stage-collapse"
+              >
+                <a-collapse-panel key="detail" header="查看 prompt / AI 返回">
+                  <div
+                    v-for="log in s.logs"
+                    :key="log.id"
+                    class="attempt-block"
+                  >
+                    <div class="attempt-title">
+                      第 {{ log.attempt }} 次 ·
+                      <span :class="log.success ? 'ok' : 'ng'">
+                        {{ log.success ? '成功' : '失败' }}
+                      </span>
+                      · {{ formatMs(log.durationMs) }} · {{ formatTime(log.calledAt) }}
+                    </div>
+                    <div v-if="log.error" class="attempt-error">{{ log.error }}</div>
+                    <div class="attempt-label">发送 prompt（预览）</div>
+                    <pre class="attempt-preview">{{ log.userMsgPreview || '-' }}</pre>
+                    <div class="attempt-label">AI 返回（预览）</div>
+                    <pre class="attempt-preview">{{ log.responsePreview || '-' }}</pre>
+                  </div>
+                </a-collapse-panel>
+              </a-collapse>
+            </a-timeline-item>
+          </a-timeline>
+        </a-spin>
+      </a-drawer>
+
       <div class="pagination">
         <a-pagination
           :current="page"
@@ -106,9 +193,11 @@
 </template>
 
 <script setup>
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, reactive } from 'vue'
+import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useCreationQueue } from '@/composables/useCreationQueue.js'
+import { getGenerationCallLogsGrouped } from '@/api/creationQueue.js'
 
 const {
   list,
@@ -129,6 +218,111 @@ const {
   handleMarkFailed,
   startAutoRefresh
 } = useCreationQueue()
+
+// ===== 执行过程抽屉 =====
+// 12 阶段元信息（与后端 PipelineStage 一一对应）。ai=true 的阶段才产生调用日志。
+const STAGE_META = [
+  { index: 1, key: 'intent_anchor', name: '意图锚定', ai: false },
+  { index: 2, key: 'outline', name: '结构骨架', ai: true },
+  { index: 3, key: 'material_list', name: '素材清单', ai: true },
+  { index: 4, key: 'draft', name: '分块初稿', ai: true },
+  { index: 5, key: 'rhythm_detect', name: '韵律检测', ai: false },
+  { index: 6, key: 'rhythm_rewrite', name: '韵律改写', ai: true },
+  { index: 7, key: 'external_review', name: '外部审视', ai: true },
+  { index: 8, key: 'targeted_rewrite', name: '定向改写', ai: true },
+  { index: 9, key: 'rhythm_polish', name: '节奏打磨', ai: true },
+  { index: 10, key: 'word_count', name: '字数统计', ai: false },
+  { index: 11, key: 'word_adjust', name: '字数调整', ai: true },
+  { index: 12, key: 'export_render', name: '导出模板渲染', ai: false }
+]
+
+const callLogDrawer = reactive({
+  open: false,
+  loading: false,
+  task: null,
+  grouped: {} // { "2": [log,...], ... }
+})
+
+const openCallLogs = async (record) => {
+  callLogDrawer.task = record
+  callLogDrawer.grouped = {}
+  callLogDrawer.open = true
+  callLogDrawer.loading = true
+  try {
+    const data = await getGenerationCallLogsGrouped(record.id)
+    callLogDrawer.grouped = data || {}
+  } catch (e) {
+    message.error(e.message || '加载调用日志失败')
+  } finally {
+    callLogDrawer.loading = false
+  }
+}
+
+// 把分组日志 + stage 元信息合并成时间线视图模型
+const stageView = computed(() => {
+  const grouped = callLogDrawer.grouped || {}
+  return STAGE_META.map((meta) => {
+    const logs = grouped[meta.index] || grouped[String(meta.index)] || []
+    const attempts = logs.length
+    const anySuccess = logs.some((l) => l.success)
+    const totalDuration = logs.reduce((sum, l) => sum + (l.durationMs || 0), 0)
+    const lastFailed = [...logs].reverse().find((l) => !l.success)
+
+    let status
+    let color
+    let tagColor
+    if (!meta.ai) {
+      status = '规则/直通'
+      color = 'gray'
+      tagColor = 'default'
+    } else if (attempts === 0) {
+      status = '未执行'
+      color = 'gray'
+      tagColor = 'default'
+    } else if (anySuccess) {
+      status = '成功'
+      color = 'green'
+      tagColor = 'success'
+    } else {
+      status = '失败'
+      color = 'red'
+      tagColor = 'error'
+    }
+
+    return {
+      meta,
+      logs,
+      attempts,
+      totalDuration,
+      status,
+      color,
+      tagColor,
+      errorText: lastFailed ? lastFailed.error : ''
+    }
+  })
+})
+
+const hasAnyCallLog = computed(() =>
+  Object.values(callLogDrawer.grouped || {}).some((arr) => Array.isArray(arr) && arr.length > 0)
+)
+
+const formatMs = (ms) => {
+  if (ms == null) return '-'
+  if (ms < 1000) return `${ms}ms`
+  const s = ms / 1000
+  if (s < 60) return `${s.toFixed(1)}s`
+  const m = Math.floor(s / 60)
+  const rs = Math.round(s % 60)
+  return `${m}m${rs}s`
+}
+
+const formatTime = (t) => {
+  if (!t) return '-'
+  // calledAt 形如 2026-07-14T14:18:29，取时分秒即可
+  const str = String(t)
+  const m = str.match(/T(\d{2}:\d{2}:\d{2})/)
+  return m ? m[1] : str
+}
 
 // 当前 active tab key
 const activeTabKey = computed(() => {
@@ -151,7 +345,7 @@ const columns = computed(() => {
     { title: '重试', key: 'retry', width: 90 },
     { title: '失败原因', key: 'failedReason', width: 200 },
     { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: '操作', key: 'actions', fixed: 'right', width: 240 }
+    { title: '操作', key: 'actions', fixed: 'right', width: 300 }
   ]
   return base
 })
@@ -230,5 +424,102 @@ onMounted(() => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+/* ===== 执行过程抽屉 ===== */
+.drawer-biz {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.drawer-tip {
+  margin-bottom: 12px;
+}
+.stage-timeline {
+  margin-top: 8px;
+  padding-left: 4px;
+}
+.stage-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.stage-name {
+  font-weight: 600;
+  color: #262626;
+}
+.stage-status {
+  margin: 0;
+}
+.stage-dur {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.stage-attempts {
+  font-size: 12px;
+  color: #fa8c16;
+}
+.stage-note {
+  font-size: 12px;
+  color: #bfbfbf;
+  margin-top: 2px;
+}
+.stage-error {
+  font-size: 12px;
+  color: #cf1322;
+  margin-top: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.stage-collapse {
+  margin-top: 4px;
+}
+.stage-collapse :deep(.ant-collapse-header) {
+  padding: 4px 0;
+  font-size: 12px;
+  color: #1677ff;
+}
+.attempt-block {
+  border-left: 2px solid #f0f0f0;
+  padding: 4px 0 8px 12px;
+  margin-bottom: 8px;
+}
+.attempt-title {
+  font-size: 12px;
+  color: #595959;
+  margin-bottom: 4px;
+}
+.attempt-title .ok {
+  color: #52c41a;
+}
+.attempt-title .ng {
+  color: #cf1322;
+}
+.attempt-error {
+  font-size: 12px;
+  color: #cf1322;
+  margin-bottom: 6px;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.attempt-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin: 6px 0 2px;
+}
+.attempt-preview {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  color: #434343;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 6px 8px;
+  margin: 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 160px;
+  overflow-y: auto;
 }
 </style>

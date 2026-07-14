@@ -15,3 +15,11 @@ export const releaseGenerationTaskLease = (id) =>
 /** 手动标记失败。 */
 export const markGenerationTaskFailed = (id, reason) =>
   request.post(`/api/v1/admin/generation/tasks/${id}/mark-failed`, { reason }).then((res) => res.data)
+
+/**
+ * 查某任务的 AI 调用日志（按 stage 分组）。
+ * 返回 { "2": [log, ...], "3": [...], ... }，key 为 stageIndex（JSON 里是字符串）。
+ * 仅 AI 阶段（2,3,4,6,7,8,9,11）有日志；规则/直通阶段（1,5,10,12）不产生。
+ */
+export const getGenerationCallLogsGrouped = (taskId) =>
+  request.get(`/api/v1/admin/generation/call-logs/by-task/${taskId}/grouped`).then((res) => res.data)
