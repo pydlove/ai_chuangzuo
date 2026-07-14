@@ -37,9 +37,19 @@
             </a-carousel>
           </div>
 
+          <!-- 学院简介 -->
+          <div class="learn-intro">
+            <p class="learn-intro-text">
+              创作学院是爱创作为自媒体创作者打造的实战学习平台，涵盖内容定位、平台运营、爆款方法论等核心主题，帮助你从 0 到 1 建立系统化的内容创作能力。
+            </p>
+          </div>
+
           <!-- 推荐分类 -->
           <div v-if="recommendedCategories.length" class="learn-recommend-section">
-            <h2 class="learn-recommend-title">推荐分类</h2>
+            <div class="learn-recommend-header">
+              <h2 class="learn-recommend-title">推荐分类</h2>
+              <span class="learn-recommend-desc">精选核心主题，快速找到你感兴趣的方向</span>
+            </div>
             <div class="learn-recommend-grid">
               <a
                 v-for="cat in recommendedCategories"
@@ -350,14 +360,26 @@ body[data-theme="dark"] .learn-footer span + span::before {
 .learn-banner-slide { height: auto; }
 .learn-banner-img { width: 100%; height: auto; display: block; }
 
+/* 学院简介 */
+.learn-intro { margin-bottom: 24px; }
+.learn-intro-text {
+  font-size: 14px; line-height: 1.8; color: #595959; margin: 0;
+}
+
 /* 推荐分类 */
 .learn-recommend-section { margin-bottom: 24px; }
+.learn-recommend-header {
+  display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px;
+}
 .learn-recommend-title {
-  font-size: 16px; font-weight: 600; color: #1a1a1a; margin: 0 0 12px;
+  font-size: 16px; font-weight: 600; color: #1a1a1a; margin: 0;
+}
+.learn-recommend-desc {
+  font-size: 13px; color: #8c8c8c;
 }
 .learn-recommend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 12px;
 }
 .learn-recommend-card {
