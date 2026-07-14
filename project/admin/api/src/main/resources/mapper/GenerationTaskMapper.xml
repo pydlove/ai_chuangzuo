@@ -17,7 +17,9 @@
         FOR UPDATE SKIP LOCKED
     </select>
 
-    <!-- 释放 lease 过期：回 queued，重置 locked_by -->
+    <!-- 释放 lease 已过期或缺失的 processing 任务：回 queued，重置 locked_by。
+         lease_until IS NULL 是历史脏数据（旧版 updateProgress 曾把 lease 清空），
+         正常链路不存在 status=1 且 lease 为空的瞬态，放宽条件可自愈。 -->
     <update id="releaseExpiredLeases">
         UPDATE a_generation_task
         SET status = 0,
@@ -26,8 +28,7 @@
             lease_until = NULL,
             retry_count = retry_count + 1
         WHERE status = 1
-          AND lease_until IS NOT NULL
-          AND lease_until &lt; #{now}
+          AND (lease_until IS NULL OR lease_until &lt; #{now})
     </update>
 
     <!-- 找出需要归档的任务 ID 列表（completed / failed 且 retention_days 非空并过期） -->

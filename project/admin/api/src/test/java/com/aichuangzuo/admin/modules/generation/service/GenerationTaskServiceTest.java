@@ -133,18 +133,49 @@ class GenerationTaskServiceTest {
 
     @Test
     void updateProgress_shouldClampAndPersist() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        when(taskMapper.selectById(1L)).thenReturn(task);
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+
         taskService.updateProgress(1L, 50);
 
         verify(taskMapper).updateById(captor.capture());
         assertEquals(1L, captor.getValue().getId());
         assertEquals(50, captor.getValue().getProgressPct());
-        // worker 线程无登录上下文，必须显式带 updatedBy，否则 NOT NULL 列报错
+        // worker 线程无登录上下文，updatedBy 兜底置 0，否则 NOT NULL 列报错
         assertEquals(0L, captor.getValue().getUpdatedBy());
     }
 
     @Test
+    void updateProgress_shouldPreserveLeaseFields() {
+        // 回归：裸实体局部更新曾把 lockedAt/lockedBy/leaseUntil（IGNORED 策略）写成 NULL，
+        // 导致 releaseExpiredLeases 永远回收不了 → 任务卡死
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        task.setLockedBy("worker-1");
+        LocalDateTime lockedAt = LocalDateTime.now();
+        LocalDateTime leaseUntil = lockedAt.plusMinutes(5);
+        task.setLockedAt(lockedAt);
+        task.setLeaseUntil(leaseUntil);
+        task.setUpdatedBy(0L);
+        when(taskMapper.selectById(1L)).thenReturn(task);
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+
+        taskService.updateProgress(1L, 30);
+
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals("worker-1", captor.getValue().getLockedBy());
+        assertEquals(lockedAt, captor.getValue().getLockedAt());
+        assertEquals(leaseUntil, captor.getValue().getLeaseUntil());
+    }
+
+    @Test
     void updateProgress_shouldClampOverRange() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        when(taskMapper.selectById(1L)).thenReturn(task);
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
 
         taskService.updateProgress(1L, 150);
@@ -154,6 +185,9 @@ class GenerationTaskServiceTest {
 
     @Test
     void updateProgress_shouldClampNegative() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        when(taskMapper.selectById(1L)).thenReturn(task);
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
 
         taskService.updateProgress(1L, -10);
@@ -168,7 +202,17 @@ class GenerationTaskServiceTest {
     }
 
     @Test
+    void updateProgress_shouldSkipWhenTaskNotFound() {
+        when(taskMapper.selectById(99L)).thenReturn(null);
+        taskService.updateProgress(99L, 50);
+        verify(taskMapper, never()).updateById(any(GenerationTask.class));
+    }
+
+    @Test
     void updateProgress_shouldSwallowMapperException() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        when(taskMapper.selectById(1L)).thenReturn(task);
         when(taskMapper.updateById(any(GenerationTask.class))).thenThrow(new RuntimeException("db error"));
         // 进度回写失败不应抛出（不影响主流程）
         assertDoesNotThrow(() -> taskService.updateProgress(1L, 50));

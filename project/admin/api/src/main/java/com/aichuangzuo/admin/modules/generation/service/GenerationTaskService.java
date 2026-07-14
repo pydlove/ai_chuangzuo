@@ -103,8 +103,11 @@ public class GenerationTaskService {
     /**
      * 实时回写任务进度（worker 每个 stage 完成后回调）。
      *
-     * <p>不重试 / 不改 status：纯字段更新，避免和 status 状态机冲突。
-     * 失败时仅记录日志（进度丢失不影响任务最终成功 / 失败判定）。
+     * <p>必须先 selectById 再 updateById：lockedAt/lockedBy/leaseUntil 是
+     * {@code updateStrategy=IGNORED}（永远进 SET 子句），用裸实体局部更新会把
+     * lease 三个字段写成 NULL，导致 releaseExpiredLeases 永远回收不了该任务。
+     *
+     * <p>失败时仅记录日志（进度丢失不影响任务最终成功 / 失败判定）。
      *
      * @param taskId 任务 ID
      * @param pct    0-100 累计进度
@@ -114,11 +117,14 @@ public class GenerationTaskService {
         if (taskId == null) return;
         int clamped = Math.max(0, Math.min(100, pct));
         try {
-            GenerationTask task = new GenerationTask();
-            task.setId(taskId);
+            GenerationTask task = mapper.selectById(taskId);
+            if (task == null) {
+                log.warn("task={} 进度回写跳过：任务不存在", taskId);
+                return;
+            }
             task.setProgressPct(clamped);
-            // worker 线程无登录上下文，MetaObjectHandler 不会填 updatedBy；显式置 0（=system，同 insertFill 约定）
-            task.setUpdatedBy(0L);
+            // worker 线程无登录上下文；库里老数据 updatedBy 不会为 null，这里仅兜底
+            if (task.getUpdatedBy() == null) task.setUpdatedBy(0L);
             mapper.updateById(task);
             log.debug("task={} 进度回写 progressPct={}", taskId, clamped);
         } catch (Exception e) {
