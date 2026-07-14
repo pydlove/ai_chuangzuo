@@ -21,6 +21,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class GenerationTaskService {
 
+    /** failed_reason 列长 VARCHAR(512)；错误消息常嵌 AI 原文，超长需截断否则 update 直接失败。 */
+    private static final int MAX_FAILED_REASON_LEN = 512;
+
     private final GenerationTaskMapper mapper;
 
     /**
@@ -73,7 +76,7 @@ public class GenerationTaskService {
     @Transactional
     public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired) {
         GenerationTask task = requireById(taskId);
-        task.setFailedReason(reason);
+        task.setFailedReason(truncateReason(reason));
 
         int nextRetry = (task.getRetryCount() == null ? 0 : task.getRetryCount()) + 1;
         task.setRetryCount(nextRetry);
@@ -138,5 +141,10 @@ public class GenerationTaskService {
         GenerationTask task = mapper.selectById(id);
         if (task == null) throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_NOT_FOUND);
         return task;
+    }
+
+    private static String truncateReason(String reason) {
+        if (reason == null || reason.length() <= MAX_FAILED_REASON_LEN) return reason;
+        return reason.substring(0, MAX_FAILED_REASON_LEN);
     }
 }

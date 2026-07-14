@@ -160,10 +160,14 @@ public final class PipelineUtils {
         String t = s.trim();
         if (t.startsWith("```")) {
             int firstNewline = t.indexOf('\n');
+            if (firstNewline < 0) return t;
             int lastFence = t.lastIndexOf("```");
-            if (firstNewline >= 0 && lastFence > firstNewline) {
+            if (lastFence > firstNewline) {
                 return t.substring(firstNewline + 1, lastFence).trim();
             }
+            // 无闭合围栏（模型只写了开头 ```json，或输出被 max_tokens 截断）：
+            // 去掉首行围栏再尝试解析，JSON 完整即可恢复
+            return t.substring(firstNewline + 1).trim();
         }
         return t;
     }

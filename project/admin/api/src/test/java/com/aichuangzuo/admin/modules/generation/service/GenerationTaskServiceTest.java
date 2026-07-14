@@ -175,6 +175,21 @@ class GenerationTaskServiceTest {
     }
 
     @Test
+    void markFailed_shouldTruncateOverlongReason() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        when(taskMapper.selectById(1L)).thenReturn(task);
+
+        String longReason = "AI 返回 JSON 解析失败: " + "x".repeat(2000);
+        taskService.markFailed(1L, longReason, false);
+
+        assertNotNull(task.getFailedReason());
+        assertEquals(512, task.getFailedReason().length());
+        assertTrue(task.getFailedReason().startsWith("AI 返回 JSON 解析失败"));
+    }
+
+    @Test
     void releaseExpiredLeases_shouldReturnUpdatedRows() {
         when(taskMapper.releaseExpiredLeases(any(LocalDateTime.class))).thenReturn(2);
 
