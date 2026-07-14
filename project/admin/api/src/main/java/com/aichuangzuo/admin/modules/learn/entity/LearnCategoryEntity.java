@@ -26,4 +26,7 @@ public class LearnCategoryEntity extends BaseEntity {
 
     /** 排序值，升序展示 */
     private Integer sort;
+
+    /** 是否推荐：0=否 1=是 */
+    private Integer isRecommended;
 }

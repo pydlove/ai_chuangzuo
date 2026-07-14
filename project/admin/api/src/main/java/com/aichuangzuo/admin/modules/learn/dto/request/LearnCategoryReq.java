@@ -15,4 +15,7 @@ public class LearnCategoryReq {
     private String name;
 
     private Integer sort = 0;
+
+    /** 是否推荐：0=否 1=是 */
+    private Integer isRecommended = 0;
 }

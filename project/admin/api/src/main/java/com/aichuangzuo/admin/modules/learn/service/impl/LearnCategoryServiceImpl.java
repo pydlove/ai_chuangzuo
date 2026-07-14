@@ -39,6 +39,7 @@ public class LearnCategoryServiceImpl implements LearnCategoryService {
                     n.setParentId(e.getParentId());
                     n.setName(e.getName());
                     n.setSort(e.getSort());
+                    n.setIsRecommended(e.getIsRecommended());
                     return n;
                 }));
 
@@ -85,6 +86,7 @@ public class LearnCategoryServiceImpl implements LearnCategoryService {
         exist.setParentId(req.getParentId());
         exist.setName(req.getName());
         exist.setSort(req.getSort() != null ? req.getSort() : 0);
+        exist.setIsRecommended(req.getIsRecommended() != null ? req.getIsRecommended() : 0);
         mapper.updateById(exist);
     }
 
