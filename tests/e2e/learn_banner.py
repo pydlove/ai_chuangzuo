@@ -71,11 +71,20 @@ def main():
         page2.goto(f"{USER_URL}/learn")
         time.sleep(2.0)
         page2.screenshot(path=SCREENSHOTS_DIR / "04-mobile.png", full_page=True)
-        # banner 图片高度应为 160px
+        # banner 图片应完整显示（width:100% height:auto，无裁剪）
         if page2.locator('.learn-banner-img').count() > 0:
             box = page2.locator('.learn-banner-img').first.bounding_box()
-            assert box['height'] <= 170, f"mobile banner height should be ~160px, got {box['height']}"
-            print("PASS: mobile banner height correct")
+            assert box['height'] > 0, "banner image should be visible"
+            # 确认图片按自然比例缩放（width:100% + height:auto），宽高比应与原图一致
+            dims = page2.evaluate("""() => {
+                const img = document.querySelector('.learn-banner-img');
+                return { natW: img.naturalWidth, natH: img.naturalHeight, w: img.width, h: img.height };
+            }""")
+            nat_ratio = dims['natW'] / dims['natH']
+            rendered_ratio = dims['w'] / dims['h']
+            assert abs(nat_ratio - rendered_ratio) < 0.05, \
+                f"aspect ratio mismatch: natural={nat_ratio:.2f} rendered={rendered_ratio:.2f}"
+            print("PASS: mobile banner fully visible")
         ctx2.close()
 
         browser.close()

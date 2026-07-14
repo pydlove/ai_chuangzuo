@@ -341,8 +341,8 @@ body[data-theme="dark"] .learn-footer span + span::before {
 /* Banner 轮播 */
 .learn-banner-section { margin-bottom: 24px; }
 .learn-banner-carousel { border-radius: 12px; overflow: hidden; }
-.learn-banner-slide { height: 280px; }
-.learn-banner-img { width: 100%; height: 280px; object-fit: cover; display: block; }
+.learn-banner-slide { height: auto; }
+.learn-banner-img { width: 100%; height: auto; display: block; }
 
 /* 推荐分类 */
 .learn-recommend-section { margin-bottom: 24px; }
@@ -384,7 +384,6 @@ body[data-theme="dark"] .learn-footer span + span::before {
 .learn-empty-subtitle { font-size: 13px; color: #8c8c8c; }
 
 @media (max-width: 991px) {
-  .learn-banner-slide,
-  .learn-banner-img { height: 160px; }
+  .learn-banner-section { margin-bottom: 16px; }
 }
 </style>
