@@ -27,7 +27,17 @@
         <template v-if="isEmptyState">
           <!-- Banner 轮播 -->
           <div v-if="banners.length" class="learn-banner-section">
-            <a-carousel autoplay :dots="true" dot-position="bottom" class="learn-banner-carousel">
+            <a-carousel autoplay arrows :dots="true" dot-position="bottom" class="learn-banner-carousel">
+              <template #prevArrow>
+                <div class="learn-banner-arrow learn-banner-arrow-prev">
+                  <LeftOutlined />
+                </div>
+              </template>
+              <template #nextArrow>
+                <div class="learn-banner-arrow learn-banner-arrow-next">
+                  <RightOutlined />
+                </div>
+              </template>
               <div v-for="b in banners" :key="b.id" class="learn-banner-slide">
                 <a v-if="b.linkUrl" :href="b.linkUrl" target="_blank" rel="noopener">
                   <img :src="b.imageUrl" :alt="'banner-' + b.id" class="learn-banner-img" />
@@ -124,7 +134,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners } from '@/api/learn'
 import { CATEGORY_ICONS } from '@/components/learn/learnCategoryIcons'
-import { ReadOutlined, BulbOutlined } from '@ant-design/icons-vue'
+import { ReadOutlined, BulbOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import LearnSidebar from '@/components/learn/LearnSidebar.vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
@@ -363,7 +373,43 @@ body[data-theme="dark"] .learn-footer span + span::before {
 
 /* Banner 轮播 */
 .learn-banner-section { margin-bottom: 24px; }
-.learn-banner-carousel { border-radius: 12px; overflow: hidden; }
+.learn-banner-carousel { border-radius: 12px; }
+.learn-banner-carousel :deep(.slick-list) { border-radius: 12px; overflow: hidden; }
+.learn-banner-carousel :deep(.slick-arrow) {
+  z-index: 2;
+  width: 40px; height: 40px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+}
+.learn-banner-carousel :deep(.slick-arrow) { font-size: 0; }
+.learn-banner-arrow {
+  width: 40px; height: 40px;
+  background: rgba(255,255,255,0.9);
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  color: #333;
+  transition: all 0.2s ease;
+}
+.learn-banner-arrow:hover {
+  background: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  color: #FF2442;
+}
+.learn-banner-carousel :deep(.slick-dots li button) {
+  background: rgba(255,255,255,0.5);
+  width: 8px; height: 8px;
+  border-radius: 50%;
+}
+.learn-banner-carousel :deep(.slick-dots li.slick-active button) {
+  background: #FF2442;
+  width: 20px;
+  border-radius: 4px;
+}
 .learn-banner-slide { height: auto; }
 .learn-banner-img { width: 100%; height: auto; display: block; }
 
