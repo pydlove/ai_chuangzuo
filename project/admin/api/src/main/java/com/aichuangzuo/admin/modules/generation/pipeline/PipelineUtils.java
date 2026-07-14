@@ -1,8 +1,10 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
 import com.aichuangzuo.admin.modules.generation.service.PromptTemplateRenderService;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -15,7 +17,11 @@ import java.util.Map;
  */
 public final class PipelineUtils {
 
-    private static final ObjectMapper MAPPER = new ObjectMapper();
+    // ALLOW_UNESCAPED_CONTROL_CHARS：MiniMax-M3 等模型常在字符串值里写字面换行/制表符
+    // （未转义控制字符，code 9/10/13），Jackson 严格模式会拒收；开启后读成 \n/\t 原样保留。
+    private static final ObjectMapper MAPPER = JsonMapper.builder()
+            .configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS, true)
+            .build();
     private static final PromptTemplateRenderService RENDER = new PromptTemplateRenderService();
 
     private PipelineUtils() {
@@ -131,6 +137,9 @@ public final class PipelineUtils {
 
     /**
      * 解析 AI 返回的 JSON 字符串：先去掉 ```json 围栏，再 parse。
+     *
+     * <p>底层 MAPPER 已开启 {@code ALLOW_UNESCAPED_CONTROL_CHARS}，容忍字符串值内的
+     * 字面换行/制表符（模型常把多行文本直接写进 value，不转义成 \n）。
      *
      * <p>解析失败时会尝试 {@link #repairInnerQuotes(String)} 兜底：MiniMax-M3 等中文
      * 模型有时在字符串值里直接写裸 "（如 "30岁" 这种引用），破坏 JSON 结构；这里

@@ -78,4 +78,21 @@ class PipelineUtilsTest {
         assertThrows(RuntimeException.class,
                 () -> PipelineUtils.parseAiJson("{\"a\": [1, 2"));
     }
+
+    @Test
+    void parseAiJson_shouldTolerateLiteralNewlineInString() {
+        // 用户实际报错样本：stage 3 material-list 的字符串值里夹了字面换行符
+        // （CTRL-CHAR code 10），Jackson 严格模式拒绝。应容忍并读成 \n
+        String broken = "{\"description\": \"第一行\n第二行\"}";
+        JsonNode root = PipelineUtils.parseAiJson(broken);
+        assertEquals("第一行\n第二行", root.path("description").asText());
+    }
+
+    @Test
+    void parseAiJson_shouldTolerateLiteralTabInString() {
+        // 制表符（code 9）同属未转义控制字符，一并容忍
+        String broken = "{\"description\": \"列一\t列二\"}";
+        JsonNode root = PipelineUtils.parseAiJson(broken);
+        assertEquals("列一\t列二", root.path("description").asText());
+    }
 }
