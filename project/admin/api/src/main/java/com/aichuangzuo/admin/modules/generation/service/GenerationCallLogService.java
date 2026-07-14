@@ -2,13 +2,17 @@ package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.entity.GenerationCallLog;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
+import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.pipeline.AiCallRecord;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
+import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogGroupedVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogVO;
+import com.aichuangzuo.shared.entity.GenerationTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,22 +21,24 @@ import java.util.Map;
 /**
  * 创作 AI 调用日志服务。
  *
- * <p>每次 pipeline 跑完后（成功 or 失败）由 worker 调 {@link #persistAll(GenerationContext)}
- * 把 ctx 里所有 AI 调用记录批量落库。
+ * <p>每次 pipeline 阶段完成后及 pipeline 结束时由 worker 调 {@link #persistAll(GenerationContext)}
+ * 把 ctx 里当前累积的 AI 调用记录全量替换落库（先删后插，幂等）。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GenerationCallLogService {
 
-    private static final int PREVIEW_LEN = 200;
-
     private final GenerationCallLogMapper mapper;
+    private final GenerationTaskMapper taskMapper;
 
     /**
-     * 把 ctx.aiCallHistory 全量落库。taskId 必传（worker 兜底设过）。
+     * 把 ctx.aiCallHistory 全量同步到库。taskId 必传（worker 兜底设过）。
+     * 采用先删除该任务旧记录、再批量插入当前全部记录的方式，保证同一任务多次调用幂等。
+     *
      * @return 插入条数
      */
+    @Transactional
     public int persistAll(GenerationContext ctx) {
         if (ctx == null || ctx.getTask() == null) return 0;
         if (ctx.getAiCallHistory() == null || ctx.getAiCallHistory().isEmpty()) return 0;
@@ -49,17 +55,16 @@ public class GenerationCallLogService {
             row.setError(truncate(rec.getError(), 500));
             row.setDurationMs((int) Math.min(rec.getDurationMs(), Integer.MAX_VALUE));
             row.setCalledAt(rec.getCalledAt());
-            row.setUserMsgPreview(extractUserMsgPreview(ctx, rec));
-            row.setResponsePreview(rec.isSuccess()
-                    ? truncate(rec.getStepName() + ":" + extractResponse(ctx, rec), PREVIEW_LEN)
-                    : null);
+            row.setUserMsg(rec.getUserMsg());
+            row.setResponseContent(rec.getResponseContent());
             row.setTenantId(0L);
             rows.add(row);
         }
-        int n = mapper.batchInsert(rows);
-        log.info("call log 落库 task={} rows={} aiUsed={} aiFailed={} retried={}",
-                taskId, n, ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallRetried());
-        return n;
+        int deleted = mapper.deleteByTaskId(taskId);
+        int inserted = mapper.batchInsert(rows);
+        log.info("call log 落库 task={} deleted={} rows={} aiUsed={} aiFailed={} retried={}",
+                taskId, deleted, inserted, ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallRetried());
+        return inserted;
     }
 
     /**
@@ -79,74 +84,23 @@ public class GenerationCallLogService {
 
     /**
      * 查某任务所有记录，按 stage 分组（key=stageIndex，value=该 stage 的所有 attempt 记录）。
-     * 方便前端展示「stage 4 调了 2 次：第 1 次失败 timeout，第 2 次成功」。
+     * 顺带返回任务当前 status，前端用于判断是否继续轮询。
      */
-    public Map<Integer, List<GenerationCallLogVO>> queryByTaskIdGrouped(Long taskId) {
+    public GenerationCallLogGroupedVO queryByTaskIdGrouped(Long taskId) {
         List<GenerationCallLogVO> all = queryByTaskId(taskId);
         Map<Integer, List<GenerationCallLogVO>> grouped = new java.util.TreeMap<>();
         for (GenerationCallLogVO v : all) {
             grouped.computeIfAbsent(v.getStageIndex(), k -> new ArrayList<>()).add(v);
         }
-        return grouped;
+        GenerationCallLogGroupedVO vo = new GenerationCallLogGroupedVO();
+        vo.setGrouped(grouped);
+        GenerationTask task = taskMapper.selectById(taskId);
+        vo.setTaskStatus(task == null || task.getStatus() == null ? null : task.getStatus().getCode());
+        return vo;
     }
 
     private static String truncate(String s, int n) {
         if (s == null) return null;
         return s.length() > n ? s.substring(0, n) : s;
-    }
-
-    /**
-     * 从 ctx 的「最后一次 user msg」截取对应 stage 的前 200 字作为 preview。
-     * 简化：直接用 ctx 里 stage 的 last user prompt（如果有）。
-     */
-    private String extractUserMsgPreview(GenerationContext ctx, AiCallRecord rec) {
-        // ctx 里没有保留每次的 user msg（只有 aiPrompt 模板），preview 只能从模板名 + stage 信息凑
-        String stageKey = rec.getStepName() == null ? "?" : rec.getStepName();
-        String aiPrompt = ctx.stageAiPrompt(rec.getStageIndex());
-        if (aiPrompt == null || aiPrompt.isBlank()) {
-            return "[stage " + rec.getStageIndex() + " " + stageKey + "]";
-        }
-        return truncate("[stage " + rec.getStageIndex() + " " + stageKey + "] " + aiPrompt, PREVIEW_LEN);
-    }
-
-    private String extractResponse(GenerationContext ctx, AiCallRecord rec) {
-        // ctx 没有存每次的 response；返回 stage 的「最新产出」作为参考
-        int idx = rec.getStageIndex();
-        switch (idx) {
-            case 1: return ctx.getUserContextBlock();
-            case 2: return ctx.getOutlineJson();
-            case 3: return ctx.getMaterialsJson();
-            case 4: return ctx.getDraftJson();
-            case 6: return ctx.getDraftAfterRhythmJson();
-            case 8: return ctx.getDraftAfterTargetedJson();
-            case 9: return ctx.getFinalDraftJson();
-            case 11: return ctx.getWordAdjustResult() == null ? null
-                    : (ctx.getWordAdjustResult().getAction() + " " + ctx.getWordAdjustResult().getReason());
-            case 7: {
-                StringBuilder sb = new StringBuilder("[");
-                if (ctx.getToxicComments() != null) {
-                    for (int i = 0; i < ctx.getToxicComments().size(); i++) {
-                        if (i > 0) sb.append(",");
-                        sb.append(ctx.getToxicComments().get(i).getToxicComment());
-                    }
-                }
-                return sb.append("]").toString();
-            }
-            case 5: {
-                StringBuilder sb = new StringBuilder("[");
-                if (ctx.getRhythmIssues() != null) {
-                    for (int i = 0; i < ctx.getRhythmIssues().size(); i++) {
-                        if (i > 0) sb.append(",");
-                        sb.append(ctx.getRhythmIssues().get(i).getSuggestion());
-                    }
-                }
-                return sb.append("]").toString();
-            }
-            case 10: return ctx.getWordStats() == null ? null
-                    : (ctx.getWordStats().getActual() + "/" + ctx.getWordStats().getTarget());
-            case 12: return ctx.getExportResult() == null ? null
-                    : ctx.getExportResult().getRenderedDocument();
-            default: return null;
-        }
     }
 }
