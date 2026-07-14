@@ -2,90 +2,109 @@
   <div class="learn-content">
     <!-- 文章详情 -->
     <template v-if="article">
-      <header class="learn-content-head">
-        <!-- 面包屑 -->
-        <nav v-if="categoryPath.length" class="learn-breadcrumb">
-          <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
-          <template v-for="(seg, i) in categoryPath" :key="seg.id">
-            <span class="learn-breadcrumb-sep">›</span>
+      <div class="learn-article-layout">
+        <div class="learn-article-main">
+          <header class="learn-content-head">
+            <!-- 面包屑 -->
+            <nav v-if="categoryPath.length" class="learn-breadcrumb">
+              <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
+              <template v-for="(seg, i) in categoryPath" :key="seg.id">
+                <span class="learn-breadcrumb-sep">›</span>
+                <router-link
+                  :to="`/learn?cat=${seg.id}`"
+                  class="learn-breadcrumb-item"
+                  :class="{ active: i === categoryPath.length - 1 }"
+                >{{ seg.name }}</router-link>
+              </template>
+            </nav>
+
+            <h1 class="learn-content-title">{{ article.title }}</h1>
+            <p v-if="article.summary" class="learn-content-summary">{{ article.summary }}</p>
+
+            <!-- 元信息条 -->
+            <div class="learn-meta-bar">
+              <span class="learn-meta-item">
+                <CalendarOutlined class="learn-meta-icon" />
+                {{ formatDate(article.publishedAt || article.updatedAt) }}
+              </span>
+              <span class="learn-meta-item">
+                <ClockCircleOutlined class="learn-meta-icon" />
+                约 {{ readingMinutes }} 分钟
+              </span>
+              <span class="learn-meta-item">
+                <FileTextOutlined class="learn-meta-icon" />
+                {{ wordCount }} 字
+              </span>
+              <router-link
+                v-if="currentCategoryName"
+                :to="`/learn?cat=${article.categoryId}`"
+                class="learn-meta-tag"
+              >
+                <TagOutlined class="learn-meta-icon" />
+                {{ currentCategoryName }}
+              </router-link>
+            </div>
+          </header>
+
+          <article ref="contentRef" class="learn-content-body">
+            <LearnMarkdown v-if="article.contentType === 'markdown'" :source="article.content" />
+            <LearnRichText v-else :html="article.content" />
+          </article>
+
+          <nav v-if="article.prevArticle || article.nextArticle" class="learn-nav">
             <router-link
-              :to="`/learn?cat=${seg.id}`"
-              class="learn-breadcrumb-item"
-              :class="{ active: i === categoryPath.length - 1 }"
-            >{{ seg.name }}</router-link>
-          </template>
-        </nav>
+              v-if="article.prevArticle"
+              :to="`/learn/article/${article.prevArticle.id}`"
+              class="learn-nav-card learn-nav-prev"
+            >
+              <span class="learn-nav-dir">← 上一篇</span>
+              <span
+                v-if="currentCategoryName && article.prevArticle.categoryName !== currentCategoryName"
+                class="learn-nav-cat-chip"
+              >{{ article.prevArticle.categoryName }}</span>
+              <span class="learn-nav-title">{{ article.prevArticle.title }}</span>
+            </router-link>
 
-        <h1 class="learn-content-title">{{ article.title }}</h1>
-        <p v-if="article.summary" class="learn-content-summary">{{ article.summary }}</p>
+            <router-link
+              v-if="article.nextArticle"
+              :to="`/learn/article/${article.nextArticle.id}`"
+              class="learn-nav-card learn-nav-next"
+            >
+              <span class="learn-nav-dir">下一篇 →</span>
+              <span
+                v-if="currentCategoryName && article.nextArticle.categoryName !== currentCategoryName"
+                class="learn-nav-cat-chip"
+              >{{ article.nextArticle.categoryName }}</span>
+              <span class="learn-nav-title">{{ article.nextArticle.title }}</span>
+            </router-link>
+          </nav>
 
-        <!-- 元信息条 -->
-        <div class="learn-meta-bar">
-          <span class="learn-meta-item">
-            <CalendarOutlined class="learn-meta-icon" />
-            {{ formatDate(article.publishedAt || article.updatedAt) }}
-          </span>
-          <span class="learn-meta-item">
-            <ClockCircleOutlined class="learn-meta-icon" />
-            约 {{ readingMinutes }} 分钟
-          </span>
-          <span class="learn-meta-item">
-            <FileTextOutlined class="learn-meta-icon" />
-            {{ wordCount }} 字
-          </span>
-          <router-link
-            v-if="currentCategoryName"
-            :to="`/learn?cat=${article.categoryId}`"
-            class="learn-meta-tag"
-          >
-            <TagOutlined class="learn-meta-icon" />
-            {{ currentCategoryName }}
-          </router-link>
+          <footer class="learn-content-foot">
+            <div class="learn-cta-card">
+              <BulbOutlined class="learn-cta-icon" />
+              <div class="learn-cta-text">
+                <div class="learn-cta-title">想把自己的账号也做成这样？</div>
+                <div class="learn-cta-subtitle">用 AI 一分钟生成你的第一篇</div>
+              </div>
+              <router-link to="/login" class="learn-cta-btn">立即开始创作 →</router-link>
+            </div>
+          </footer>
         </div>
-      </header>
-      <article class="learn-content-body">
-        <LearnMarkdown v-if="article.contentType === 'markdown'" :source="article.content" />
-        <LearnRichText v-else :html="article.content" />
-      </article>
 
-      <nav v-if="article.prevArticle || article.nextArticle" class="learn-nav">
-        <router-link
-          v-if="article.prevArticle"
-          :to="`/learn/article/${article.prevArticle.id}`"
-          class="learn-nav-card learn-nav-prev"
-        >
-          <span class="learn-nav-dir">← 上一篇</span>
-          <span
-            v-if="currentCategoryName && article.prevArticle.categoryName !== currentCategoryName"
-            class="learn-nav-cat-chip"
-          >{{ article.prevArticle.categoryName }}</span>
-          <span class="learn-nav-title">{{ article.prevArticle.title }}</span>
-        </router-link>
-
-        <router-link
-          v-if="article.nextArticle"
-          :to="`/learn/article/${article.nextArticle.id}`"
-          class="learn-nav-card learn-nav-next"
-        >
-          <span class="learn-nav-dir">下一篇 →</span>
-          <span
-            v-if="currentCategoryName && article.nextArticle.categoryName !== currentCategoryName"
-            class="learn-nav-cat-chip"
-          >{{ article.nextArticle.categoryName }}</span>
-          <span class="learn-nav-title">{{ article.nextArticle.title }}</span>
-        </router-link>
-      </nav>
-
-      <footer class="learn-content-foot">
-        <div class="learn-cta-card">
-          <BulbOutlined class="learn-cta-icon" />
-          <div class="learn-cta-text">
-            <div class="learn-cta-title">想把自己的账号也做成这样？</div>
-            <div class="learn-cta-subtitle">用 AI 一分钟生成你的第一篇</div>
-          </div>
-          <router-link to="/login" class="learn-cta-btn">立即开始创作 →</router-link>
-        </div>
-      </footer>
+        <!-- 目录侧边栏 -->
+        <aside v-if="tocItems.length" class="learn-toc-sidebar">
+          <nav class="learn-toc">
+            <div class="learn-toc-title">目录</div>
+            <a
+              v-for="item in tocItems"
+              :key="item.id"
+              :class="['learn-toc-item', { active: item.id === activeHeading, 'toc-h3': item.level === 3 }]"
+              @click.prevent="scrollToHeading(item.id)"
+              href="#"
+            >{{ item.text }}</a>
+          </nav>
+        </aside>
+      </div>
     </template>
 
     <!-- 分类详情（列表） -->
@@ -151,7 +170,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
 import LearnMarkdown from './LearnMarkdown.vue'
 import LearnRichText from './LearnRichText.vue'
 import {
@@ -184,10 +203,98 @@ function formatDate(d) {
   const dt = new Date(d)
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
 }
+
+// ---- 目录 ----
+const contentRef = ref(null)
+const tocItems = ref([])
+const activeHeading = ref('')
+let tocObserver = null
+
+function buildToc() {
+  if (tocObserver) { tocObserver.disconnect(); tocObserver = null }
+  tocItems.value = []
+  activeHeading.value = ''
+  if (!contentRef.value) return
+
+  const headings = contentRef.value.querySelectorAll('h2, h3')
+  if (!headings.length) return
+
+  tocItems.value = Array.from(headings).map((el, i) => {
+    const id = `toc-${i}`
+    el.id = id
+    return { id, text: el.textContent, level: parseInt(el.tagName[1]) }
+  })
+
+  tocObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) activeHeading.value = entry.target.id
+    }
+  }, { rootMargin: '-88px 0px -70% 0px' })
+  headings.forEach(el => tocObserver.observe(el))
+}
+
+function scrollToHeading(id) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+watch(() => props.article?.id, async id => {
+  if (!id) { tocItems.value = []; return }
+  await nextTick()
+  buildToc()
+}, { immediate: true })
+
+onUnmounted(() => {
+  if (tocObserver) tocObserver.disconnect()
+})
 </script>
 
 <style scoped>
 .learn-content { min-height: 320px; }
+
+/* 文章详情布局：主内容 + 目录侧边栏 */
+.learn-article-layout { display: flex; gap: 24px; }
+.learn-article-main { flex: 1; min-width: 0; }
+
+/* 目录侧边栏 */
+.learn-toc-sidebar { width: 180px; flex-shrink: 0; }
+.learn-toc {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+}
+.learn-toc-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  padding-left: 12px;
+}
+.learn-toc-item {
+  display: block;
+  font-size: 13px;
+  color: #8c8c8c;
+  text-decoration: none;
+  padding: 4px 0 4px 12px;
+  border-left: 2px solid #f0f0f0;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.learn-toc-item:hover { color: #FF2442; border-left-color: #ffb3c1; }
+.learn-toc-item.active {
+  color: #FF2442;
+  font-weight: 600;
+  border-left-color: #FF2442;
+}
+.learn-toc-item.toc-h3 { padding-left: 24px; font-size: 12px; }
+@media (max-width: 991px) {
+  .learn-toc-sidebar { display: none; }
+}
+
 .learn-content-head { border-bottom: 1px solid #eee; padding-bottom: 16px; margin-bottom: 24px; }
 
 /* 面包屑 */

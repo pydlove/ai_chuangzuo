@@ -31,9 +31,9 @@ const rendered = computed(() => md.render(props.source || ''))
 
 <style scoped>
 .learn-md { line-height: 1.75; color: #262626; font-size: 15px; }
-.learn-md :deep(h1) { font-size: 24px; font-weight: 700; margin: 1.4em 0 0.6em; }
-.learn-md :deep(h2) { font-size: 20px; font-weight: 700; margin: 1.2em 0 0.5em; border-bottom: 1px solid #eee; padding-bottom: 6px; }
-.learn-md :deep(h3) { font-size: 17px; font-weight: 600; margin: 1em 0 0.4em; }
+.learn-md :deep(h1) { font-size: 24px; font-weight: 700; margin: 1.4em 0 0.6em; scroll-margin-top: 88px; }
+.learn-md :deep(h2) { font-size: 20px; font-weight: 700; margin: 1.2em 0 0.5em; border-bottom: 1px solid #eee; padding-bottom: 6px; scroll-margin-top: 88px; }
+.learn-md :deep(h3) { font-size: 17px; font-weight: 600; margin: 1em 0 0.4em; scroll-margin-top: 88px; }
 .learn-md :deep(p) { margin: 0.8em 0; }
 .learn-md :deep(blockquote) {
   margin: 1em 0; padding: 10px 16px; color: #555;
