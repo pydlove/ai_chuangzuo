@@ -48,12 +48,18 @@
                 @click.prevent="onSelectCategory(cat.id)"
                 href="#"
               >
-                <component
-                  v-if="getCategoryIcon(cat.name)"
-                  :is="getCategoryIcon(cat.name)"
-                  class="learn-recommend-icon"
-                />
+                <div class="learn-recommend-icon-wrap">
+                  <component
+                    v-if="getCategoryIcon(cat.name)"
+                    :is="getCategoryIcon(cat.name)"
+                    class="learn-recommend-icon"
+                  />
+                </div>
                 <span class="learn-recommend-name">{{ cat.name }}</span>
+                <span v-if="cat.children?.length" class="learn-recommend-count">
+                  {{ cat.children.length }} 个子分类
+                </span>
+                <span class="learn-recommend-arrow">›</span>
               </a>
             </div>
           </div>
@@ -351,29 +357,59 @@ body[data-theme="dark"] .learn-footer span + span::before {
 }
 .learn-recommend-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 12px;
 }
 .learn-recommend-card {
+  position: relative;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 20px 12px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  background: #fff;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f9 100%);
   text-decoration: none;
   color: #1a1a1a;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.learn-recommend-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #FF2442, #ff6b81);
+  opacity: 0;
+  transition: opacity 0.25s ease;
 }
 .learn-recommend-card:hover {
-  border-color: #FF2442;
-  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.1);
+  transform: translateY(-2px);
 }
-.learn-recommend-icon { font-size: 32px; color: #FF2442; margin-bottom: 8px; }
-.learn-recommend-name { font-size: 14px; font-weight: 600; }
+.learn-recommend-card:hover::before { opacity: 1; }
+.learn-recommend-icon-wrap {
+  width: 44px; height: 44px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #FFF0F2, #FFE4E8);
+  margin-bottom: 12px;
+}
+.learn-recommend-icon { font-size: 22px; color: #FF2442; }
+.learn-recommend-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.learn-recommend-count { font-size: 12px; color: #8c8c8c; }
+.learn-recommend-arrow {
+  position: absolute;
+  top: 16px; right: 16px;
+  font-size: 18px;
+  color: #d9d9d9;
+  transition: color 0.25s ease, transform 0.25s ease;
+}
+.learn-recommend-card:hover .learn-recommend-arrow {
+  color: #FF2442;
+  transform: translateX(3px);
+}
 
 /* 兜底空状态 */
 .learn-content-empty {
