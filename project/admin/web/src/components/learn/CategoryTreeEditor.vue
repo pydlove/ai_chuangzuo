@@ -14,10 +14,15 @@
       >
         <template #title="{ dataRef }">
           <span>{{ dataRef.name }}</span>
+          <a-tag v-if="dataRef.isRecommended" color="red" style="margin-left: 8px; font-size: 11px;">推荐</a-tag>
           <span class="row-actions">
             <a @click.stop="onAddChild(dataRef)">+ 子分类</a>
             <a-divider type="vertical" />
             <a @click.stop="onEdit(dataRef)">编辑</a>
+            <a-divider type="vertical" />
+            <a @click.stop="onToggleRecommend(dataRef)">
+              {{ dataRef.isRecommended ? '取消推荐' : '推荐' }}
+            </a>
             <a-divider type="vertical" />
             <a-popconfirm
               title="确认删除该分类？子分类或文章非空时会拒绝"
@@ -230,6 +235,20 @@ async function onDelete(node) {
     await load()
   } catch (e) {
     message.error(e?.message || '删除失败（分类下可能仍有子分类或文章）')
+  }
+}
+async function onToggleRecommend(node) {
+  try {
+    await updateCategory(node.id, {
+      parentId: node.parentId,
+      name: node.name,
+      sort: node.sort,
+      isRecommended: node.isRecommended ? 0 : 1
+    })
+    message.success(node.isRecommended ? '已取消推荐' : '已设为推荐')
+    await load()
+  } catch (e) {
+    message.error(e?.message || '操作失败')
   }
 }
 async function onSubmit() {
