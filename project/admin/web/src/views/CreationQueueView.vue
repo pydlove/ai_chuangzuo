@@ -4,14 +4,15 @@
       <div class="page-header">
         <h3 class="page-title">创作队列</h3>
         <p class="page-desc">
-          展示用户提交的创作任务，3 个 tab 分别对应：执行中（processing）/ 排对中（queued）/ 未执行（failed）。
+          展示用户提交的创作任务，4 个 tab 分别对应：执行中（processing）/ 排队中（queued）/ 已完成（completed）/ 未执行（failed）。
           每 5 秒自动刷新；点表格里的操作可手动重试 / 释放 lease / 标记失败。
         </p>
       </div>
 
       <a-tabs :active-key="activeTabKey" @change="onTabChange">
         <a-tab-pane key="processing" tab="执行中" />
-        <a-tab-pane key="queued" tab="排对中" />
+        <a-tab-pane key="queued" tab="排队中" />
+        <a-tab-pane key="completed" tab="已完成" />
         <a-tab-pane key="failed" tab="未执行" />
       </a-tabs>
 
@@ -64,7 +65,7 @@
             <span v-else>-</span>
           </template>
           <template v-else-if="column.key === 'actions'">
-            <a-space>
+            <a-space v-if="activeTabKey !== 'completed'">
               <a-button
                 type="link"
                 size="small"
@@ -90,6 +91,7 @@
                 @click="handleMarkFailed(record.id)"
               >标记失败</a-button>
             </a-space>
+            <span v-else>-</span>
           </template>
         </template>
       </a-table>
@@ -100,6 +102,7 @@
         title="执行过程"
         width="600"
         :body-style="{ paddingTop: '8px' }"
+        @close="onDrawerClose"
       >
         <template #extra>
           <span v-if="callLogDrawer.task" class="drawer-biz">
@@ -164,10 +167,10 @@
                       · {{ formatMs(log.durationMs) }} · {{ formatTime(log.calledAt) }}
                     </div>
                     <div v-if="log.error" class="attempt-error">{{ log.error }}</div>
-                    <div class="attempt-label">发送 prompt（预览）</div>
-                    <pre class="attempt-preview">{{ log.userMsgPreview || '-' }}</pre>
-                    <div class="attempt-label">AI 返回（预览）</div>
-                    <pre class="attempt-preview">{{ log.responsePreview || '-' }}</pre>
+                    <div class="attempt-label">发送 prompt</div>
+                    <pre class="attempt-preview">{{ log.userMsg || '-' }}</pre>
+                    <div class="attempt-label">AI 返回</div>
+                    <pre class="attempt-preview">{{ log.responseContent || '-' }}</pre>
                   </div>
                 </a-collapse-panel>
               </a-collapse>
@@ -193,7 +196,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive } from 'vue'
 import { message } from 'ant-design-vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useCreationQueue } from '@/composables/useCreationQueue.js'
@@ -236,23 +239,65 @@ const STAGE_META = [
   { index: 12, key: 'export_render', name: '导出模板渲染', ai: false }
 ]
 
+const POLL_INTERVAL_MS = 5000
+
 const callLogDrawer = reactive({
   open: false,
   loading: false,
   task: null,
-  grouped: {} // { "2": [log,...], ... }
+  grouped: {}, // { "2": [log,...], ... }
+  taskStatus: null,
+  pollTimer: null
 })
+
+const fetchCallLogs = async () => {
+  if (!callLogDrawer.task) return
+  try {
+    const data = await getGenerationCallLogsGrouped(callLogDrawer.task.id)
+    callLogDrawer.grouped = data?.grouped || {}
+    callLogDrawer.taskStatus = data?.taskStatus ?? null
+    if (callLogDrawer.taskStatus === 2) {
+      stopPoll()
+    }
+  } catch (e) {
+    message.error(e.message || '加载调用日志失败')
+  }
+}
+
+const startPoll = () => {
+  stopPoll()
+  callLogDrawer.pollTimer = setInterval(() => {
+    if (document.visibilityState !== 'visible') return
+    if (!callLogDrawer.open || callLogDrawer.taskStatus === 2) {
+      stopPoll()
+      return
+    }
+    fetchCallLogs()
+  }, POLL_INTERVAL_MS)
+}
+
+const stopPoll = () => {
+  if (callLogDrawer.pollTimer) {
+    clearInterval(callLogDrawer.pollTimer)
+    callLogDrawer.pollTimer = null
+  }
+}
+
+const onDrawerClose = () => {
+  stopPoll()
+}
 
 const openCallLogs = async (record) => {
   callLogDrawer.task = record
   callLogDrawer.grouped = {}
+  callLogDrawer.taskStatus = record.status ?? null
   callLogDrawer.open = true
   callLogDrawer.loading = true
   try {
-    const data = await getGenerationCallLogsGrouped(record.id)
-    callLogDrawer.grouped = data || {}
-  } catch (e) {
-    message.error(e.message || '加载调用日志失败')
+    await fetchCallLogs()
+    if (callLogDrawer.taskStatus !== 2) {
+      startPoll()
+    }
   } finally {
     callLogDrawer.loading = false
   }
@@ -375,6 +420,10 @@ const truncate = (s, n) => {
 onMounted(() => {
   fetch()
   startAutoRefresh()
+})
+
+onBeforeUnmount(() => {
+  stopPoll()
 })
 </script>
 
@@ -519,7 +568,7 @@ onMounted(() => {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
-  max-height: 160px;
+  max-height: 600px;
   overflow-y: auto;
 }
 </style>
