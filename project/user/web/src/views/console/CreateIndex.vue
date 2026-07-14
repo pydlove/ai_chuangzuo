@@ -1944,6 +1944,11 @@ const clearForm = () => {
   background: #fff0f2;
 }
 
+.wc-content {
+  height: 300px;
+  overflow-y: auto;
+}
+
 .wc-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -2107,7 +2112,12 @@ const clearForm = () => {
 }
 
 .style-content {
-  max-height: 60vh;
+  height: 60vh;
+  overflow-y: auto;
+}
+
+.style-editor {
+  height: 60vh;
   overflow-y: auto;
 }
 
@@ -2525,7 +2535,8 @@ const clearForm = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 40px 0;
+  justify-content: center;
+  height: 400px;
 }
 
 .draft-empty-icon {
@@ -2539,7 +2550,7 @@ const clearForm = () => {
 }
 
 .draft-box-list {
-  max-height: 400px;
+  height: 400px;
   overflow-y: auto;
 }
 

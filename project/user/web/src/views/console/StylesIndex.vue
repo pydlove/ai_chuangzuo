@@ -1747,6 +1747,12 @@ const simulateApprove = (name) => {
   padding: 40px 0;
 }
 
+/* 导入对话框三种状态（分析中 / 粘贴上传 / 结果页）共用固定高度，避免弹框随内容跳动 */
+.learned-import-modal .ant-modal-body {
+  height: 520px;
+  overflow-y: auto;
+}
+
 .learned-progress-text {
   margin-top: 12px;
   font-size: 14px;
