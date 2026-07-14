@@ -152,7 +152,7 @@ class GenerationAiServiceModelParamsTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
         assertEquals(0.7, body.get("temperature"));
-        assertEquals(16384, body.get("max_tokens"));
+        assertEquals(32768, body.get("max_tokens"));
         assertEquals(1.0, body.get("top_p"));
     }
 

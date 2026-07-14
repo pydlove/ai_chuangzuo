@@ -155,14 +155,29 @@ public final class PipelineUtils {
         } catch (Exception first) {
             String repaired = repairInnerQuotes(cleaned);
             if (repaired.equals(cleaned)) {
-                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage());
+                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage()
+                        + truncationHint(first.getMessage()));
             }
             try {
                 return MAPPER.readTree(repaired);
             } catch (Exception second) {
-                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage());
+                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage()
+                        + truncationHint(first.getMessage()));
             }
         }
+    }
+
+    /**
+     * Jackson 报 "Unexpected end-of-input" / "end of input within/between" → 输入被截断，
+     * 不是 JSON 格式瑕疵（解析器救不了）。给出一句话提示，方便定位是 max_tokens 太小。
+     */
+    private static String truncationHint(String jacksonMsg) {
+        if (jacksonMsg == null) return "";
+        String m = jacksonMsg.toLowerCase();
+        if (m.contains("end-of-input") || m.contains("end of input")) {
+            return "（疑似 AI 输出被 max_tokens 截断，可尝试调大创作设置里的 default_max_tokens）";
+        }
+        return "";
     }
 
     /**

@@ -78,10 +78,11 @@ public class GenerationAiService {
         GenerationConfig genCfg = generationConfigService.getCurrent();
         double temperatureDefault = genCfg.getDefaultTemperature() != null
                 ? genCfg.getDefaultTemperature().doubleValue() : 0.7;
-        // 16384：MiniMax-M3 是推理模型，max_tokens 与 reasoning 共享预算；
-        // 8192 时整稿改写类 stage 会被 reasoning 吃光导致 content 为空
+        // 32768：MiniMax-M3 是推理模型，max_tokens 与 reasoning 共享预算。
+        // 整稿改写/润色类 stage（rhythm-rewrite、rhythm-polish）reasoning + 全文 rewrite
+        // 输出合计常超 16k，曾导致 JSON 在字段中间被截断。
         int maxTokensDefault = genCfg.getDefaultMaxTokens() != null
-                ? genCfg.getDefaultMaxTokens() : 16384;
+                ? genCfg.getDefaultMaxTokens() : 32768;
         double topPDefault = genCfg.getDefaultTopP() != null
                 ? genCfg.getDefaultTopP().doubleValue() : 1.0;
 

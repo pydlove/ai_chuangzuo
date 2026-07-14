@@ -95,4 +95,15 @@ class PipelineUtilsTest {
         JsonNode root = PipelineUtils.parseAiJson(broken);
         assertEquals("列一\t列二", root.path("description").asText());
     }
+
+    @Test
+    void parseAiJson_shouldHintOnTruncation() {
+        // AI 输出被 max_tokens 截断（JSON 在字段名中间戛然而止）：解析不可恢复，
+        // 但要让 admin/用户一眼看出是截断，调大 max_tokens 即可
+        String truncated = "{\"draft\":[{\"paragraph_index\":1,\"para";
+        RuntimeException ex = assertThrows(RuntimeException.class,
+                () -> PipelineUtils.parseAiJson(truncated));
+        assertEquals(true, ex.getMessage().contains("截断") || ex.getMessage().contains("max_tokens"),
+                "Expected truncation hint, got: " + ex.getMessage());
+    }
 }
