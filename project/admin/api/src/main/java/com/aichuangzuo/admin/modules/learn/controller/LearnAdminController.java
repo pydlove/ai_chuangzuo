@@ -2,11 +2,14 @@ package com.aichuangzuo.admin.modules.learn.controller;
 
 import com.aichuangzuo.admin.modules.learn.dto.request.LearnArticlePageQuery;
 import com.aichuangzuo.admin.modules.learn.dto.request.LearnArticleReq;
+import com.aichuangzuo.admin.modules.learn.dto.request.LearnBannerReq;
 import com.aichuangzuo.admin.modules.learn.dto.request.LearnCategoryReq;
 import com.aichuangzuo.admin.modules.learn.dto.request.LearnSortReq;
 import com.aichuangzuo.admin.modules.learn.service.LearnArticleService;
+import com.aichuangzuo.admin.modules.learn.service.LearnBannerService;
 import com.aichuangzuo.admin.modules.learn.service.LearnCategoryService;
 import com.aichuangzuo.admin.modules.learn.vo.LearnArticleDetail;
+import com.aichuangzuo.admin.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.admin.modules.learn.vo.LearnCategoryTreeNode;
 import com.aichuangzuo.shared.result.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -26,6 +29,7 @@ public class LearnAdminController {
 
     private final LearnCategoryService categoryService;
     private final LearnArticleService articleService;
+    private final LearnBannerService bannerService;
 
     // ---------- 分类 ----------
 
@@ -121,6 +125,34 @@ public class LearnAdminController {
     @PostMapping("/article/sort")
     public Result<Void> sortArticle(@RequestBody LearnSortReq req) {
         articleService.sortBatch(req.getItems());
+        return Result.success();
+    }
+
+    // ---------- Banner ----------
+
+    @Operation(summary = "Banner 列表")
+    @GetMapping("/banner")
+    public Result<List<LearnBannerVO>> bannerList() {
+        return Result.success(bannerService.list());
+    }
+
+    @Operation(summary = "新增 Banner")
+    @PostMapping("/banner")
+    public Result<Long> createBanner(@Valid @RequestBody LearnBannerReq req) {
+        return Result.success(bannerService.create(req));
+    }
+
+    @Operation(summary = "更新 Banner")
+    @PutMapping("/banner/{id}")
+    public Result<Void> updateBanner(@PathVariable Long id, @Valid @RequestBody LearnBannerReq req) {
+        bannerService.update(id, req);
+        return Result.success();
+    }
+
+    @Operation(summary = "删除 Banner")
+    @DeleteMapping("/banner/{id}")
+    public Result<Void> deleteBanner(@PathVariable Long id) {
+        bannerService.delete(id);
         return Result.success();
     }
 }
