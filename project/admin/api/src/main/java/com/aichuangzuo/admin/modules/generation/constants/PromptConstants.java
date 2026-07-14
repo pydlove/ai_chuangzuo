@@ -37,5 +37,7 @@ public final class PromptConstants {
             - sections 长度必须 3-5
             - 正文段落总字符数应围绕 wordCount
             - 严禁使用「此外」「值得注意的是」等 AI 套词
+            - **字符串值内部严禁出现裸 ASCII 双引号 "**：引用他人话语或强调术语时，
+              一律使用中文引号「」或『』；如必须用 ASCII 引号，转义为 \\"
             """;
 }

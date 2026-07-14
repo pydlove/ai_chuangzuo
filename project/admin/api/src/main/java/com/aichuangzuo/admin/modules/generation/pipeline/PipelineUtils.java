@@ -132,6 +132,10 @@ public final class PipelineUtils {
     /**
      * 解析 AI 返回的 JSON 字符串：先去掉 ```json 围栏，再 parse。
      *
+     * <p>解析失败时会尝试 {@link #repairInnerQuotes(String)} 兜底：MiniMax-M3 等中文
+     * 模型有时在字符串值里直接写裸 "（如 "30岁" 这种引用），破坏 JSON 结构；这里
+     * 用启发式把"看起来像字符串内部的引号"转义掉，再重试一次。
+     *
      * @return 解析后的 JsonNode
      * @throws RuntimeException 解析失败时
      */
@@ -139,9 +143,68 @@ public final class PipelineUtils {
         String cleaned = stripCodeFence(aiResp);
         try {
             return MAPPER.readTree(cleaned);
-        } catch (Exception e) {
-            throw new RuntimeException("AI 返回 JSON 解析失败: " + e.getMessage());
+        } catch (Exception first) {
+            String repaired = repairInnerQuotes(cleaned);
+            if (repaired.equals(cleaned)) {
+                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage());
+            }
+            try {
+                return MAPPER.readTree(repaired);
+            } catch (Exception second) {
+                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage());
+            }
         }
+    }
+
+    /**
+     * 启发式修复字符串值内的裸 "：扫描字符流，跟踪 inString 状态；遇到 " 时
+     * 向后看一个非空白字符，若不是 JSON 结构符（, } ] :）就判定为内部引号，转义成 \"。
+     *
+     * <p>局限：内部引号后紧跟结构符（如 "text with ", more"）无法识别，会判定为闭合
+     * 引号导致修复失败——这种场景下 {@link #parseAiJson} 仍会抛原始异常。
+     *
+     * <p>已正确转义的 \" 不会被重复转义：进入 escaped 状态时跳过下一个字符。
+     */
+    private static String repairInnerQuotes(String json) {
+        if (json == null || json.isEmpty()) return json;
+        StringBuilder out = new StringBuilder(json.length() + 32);
+        boolean inString = false;
+        boolean escaped = false;
+        boolean changed = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escaped) {
+                out.append(c);
+                escaped = false;
+                continue;
+            }
+            if (inString && c == '\\') {
+                out.append(c);
+                escaped = true;
+                continue;
+            }
+            if (c == '"') {
+                if (!inString) {
+                    inString = true;
+                    out.append(c);
+                } else {
+                    // 向后看一个非空白字符，判断是闭合引号还是内部引号
+                    int j = i + 1;
+                    while (j < json.length() && Character.isWhitespace(json.charAt(j))) j++;
+                    char next = j < json.length() ? json.charAt(j) : '\0';
+                    if (next == ',' || next == '}' || next == ']' || next == ':' || next == '\0') {
+                        inString = false;
+                        out.append(c);
+                    } else {
+                        out.append("\\\"");
+                        changed = true;
+                    }
+                }
+            } else {
+                out.append(c);
+            }
+        }
+        return changed ? out.toString() : json;
     }
 
     /**
