@@ -55,11 +55,11 @@
           class="learn-nav-card learn-nav-prev"
         >
           <span class="learn-nav-dir">← 上一篇</span>
-          <span class="learn-nav-title">{{ article.prevArticle.title }}</span>
           <span
             v-if="currentCategoryName && article.prevArticle.categoryName !== currentCategoryName"
-            class="learn-nav-cat"
-          >《{{ article.prevArticle.categoryName }}》</span>
+            class="learn-nav-cat-chip"
+          >{{ article.prevArticle.categoryName }}</span>
+          <span class="learn-nav-title">{{ article.prevArticle.title }}</span>
         </router-link>
 
         <router-link
@@ -68,16 +68,23 @@
           class="learn-nav-card learn-nav-next"
         >
           <span class="learn-nav-dir">下一篇 →</span>
-          <span class="learn-nav-title">{{ article.nextArticle.title }}</span>
           <span
             v-if="currentCategoryName && article.nextArticle.categoryName !== currentCategoryName"
-            class="learn-nav-cat"
-          >《{{ article.nextArticle.categoryName }}》</span>
+            class="learn-nav-cat-chip"
+          >{{ article.nextArticle.categoryName }}</span>
+          <span class="learn-nav-title">{{ article.nextArticle.title }}</span>
         </router-link>
       </nav>
 
       <footer class="learn-content-foot">
-        <router-link to="/login" class="learn-cta">想把自己的账号也做成这样？立即开始创作 →</router-link>
+        <div class="learn-cta-card">
+          <BulbOutlined class="learn-cta-icon" />
+          <div class="learn-cta-text">
+            <div class="learn-cta-title">想把自己的账号也做成这样？</div>
+            <div class="learn-cta-subtitle">用 AI 一分钟生成你的第一篇</div>
+          </div>
+          <router-link to="/login" class="learn-cta-btn">立即开始创作 →</router-link>
+        </div>
       </footer>
     </template>
 
@@ -116,7 +123,8 @@ import {
   CalendarOutlined,
   ClockCircleOutlined,
   FileTextOutlined,
-  TagOutlined
+  TagOutlined,
+  BulbOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -196,9 +204,6 @@ function formatDate(d) {
 .learn-content-title { font-size: 28px; font-weight: 700; color: #1a1a1a; margin: 0; }
 .learn-content-summary { color: #666; font-size: 14px; margin: 8px 0 0; }
 .learn-content-body { margin-bottom: 36px; }
-.learn-content-foot { border-top: 1px solid #eee; padding-top: 24px; text-align: center; }
-.learn-cta { color: #FF2442; font-weight: 600; text-decoration: none; }
-.learn-cta:hover { text-decoration: underline; }
 .learn-content-empty { color: #999; padding: 80px 0; text-align: center; font-size: 14px; }
 
 .learn-article-list { list-style: none; margin: 0; padding: 0; }
@@ -218,29 +223,40 @@ function formatDate(d) {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
   padding: 16px 20px;
   border: 1px solid #eee;
-  border-radius: 8px;
+  border-radius: 12px;
   background: #fff;
   color: #1a1a1a;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.2s, color 0.2s;
+  transition: all 0.2s ease;
   min-width: 0;
 }
 .learn-nav-card:hover {
   border-color: #FF2442;
-  color: #FF2442;
+  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.12);
+  transform: translateY(-2px);
 }
+.learn-nav-card:hover .learn-nav-title { color: #FF2442; }
 .learn-nav-prev { text-align: left; align-items: flex-start; }
 .learn-nav-next { text-align: right; align-items: flex-end; }
 .learn-nav-dir {
   font-size: 12px;
-  color: #999;
+  color: #8c8c8c;
   font-weight: 500;
 }
 .learn-nav-card:hover .learn-nav-dir { color: #FF2442; }
+.learn-nav-cat-chip {
+  display: inline-block;
+  padding: 2px 10px;
+  background: #FFF5F7;
+  color: #FF2442;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 400;
+}
 .learn-nav-title {
   font-size: 15px;
   font-weight: 600;
@@ -250,15 +266,59 @@ function formatDate(d) {
   -webkit-box-orient: vertical;
   overflow: hidden;
   max-width: 100%;
-}
-.learn-nav-cat {
-  font-size: 12px;
-  color: #999;
-  font-weight: 400;
+  color: #1a1a1a;
 }
 @media (max-width: 991px) {
   .learn-nav { flex-direction: column; }
   .learn-nav-prev,
   .learn-nav-next { text-align: left; align-items: flex-start; }
+}
+
+/* CTA 卡片 */
+.learn-content-foot {
+  border-top: none;
+  padding-top: 0;
+  text-align: left;
+}
+.learn-cta-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFE8EC 100%);
+  border-radius: 12px;
+}
+.learn-cta-icon {
+  font-size: 32px;
+  color: #FF2442;
+  flex-shrink: 0;
+}
+.learn-cta-text { flex: 1; min-width: 0; }
+.learn-cta-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.learn-cta-subtitle {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+.learn-cta-btn {
+  display: inline-block;
+  padding: 10px 24px;
+  background: #FF2442;
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.learn-cta-btn:hover { background: #e61e3a; }
+@media (max-width: 991px) {
+  .learn-cta-card { flex-direction: column; text-align: center; }
+  .learn-cta-btn { width: 100%; text-align: center; }
 }
 </style>
