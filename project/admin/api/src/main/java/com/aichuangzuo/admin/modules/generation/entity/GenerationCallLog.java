@@ -46,11 +46,11 @@ public class GenerationCallLog {
     /** 调用开始时间。 */
     private LocalDateTime calledAt;
 
-    /** userMsg 前 200 字。 */
-    private String userMsgPreview;
+    /** 本次尝试完整 userMsg（变量已替换）。 */
+    private String userMsg;
 
-    /** AI 返回前 200 字（成功时）。 */
-    private String responsePreview;
+    /** AI 完整返回内容（成功时）。 */
+    private String responseContent;
 
     private Long tenantId;
     private LocalDateTime createdAt;
