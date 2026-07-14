@@ -17,6 +17,9 @@ export function useCreationSettings() {
     llmRetryMaxAttempts: 3,
     llmRetryBaseDelayMs: 500,
     llmRetryBackoffMultiplier: 2,
+    defaultTemperature: 0.7,
+    defaultMaxTokens: 8192,
+    defaultTopP: 1.0,
     remark: ''
   })
   const loading = ref(false)
@@ -39,6 +42,9 @@ export function useCreationSettings() {
         llmRetryMaxAttempts: res.llmRetryMaxAttempts ?? 3,
         llmRetryBaseDelayMs: res.llmRetryBaseDelayMs ?? 500,
         llmRetryBackoffMultiplier: res.llmRetryBackoffMultiplier ?? 2,
+        defaultTemperature: res.defaultTemperature != null ? Number(res.defaultTemperature) : 0.7,
+        defaultMaxTokens: res.defaultMaxTokens ?? 8192,
+        defaultTopP: res.defaultTopP != null ? Number(res.defaultTopP) : 1.0,
         remark: res.remark ?? ''
       })
       updatedAt.value = res.updatedAt
@@ -66,6 +72,9 @@ export function useCreationSettings() {
         llmRetryMaxAttempts: res.llmRetryMaxAttempts ?? form.llmRetryMaxAttempts,
         llmRetryBaseDelayMs: res.llmRetryBaseDelayMs ?? form.llmRetryBaseDelayMs,
         llmRetryBackoffMultiplier: res.llmRetryBackoffMultiplier ?? form.llmRetryBackoffMultiplier,
+        defaultTemperature: res.defaultTemperature != null ? Number(res.defaultTemperature) : form.defaultTemperature,
+        defaultMaxTokens: res.defaultMaxTokens ?? form.defaultMaxTokens,
+        defaultTopP: res.defaultTopP != null ? Number(res.defaultTopP) : form.defaultTopP,
         remark: res.remark ?? form.remark
       })
       updatedAt.value = res.updatedAt

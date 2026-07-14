@@ -62,6 +62,31 @@
             </a-col>
           </a-row>
 
+          <a-divider orientation="left">AI 调用默认参数</a-divider>
+
+          <p class="section-tip">
+            12 阶段模板未配置 model_params 时回落到这里。
+            修改后下一个任务立即生效。
+          </p>
+
+          <a-row :gutter="16">
+            <a-col :span="8">
+              <a-form-item label="temperature" name="defaultTemperature" extra="0.00-2.00。越高越发散">
+                <a-input-number v-model:value="form.defaultTemperature" :min="0" :max="2" :step="0.1" style="width: 100%" />
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="max_tokens" name="defaultMaxTokens" extra="1-128000。M3 推理也吃此预算">
+                <a-input-number v-model:value="form.defaultMaxTokens" :min="1" :max="128000" :step="512" style="width: 100%" />
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
+              <a-form-item label="top_p" name="defaultTopP" extra="0.00-1.00。核采样阈值">
+                <a-input-number v-model:value="form.defaultTopP" :min="0" :max="1" :step="0.05" style="width: 100%" />
+              </a-form-item>
+            </a-col>
+          </a-row>
+
           <a-divider orientation="left">AI 调用重试（按 stage）</a-divider>
 
           <p class="section-tip">
@@ -135,7 +160,10 @@ const rules = reactive({
   workerId: [{ required: true, message: '不能为空' }],
   llmRetryMaxAttempts: [{ required: true, type: 'number', min: 1, max: 10, message: '1-10' }],
   llmRetryBaseDelayMs: [{ required: true, type: 'number', min: 100, max: 10000, message: '100-10000' }],
-  llmRetryBackoffMultiplier: [{ required: true, type: 'number', min: 1, max: 5, message: '1-5' }]
+  llmRetryBackoffMultiplier: [{ required: true, type: 'number', min: 1, max: 5, message: '1-5' }],
+  defaultTemperature: [{ required: true, type: 'number', min: 0, max: 2, message: '0-2' }],
+  defaultMaxTokens: [{ required: true, type: 'number', min: 1, max: 128000, message: '1-128000' }],
+  defaultTopP: [{ required: true, type: 'number', min: 0, max: 1, message: '0-1' }]
 })
 
 const onSubmit = async () => {

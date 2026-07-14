@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.service;
 
+import com.aichuangzuo.admin.modules.generation.entity.GenerationConfig;
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
 import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
@@ -34,11 +35,14 @@ public class GenerationAiService {
     private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final ModelConfigMapper modelConfigMapper;
+    private final GenerationConfigService generationConfigService;
     private final String apiKeySecret;
 
     public GenerationAiService(ModelConfigMapper modelConfigMapper,
+                               GenerationConfigService generationConfigService,
                                @Value("${admin.model.api-key-secret}") String apiKeySecret) {
         this.modelConfigMapper = modelConfigMapper;
+        this.generationConfigService = generationConfigService;
         this.apiKeySecret = apiKeySecret;
         this.objectMapper = new ObjectMapper();
         // generation 可能慢，默认 60s 超时
@@ -69,6 +73,15 @@ public class GenerationAiService {
 
         String url = resolveUrl(cfg);
 
+        // 三级回退：stage model_params > 创作设置全局默认 > 硬编码兜底
+        GenerationConfig genCfg = generationConfigService.getCurrent();
+        double temperatureDefault = genCfg.getDefaultTemperature() != null
+                ? genCfg.getDefaultTemperature().doubleValue() : 0.7;
+        int maxTokensDefault = genCfg.getDefaultMaxTokens() != null
+                ? genCfg.getDefaultMaxTokens() : 8192;
+        double topPDefault = genCfg.getDefaultTopP() != null
+                ? genCfg.getDefaultTopP().doubleValue() : 1.0;
+
         // 请求体改用 LinkedHashMap，允许覆盖默认值；Map.of() 不允许 null 值
         Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("model", cfg.getModelCode());
@@ -76,11 +89,9 @@ public class GenerationAiService {
                 Map.of("role", "system", "content", systemMessage),
                 Map.of("role", "user", "content", userMessage)
         ));
-        body.put("temperature", pickDouble(modelParams, "temperature", 0.7));
-        // 默认 8192：MiniMax-M3 等推理模型的 reasoning 也吃 max_tokens 预算，
-        // 3000 字稿 + JSON 包装 + 推理，4096 仍可能截断（M3 输出上限 512K，8192 安全）
-        body.put("max_tokens", pickInt(modelParams, "max_tokens", 8192));
-        body.put("top_p", pickDouble(modelParams, "top_p", 1.0));
+        body.put("temperature", pickDouble(modelParams, "temperature", temperatureDefault));
+        body.put("max_tokens", pickInt(modelParams, "max_tokens", maxTokensDefault));
+        body.put("top_p", pickDouble(modelParams, "top_p", topPDefault));
         body.put("stream", false);
 
         HttpHeaders headers = new HttpHeaders();

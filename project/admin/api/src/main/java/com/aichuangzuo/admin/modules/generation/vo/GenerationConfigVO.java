@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.generation.vo;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -17,6 +18,9 @@ public class GenerationConfigVO {
     private Integer llmRetryMaxAttempts;
     private Integer llmRetryBaseDelayMs;
     private Integer llmRetryBackoffMultiplier;
+    private BigDecimal defaultTemperature;
+    private Integer defaultMaxTokens;
+    private BigDecimal defaultTopP;
     private String remark;
     private LocalDateTime updatedAt;
     private Long updatedBy;

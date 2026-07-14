@@ -89,18 +89,23 @@ public class GenerationConfigService {
         exist.setLlmRetryMaxAttempts(req.getLlmRetryMaxAttempts());
         exist.setLlmRetryBaseDelayMs(req.getLlmRetryBaseDelayMs());
         exist.setLlmRetryBackoffMultiplier(req.getLlmRetryBackoffMultiplier());
+        exist.setDefaultTemperature(req.getDefaultTemperature());
+        exist.setDefaultMaxTokens(req.getDefaultMaxTokens());
+        exist.setDefaultTopP(req.getDefaultTopP());
         exist.setRemark(req.getRemark());
         exist.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         mapper.updateById(exist);
 
         // 立即刷新缓存，让 worker 下个轮询看到
         refreshFromDb();
-        log.info("admin={} 更新创作配置 pool={} batch={} lease={}min maxRetry={} poll={}ms cron={} workerId={} llmRetry={}/{}ms×{}",
+        log.info("admin={} 更新创作配置 pool={} batch={} lease={}min maxRetry={} poll={}ms cron={} workerId={} llmRetry={}/{}ms×{} aiDefault=temp:{}/maxTok:{}/topP:{}",
                 adminUserId, exist.getPoolSize(), exist.getClaimBatchSize(),
                 exist.getLeaseMinutes(), exist.getMaxRetry(), exist.getPollIntervalMs(),
                 exist.getRetentionCron(), exist.getWorkerId(),
                 exist.getLlmRetryMaxAttempts(), exist.getLlmRetryBaseDelayMs(),
-                exist.getLlmRetryBackoffMultiplier());
+                exist.getLlmRetryBackoffMultiplier(),
+                exist.getDefaultTemperature(), exist.getDefaultMaxTokens(),
+                exist.getDefaultTopP());
         return toVo(exist);
     }
 

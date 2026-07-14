@@ -52,6 +52,15 @@ public class GenerationConfig {
     /** 指数退避倍数（1-5）。 */
     private Integer llmRetryBackoffMultiplier;
 
+    /** AI temperature 默认值（0.00-2.00；stage model_params 可覆盖）。 */
+    private java.math.BigDecimal defaultTemperature;
+
+    /** AI max_tokens 默认值（1-128000；MiniMax-M3 等推理模型 reasoning 也吃此预算）。 */
+    private Integer defaultMaxTokens;
+
+    /** AI top_p 默认值（0.00-1.00；stage model_params 可覆盖）。 */
+    private java.math.BigDecimal defaultTopP;
+
     /** 备注。 */
     private String remark;
 
