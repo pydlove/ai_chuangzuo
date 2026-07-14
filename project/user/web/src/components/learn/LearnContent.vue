@@ -145,7 +145,7 @@
             <div class="learn-article-card-body">
               <div class="learn-article-card-texts">
                 <div class="learn-article-card-title">{{ a.title }}</div>
-                <p v-if="a.summary" class="learn-article-card-summary">{{ a.summary }}</p>
+                <p v-if="plainExcerpt(a)" class="learn-article-card-summary">{{ plainExcerpt(a) }}</p>
                 <div class="learn-article-card-meta">
                   <span class="learn-meta-item">
                     <CalendarOutlined class="learn-meta-icon" />
@@ -228,6 +228,24 @@ function formatDate(d) {
   if (!d) return ''
   const dt = new Date(d)
   return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
+}
+
+// 列表卡片描述：从正文提取纯文本摘要（去 Markdown / HTML 语法），正文为空时回退摘要
+function plainExcerpt(a) {
+  const raw = (a.content && a.content.trim()) ? a.content : (a.summary || '')
+  if (!raw) return ''
+  const text = raw
+    .replace(/```[\s\S]*?```/g, ' ')          // 代码块
+    .replace(/<[^>]+>/g, ' ')                 // HTML 标签
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')    // 图片
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')  // 链接保留文字
+    .replace(/^[#>\-\s]+/gm, ' ')             // 标题/引用/列表行首标记
+    .replace(/[*_`~|]/g, ' ')                 // 行内标记与表格分隔
+    .replace(/\s+/g, ' ')
+    .trim()
+  // 正文常以与标题相同的 H1 开头，去掉避免卡片里重复
+  const deduped = text.startsWith(a.title) ? text.slice(a.title.length).trim() : text
+  return deduped.length > 150 ? deduped.slice(0, 150) + '…' : deduped
 }
 
 // ---- 目录 ----
@@ -477,7 +495,7 @@ onUnmounted(() => {
 .learn-article-card-cover {
   width: 140px;
   height: 84px;
-  object-fit: cover;
+  object-fit: contain;
   border-radius: 6px;
   flex-shrink: 0;
   background: #f5f5f5;
