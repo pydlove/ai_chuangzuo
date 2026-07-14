@@ -409,19 +409,30 @@ body[data-theme="dark"] .learn-footer span + span::before {
 }
 .learn-recommend-card:hover {
   border-color: transparent;
-  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.1);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.12);
+  transform: translateY(-4px);
 }
 .learn-recommend-card:hover::before { opacity: 1; }
+.learn-recommend-card:hover .learn-recommend-icon-wrap {
+  transform: scale(1.1);
+  background: linear-gradient(135deg, #FF2442, #ff6b81);
+}
+.learn-recommend-card:hover .learn-recommend-icon {
+  color: #fff;
+}
+.learn-recommend-card:hover .learn-recommend-name {
+  color: #FF2442;
+}
 .learn-recommend-icon-wrap {
   width: 44px; height: 44px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 10px;
   background: linear-gradient(135deg, #FFF0F2, #FFE4E8);
   margin-bottom: 12px;
+  transition: all 0.25s ease;
 }
-.learn-recommend-icon { font-size: 22px; color: #FF2442; }
-.learn-recommend-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+.learn-recommend-icon { font-size: 22px; color: #FF2442; transition: color 0.25s ease; }
+.learn-recommend-name { font-size: 15px; font-weight: 600; margin-bottom: 4px; transition: color 0.25s ease; }
 .learn-recommend-count { font-size: 12px; color: #8c8c8c; }
 .learn-recommend-arrow {
   position: absolute;
