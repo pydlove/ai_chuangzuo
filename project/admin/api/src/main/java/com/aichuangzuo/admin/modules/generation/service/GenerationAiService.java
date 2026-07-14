@@ -78,8 +78,10 @@ public class GenerationAiService {
         GenerationConfig genCfg = generationConfigService.getCurrent();
         double temperatureDefault = genCfg.getDefaultTemperature() != null
                 ? genCfg.getDefaultTemperature().doubleValue() : 0.7;
+        // 16384：MiniMax-M3 是推理模型，max_tokens 与 reasoning 共享预算；
+        // 8192 时整稿改写类 stage 会被 reasoning 吃光导致 content 为空
         int maxTokensDefault = genCfg.getDefaultMaxTokens() != null
-                ? genCfg.getDefaultMaxTokens() : 8192;
+                ? genCfg.getDefaultMaxTokens() : 16384;
         double topPDefault = genCfg.getDefaultTopP() != null
                 ? genCfg.getDefaultTopP().doubleValue() : 1.0;
 
@@ -169,8 +171,18 @@ public class GenerationAiService {
             // Minimax: choices[0].message.content（通常同 schema）
             JsonNode choices = root.path("choices");
             if (choices.isArray() && choices.size() > 0) {
-                String content = choices.get(0).path("message").path("content").asText("");
+                JsonNode first = choices.get(0);
+                String content = first.path("message").path("content").asText("");
                 if (!content.isEmpty()) return content;
+                // content 为空：打印 finish_reason + 是否带 reasoning，便于定位
+                // MiniMax-M3 等推理模型 max_tokens 被 reasoning 吃光时，
+                // finish_reason=length 且 content 空、reasoning_content 非空
+                String finishReason = first.path("finish_reason").asText("");
+                JsonNode msg = first.path("message");
+                boolean hasReasoning = !msg.path("reasoning_content").asText("").isEmpty()
+                        || !msg.path("reasoning_details").isMissingNode();
+                log.warn("AI 返回 content 为空 provider={} finish_reason={} hasReasoning={} (若是 length，说明 max_tokens 被 reasoning 耗尽，需调大)",
+                        providerType, finishReason, hasReasoning);
             }
             // Minimax 有时返回 base_resp：失败但 HTTP 200
             JsonNode baseResp = root.path("base_resp");
