@@ -15,6 +15,6 @@ public class GenerationCallLogVO {
     private String error;
     private Integer durationMs;
     private LocalDateTime calledAt;
-    private String userMsgPreview;
-    private String responsePreview;
+    private String userMsg;
+    private String responseContent;
 }
