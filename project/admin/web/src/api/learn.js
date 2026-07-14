@@ -47,3 +47,17 @@ export function moveArticle(id, categoryId) {
 export function sortArticle(items) {
   return request.post(`${BASE}/article/sort`, { items })
 }
+
+// ---------- Banner ----------
+export function fetchBanners() {
+  return request.get(`${BASE}/banner`).then((res) => res.data || [])
+}
+export function createBanner(data) {
+  return request.post(`${BASE}/banner`, data).then((res) => res.data)
+}
+export function updateBanner(id, data) {
+  return request.put(`${BASE}/banner/${id}`, data)
+}
+export function deleteBanner(id) {
+  return request.delete(`${BASE}/banner/${id}`)
+}

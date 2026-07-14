@@ -75,6 +75,7 @@
           <template #title>创作学院</template>
           <a-menu-item key="/console/learn/category">分类管理</a-menu-item>
           <a-menu-item key="/console/learn/article">文章管理</a-menu-item>
+          <a-menu-item key="/console/learn/banner">Banner 管理</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/hot-search">
           <template #icon>

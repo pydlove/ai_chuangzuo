@@ -137,6 +137,11 @@ const routes = [
         path: 'learn/article/edit/:id?',
         name: 'AdminLearnArticleEdit',
         component: () => import('@/views/LearnArticleEditView.vue')
+      },
+      {
+        path: 'learn/banner',
+        name: 'AdminLearnBanner',
+        component: () => import('@/views/LearnBannerView.vue')
       }
     ]
   },
