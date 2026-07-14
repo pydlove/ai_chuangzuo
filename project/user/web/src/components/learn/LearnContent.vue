@@ -46,6 +46,13 @@
             </div>
           </header>
 
+          <img
+            v-if="article.coverImageUrl"
+            :src="article.coverImageUrl"
+            class="learn-content-cover"
+            alt=""
+          />
+
           <article ref="contentRef" class="learn-content-body">
             <LearnMarkdown v-if="article.contentType === 'markdown'" :source="article.content" />
             <LearnRichText v-else :html="article.content" />
@@ -135,13 +142,23 @@
       <ul class="learn-article-list">
         <li v-for="a in category.articles" :key="a.id" class="learn-article-card">
           <a @click.prevent="$emit('load-article', a.id)" href="#" class="learn-article-card-link">
-            <div class="learn-article-card-title">{{ a.title }}</div>
-            <p v-if="a.summary" class="learn-article-card-summary">{{ a.summary }}</p>
-            <div class="learn-article-card-meta">
-              <span class="learn-meta-item">
-                <CalendarOutlined class="learn-meta-icon" />
-                {{ formatDate(a.publishedAt || a.updatedAt) }}
-              </span>
+            <div class="learn-article-card-body">
+              <div class="learn-article-card-texts">
+                <div class="learn-article-card-title">{{ a.title }}</div>
+                <p v-if="a.summary" class="learn-article-card-summary">{{ a.summary }}</p>
+                <div class="learn-article-card-meta">
+                  <span class="learn-meta-item">
+                    <CalendarOutlined class="learn-meta-icon" />
+                    {{ formatDate(a.publishedAt || a.updatedAt) }}
+                  </span>
+                </div>
+              </div>
+              <img
+                v-if="a.coverImageUrl"
+                :src="a.coverImageUrl"
+                class="learn-article-card-cover"
+                alt=""
+              />
             </div>
           </a>
         </li>
@@ -450,6 +467,31 @@ onUnmounted(() => {
   padding: 16px 20px;
   text-decoration: none;
   color: inherit;
+}
+.learn-article-card-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.learn-article-card-texts { flex: 1; min-width: 0; }
+.learn-article-card-cover {
+  width: 140px;
+  height: 84px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+  background: #f5f5f5;
+}
+@media (max-width: 991px) {
+  .learn-article-card-cover { width: 96px; height: 64px; }
+}
+.learn-content-cover {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin: 0 0 24px;
+  display: block;
 }
 .learn-article-card-title {
   font-size: 16px;
