@@ -6,8 +6,8 @@
       <div class="learn-hero-deco learn-hero-deco-lg"></div>
       <div class="learn-hero-deco learn-hero-deco-sm"></div>
       <div class="learn-hero-inner">
-        <h1 class="learn-hero-title">创作学院</h1>
-        <p class="learn-hero-subtitle">从 0 到 1 的自媒体实战指南</p>
+        <h1 class="learn-hero-title learn-hero-link" @click="goHome">创作学院</h1>
+        <p class="learn-hero-subtitle learn-hero-link" @click="goHome">从 0 到 1 的自媒体实战指南</p>
       </div>
     </header>
 
@@ -215,6 +215,8 @@ const onSelectCategoryFromSheet = id => {
 
 const loadArticle = id => router.push(`/learn/article/${id}`)
 
+const goHome = () => router.replace({ path: '/learn' })
+
 async function bootstrap() {
   try {
     const tree = await fetchCategoryTree()
@@ -291,6 +293,8 @@ watch(() => route.fullPath, (newPath, oldPath) => {
   color: #1a1a1a;
   margin: 0;
 }
+.learn-hero-link { cursor: pointer; }
+.learn-hero-link:hover { color: #FF2442; transition: color 0.2s ease; }
 .learn-hero-subtitle {
   font-size: 14px;
   color: #8c8c8c;
