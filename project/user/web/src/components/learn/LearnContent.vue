@@ -94,14 +94,22 @@
         <!-- 目录侧边栏 -->
         <aside v-if="tocItems.length" class="learn-toc-sidebar">
           <nav class="learn-toc">
-            <div class="learn-toc-title">目录</div>
-            <a
-              v-for="item in tocItems"
-              :key="item.id"
-              :class="['learn-toc-item', { active: item.id === activeHeading, 'toc-h3': item.level === 3 }]"
-              @click.prevent="scrollToHeading(item.id)"
-              href="#"
-            >{{ item.text }}</a>
+            <div class="learn-toc-title">
+              <UnorderedListOutlined class="learn-toc-title-icon" />
+              目录
+            </div>
+            <div class="learn-toc-track">
+              <a
+                v-for="item in tocItems"
+                :key="item.id"
+                :class="['learn-toc-item', { active: item.id === activeHeading, 'toc-h3': item.level === 3 }]"
+                @click.prevent="scrollToHeading(item.id)"
+                href="#"
+              >
+                <span class="learn-toc-dot"></span>
+                <span class="learn-toc-text">{{ item.text }}</span>
+              </a>
+            </div>
           </nav>
         </aside>
       </div>
@@ -179,7 +187,8 @@ import {
   FileTextOutlined,
   TagOutlined,
   BulbOutlined,
-  ReadOutlined
+  ReadOutlined,
+  UnorderedListOutlined
 } from '@ant-design/icons-vue'
 
 const props = defineProps({
@@ -263,34 +272,101 @@ onUnmounted(() => {
   top: 88px;
   max-height: calc(100vh - 112px);
   overflow-y: auto;
+  padding: 4px 0;
 }
 .learn-toc-title {
-  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: 8px;
-  padding-left: 12px;
+  margin-bottom: 12px;
+  padding-left: 16px;
 }
+.learn-toc-title-icon { font-size: 16px; color: #FF2442; }
+
+/* 轨道线 */
+.learn-toc-track {
+  position: relative;
+  padding-left: 20px;
+}
+.learn-toc-track::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #f0f0f0;
+  border-radius: 1px;
+}
+
+/* 目录项 */
 .learn-toc-item {
-  display: block;
-  font-size: 13px;
-  color: #8c8c8c;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 8px;
+  margin-left: -20px;
+  padding-left: 0;
   text-decoration: none;
-  padding: 4px 0 4px 12px;
-  border-left: 2px solid #f0f0f0;
+  color: #8c8c8c;
+  font-size: 13px;
+  line-height: 1.5;
   cursor: pointer;
-  transition: all 0.2s;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  position: relative;
 }
-.learn-toc-item:hover { color: #FF2442; border-left-color: #ffb3c1; }
+.learn-toc-item:hover {
+  color: #FF2442;
+  background: #FFF5F7;
+}
 .learn-toc-item.active {
   color: #FF2442;
   font-weight: 600;
-  border-left-color: #FF2442;
 }
-.learn-toc-item.toc-h3 { padding-left: 24px; font-size: 12px; }
+.learn-toc-item.active .learn-toc-dot {
+  background: #FF2442;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.15);
+}
+
+/* 圆点：对齐轨道线中心 */
+.learn-toc-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-top: 5px;
+  transition: all 0.2s;
+  z-index: 1;
+}
+.learn-toc-item:hover .learn-toc-dot { background: #ffb3c1; }
+
+/* 文字 */
+.learn-toc-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* h3 缩进 */
+.learn-toc-item.toc-h3 {
+  padding-left: 12px;
+  font-size: 12px;
+}
+.learn-toc-item.toc-h3 .learn-toc-dot {
+  width: 6px;
+  height: 6px;
+  min-width: 6px;
+  margin-top: 5px;
+  margin-left: 1px;
+}
+
 @media (max-width: 991px) {
   .learn-toc-sidebar { display: none; }
 }
