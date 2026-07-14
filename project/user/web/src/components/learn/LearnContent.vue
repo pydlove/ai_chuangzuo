@@ -266,7 +266,7 @@ onUnmounted(() => {
 .learn-article-main { flex: 1; min-width: 0; }
 
 /* 目录侧边栏 */
-.learn-toc-sidebar { width: 180px; flex-shrink: 0; }
+.learn-toc-sidebar { width: 240px; flex-shrink: 0; }
 .learn-toc {
   position: sticky;
   top: 88px;
