@@ -319,10 +319,13 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 在 `currentCategoryName` computed 之后追加：
 
 ```js
-// 反查当前文章所属分类的完整路径（用于面包屑）
+// 反查当前分类的完整路径（用于面包屑；文章详情和分类列表通用）
 const currentCategoryPath = computed(() => {
-  if (!currentArticle.value?.categoryId) return []
-  const targetId = currentArticle.value.categoryId
+  // 文章详情：用文章所属分类；分类列表：用 query.cat
+  const targetId = route.params.id
+    ? (currentArticle.value?.categoryId ?? null)
+    : (route.query.cat ? Number(route.query.cat) : null)
+  if (!targetId) return []
   const result = []
   const walk = (nodes, trail) => {
     for (const n of nodes) {
