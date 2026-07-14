@@ -50,9 +50,11 @@ const iconComponent = computed(() => CATEGORY_ICONS[props.node.name] || null)
 
 function onClick() {
   if (hasChildren.value) {
+    // 有子分类的节点只做展开/折叠，不触发分类跳转
     open.value = !open.value
+  } else {
+    emit('select', props.node.id)
   }
-  emit('select', props.node.id)
 }
 </script>
 
