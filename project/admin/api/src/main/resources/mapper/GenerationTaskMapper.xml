@@ -48,7 +48,7 @@
         SELECT t.id            AS id,
                t.biz_no        AS bizNo,
                t.target_user_id AS userId,
-               u.nickname      AS userNickname,
+               COALESCE(NULLIF(u.nickname, ''), u.email) AS userNickname,
                t.status        AS status,
                t.model_config_id AS modelConfigId,
                t.word_limit_target AS wordLimitTarget,

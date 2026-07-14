@@ -77,7 +77,8 @@ public class GenerationAiService {
                 Map.of("role", "user", "content", userMessage)
         ));
         body.put("temperature", pickDouble(modelParams, "temperature", 0.7));
-        body.put("max_tokens", pickInt(modelParams, "max_tokens", 2000));
+        // 默认 4096：3000 字稿 + JSON 包装约需 3-4k tokens，原 2000 会把长 JSON 截断
+        body.put("max_tokens", pickInt(modelParams, "max_tokens", 4096));
         body.put("top_p", pickDouble(modelParams, "top_p", 1.0));
         body.put("stream", false);
 

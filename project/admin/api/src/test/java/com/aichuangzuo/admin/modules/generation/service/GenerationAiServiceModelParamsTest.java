@@ -65,7 +65,7 @@ class GenerationAiServiceModelParamsTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
         assertEquals(0.7, body.get("temperature"));
-        assertEquals(2000, body.get("max_tokens"));
+        assertEquals(4096, body.get("max_tokens"));
     }
 
     @Test
@@ -96,7 +96,7 @@ class GenerationAiServiceModelParamsTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
         assertEquals(0.5, body.get("temperature"));
-        assertEquals(2000, body.get("max_tokens"));  // 未知字段不影响
+        assertEquals(4096, body.get("max_tokens"));  // 未知字段不影响
     }
 
     /**
