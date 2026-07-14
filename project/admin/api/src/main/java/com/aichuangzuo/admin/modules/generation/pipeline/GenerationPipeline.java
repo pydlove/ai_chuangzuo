@@ -46,7 +46,15 @@ public class GenerationPipeline {
      * @param onStageComplete 每阶段结束后的回调；可为 null
      */
     public GenerationContext run(GenerationTask task, BiConsumer<Long, Integer> onStageComplete) {
-        GenerationContext ctx = new GenerationContext();
+        return runInto(new GenerationContext(), task, onStageComplete);
+    }
+
+    /**
+     * 同 {@link #run(GenerationTask, BiConsumer)}，但 ctx 由调用方提供：
+     * pipeline 抛异常时调用方仍能拿到 ctx（AI 调用留痕、进度等），用于失败落日志。
+     */
+    public GenerationContext runInto(GenerationContext ctx, GenerationTask task,
+                                     BiConsumer<Long, Integer> onStageComplete) {
         ctx.setTask(task);
         ctx.setInput(parseInput(task.getInputParam()));
 

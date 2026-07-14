@@ -77,8 +77,9 @@ public class GenerationAiService {
                 Map.of("role", "user", "content", userMessage)
         ));
         body.put("temperature", pickDouble(modelParams, "temperature", 0.7));
-        // 默认 4096：3000 字稿 + JSON 包装约需 3-4k tokens，原 2000 会把长 JSON 截断
-        body.put("max_tokens", pickInt(modelParams, "max_tokens", 4096));
+        // 默认 8192：MiniMax-M3 等推理模型的 reasoning 也吃 max_tokens 预算，
+        // 3000 字稿 + JSON 包装 + 推理，4096 仍可能截断（M3 输出上限 512K，8192 安全）
+        body.put("max_tokens", pickInt(modelParams, "max_tokens", 8192));
         body.put("top_p", pickDouble(modelParams, "top_p", 1.0));
         body.put("stream", false);
 

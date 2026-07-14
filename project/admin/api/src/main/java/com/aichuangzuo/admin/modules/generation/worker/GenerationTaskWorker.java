@@ -133,10 +133,11 @@ public class GenerationTaskWorker {
      */
     private void processOne(GenerationTask task) {
         Long taskId = task.getId();
-        GenerationContext ctx = null;
+        // ctx 提前创建：pipeline 抛异常时也要能拿到 AI 调用留痕落库
+        GenerationContext ctx = new GenerationContext();
         try {
             // 进度回调：每个 stage 完成后回写 progress_pct，user 端轮询可见
-            ctx = pipeline.run(task, (tid, pct) -> taskService.updateProgress(tid, pct));
+            ctx = pipeline.runInto(ctx, task, (tid, pct) -> taskService.updateProgress(tid, pct));
             if (ctx.getArticleBizNo() == null) {
                 throw new BusinessException(AdminGenerationErrorCode.GENERATION_ARTICLE_PERSIST_FAILED);
             }
@@ -159,12 +160,10 @@ public class GenerationTaskWorker {
             }
         } finally {
             // 落库 AI 调用日志（成功失败都写，便于排查）
-            if (ctx != null) {
-                try {
-                    callLogService.persistAll(ctx);
-                } catch (Exception logEx) {
-                    log.error("task={} 写 call log 失败: {}", taskId, logEx.getMessage());
-                }
+            try {
+                callLogService.persistAll(ctx);
+            } catch (Exception logEx) {
+                log.error("task={} 写 call log 失败: {}", taskId, logEx.getMessage());
             }
         }
     }
