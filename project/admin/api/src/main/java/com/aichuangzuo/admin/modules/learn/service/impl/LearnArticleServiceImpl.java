@@ -146,6 +146,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         e.setCategoryId(req.getCategoryId());
         e.setTitle(req.getTitle());
         e.setSummary(req.getSummary());
+        e.setCoverImageUrl(req.getCoverImageUrl() != null ? req.getCoverImageUrl() : "");
         e.setContentType(req.getContentType());
         e.setContent(req.getContent());
         if (req.getSort() != null) e.setSort(req.getSort());
@@ -180,6 +181,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         v.setCategoryId(e.getCategoryId());
         v.setTitle(e.getTitle());
         v.setSummary(e.getSummary());
+        v.setCoverImageUrl(e.getCoverImageUrl());
         v.setContentType(e.getContentType());
         v.setContent(e.getContent());
         v.setStatus(e.getStatus());

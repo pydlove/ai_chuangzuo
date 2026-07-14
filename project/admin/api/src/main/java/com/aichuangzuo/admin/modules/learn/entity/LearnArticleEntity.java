@@ -25,6 +25,7 @@ public class LearnArticleEntity extends BaseEntity {
     private Long categoryId;
     private String title;
     private String summary;
+    private String coverImageUrl;
     private ContentType contentType;
     private String content;
     private ArticleStatus status;

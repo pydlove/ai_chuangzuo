@@ -20,6 +20,9 @@ public class LearnArticleReq {
     @Size(max = 255)
     private String summary;
 
+    @Size(max = 512)
+    private String coverImageUrl = "";
+
     @NotNull
     private ContentType contentType;
 
