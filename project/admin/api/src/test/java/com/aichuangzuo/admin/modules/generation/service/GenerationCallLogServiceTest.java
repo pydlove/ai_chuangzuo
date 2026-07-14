@@ -2,8 +2,10 @@ package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.entity.GenerationCallLog;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
+import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.pipeline.AiCallRecord;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
+import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogGroupedVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import org.junit.jupiter.api.Test;
@@ -21,9 +23,11 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,6 +36,9 @@ class GenerationCallLogServiceTest {
 
     @Mock
     private GenerationCallLogMapper mapper;
+
+    @Mock
+    private GenerationTaskMapper taskMapper;
 
     @InjectMocks
     private GenerationCallLogService service;
@@ -54,6 +61,10 @@ class GenerationCallLogServiceTest {
         r.setError(error);
         r.setDurationMs(ms);
         r.setCalledAt(LocalDateTime.now());
+        r.setUserMsg("[stage " + stageIdx + " " + stepName + "] user msg attempt " + attempt);
+        if (success) {
+            r.setResponseContent("response content for " + stepName + " attempt " + attempt);
+        }
         return r;
     }
 
@@ -69,11 +80,13 @@ class GenerationCallLogServiceTest {
         ctx.setAiCallFailed(1);
         ctx.setAiCallRetried(1);
 
+        when(mapper.deleteByTaskId(100L)).thenReturn(0);
         when(mapper.batchInsert(any())).thenReturn(3);
 
         int n = service.persistAll(ctx);
 
         assertEquals(3, n);
+        verify(mapper).deleteByTaskId(100L);
         ArgumentCaptor<List<GenerationCallLog>> captor = ArgumentCaptor.forClass(List.class);
         verify(mapper).batchInsert(captor.capture());
         List<GenerationCallLog> rows = captor.getValue();
@@ -82,11 +95,17 @@ class GenerationCallLogServiceTest {
         assertEquals(Integer.valueOf(2), rows.get(0).getStageIndex());
         assertEquals("outline", rows.get(0).getStageName());
         assertEquals(Integer.valueOf(1), rows.get(0).getSuccess());
+        assertEquals("[stage 2 outline] user msg attempt 1", rows.get(0).getUserMsg());
+        assertEquals("response content for outline attempt 1", rows.get(0).getResponseContent());
         // 第 2 行是失败的
         assertEquals(Integer.valueOf(0), rows.get(1).getSuccess());
         assertEquals("timeout", rows.get(1).getError());
+        assertEquals("[stage 4 draft] user msg attempt 1", rows.get(1).getUserMsg());
+        assertNull(rows.get(1).getResponseContent());
         // 第 3 行是 retry 成功的
         assertEquals(Integer.valueOf(2), rows.get(2).getAttempt());
+        assertEquals("[stage 4 draft] user msg attempt 2", rows.get(2).getUserMsg());
+        assertEquals("response content for draft attempt 2", rows.get(2).getResponseContent());
     }
 
     @Test
@@ -104,7 +123,38 @@ class GenerationCallLogServiceTest {
         ctx.setAiCallHistory(List.of(rec(2, "outline", 1, true, null, 100)));
         int n = service.persistAll(ctx);
         assertEquals(0, n);
+        verify(mapper, never()).deleteByTaskId(any());
         verify(mapper, never()).batchInsert(any());
+    }
+
+    @Test
+    void persistAll_shouldNotDeleteOrInsertWhenHistoryIsEmpty() {
+        GenerationContext ctx = makeCtx(100L);
+        ctx.setAiCallHistory(new ArrayList<>());
+
+        int n = service.persistAll(ctx);
+
+        assertEquals(0, n);
+        verify(mapper, never()).deleteByTaskId(any());
+        verify(mapper, never()).batchInsert(any());
+    }
+
+    @Test
+    void persistAll_shouldBeIdempotentAcrossMultipleCalls() {
+        GenerationContext ctx = makeCtx(100L);
+        List<AiCallRecord> history = new ArrayList<>();
+        history.add(rec(2, "outline", 1, true, null, 1234));
+        history.add(rec(4, "draft", 1, true, null, 1100));
+        ctx.setAiCallHistory(history);
+
+        when(mapper.deleteByTaskId(100L)).thenReturn(2);
+        when(mapper.batchInsert(any())).thenReturn(2);
+
+        service.persistAll(ctx);
+        service.persistAll(ctx);
+
+        verify(mapper, times(2)).deleteByTaskId(100L);
+        verify(mapper, times(2)).batchInsert(any());
     }
 
     @Test
@@ -133,6 +183,39 @@ class GenerationCallLogServiceTest {
     }
 
     @Test
+    void queryByTaskIdGrouped_shouldIncludeTaskStatus() {
+        GenerationCallLog r1 = new GenerationCallLog();
+        r1.setTaskId(100L); r1.setStageIndex(2); r1.setStageName("outline");
+        r1.setSuccess(1); r1.setDurationMs(1000); r1.setCalledAt(LocalDateTime.now());
+
+        GenerationTask task = new GenerationTask();
+        task.setId(100L);
+        task.setStatus(com.aichuangzuo.shared.enums.GenerationTaskStatus.PROCESSING);
+
+        when(mapper.selectByTaskId(100L)).thenReturn(List.of(r1));
+        when(taskMapper.selectById(100L)).thenReturn(task);
+
+        GenerationCallLogGroupedVO vo = service.queryByTaskIdGrouped(100L);
+
+        assertEquals(Integer.valueOf(1), vo.getTaskStatus());
+        assertNotNull(vo.getGrouped());
+        assertEquals(1, vo.getGrouped().size());  // 1 个 stage（stage 2）
+        assertEquals(1, vo.getGrouped().get(2).size());
+    }
+
+    @Test
+    void queryByTaskIdGrouped_shouldDefaultTaskStatusToNullWhenTaskMissing() {
+        when(mapper.selectByTaskId(999L)).thenReturn(List.of());
+        when(taskMapper.selectById(999L)).thenReturn(null);
+
+        GenerationCallLogGroupedVO vo = service.queryByTaskIdGrouped(999L);
+
+        assertNull(vo.getTaskStatus());
+        assertNotNull(vo.getGrouped());
+        assertTrue(vo.getGrouped().isEmpty());
+    }
+
+    @Test
     void queryByTaskIdGrouped_shouldBucketByStageIndex() {
         GenerationCallLog r1 = new GenerationCallLog();
         r1.setTaskId(100L); r1.setStageIndex(2); r1.setStageName("outline");
@@ -148,14 +231,18 @@ class GenerationCallLogServiceTest {
         r3.setCalledAt(LocalDateTime.now());
 
         when(mapper.selectByTaskId(100L)).thenReturn(List.of(r1, r2, r3));
+        GenerationTask task = new GenerationTask();
+        task.setId(100L);
+        task.setStatus(com.aichuangzuo.shared.enums.GenerationTaskStatus.COMPLETED);
+        when(taskMapper.selectById(100L)).thenReturn(task);
 
-        Map<Integer, List<GenerationCallLogVO>> grouped = service.queryByTaskIdGrouped(100L);
+        GenerationCallLogGroupedVO vo = service.queryByTaskIdGrouped(100L);
 
-        assertNotNull(grouped);
-        assertEquals(2, grouped.size());  // 2 个 stage
-        assertEquals(1, grouped.get(2).size());
-        assertEquals(2, grouped.get(4).size());  // stage 4 调了 2 次
+        assertNotNull(vo.getGrouped());
+        assertEquals(2, vo.getGrouped().size());  // 2 个 stage
+        assertEquals(1, vo.getGrouped().get(2).size());
+        assertEquals(2, vo.getGrouped().get(4).size());  // stage 4 调了 2 次
         // stage 4 第二次重试成功
-        assertTrue(grouped.get(4).get(1).getSuccess());
+        assertTrue(vo.getGrouped().get(4).get(1).getSuccess());
     }
 }
