@@ -39,6 +39,9 @@
 
           <!-- 学院简介 -->
           <div class="learn-intro">
+            <div class="learn-intro-icon">
+              <BulbOutlined />
+            </div>
             <p class="learn-intro-text">
               创作学院是爱创作为自媒体创作者打造的实战学习平台，涵盖内容定位、平台运营、爆款方法论等核心主题，帮助你从 0 到 1 建立系统化的内容创作能力。
             </p>
@@ -121,7 +124,7 @@ import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners } from '@/api/learn'
 import { CATEGORY_ICONS } from '@/components/learn/learnCategoryIcons'
-import { ReadOutlined } from '@ant-design/icons-vue'
+import { ReadOutlined, BulbOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import LearnSidebar from '@/components/learn/LearnSidebar.vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
@@ -365,9 +368,24 @@ body[data-theme="dark"] .learn-footer span + span::before {
 .learn-banner-img { width: 100%; height: auto; display: block; }
 
 /* 学院简介 */
-.learn-intro { margin-bottom: 24px; }
+.learn-intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 20px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #FFF5F7 0%, #FFF0F2 100%);
+  border: 1px solid #FFE0E5;
+  border-radius: 10px;
+}
+.learn-intro-icon {
+  flex-shrink: 0;
+  font-size: 20px;
+  color: #FF2442;
+  margin-top: 2px;
+}
 .learn-intro-text {
-  font-size: 14px; line-height: 1.8; color: #595959; margin: 0;
+  font-size: 14px; line-height: 1.8; color: #434343; margin: 0;
 }
 
 /* 推荐分类 */
