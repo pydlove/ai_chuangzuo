@@ -16,6 +16,10 @@ import com.aichuangzuo.shared.entity.PromptTemplate;
 import com.aichuangzuo.shared.entity.PromptTemplateVersion;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.baomidou.mybatisplus.core.MybatisConfiguration;
+import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
+import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -53,6 +57,13 @@ class PromptTemplateServiceStageTest {
 
     @InjectMocks
     private PromptTemplateService service;
+
+    /** publish() 用 LambdaUpdateWrapper，纯 Mockito 测试需手动初始化 lambda 缓存。 */
+    @BeforeAll
+    static void initLambdaCache() {
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), PromptTemplate.class);
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(new MybatisConfiguration(), ""), PromptTemplateVersion.class);
+    }
 
     private PromptTemplate sampleTemplate(Long id) {
         PromptTemplate t = new PromptTemplate();

@@ -13,10 +13,10 @@
         ORDER BY stage_index ASC
     </select>
 
-    <update id="deleteByTemplateId">
-        UPDATE t_prompt_template_stage
-        SET is_deleted = 1, updated_at = NOW(3)
-        WHERE template_id = #{templateId} AND is_deleted = 0
-    </update>
+    <!-- 物理删除：全量替换场景下必须释放 uk_template_stage(template_id, stage_index) 唯一键 -->
+    <delete id="deleteByTemplateId">
+        DELETE FROM t_prompt_template_stage
+        WHERE template_id = #{templateId}
+    </delete>
 
 </mapper>
