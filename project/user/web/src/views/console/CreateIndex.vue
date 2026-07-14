@@ -407,30 +407,30 @@
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- 学习的风格 -->
-        <div v-show="styleTab === 'learned'" class="style-grid">
-          <div
-            v-if="learnedStyles.length === 0"
-            class="style-empty style-empty-text"
-          >
-            还没有学习过的风格，请前往「我的风格」页面学习。
-          </div>
-          <div
-            v-for="(l, idx) in learnedStyles"
-            v-else
-            :key="l.name"
-            :class="['style-card', { selected: selectedStyleName === l.name }]"
-            @click="selectStyle(l)"
-          >
-            <div class="style-card-title">{{ l.name }}</div>
-            <div v-if="l.scope" class="style-card-scope">适用：{{ l.scope }}</div>
-            <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
-              {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
+          <!-- 学习的风格 -->
+          <div v-show="styleTab === 'learned'" class="style-grid">
+            <div
+              v-if="learnedStyles.length === 0"
+              class="style-empty style-empty-text"
+            >
+              还没有学习过的风格，请前往「我的风格」页面学习。
             </div>
-            <div v-show="expandedLearnedIdx === idx" class="style-prompt-full">
-              {{ l.prompt }}
+            <div
+              v-for="(l, idx) in learnedStyles"
+              v-else
+              :key="l.name"
+              :class="['style-card', { selected: selectedStyleName === l.name }]"
+              @click="selectStyle(l)"
+            >
+              <div class="style-card-title">{{ l.name }}</div>
+              <div v-if="l.scope" class="style-card-scope">适用：{{ l.scope }}</div>
+              <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
+                {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
+              </div>
+              <div v-show="expandedLearnedIdx === idx" class="style-prompt-full">
+                {{ l.prompt }}
+              </div>
             </div>
           </div>
         </div>
