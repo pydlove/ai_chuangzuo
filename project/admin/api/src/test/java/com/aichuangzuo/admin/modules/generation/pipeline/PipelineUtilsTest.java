@@ -106,4 +106,15 @@ class PipelineUtilsTest {
         assertEquals(true, ex.getMessage().contains("截断") || ex.getMessage().contains("max_tokens"),
                 "Expected truncation hint, got: " + ex.getMessage());
     }
+
+    @Test
+    void parseAiJson_shouldAcceptSingleQuotedStrings() {
+        // 第 4 类瑕疵：M3 在某些字段（中文术语 like 'AI写作变现'/'数据'）用 '...'
+        // 单引号当定界符（Python literal 风格），Jackson 严格模式认作 expected a value
+        String singleQuoted = "{'paragraph_index':1,'responsibility':'用反差感开场','items':[1,'two',3]}";
+        JsonNode root = PipelineUtils.parseAiJson(singleQuoted);
+        assertEquals(1, root.path("paragraph_index").asInt());
+        assertEquals("用反差感开场", root.path("responsibility").asText());
+        assertEquals("two", root.path("items").get(1).asText());
+    }
 }

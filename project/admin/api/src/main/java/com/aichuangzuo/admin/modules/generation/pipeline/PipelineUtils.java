@@ -19,8 +19,11 @@ public final class PipelineUtils {
 
     // ALLOW_UNESCAPED_CONTROL_CHARS：MiniMax-M3 等模型常在字符串值里写字面换行/制表符
     // （未转义控制字符，code 9/10/13），Jackson 严格模式会拒收；开启后读成 \n/\t 原样保留。
+    // ALLOW_SINGLE_QUOTES：M3 偶尔用 'foo' 单引号风格定界（Python literal 风），常见于
+    // 中文术语字段（如 'AI写作变现'）；严格模式认作 "was expecting double-quote"。
     private static final ObjectMapper MAPPER = JsonMapper.builder()
             .configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS, true)
+            .configure(JsonReadFeature.ALLOW_SINGLE_QUOTES, true)
             .build();
     private static final PromptTemplateRenderService RENDER = new PromptTemplateRenderService();
 
@@ -138,8 +141,10 @@ public final class PipelineUtils {
     /**
      * 解析 AI 返回的 JSON 字符串：先去掉 ```json 围栏，再 parse。
      *
-     * <p>底层 MAPPER 已开启 {@code ALLOW_UNESCAPED_CONTROL_CHARS}，容忍字符串值内的
-     * 字面换行/制表符（模型常把多行文本直接写进 value，不转义成 \n）。
+     * <p>底层 MAPPER 已开启 {@code ALLOW_UNESCAPED_CONTROL_CHARS}（容忍字符串值内
+     * 字面换行/制表符）和 {@code ALLOW_SINGLE_QUOTES}（容忍 'foo' 单引号定界），
+     * 覆盖 M3 三类常见 JSON 瑕疵：控制字符 / 单引号 / 裸引号（后者由
+     * {@link #repairInnerQuotes(String)} 兜底）。
      *
      * <p>解析失败时会尝试 {@link #repairInnerQuotes(String)} 兜底：MiniMax-M3 等中文
      * 模型有时在字符串值里直接写裸 "（如 "30岁" 这种引用），破坏 JSON 结构；这里
