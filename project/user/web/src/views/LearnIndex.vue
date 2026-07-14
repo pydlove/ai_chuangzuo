@@ -371,6 +371,64 @@ body[data-theme="dark"] .learn-footer span + span::before {
   color: #303030;
 }
 
+/* 暗色主题 — 页面容器 */
+body[data-theme="dark"] .learn-page { background: #141414; }
+body[data-theme="dark"] .learn-main,
+body[data-theme="dark"] .learn-sidebar { background: #1f1f1f; box-shadow: none; }
+body[data-theme="dark"] .learn-empty { color: #595959; }
+
+/* 暗色主题 — Hero */
+body[data-theme="dark"] .learn-hero {
+  background: linear-gradient(180deg, #2a1f22 0%, #1f1f1f 100%);
+}
+body[data-theme="dark"] .learn-hero-title { color: #e0e0e0; }
+body[data-theme="dark"] .learn-hero-link:hover { color: #ff5e72; }
+body[data-theme="dark"] .learn-hero-subtitle { color: #8c8c8c; }
+body[data-theme="dark"] .learn-hero-deco { background: #3a2a2e; }
+
+/* 暗色主题 — 学院简介 */
+body[data-theme="dark"] .learn-intro {
+  background: linear-gradient(135deg, #2a1f22 0%, #2f2226 100%);
+  border-color: #3a2a2e;
+}
+body[data-theme="dark"] .learn-intro-text { color: #b0b0b0; }
+
+/* 暗色主题 — 推荐分类 */
+body[data-theme="dark"] .learn-recommend-title { color: #e0e0e0; }
+body[data-theme="dark"] .learn-recommend-card {
+  background: linear-gradient(135deg, #1f1f1f 0%, #2a2226 100%);
+  border-color: #303030;
+  color: #e0e0e0;
+}
+body[data-theme="dark"] .learn-recommend-card:hover {
+  border-color: transparent;
+  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.15);
+}
+body[data-theme="dark"] .learn-recommend-icon-wrap {
+  background: linear-gradient(135deg, #3a2a2e, #4a3036);
+}
+body[data-theme="dark"] .learn-recommend-name { color: #e0e0e0; }
+body[data-theme="dark"] .learn-recommend-count { color: #8c8c8c; }
+body[data-theme="dark"] .learn-recommend-arrow { color: #595959; }
+
+/* 暗色主题 — 兜底空状态 */
+body[data-theme="dark"] .learn-empty-icon { color: #434343; }
+body[data-theme="dark"] .learn-empty-title { color: #b0b0b0; }
+body[data-theme="dark"] .learn-empty-subtitle { color: #595959; }
+
+/* 暗色主题 — 轮播箭头 */
+body[data-theme="dark"] .learn-banner-arrow {
+  background: rgba(40,40,40,0.85);
+  color: #e0e0e0;
+}
+body[data-theme="dark"] .learn-banner-arrow:hover {
+  background: #2f2f2f;
+  color: #FF2442;
+}
+body[data-theme="dark"] .learn-banner-carousel :deep(.slick-dots li button) {
+  background: rgba(255,255,255,0.3);
+}
+
 /* Banner 轮播 */
 .learn-banner-section { margin-bottom: 24px; }
 .learn-banner-carousel { border-radius: 12px; }
