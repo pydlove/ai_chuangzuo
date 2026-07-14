@@ -23,7 +23,52 @@
       </aside>
 
       <main class="learn-main">
+        <!-- 空状态页：banner + 推荐分类 -->
+        <template v-if="isEmptyState">
+          <!-- Banner 轮播 -->
+          <div v-if="banners.length" class="learn-banner-section">
+            <a-carousel autoplay :dots="true" dot-position="bottom" class="learn-banner-carousel">
+              <div v-for="b in banners" :key="b.id" class="learn-banner-slide">
+                <a v-if="b.linkUrl" :href="b.linkUrl" target="_blank" rel="noopener">
+                  <img :src="b.imageUrl" :alt="'banner-' + b.id" class="learn-banner-img" />
+                </a>
+                <img v-else :src="b.imageUrl" :alt="'banner-' + b.id" class="learn-banner-img" />
+              </div>
+            </a-carousel>
+          </div>
+
+          <!-- 推荐分类 -->
+          <div v-if="recommendedCategories.length" class="learn-recommend-section">
+            <h2 class="learn-recommend-title">推荐分类</h2>
+            <div class="learn-recommend-grid">
+              <a
+                v-for="cat in recommendedCategories"
+                :key="cat.id"
+                class="learn-recommend-card"
+                @click.prevent="onSelectCategory(cat.id)"
+                href="#"
+              >
+                <component
+                  v-if="getCategoryIcon(cat.name)"
+                  :is="getCategoryIcon(cat.name)"
+                  class="learn-recommend-icon"
+                />
+                <span class="learn-recommend-name">{{ cat.name }}</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- 兜底空状态 -->
+          <div v-if="!banners.length && !recommendedCategories.length" class="learn-content-empty">
+            <ReadOutlined class="learn-empty-icon" />
+            <div class="learn-empty-title">欢迎来到创作学院</div>
+            <div class="learn-empty-subtitle">从左侧选择一个分类开始学习</div>
+          </div>
+        </template>
+
+        <!-- 非空状态：文章详情 / 分类列表 -->
         <LearnContent
+          v-else
           :article="currentArticle"
           :category="currentCategory"
           :current-category-name="currentCategoryName"
@@ -58,7 +103,9 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchCategoryTree, fetchCategoryDetail, fetchArticle } from '@/api/learn'
+import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners } from '@/api/learn'
+import { CATEGORY_ICONS } from '@/components/learn/learnCategoryIcons'
+import { ReadOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import LearnSidebar from '@/components/learn/LearnSidebar.vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
@@ -120,6 +167,21 @@ const currentCategoryPath = computed(() => {
 // 空状态快捷入口：前 4 个顶级分类
 const topCategories = computed(() => categoryTree.value.slice(0, 4))
 
+// 是否为空状态页（未选文章、未选分类）
+const isEmptyState = computed(() => !route.params.id && !route.query.cat)
+
+// Banner 列表
+const banners = ref([])
+
+// 推荐分类（从分类树过滤 isRecommended === 1 的顶级分类）
+const recommendedCategories = computed(() =>
+  categoryTree.value.filter(c => c.isRecommended === 1)
+)
+
+function getCategoryIcon(name) {
+  return CATEGORY_ICONS[name] || null
+}
+
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
@@ -164,6 +226,16 @@ async function bootstrap() {
   } else {
     currentCategory.value = null
     currentArticle.value = null
+  }
+
+  // 加载 banner（仅空状态页需要）
+  if (!route.params.id && !route.query.cat) {
+    try {
+      const bannerRes = await fetchBanners()
+      banners.value = bannerRes.data || []
+    } catch (e) {
+      banners.value = []
+    }
   }
 }
 
@@ -264,5 +336,55 @@ body[data-theme="dark"] .learn-footer {
 }
 body[data-theme="dark"] .learn-footer span + span::before {
   color: #303030;
+}
+
+/* Banner 轮播 */
+.learn-banner-section { margin-bottom: 24px; }
+.learn-banner-carousel { border-radius: 12px; overflow: hidden; }
+.learn-banner-slide { height: 280px; }
+.learn-banner-img { width: 100%; height: 280px; object-fit: cover; display: block; }
+
+/* 推荐分类 */
+.learn-recommend-section { margin-bottom: 24px; }
+.learn-recommend-title {
+  font-size: 16px; font-weight: 600; color: #1a1a1a; margin: 0 0 12px;
+}
+.learn-recommend-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+.learn-recommend-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  background: #fff;
+  text-decoration: none;
+  color: #1a1a1a;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.learn-recommend-card:hover {
+  border-color: #FF2442;
+  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
+}
+.learn-recommend-icon { font-size: 32px; color: #FF2442; margin-bottom: 8px; }
+.learn-recommend-name { font-size: 14px; font-weight: 600; }
+
+/* 兜底空状态 */
+.learn-content-empty {
+  text-align: center; padding: 48px 16px;
+}
+.learn-empty-icon { font-size: 48px; color: #d9d9d9; margin-bottom: 12px; }
+.learn-empty-title { font-size: 16px; font-weight: 600; color: #262626; margin-bottom: 4px; }
+.learn-empty-subtitle { font-size: 13px; color: #8c8c8c; }
+
+@media (max-width: 991px) {
+  .learn-banner-slide,
+  .learn-banner-img { height: 160px; }
 }
 </style>

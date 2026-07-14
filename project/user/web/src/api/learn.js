@@ -25,3 +25,11 @@ export function fetchCategoryDetail(id, page = 1, size = 50) {
 export function fetchArticle(id) {
   return request.get(`/learn/article/${id}`)
 }
+
+/**
+ * 创作学院 - Banner 列表。
+ * @returns {Promise<{code:number, data:Array, message:string}>}
+ */
+export function fetchBanners() {
+  return request.get('/learn/banner')
+}
