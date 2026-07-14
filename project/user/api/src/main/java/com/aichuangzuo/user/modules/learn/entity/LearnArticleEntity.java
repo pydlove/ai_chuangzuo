@@ -28,6 +28,8 @@ public class LearnArticleEntity {
 
     private String summary;
 
+    private String coverImageUrl;
+
     private ContentType contentType;
 
     private String content;

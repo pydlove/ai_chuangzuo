@@ -11,6 +11,7 @@ public class LearnArticleVO {
     private Long categoryId;
     private String title;
     private String summary;
+    private String coverImageUrl;
     private ContentType contentType;
     private String content;
     private LocalDateTime publishedAt;

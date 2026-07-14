@@ -194,6 +194,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
         v.setCategoryId(e.getCategoryId());
         v.setTitle(e.getTitle());
         v.setSummary(e.getSummary());
+        v.setCoverImageUrl(e.getCoverImageUrl());
         v.setContentType(e.getContentType());
         v.setContent(e.getContent());
         v.setPublishedAt(e.getPublishedAt());
