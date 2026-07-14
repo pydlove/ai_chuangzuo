@@ -64,7 +64,12 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         validateContentSize(req.getContentType(), req.getContent());
         LearnArticleEntity e = new LearnArticleEntity();
         copyFromReq(e, req);
-        // 初次创建：写入状态；published_at 在 status 已是 published 且发布时间未写入时填 now
+        // 初次创建：用 req.status 作为初始状态（DRAFT 或 PUBLISHED），缺省回退 DRAFT。
+        // update 不允许通过 req 改 status（update() 里强制保持原值），但 create 必须有一个初始 status，
+        // 否则 MyBatis-Plus 默认 NOT_NULL 策略会把 status=null 从 INSERT SQL 里略去，
+        // 而 t_article.status 是 NOT NULL 无默认值，导致 SQLException。
+        e.setStatus(req.getStatus() != null ? req.getStatus() : ArticleStatus.DRAFT);
+        // published_at 在 status 已是 published 且未写入时填 now
         applyStatusTransition(e, null);
         articleMapper.insert(e);
         return e.getId();

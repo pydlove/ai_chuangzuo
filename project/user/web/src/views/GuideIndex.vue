@@ -53,7 +53,8 @@ const activeArticleId = ref('')
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
-  { to: '/guide', label: '玩法指南' }
+  { to: '/guide', label: '玩法指南' },
+  { to: '/learn', label: '创作学院' }
 ]
 const ctaTo = '/login'
 const ctaLabel = '开始创作'

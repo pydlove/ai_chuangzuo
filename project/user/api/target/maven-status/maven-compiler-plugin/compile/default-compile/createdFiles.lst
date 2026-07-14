@@ -9,6 +9,7 @@ com/aichuangzuo/user/modules/generation/mapper/GenerationActiveModelConfigMapper
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateEmailRequest.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/IncomeSubmissionServiceImpl$1.class
+com/aichuangzuo/user/modules/learn/enums/ArticleStatus.class
 com/aichuangzuo/user/modules/generation/dto/request/GenerationRetryRequest.class
 com/aichuangzuo/user/modules/hotsearch/service/impl/HotSearchServiceImpl.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
@@ -17,6 +18,7 @@ com/aichuangzuo/user/modules/earnings/service/EarningsService.class
 com/aichuangzuo/user/modules/auth/mapper/UserLoginLogMapper.class
 com/aichuangzuo/user/modules/leaderboard/controller/LeaderboardController.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardService.class
+com/aichuangzuo/user/modules/learn/mapper/LearnCategoryMapper.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/CoinRecordServiceImpl.class
 com/aichuangzuo/user/modules/style/market/entity/StyleMarket.class
 com/aichuangzuo/user/modules/membership/enums/MembershipPlan.class
@@ -28,6 +30,7 @@ com/aichuangzuo/user/modules/user/service/impl/UserInviteBindingServiceImpl.clas
 com/aichuangzuo/user/modules/style/mapper/UserStyleMapper.class
 com/aichuangzuo/user/modules/generation/controller/GenerationTaskInternalController.class
 com/aichuangzuo/user/infrastructure/security/InternalKeyAuthenticationFilter.class
+com/aichuangzuo/user/modules/learn/entity/LearnCategoryEntity.class
 com/aichuangzuo/user/modules/earnings/enums/EarningsStatus.class
 com/aichuangzuo/user/modules/leaderboard/dto/request/InternalGrantRequest.class
 com/aichuangzuo/user/modules/membership/mapper/UserMembershipMapper.class
@@ -37,7 +40,6 @@ com/aichuangzuo/user/modules/feedback/dto/request/SubmitFeedbackRequest.class
 com/aichuangzuo/user/modules/user/converter/UserConverterImpl.class
 com/aichuangzuo/user/config/SecurityConfig.class
 com/aichuangzuo/user/modules/feedback/service/FeedbackService.class
-com/aichuangzuo/user/modules/generation/controller/PromptTemplateQueryController.class
 com/aichuangzuo/user/modules/earnings/vo/MonthlySettlementVO.class
 com/aichuangzuo/user/infrastructure/security/SecurityUserContext.class
 com/aichuangzuo/user/modules/style/enums/StyleErrorCode.class
@@ -53,7 +55,6 @@ com/aichuangzuo/user/modules/article/controller/DraftController.class
 com/aichuangzuo/user/modules/earnings/vo/AccountSummaryVO.class
 com/aichuangzuo/user/modules/article/dto/request/UpdateDraftRequest.class
 com/aichuangzuo/user/modules/earnings/vo/SettleLastMonthResultVO.class
-com/aichuangzuo/user/modules/generation/service/PromptTemplateQueryService.class
 com/aichuangzuo/user/modules/earnings/mapper/EarningsRecordMapper.class
 com/aichuangzuo/user/modules/article/service/DraftService.class
 com/aichuangzuo/user/modules/membership/vo/SubscribeResultVO.class
@@ -84,6 +85,7 @@ com/aichuangzuo/user/infrastructure/security/JwtUtil.class
 com/aichuangzuo/user/modules/leaderboard/dto/request/IncomeSubmissionUploadRequest.class
 com/aichuangzuo/user/modules/auth/entity/UserLoginLog.class
 com/aichuangzuo/user/modules/earnings/vo/EarningsRecordPageVO.class
+com/aichuangzuo/user/modules/learn/vo/LearnCategoryDetailVO.class
 com/aichuangzuo/user/config/MybatisPlusConfig.class
 com/aichuangzuo/user/modules/auth/mapper/IpRegisterLimitMapper.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskPageVO.class
@@ -94,6 +96,7 @@ com/aichuangzuo/user/modules/hotsearch/enums/HotSearchErrorCode.class
 com/aichuangzuo/user/modules/article/mapper/ArticleMapper.class
 com/aichuangzuo/user/modules/auth/service/EmailCodeService.class
 com/aichuangzuo/user/modules/feedback/controller/FeedbackController.class
+com/aichuangzuo/user/modules/learn/service/impl/LearnBrowseServiceImpl.class
 com/aichuangzuo/user/modules/auth/mapper/UserInviteRelationMapper.class
 com/aichuangzuo/user/modules/auth/controller/TestEmailCodeController.class
 com/aichuangzuo/user/modules/style/market/controller/StyleMarketController.class
@@ -113,9 +116,11 @@ com/aichuangzuo/user/modules/style/dto/request/UpdateStyleRequest.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateNicknameRequest.class
 com/aichuangzuo/user/modules/leaderboard/entity/CoinDirection.class
 com/aichuangzuo/user/modules/leaderboard/enums/LeaderboardErrorCode.class
+com/aichuangzuo/user/modules/learn/entity/LearnArticleEntity.class
 com/aichuangzuo/user/modules/message/entity/MessageScope.class
 com/aichuangzuo/user/modules/article/vo/ArticlePageVO.class
 com/aichuangzuo/user/modules/message/enums/MessageErrorCode.class
+com/aichuangzuo/user/modules/learn/vo/LearnArticleVO.class
 com/aichuangzuo/user/modules/style/market/mapper/StyleMarketMapper.class
 com/aichuangzuo/user/modules/user/vo/UserProfileVO.class
 com/aichuangzuo/user/modules/message/service/impl/MessageServiceImpl.class
@@ -157,11 +162,13 @@ com/aichuangzuo/user/modules/article/service/impl/DraftServiceImpl.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO$1.class
 com/aichuangzuo/user/config/WebMvcConfig.class
 com/aichuangzuo/user/modules/auth/mail/EmbeddedSmtpTestConfig.class
+com/aichuangzuo/user/modules/learn/service/LearnBrowseService.class
 com/aichuangzuo/user/infrastructure/security/AdminJwtUtil.class
 com/aichuangzuo/user/modules/generation/mapper/UserMembershipMirrorMapper.class
 com/aichuangzuo/user/infrastructure/persistence/handler/MybatisPlusMetaObjectHandler.class
+com/aichuangzuo/user/modules/learn/enums/ContentType.class
+com/aichuangzuo/user/modules/learn/controller/LearnController.class
 com/aichuangzuo/user/modules/user/controller/UserProfileController.class
-com/aichuangzuo/user/modules/generation/vo/PromptTemplatePublicVO.class
 com/aichuangzuo/user/modules/membership/controller/MembershipController.class
 com/aichuangzuo/user/modules/feedback/entity/Feedback.class
 com/aichuangzuo/user/modules/leaderboard/vo/IncomeSubmissionVO.class
@@ -176,6 +183,7 @@ com/aichuangzuo/user/infrastructure/security/JwtAuthenticationFilter.class
 com/aichuangzuo/user/modules/generation/dto/request/GenerationSubmitRequest.class
 com/aichuangzuo/user/modules/style/entity/UserStyle.class
 com/aichuangzuo/user/modules/feedback/enums/FeedbackErrorCode.class
+com/aichuangzuo/user/modules/learn/mapper/LearnArticleMapper.class
 com/aichuangzuo/user/modules/auth/converter/AuthConverter.class
 com/aichuangzuo/user/modules/style/vo/SystemStyleVO.class
 com/aichuangzuo/user/common/exception/handler/GlobalExceptionHandler.class
@@ -184,12 +192,14 @@ com/aichuangzuo/user/modules/hotsearch/mapper/HotSearchDailyMapper.class
 com/aichuangzuo/user/modules/user/dto/request/ChangePasswordRequest.class
 com/aichuangzuo/user/modules/auth/converter/AuthConverterImpl.class
 com/aichuangzuo/user/modules/style/market/mapper/StyleMarketAggregateMapper.class
+com/aichuangzuo/user/modules/learn/vo/LearnArticleRefVO.class
 com/aichuangzuo/user/config/CaffeineConfig.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordService.class
 com/aichuangzuo/user/modules/generation/service/GenerationTaskService.class
 com/aichuangzuo/user/modules/leaderboard/entity/SubmissionStatus.class
 com/aichuangzuo/user/modules/hotsearch/vo/HotSearchItemVO.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingService.class
+com/aichuangzuo/user/modules/learn/vo/LearnCategoryTreeVO.class
 com/aichuangzuo/user/common/interceptor/RateLimitInterceptor.class
 com/aichuangzuo/user/modules/message/service/MessageService.class
 com/aichuangzuo/user/modules/earnings/dto/request/ListEarningsRequest.class

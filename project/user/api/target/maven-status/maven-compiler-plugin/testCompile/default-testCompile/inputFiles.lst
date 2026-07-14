@@ -1,3 +1,4 @@
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/ArticleServiceMonthlyCountTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/ArticleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/DraftServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/mail/EmailMessageFactoryTest.java
@@ -12,11 +13,11 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/feedback/service/FeedbackServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/generation/service/GenerationRateLimiterTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/generation/service/GenerationTaskServiceTest.java
-/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/generation/service/PromptTemplateQueryServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/leaderboard/service/IncomeSubmissionServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/message/service/MessageServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.java

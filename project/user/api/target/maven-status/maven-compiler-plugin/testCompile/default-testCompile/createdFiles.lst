@@ -1,9 +1,9 @@
 com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.class
+com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceNicknameTest.class
 com/aichuangzuo/user/modules/article/service/ArticleServiceTest.class
-com/aichuangzuo/user/modules/generation/service/PromptTemplateQueryServiceTest.class
 com/aichuangzuo/user/modules/article/service/DraftServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceTest.class
@@ -13,6 +13,7 @@ com/aichuangzuo/user/modules/generation/service/GenerationTaskServiceTest.class
 com/aichuangzuo/user/modules/auth/service/EmailCodeServiceSmtpFailTest.class
 com/aichuangzuo/user/modules/message/service/MessageServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceTest.class
+com/aichuangzuo/user/modules/article/service/ArticleServiceMonthlyCountTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceGetTest.class
 com/aichuangzuo/user/modules/auth/mail/EmailMessageFactoryTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceLoginTest.class

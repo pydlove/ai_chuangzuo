@@ -130,7 +130,7 @@
       </a-menu>
     </a-layout-sider>
 
-    <a-layout>
+    <a-layout class="admin-main">
       <!-- 顶部 header -->
       <a-layout-header class="admin-header">
         <a-breadcrumb class="admin-breadcrumb">
@@ -153,7 +153,7 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
@@ -167,9 +167,31 @@ const userStore = useUserStore()
 
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
-const openKeys = ref(['/console/creation', '/console/settings', '/console/hot-search', '/console/leaderboard', '/console/earnings', '/console/style-management', '/console/user-management', '/console/feedbacks', '/console/learn'])
+
+// 当前路由所在的一级菜单 key（手风琴模式只展开这一个）
+const parentMenuKey = computed(() => {
+  const p = route.path
+  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p.startsWith('/console/prompt-templates')) return '/console/creation'
+  if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
+  if (p === '/console/styles' || p === '/console/global-styles' || p === '/console/market-styles') return '/console/style-management'
+  if (p.startsWith('/console/learn/')) return '/console/learn'
+  if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
+  if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
+  if (p.startsWith('/console/earnings/')) return '/console/earnings'
+  if (p === '/console/model-configs') return '/console/settings'
+  return null
+})
+
+const openKeys = ref([])
+// 路由变化时只展开当前一级菜单（手风琴：其它自动折叠）
+watch(parentMenuKey, (key) => {
+  openKeys.value = key ? [key] : []
+}, { immediate: true })
+
+// 用户手动展开时也只保留最新一个（手风琴）
 const onOpenChange = (keys) => {
-  openKeys.value = keys
+  const latest = keys[keys.length - 1]
+  openKeys.value = latest ? [latest] : []
 }
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
@@ -214,19 +236,44 @@ const handleLogout = async () => {
 
 <style scoped>
 .admin-layout {
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .admin-sider {
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 200px;
+  height: 100vh;
   background: #ffffff;
   border-right: 1px solid #eeeeee;
+  z-index: 100;
+}
+
+.admin-sider :deep(.ant-layout-sider-children) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-main {
+  margin-left: 200px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .sider-brand {
+  flex: 0 0 64px;
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 16px 20px;
+  height: 64px;
+  padding: 0 20px;
   border-bottom: 1px solid #eeeeee;
 }
 
@@ -253,6 +300,8 @@ const handleLogout = async () => {
 }
 
 .admin-menu {
+  flex: 1;
+  overflow-y: auto;
   border-inline-end: none;
   padding: 8px 0;
 }
@@ -270,14 +319,15 @@ const handleLogout = async () => {
 }
 
 .admin-header {
+  flex: 0 0 64px;
   background: #ffffff;
   border-bottom: 1px solid #eeeeee;
   padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 56px;
-  line-height: 56px;
+  height: 64px;
+  line-height: 64px;
 }
 
 .admin-breadcrumb {
@@ -300,8 +350,9 @@ const handleLogout = async () => {
 }
 
 .admin-content {
+  flex: 1;
+  overflow-y: auto;
   background: #f8f9fa;
   padding: 24px;
-  min-height: calc(100vh - 56px);
 }
 </style>

@@ -1,7 +1,12 @@
 <template>
   <li class="learn-tree-node">
     <div
-      :class="['learn-tree-row', { active: node.id === activeId, expandable: hasChildren }]"
+      :class="['learn-tree-row', {
+        active: node.id === activeId,
+        expandable: hasChildren,
+        'top-level': depth === 0,
+        'child-level': depth > 0
+      }]"
       :style="{ paddingLeft: `${depth * 16 + 12}px` }"
       @click="onClick"
     >
@@ -54,6 +59,25 @@ function onClick() {
 .learn-tree-row.active {
   background: #FFF5F7; color: #FF2442; font-weight: 600;
   border-left-color: #FF2442;
+}
+/* 顶级分类：加粗 + 稍大 + 更深色，形成层级对比 */
+.learn-tree-row.top-level {
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a1a;
+  padding-top: 10px;
+  padding-bottom: 10px;
+}
+/* 子级分类：常规字重 + 稍小 + 稍浅色，弱化为从属 */
+.learn-tree-row.child-level {
+  font-weight: 400;
+  font-size: 13px;
+  color: #595959;
+}
+/* 子级 active 时仍突出（红色 + 加粗），不被 child-level 覆盖 */
+.learn-tree-row.child-level.active {
+  color: #FF2442;
+  font-weight: 600;
 }
 .learn-tree-caret {
   width: 14px; text-align: center; font-size: 12px; color: #999;

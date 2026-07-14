@@ -18,6 +18,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/BaseException.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/BusinessException.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/ForbiddenException.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/NotFoundException.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/SystemException.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/exception/UnauthorizedException.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/result/ErrorCode.java
