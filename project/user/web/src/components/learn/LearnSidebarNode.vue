@@ -113,9 +113,9 @@ function onClick() {
 .learn-tree-children { list-style: none; padding: 0; margin: 0; }
 
 /* 暗色主题 */
-body[data-theme="dark"] .learn-tree-row { color: #b0b0b0; }
-body[data-theme="dark"] .learn-tree-row.top-level { color: #e0e0e0; }
-body[data-theme="dark"] .learn-tree-row.child-level { color: #8c8c8c; }
+body[data-theme="dark"] .learn-tree-row { color: #d0d0d0; }
+body[data-theme="dark"] .learn-tree-row.top-level { color: #f0f0f0; }
+body[data-theme="dark"] .learn-tree-row.child-level { color: #b0b0b0; }
 body[data-theme="dark"] .learn-tree-row:hover { background: #2a1f22; border-left-color: #5a2a30; }
 body[data-theme="dark"] .learn-tree-row.active { background: #2a1f22; color: #FF2442; }
 body[data-theme="dark"] .learn-tree-row.child-level:hover { border-left-color: #5a2a30; }
