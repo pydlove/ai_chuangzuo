@@ -10,8 +10,14 @@
       :style="{ paddingLeft: `${depth * 16 + 12}px` }"
       @click="onClick"
     >
-      <span v-if="hasChildren" class="learn-tree-caret">{{ open ? '−' : '+' }}</span>
+      <span v-if="hasChildren" class="learn-tree-caret">{{ open ? '∨' : '›' }}</span>
       <span v-else class="learn-tree-caret-spacer"></span>
+      <component
+        v-if="depth === 0 && iconComponent"
+        :is="iconComponent"
+        class="learn-tree-icon"
+      />
+      <span v-if="node.id === activeId" class="learn-tree-dot"></span>
       <span class="learn-tree-label">{{ node.name }}</span>
     </div>
     <ul v-if="open && hasChildren" class="learn-tree-children">
@@ -29,6 +35,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
+import { CATEGORY_ICONS } from './learnCategoryIcons'
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -39,6 +46,7 @@ const emit = defineEmits(['select'])
 
 const open = ref(props.depth < 1)
 const hasChildren = computed(() => Array.isArray(props.node.children) && props.node.children.length > 0)
+const iconComponent = computed(() => CATEGORY_ICONS[props.node.name] || null)
 
 function onClick() {
   if (hasChildren.value) {
@@ -55,12 +63,12 @@ function onClick() {
   font-size: 14px; color: #262626;
   border-left: 3px solid transparent;
 }
-.learn-tree-row:hover { background: #FFF5F7; }
+.learn-tree-row:hover { background: #FFF5F7; border-left-color: #ffb3c1; }
 .learn-tree-row.active {
   background: #FFF5F7; color: #FF2442; font-weight: 600;
   border-left-color: #FF2442;
 }
-/* 顶级分类：加粗 + 稍大 + 更深色，形成层级对比 */
+/* 顶级分类：加粗 + 稍大 + 更深色 */
 .learn-tree-row.top-level {
   font-weight: 600;
   font-size: 15px;
@@ -68,20 +76,37 @@ function onClick() {
   padding-top: 10px;
   padding-bottom: 10px;
 }
-/* 子级分类：常规字重 + 稍小 + 稍浅色，弱化为从属 */
+/* 顶级分类之间间距 */
+.learn-tree-node + .learn-tree-node > .learn-tree-row.top-level {
+  margin-top: 4px;
+}
+/* 子级分类：常规字重 + 稍小 + 稍浅色 + 层级竖线 */
 .learn-tree-row.child-level {
   font-weight: 400;
   font-size: 13px;
   color: #595959;
+  border-left: 3px solid #f0f0f0;
 }
-/* 子级 active 时仍突出（红色 + 加粗），不被 child-level 覆盖 */
+.learn-tree-row.child-level:hover { border-left-color: #ffb3c1; }
 .learn-tree-row.child-level.active {
   color: #FF2442;
   font-weight: 600;
+  border-left-color: #FF2442;
 }
 .learn-tree-caret {
-  width: 14px; text-align: center; font-size: 12px; color: #999;
+  width: 14px; text-align: center; font-size: 12px; color: #bfbfbf;
+  flex-shrink: 0;
 }
-.learn-tree-caret-spacer { width: 14px; display: inline-block; }
+.learn-tree-caret-spacer { width: 14px; display: inline-block; flex-shrink: 0; }
+.learn-tree-icon {
+  width: 16px; height: 16px; font-size: 16px; color: #8c8c8c;
+  flex-shrink: 0;
+}
+.learn-tree-row:hover .learn-tree-icon,
+.learn-tree-row.active .learn-tree-icon { color: #FF2442; }
+.learn-tree-dot {
+  width: 4px; height: 4px; border-radius: 50%;
+  background: #FF2442; flex-shrink: 0;
+}
 .learn-tree-children { list-style: none; padding: 0; margin: 0; }
 </style>

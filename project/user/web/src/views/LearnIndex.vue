@@ -2,6 +2,15 @@
   <div class="learn-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
+    <header class="learn-hero">
+      <div class="learn-hero-deco learn-hero-deco-lg"></div>
+      <div class="learn-hero-deco learn-hero-deco-sm"></div>
+      <div class="learn-hero-inner">
+        <h1 class="learn-hero-title">创作学院</h1>
+        <p class="learn-hero-subtitle">从 0 到 1 的自媒体实战指南</p>
+      </div>
+    </header>
+
     <div class="learn-body">
       <aside class="learn-sidebar">
         <LearnSidebar
@@ -145,6 +154,49 @@ watch(() => route.fullPath, (newPath, oldPath) => {
 
 <style scoped>
 .learn-page { min-height: 100vh; display: flex; flex-direction: column; background: #fafafa; }
+
+/* Hero 区 */
+.learn-hero {
+  position: relative;
+  background: linear-gradient(180deg, #FFF5F7 0%, #FFFFFF 100%);
+  padding: 32px 24px;
+  overflow: hidden;
+}
+.learn-hero-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+.learn-hero-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+.learn-hero-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin: 8px 0 0;
+}
+.learn-hero-deco {
+  position: absolute;
+  border-radius: 50%;
+  background: #FFE8EC;
+}
+.learn-hero-deco-lg {
+  width: 200px; height: 200px;
+  top: -60px; right: -40px;
+}
+.learn-hero-deco-sm {
+  width: 80px; height: 80px;
+  top: 20px; right: 160px;
+}
+@media (max-width: 991px) {
+  .learn-hero { padding: 20px 16px; }
+  .learn-hero-title { font-size: 24px; }
+}
+
 .learn-body { display: flex; flex: 1; max-width: 1200px; width: 100%; margin: 0 auto; padding: 24px 16px; gap: 24px; }
 .learn-sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 88px; align-self: flex-start; max-height: calc(100vh - 88px); overflow-y: auto; background: #fff; border-radius: 8px; padding: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .learn-main { flex: 1; min-width: 0; background: #fff; border-radius: 8px; padding: 28px 32px; }
