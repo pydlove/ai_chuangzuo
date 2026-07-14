@@ -381,8 +381,10 @@ body[data-theme="dark"] .learn-footer span + span::before {
   display: flex !important;
   align-items: center;
   justify-content: center;
+  font-size: 0;
+  overflow: hidden;
 }
-.learn-banner-carousel :deep(.slick-arrow) { font-size: 0; }
+.learn-banner-carousel :deep(.slick-arrow > *) { font-size: 18px; }
 .learn-banner-arrow {
   width: 40px; height: 40px;
   background: rgba(255,255,255,0.9);
