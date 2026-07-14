@@ -1,14 +1,17 @@
 package com.aichuangzuo.user.modules.learn.service.impl;
 
 import com.aichuangzuo.user.modules.learn.entity.LearnArticleEntity;
+import com.aichuangzuo.user.modules.learn.entity.LearnBannerEntity;
 import com.aichuangzuo.user.modules.learn.entity.LearnCategoryEntity;
 import com.aichuangzuo.user.modules.learn.enums.ArticleStatus;
 import com.aichuangzuo.user.modules.learn.enums.ContentType;
 import com.aichuangzuo.user.modules.learn.mapper.LearnArticleMapper;
+import com.aichuangzuo.user.modules.learn.mapper.LearnBannerMapper;
 import com.aichuangzuo.user.modules.learn.mapper.LearnCategoryMapper;
 import com.aichuangzuo.user.modules.learn.service.LearnBrowseService;
 import com.aichuangzuo.user.modules.learn.vo.LearnArticleRefVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
@@ -24,6 +27,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
 
     private final LearnCategoryMapper categoryMapper;
     private final LearnArticleMapper articleMapper;
+    private final LearnBannerMapper bannerMapper;
 
     @Override
     public List<LearnCategoryTreeVO> tree() {
@@ -43,6 +47,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
             n.setParentId(e.getParentId());
             n.setName(e.getName());
             n.setSort(e.getSort());
+            n.setIsRecommended(e.getIsRecommended());
             map.put(e.getId(), n);
         }
         List<LearnCategoryTreeVO> roots = new ArrayList<>();
@@ -121,6 +126,18 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
             vo.setNextArticle(toRef(chain.get(idx + 1), catNames));
         }
         return vo;
+    }
+
+    @Override
+    public List<LearnBannerVO> banners() {
+        return bannerMapper.selectList(new QueryWrapper<LearnBannerEntity>().orderByAsc("sort"))
+                .stream().map(e -> {
+                    LearnBannerVO v = new LearnBannerVO();
+                    v.setId(e.getId());
+                    v.setImageUrl(e.getImageUrl());
+                    v.setLinkUrl(e.getLinkUrl());
+                    return v;
+                }).toList();
     }
 
     /**

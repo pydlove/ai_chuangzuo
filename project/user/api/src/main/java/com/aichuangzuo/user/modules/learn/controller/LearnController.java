@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.exception.NotFoundException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.learn.service.LearnBrowseService;
 import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,5 +49,11 @@ public class LearnController {
             throw new NotFoundException("文章不存在或已下线");
         }
         return Result.success(vo);
+    }
+
+    @Operation(summary = "Banner 列表")
+    @GetMapping("/banner")
+    public Result<List<LearnBannerVO>> banners() {
+        return Result.success(service.banners());
     }
 }

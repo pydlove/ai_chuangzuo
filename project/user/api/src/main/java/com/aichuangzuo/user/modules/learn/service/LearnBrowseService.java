@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.learn.service;
 
 import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
 
@@ -16,4 +17,7 @@ public interface LearnBrowseService {
 
     /** 文章详情；草稿等同 null（让 Controller 转 404） */
     LearnArticleVO articleDetail(Long id);
+
+    /** Banner 列表（所有未删除，按 sort ASC） */
+    List<LearnBannerVO> banners();
 }
