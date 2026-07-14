@@ -386,7 +386,9 @@ body[data-theme="dark"] .learn-footer span + span::before {
   position: relative;
   display: flex;
   flex-direction: column;
-  padding: 20px;
+  align-items: center;
+  text-align: center;
+  padding: 24px 16px;
   border: 1px solid #f0f0f0;
   border-radius: 12px;
   background: linear-gradient(135deg, #ffffff 0%, #fff8f9 100%);
