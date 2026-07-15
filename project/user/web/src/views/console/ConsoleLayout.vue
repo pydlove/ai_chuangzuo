@@ -800,7 +800,8 @@
                     <div class="membership-expiry" v-if="hasMembership">有效期至 {{ membershipExpiry }}</div>
                   </div>
                   <div class="membership-right">
-                    <button class="membership-btn">{{ hasMembership ? '续费' : '开通' }}</button>
+                    <button v-if="!hasMembership" class="membership-btn">开通</button>
+                    <button v-else-if="isNearExpiry" class="membership-btn">续费</button>
                   </div>
                 </div>
 
@@ -1711,6 +1712,15 @@ const MEMBERSHIP_KEY = 'aichuangzuo_membership'
 const hasMembership = ref(false)
 const membershipLevel = ref('会员')
 const membershipExpiry = ref('')
+
+// 会员是否即将到期（7天内）
+const isNearExpiry = computed(() => {
+  if (!hasMembership.value || !membershipExpiry.value) return false
+  const expiry = new Date(membershipExpiry.value)
+  const now = new Date()
+  const diffDays = (expiry - now) / (1000 * 60 * 60 * 24)
+  return diffDays <= 7
+})
 
 const loadMembership = () => {
   const raw = localStorage.getItem(MEMBERSHIP_KEY)
