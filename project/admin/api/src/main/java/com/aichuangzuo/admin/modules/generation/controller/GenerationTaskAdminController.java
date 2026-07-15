@@ -5,14 +5,10 @@ import com.aichuangzuo.admin.modules.generation.service.GenerationTaskAdminServi
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -42,21 +38,5 @@ public class GenerationTaskAdminController {
     public Result<Void> stop(@PathVariable Long id) {
         service.stopTask(id);
         return Result.success();
-    }
-
-    /**
-     * 手动标记失败。
-     */
-    @PostMapping("/{id}/mark-failed")
-    public Result<Void> manualMarkFailed(@PathVariable Long id, @RequestBody MarkFailedRequest body) {
-        service.manualMarkFailed(id, body == null ? null : body.getReason());
-        return Result.success();
-    }
-
-    @Data
-    public static class MarkFailedRequest {
-        @NotNull
-        @NotBlank
-        private String reason;
     }
 }

@@ -14,9 +14,9 @@ import org.springframework.web.client.RestTemplate;
 import java.util.Map;
 
 /**
- * Admin → User 内部 HTTP 客户端：退创作币。
+ * Admin → User 内部 HTTP 客户端：退文章生成额度。
  *
- * <p>生成任务最终失败时调用 user-api 退掉预扣的额度。
+ * <p>生成任务失败（异常失败或 admin 手动停止）时调用 user-api 退掉预扣的 ai_article_quota。
  */
 @Slf4j
 @Service

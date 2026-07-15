@@ -33,6 +33,7 @@ public class GenerationTaskAdminService {
 
     private final GenerationTaskMapper taskMapper;
     private final GenerationCallLogMapper callLogMapper;
+    private final QuotaRefundInternalClient refundClient;
 
     public GenerationTaskAdminPageVO list(GenerationTaskQueryRequest req) {
         long page = Math.max(1, req.getPage());
@@ -66,8 +67,11 @@ public class GenerationTaskAdminService {
     }
 
     /**
-     * 手动停止任务：QUEUED / PROCESSING → FAILED，写失败原因「管理员手动停止」，清 lease，置 completedAt。
-     * 与「标记失败」区别：本接口不接受自定义原因，是一键停止；后者允许填具体 reason。
+     * 手动停止任务：QUEUED / PROCESSING → FAILED，写失败原因「管理员手动停止」，清 lease，置 completedAt，
+     * 并退回该任务预扣的文章额度（与异常失败同待遇）。
+     *
+     * <p>PROCESSING 任务由 worker 在下一 stage 前协作式中止（stopTask 已置 FAILED + 清 lockedBy）；
+     * 退额度失败不影响停止本身，仅记错误日志待人工介入。
      */
     @Transactional
     public void stopTask(Long taskId) {
@@ -84,24 +88,12 @@ public class GenerationTaskAdminService {
         task.setLeaseUntil(null);
         taskMapper.updateById(task);
         log.info("admin 手动停止任务 task={}", taskId);
-    }
 
-    /**
-     * 手动标记失败：直接置 FAILED（不再回 queued），便于踢出积压的坏任务。
-     */
-    @Transactional
-    public void manualMarkFailed(Long taskId, String reason) {
-        GenerationTask task = requireById(taskId);
-        task.setStatus(GenerationTaskStatus.FAILED);
-        task.setFailedReason(reason == null ? "admin 手动标记失败" : reason);
-        task.setCompletedAt(LocalDateTime.now());
-        if (task.getLockedBy() != null) {
-            task.setLockedAt(null);
-            task.setLockedBy(null);
-            task.setLeaseUntil(null);
+        try {
+            refundClient.refund(taskId, task.getTargetUserId());
+        } catch (Exception e) {
+            log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", taskId, e.getMessage());
         }
-        taskMapper.updateById(task);
-        log.info("admin 手动标记失败 task={} reason={}", taskId, task.getFailedReason());
     }
 
     private GenerationTask requireById(Long id) {

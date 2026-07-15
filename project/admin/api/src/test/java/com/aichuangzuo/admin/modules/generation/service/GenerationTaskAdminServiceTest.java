@@ -38,6 +38,9 @@ class GenerationTaskAdminServiceTest {
     @Mock
     private GenerationCallLogMapper callLogMapper;
 
+    @Mock
+    private QuotaRefundInternalClient refundClient;
+
     @InjectMocks
     private GenerationTaskAdminService service;
 
@@ -99,6 +102,7 @@ class GenerationTaskAdminServiceTest {
 
         assertThrows(BusinessException.class, () -> service.stopTask(20L));
         verify(taskMapper, never()).updateById((GenerationTask) any());
+        verify(refundClient, never()).refund(anyLong(), anyLong());
     }
 
     @Test
@@ -110,12 +114,14 @@ class GenerationTaskAdminServiceTest {
 
         assertThrows(BusinessException.class, () -> service.stopTask(22L));
         verify(taskMapper, never()).updateById((GenerationTask) any());
+        verify(refundClient, never()).refund(anyLong(), anyLong());
     }
 
     @Test
-    void stopTask_shouldMarkFailedWhenProcessing() {
+    void stopTask_shouldMarkFailedAndRefundWhenProcessing() {
         GenerationTask task = new GenerationTask();
         task.setId(21L);
+        task.setTargetUserId(7L);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(0);
         task.setLockedBy("worker-1");
@@ -132,12 +138,14 @@ class GenerationTaskAdminServiceTest {
         assertNull(updated.getLockedBy());
         assertNull(updated.getLeaseUntil());
         assertNotNull(updated.getCompletedAt());
+        verify(refundClient).refund(21L, 7L);
     }
 
     @Test
-    void stopTask_shouldMarkFailedWhenQueued() {
+    void stopTask_shouldMarkFailedAndRefundWhenQueued() {
         GenerationTask task = new GenerationTask();
         task.setId(23L);
+        task.setTargetUserId(8L);
         task.setStatus(GenerationTaskStatus.QUEUED);
         when(taskMapper.selectById(23L)).thenReturn(task);
 
@@ -149,23 +157,24 @@ class GenerationTaskAdminServiceTest {
         assertEquals(GenerationTaskStatus.FAILED, updated.getStatus());
         assertEquals("管理员手动停止", updated.getFailedReason());
         assertNotNull(updated.getCompletedAt());
+        verify(refundClient).refund(23L, 8L);
     }
 
     @Test
-    void manualMarkFailed_shouldSetFailedAndCompletedAt() {
+    void stopTask_shouldStillStopWhenRefundFails() {
         GenerationTask task = new GenerationTask();
-        task.setId(30L);
-        task.setStatus(GenerationTaskStatus.PROCESSING);
-        task.setLockedBy("worker-1");
-        when(taskMapper.selectById(30L)).thenReturn(task);
+        task.setId(24L);
+        task.setTargetUserId(9L);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        when(taskMapper.selectById(24L)).thenReturn(task);
+        org.mockito.Mockito.doThrow(new RuntimeException("user-api down"))
+                .when(refundClient).refund(24L, 9L);
 
-        service.manualMarkFailed(30L, "  bad request  ");
+        // 退款失败不影响停止本身
+        service.stopTask(24L);
 
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).updateById(captor.capture());
-        GenerationTask updated = captor.getValue();
-        assertEquals(GenerationTaskStatus.FAILED, updated.getStatus());
-        assertEquals("  bad request  ", updated.getFailedReason());
-        assertNotNull(updated.getCompletedAt());
+        assertEquals(GenerationTaskStatus.FAILED, captor.getValue().getStatus());
     }
 }

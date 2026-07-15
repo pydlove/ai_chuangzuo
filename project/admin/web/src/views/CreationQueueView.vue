@@ -5,7 +5,7 @@
         <h3 class="page-title">创作队列</h3>
         <p class="page-desc">
           展示用户提交的创作任务，4 个 tab 分别对应：执行中（processing）/ 排队中（queued）/ 已完成（completed）/ 未执行（failed）。
-          每 5 秒自动刷新；点表格里的操作可查看执行过程 / 停止 / 标记失败。
+          每 5 秒自动刷新；点表格里的操作可查看执行过程 / 停止。
         </p>
       </div>
 
@@ -74,7 +74,7 @@
               >执行过程</a-button>
               <a-popconfirm
                 v-if="record.status === 0 || record.status === 1"
-                title="确定停止该任务？worker 将在当前 stage 结束后中止，已消耗的创作币不退回"
+                title="确定停止该任务？worker 将在当前 stage 结束后中止，已消耗的文章额度将退回用户"
                 ok-text="停止"
                 cancel-text="取消"
                 @confirm="handleStop(record.id)"
@@ -85,13 +85,6 @@
                   danger
                 >停止</a-button>
               </a-popconfirm>
-              <a-button
-                v-if="record.status !== 2"
-                type="link"
-                size="small"
-                danger
-                @click="openMarkFailedModal(record.id)"
-              >标记失败</a-button>
             </a-space>
             <span v-else>-</span>
           </template>
@@ -200,23 +193,6 @@
         </a-spin>
       </a-drawer>
 
-      <!-- 标记失败弹框 -->
-      <a-modal
-        v-model:open="markFailedModal.open"
-        title="标记失败"
-        :confirm-loading="markFailedModal.loading"
-        @ok="confirmMarkFailed"
-        @cancel="markFailedModal.open = false"
-      >
-        <a-textarea
-          v-model:value="markFailedModal.reason"
-          placeholder="请输入失败原因（可空）"
-          :rows="4"
-          :maxlength="200"
-          show-count
-        />
-      </a-modal>
-
       <div class="pagination">
         <a-pagination
           :current="page"
@@ -255,7 +231,6 @@ const {
   handlePageChange,
   refresh,
   handleStop,
-  handleMarkFailed,
   startAutoRefresh
 } = useCreationQueue()
 
@@ -287,29 +262,6 @@ const callLogDrawer = reactive({
   taskStatus: null,
   pollTimer: null
 })
-
-const markFailedModal = reactive({
-  open: false,
-  loading: false,
-  taskId: null,
-  reason: ''
-})
-
-const openMarkFailedModal = (id) => {
-  markFailedModal.taskId = id
-  markFailedModal.reason = ''
-  markFailedModal.open = true
-}
-
-const confirmMarkFailed = async () => {
-  markFailedModal.loading = true
-  try {
-    await handleMarkFailed(markFailedModal.taskId, markFailedModal.reason)
-    markFailedModal.open = false
-  } finally {
-    markFailedModal.loading = false
-  }
-}
 
 const fetchCallLogs = async () => {
   if (!callLogDrawer.task) return

@@ -2,8 +2,7 @@ import { reactive, ref, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   listGenerationTasks,
-  stopGenerationTask,
-  markGenerationTaskFailed
+  stopGenerationTask
 } from '@/api/creationQueue.js'
 
 /**
@@ -81,16 +80,6 @@ export function useCreationQueue() {
     }
   }
 
-  const handleMarkFailed = async (id, reason) => {
-    try {
-      await markGenerationTaskFailed(id, reason || 'admin 手动标记失败')
-      message.success('已标记为失败')
-      fetch()
-    } catch (e) {
-      message.error(e.message || '操作失败')
-    }
-  }
-
   // 5s 自动刷新（页面可见时）
   const state = reactive({ timer: null })
   const startAutoRefresh = () => {
@@ -123,7 +112,6 @@ export function useCreationQueue() {
     handlePageChange,
     refresh,
     handleStop,
-    handleMarkFailed,
     startAutoRefresh,
     stopAutoRefresh
   }

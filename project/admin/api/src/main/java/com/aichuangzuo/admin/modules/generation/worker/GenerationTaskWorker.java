@@ -135,7 +135,7 @@ public class GenerationTaskWorker {
     }
 
     /**
-     * 处理单个任务：跑 12 阶段 pipeline → 标完成 / 失败 + 退币。
+     * 处理单个任务：跑 12 阶段 pipeline → 标完成 / 失败 + 退文章额度。
      */
     private void processOne(GenerationTask task) {
         Long taskId = task.getId();
@@ -197,9 +197,9 @@ public class GenerationTaskWorker {
                     taskId, ctx.getArticleBizNo(),
                     ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallTotalMs());
         } catch (GenerationPipeline.TaskAbortedException e) {
-            // 任务被 admin 停止：stopTask 已置 FAILED 并清 lockedBy。
-            // 这里不再 markFailed（避免覆盖 stopTask 的 failedReason），也不退币（admin 主动行为）。
-            log.info("task={} 被外部停止，pipeline 协作式中止（不再 markFailed / 退币）", taskId);
+            // 任务被 admin 停止：stopTask 已置 FAILED、清 lockedBy，并已退文章额度。
+            // 这里不再 markFailed（避免覆盖 stopTask 的 failedReason），也不再退（避免重复退）。
+            log.info("task={} 被外部停止，pipeline 协作式中止（不再 markFailed / 退款）", taskId);
         } catch (Exception e) {
             log.warn("task={} pipeline 失败: {}", taskId, e.getMessage());
             var after = taskService.markFailed(taskId, e.getMessage(), false, owner);
@@ -207,7 +207,7 @@ public class GenerationTaskWorker {
                 try {
                     refundClient.refund(taskId, after.getTargetUserId());
                 } catch (Exception refundEx) {
-                    log.error("task={} 退币失败，需人工介入: {}", taskId, refundEx.getMessage());
+                    log.error("task={} 退文章额度失败，需人工介入: {}", taskId, refundEx.getMessage());
                 }
             }
         } finally {
