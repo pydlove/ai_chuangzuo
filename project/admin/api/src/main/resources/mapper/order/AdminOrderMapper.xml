@@ -20,7 +20,7 @@
         <result property="createdAt" column="created_at"/>
     </resultMap>
 
-    <sql id="selectCols">
+    <sql id="baseQuery">
         SELECT o.id, o.order_no, o.user_id,
                u.nickname, u.email,
                o.plan_key, o.cycle, o.amount, o.status,
@@ -28,6 +28,10 @@
                o.admin_remark, o.operator_id, o.created_at
         FROM u_order o
         LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+    </sql>
+
+    <sql id="selectCols">
+        <include refid="baseQuery"/>
         WHERE 1 = 1
         <if test="keyword != null and keyword != ''">
             AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
@@ -75,8 +79,8 @@
     </select>
 
     <select id="selectDetailById" resultMap="orderMap">
-        <include refid="selectCols"/>
-        AND o.id = #{id}
+        <include refid="baseQuery"/>
+        WHERE o.id = #{id}
         LIMIT 1
     </select>
 
