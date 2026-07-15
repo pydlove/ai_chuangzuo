@@ -21,6 +21,7 @@ public class GenerationConfigVO {
     private BigDecimal defaultTemperature;
     private Integer defaultMaxTokens;
     private BigDecimal defaultTopP;
+    private Integer aiReadTimeoutSeconds;
     private String remark;
     private LocalDateTime updatedAt;
     private Long updatedBy;

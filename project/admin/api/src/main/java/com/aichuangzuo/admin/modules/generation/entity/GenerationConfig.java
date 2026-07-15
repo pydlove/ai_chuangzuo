@@ -61,6 +61,9 @@ public class GenerationConfig {
     /** AI top_p 默认值（0.00-1.00；stage model_params 可覆盖）。 */
     private java.math.BigDecimal defaultTopP;
 
+    /** AI 调用读取超时（秒，30-600）。 */
+    private Integer aiReadTimeoutSeconds;
+
     /** 备注。 */
     private String remark;
 

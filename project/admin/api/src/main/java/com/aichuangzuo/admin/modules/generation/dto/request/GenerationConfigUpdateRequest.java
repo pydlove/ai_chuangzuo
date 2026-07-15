@@ -80,6 +80,11 @@ public class GenerationConfigUpdateRequest {
     @DecimalMax("1.00")
     private BigDecimal defaultTopP;
 
+    @NotNull
+    @Min(30)
+    @Max(600)
+    private Integer aiReadTimeoutSeconds;
+
     @Size(max = 256)
     private String remark;
 }
