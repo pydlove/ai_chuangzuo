@@ -28,6 +28,7 @@
     <section class="hero">
       <div class="hero-deco hero-deco-1" :style="{ transform: `translateY(${scrollY * 0.15}px)` }"></div>
       <div class="hero-deco hero-deco-2" :style="{ transform: `translateY(${scrollY * 0.08}px)` }"></div>
+      <div class="hero-deco hero-deco-3" :style="{ transform: `translateY(${scrollY * 0.12}px)` }"></div>
       <div class="hero-inner">
         <div class="hero-badge">
           <span class="hero-badge-dot"></span>
@@ -430,41 +431,32 @@ onUnmounted(() => {
 /* ====================== Hero ====================== */
 .hero {
   position: relative;
-  background: #fdfdfd;
+  background: linear-gradient(180deg, #FFE5EB 0%, #fff 100%);
   padding: 90px 48px 70px;
   text-align: center;
   overflow: hidden;
 }
-
-/* 细腻点阵纹理 + 右上一抹品牌色微光 */
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 22px 22px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 70% at 50% 40%, #000 30%, transparent 75%);
-  pointer-events: none;
-  z-index: 0;
-}
-
 .hero-deco {
   position: absolute;
   border-radius: 50%;
-  filter: blur(60px);
+  filter: blur(40px);
   pointer-events: none;
   z-index: 0;
 }
 .hero-deco-1 {
-  width: 420px; height: 420px;
-  background: radial-gradient(circle, rgba(255, 36, 66, 0.08), transparent 65%);
-  top: -160px; right: -100px;
+  width: 280px; height: 280px;
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.18), transparent 70%);
+  top: -80px; left: -80px;
 }
 .hero-deco-2 {
-  width: 360px; height: 360px;
-  background: radial-gradient(circle, rgba(255, 150, 90, 0.07), transparent 65%);
-  bottom: -180px; left: -120px;
+  width: 220px; height: 220px;
+  background: radial-gradient(circle, rgba(255, 107, 138, 0.18), transparent 70%);
+  top: 40px; right: -60px;
+}
+.hero-deco-3 {
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(255, 200, 210, 0.4), transparent 70%);
+  bottom: -40px; left: 30%;
 }
 .hero-inner {
   max-width: 660px;
@@ -915,10 +907,7 @@ body[data-theme="dark"] .home-page { background: #141414; }
 body[data-theme="dark"] .home-banner-carousel { box-shadow: 0 8px 32px rgba(255, 36, 66, 0.2); }
 
 body[data-theme="dark"] .hero {
-  background: #141414;
-}
-body[data-theme="dark"] .hero::before {
-  background-image: radial-gradient(circle, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background: linear-gradient(180deg, rgba(255, 36, 66, 0.15) 0%, #141414 100%);
 }
 body[data-theme="dark"] .hero-badge {
   background: rgba(31,31,31,0.85);
@@ -954,8 +943,9 @@ body[data-theme="dark"] .hero-btn-secondary:hover {
   background: #ff4d6f;
   color: #fff;
 }
-body[data-theme="dark"] .hero-deco-1 { background: radial-gradient(circle, rgba(255, 36, 66, 0.18), transparent 65%); }
-body[data-theme="dark"] .hero-deco-2 { background: radial-gradient(circle, rgba(255, 150, 90, 0.12), transparent 65%); }
+body[data-theme="dark"] .hero-deco-1 { background: radial-gradient(circle, rgba(255, 36, 66, 0.25), transparent 70%); }
+body[data-theme="dark"] .hero-deco-2 { background: radial-gradient(circle, rgba(255, 107, 138, 0.2), transparent 70%); }
+body[data-theme="dark"] .hero-deco-3 { background: radial-gradient(circle, rgba(255, 36, 66, 0.15), transparent 70%); }
 
 body[data-theme="dark"] .stats {
   background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
