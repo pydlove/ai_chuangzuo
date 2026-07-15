@@ -116,6 +116,14 @@
           </template>
           用户反馈
         </a-menu-item>
+        <a-sub-menu key="/console/orders">
+          <template #icon>
+            <ShoppingCartOutlined />
+          </template>
+          <template #title>订单管理</template>
+          <a-menu-item key="/console/orders/list">订单列表</a-menu-item>
+          <a-menu-item key="/console/orders/stats">数据统计</a-menu-item>
+        </a-sub-menu>
         <a-sub-menu key="/console/settings">
           <template #icon>
             <SettingOutlined />
@@ -162,7 +170,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -185,6 +193,7 @@ const parentMenuKey = computed(() => {
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
+  if (p.startsWith('/console/orders/')) return '/console/orders'
   if (p === '/console/model-configs' || p === '/console/home-banner') return '/console/settings'
   return null
 })
@@ -221,6 +230,8 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/learn/category') return '分类管理'
   if (route.path === '/console/learn/article') return '文章管理'
   if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'
+  if (route.path === '/console/orders/list') return '订单列表'
+  if (route.path === '/console/orders/stats') return '数据统计'
   if (route.path === '/console/home-banner') return '首页 Banner'
   return ''
 })

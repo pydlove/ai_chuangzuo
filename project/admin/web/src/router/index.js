@@ -147,6 +147,16 @@ const routes = [
         path: 'home-banner',
         name: 'AdminHomeBanner',
         component: () => import('@/views/HomeBannerView.vue')
+      },
+      {
+        path: 'orders/list',
+        name: 'AdminOrderList',
+        component: () => import('@/views/OrderListView.vue')
+      },
+      {
+        path: 'orders/stats',
+        name: 'AdminOrderStats',
+        component: () => import('@/views/OrderStatsView.vue')
       }
     ]
   },
