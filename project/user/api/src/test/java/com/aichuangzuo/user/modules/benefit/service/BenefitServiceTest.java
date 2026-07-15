@@ -220,6 +220,46 @@ class BenefitServiceTest {
         assertEquals(BenefitErrorCode.NOT_QUOTA_BENEFIT.getCode(), ex.getCode());
     }
 
+    // ── refund ──
+
+    @Test
+    void refund_existingUsage_decrementsUsedCount() {
+        User user = createUser("benefit-refund-dec@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 5);
+
+        benefitService.refund(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertEquals(4, usage.getUsedCount());
+    }
+
+    @Test
+    void refund_zeroUsage_staysAtZero() {
+        User user = createUser("benefit-refund-zero@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 0);
+
+        benefitService.refund(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertEquals(0, usage.getUsedCount());
+    }
+
+    @Test
+    void refund_noUsageRow_noopDoesNotThrow() {
+        User user = createUser("benefit-refund-none@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+
+        benefitService.refund(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertNull(usage);
+    }
+
     // ── helpers ──
 
     private User createUser(String email) {

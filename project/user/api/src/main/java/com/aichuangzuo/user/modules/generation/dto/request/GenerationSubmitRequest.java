@@ -36,4 +36,8 @@ public class GenerationSubmitRequest {
 
     /** 可选；为空时系统选当前 active 模型。 */
     private Long modelConfigId;
+
+    /** 导出模板 key（前端模板注册表中的标识，如 wechat / xiaohongshu-list）。 */
+    @Size(max = 64)
+    private String template;
 }

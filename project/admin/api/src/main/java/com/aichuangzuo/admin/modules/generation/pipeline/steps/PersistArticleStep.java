@@ -55,6 +55,7 @@ public class PersistArticleStep implements GenerationStep {
         payload.put("wordCount", ctx.getWordStats() == null ? 0 : ctx.getWordStats().getActual());
         payload.put("platform", in.get("platform"));
         payload.put("style", in.get("styleRef"));
+        payload.put("template", in.get("template"));
         payload.put("inputParam", task.getInputParam());
         payload.put("wordLimitTarget", task.getWordLimitTarget() == null ? 1500 : task.getWordLimitTarget());
 

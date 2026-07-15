@@ -33,4 +33,12 @@ public interface BenefitService {
      * @return 消费结果
      */
     BenefitCheckVO consume(Long userId, String code);
+
+    /**
+     * 退回一次配额（业务失败时调用），当前周期用量 -1，下限 0。
+     *
+     * @param userId 用户ID
+     * @param code 权益编码
+     */
+    void refund(Long userId, String code);
 }

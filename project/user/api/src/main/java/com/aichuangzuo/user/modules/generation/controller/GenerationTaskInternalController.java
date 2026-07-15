@@ -5,12 +5,11 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
-import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Map;
 
@@ -24,11 +23,11 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class GenerationTaskInternalController {
 
-    /** 单次生成扣 1 个创作币。 */
-    private static final BigDecimal GENERATION_QUOTA = BigDecimal.ONE;
+    /** 文章生成对应的权益编码。 */
+    private static final String ARTICLE_QUOTA_BENEFIT = "ai_article_quota";
 
     private final ArticleService articleService;
-    private final CoinRecordService coinRecordService;
+    private final BenefitService benefitService;
 
     /**
      * admin worker 调入，保存生成的文章并返回 article.biz_no。
@@ -49,6 +48,7 @@ public class GenerationTaskInternalController {
         req.setBody(body);
         req.setPlatform(asString(payload.get("platform")));
         req.setStyle(asString(payload.get("style")));
+        req.setTemplate(asString(payload.get("template")));
         req.setWordCount(asInt(payload.get("wordCount")));
         req.setCompletedAt(LocalDateTime.now());
 
@@ -58,7 +58,7 @@ public class GenerationTaskInternalController {
     }
 
     /**
-     * admin worker 调入，退回失败任务预扣的创作币。
+     * admin worker 调入，退回失败任务预扣的文章额度。
      */
     @PostMapping("/refund-quota")
     public Result<Void> refundQuota(@RequestBody Map<String, Object> payload) {
@@ -67,10 +67,8 @@ public class GenerationTaskInternalController {
         if (taskId == null || userId == null) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }
-        String refId = "TASK" + taskId;
-        String bizNo = coinRecordService.grant(userId, "generation_refund",
-                GENERATION_QUOTA, refId, "创作生成失败退还");
-        log.info("task={} user={} 退额度成功 bizNo={}", taskId, userId, bizNo);
+        benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
+        log.info("task={} user={} 退文章额度成功", taskId, userId);
         return Result.success();
     }
 

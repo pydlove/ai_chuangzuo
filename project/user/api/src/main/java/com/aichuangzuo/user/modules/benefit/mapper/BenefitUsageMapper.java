@@ -41,4 +41,18 @@ public interface BenefitUsageMapper extends BaseMapper<BenefitUsage> {
                               @Param("benefitCode") String benefitCode,
                               @Param("period") String period,
                               @Param("limit") int limit);
+
+    /**
+     * 原子地将用量 -1（下限 0），用于失败退回额度。
+     *
+     * @param userId 用户ID
+     * @param benefitCode 权益编码
+     * @param period 周期标识
+     * @return 受影响行数；0 表示记录不存在或用量已为 0
+     */
+    @Update("UPDATE u_benefit_usage SET used_count = used_count - 1 " +
+            "WHERE user_id = #{userId} AND benefit_code = #{benefitCode} AND period = #{period} AND used_count > 0")
+    int decrementIfAboveZero(@Param("userId") Long userId,
+                             @Param("benefitCode") String benefitCode,
+                             @Param("period") String period);
 }

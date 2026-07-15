@@ -667,7 +667,7 @@ const miniStatusText = (status) => {
 }
 
 // 额度（来自会员权益 ai_article_quota，ConsoleLayout 登录时已加载）
-const { benefits } = useBenefits()
+const { benefits, loadBenefits } = useBenefits()
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const quotaUsed = computed(() => quotaTotal.value - quotaRemaining.value)
@@ -1058,6 +1058,18 @@ const handleGenerate = async () => {
     ? (currentWordCount.value?.count || 800)
     : (Number(currentWordCount.value) || 800)
 
+  // 额度前置校验：免费用户 / 额度用完都引导开会员
+  if (quotaTotal.value <= 0) {
+    message.warning('开通会员后才能使用 AI 生成文章')
+    router.push('/pricing')
+    return
+  }
+  if (quotaRemaining.value <= 0) {
+    message.warning('本月额度已用完，升级会员可获得更多额度')
+    router.push('/pricing')
+    return
+  }
+
   try {
     await submitGeneration({
       title: customTitle.value,
@@ -1069,6 +1081,7 @@ const handleGenerate = async () => {
     })
     message.success('已加入生成队列')
     loadMiniQueue()
+    loadBenefits() // 刷新本月剩余额度
   } catch (e) {
     message.error(e?.message || '提交失败，请稍后重试')
   }

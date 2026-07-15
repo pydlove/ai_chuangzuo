@@ -183,6 +183,12 @@ public class BenefitServiceImpl implements BenefitService {
         return vo;
     }
 
+    @Override
+    public void refund(Long userId, String code) {
+        int updated = benefitUsageMapper.decrementIfAboveZero(userId, code, currentPeriod());
+        log.info("权益额度退回 userId={}, code={}, updated={}", userId, code, updated);
+    }
+
     /**
      * 查询套餐的全部权益值（带缓存，key 为 planKey）。
      */

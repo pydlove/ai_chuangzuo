@@ -7,8 +7,8 @@ import com.aichuangzuo.user.modules.generation.dto.request.GenerationSubmitReque
 import com.aichuangzuo.user.modules.generation.mapper.GenerationActiveModelConfigMapper;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
-import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.style.entity.UserStyle;
 import com.aichuangzuo.user.modules.style.mapper.UserStyleMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -20,7 +20,6 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -49,7 +48,7 @@ class GenerationTaskServiceTest {
     private GenerationRateLimiter rateLimiter;
 
     @Mock
-    private CoinRecordService coinRecordService;
+    private BenefitService benefitService;
 
     @Mock
     private UserStyleMapper userStyleMapper;
@@ -73,7 +72,6 @@ class GenerationTaskServiceTest {
     private void stubCommonFlow(Long userId) {
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
-        when(coinRecordService.getBalance(userId)).thenReturn(BigDecimal.TEN);
         when(benefitResolver.retentionDays(userId)).thenReturn(30);
         // 唯一已发布模板 id=1，latestPublishedVersion=1（submit 路径需要）
         PromptTemplate tpl = new PromptTemplate();
@@ -155,7 +153,6 @@ class GenerationTaskServiceTest {
         Long userId = 10L;
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
-        when(coinRecordService.getBalance(userId)).thenReturn(BigDecimal.TEN);
         when(promptTemplateMapper.selectPublished()).thenReturn(List.of());
 
         com.aichuangzuo.shared.exception.BusinessException e =

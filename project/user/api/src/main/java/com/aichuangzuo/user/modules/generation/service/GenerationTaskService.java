@@ -11,9 +11,9 @@ import com.aichuangzuo.user.modules.generation.dto.request.GenerationSubmitReque
 import com.aichuangzuo.user.modules.generation.mapper.GenerationActiveModelConfigMapper;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskPageVO;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
-import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.style.entity.UserStyle;
 import com.aichuangzuo.user.modules.style.mapper.UserStyleMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -24,7 +24,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -34,22 +33,23 @@ import java.util.UUID;
 /**
  * 用户端-创作任务服务：提交 / 查进度 / 重试 / 列表。
  *
- * <p>提交流程：限流 → 预扣 1 创作币 → 入队（status=queued）。失败由 admin worker 退额度。
+ * <p>提交流程：限流 → 扣 1 次 AI 文章额度（ai_article_quota）→ 入队（status=queued）。
+ * 失败由 admin worker 调内部接口退额度。
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GenerationTaskService {
 
-    /** 单次生成预扣创作币。 */
-    private static final BigDecimal GENERATION_QUOTA = BigDecimal.ONE;
+    /** 文章生成对应的权益编码。 */
+    private static final String ARTICLE_QUOTA_BENEFIT = "ai_article_quota";
 
     private final GenerationTaskMapper taskMapper;
     private final GenerationActiveModelConfigMapper activeModelConfigMapper;
     private final UserPromptTemplateMapper promptTemplateMapper;
     private final GenerationBenefitResolver benefitResolver;
     private final GenerationRateLimiter rateLimiter;
-    private final CoinRecordService coinRecordService;
+    private final BenefitService benefitService;
     private final UserStyleMapper userStyleMapper;
     private final ObjectMapper objectMapper;
 
@@ -70,13 +70,7 @@ public class GenerationTaskService {
             }
         }
 
-        // 3. 余额预扣
-        BigDecimal balance = coinRecordService.getBalance(userId);
-        if (balance.compareTo(GENERATION_QUOTA) < 0) {
-            throw new BusinessException(UserGenerationErrorCode.GENERATION_QUOTA_NOT_ENOUGH);
-        }
-
-        // 4. 锁定唯一已发布模板（task 锁定版本）
+        // 3. 锁定唯一已发布模板（task 锁定版本）
         List<PromptTemplate> published = promptTemplateMapper.selectPublished();
         if (published.isEmpty()) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
@@ -87,11 +81,11 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
         }
 
-        // 5. 入队
+        // 4. 扣 1 次文章额度 + 入队
         Integer retentionDays = benefitResolver.retentionDays(userId);
         String inputParam = buildInputParam(userId, req);
         String bizNo = generateBizNo();
-        coinRecordService.spend(userId, "generation_cost", GENERATION_QUOTA, bizNo, "创作生成预扣");
+        benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
 
         GenerationTask task = new GenerationTask();
         task.setBizNo(bizNo);
@@ -122,7 +116,7 @@ public class GenerationTaskService {
     }
 
     /**
-     * 用户点「重新生成」：写一条新 task，重复计费 1 创作币。源任务（失败/已完成）保留。
+     * 用户点「重新生成」：写一条新 task，再扣 1 次文章额度。源任务（失败/已完成）保留。
      */
     @Transactional(rollbackFor = Exception.class)
     public GenerationTaskVO retry(Long sourceTaskId, GenerationRetryRequest req, Long userId) {
@@ -135,14 +129,9 @@ public class GenerationTaskService {
         // 限流
         rateLimiter.check(userId, benefitResolver.ratePerMinute(userId));
 
-        // 余额检查 + 扣
-        BigDecimal balance = coinRecordService.getBalance(userId);
-        if (balance.compareTo(GENERATION_QUOTA) < 0) {
-            throw new BusinessException(UserGenerationErrorCode.GENERATION_QUOTA_NOT_ENOUGH);
-        }
-
+        // 扣 1 次文章额度
         String bizNo = generateBizNo();
-        coinRecordService.spend(userId, "generation_cost", GENERATION_QUOTA, bizNo, "创作重新生成预扣");
+        benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
 
         // 新 task：沿用 source 输入参数，可选覆盖 wordCount
         Map<String, Object> input = parseInput(source.getInputParam());
@@ -200,6 +189,7 @@ public class GenerationTaskService {
         map.put("platform", req.getPlatform());
         map.put("styleRef", req.getStyleRef());
         map.put("wordCount", req.getWordCount());
+        map.put("template", req.getTemplate());
         map.put("toneTags", defaultToneTags(req.getPlatform()));
         // 快照用户风格 prompt：worker 端无需跨表查 u_user_style
         map.put("userStylePrompt", resolveUserStylePrompt(userId, req.getStyleRef()));
