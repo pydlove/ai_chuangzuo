@@ -106,9 +106,19 @@
         @close="onDrawerClose"
       >
         <template #extra>
-          <span v-if="callLogDrawer.task" class="drawer-biz">
-            {{ callLogDrawer.task.bizNo }}
-          </span>
+          <a-space>
+            <span v-if="callLogDrawer.task" class="drawer-biz">
+              {{ callLogDrawer.task.bizNo }}
+            </span>
+            <a-button
+              size="small"
+              :loading="callLogDrawer.refreshing"
+              @click="refreshCallLogs"
+            >
+              <template #icon><ReloadOutlined /></template>
+              刷新
+            </a-button>
+          </a-space>
         </template>
 
         <a-spin :spinning="callLogDrawer.loading">
@@ -262,6 +272,7 @@ const POLL_INTERVAL_MS = 5000
 const callLogDrawer = reactive({
   open: false,
   loading: false,
+  refreshing: false,
   task: null,
   grouped: {}, // { "2": [log,...], ... }
   taskStatus: null,
@@ -326,6 +337,17 @@ const stopPoll = () => {
 
 const onDrawerClose = () => {
   stopPoll()
+}
+
+// 手动刷新：不触发整抽屉 loading 遮罩，只让按钮转圈，避免闪烁
+const refreshCallLogs = async () => {
+  if (callLogDrawer.refreshing) return
+  callLogDrawer.refreshing = true
+  try {
+    await fetchCallLogs()
+  } finally {
+    callLogDrawer.refreshing = false
+  }
 }
 
 const openCallLogs = async (record) => {
