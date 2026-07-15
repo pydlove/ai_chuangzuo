@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper">
+
+    <resultMap id="membershipMap" type="com.aichuangzuo.admin.modules.order.entity.AdminMembership">
+        <id property="id" column="id"/>
+        <result property="userId" column="user_id"/>
+        <result property="level" column="level"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="expiresAt" column="expires_at"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="membershipMap">
+        SELECT id, user_id, level, started_at, expires_at, created_at, updated_at
+        FROM u_user_membership
+        WHERE user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertMembership" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO u_user_membership (user_id, level, started_at, expires_at, tenant_id)
+        VALUES (#{userId}, #{level}, #{startedAt}, #{expiresAt}, 0)
+    </insert>
+
+    <update id="updateMembership">
+        UPDATE u_user_membership
+        SET level = #{level},
+            started_at = #{startedAt},
+            expires_at = #{expiresAt}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateUserMembershipFields">
+        UPDATE u_user
+        SET membership_expire_at = #{expireAt},
+            membership_plan = #{plan}
+        WHERE id = #{userId} AND is_deleted = 0
+    </update>
+
+    <select id="userExists" resultType="int">
+        SELECT COUNT(*) FROM u_user WHERE id = #{userId} AND is_deleted = 0
+    </select>
+</mapper>

@@ -1,0 +1,171 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.order.mapper.AdminOrderMapper">
+
+    <resultMap id="orderMap" type="com.aichuangzuo.admin.modules.order.entity.AdminOrderView">
+        <id property="id" column="id"/>
+        <result property="orderNo" column="order_no"/>
+        <result property="userId" column="user_id"/>
+        <result property="nickname" column="nickname"/>
+        <result property="email" column="email"/>
+        <result property="planKey" column="plan_key"/>
+        <result property="cycle" column="cycle"/>
+        <result property="amount" column="amount"/>
+        <result property="status" column="status"/>
+        <result property="paidAt" column="paid_at"/>
+        <result property="refundedAt" column="refunded_at"/>
+        <result property="refundReason" column="refund_reason"/>
+        <result property="adminRemark" column="admin_remark"/>
+        <result property="operatorId" column="operator_id"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <sql id="selectCols">
+        SELECT o.id, o.order_no, o.user_id,
+               u.nickname, u.email,
+               o.plan_key, o.cycle, o.amount, o.status,
+               o.paid_at, o.refunded_at, o.refund_reason,
+               o.admin_remark, o.operator_id, o.created_at
+        FROM u_order o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.created_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+    </sql>
+
+    <select id="selectPage" resultMap="orderMap">
+        <include refid="selectCols"/>
+        ORDER BY o.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countPage" resultType="long">
+        SELECT COUNT(*)
+        FROM u_order o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.created_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+    </select>
+
+    <select id="selectDetailById" resultMap="orderMap">
+        <include refid="selectCols"/>
+        AND o.id = #{id}
+        LIMIT 1
+    </select>
+
+    <update id="markPaid">
+        UPDATE u_order
+        SET status = 1,
+            paid_at = #{now},
+            operator_id = #{operatorId},
+            updated_at = #{now}
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <update id="refund">
+        UPDATE u_order
+        SET status = 2,
+            refunded_at = #{now},
+            refund_reason = #{reason},
+            operator_id = #{operatorId},
+            updated_at = #{now}
+        WHERE id = #{id} AND status = 1
+    </update>
+
+    <update id="cancel">
+        UPDATE u_order
+        SET status = 3,
+            operator_id = #{operatorId},
+            updated_at = NOW(3)
+        WHERE id = #{id} AND status = 0
+    </update>
+
+    <insert id="insertGrantOrder">
+        INSERT INTO u_order (order_no, user_id, plan_key, cycle, amount, status, paid_at, admin_remark, operator_id, tenant_id)
+        VALUES (#{orderNo}, #{userId}, #{planKey}, #{cycle}, 0, 1, #{now}, #{adminRemark}, #{operatorId}, 0)
+    </insert>
+
+    <select id="statsOverview" resultType="com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO">
+        SELECT
+            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE()) AS todayOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE()) AS todayRevenue,
+            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthRevenue,
+            (SELECT COUNT(*) FROM u_order WHERE status = 1) AS totalOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1) AS totalRevenue
+    </select>
+
+    <select id="statsTrend" resultType="java.util.LinkedHashMap">
+        SELECT DATE_FORMAT(d.dt, '%m-%d') AS dateLabel,
+               COALESCE(stats.revenue, 0) AS revenue,
+               COALESCE(stats.orderCount, 0) AS orderCount
+        FROM (
+            SELECT DATE_SUB(CURDATE(), INTERVAL n DAY) AS dt
+            FROM (
+                SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+                UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+                UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
+                UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
+                UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29
+            ) nums
+            WHERE n &lt; #{days}
+        ) d
+        LEFT JOIN (
+            SELECT DATE(paid_at) AS payDate,
+                   SUM(amount) AS revenue,
+                   COUNT(*) AS orderCount
+            FROM u_order
+            WHERE status = 1
+              AND paid_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+            GROUP BY DATE(paid_at)
+        ) stats ON stats.payDate = d.dt
+        ORDER BY d.dt ASC
+    </select>
+
+    <select id="statsPlanDistribution" resultType="java.util.LinkedHashMap">
+        SELECT plan_key AS planKey,
+               COUNT(*) AS count,
+               COALESCE(SUM(amount), 0) AS revenue
+        FROM u_order
+        WHERE status = 1
+        GROUP BY plan_key
+        ORDER BY count DESC
+    </select>
+
+    <select id="statsCycleDistribution" resultType="java.util.LinkedHashMap">
+        SELECT cycle,
+               COUNT(*) AS count
+        FROM u_order
+        WHERE status = 1
+        GROUP BY cycle
+        ORDER BY count DESC
+    </select>
+</mapper>
