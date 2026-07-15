@@ -823,15 +823,16 @@
             <template #overlay>
               <div class="user-center-panel">
                 <!-- 会员卡 -->
-                <div class="membership-card" @click="router.push('/pricing')">
+                <div class="membership-card">
                   <div class="membership-left">
                     <div class="membership-label">当前会员</div>
                     <div class="membership-name">{{ hasMembership ? membershipLevel : '免费版' }}</div>
                     <div class="membership-expiry" v-if="hasMembership">有效期至 {{ membershipExpiry }}</div>
                   </div>
                   <div class="membership-right">
-                    <button v-if="!hasMembership" class="membership-btn">开通</button>
-                    <button v-else-if="isNearExpiry" class="membership-btn">续费</button>
+                    <button v-if="!hasMembership" class="membership-btn" @click="router.push('/pricing')">开通</button>
+                    <button v-else-if="isNearExpiry" class="membership-btn" @click="router.push('/pricing')">续费</button>
+                    <span v-else class="membership-link" @click="router.push('/pricing')">查看套餐 ›</span>
                   </div>
                 </div>
 
@@ -3819,12 +3820,6 @@ body[data-theme="dark"] .about-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.membership-card:hover {
-  opacity: 0.95;
 }
 
 .membership-left {
@@ -3861,6 +3856,18 @@ body[data-theme="dark"] .about-footer {
 
 .membership-btn:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.membership-link {
+  font-size: 13px;
+  color: #fff;
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.membership-link:hover {
+  opacity: 1;
+  text-decoration: underline;
 }
 
 /* 账号信息 */
