@@ -82,7 +82,7 @@ public class GenerationConfigUpdateRequest {
 
     @NotNull
     @Min(30)
-    @Max(600)
+    @Max(3600)
     private Integer aiReadTimeoutSeconds;
 
     @Size(max = 256)
