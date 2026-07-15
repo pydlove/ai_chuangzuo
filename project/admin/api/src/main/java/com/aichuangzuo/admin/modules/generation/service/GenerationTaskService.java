@@ -54,10 +54,16 @@ public class GenerationTaskService {
 
     /**
      * 标记任务完成。articleBizNo 关联刚生成的 u_article.biz_no。
+     *
+     * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 带 WHERE locked_by 守卫，
+     *                         0 行受影响说明任务已被回收/易主，抛出异常避免覆盖新 worker 的写入。
      */
     @Transactional
-    public void markCompleted(Long taskId, String articleBizNo) {
+    public void markCompleted(Long taskId, String articleBizNo, String expectedLockedBy) {
         GenerationTask task = requireById(taskId);
+        if (expectedLockedBy != null && !expectedLockedBy.equals(task.getLockedBy())) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
         task.setStatus(GenerationTaskStatus.COMPLETED);
         task.setCompletedAt(LocalDateTime.now());
         task.setFailedReason(null);
@@ -66,16 +72,29 @@ public class GenerationTaskService {
     }
 
     /**
+     * 标记任务完成（向后兼容：不校验 ownership）。
+     */
+    @Transactional
+    public void markCompleted(Long taskId, String articleBizNo) {
+        markCompleted(taskId, articleBizNo, null);
+    }
+
+    /**
      * 标记任务失败。若 retry_count < max_retry，回 queued 让 worker 再试；否则置 FAILED。
      *
      * <p>回 queued 路径会重置 progress_pct=0：让 worker 下一次运行时从头累加进度，
      * 避免 user 端看到「卡在上次失败的 30%」后又被重置。
      *
-     * @param refundRequired  最终失败时是否需要退额度（completed-or-failed 时由调用方决定）
+     * @param refundRequired   最终失败时是否需要退额度（completed-or-failed 时由调用方决定）
+     * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 前校验，
+     *                         不匹配说明任务已被回收/易主，抛出异常避免覆盖新 worker 的写入。
      */
     @Transactional
-    public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired) {
+    public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired, String expectedLockedBy) {
         GenerationTask task = requireById(taskId);
+        if (expectedLockedBy != null && !expectedLockedBy.equals(task.getLockedBy())) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
         task.setFailedReason(truncateReason(reason));
 
         int nextRetry = (task.getRetryCount() == null ? 0 : task.getRetryCount()) + 1;
@@ -98,6 +117,14 @@ public class GenerationTaskService {
             log.warn("task={} 最终失败 retry={}/{}, reason={}", taskId, nextRetry, max, reason);
         }
         return task;
+    }
+
+    /**
+     * 标记任务失败（向后兼容：不校验 ownership）。
+     */
+    @Transactional
+    public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired) {
+        return markFailed(taskId, reason, refundRequired, null);
     }
 
     /**

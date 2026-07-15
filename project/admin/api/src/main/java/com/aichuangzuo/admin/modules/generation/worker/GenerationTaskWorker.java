@@ -176,13 +176,13 @@ public class GenerationTaskWorker {
             // 强制写 100%：避免最后一步（PersistArticleStep weight=2）累加后 ctx.progressPct=100
             // 但回调可能没有恰好触发到 100 的情况（理论上会，这里兜底保证一致性）
             taskService.updateProgress(taskId, 100);
-            taskService.markCompleted(taskId, ctx.getArticleBizNo());
+            taskService.markCompleted(taskId, ctx.getArticleBizNo(), owner);
             log.info("task={} 完成 articleBizNo={} aiCalls={} aiFailed={} totalMs={}",
                     taskId, ctx.getArticleBizNo(),
                     ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallTotalMs());
         } catch (Exception e) {
             log.warn("task={} pipeline 失败: {}", taskId, e.getMessage());
-            var after = taskService.markFailed(taskId, e.getMessage(), false);
+            var after = taskService.markFailed(taskId, e.getMessage(), false, owner);
             if (after.getStatus() == GenerationTaskStatus.FAILED) {
                 try {
                     refundClient.refund(taskId, after.getTargetUserId());
