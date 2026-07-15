@@ -777,11 +777,41 @@
             </button>
           </a-tooltip>
 
+          <a-popover
+            v-if="hasMembership"
+            trigger="hover"
+            placement="bottomRight"
+            overlay-class-name="membership-benefits-popover"
+          >
+            <template #content>
+              <div class="mbs-pop">
+                <div class="mbs-head">
+                  <span class="mbs-plan">{{ membershipLevel }}</span>
+                  <span v-if="membershipExpiry" class="mbs-expiry">有效期至 {{ membershipExpiry }}</span>
+                </div>
+                <ul class="mbs-list">
+                  <li
+                    v-for="b in memberBenefits"
+                    :key="b.code"
+                    :class="{ off: b.off }"
+                  >
+                    <span class="mbs-name">{{ b.name }}</span>
+                    <span class="mbs-val">{{ b.display }}</span>
+                  </li>
+                </ul>
+                <div class="mbs-foot" @click="router.push('/pricing')">查看会员套餐 ›</div>
+              </div>
+            </template>
+            <span class="console-membership-badge has-membership">
+              {{ membershipLevel }}
+            </span>
+          </a-popover>
           <span
-            :class="['console-membership-badge', { 'has-membership': hasMembership, 'no-membership': !hasMembership }]"
+            v-else
+            class="console-membership-badge no-membership"
             @click="handleMembershipClick"
           >
-            {{ hasMembership ? membershipLevel : '开通会员' }}
+            开通会员
           </span>
           <!-- 个人中心下拉 -->
           <a-dropdown
@@ -1181,7 +1211,7 @@ const route = useRoute()
 const router = useRouter()
 
 const userProfile = useUserProfile()
-const { loadBenefits } = useBenefits()
+const { benefits, loadBenefits } = useBenefits()
 
 const isMobile = useIsMobile()
 
@@ -1762,6 +1792,34 @@ const loadMembership = () => {
 const handleMembershipClick = () => {
   router.push('/pricing')
 }
+
+// ---------- header 会员徽章 hover 权益卡 ----------
+// tier 类权益值 → 中文展示
+const TIER_LABELS = {
+  none: '不可用', preset: '预设风格', custom: '自定义',
+  basic_8: '基础 8 款', all_20: '全部 20 款', all_custom: '全部 + 自定义',
+  standard: '标准', priority: '优先', express: '极速'
+}
+
+const formatBenefitDisplay = (item) => {
+  if (item.type === 'boolean') return item.value === 'true' ? '✓' : '—'
+  if (item.type === 'tier') return TIER_LABELS[item.value] || item.value
+  // quota
+  if (item.code === 'history_days') return item.value === '-1' ? '永久' : `${item.value} 天`
+  if (item.code === 'queue_max_tasks') return `${item.value} 个`
+  if (item.remaining != null) return `剩余 ${item.remaining} / 共 ${item.value}`
+  return item.value
+}
+
+// 会员权益列表（hover 弹框展示）；boolean=false 的行置灰
+const memberBenefits = computed(() => {
+  return Object.values(benefits.value || {}).map(item => ({
+    code: item.code,
+    name: item.name,
+    display: formatBenefitDisplay(item),
+    off: item.type === 'boolean' && item.value !== 'true'
+  }))
+})
 
 const extendMembership = (days, level) => {
   const now = new Date()
@@ -2722,6 +2780,80 @@ provide('consoleActions', {
 .console-membership-badge.no-membership:hover {
   background: var(--color-primary);
   color: #fff;
+}
+
+/* header 会员徽章 hover 权益卡（固定高度，列表内部滚动） */
+.mbs-pop {
+  width: 280px;
+}
+
+.mbs-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.mbs-plan {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fa8c16;
+}
+
+.mbs-expiry {
+  font-size: 12px;
+  color: #999;
+}
+
+.mbs-list {
+  height: 264px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px 0;
+  list-style: none;
+}
+
+.mbs-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 4px 0;
+}
+
+.mbs-list li.off {
+  color: #c8c8c8;
+}
+
+.mbs-list li.off .mbs-val {
+  color: #c8c8c8;
+}
+
+.mbs-name {
+  color: #333;
+}
+
+.mbs-list li.off .mbs-name {
+  color: #c8c8c8;
+}
+
+.mbs-val {
+  color: #fa8c16;
+  font-weight: 500;
+}
+
+.mbs-foot {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--color-primary);
+  cursor: pointer;
+}
+
+.mbs-foot:hover {
+  text-decoration: underline;
 }
 
 .header-right {
