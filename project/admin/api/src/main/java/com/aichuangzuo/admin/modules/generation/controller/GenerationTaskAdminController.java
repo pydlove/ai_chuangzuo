@@ -45,11 +45,11 @@ public class GenerationTaskAdminController {
     }
 
     /**
-     * 强制释放 lease：processing → queued。
+     * 手动停止任务：QUEUED / PROCESSING → FAILED。
      */
-    @PostMapping("/{id}/release-lease")
-    public Result<Void> releaseLease(@PathVariable Long id) {
-        service.releaseLease(id);
+    @PostMapping("/{id}/stop")
+    public Result<Void> stop(@PathVariable Long id) {
+        service.stopTask(id);
         return Result.success();
     }
 

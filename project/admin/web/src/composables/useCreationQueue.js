@@ -3,15 +3,15 @@ import { message } from 'ant-design-vue'
 import {
   listGenerationTasks,
   manualRetryGenerationTask,
-  releaseGenerationTaskLease,
+  stopGenerationTask,
   markGenerationTaskFailed
 } from '@/api/creationQueue.js'
 
 /**
  * 创作队列 composable。
  *
- * <p>提供 3 个 tab 共享的列表状态 + 5s 自动刷新。
- * status: 0=queued 1=processing 3=failed
+ * <p>提供 4 个 tab 共享的列表状态 + 5s 自动刷新。
+ * status: 0=queued 1=processing 2=completed 3=failed
  */
 export function useCreationQueue() {
   const list = ref([])
@@ -24,7 +24,8 @@ export function useCreationQueue() {
   const STATUS_TAB = {
     processing: 1,
     queued: 0,
-    failed: 3
+    failed: 3,
+    completed: 2
   }
   const activeStatus = ref(STATUS_TAB.processing)
 
@@ -81,10 +82,10 @@ export function useCreationQueue() {
     }
   }
 
-  const handleRelease = async (id) => {
+  const handleStop = async (id) => {
     try {
-      await releaseGenerationTaskLease(id)
-      message.success('已释放 lease')
+      await stopGenerationTask(id)
+      message.success('已停止任务')
       fetch()
     } catch (e) {
       message.error(e.message || '操作失败')
@@ -141,7 +142,7 @@ export function useCreationQueue() {
     handlePageChange,
     refresh,
     handleRetry,
-    handleRelease,
+    handleStop,
     handleMarkFailed,
     startAutoRefresh,
     stopAutoRefresh

@@ -70,22 +70,24 @@ public class GenerationTaskAdminService {
     }
 
     /**
-     * 强制释放 lease：processing → queued，清空 lease，retry_count +1。
-     * 用于卡死任务恢复。
+     * 手动停止任务：QUEUED / PROCESSING → FAILED，写失败原因「管理员手动停止」，清 lease，置 completedAt。
+     * 与「标记失败」区别：本接口不接受自定义原因，是一键停止；后者允许填具体 reason。
      */
     @Transactional
-    public void releaseLease(Long taskId) {
+    public void stopTask(Long taskId) {
         GenerationTask task = requireById(taskId);
-        if (task.getStatus() != GenerationTaskStatus.PROCESSING) {
+        if (task.getStatus() != GenerationTaskStatus.QUEUED
+                && task.getStatus() != GenerationTaskStatus.PROCESSING) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
         }
-        task.setStatus(GenerationTaskStatus.QUEUED);
+        task.setStatus(GenerationTaskStatus.FAILED);
+        task.setFailedReason("管理员手动停止");
+        task.setCompletedAt(LocalDateTime.now());
         task.setLockedAt(null);
         task.setLockedBy(null);
         task.setLeaseUntil(null);
-        task.setRetryCount((task.getRetryCount() == null ? 0 : task.getRetryCount()) + 1);
         taskMapper.updateById(task);
-        log.info("admin 强制释放 lease task={}", taskId);
+        log.info("admin 手动停止任务 task={}", taskId);
     }
 
     /**

@@ -120,32 +120,64 @@ class GenerationTaskAdminServiceTest {
     }
 
     @Test
-    void releaseLease_shouldOnlyApplyToProcessingTasks() {
+    void stopTask_shouldThrowWhenTaskIsCompleted() {
         GenerationTask task = new GenerationTask();
         task.setId(20L);
-        task.setStatus(GenerationTaskStatus.QUEUED);
+        task.setStatus(GenerationTaskStatus.COMPLETED);
         when(taskMapper.selectById(20L)).thenReturn(task);
 
-        assertThrows(BusinessException.class, () -> service.releaseLease(20L));
+        assertThrows(BusinessException.class, () -> service.stopTask(20L));
+        verify(taskMapper, never()).updateById((GenerationTask) any());
     }
 
     @Test
-    void releaseLease_shouldResetProcessingToQueued() {
+    void stopTask_shouldThrowWhenTaskIsFailed() {
+        GenerationTask task = new GenerationTask();
+        task.setId(22L);
+        task.setStatus(GenerationTaskStatus.FAILED);
+        when(taskMapper.selectById(22L)).thenReturn(task);
+
+        assertThrows(BusinessException.class, () -> service.stopTask(22L));
+        verify(taskMapper, never()).updateById((GenerationTask) any());
+    }
+
+    @Test
+    void stopTask_shouldMarkFailedWhenProcessing() {
         GenerationTask task = new GenerationTask();
         task.setId(21L);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(0);
         task.setLockedBy("worker-1");
+        task.setLeaseUntil(java.time.LocalDateTime.now());
         when(taskMapper.selectById(21L)).thenReturn(task);
 
-        service.releaseLease(21L);
+        service.stopTask(21L);
 
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).updateById(captor.capture());
         GenerationTask updated = captor.getValue();
-        assertEquals(GenerationTaskStatus.QUEUED, updated.getStatus());
+        assertEquals(GenerationTaskStatus.FAILED, updated.getStatus());
+        assertEquals("管理员手动停止", updated.getFailedReason());
         assertNull(updated.getLockedBy());
-        assertEquals(1, updated.getRetryCount());
+        assertNull(updated.getLeaseUntil());
+        assertNotNull(updated.getCompletedAt());
+    }
+
+    @Test
+    void stopTask_shouldMarkFailedWhenQueued() {
+        GenerationTask task = new GenerationTask();
+        task.setId(23L);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        when(taskMapper.selectById(23L)).thenReturn(task);
+
+        service.stopTask(23L);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).updateById(captor.capture());
+        GenerationTask updated = captor.getValue();
+        assertEquals(GenerationTaskStatus.FAILED, updated.getStatus());
+        assertEquals("管理员手动停止", updated.getFailedReason());
+        assertNotNull(updated.getCompletedAt());
     }
 
     @Test

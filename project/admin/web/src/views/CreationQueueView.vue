@@ -5,7 +5,7 @@
         <h3 class="page-title">创作队列</h3>
         <p class="page-desc">
           展示用户提交的创作任务，4 个 tab 分别对应：执行中（processing）/ 排队中（queued）/ 已完成（completed）/ 未执行（failed）。
-          每 5 秒自动刷新；点表格里的操作可手动重试 / 释放 lease / 标记失败。
+          每 5 秒自动刷新；点表格里的操作可手动重试 / 停止 / 标记失败。
         </p>
       </div>
 
@@ -78,11 +78,12 @@
                 @click="handleRetry(record.id)"
               >重试</a-button>
               <a-button
-                v-if="record.status === 1"
+                v-if="record.status === 0 || record.status === 1"
                 type="link"
                 size="small"
-                @click="handleRelease(record.id)"
-              >释放 lease</a-button>
+                danger
+                @click="handleStop(record.id)"
+              >停止</a-button>
               <a-button
                 v-if="record.status !== 2"
                 type="link"
@@ -217,7 +218,7 @@ const {
   handlePageChange,
   refresh,
   handleRetry,
-  handleRelease,
+  handleStop,
   handleMarkFailed,
   startAutoRefresh
 } = useCreationQueue()
