@@ -92,17 +92,9 @@ export function useCreationQueue() {
     }
   }
 
-  const handleMarkFailed = async (id) => {
-    let reason = ''
+  const handleMarkFailed = async (id, reason) => {
     try {
-      // 使用一个临时 prompt 拿失败原因，简单直接
-      // eslint-disable-next-line no-alert
-      reason = window.prompt('请输入失败原因（可空）：', 'admin 手动标记失败') || 'admin 手动标记失败'
-    } catch (e) {
-      reason = 'admin 手动标记失败'
-    }
-    try {
-      await markGenerationTaskFailed(id, reason)
+      await markGenerationTaskFailed(id, reason || 'admin 手动标记失败')
       message.success('已标记为失败')
       fetch()
     } catch (e) {

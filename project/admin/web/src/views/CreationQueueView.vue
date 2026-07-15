@@ -89,7 +89,7 @@
                 type="link"
                 size="small"
                 danger
-                @click="handleMarkFailed(record.id)"
+                @click="openMarkFailedModal(record.id)"
               >标记失败</a-button>
             </a-space>
             <span v-else>-</span>
@@ -180,6 +180,23 @@
         </a-spin>
       </a-drawer>
 
+      <!-- 标记失败弹框 -->
+      <a-modal
+        v-model:open="markFailedModal.open"
+        title="标记失败"
+        :confirm-loading="markFailedModal.loading"
+        @ok="confirmMarkFailed"
+        @cancel="markFailedModal.open = false"
+      >
+        <a-textarea
+          v-model:value="markFailedModal.reason"
+          placeholder="请输入失败原因（可空）"
+          :rows="4"
+          :maxlength="200"
+          show-count
+        />
+      </a-modal>
+
       <div class="pagination">
         <a-pagination
           :current="page"
@@ -250,6 +267,29 @@ const callLogDrawer = reactive({
   taskStatus: null,
   pollTimer: null
 })
+
+const markFailedModal = reactive({
+  open: false,
+  loading: false,
+  taskId: null,
+  reason: ''
+})
+
+const openMarkFailedModal = (id) => {
+  markFailedModal.taskId = id
+  markFailedModal.reason = ''
+  markFailedModal.open = true
+}
+
+const confirmMarkFailed = async () => {
+  markFailedModal.loading = true
+  try {
+    await handleMarkFailed(markFailedModal.taskId, markFailedModal.reason)
+    markFailedModal.open = false
+  } finally {
+    markFailedModal.loading = false
+  }
+}
 
 const fetchCallLogs = async () => {
   if (!callLogDrawer.task) return
