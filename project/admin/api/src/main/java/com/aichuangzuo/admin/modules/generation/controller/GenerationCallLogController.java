@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.generation.controller;
 
 import com.aichuangzuo.admin.modules.generation.service.GenerationCallLogService;
+import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogGroupedVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationCallLogVO;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,7 +12,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Admin 端-创作 AI 调用日志查询 API。
@@ -33,11 +33,11 @@ public class GenerationCallLogController {
     }
 
     /**
-     * 查某任务所有记录，按 stage 分组（key=stageIndex）。
-     * 适合前端「创作 AI 调用日志」页面展示。
+     * 查某任务的全部调用日志（按 stage 分组），并附带任务当前 status。
+     * 适合前端「执行过程」抽屉轮询使用：taskStatus=2 时停止刷新。
      */
     @GetMapping("/by-task/{taskId}/grouped")
-    public Result<Map<Integer, List<GenerationCallLogVO>>> listByTaskGrouped(@PathVariable Long taskId) {
+    public Result<GenerationCallLogGroupedVO> listByTaskGrouped(@PathVariable Long taskId) {
         return Result.success(service.queryByTaskIdGrouped(taskId));
     }
 }

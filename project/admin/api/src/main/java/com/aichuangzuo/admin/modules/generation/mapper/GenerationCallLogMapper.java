@@ -20,4 +20,9 @@ public interface GenerationCallLogMapper extends BaseMapper<GenerationCallLog> {
      * 查某任务的所有调用记录（按 stage_index ASC, attempt ASC）。
      */
     List<GenerationCallLog> selectByTaskId(@Param("taskId") Long taskId);
+
+    /**
+     * 物理删除某任务的全部调用日志（配合 batchInsert 实现全量替换）。
+     */
+    int deleteByTaskId(@Param("taskId") Long taskId);
 }
