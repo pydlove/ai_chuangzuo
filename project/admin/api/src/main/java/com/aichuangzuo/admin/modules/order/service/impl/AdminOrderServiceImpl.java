@@ -99,14 +99,13 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         LocalDateTime now = LocalDateTime.now();
         orderMapper.refund(id, reason, operatorId, now);
 
-        // 回退会员时长
+        // 退款直接取消会员：expires_at 设为昨天
         AdminMembership membership = membershipMapper.selectByUserId(order.getUserId());
         if (membership != null) {
-            int days = CYCLE_DAYS.getOrDefault(order.getCycle(), 30);
-            LocalDate newExpiresAt = membership.getExpiresAt().minusDays(days);
-            membership.setExpiresAt(newExpiresAt);
+            LocalDate yesterday = LocalDate.now().minusDays(1);
+            membership.setExpiresAt(yesterday);
             membershipMapper.updateMembership(membership);
-            syncUserMembershipFields(order.getUserId(), newExpiresAt, order.getCycle());
+            syncUserMembershipFields(order.getUserId(), yesterday, order.getCycle());
         }
 
         log.info("管理员退款 orderId={}, operatorId={}, reason={}", id, operatorId, reason);

@@ -126,9 +126,9 @@ class AdminOrderServiceTest {
         when(membershipMapper.updateUserMembershipFields(eq(5L), any(), any())).thenReturn(1);
 
         assertDoesNotThrow(() -> orderService.refund(1L, "不想要了", 1L));
-        // pro/month = 30 days, 25 - 30 = -5 → expiresAt should be in the past
+        // 退款直接取消会员 → expiresAt 设为昨天
         verify(membershipMapper).updateMembership(argThat(m ->
-                m.getExpiresAt().isBefore(LocalDate.now())));
+                m.getExpiresAt().equals(LocalDate.now().minusDays(1))));
     }
 
     // ── cancel ──
