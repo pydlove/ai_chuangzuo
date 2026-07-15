@@ -87,6 +87,14 @@
             </a-col>
           </a-row>
 
+          <a-row :gutter="16">
+            <a-col :span="8">
+              <a-form-item label="AI 读取超时（秒）" name="aiReadTimeoutSeconds" extra="30-600。MiniMax-M3 推理慢，建议 180+">
+                <a-input-number v-model:value="form.aiReadTimeoutSeconds" :min="30" :max="600" style="width: 100%" />
+              </a-form-item>
+            </a-col>
+          </a-row>
+
           <a-divider orientation="left">AI 调用重试（按 stage）</a-divider>
 
           <p class="section-tip">
@@ -163,7 +171,8 @@ const rules = reactive({
   llmRetryBackoffMultiplier: [{ required: true, type: 'number', min: 1, max: 5, message: '1-5' }],
   defaultTemperature: [{ required: true, type: 'number', min: 0, max: 2, message: '0-2' }],
   defaultMaxTokens: [{ required: true, type: 'number', min: 1, max: 128000, message: '1-128000' }],
-  defaultTopP: [{ required: true, type: 'number', min: 0, max: 1, message: '0-1' }]
+  defaultTopP: [{ required: true, type: 'number', min: 0, max: 1, message: '0-1' }],
+  aiReadTimeoutSeconds: [{ required: true, type: 'number', min: 30, max: 600, message: '30-600' }]
 })
 
 const onSubmit = async () => {

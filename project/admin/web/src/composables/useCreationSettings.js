@@ -20,6 +20,7 @@ export function useCreationSettings() {
     defaultTemperature: 0.7,
     defaultMaxTokens: 8192,
     defaultTopP: 1.0,
+    aiReadTimeoutSeconds: 180,
     remark: ''
   })
   const loading = ref(false)
@@ -45,6 +46,7 @@ export function useCreationSettings() {
         defaultTemperature: res.defaultTemperature != null ? Number(res.defaultTemperature) : 0.7,
         defaultMaxTokens: res.defaultMaxTokens ?? 8192,
         defaultTopP: res.defaultTopP != null ? Number(res.defaultTopP) : 1.0,
+        aiReadTimeoutSeconds: res.aiReadTimeoutSeconds ?? 180,
         remark: res.remark ?? ''
       })
       updatedAt.value = res.updatedAt
@@ -75,6 +77,7 @@ export function useCreationSettings() {
         defaultTemperature: res.defaultTemperature != null ? Number(res.defaultTemperature) : form.defaultTemperature,
         defaultMaxTokens: res.defaultMaxTokens ?? form.defaultMaxTokens,
         defaultTopP: res.defaultTopP != null ? Number(res.defaultTopP) : form.defaultTopP,
+        aiReadTimeoutSeconds: res.aiReadTimeoutSeconds ?? form.aiReadTimeoutSeconds,
         remark: res.remark ?? form.remark
       })
       updatedAt.value = res.updatedAt
