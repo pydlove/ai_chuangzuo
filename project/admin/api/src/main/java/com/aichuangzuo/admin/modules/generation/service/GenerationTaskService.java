@@ -80,12 +80,14 @@ public class GenerationTaskService {
     }
 
     /**
-     * 标记任务失败。若 retry_count < max_retry，回 queued 让 worker 再试；否则置 FAILED。
+     * 标记任务失败：直接置 FAILED（主任务不做自动重试）。
      *
-     * <p>回 queued 路径会重置 progress_pct=0：让 worker 下一次运行时从头累加进度，
-     * 避免 user 端看到「卡在上次失败的 30%」后又被重置。
+     * <p>重试语义：stage 内 AI 调用失败由 {@code DefaultAiGateway} 按
+     * {@code llmRetryMaxAttempts} 自动重试（指数退避）；stage 最终失败则任务
+     * 立即置 FAILED 并退币，不再回 QUEUED 让 worker 从头跑。需要重跑由 admin
+     * 在「创作队列」点「重试」按钮（{@code GenerationTaskAdminService#manualRetry}）。
      *
-     * @param refundRequired   最终失败时是否需要退额度（completed-or-failed 时由调用方决定）
+     * @param refundRequired   是否需要退额度（completed-or-failed 时由调用方决定）
      * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 前校验，
      *                         不匹配说明任务已被回收/易主，抛出异常避免覆盖新 worker 的写入。
      */
@@ -100,22 +102,10 @@ public class GenerationTaskService {
         int nextRetry = (task.getRetryCount() == null ? 0 : task.getRetryCount()) + 1;
         task.setRetryCount(nextRetry);
 
-        int max = task.getMaxRetry() == null ? 3 : task.getMaxRetry();
-        if (nextRetry <= max) {
-            // 回 queued，释放 lease，重置进度（让下一轮 worker 从头累计）
-            task.setStatus(GenerationTaskStatus.QUEUED);
-            task.setLockedAt(null);
-            task.setLockedBy(null);
-            task.setLeaseUntil(null);
-            task.setProgressPct(0);
-            mapper.updateById(task);
-            log.info("task={} retry {}/{}, queued back, reason={}", taskId, nextRetry, max, reason);
-        } else {
-            task.setStatus(GenerationTaskStatus.FAILED);
-            task.setCompletedAt(LocalDateTime.now());
-            mapper.updateById(task);
-            log.warn("task={} 最终失败 retry={}/{}, reason={}", taskId, nextRetry, max, reason);
-        }
+        task.setStatus(GenerationTaskStatus.FAILED);
+        task.setCompletedAt(LocalDateTime.now());
+        mapper.updateById(task);
+        log.warn("task={} 失败（主任务不重试）retry_count={} reason={}", taskId, nextRetry, reason);
         return task;
     }
 

@@ -5,6 +5,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/DefaultAiGatewayRetryTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipelineTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/PipelineTemplateResolverTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/PipelineUtilsTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/ProgressWeightTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/PromptTemplateStageValidatorTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/AbstractAiStepTest.java
@@ -20,6 +21,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/service/GenerationTaskServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/service/PromptTemplateServicePublishTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/service/PromptTemplateServiceStageTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/worker/GenerationTaskWorkerTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/globalstyle/service/GlobalStyleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/hotsearch/job/HotSearchCrawlJobTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/hotsearch/service/HotSearchConfigServiceTest.java

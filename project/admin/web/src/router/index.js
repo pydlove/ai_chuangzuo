@@ -142,6 +142,11 @@ const routes = [
         path: 'learn/banner',
         name: 'AdminLearnBanner',
         component: () => import('@/views/LearnBannerView.vue')
+      },
+      {
+        path: 'home-banner',
+        name: 'AdminHomeBanner',
+        component: () => import('@/views/HomeBannerView.vue')
       }
     ]
   },

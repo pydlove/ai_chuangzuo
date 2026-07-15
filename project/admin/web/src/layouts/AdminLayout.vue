@@ -127,6 +127,12 @@
             </template>
             模型配置
           </a-menu-item>
+          <a-menu-item key="/console/home-banner">
+            <template #icon>
+              <PictureOutlined />
+            </template>
+            首页 Banner
+          </a-menu-item>
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>
@@ -156,7 +162,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -179,7 +185,7 @@ const parentMenuKey = computed(() => {
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
-  if (p === '/console/model-configs') return '/console/settings'
+  if (p === '/console/model-configs' || p === '/console/home-banner') return '/console/settings'
   return null
 })
 
@@ -215,6 +221,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/learn/category') return '分类管理'
   if (route.path === '/console/learn/article') return '文章管理'
   if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'
+  if (route.path === '/console/home-banner') return '首页 Banner'
   return ''
 })
 

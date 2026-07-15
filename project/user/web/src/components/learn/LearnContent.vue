@@ -143,6 +143,12 @@
         <li v-for="a in category.articles" :key="a.id" class="learn-article-card">
           <a @click.prevent="$emit('load-article', a.id)" href="#" class="learn-article-card-link">
             <div class="learn-article-card-body">
+              <img
+                v-if="a.coverImageUrl"
+                :src="a.coverImageUrl"
+                class="learn-article-card-cover"
+                alt=""
+              />
               <div class="learn-article-card-texts">
                 <div class="learn-article-card-title">{{ a.title }}</div>
                 <p v-if="plainExcerpt(a)" class="learn-article-card-summary">{{ plainExcerpt(a) }}</p>
@@ -153,12 +159,6 @@
                   </span>
                 </div>
               </div>
-              <img
-                v-if="a.coverImageUrl"
-                :src="a.coverImageUrl"
-                class="learn-article-card-cover"
-                alt=""
-              />
             </div>
           </a>
         </li>
@@ -494,14 +494,13 @@ onUnmounted(() => {
 .learn-article-card-texts { flex: 1; min-width: 0; }
 .learn-article-card-cover {
   width: 140px;
-  height: 84px;
-  object-fit: contain;
+  height: auto;
   border-radius: 6px;
   flex-shrink: 0;
-  background: #f5f5f5;
+  display: block;
 }
 @media (max-width: 991px) {
-  .learn-article-card-cover { width: 96px; height: 64px; }
+  .learn-article-card-cover { width: 96px; }
 }
 .learn-content-cover {
   width: 100%;

@@ -55,7 +55,7 @@
           :class="['leaderboard-top-card', 'top-' + item.rank, { 'is-me': item.isMe }]"
         >
           <div class="top-rank">{{ item.rank }}</div>
-          <div class="top-nickname">{{ item.nickname }}</div>
+          <div class="top-nickname">{{ item.nickname || '匿名用户' }}</div>
           <div class="top-amount">{{ item.amount.toFixed(2) }} 创作币</div>
           <div v-if="item.isMe" class="top-me-tag">我</div>
           <div v-if="coinRewardLabel(item)" :class="['top-reward', coinRewardLabel(item).type]">
@@ -74,8 +74,8 @@
           :class="['leaderboard-item', { 'is-me': item.isMe }, 'rank-' + item.rank]"
         >
           <span class="leaderboard-rank">{{ item.rank }}</span>
-          <span class="leaderboard-avatar">{{ item.nickname.charAt(0) }}</span>
-          <span class="leaderboard-nickname">{{ item.nickname }}</span>
+          <span class="leaderboard-avatar">{{ (item.nickname || '?').charAt(0) }}</span>
+          <span class="leaderboard-nickname">{{ item.nickname || '匿名用户' }}</span>
           <span v-if="item.isMe" class="leaderboard-me-tag">我</span>
           <div v-if="coinRewardLabel(item)" :class="['leaderboard-reward', coinRewardLabel(item).type]">
             {{ coinRewardLabel(item).text }}
@@ -134,7 +134,7 @@
           :class="['leaderboard-top-card', 'top-' + item.rank, { 'is-me': item.isMe }]"
         >
           <div class="top-rank">{{ item.rank }}</div>
-          <div class="top-nickname">{{ item.nickname }}</div>
+          <div class="top-nickname">{{ item.nickname || '匿名用户' }}</div>
           <div class="top-amount">{{ item.amount.toFixed(2) }} 元</div>
           <div v-if="item.isMe" class="top-me-tag">我</div>
           <div v-if="incomeRewardLabel(item)" :class="['top-reward', incomeRewardLabel(item).type]">
@@ -153,8 +153,8 @@
           :class="['leaderboard-item', { 'is-me': item.isMe }, 'rank-' + item.rank]"
         >
           <span class="leaderboard-rank">{{ item.rank }}</span>
-          <span class="leaderboard-avatar">{{ item.nickname.charAt(0) }}</span>
-          <span class="leaderboard-nickname">{{ item.nickname }}</span>
+          <span class="leaderboard-avatar">{{ (item.nickname || '?').charAt(0) }}</span>
+          <span class="leaderboard-nickname">{{ item.nickname || '匿名用户' }}</span>
           <span v-if="item.isMe" class="leaderboard-me-tag">我</span>
           <div v-if="incomeRewardLabel(item)" :class="['leaderboard-reward', incomeRewardLabel(item).type]">
             {{ incomeRewardLabel(item).text }}
@@ -342,6 +342,8 @@ async function loadCoinLeaderboard() {
   try {
     loading.value = true
     coinList.value = await getCoinLeaderboard(currentCoinMonth)
+  } catch (err) {
+    message.error(err.message || '创作币榜加载失败')
   } finally {
     loading.value = false
   }
@@ -351,13 +353,19 @@ async function loadIncomeLeaderboard() {
   try {
     loading.value = true
     incomeList.value = await getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
+  } catch (err) {
+    message.error(err.message || '自媒体收入榜加载失败')
   } finally {
     loading.value = false
   }
 }
 
 async function loadMySubmissions() {
-  mySubmissions.value = await getMyIncomeSubmissions()
+  try {
+    mySubmissions.value = await getMyIncomeSubmissions()
+  } catch (err) {
+    message.error(err.message || '我的申报记录加载失败')
+  }
 }
 
 onMounted(async () => {
@@ -368,6 +376,12 @@ onMounted(async () => {
 
 watch([incomePeriodType, incomePeriodValue], () => {
   loadIncomeLeaderboard()
+})
+
+watch(activeTab, (tab) => {
+  if (tab === 'income') {
+    loadIncomeLeaderboard()
+  }
 })
 
 const coinTop3 = computed(() => coinList.value.slice(0, 3))

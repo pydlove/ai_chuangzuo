@@ -37,6 +37,7 @@ com/aichuangzuo/user/modules/membership/mapper/UserMembershipMapper.class
 com/aichuangzuo/user/modules/article/dto/request/SaveDraftRequest.class
 com/aichuangzuo/user/modules/leaderboard/entity/UserCoinRecord.class
 com/aichuangzuo/user/modules/feedback/dto/request/SubmitFeedbackRequest.class
+com/aichuangzuo/user/modules/homebanner/controller/HomeBannerController.class
 com/aichuangzuo/user/modules/user/converter/UserConverterImpl.class
 com/aichuangzuo/user/config/SecurityConfig.class
 com/aichuangzuo/user/modules/feedback/service/FeedbackService.class
@@ -51,6 +52,8 @@ com/aichuangzuo/user/modules/auth/entity/User.class
 com/aichuangzuo/user/modules/leaderboard/vo/IncomeLeaderboardVO.class
 com/aichuangzuo/user/modules/auth/dto/request/SendEmailCodeRequest.class
 com/aichuangzuo/user/modules/membership/enums/MembershipErrorCode.class
+com/aichuangzuo/user/modules/homebanner/service/HomeBannerService.class
+com/aichuangzuo/user/modules/homebanner/entity/HomeBannerEntity.class
 com/aichuangzuo/user/modules/article/controller/DraftController.class
 com/aichuangzuo/user/modules/earnings/vo/AccountSummaryVO.class
 com/aichuangzuo/user/modules/article/dto/request/UpdateDraftRequest.class
@@ -102,7 +105,9 @@ com/aichuangzuo/user/modules/auth/controller/TestEmailCodeController.class
 com/aichuangzuo/user/modules/style/market/controller/StyleMarketController.class
 com/aichuangzuo/user/modules/membership/mapper/OrderMapper.class
 com/aichuangzuo/user/modules/style/market/dto/MarketStyleRow.class
+com/aichuangzuo/user/modules/learn/entity/LearnBannerEntity.class
 com/aichuangzuo/user/modules/hotsearch/vo/HotSearchPlatformVO.class
+com/aichuangzuo/user/modules/homebanner/service/impl/HomeBannerServiceImpl.class
 com/aichuangzuo/user/modules/hotsearch/mapper/HotSearchPlatformMapper.class
 com/aichuangzuo/user/modules/style/service/impl/UserStyleServiceImpl.class
 com/aichuangzuo/user/modules/style/service/impl/SystemStyleServiceImpl.class
@@ -131,6 +136,7 @@ com/aichuangzuo/user/config/AuthProperties$Register.class
 com/aichuangzuo/user/modules/style/service/SystemStyleService.class
 com/aichuangzuo/user/modules/auth/vo/UserVO.class
 com/aichuangzuo/user/modules/article/entity/Article.class
+com/aichuangzuo/user/modules/homebanner/mapper/HomeBannerMapper.class
 com/aichuangzuo/user/modules/membership/vo/MembershipStatusVO.class
 com/aichuangzuo/user/modules/article/vo/DraftVO.class
 com/aichuangzuo/user/modules/article/enums/ArticleErrorCode.class
@@ -179,6 +185,7 @@ com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceImpl.class
 com/aichuangzuo/user/modules/membership/service/MembershipService.class
 com/aichuangzuo/user/modules/membership/service/impl/MembershipServiceImpl.class
 com/aichuangzuo/user/infrastructure/cache/CacheUtil.class
+com/aichuangzuo/user/modules/learn/mapper/LearnBannerMapper.class
 com/aichuangzuo/user/infrastructure/security/JwtAuthenticationFilter.class
 com/aichuangzuo/user/modules/generation/dto/request/GenerationSubmitRequest.class
 com/aichuangzuo/user/modules/style/entity/UserStyle.class
@@ -199,6 +206,8 @@ com/aichuangzuo/user/modules/generation/service/GenerationTaskService.class
 com/aichuangzuo/user/modules/leaderboard/entity/SubmissionStatus.class
 com/aichuangzuo/user/modules/hotsearch/vo/HotSearchItemVO.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingService.class
+com/aichuangzuo/user/modules/homebanner/vo/HomeBannerVO.class
+com/aichuangzuo/user/modules/learn/vo/LearnBannerVO.class
 com/aichuangzuo/user/modules/learn/vo/LearnCategoryTreeVO.class
 com/aichuangzuo/user/common/interceptor/RateLimitInterceptor.class
 com/aichuangzuo/user/modules/message/service/MessageService.class

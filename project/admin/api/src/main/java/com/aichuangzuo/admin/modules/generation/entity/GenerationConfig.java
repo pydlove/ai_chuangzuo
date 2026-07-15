@@ -31,9 +31,6 @@ public class GenerationConfig {
     /** lease 持续分钟（1-60）。 */
     private Integer leaseMinutes;
 
-    /** 单任务最大重试次数（1-10）。 */
-    private Integer maxRetry;
-
     /** 空轮询间隔 ms（100-5000）。 */
     private Integer pollIntervalMs;
 
