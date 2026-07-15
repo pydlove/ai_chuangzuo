@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
 import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -96,7 +97,7 @@ class GenerationTaskWorkerTest {
             callback.accept(t.getId(), 60);
             ctx.setArticleBizNo("ART-100");
             return ctx;
-        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class));
+        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
 
         invokeProcessOne(task);
 
@@ -119,7 +120,7 @@ class GenerationTaskWorkerTest {
             callback.accept(t.getId(), 10);
             ctx.setArticleBizNo("ART-101");
             return ctx;
-        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class));
+        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
 
         // 第一次增量 persist 抛异常，主流程应继续
         doThrow(new RuntimeException("db timeout"))
@@ -140,7 +141,7 @@ class GenerationTaskWorkerTest {
         failedTask.setStatus(GenerationTaskStatus.FAILED);
         failedTask.setTargetUserId(10L);
 
-        when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class)))
+        when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class)))
                 .thenThrow(new RuntimeException("stage 2 failed"));
         when(taskService.markFailed(eq(102L), anyString(), eq(false), anyString())).thenReturn(failedTask);
 
@@ -163,12 +164,30 @@ class GenerationTaskWorkerTest {
             ctx.setTask(t);
             ctx.setArticleBizNo("ART-103");
             return ctx;
-        }).when(pipeline).runInto(ctxCaptor.capture(), eq(task), any(BiConsumer.class));
+        }).when(pipeline).runInto(ctxCaptor.capture(), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
 
         invokeProcessOne(task);
 
         GenerationContext captured = ctxCaptor.getValue();
         assertNotNull(captured);
         assertEquals("ART-103", captured.getArticleBizNo());
+    }
+
+    @Test
+    void processOne_shouldNotMarkFailedWhenPipelineAborted() throws Exception {
+        GenerationTask task = makeTask(104L);
+
+        // pipeline 检测到 admin 停止信号，抛 TaskAbortedException
+        when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class)))
+                .thenThrow(new GenerationPipeline.TaskAbortedException("task=104 已被外部停止"));
+
+        invokeProcessOne(task);
+
+        // 中止语义：不再 markFailed（stopTask 已置 FAILED），不退币（admin 主动行为）
+        verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString());
+        verify(taskService, never()).markCompleted(anyLong(), anyString(), anyString());
+        verify(refundClient, never()).refund(anyLong(), anyLong());
+        // finally 兜底：call log 仍然落库（保留已产生的 AI 调用留痕，便于排查）
+        verify(callLogService, times(1)).persistAll(any(GenerationContext.class));
     }
 }

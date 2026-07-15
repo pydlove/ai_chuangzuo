@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
 
 /**
  * 12 阶段流水线编排器。
@@ -55,6 +56,24 @@ public class GenerationPipeline {
      */
     public GenerationContext runInto(GenerationContext ctx, GenerationTask task,
                                      BiConsumer<Long, Integer> onStageComplete) {
+        return runInto(ctx, task, onStageComplete, null);
+    }
+
+    /**
+     * 同 {@link #runInto(GenerationContext, GenerationTask, BiConsumer)}，额外接受
+     * {@code shouldAbort} 协作式取消信号：每个 step 开始前检查一次，true 则抛
+     * {@link TaskAbortedException} 立即退出。
+     *
+     * <p>典型场景：admin 点「停止」把任务置 FAILED 并清 lockedBy，worker 线程里跑着的
+     * pipeline 应当尽快察觉并停下，而不是把剩下的 AI 阶段继续跑完、浪费 quota。
+     * 注意：取消是协作式的——正在进行中的 AI 调用不会被中断，最差情况要等当前
+     * stage 的 AI 调用返回后才会中止（MiniMax-M3 单次推理最长 ~120s）。
+     *
+     * @param shouldAbort 返回 true 表示应当中止；可为 null（不启用取消检查）
+     */
+    public GenerationContext runInto(GenerationContext ctx, GenerationTask task,
+                                     BiConsumer<Long, Integer> onStageComplete,
+                                     BooleanSupplier shouldAbort) {
         ctx.setTask(task);
         ctx.setInput(parseInput(task.getInputParam()));
 
@@ -69,6 +88,12 @@ public class GenerationPipeline {
             if (!step.enabled(ctx)) {
                 log.debug("stage {} ({}) disabled, skip", step.stageIndex(), step.name());
                 continue;
+            }
+            // 协作式取消检查：step 开始前查一次，被 admin 停止时立即抛异常退出
+            if (shouldAbort != null && shouldAbort.getAsBoolean()) {
+                log.info("task={} 检测到取消信号，stage {} ({}) 之前中止 pipeline",
+                        task.getId(), step.stageIndex(), step.name());
+                throw new TaskAbortedException("task=" + task.getId() + " 已被外部停止");
             }
             log.info("→ stage {} ({})", step.stageIndex(), step.name());
             // 把当前 stage 的 modelParams 塞进 ctx，供 AbstractAiStep 调用 AiGateway 用
@@ -98,6 +123,17 @@ public class GenerationPipeline {
         log.info("pipeline 完成 task={} aiCalls={} aiFailed={} totalMs={}",
                 task.getId(), ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallTotalMs());
         return ctx;
+    }
+
+    /**
+     * 任务被外部（admin 停止 / 标记失败）中止时抛出。
+     *
+     * <p>区别于普通 stage 失败：worker 捕获后<strong>不</strong>应再调 markFailed
+     * （任务已被 stopTask 置 FAILED），也<strong>不</strong>应触发退币（admin 主动
+     * 停止不是系统故障，额度处理由 stopTask 决定）。
+     */
+    public static class TaskAbortedException extends RuntimeException {
+        public TaskAbortedException(String msg) { super(msg); }
     }
 
     private Map<String, Object> parseInput(String json) {

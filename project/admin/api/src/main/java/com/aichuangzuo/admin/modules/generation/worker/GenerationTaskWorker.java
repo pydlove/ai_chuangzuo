@@ -23,6 +23,8 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 /**
  * 文章生成 worker：固定线程池 + 轮询。
@@ -52,6 +54,8 @@ public class GenerationTaskWorker {
     private volatile int currentPoolSize = -1;
     private ExecutorService pool;
     private final AtomicBoolean running = new AtomicBoolean(false);
+    /** 线程编号生成器：日志里区分 worker-1 / worker-2，多线程并行时不再混淆。 */
+    private final AtomicInteger threadIdx = new AtomicInteger(0);
 
     @PostConstruct
     public void start() {
@@ -73,7 +77,7 @@ public class GenerationTaskWorker {
                 poolSize, cfg.getClaimBatchSize(), cfg.getPollIntervalMs(),
                 cfg.getLeaseMinutes(), cfg.getWorkerId(), cfg.getRetentionCron());
         pool = Executors.newFixedThreadPool(poolSize, r -> {
-            Thread t = new Thread(r, "generation-worker");
+            Thread t = new Thread(r, "generation-worker-" + threadIdx.incrementAndGet());
             t.setDaemon(true);
             return t;
         });
@@ -156,6 +160,18 @@ public class GenerationTaskWorker {
 
         // ctx 提前创建：pipeline 抛异常时也要能拿到 AI 调用留痕落库
         final GenerationContext ctx = new GenerationContext();
+
+        // 协作式取消信号：pipeline 每 stage 前调一次。
+        // 条件任一满足即中止：任务被删 / 状态不再 PROCESSING / lockedBy 易主或被清空（admin stopTask）。
+        // DB 查询失败不中止，避免网络抖动误杀正常任务。
+        final String ownerForCheck = owner;
+        BooleanSupplier shouldAbort = () -> {
+            GenerationTask cur = taskService.findById(taskId);
+            if (cur == null) return false;
+            if (cur.getStatus() != GenerationTaskStatus.PROCESSING) return true;
+            return ownerForCheck == null || !ownerForCheck.equals(cur.getLockedBy());
+        };
+
         try {
             // 进度回调：每个 stage 完成后回写 progress_pct（user 端轮询可见）
             // 并顺手续约 lease——慢模型（MiniMax-M3）全流程可能超过单个 lease 周期，
@@ -169,7 +185,7 @@ public class GenerationTaskWorker {
                 } catch (Exception logEx) {
                     log.warn("task={} 增量写 call log 失败: {}", tid, logEx.getMessage());
                 }
-            });
+            }, shouldAbort);
             if (ctx.getArticleBizNo() == null) {
                 throw new BusinessException(AdminGenerationErrorCode.GENERATION_ARTICLE_PERSIST_FAILED);
             }
@@ -180,6 +196,10 @@ public class GenerationTaskWorker {
             log.info("task={} 完成 articleBizNo={} aiCalls={} aiFailed={} totalMs={}",
                     taskId, ctx.getArticleBizNo(),
                     ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallTotalMs());
+        } catch (GenerationPipeline.TaskAbortedException e) {
+            // 任务被 admin 停止：stopTask 已置 FAILED 并清 lockedBy。
+            // 这里不再 markFailed（避免覆盖 stopTask 的 failedReason），也不退币（admin 主动行为）。
+            log.info("task={} 被外部停止，pipeline 协作式中止（不再 markFailed / 退币）", taskId);
         } catch (Exception e) {
             log.warn("task={} pipeline 失败: {}", taskId, e.getMessage());
             var after = taskService.markFailed(taskId, e.getMessage(), false, owner);

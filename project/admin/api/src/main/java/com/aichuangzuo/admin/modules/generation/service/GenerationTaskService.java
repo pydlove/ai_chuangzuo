@@ -202,6 +202,22 @@ public class GenerationTaskService {
         return task;
     }
 
+    /**
+     * 按 ID 查询任务（不抛异常，不存在返回 null）。
+     *
+     * <p>给 worker 的协作式取消检查用：每 stage 前调一次，看任务是否还在
+     * PROCESSING 且 lockedBy 仍是当前 worker，任一不满足则中止 pipeline。
+     */
+    public GenerationTask findById(Long id) {
+        if (id == null) return null;
+        try {
+            return mapper.selectById(id);
+        } catch (Exception e) {
+            log.warn("task={} findById 失败: {}", id, e.getMessage());
+            return null;
+        }
+    }
+
     private static String truncateReason(String reason) {
         if (reason == null || reason.length() <= MAX_FAILED_REASON_LEN) return reason;
         return reason.substring(0, MAX_FAILED_REASON_LEN);
