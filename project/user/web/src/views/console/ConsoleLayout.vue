@@ -1158,6 +1158,7 @@ import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
+import { useBenefits } from '@/composables/useBenefits'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
@@ -1180,6 +1181,7 @@ const route = useRoute()
 const router = useRouter()
 
 const userProfile = useUserProfile()
+const { loadBenefits } = useBenefits()
 
 const isMobile = useIsMobile()
 
@@ -2516,6 +2518,7 @@ onMounted(async () => {
   loadMembership()
   refreshMembershipFromApi()
   userProfile.loadProfile()
+  loadBenefits()
 
   monthlyWorks.value = await readMonthlyWorks()
   guideBannerVisible.value = guideBannerVisible.value && !(await hasWorks())
