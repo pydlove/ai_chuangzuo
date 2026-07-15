@@ -32,7 +32,6 @@ import java.util.Map;
 @Service
 public class GenerationAiService {
 
-    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper;
     private final ModelConfigMapper modelConfigMapper;
     private final GenerationConfigService generationConfigService;
@@ -45,12 +44,6 @@ public class GenerationAiService {
         this.generationConfigService = generationConfigService;
         this.apiKeySecret = apiKeySecret;
         this.objectMapper = new ObjectMapper();
-        // 推理模型（MiniMax-M3）在整稿改写类 stage 上耗时较长：read 超时给足 180s，
-        // 避免「模型还在算，客户端先断」的假失败；connect 10s 足够发现网络不通。
-        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(180_000);
-        this.restTemplate = new RestTemplate(factory);
     }
 
     /**
@@ -127,7 +120,13 @@ public class GenerationAiService {
 
     /** 测试用：暴露 RestTemplate 给子类 override。 */
     protected RestTemplate getRestTemplate() {
-        return this.restTemplate;
+        GenerationConfig genCfg = generationConfigService.getCurrent();
+        var factory = new org.springframework.http.client.SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(10_000);
+        int readTimeoutSec = genCfg.getAiReadTimeoutSeconds() != null
+                ? genCfg.getAiReadTimeoutSeconds() : 180;
+        factory.setReadTimeout(readTimeoutSec * 1000);
+        return new RestTemplate(factory);
     }
 
     private static Double pickDouble(Map<String, Object> params, String key, double def) {
