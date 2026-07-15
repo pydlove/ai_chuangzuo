@@ -19,6 +19,8 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -137,15 +139,36 @@ public class GenerationTaskWorker {
         GenerationConfig cfg = configService.getCurrent();
         int leaseMin = cfg.getLeaseMinutes() == null ? 5 : cfg.getLeaseMinutes();
         String owner = task.getLockedBy();
+
+        // 后台续约线程：pipeline 运行期间每 60s 续约一次，防止长 AI stage 把 lease 拖过期
+        ScheduledExecutorService leaseRenewer = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "lease-renewer-" + taskId);
+            t.setDaemon(true);
+            return t;
+        });
+        ScheduledFuture<?> renewalFuture = leaseRenewer.scheduleAtFixedRate(() -> {
+            try {
+                taskService.renewLease(taskId, owner, leaseMin);
+            } catch (Exception e) {
+                log.warn("task={} 后台续约失败: {}", taskId, e.getMessage());
+            }
+        }, 60, 60, TimeUnit.SECONDS);
+
         // ctx 提前创建：pipeline 抛异常时也要能拿到 AI 调用留痕落库
-        GenerationContext ctx = new GenerationContext();
+        final GenerationContext ctx = new GenerationContext();
         try {
             // 进度回调：每个 stage 完成后回写 progress_pct（user 端轮询可见）
             // 并顺手续约 lease——慢模型（MiniMax-M3）全流程可能超过单个 lease 周期，
             // 心跳让活跃 worker 不被同池其他 worker 误判卡死而回收重提（重复处理）
-            ctx = pipeline.runInto(ctx, task, (tid, pct) -> {
+            // 同时增量落库 AI 调用日志，让管理端"执行过程"抽屉在执行中也能看到已完成的阶段
+            pipeline.runInto(ctx, task, (tid, pct) -> {
                 taskService.updateProgress(tid, pct);
                 taskService.renewLease(tid, owner, leaseMin);
+                try {
+                    callLogService.persistAll(ctx);
+                } catch (Exception logEx) {
+                    log.warn("task={} 增量写 call log 失败: {}", tid, logEx.getMessage());
+                }
             });
             if (ctx.getArticleBizNo() == null) {
                 throw new BusinessException(AdminGenerationErrorCode.GENERATION_ARTICLE_PERSIST_FAILED);
@@ -168,6 +191,8 @@ public class GenerationTaskWorker {
                 }
             }
         } finally {
+            renewalFuture.cancel(false);
+            leaseRenewer.shutdown();
             // 落库 AI 调用日志（成功失败都写，便于排查）
             try {
                 callLogService.persistAll(ctx);
