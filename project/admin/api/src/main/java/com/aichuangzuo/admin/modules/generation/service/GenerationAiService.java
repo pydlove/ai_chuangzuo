@@ -47,11 +47,11 @@ public class GenerationAiService {
     }
 
     /**
-     * 调用模型，返回 AI 原始 assistant content（字符串）。
+     * 调用模型，返回 AI 原始 assistant content + token 消耗。
      *
      * @param modelParams 可选；非空时 merge 进请求体（覆盖默认 temperature）
      */
-    public String call(Long modelConfigId, String systemMessage, String userMessage,
+    public AiCallResult call(Long modelConfigId, String systemMessage, String userMessage,
                        Map<String, Object> modelParams) {
         ModelConfig cfg = modelConfigMapper.selectById(modelConfigId);
         if (cfg == null || cfg.getIsActive() == null || cfg.getIsActive() != 1) {
@@ -103,7 +103,7 @@ public class GenerationAiService {
         try {
             ResponseEntity<String> response = getRestTemplate().exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
-            return extractAssistantContent(response.getBody(), cfg.getProviderType());
+            return extractResult(response.getBody(), cfg.getProviderType());
         } catch (HttpClientErrorException e) {
             log.warn("AI 调用 client error provider={} status={}", cfg.getProviderType(), e.getStatusCode());
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
@@ -114,7 +114,7 @@ public class GenerationAiService {
     }
 
     /** 保留旧 3 参签名（向后兼容），内部 delegate 到 4 参版本。 */
-    public String call(Long modelConfigId, String systemMessage, String userMessage) {
+    public AiCallResult call(Long modelConfigId, String systemMessage, String userMessage) {
         return call(modelConfigId, systemMessage, userMessage, null);
     }
 
@@ -169,7 +169,7 @@ public class GenerationAiService {
         return base + suffix;
     }
 
-    private String extractAssistantContent(String responseBody, String providerType) {
+    private AiCallResult extractResult(String responseBody, String providerType) {
         try {
             JsonNode root = objectMapper.readTree(responseBody);
             // OpenAI 兼容 + Kimi: choices[0].message.content
@@ -178,7 +178,12 @@ public class GenerationAiService {
             if (choices.isArray() && choices.size() > 0) {
                 JsonNode first = choices.get(0);
                 String content = first.path("message").path("content").asText("");
-                if (!content.isEmpty()) return content;
+                if (!content.isEmpty()) {
+                    return new AiCallResult(content,
+                            readIntOrNull(root.path("usage").path("prompt_tokens")),
+                            readIntOrNull(root.path("usage").path("completion_tokens")),
+                            readIntOrNull(root.path("usage").path("total_tokens")));
+                }
                 // content 为空：打印 finish_reason + 是否带 reasoning，便于定位
                 // MiniMax-M3 等推理模型 max_tokens 被 reasoning 吃光时，
                 // finish_reason=length 且 content 空、reasoning_content 非空
@@ -204,6 +209,17 @@ public class GenerationAiService {
         } catch (Exception e) {
             log.warn("解析 AI 响应失败", e);
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_OUTPUT_PARSE_FAILED);
+        }
+    }
+
+    /** usage 字段缺失或非数字时返回 null（部分 provider 不上报）。 */
+    private static Integer readIntOrNull(JsonNode node) {
+        if (node == null || node.isMissingNode() || node.isNull()) return null;
+        if (node.isNumber()) return node.intValue();
+        try {
+            return Integer.parseInt(node.asText(""));
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 }

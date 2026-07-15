@@ -116,7 +116,7 @@ import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { loadCurrentArticle, saveCurrentArticle } from '@/utils/articleStorage.js'
-import { bodyToHtmlWithStyles, htmlToBodyWithStyles } from '@/utils/articleBlocks.js'
+import { bodyToHtmlWithStyles, htmlToBodyWithStyles, stripLeadingTitle } from '@/utils/articleBlocks.js'
 
 const router = useRouter()
 const originalArticle = ref(null)
@@ -145,7 +145,9 @@ onMounted(() => {
   styleOverridesRef.value = article.styleOverrides || { blocks: {}, inlines: [] }
   setTimeout(() => {
     if (editorRef.value) {
-      editorRef.value.innerHTML = bodyToHtmlWithStyles(article.body, styleOverridesRef.value)
+      // 旧数据 body 开头可能仍含 title，剥掉再渲染避免编辑器里出现双标题
+      const cleanBody = stripLeadingTitle(article.body || '', (article.title || '').trim())
+      editorRef.value.innerHTML = bodyToHtmlWithStyles(cleanBody, styleOverridesRef.value)
     }
   }, 0)
   window.addEventListener('resize', onResize)

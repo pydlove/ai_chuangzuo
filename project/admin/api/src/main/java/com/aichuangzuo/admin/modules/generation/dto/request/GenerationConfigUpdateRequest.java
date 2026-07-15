@@ -33,11 +33,6 @@ public class GenerationConfigUpdateRequest {
     private Integer leaseMinutes;
 
     @NotNull
-    @Min(1)
-    @Max(10)
-    private Integer maxRetry;
-
-    @NotNull
     @Min(100)
     @Max(5000)
     private Integer pollIntervalMs;

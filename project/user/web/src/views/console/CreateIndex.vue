@@ -129,8 +129,9 @@
                 <span class="queue-item-title">{{ item.title }}</span>
               </a-tooltip>
               <div class="queue-item-meta">
-                <span class="queue-item-status-badge" :class="item.status">{{ miniStatusText(item.status) }}</span>
-                <span v-if="item.status === 'generating'" class="queue-item-progress-text">{{ Math.min(100, Math.round(item.progress)) }}%</span>
+                <span class="queue-item-status-badge" :class="item.status">
+                  {{ item.status === 'generating' ? `生成中 ${Math.min(100, Math.round(item.progress))}%` : miniStatusText(item.status) }}
+                </span>
               </div>
             </div>
           </div>
@@ -140,6 +141,7 @@
             <div class="progress-bar">
               <div class="progress-fill" :style="{ width: Math.min(100, Math.round(item.progress)) + '%' }"></div>
             </div>
+            <div class="progress-hint">已完成 {{ Math.min(100, Math.round(item.progress)) }}%，共 12 个阶段</div>
           </div>
         </div>
         <div v-if="miniQueueList.length > 5" class="queue-panel-more">
@@ -1430,12 +1432,6 @@ const clearForm = () => {
   color: #ff4d4f;
 }
 
-.queue-item-progress-text {
-  font-size: 12px;
-  font-weight: 600;
-  color: #ff2442;
-}
-
 .queue-item-progress {
   margin-top: 12px;
 }
@@ -1452,6 +1448,13 @@ const clearForm = () => {
   background: linear-gradient(90deg, #ff2442, #ff6b81);
   border-radius: 3px;
   transition: width 0.3s;
+}
+
+.queue-item-progress .progress-hint {
+  margin-top: 6px;
+  font-size: 11px;
+  color: #8c8c8c;
+  line-height: 1.4;
 }
 
 .queue-item-footer {
@@ -3343,8 +3346,8 @@ body[data-theme="dark"] .queue-item-status-badge.failed {
   color: #ff7875;
 }
 
-body[data-theme="dark"] .queue-item-progress-text {
-  color: #ff4d6a;
+body[data-theme="dark"] .queue-item-progress .progress-hint {
+  color: #6a6a6a;
 }
 
 body[data-theme="dark"] .queue-item-footer {

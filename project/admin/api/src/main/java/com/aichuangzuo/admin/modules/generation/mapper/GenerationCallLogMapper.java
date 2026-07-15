@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.mapper;
 
+import com.aichuangzuo.admin.modules.generation.dto.TaskTokenSum;
 import com.aichuangzuo.admin.modules.generation.entity.GenerationCallLog;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -25,4 +26,9 @@ public interface GenerationCallLogMapper extends BaseMapper<GenerationCallLog> {
      * 物理删除某任务的全部调用日志（配合 batchInsert 实现全量替换）。
      */
     int deleteByTaskId(@Param("taskId") Long taskId);
+
+    /**
+     * 按任务 ID 列表聚合总 token 消耗（仅成功调用）。
+     */
+    List<TaskTokenSum> sumTokensByTaskIds(@Param("taskIds") List<Long> taskIds);
 }

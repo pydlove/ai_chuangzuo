@@ -1,7 +1,9 @@
 package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow;
+import com.aichuangzuo.admin.modules.generation.dto.TaskTokenSum;
 import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryRequest;
+import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
@@ -17,7 +19,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Admin 端-创作任务查询 / 运维服务。
@@ -28,6 +32,7 @@ import java.util.List;
 public class GenerationTaskAdminService {
 
     private final GenerationTaskMapper taskMapper;
+    private final GenerationCallLogMapper callLogMapper;
 
     public GenerationTaskAdminPageVO list(GenerationTaskQueryRequest req) {
         long page = Math.max(1, req.getPage());
@@ -42,31 +47,22 @@ public class GenerationTaskAdminService {
         long total = taskMapper.countAdminList(status,
                 (keyword == null || keyword.isEmpty()) ? null : keyword);
 
+        // 批量聚合当前页所有任务的累计 token（一次 SQL，避免 N+1）
+        Map<Long, Long> tokenMap = new HashMap<>();
+        if (!rows.isEmpty()) {
+            List<Long> taskIds = rows.stream().map(GenerationTaskListRow::getId).toList();
+            for (TaskTokenSum s : callLogMapper.sumTokensByTaskIds(taskIds)) {
+                tokenMap.put(s.getTaskId(), s.getTotalTokens());
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
         GenerationTaskAdminPageVO vo = new GenerationTaskAdminPageVO();
-        vo.setList(rows.stream().map(r -> toVo(r, now)).toList());
+        vo.setList(rows.stream().map(r -> toVo(r, now, tokenMap.get(r.getId()))).toList());
         vo.setTotal(total);
         vo.setPage(page);
         vo.setPageSize(pageSize);
         return vo;
-    }
-
-    /**
-     * 手动重试：把任务状态回滚为 QUEUED，清空 lease 和失败原因；retry_count 不重置以便持续累计。
-     */
-    @Transactional
-    public void manualRetry(Long taskId) {
-        GenerationTask task = requireById(taskId);
-        if (task.getStatus() == GenerationTaskStatus.COMPLETED) {
-            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
-        }
-        task.setStatus(GenerationTaskStatus.QUEUED);
-        task.setLockedAt(null);
-        task.setLockedBy(null);
-        task.setLeaseUntil(null);
-        task.setFailedReason(null);
-        taskMapper.updateById(task);
-        log.info("admin 手动重试 task={}", taskId);
     }
 
     /**
@@ -116,7 +112,7 @@ public class GenerationTaskAdminService {
         return t;
     }
 
-    private GenerationTaskAdminVO toVo(GenerationTaskListRow r, LocalDateTime now) {
+    private GenerationTaskAdminVO toVo(GenerationTaskListRow r, LocalDateTime now, Long totalTokens) {
         GenerationTaskAdminVO vo = new GenerationTaskAdminVO();
         BeanUtils.copyProperties(r, vo);
         vo.setStatus(r.getStatus());
@@ -128,6 +124,7 @@ public class GenerationTaskAdminService {
         if (r.getStatus() != null && r.getStatus() == 3 && r.getCompletedAt() != null) {
             vo.setFailedSecondsAgo(Math.max(0, Duration.between(r.getCompletedAt(), now).getSeconds()));
         }
+        vo.setTotalTokens(totalTokens == null ? 0L : totalTokens);
         return vo;
     }
 

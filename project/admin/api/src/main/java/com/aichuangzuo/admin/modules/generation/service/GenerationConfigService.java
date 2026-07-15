@@ -82,7 +82,6 @@ public class GenerationConfigService {
         exist.setPoolSize(req.getPoolSize());
         exist.setClaimBatchSize(req.getClaimBatchSize());
         exist.setLeaseMinutes(req.getLeaseMinutes());
-        exist.setMaxRetry(req.getMaxRetry());
         exist.setPollIntervalMs(req.getPollIntervalMs());
         exist.setRetentionCron(req.getRetentionCron());
         exist.setWorkerId(req.getWorkerId());
@@ -99,9 +98,9 @@ public class GenerationConfigService {
 
         // 立即刷新缓存，让 worker 下个轮询看到
         refreshFromDb();
-        log.info("admin={} 更新创作配置 pool={} batch={} lease={}min maxRetry={} poll={}ms cron={} workerId={} llmRetry={}/{}ms×{} aiDefault=temp:{}/maxTok:{}/topP:{}/timeout:{}s",
+        log.info("admin={} 更新创作配置 pool={} batch={} lease={}min poll={}ms cron={} workerId={} llmRetry={}/{}ms×{} aiDefault=temp:{}/maxTok:{}/topP:{}/timeout:{}s",
                 adminUserId, exist.getPoolSize(), exist.getClaimBatchSize(),
-                exist.getLeaseMinutes(), exist.getMaxRetry(), exist.getPollIntervalMs(),
+                exist.getLeaseMinutes(), exist.getPollIntervalMs(),
                 exist.getRetentionCron(), exist.getWorkerId(),
                 exist.getLlmRetryMaxAttempts(), exist.getLlmRetryBaseDelayMs(),
                 exist.getLlmRetryBackoffMultiplier(),

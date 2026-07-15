@@ -5,7 +5,7 @@
         <h3 class="page-title">创作队列</h3>
         <p class="page-desc">
           展示用户提交的创作任务，4 个 tab 分别对应：执行中（processing）/ 排队中（queued）/ 已完成（completed）/ 未执行（failed）。
-          每 5 秒自动刷新；点表格里的操作可手动重试 / 停止 / 标记失败。
+          每 5 秒自动刷新；点表格里的操作可查看执行过程 / 停止 / 标记失败。
         </p>
       </div>
 
@@ -53,10 +53,11 @@
           <template v-else-if="column.key === 'waiting'">
             <span>{{ formatSeconds(record.waitingSeconds) }}</span>
           </template>
-          <template v-else-if="column.key === 'retry'">
-            <a-tag :color="record.retryCount >= (record.maxRetry || 3) ? 'red' : 'blue'">
-              {{ record.retryCount || 0 }} / {{ record.maxRetry || 3 }}
-            </a-tag>
+          <template v-else-if="column.key === 'tokens'">
+            <a-tooltip v-if="record.totalTokens" :title="`prompt+completion 累计 ${record.totalTokens}`">
+              <a-tag color="purple">{{ formatTokens(record.totalTokens) }}</a-tag>
+            </a-tooltip>
+            <span v-else class="text-muted">-</span>
           </template>
           <template v-else-if="column.key === 'failedReason'">
             <a-tooltip v-if="record.failedReason" :title="record.failedReason">
@@ -71,19 +72,19 @@
                 size="small"
                 @click="openCallLogs(record)"
               >执行过程</a-button>
-              <a-button
-                v-if="record.status !== 2"
-                type="link"
-                size="small"
-                @click="handleRetry(record.id)"
-              >重试</a-button>
-              <a-button
+              <a-popconfirm
                 v-if="record.status === 0 || record.status === 1"
-                type="link"
-                size="small"
-                danger
-                @click="handleStop(record.id)"
-              >停止</a-button>
+                title="确定停止该任务？worker 将在当前 stage 结束后中止，已消耗的创作币不退回"
+                ok-text="停止"
+                cancel-text="取消"
+                @confirm="handleStop(record.id)"
+              >
+                <a-button
+                  type="link"
+                  size="small"
+                  danger
+                >停止</a-button>
+              </a-popconfirm>
               <a-button
                 v-if="record.status !== 2"
                 type="link"
@@ -147,6 +148,9 @@
                 <span v-if="s.meta.ai && s.attempts" class="stage-dur">
                   {{ formatMs(s.totalDuration) }}
                 </span>
+                <a-tag v-if="s.meta.ai && s.totalTokens > 0" color="purple" class="stage-tokens">
+                  {{ formatTokens(s.totalTokens) }} tok
+                </a-tag>
                 <span v-if="s.attempts > 1" class="stage-attempts">
                   尝试 {{ s.attempts }} 次
                 </span>
@@ -176,6 +180,12 @@
                         {{ log.success ? '成功' : '失败' }}
                       </span>
                       · {{ formatMs(log.durationMs) }} · {{ formatTime(log.calledAt) }}
+                      <a-tag v-if="log.success && log.totalTokens" color="purple" class="attempt-tokens">
+                        {{ log.totalTokens }} tok
+                        <span v-if="log.promptTokens != null && log.completionTokens != null" class="attempt-tokens-split">
+                          ({{ log.promptTokens }}+{{ log.completionTokens }})
+                        </span>
+                      </a-tag>
                     </div>
                     <div v-if="log.error" class="attempt-error">{{ log.error }}</div>
                     <div class="attempt-label">发送 prompt</div>
@@ -244,7 +254,6 @@ const {
   handleReset,
   handlePageChange,
   refresh,
-  handleRetry,
   handleStop,
   handleMarkFailed,
   startAutoRefresh
@@ -374,6 +383,8 @@ const stageView = computed(() => {
     const attempts = logs.length
     const anySuccess = logs.some((l) => l.success)
     const totalDuration = logs.reduce((sum, l) => sum + (l.durationMs || 0), 0)
+    // 仅累加成功调用的 token；失败调用 provider 通常不返回 usage
+    const totalTokens = logs.reduce((sum, l) => sum + (l.success ? (l.totalTokens || 0) : 0), 0)
     const lastFailed = [...logs].reverse().find((l) => !l.success)
 
     let status
@@ -402,6 +413,7 @@ const stageView = computed(() => {
       logs,
       attempts,
       totalDuration,
+      totalTokens,
       status,
       color,
       tagColor,
@@ -450,7 +462,7 @@ const columns = computed(() => {
       customRender: ({ record }) => statusTag(record.status) },
     { title: '目标字数', dataIndex: 'wordLimitTarget', key: 'wordLimitTarget', width: 90 },
     { title: '已等待 / 已耗时', key: 'waiting', width: 130 },
-    { title: '重试', key: 'retry', width: 90 },
+    { title: 'tokens', key: 'tokens', width: 110 },
     { title: '失败原因', key: 'failedReason', width: 200 },
     { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
     { title: '操作', key: 'actions', fixed: 'right', width: 300 }
@@ -478,6 +490,14 @@ const formatSeconds = (sec) => {
 const truncate = (s, n) => {
   if (!s) return ''
   return s.length > n ? s.slice(0, n) + '…' : s
+}
+
+// 大数字缩略：1234 → 1.2k；1234567 → 1.2M；保持列表列宽稳定
+const formatTokens = (n) => {
+  if (n == null) return '-'
+  if (n < 1000) return String(n)
+  if (n < 1_000_000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k'
+  return (n / 1_000_000).toFixed(2).replace(/\.00$/, '') + 'M'
 }
 
 onMounted(() => {
@@ -532,6 +552,9 @@ onBeforeUnmount(() => {
   color: #cf1322;
   font-size: 12px;
 }
+.text-muted {
+  color: #bfbfbf;
+}
 .pagination {
   margin-top: 16px;
   display: flex;
@@ -568,6 +591,10 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #8c8c8c;
 }
+.stage-tokens {
+  font-size: 11px;
+  margin: 0;
+}
 .stage-attempts {
   font-size: 12px;
   color: #fa8c16;
@@ -601,6 +628,18 @@ onBeforeUnmount(() => {
   font-size: 12px;
   color: #595959;
   margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.attempt-tokens {
+  font-size: 11px;
+  margin: 0;
+}
+.attempt-tokens-split {
+  opacity: 0.7;
+  margin-left: 2px;
 }
 .attempt-title .ok {
   color: #52c41a;

@@ -36,15 +36,6 @@ public class GenerationTaskAdminController {
     }
 
     /**
-     * 手动重试：把任务回滚为 QUEUED。
-     */
-    @PostMapping("/{id}/retry")
-    public Result<Void> manualRetry(@PathVariable Long id) {
-        service.manualRetry(id);
-        return Result.success();
-    }
-
-    /**
      * 手动停止任务：QUEUED / PROCESSING → FAILED。
      */
     @PostMapping("/{id}/stop")

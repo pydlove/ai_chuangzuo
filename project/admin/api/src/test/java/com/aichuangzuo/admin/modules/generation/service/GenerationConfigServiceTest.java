@@ -34,7 +34,6 @@ class GenerationConfigServiceTest {
         c.setPoolSize(2);
         c.setClaimBatchSize(1);
         c.setLeaseMinutes(5);
-        c.setMaxRetry(3);
         c.setPollIntervalMs(500);
         c.setRetentionCron("0 0 3 * * ?");
         c.setWorkerId("worker-1");
@@ -72,7 +71,6 @@ class GenerationConfigServiceTest {
         req.setPoolSize(4);
         req.setClaimBatchSize(2);
         req.setLeaseMinutes(10);
-        req.setMaxRetry(5);
         req.setPollIntervalMs(800);
         req.setRetentionCron("0 0 4 * * ?");
         req.setWorkerId("worker-2");
@@ -84,7 +82,6 @@ class GenerationConfigServiceTest {
         assertEquals(4, vo.getPoolSize());
         assertEquals(2, vo.getClaimBatchSize());
         assertEquals(10, vo.getLeaseMinutes());
-        assertEquals(5, vo.getMaxRetry());
         assertEquals(800, vo.getPollIntervalMs());
         assertEquals("0 0 4 * * ?", vo.getRetentionCron());
         assertEquals("worker-2", vo.getWorkerId());
@@ -105,7 +102,6 @@ class GenerationConfigServiceTest {
         req.setPoolSize(2);
         req.setClaimBatchSize(1);
         req.setLeaseMinutes(5);
-        req.setMaxRetry(3);
         req.setPollIntervalMs(500);
         req.setRetentionCron("0 0 3 * * ?");
         req.setWorkerId("worker-1");

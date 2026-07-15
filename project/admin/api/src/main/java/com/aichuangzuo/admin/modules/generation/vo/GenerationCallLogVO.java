@@ -14,6 +14,9 @@ public class GenerationCallLogVO {
     private Boolean success;
     private String error;
     private Integer durationMs;
+    private Integer promptTokens;
+    private Integer completionTokens;
+    private Integer totalTokens;
     private LocalDateTime calledAt;
     private String userMsg;
     private String responseContent;

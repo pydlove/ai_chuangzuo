@@ -61,30 +61,29 @@ class GenerationTaskServiceTest {
     }
 
     @Test
-    void markFailed_shouldQueueBackWhenRetryUnderMax() {
+    void markFailed_shouldAlwaysSetFailedStatus() {
+        // 主任务不做自动重试：无论 retryCount 多少都直接置 FAILED
         GenerationTask task = new GenerationTask();
         task.setId(1L);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(0);
-        task.setMaxRetry(3);
         when(taskMapper.selectById(1L)).thenReturn(task);
 
         GenerationTask after = taskService.markFailed(1L, "network error", false);
 
-        assertEquals(GenerationTaskStatus.QUEUED, after.getStatus());
-        assertEquals(1, after.getRetryCount());
-        assertNull(after.getLeaseUntil());
-        assertNull(after.getLockedBy());
+        assertEquals(GenerationTaskStatus.FAILED, after.getStatus());
+        assertEquals(1, after.getRetryCount());  // 审计计数：第 1 次失败
+        assertNotNull(after.getCompletedAt());
         verify(taskMapper).updateById(task);
     }
 
     @Test
-    void markFailed_shouldSetFailedWhenRetryExceedsMax() {
+    void markFailed_shouldIncrementRetryCountForAudit() {
+        // retryCount 仅作审计计数（已失败几次），不触发任何回 QUEUED 行为
         GenerationTask task = new GenerationTask();
         task.setId(1L);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(3);
-        task.setMaxRetry(3);
         when(taskMapper.selectById(1L)).thenReturn(task);
 
         GenerationTask after = taskService.markFailed(1L, "final error", false);
@@ -97,39 +96,21 @@ class GenerationTaskServiceTest {
     }
 
     @Test
-    void markFailed_shouldResetProgressOnRetryPath() {
-        // 上次跑到 30% 时崩了，下一轮 worker 应从 0 重新累加
+    void markFailed_shouldKeepProgressSnapshotForOps() {
+        // 失败时保留 progressPct 快照，便于运维排查卡在哪一阶段
         GenerationTask task = new GenerationTask();
         task.setId(1L);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(1);
-        task.setMaxRetry(3);
-        task.setProgressPct(30);  // 上次失败的进度
+        task.setProgressPct(30);
         when(taskMapper.selectById(1L)).thenReturn(task);
 
         GenerationTask after = taskService.markFailed(1L, "stage 4 AI 故障", false);
 
-        assertEquals(GenerationTaskStatus.QUEUED, after.getStatus());
-        assertEquals(2, after.getRetryCount());
-        assertEquals(0, after.getProgressPct());  // 关键断言：回 queued 时进度重置
-        verify(taskMapper).updateById(task);
-    }
-
-    @Test
-    void markFailed_shouldKeepProgressOnFinalFailedPath() {
-        // 最终失败路径不重置进度（保持上次失败时的快照，便于运维排查卡在哪）
-        GenerationTask task = new GenerationTask();
-        task.setId(1L);
-        task.setStatus(GenerationTaskStatus.PROCESSING);
-        task.setRetryCount(3);
-        task.setMaxRetry(3);
-        task.setProgressPct(60);
-        when(taskMapper.selectById(1L)).thenReturn(task);
-
-        GenerationTask after = taskService.markFailed(1L, "max retry", false);
-
         assertEquals(GenerationTaskStatus.FAILED, after.getStatus());
-        assertEquals(60, after.getProgressPct());  // 保留最后进度
+        assertEquals(2, after.getRetryCount());
+        assertEquals(30, after.getProgressPct());  // 进度快照保留
+        verify(taskMapper).updateById(task);
     }
 
     @Test

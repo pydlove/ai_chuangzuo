@@ -21,7 +21,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,9 +52,6 @@ public class GenerationTaskService {
     private final CoinRecordService coinRecordService;
     private final UserStyleMapper userStyleMapper;
     private final ObjectMapper objectMapper;
-
-    @Value("${generation.default-max-retry:3}")
-    private int defaultMaxRetry;
 
     /**
      * 用户提交创作任务。
@@ -107,7 +103,6 @@ public class GenerationTaskService {
         task.setInputParam(inputParam);
         task.setWordLimitTarget(req.getWordCount());
         task.setRetryCount(0);
-        task.setMaxRetry(defaultMaxRetry);
         task.setRetentionDays(retentionDays);
         task.setTenantId(0L);
         task.setIsDeleted(0);
@@ -165,7 +160,6 @@ public class GenerationTaskService {
         task.setInputParam(inputParam);
         task.setWordLimitTarget(source.getWordLimitTarget());
         task.setRetryCount(0);
-        task.setMaxRetry(defaultMaxRetry);
         task.setRetentionDays(source.getRetentionDays());
         task.setTenantId(0L);
         task.setIsDeleted(0);

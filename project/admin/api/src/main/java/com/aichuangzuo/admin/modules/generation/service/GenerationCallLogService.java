@@ -54,6 +54,9 @@ public class GenerationCallLogService {
             row.setSuccess(rec.isSuccess() ? 1 : 0);
             row.setError(truncate(rec.getError(), 500));
             row.setDurationMs((int) Math.min(rec.getDurationMs(), Integer.MAX_VALUE));
+            row.setPromptTokens(rec.getPromptTokens());
+            row.setCompletionTokens(rec.getCompletionTokens());
+            row.setTotalTokens(rec.getTotalTokens());
             row.setCalledAt(rec.getCalledAt());
             row.setUserMsg(rec.getUserMsg());
             row.setResponseContent(rec.getResponseContent());

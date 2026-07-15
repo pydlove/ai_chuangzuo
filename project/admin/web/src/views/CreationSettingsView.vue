@@ -47,14 +47,9 @@
             </a-col>
           </a-row>
 
-          <a-divider orientation="left">任务重试</a-divider>
+          <a-divider orientation="left">worker 实例</a-divider>
 
           <a-row :gutter="16">
-            <a-col :span="12">
-              <a-form-item label="单任务最大重试次数" name="maxRetry" extra="1-10。超过后任务置 FAILED（不自动重试）">
-                <a-input-number v-model:value="form.maxRetry" :min="1" :max="10" style="width: 100%" />
-              </a-form-item>
-            </a-col>
             <a-col :span="12">
               <a-form-item label="worker 实例 ID" name="workerId" extra="单实例约定；多实例部署时区分用">
                 <a-input v-model:value="form.workerId" placeholder="worker-1" />
@@ -162,7 +157,6 @@ const rules = reactive({
   poolSize: [{ required: true, type: 'number', min: 1, max: 10, message: '1-10' }],
   claimBatchSize: [{ required: true, type: 'number', min: 1, max: 10, message: '1-10' }],
   leaseMinutes: [{ required: true, type: 'number', min: 1, max: 60, message: '1-60' }],
-  maxRetry: [{ required: true, type: 'number', min: 1, max: 10, message: '1-10' }],
   pollIntervalMs: [{ required: true, type: 'number', min: 100, max: 5000, message: '100-5000' }],
   retentionCron: [{ required: true, message: '不能为空' }],
   workerId: [{ required: true, message: '不能为空' }],

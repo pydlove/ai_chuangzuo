@@ -30,6 +30,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/learn/service/impl/LearnArticleServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/learn/service/impl/LearnCategoryServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/order/service/AdminOrderServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/reminder/service/ExpireReminderServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylemarket/service/StyleMarketAdminServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylereview/service/StyleReviewServiceTest.java

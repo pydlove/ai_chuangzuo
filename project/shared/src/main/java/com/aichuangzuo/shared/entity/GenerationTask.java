@@ -62,11 +62,8 @@ public class GenerationTask extends BaseEntity {
     /** 用户要求字数（≤ 3000）。 */
     private Integer wordLimitTarget;
 
-    /** 已重试次数。 */
+    /** 已重试次数（markFailed 时自增，用作审计计数；不再触发自动重试）。 */
     private Integer retryCount;
-
-    /** 最大重试次数，默认 3。 */
-    private Integer maxRetry;
 
     /** 任务进度 0-100；worker 每阶段结束后写回；user 端轮询可见。 */
     private Integer progressPct;

@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
 import com.aichuangzuo.admin.modules.generation.entity.GenerationConfig;
+import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.admin.modules.generation.service.GenerationConfigService;
 import com.aichuangzuo.shared.entity.GenerationTask;
@@ -47,7 +48,7 @@ class DefaultAiGatewayRetryTest {
         // 第 1 次抛错，第 2 次成功
         when(genAiService.call(any(), anyString(), anyString(), any()))
                 .thenThrow(new RuntimeException("timeout-1"))
-                .thenReturn("{\"ok\":true}");
+                .thenReturn(new AiCallResult("{\"ok\":true}", 10, 5, 15));
 
         DefaultAiGateway gw = newGatewayWithFakeClock(0);  // 跳过 sleep
 
@@ -155,7 +156,7 @@ class DefaultAiGatewayRetryTest {
                     if (receivedUserMsgs.size() == 1) {
                         throw new RuntimeException("第 1 次失败");
                     }
-                    return "ok";
+                    return new AiCallResult("ok", 10, 5, 15);
                 });
 
         DefaultAiGateway gw = newGatewayWithFakeClock(0);

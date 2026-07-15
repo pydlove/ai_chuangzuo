@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
+import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import org.junit.jupiter.api.Test;
@@ -30,10 +31,14 @@ class DefaultAiGatewayModelParamsTest {
     @Mock
     private com.aichuangzuo.admin.modules.generation.service.GenerationConfigService configService;
 
+    private static AiCallResult okResult() {
+        return new AiCallResult("ok", 10, 5, 15);
+    }
+
     @Test
     void call_4arg_shouldPassModelParamsToAiService() {
         when(configService.getCurrent()).thenReturn(null);  // 用默认 retry 配置
-        when(aiService.call(anyLong(), anyString(), anyString(), any())).thenReturn("ok");
+        when(aiService.call(anyLong(), anyString(), anyString(), any())).thenReturn(okResult());
 
         DefaultAiGateway gw = new DefaultAiGateway(aiService, configService);
         GenerationContext ctx = new GenerationContext();
@@ -58,7 +63,7 @@ class DefaultAiGatewayModelParamsTest {
     @Test
     void call_4arg_shouldHandleNullParams() {
         when(configService.getCurrent()).thenReturn(null);
-        when(aiService.call(anyLong(), anyString(), anyString(), any())).thenReturn("ok");
+        when(aiService.call(anyLong(), anyString(), anyString(), any())).thenReturn(okResult());
 
         DefaultAiGateway gw = new DefaultAiGateway(aiService, configService);
         GenerationContext ctx = new GenerationContext();

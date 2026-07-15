@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
+import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import lombok.RequiredArgsConstructor;
@@ -66,10 +67,10 @@ public class DefaultAiGateway implements AiGateway {
             long attemptStart = clock.getAsLong();
             GenerationTask task = ctx.getTask();
             Long modelConfigId = task == null ? null : task.getModelConfigId();
-            String content = null;
+            AiCallResult result = null;
             Throwable err = null;
             try {
-                content = aiService.call(modelConfigId, systemMsg, currentUserMsg, ctx.getModelParams());
+                result = aiService.call(modelConfigId, systemMsg, currentUserMsg, ctx.getModelParams());
             } catch (Throwable t) {
                 err = t;
                 lastThrowable = t;
@@ -86,8 +87,11 @@ public class DefaultAiGateway implements AiGateway {
             rec.setError(err == null ? null : err.getClass().getSimpleName() + ":" + err.getMessage());
             rec.setAttempt(attempt);
             rec.setUserMsg(currentUserMsg);
-            if (err == null) {
-                rec.setResponseContent(content);
+            if (err == null && result != null) {
+                rec.setResponseContent(result.getContent());
+                rec.setPromptTokens(result.getPromptTokens());
+                rec.setCompletionTokens(result.getCompletionTokens());
+                rec.setTotalTokens(result.getTotalTokens());
             }
             ctx.getAiCallHistory().add(rec);
             ctx.setAiCallUsed(ctx.getAiCallUsed() + 1);
@@ -109,14 +113,14 @@ public class DefaultAiGateway implements AiGateway {
             }
 
             // 成功
-            successContent = content;
+            successContent = result == null ? null : result.getContent();
             if (attempt > 1) {
                 ctx.setAiCallRetried(ctx.getAiCallRetried() + (attempt - 1));
-                log.info("AI 调用成功 stage={} 第 {} 次尝试成功（重试了 {} 次）",
-                        rec.getStepName(), attempt, attempt - 1);
+                log.info("AI 调用成功 stage={} 第 {} 次尝试成功（重试了 {} 次）tokens={}",
+                        rec.getStepName(), attempt, attempt - 1, rec.getTotalTokens());
             } else {
-                log.info("AI 调用成功 stage={} attempt={} duration={}ms",
-                        rec.getStepName(), attempt, attemptDuration);
+                log.info("AI 调用成功 stage={} attempt={} duration={}ms tokens={}",
+                        rec.getStepName(), attempt, attemptDuration, rec.getTotalTokens());
             }
             break;
         }

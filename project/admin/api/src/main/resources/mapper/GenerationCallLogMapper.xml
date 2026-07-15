@@ -6,22 +6,39 @@
     <insert id="batchInsert" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO a_generation_call_log
             (task_id, stage_index, stage_name, attempt, success, error, duration_ms,
+             prompt_tokens, completion_tokens, total_tokens,
              called_at, user_msg, response_content, tenant_id)
         VALUES
         <foreach collection="list" item="it" separator=",">
             (#{it.taskId}, #{it.stageIndex}, #{it.stageName}, #{it.attempt}, #{it.success},
-             #{it.error}, #{it.durationMs}, #{it.calledAt}, #{it.userMsg},
+             #{it.error}, #{it.durationMs},
+             #{it.promptTokens}, #{it.completionTokens}, #{it.totalTokens},
+             #{it.calledAt}, #{it.userMsg},
              #{it.responseContent}, #{it.tenantId})
         </foreach>
     </insert>
 
     <select id="selectByTaskId" resultType="com.aichuangzuo.admin.modules.generation.entity.GenerationCallLog">
         SELECT id, task_id, stage_index, stage_name, attempt, success, error,
-               duration_ms, called_at, user_msg, response_content,
+               duration_ms, prompt_tokens, completion_tokens, total_tokens,
+               called_at, user_msg, response_content,
                tenant_id, created_at
         FROM a_generation_call_log
         WHERE task_id = #{taskId}
         ORDER BY stage_index ASC, attempt ASC, id ASC
+    </select>
+
+    <!-- 按任务聚合总 token 消耗（仅成功调用累加；null 视为 0）。 -->
+    <select id="sumTokensByTaskIds" resultType="com.aichuangzuo.admin.modules.generation.dto.TaskTokenSum">
+        SELECT task_id AS taskId,
+               COALESCE(SUM(COALESCE(total_tokens, 0)), 0) AS totalTokens
+        FROM a_generation_call_log
+        WHERE success = 1
+          AND task_id IN
+          <foreach collection="taskIds" item="tid" open="(" separator="," close=")">
+              #{tid}
+          </foreach>
+        GROUP BY task_id
     </select>
 
     <delete id="deleteByTaskId">

@@ -186,7 +186,7 @@ import { message } from 'ant-design-vue'
 const router = useRouter()
 import { CopyOutlined } from '@ant-design/icons-vue'
 import { loadCurrentArticle, saveCurrentArticle } from '@/utils/articleStorage.js'
-import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES } from '@/utils/articleBlocks.js'
+import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, stripResponsibilityLines } from '@/utils/articleBlocks.js'
 import CardsModal from '@/components/CardsModal.vue'
 
 const article = ref(null)
@@ -383,7 +383,9 @@ const generateMeta = () => {
 // 格式化正文
 const formattedBody = computed(() => {
   if (!article.value?.body) return ''
-  return article.value.body
+  // 防御性剥离：旧数据 body 可能仍含 title 行 / responsibility 调试行（ExportRenderStep 旧版塞的）
+  const body = stripResponsibilityLines(stripLeadingTitle(article.value.body, (article.value.title || '').trim()))
+  return body
     .replace(/\n\n/g, '</p><p style="margin-bottom: 16px;">')
     .replace(/\n/g, '<br>')
     .replace(/^/, '<p style="margin-bottom: 16px;">')

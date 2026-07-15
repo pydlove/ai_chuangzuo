@@ -29,4 +29,10 @@ public class AiCallRecord {
     private String responseContent;
     /** 第几次尝试（1=首次，2=第 1 次重试，...）。 */
     private int attempt;
+    /** prompt tokens（成功且 provider 上报时有值；否则 null）。 */
+    private Integer promptTokens;
+    /** completion tokens（成功且 provider 上报时有值；否则 null）。 */
+    private Integer completionTokens;
+    /** 总 tokens（成功且 provider 上报时有值；否则 null）。 */
+    private Integer totalTokens;
 }

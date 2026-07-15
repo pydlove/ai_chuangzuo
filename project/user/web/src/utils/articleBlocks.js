@@ -19,6 +19,26 @@ export function getBlockTypeLabel(type) {
 }
 
 /**
+ * 剥离 body 开头与 title 相同的行（含 markdown `# title`、🌟 title 🌟、【title】 装饰形态）。
+ * 兜底历史数据：ExportRenderStep 旧版曾把 title 塞进 body，且 wechat 模板会塞两次
+ * （wrapper 一次 + renderDraft `# ` 一次），所以需要循环剥到不再匹配为止。
+ * @param {string} body
+ * @param {string} title 已 trim
+ * @returns {string}
+ */
+export function stripLeadingTitle(body, title) {
+  if (!body || !title) return body
+  const escaped = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  // 允许 title 前后是 # / 🌟 / 【】 / 空白 的任意组合，整行只能是 title + 装饰
+  const re = new RegExp(`^\\s*[#🌟【】\\s]*${escaped}[#🌟【】\\s]*\\n+`)
+  let result = body
+  while (re.test(result)) {
+    result = result.replace(re, '')
+  }
+  return result
+}
+
+/**
  * 把文章标题和正文解析为可编辑 block 数组
  * @param {string} title
  * @param {string} body
@@ -32,6 +52,9 @@ export function parseBodyToBlocks(title, body) {
   }
 
   if (!body) return blocks
+
+  // 防御性剥离：旧数据 body 开头可能仍含 title（ExportRenderStep 旧版会把 title 塞 body）
+  body = stripLeadingTitle(body, (title || '').trim())
 
   const lines = body.split('\n')
   let listBuffer = []
@@ -47,6 +70,14 @@ export function parseBodyToBlocks(title, body) {
   lines.forEach((line) => {
     const trimmed = line.trim()
     if (!trimmed) return
+
+    // markdown heading: ## / ### → HEADING block（取 # 后的文本）
+    const mdHeading = trimmed.match(/^#{1,6}\s+(.+)$/)
+    if (mdHeading) {
+      flushList()
+      blocks.push({ type: BLOCK_TYPES.HEADING, html: escapeHtml(mdHeading[1]) })
+      return
+    }
 
     const headingMatch = trimmed.match(/^【([^】]+)】$/)
     if (headingMatch) {
@@ -415,6 +446,15 @@ export function bodyToHtml(body) {
   parts.forEach((part) => {
     const trimmed = part.trim()
     if (!trimmed) return
+
+    // markdown heading：# / ## / ### → h1 / h2 / h3（## (N) responsibility 走这里渲染）
+    const mdHeading = trimmed.match(/^(#{1,6})\s+(.+)$/)
+    if (mdHeading) {
+      flushList()
+      const level = Math.min(mdHeading[1].length, 3)
+      htmlParts.push(`<h${level}>${inlineMarkdownToHtml(escapeHtml(mdHeading[2]))}</h${level}>`)
+      return
+    }
 
     const headingMatch = trimmed.match(/^【([^】]+)】$/)
     if (headingMatch) {

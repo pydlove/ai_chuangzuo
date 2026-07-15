@@ -64,12 +64,11 @@ public class ExportRenderStep implements GenerationStep {
             }
         }
         String templateId = String.valueOf(config.getOrDefault("templateId", "wechat_default"));
-        String title = ctx.getInput() == null ? "" : String.valueOf(ctx.getInput().getOrDefault("title", ""));
 
         // 后端层：把 draft 数组的 content 拼成平台无关 markdown，前后套模板 wrapper
         // （前端 layer 会按 platform 取 templatePresets 进一步装饰）
-        String body = renderDraft(ctx, title);
-        String rendered = wrapByTemplate(templateId, title, body);
+        String body = renderDraft(ctx);
+        String rendered = wrapByTemplate(templateId, body);
 
         GenerationContext.ExportResult result = new GenerationContext.ExportResult();
         result.setFormat("markdown");
@@ -85,27 +84,26 @@ public class ExportRenderStep implements GenerationStep {
     /**
      * 把 finalDraft JSON 展开成平台无关 markdown：
      * <ul>
-     *   <li>title 作为一级标题</li>
-     *   <li>每段 content 拼成段落，按 paragraph_index 顺序</li>
-     *   <li>responsibility 作为二级小标题（调试用；前端 layer 可忽略）</li>
+     *   <li>body 不含 title——preview/编辑/卡片页都单独读 article.title，塞进来会双标题</li>
+     *   <li>responsibility 作为二级小标题（`## (N) resp`），是文章结构的一部分，前端按 markdown H2 渲染</li>
+     *   <li>每段 content 拼成段落，按 paragraph_index 顺序，段间空一行</li>
      * </ul>
      *
      * <p>解析失败时回退到 finalDraftJson 原文（fallback 策略由外层 fallbackToPlainText 配置）。
      */
-    private String renderDraft(GenerationContext ctx, String title) {
+    private String renderDraft(GenerationContext ctx) {
         try {
             JsonNode root = MAPPER.readTree(ctx.getFinalDraftJson());
             StringBuilder sb = new StringBuilder();
-            if (title != null && !title.isBlank()) {
-                sb.append("# ").append(title).append("\n\n");
-            }
+            boolean first = true;
             for (JsonNode para : root.path("draft")) {
                 int idx = para.path("paragraph_index").asInt(0);
                 String resp = para.path("responsibility").asText("");
                 String content = para.path("content").asText("");
-                if (idx > 0) sb.append("\n\n");
+                if (!first) sb.append("\n\n");
                 if (!resp.isBlank()) sb.append("## (").append(idx).append(") ").append(resp).append("\n\n");
                 sb.append(content);
+                first = false;
             }
             return sb.toString();
         } catch (Exception e) {
@@ -114,24 +112,25 @@ public class ExportRenderStep implements GenerationStep {
         }
     }
 
-    private String wrapByTemplate(String templateId, String title, String body) {
-        // 简化：每平台只加不同的开头/结尾注释
+    private String wrapByTemplate(String templateId, String body) {
+        // 各平台 wrapper 不再叠 title（title 已在 article.title 里，叠加会双标题）。
+        // 平台特定的尾部签名保留，作为「后端做一点样式」的最小示意。
         switch (templateId) {
             case "xiaohongshu_default":
-                return "🌟 " + title + " 🌟\n\n" + body + "\n\n#小红书 #爱创作";
+                return body + "\n\n#小红书 #爱创作";
             case "toutiao_default":
-                return "【" + title + "】\n\n" + body + "\n\n（本文由爱创作生成）";
+                return body + "\n\n（本文由爱创作生成）";
             case "zhihu_default":
-                return "# " + title + "\n\n> 本文由爱创作 AI 生成。\n\n" + body;
+                return "> 本文由爱创作 AI 生成。\n\n" + body;
             case "baijiahao_default":
                 return body + "\n\n—— 来自爱创作 ——";
             case "douyin_default":
-                return title + "｜" + body.substring(0, Math.min(80, body.length())) + "...";
+                return body;
             case "general_default":
                 return body;
             case "wechat_default":
             default:
-                return title + "\n\n" + body + "\n\n— 完 —";
+                return body + "\n\n— 完 —";
         }
     }
 

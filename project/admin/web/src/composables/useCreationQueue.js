@@ -2,7 +2,6 @@ import { reactive, ref, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   listGenerationTasks,
-  manualRetryGenerationTask,
   stopGenerationTask,
   markGenerationTaskFailed
 } from '@/api/creationQueue.js'
@@ -72,16 +71,6 @@ export function useCreationQueue() {
 
   const refresh = () => fetch()
 
-  const handleRetry = async (id) => {
-    try {
-      await manualRetryGenerationTask(id)
-      message.success('已加入重试队列')
-      fetch()
-    } catch (e) {
-      message.error(e.message || '操作失败')
-    }
-  }
-
   const handleStop = async (id) => {
     try {
       await stopGenerationTask(id)
@@ -133,7 +122,6 @@ export function useCreationQueue() {
     handleReset,
     handlePageChange,
     refresh,
-    handleRetry,
     handleStop,
     handleMarkFailed,
     startAutoRefresh,

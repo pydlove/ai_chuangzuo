@@ -176,7 +176,6 @@ class GenerationTaskServiceTest {
         task.setTargetUserId(userId);
         task.setStatus(GenerationTaskStatus.PROCESSING);
         task.setRetryCount(0);
-        task.setMaxRetry(3);
         task.setProgressPct(42);  // worker 已跑到 42%
         task.setInputParam("{\"title\":\"测试\"}");
         when(taskMapper.selectById(99L)).thenReturn(task);
@@ -196,7 +195,6 @@ class GenerationTaskServiceTest {
         task.setTargetUserId(userId);
         task.setStatus(GenerationTaskStatus.QUEUED);
         task.setRetryCount(0);
-        task.setMaxRetry(3);
         task.setProgressPct(null);  // 还没 worker 拿过
         when(taskMapper.selectById(100L)).thenReturn(task);
 

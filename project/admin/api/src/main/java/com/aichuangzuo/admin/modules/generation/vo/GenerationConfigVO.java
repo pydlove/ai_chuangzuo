@@ -11,7 +11,6 @@ public class GenerationConfigVO {
     private Integer poolSize;
     private Integer claimBatchSize;
     private Integer leaseMinutes;
-    private Integer maxRetry;
     private Integer pollIntervalMs;
     private String retentionCron;
     private String workerId;

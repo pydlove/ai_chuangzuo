@@ -84,8 +84,8 @@ public class GenerationTaskService {
      *
      * <p>重试语义：stage 内 AI 调用失败由 {@code DefaultAiGateway} 按
      * {@code llmRetryMaxAttempts} 自动重试（指数退避）；stage 最终失败则任务
-     * 立即置 FAILED 并退币，不再回 QUEUED 让 worker 从头跑。需要重跑由 admin
-     * 在「创作队列」点「重试」按钮（{@code GenerationTaskAdminService#manualRetry}）。
+     * 立即置 FAILED 并退币，不再回 QUEUED 让 worker 从头跑。需要重跑由用户
+     * 在用户端重新提交一次创作。
      *
      * @param refundRequired   是否需要退额度（completed-or-failed 时由调用方决定）
      * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 前校验，

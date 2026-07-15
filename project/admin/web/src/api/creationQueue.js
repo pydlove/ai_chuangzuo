@@ -4,10 +4,6 @@ import request from '@/utils/request.js'
 export const listGenerationTasks = (params) =>
   request.get('/api/v1/admin/generation/tasks', { params }).then((res) => res.data)
 
-/** 手动重试：把任务回滚为 queued。 */
-export const manualRetryGenerationTask = (id) =>
-  request.post(`/api/v1/admin/generation/tasks/${id}/retry`).then((res) => res.data)
-
 /** 手动停止任务：QUEUED / PROCESSING → FAILED。 */
 export const stopGenerationTask = (id) =>
   request.post(`/api/v1/admin/generation/tasks/${id}/stop`).then((res) => res.data)

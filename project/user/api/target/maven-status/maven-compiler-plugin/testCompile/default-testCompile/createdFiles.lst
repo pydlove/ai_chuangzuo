@@ -4,6 +4,7 @@ com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceNicknameTest.class
 com/aichuangzuo/user/modules/article/service/ArticleServiceTest.class
+com/aichuangzuo/user/modules/benefit/service/BenefitServiceTest.class
 com/aichuangzuo/user/modules/article/service/DraftServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceTest.class

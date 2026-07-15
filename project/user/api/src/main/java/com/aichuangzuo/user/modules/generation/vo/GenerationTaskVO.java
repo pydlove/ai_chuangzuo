@@ -24,7 +24,6 @@ public class GenerationTaskVO {
 
     private Integer wordLimitTarget;
     private Integer retryCount;
-    private Integer maxRetry;
     private String failedReason;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
@@ -44,7 +43,6 @@ public class GenerationTaskVO {
         vo.inputParam = parseInput(t.getInputParam(), objectMapper);
         vo.wordLimitTarget = t.getWordLimitTarget();
         vo.retryCount = t.getRetryCount();
-        vo.maxRetry = t.getMaxRetry();
         vo.failedReason = t.getFailedReason();
         vo.completedAt = t.getCompletedAt();
         vo.createdAt = t.getCreatedAt();

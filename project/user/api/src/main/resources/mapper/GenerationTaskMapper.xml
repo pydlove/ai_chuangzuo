@@ -6,7 +6,7 @@
     <!-- 用户视角任务列表（新→旧） -->
     <select id="selectUserTasks" resultType="com.aichuangzuo.shared.entity.GenerationTask">
         SELECT id, biz_no, target_user_id, status, model_config_id, prompt_template_id,
-               input_param, word_limit_target, retry_count, max_retry,
+               input_param, word_limit_target, retry_count, progress_pct,
                locked_at, locked_by, lease_until, failed_reason, completed_at,
                retention_days, tenant_id, is_deleted, created_at, updated_at, created_by, updated_by
         FROM a_generation_task

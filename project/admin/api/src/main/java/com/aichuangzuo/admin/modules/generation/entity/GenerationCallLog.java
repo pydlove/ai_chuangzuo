@@ -43,6 +43,15 @@ public class GenerationCallLog {
     /** 耗时 ms。 */
     private Integer durationMs;
 
+    /** prompt tokens（成功且 provider 上报时有值）。 */
+    private Integer promptTokens;
+
+    /** completion tokens（成功且 provider 上报时有值）。 */
+    private Integer completionTokens;
+
+    /** 总 tokens = prompt + completion。 */
+    private Integer totalTokens;
+
     /** 调用开始时间。 */
     private LocalDateTime calledAt;
 

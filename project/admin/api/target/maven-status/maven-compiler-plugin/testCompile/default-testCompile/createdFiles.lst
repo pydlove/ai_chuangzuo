@@ -1,6 +1,7 @@
 com/aichuangzuo/admin/modules/learn/service/impl/LearnCategoryServiceImplTest.class
 com/aichuangzuo/admin/modules/hotsearch/job/HotSearchCrawlJobTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/IntentAnchorStepTest.class
+com/aichuangzuo/admin/modules/order/service/AdminOrderServiceTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipelineTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/WordCountStepTest.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnArticleServiceImplTest.class

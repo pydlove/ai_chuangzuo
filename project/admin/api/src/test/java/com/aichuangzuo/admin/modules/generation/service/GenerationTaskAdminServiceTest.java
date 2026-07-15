@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow;
 import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryRequest;
+import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
@@ -34,6 +35,9 @@ class GenerationTaskAdminServiceTest {
     @Mock
     private GenerationTaskMapper taskMapper;
 
+    @Mock
+    private GenerationCallLogMapper callLogMapper;
+
     @InjectMocks
     private GenerationTaskAdminService service;
 
@@ -46,7 +50,6 @@ class GenerationTaskAdminServiceTest {
         r.setStatus(1);
         r.setWordLimitTarget(1500);
         r.setRetryCount(0);
-        r.setMaxRetry(3);
         return r;
     }
 
@@ -61,6 +64,7 @@ class GenerationTaskAdminServiceTest {
         when(taskMapper.selectAdminList(eq(1), eq("小王"), eq(0L), eq(20)))
                 .thenReturn(List.of(sampleRow()));
         when(taskMapper.countAdminList(eq(1), eq("小王"))).thenReturn(1L);
+        when(callLogMapper.sumTokensByTaskIds(any())).thenReturn(List.of());
 
         GenerationTaskAdminPageVO vo = service.list(req);
 
@@ -84,39 +88,6 @@ class GenerationTaskAdminServiceTest {
         service.list(req);
 
         verify(taskMapper).selectAdminList(eq(0), eq(null), anyLong(), anyInt());
-    }
-
-    @Test
-    void manualRetry_shouldResetToQueuedAndClearLease() {
-        GenerationTask task = new GenerationTask();
-        task.setId(10L);
-        task.setStatus(GenerationTaskStatus.FAILED);
-        task.setRetryCount(2);
-        task.setFailedReason("boom");
-        task.setLockedBy("worker-1");
-        task.setLeaseUntil(java.time.LocalDateTime.now());
-        when(taskMapper.selectById(10L)).thenReturn(task);
-
-        service.manualRetry(10L);
-
-        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
-        verify(taskMapper).updateById(captor.capture());
-        GenerationTask updated = captor.getValue();
-        assertEquals(GenerationTaskStatus.QUEUED, updated.getStatus());
-        assertNull(updated.getLockedBy());
-        assertNull(updated.getLeaseUntil());
-        assertNull(updated.getFailedReason());
-    }
-
-    @Test
-    void manualRetry_shouldThrowWhenTaskIsCompleted() {
-        GenerationTask task = new GenerationTask();
-        task.setId(11L);
-        task.setStatus(GenerationTaskStatus.COMPLETED);
-        when(taskMapper.selectById(11L)).thenReturn(task);
-
-        assertThrows(BusinessException.class, () -> service.manualRetry(11L));
-        verify(taskMapper, never()).updateById((GenerationTask) any());
     }
 
     @Test

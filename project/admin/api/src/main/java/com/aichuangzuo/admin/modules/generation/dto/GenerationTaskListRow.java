@@ -17,7 +17,6 @@ public class GenerationTaskListRow {
     private Long modelConfigId;
     private Integer wordLimitTarget;
     private Integer retryCount;
-    private Integer maxRetry;
     private String lockedBy;
     private LocalDateTime lockedAt;
     private LocalDateTime leaseUntil;

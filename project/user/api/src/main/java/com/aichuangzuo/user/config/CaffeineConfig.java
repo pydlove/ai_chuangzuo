@@ -48,6 +48,12 @@ public class CaffeineConfig {
         manager.setCaffeine(Caffeine.newBuilder()
                 .maximumSize(1000)
                 .expireAfterWrite(5, TimeUnit.MINUTES));
+        // 套餐权益缓存：10 分钟 TTL（权益配置极少变更）
+        manager.registerCustomCache("planBenefits",
+                Caffeine.newBuilder()
+                        .maximumSize(100)
+                        .expireAfterWrite(10, TimeUnit.MINUTES)
+                        .build());
         return manager;
     }
 }
