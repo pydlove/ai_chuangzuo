@@ -3,13 +3,13 @@
     <h1 class="hero-brand">爱 创 作</h1>
 
     <div class="hero-input-box" :class="{ active: topicInput.length > 0 }">
-      <input
+      <textarea
         v-model="topicInput"
-        type="text"
         class="hero-input"
         placeholder="输入主题开始创作…"
-        @keyup.enter="submit"
-      />
+        rows="3"
+        @keydown.enter.exact.prevent="submit"
+      ></textarea>
       <button class="hero-send" :disabled="!topicInput.trim()" @click="submit">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <line x1="12" y1="19" x2="12" y2="5"/>
@@ -133,13 +133,13 @@ const applyTopic = (t) => {
 
 .hero-input-box {
   width: min(720px, 100%);
+  height: 130px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: 22px;
-  padding: 14px 14px 14px 22px;
+  padding: 14px 18px;
   display: flex;
-  align-items: center;
-  gap: 12px;
+  flex-direction: column;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 
@@ -151,12 +151,17 @@ const applyTopic = (t) => {
 
 .hero-input {
   flex: 1;
+  width: 100%;
   border: none;
   outline: none;
+  resize: none;
   background: transparent;
+  font-family: inherit;
   font-size: 16px;
+  line-height: 1.6;
   color: var(--color-text-primary);
-  padding: 6px 0;
+  padding: 0;
+  margin: 0;
 }
 
 .hero-input::placeholder {
@@ -164,9 +169,10 @@ const applyTopic = (t) => {
 }
 
 .hero-send {
+  align-self: flex-end;
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   border: none;
   background: var(--color-bg-page);
