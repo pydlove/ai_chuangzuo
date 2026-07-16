@@ -39,11 +39,18 @@
                 <div class="effect-line">· 推荐 {{ option.raw.recommendWords }} 字，{{ platformTraitWordLabel(option.raw) }}</div>
                 <div class="effect-line">· 平台特性：{{ option.raw.trait }}</div>
               </div>
-              <!-- 风格效果卡 -->
-              <div v-else-if="m.optionsType === 'style'" class="effect-card">
-                <div class="effect-title">{{ option.label }}</div>
-                <div class="effect-line">· {{ option.raw.desc }}</div>
-                <div class="effect-line effect-prompt">· {{ option.raw.promptSummary }}</div>
+              <!-- 风格效果卡：显示来源标签 + 完整 prompt 预览 -->
+              <div v-else-if="m.optionsType === 'style'" class="effect-card effect-card-style">
+                <div class="effect-title-row">
+                  <span class="effect-title">{{ option.label }}</span>
+                  <span class="style-tag" :class="`tag-${option.raw.sourceType}`">{{ option.raw.tag }}</span>
+                </div>
+                <div class="effect-line">· {{ option.raw.desc || '自定义风格' }}</div>
+                <div v-if="option.raw.scope" class="effect-line">· 适用：{{ option.raw.scope }}</div>
+                <div class="effect-prompt-block">
+                  <div class="effect-prompt-label">提示词预览：</div>
+                  <pre class="effect-prompt-full">{{ option.raw.prompt || option.raw.promptSummary || '（无）' }}</pre>
+                </div>
               </div>
               <!-- 模板效果卡 -->
               <div v-else-if="m.optionsType === 'template'" class="effect-card">
@@ -130,7 +137,8 @@ import TopicSuggestionBubble from './TopicSuggestionBubble.vue'
 import GuidedHero from './GuidedHero.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
-import { systemStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
+import { systemStyles, myStyles, learnedStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
+import { favoriteStyles } from '@/composables/useStyleMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration, getGenerationTask, retryGenerationTask } from '@/api/generation.js'
@@ -220,13 +228,36 @@ const askPlatform = () => {
   })
 }
 
+// 合并 4 个来源：我的 > 学习 > 收藏 > 系统（用户自己的优先）
+const collectStyleOptions = () => {
+  const tagFor = (sourceType) => {
+    if (sourceType === 'my') return '我的'
+    if (sourceType === 'learned') return '学习'
+    if (sourceType === 'favorite') return '收藏'
+    return '系统'
+  }
+  const seen = new Set()
+  const options = []
+  const push1 = (s, sourceType) => {
+    if (!s || !s.name) return
+    if (seen.has(s.name)) return
+    seen.add(s.name)
+    options.push({ key: s.name, label: s.name, raw: { ...s, sourceType, tag: tagFor(sourceType) } })
+  }
+  myStyles.value.forEach(s => push1(s, 'my'))
+  learnedStyles.value.forEach(s => push1(s, 'learned'))
+  favoriteStyles.value.forEach(s => push1(s, 'favorite'))
+  systemStyles.value.forEach(s => push1(s, 'system'))
+  return options
+}
+
 const askStyle = () => {
   push({
     role: 'ai',
     kind: 'quick',
     text: '想要什么风格？',
     optionsType: 'style',
-    options: systemStyles.value.slice(0, 6).map(s => ({ key: s.name, label: s.name, raw: s }))
+    options: collectStyleOptions()
   })
 }
 
@@ -303,7 +334,7 @@ const editStyle = () => push({
   kind: 'quick',
   text: '想要什么风格？',
   optionsType: 'style',
-  options: systemStyles.value.slice(0, 6).map(s => ({ key: s.name, label: s.name, raw: s })),
+  options: collectStyleOptions(),
   editingMode: true
 })
 const editTemplate = () => push({
@@ -469,6 +500,57 @@ const restart = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* 风格效果卡：标题 + 来源标签 */
+.effect-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.effect-title-row .effect-title {
+  margin-bottom: 0;
+}
+
+.style-tag {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.style-tag.tag-my { background: #fff0f2; color: #ff2442; }
+.style-tag.tag-learned { background: #f0f5ff; color: #2f54eb; }
+.style-tag.tag-favorite { background: #fff7e6; color: #fa8c16; }
+.style-tag.tag-system { background: #f5f5f5; color: #595959; }
+
+/* 完整提示词预览块 */
+.effect-prompt-block {
+  margin-top: 8px;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8px;
+  padding: 10px 12px;
+  max-height: 160px;
+  overflow-y: auto;
+}
+
+.effect-prompt-label {
+  font-size: 11px;
+  color: var(--color-text-placeholder);
+  margin-bottom: 4px;
+}
+
+.effect-prompt-full {
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-regular);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .color-swatch {

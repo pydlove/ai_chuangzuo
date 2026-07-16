@@ -18,9 +18,11 @@ import { useRouter, useRoute } from 'vue-router'
 import {
   currentStyle,
   applyStyle as applyStyleShared,
-  loadSystemStyles
+  loadSystemStyles,
+  loadMyStyles,
+  loadLearnedStyles
 } from '@/composables/useStyles.js'
-import { marketStyles } from '@/composables/useStyleMarket.js'
+import { marketStyles, favoriteStyles, loadMarketStyles } from '@/composables/useStyleMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
@@ -57,6 +59,12 @@ onMounted(async () => {
   await loadSystemStyles()
   await loadExportTemplates()
   loadBenefits()
+  // 加载我的/学习/收藏风格（引导模式"想要什么风格？"步骤可选到）
+  Promise.all([
+    loadMyStyles().catch(() => {}),
+    loadLearnedStyles().catch(() => {}),
+    loadMarketStyles().catch(() => {})
+  ])
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
