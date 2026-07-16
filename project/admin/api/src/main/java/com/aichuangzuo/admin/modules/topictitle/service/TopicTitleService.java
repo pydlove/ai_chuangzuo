@@ -126,6 +126,7 @@ public class TopicTitleService {
                 ? "不限，覆盖职场、情感、生活、AI 等热门自媒体赛道" : direction.trim();
         return "请生成 " + count + " 条自媒体爆款标题，每条包含标题和概要（写作方向）。\n\n"
                 + "生成方向：" + dir + "\n\n"
+                + "格式要求：标题和概要中如需引用词语，一律使用中文双引号“”，不要使用单引号。\n\n"
                 + "输出 JSON 结构：\n"
                 + "{\"titles\": [{\"title\": \"标题文字\", \"summary\": \"这篇文章的核心观点和写作方向\"}]}\n\n"
                 + STRICT_OUTPUT_RULES;
