@@ -79,7 +79,7 @@
 {"titles": [{"title": "标题文字", "summary": "这篇文章的核心观点和写作方向"}]}
 ```
 
-5. 解析与入库：清洗可能的前言/代码围栏 → Jackson 解析 → 校验 titles 数组非空、每条 title/summary 非空、截断超长（title 128 / summary 512）→ 批量 insert（direction 落库）
+5. 解析与入库：清洗可能的前言/代码围栏 → Jackson 解析 → 校验 titles 数组非空、每条 title/summary 非空、截断超长（title 128 / summary 512 / direction 256）→ 批量 insert（direction 落库）
 6. 解析失败：抛业务异常，不入库，管理员可重试
 
 ## 用户端
@@ -89,7 +89,7 @@
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/random?count=6` | 排除「我已用过 + 已删除」，`ORDER BY RAND() LIMIT count`，返回 `[{id, title, summary}]` |
-| POST | `/{id}/use` | 插 usage（唯一键冲突忽略，幂等）+ `use_count + 1` |
+| POST | `/{id}/use` | 插 usage（唯一键冲突忽略，幂等）；仅当 usage 行实际插入成功（影响行数=1）才 `use_count + 1`，重复调用计数不膨胀 |
 
 ### 创作页改造（CreateIndex.vue）
 
@@ -116,7 +116,7 @@
 - 用户端 `TopicTitleServiceTest`（@SpringBootTest）：
   - random 排除已用标题
   - random 排除已删除标题
-  - use 幂等（重复调用不报错且只记一次）
+  - use 幂等（重复调用不报错、usage 只记一次、use_count 不重复累加）
   - use_count 正确累加
   - 库为空返回空数组
 
