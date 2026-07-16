@@ -1,6 +1,6 @@
 <template>
   <div class="chat-msg" :class="role">
-    <div v-if="role === 'ai'" class="chat-avatar">AI</div>
+    <img v-if="role === 'ai'" class="chat-avatar" src="/ai-avatar.png" alt="AI" />
     <div class="chat-bubble">
       <slot />
     </div>
@@ -26,13 +26,7 @@ defineProps({ role: { type: String, default: 'ai' } })
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  object-fit: cover;
   flex-shrink: 0;
 }
 
