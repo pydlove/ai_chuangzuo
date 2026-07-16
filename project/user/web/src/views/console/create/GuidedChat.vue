@@ -35,14 +35,24 @@
               <div v-if="m.optionsType === 'platform'" class="effect-card">
                 <div class="effect-title">{{ option.label }}</div>
                 <div class="effect-line">· 推荐 {{ option.raw.recommendWords }} 字，{{ platformTraitWordLabel(option.raw) }}</div>
-                <div class="effect-line">· 默认模板：{{ defaultTemplateName(option.raw) }}</div>
-                <div class="effect-line">· {{ option.raw.trait }}</div>
+                <div class="effect-line">· 平台特性：{{ option.raw.trait }}</div>
               </div>
               <!-- 风格效果卡 -->
-              <div v-else class="effect-card">
+              <div v-else-if="m.optionsType === 'style'" class="effect-card">
                 <div class="effect-title">{{ option.label }}</div>
                 <div class="effect-line">· {{ option.raw.desc }}</div>
                 <div class="effect-line effect-prompt">· {{ option.raw.promptSummary }}</div>
+              </div>
+              <!-- 模板效果卡 -->
+              <div v-else-if="m.optionsType === 'template'" class="effect-card">
+                <div class="effect-title">{{ option.label }}</div>
+                <div class="effect-line">· 平台：{{ platformLabel(option.raw.platform) }}</div>
+                <div class="effect-line">· 适用：{{ option.raw.desc || '通用场景' }}</div>
+                <div class="effect-line">· 主色：
+                  <span class="color-swatch" :style="{ background: option.raw.bgColor || '#fff' }"></span>
+                  <span class="color-swatch" :style="{ background: option.raw.textColor || '#1a1a1a' }"></span>
+                </div>
+                <button class="template-preview-btn" @click="openFullPreview(option.raw)">查看完整预览 →</button>
               </div>
             </template>
           </QuickReplies>
@@ -53,14 +63,16 @@
           <div class="confirm-card">
             <div class="confirm-title">📄 {{ customTitle }}</div>
             <div class="confirm-meta">
-              {{ currentPlatform.name }} · {{ currentWordCount.count }} 字 · {{ currentStyle?.name || '默认风格' }}
+              {{ currentPlatform?.name || '未选' }} · {{ currentStyle?.name || '默认风格' }} · {{ currentTemplate?.name || '默认模板' }}
             </div>
-            <div class="confirm-meta">模板：{{ currentTemplate?.name }}</div>
+            <div class="confirm-meta">字数：{{ currentWordCount?.count || 800 }} 字</div>
             <div class="confirm-quota">本次消耗 1 次 · 剩余 {{ quotaRemaining }} 次</div>
             <div class="confirm-actions">
               <button class="confirm-generate" @click="handleConfirmGenerate(m)">⚡ 开始生成</button>
               <button class="confirm-edit" @click="editTopic">改主题</button>
-              <button class="confirm-edit" @click="editConfig">改配置</button>
+              <button class="confirm-edit" @click="editPlatform">改平台</button>
+              <button class="confirm-edit" @click="editStyle">改风格</button>
+              <button class="confirm-edit" @click="editTemplate">改模板</button>
             </div>
           </div>
         </template>
@@ -124,7 +136,7 @@ const router = useRouter()
 const {
   setCreateMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey,
-  platformVisible
+  templateVisible
 } = useCreateForm()
 const { templates: apiTemplates } = useExportTemplates()
 const { benefits, loadBenefits } = useBenefits()
@@ -209,13 +221,23 @@ const askStyle = () => {
   })
 }
 
-// 平台确认后自动带默认配置：推荐字数 + 平台默认模板
+const askTemplate = () => {
+  push({
+    role: 'ai',
+    kind: 'quick',
+    text: '想用哪种模板渲染？',
+    optionsType: 'template',
+    options: apiTemplates.value.map(t => ({
+      key: t.key, label: t.name, raw: t
+    }))
+  })
+}
+
+// 平台确认后只带默认字数（模板由用户独立选择）
 const applyPlatformDefault = (p) => {
   const presets = wordCountPresets.platform[p.key] || wordCountPresets.platform.general
   const wc = presets.find(x => x.count === p.recommendWords) || presets[0]
   currentWordCount.value = { count: wc.count, label: wc.label, desc: wc.desc || '' }
-  const t = apiTemplates.value.find(x => x.key.startsWith(p.key)) || apiTemplates.value[0]
-  if (t) selectedTemplateKey.value = t.key
 }
 
 const onQuickConfirm = (m, opt) => {
@@ -224,9 +246,15 @@ const onQuickConfirm = (m, opt) => {
     currentPlatform.value = opt.raw
     applyPlatformDefault(opt.raw)
     push({ role: 'user', kind: 'text', text: opt.label })
+    if (m.editingMode) { push({ role: 'ai', kind: 'confirm' }); return }
     askStyle()
   } else if (m.optionsType === 'style') {
     applyStyle(opt.raw)
+    push({ role: 'user', kind: 'text', text: opt.label })
+    if (m.editingMode) { push({ role: 'ai', kind: 'confirm' }); return }
+    askTemplate()
+  } else if (m.optionsType === 'template') {
+    selectedTemplateKey.value = opt.raw.key
     push({ role: 'user', kind: 'text', text: opt.label })
     push({ role: 'ai', kind: 'confirm' })
   }
@@ -237,9 +265,14 @@ const platformTraitWordLabel = (p) => {
   return presets.find(x => x.count === p.recommendWords)?.label || '标准'
 }
 
-const defaultTemplateName = (p) => {
-  const t = apiTemplates.value.find(x => x.key.startsWith(p.key)) || apiTemplates.value[0]
-  return t?.name || '默认'
+const platformLabel = (key) => {
+  const p = platforms.find(x => x.key === key)
+  return p ? p.name : '通用'
+}
+
+const openFullPreview = (tplRaw) => {
+  selectedTemplateKey.value = tplRaw.key
+  templateVisible.value = true
 }
 
 const editTopic = () => {
@@ -247,9 +280,31 @@ const editTopic = () => {
   push({ role: 'ai', kind: 'topic' })
 }
 
-const editConfig = () => {
-  platformVisible.value = true
-}
+// 编辑入口：push 的 quick 消息带 editingMode: true，让 onQuickConfirm 答完不再继续下一问，直接 push confirm
+const editPlatform = () => push({
+  role: 'ai',
+  kind: 'quick',
+  text: '准备发哪个平台？',
+  optionsType: 'platform',
+  options: platforms.map(p => ({ key: p.key, label: p.name, raw: p })),
+  editingMode: true
+})
+const editStyle = () => push({
+  role: 'ai',
+  kind: 'quick',
+  text: '想要什么风格？',
+  optionsType: 'style',
+  options: systemStyles.value.slice(0, 6).map(s => ({ key: s.name, label: s.name, raw: s })),
+  editingMode: true
+})
+const editTemplate = () => push({
+  role: 'ai',
+  kind: 'quick',
+  text: '想用哪种模板渲染？',
+  optionsType: 'template',
+  options: apiTemplates.value.map(t => ({ key: t.key, label: t.name, raw: t })),
+  editingMode: true
+})
 
 // ===== 生成链路 =====
 const stageText = (pct) =>
@@ -405,6 +460,34 @@ const restart = () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin: 0 4px;
+  vertical-align: middle;
+  border: 1px solid var(--color-border-light);
+}
+
+.template-preview-btn {
+  margin-top: 10px;
+  padding: 6px 14px;
+  background: var(--color-primary-light);
+  border: 1px solid var(--color-primary);
+  border-radius: 14px;
+  color: var(--color-primary);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.template-preview-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
 }
 
 /* 确认卡片 */
