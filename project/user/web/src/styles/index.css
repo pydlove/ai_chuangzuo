@@ -273,3 +273,65 @@ body[data-theme="dark"] .console-content [class$="-meta"] {
 body[data-theme="dark"] .console-content [class$="-list"] {
   color: #a6a6a6;
 }
+
+/* ===== 创作页配置弹框共用标题（PlatformModal/WordCountModal/StyleModal/TemplateModal） ===== */
+.modal-title-wrap {
+  padding-right: 28px;
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+
+body[data-theme="dark"] .modal-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .modal-subtitle {
+  color: #a6a6a6;
+}
+
+/* 创作页发布平台 / 字数 / 风格 / 模板弹框：暗色全局覆盖 */
+body[data-theme="dark"] .platform-modal .ant-modal-content,
+body[data-theme="dark"] .platform-modal .ant-modal-header,
+body[data-theme="dark"] .word-count-modal .ant-modal-content,
+body[data-theme="dark"] .word-count-modal .ant-modal-header,
+body[data-theme="dark"] .style-modal .ant-modal-content,
+body[data-theme="dark"] .style-modal .ant-modal-header,
+body[data-theme="dark"] .template-modal .ant-modal-content,
+body[data-theme="dark"] .template-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-close-x,
+body[data-theme="dark"] .word-count-modal .ant-modal-close-x,
+body[data-theme="dark"] .style-modal .ant-modal-close-x,
+body[data-theme="dark"] .template-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-close:hover,
+body[data-theme="dark"] .word-count-modal .ant-modal-close:hover,
+body[data-theme="dark"] .style-modal .ant-modal-close:hover,
+body[data-theme="dark"] .template-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .platform-modal .ant-modal-title,
+body[data-theme="dark"] .word-count-modal .ant-modal-title,
+body[data-theme="dark"] .style-modal .ant-modal-title,
+body[data-theme="dark"] .template-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
