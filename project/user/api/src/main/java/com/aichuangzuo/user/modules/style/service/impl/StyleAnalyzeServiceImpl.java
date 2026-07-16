@@ -69,7 +69,7 @@ public class StyleAnalyzeServiceImpl implements StyleAnalyzeService {
 
     @Override
     public StyleAnalyzeVO analyze(String text) {
-        String aiResp = aiService.call(SYSTEM_MESSAGE, String.format(USER_PROMPT_TEMPLATE, text));
+        String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
         JsonNode root = parseJson(stripCodeFence(aiResp));
 
         String prompt = root.path("prompt").asText("").trim();

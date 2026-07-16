@@ -107,4 +107,12 @@ class StyleAnalyzeServiceImplTest {
         assertTrue(vo.getExcerpt1().length() <= 120 && !vo.getExcerpt1().isEmpty());
         assertTrue(vo.getExcerpt2().length() <= 80 && !vo.getExcerpt2().isEmpty());
     }
+
+    @Test
+    void analyze_shouldHandlePercentInText() {
+        String textWithPercent = ARTICLE + "\n\n转化率提升 100%s 的写法不应影响模板拼接，占比 50%% 也一样。";
+        StyleAnalyzeVO vo = serviceWith(VALID_JSON).analyze(textWithPercent);
+
+        assertEquals(VALID_PROMPT, vo.getPrompt());
+    }
 }
