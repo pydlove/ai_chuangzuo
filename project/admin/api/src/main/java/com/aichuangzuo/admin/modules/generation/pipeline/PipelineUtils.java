@@ -239,6 +239,18 @@ public final class PipelineUtils {
     }
 
     /**
+     * 把 AI 正文里的中文单引号 ‘’ 统一换成中文双引号 “”。
+     *
+     * <p>模型写引用/强调时习惯用单引号（JSON 里 ASCII 双引号要转义，单引号省事），
+     * 但中文排版规范外层引用应使用双引号。ASCII 单引号 ' 不动——可能是英文撇号
+     * （Don't / it's），无法和引号用法区分。
+     */
+    public static String normalizeQuotes(String s) {
+        if (s == null || s.isEmpty()) return s;
+        return s.replace('‘', '“').replace('’', '”');
+    }
+
+    /**
      * 解析 AI 返回的顶层字段（必须存在且为字符串）。
      */
     public static String requireString(JsonNode root, String field) {

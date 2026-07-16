@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.generation.pipeline.steps;
 
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationStep;
+import com.aichuangzuo.admin.modules.generation.pipeline.PipelineUtils;
 import com.aichuangzuo.admin.modules.generation.pipeline.StepResult;
 import com.aichuangzuo.admin.modules.generation.service.ArticleWriteInternalClient;
 import com.aichuangzuo.shared.entity.GenerationTask;
@@ -50,12 +51,15 @@ public class PersistArticleStep implements GenerationStep {
         payload.put("taskId", task.getId());
         payload.put("userId", task.getTargetUserId());
         payload.put("title", in.get("title"));
-        payload.put("body", ctx.getExportResult() == null ? null : ctx.getExportResult().getRenderedDocument());
+        payload.put("body", ctx.getExportResult() == null ? null
+                : PipelineUtils.normalizeQuotes(ctx.getExportResult().getRenderedDocument()));
         payload.put("summary", in.get("description"));
         payload.put("wordCount", ctx.getWordStats() == null ? 0 : ctx.getWordStats().getActual());
         payload.put("platform", in.get("platform"));
         payload.put("style", in.get("styleRef"));
         payload.put("template", in.get("template"));
+        payload.put("description", PipelineUtils.normalizeQuotes(ctx.getPublishDescription()));
+        payload.put("tags", ctx.getPublishTags());
         payload.put("inputParam", task.getInputParam());
         payload.put("wordLimitTarget", task.getWordLimitTarget() == null ? 1500 : task.getWordLimitTarget());
 

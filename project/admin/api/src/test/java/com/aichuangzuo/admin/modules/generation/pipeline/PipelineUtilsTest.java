@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class PipelineUtilsTest {
@@ -125,5 +126,28 @@ class PipelineUtilsTest {
         JsonNode root = PipelineUtils.parseAiJson(unquoted);
         assertEquals(1, root.path("paragraph_index").asInt());
         assertEquals("用反差感开场", root.path("responsibility").asText());
+    }
+
+    @Test
+    void normalizeQuotes_shouldReplaceChineseSingleQuotes() {
+        assertEquals("她说“你好”然后走了", PipelineUtils.normalizeQuotes("她说‘你好’然后走了"));
+        assertEquals("“躺平”不是“摆烂”", PipelineUtils.normalizeQuotes("‘躺平’不是‘摆烂’"));
+    }
+
+    @Test
+    void normalizeQuotes_shouldKeepAsciiApostrophe() {
+        // ASCII ' 可能是英文撇号（Don't / it's），无法和引号区分，不动
+        assertEquals("Don't stop, it's fine", PipelineUtils.normalizeQuotes("Don't stop, it's fine"));
+    }
+
+    @Test
+    void normalizeQuotes_shouldKeepDoubleQuotesUntouched() {
+        assertEquals("已是“双引号”", PipelineUtils.normalizeQuotes("已是“双引号”"));
+    }
+
+    @Test
+    void normalizeQuotes_shouldHandleNullAndEmpty() {
+        assertNull(PipelineUtils.normalizeQuotes(null));
+        assertEquals("", PipelineUtils.normalizeQuotes(""));
     }
 }
