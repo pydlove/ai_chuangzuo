@@ -30,6 +30,11 @@ def run_flow_to_confirm(page):
     page.click(".quick-option:has-text('轻松口语')")
     page.click(".quick-confirm")
     page.wait_for_timeout(500)
+    # 第 4 步：模板
+    page.click(".quick-option:has-text('公众号深度文')")
+    page.wait_for_timeout(300)
+    page.click(".quick-confirm")
+    page.wait_for_timeout(600)
 
 
 def main():
