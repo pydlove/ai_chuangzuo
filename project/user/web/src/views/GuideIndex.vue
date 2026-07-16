@@ -15,11 +15,15 @@
           <p>3 分钟了解爱创作能做什么，以及如何把它变成收益。</p>
         </div>
         <div class="guide-articles-wrap">
-          <GuideArticle
-            v-for="section in guideSections"
-            :key="section.id"
-            :section="section"
-          />
+          <template v-for="section in guideSections" :key="section.id">
+            <img
+              v-if="section.id === 'money'"
+              class="guide-money-banner"
+              src="https://foruda.gitee.com/images/1784102377496111264/6e108169_8060302.png"
+              alt="收益方式：把内容变成持续收入"
+            />
+            <GuideArticle :section="section" />
+          </template>
         </div>
         <div class="guide-footer-cta">
           <h3>准备好开始了吗？</h3>
@@ -123,6 +127,12 @@ onMounted(() => {
 .guide-main {
   flex: 1;
   min-width: 0;
+}
+.guide-money-banner {
+  display: block;
+  width: 100%;
+  border-radius: 12px;
+  margin-bottom: 32px;
 }
 .guide-hero {
   margin-bottom: 40px;

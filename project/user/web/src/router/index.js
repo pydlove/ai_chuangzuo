@@ -75,12 +75,12 @@ const routes = [
         component: () => import('@/views/console/EarningsIndex.vue')
       },
       {
-        path: 'edit',
+        path: 'edit/:bizNo',
         name: 'ConsoleEdit',
         component: () => import('@/views/console/EditIndex.vue')
       },
       {
-        path: 'preview',
+        path: 'preview/:bizNo',
         name: 'ConsolePreview',
         component: () => import('@/views/console/PreviewIndex.vue')
       },

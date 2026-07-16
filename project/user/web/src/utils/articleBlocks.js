@@ -252,32 +252,40 @@ export function htmlToBodyWithStyles(html) {
       return
     }
     const tag = node.tagName.toLowerCase()
+    const blockStyle = {}
+    if (tag === 'ul' || tag === 'ol') {
+      // 列表：inline 偏移空间 = li 文本拼接（与加载端 applyInlineStyle 读的 ul.textContent 一致）。
+      // 单次遍历同时完成 body 行与 inline 记录，避免先整体 extractInline 再逐 li 提取导致重复记录。
+      let acc = 0
+      let wholeText = ''
+      Array.from(node.children).forEach(li => {
+        if (li.tagName.toLowerCase() !== 'li') return
+        const liText = extractInline(li, blockIdx, { value: acc })
+        acc += liText.length
+        wholeText += liText
+        const t = liText.trim()
+        if (t) parts.push(`- ${t}`)
+      })
+      if (!wholeText.trim()) return
+      collectBlockStyle(node, blockStyle)
+      if (Object.keys(blockStyle).length > 0) blocks[blockIdx] = blockStyle
+      blockIdx++
+      return
+    }
     const charOffsetRef = { value: 0 }
     const text = extractInline(node, blockIdx, charOffsetRef)
     const trimmed = text.trim()
     if (!trimmed) return
 
-    const blockStyle = {}
     if (['h1', 'h2', 'h3', 'h4'].includes(tag)) {
       parts.push(`【${trimmed}】`)
     } else if (tag === 'blockquote') {
       parts.push(`> ${trimmed}`)
-    } else if (tag === 'ul' || tag === 'ol') {
-      Array.from(node.children).forEach(li => {
-        if (li.tagName.toLowerCase() === 'li') {
-          const liText = extractInline(li, blockIdx, { value: 0 }).trim()
-          if (liText) parts.push(`- ${liText}`)
-        }
-      })
-      collectBlockStyle(node, blockStyle)
-      if (Object.keys(blockStyle).length > 0) blocks[blockIdx] = blockStyle
     } else {
       parts.push(trimmed)
     }
-    if (tag !== 'ul' && tag !== 'ol') {
-      collectBlockStyle(node, blockStyle)
-      if (Object.keys(blockStyle).length > 0) blocks[blockIdx] = blockStyle
-    }
+    collectBlockStyle(node, blockStyle)
+    if (Object.keys(blockStyle).length > 0) blocks[blockIdx] = blockStyle
     blockIdx++
   })
 
@@ -377,6 +385,24 @@ function applyInlineStyle(blockEl, inlineList) {
     .filter(r => r.end > r.start)
     .sort((a, b) => a.start - b.start)
   if (ranges.length === 0) return
+
+  // 列表：inline 偏移基于 li 文本拼接（见 htmlToBodyWithStyles），换算回各 li 内部偏移后逐个重建，
+  // 避免直接用 ul.textContent 重建 innerHTML 导致 <li> 结构丢失（<ul><strong>... 非法嵌套）
+  if (blockEl.tagName === 'UL' || blockEl.tagName === 'OL') {
+    let offset = 0
+    Array.from(blockEl.children).forEach(li => {
+      if (li.tagName !== 'LI') return
+      const liStart = offset
+      const liEnd = liStart + li.textContent.length
+      offset = liEnd
+      const liRanges = ranges
+        .filter(r => r.end > liStart && r.start < liEnd)
+        .map(r => ({ start: r.start - liStart, end: r.end - liStart, styles: r.styles }))
+      if (liRanges.length > 0) applyInlineStyle(li, liRanges)
+    })
+    return
+  }
+
   const points = new Set([0, text.length])
   ranges.forEach(r => { points.add(r.start); points.add(r.end) })
   const sortedPoints = Array.from(points).sort((a, b) => a - b)

@@ -22,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { useCreateForm } from './useCreateForm.js'
 
@@ -39,6 +39,8 @@ const loadTopics = async () => {
     topics.value = []
   }
 }
+
+onMounted(loadTopics)
 
 const applyTopic = (topic) => {
   customTitle.value = topic.title

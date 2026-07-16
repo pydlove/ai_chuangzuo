@@ -44,6 +44,15 @@ export function deleteArticle(bizNo) {
 }
 
 /**
+ * AI 标题优化：首次点击调用大模型生成，之后返回首次缓存结果。
+ * @param {string} bizNo
+ * @returns {Promise<{titles:Object<string,string[]>, cached:boolean}>}
+ */
+export function optimizeTitles(bizNo) {
+  return api.post(`/articles/${bizNo}/title-optimize`).then((res) => res.data || { titles: {}, cached: true })
+}
+
+/**
  * 查询当前用户本月已生成作品数。
  * @returns {Promise<number>}
  */

@@ -1,6 +1,7 @@
 <template>
   <div class="create-index">
-    <MinimalPanel />
+    <GuidedChat v-if="createMode === 'guided'" />
+    <MinimalPanel v-else />
 
     <QueueDrawer v-model:open="queueOpen" />
     <PlatformModal />
@@ -25,6 +26,7 @@ import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
 import { useGenerationQueue } from './create/useGenerationQueue.js'
 import MinimalPanel from './create/MinimalPanel.vue'
+import GuidedChat from './create/GuidedChat.vue'
 import QueueDrawer from './create/QueueDrawer.vue'
 import PlatformModal from './create/modals/PlatformModal.vue'
 import WordCountModal from './create/modals/WordCountModal.vue'
@@ -40,7 +42,7 @@ const allTemplates = computed(() => apiTemplates.value)
 
 // 创作表单共享状态（composable 单例）
 const {
-  customTitle, customRequirement,
+  createMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey
 } = useCreateForm()
 
