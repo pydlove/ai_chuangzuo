@@ -59,6 +59,11 @@ const routes = [
         component: () => import('@/views/CreationQueueView.vue')
       },
       {
+        path: 'topic-titles',
+        name: 'AdminTopicTitleList',
+        component: () => import('@/views/TopicTitleListView.vue')
+      },
+      {
         path: 'creation-settings',
         name: 'AdminCreationSettings',
         component: () => import('@/views/CreationSettingsView.vue')

@@ -21,7 +21,9 @@ public enum AdminGenerationErrorCode implements ErrorCode {
     GENERATION_CONFIG_NOT_FOUND(308011, "创作运行时配置不存在"),
     PROMPT_TEMPLATE_BUILTIN_IMMUTABLE(308012, "内置模板不可删除"),
     PROMPT_TEMPLATE_INVALID_STATUS(308013, "模板状态不允许该操作"),
-    GENERATION_MODEL_PARAMS_INVALID(308014, "模板 AI 参数不合法：temperature ∈ [0,2]、max_tokens ∈ [1,8000]、top_p ∈ [0,1]");
+    GENERATION_MODEL_PARAMS_INVALID(308014, "模板 AI 参数不合法：temperature ∈ [0,2]、max_tokens ∈ [1,8000]、top_p ∈ [0,1]"),
+    GENERATION_MODEL_UNAVAILABLE(308015, "AI 模型暂不可用"),
+    TOPIC_TITLE_GENERATE_FAILED(308016, "AI 生成失败，请重试");
 
     private final int code;
     private final String message;

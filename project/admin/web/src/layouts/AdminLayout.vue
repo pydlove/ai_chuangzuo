@@ -32,6 +32,12 @@
             </template>
             创作队列
           </a-menu-item>
+          <a-menu-item key="/console/topic-titles">
+            <template #icon>
+              <BulbOutlined />
+            </template>
+            标题管理
+          </a-menu-item>
           <a-menu-item key="/console/creation-settings">
             <template #icon>
               <SlidersOutlined />
@@ -170,7 +176,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -186,7 +192,7 @@ const userInitial = computed(() => userName.value.charAt(0))
 // 当前路由所在的一级菜单 key（手风琴模式只展开这一个）
 const parentMenuKey = computed(() => {
   const p = route.path
-  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p.startsWith('/console/prompt-templates')) return '/console/creation'
+  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates')) return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
   if (p === '/console/styles' || p === '/console/global-styles' || p === '/console/market-styles') return '/console/style-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
@@ -226,6 +232,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/messages') return '消息管理'
   if (route.path === '/console/expire-reminder') return '到期提醒'
   if (route.path === '/console/creation-queue') return '创作队列'
+  if (route.path === '/console/topic-titles') return '标题管理'
   if (route.path === '/console/creation-settings') return '创作设置'
   if (route.path === '/console/learn/category') return '分类管理'
   if (route.path === '/console/learn/article') return '文章管理'

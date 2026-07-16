@@ -74,8 +74,8 @@
           </button>
         </div>
 
-        <!-- 选题灵感胶囊 -->
-        <div class="topic-capsules">
+        <!-- 选题灵感胶囊（标题库为空时整体隐藏） -->
+        <div v-if="topics.length > 0" class="topic-capsules">
           <span class="topic-capsules-label">没灵感？点一个快速开始：</span>
           <div class="topic-capsules-grid">
             <a-tooltip
@@ -562,6 +562,7 @@ import {
   loadSystemStyles
 } from '@/composables/useStyles.js'
 import { listGenerationTasks, submitGeneration } from '@/api/generation.js'
+import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
@@ -634,6 +635,9 @@ onMounted(async () => {
   loadMiniQueue()
   // 定时刷新队列
   setInterval(loadMiniQueue, 5000)
+
+  // 灵感胶囊：从标题库随机拉取（不阻塞草稿恢复）
+  loadTopics()
 })
 
 // 加载简化队列数据（从后端按当前用户查询）
@@ -679,30 +683,29 @@ const quotaColor = computed(() => {
   return '#ff4d4f'  // 红色
 })
 
-// 灵感选题
-const topics = ref([
-  { id: 1, title: '工作 3 年没升职？可能是这 3 个习惯在拖后腿', tag: '职场效率', heat: '3.2k', used: false },
-  { id: 2, title: '我用 AI 写作月入过万：新手可复制的 5 个步骤', tag: 'AI 副业', heat: '5.8k', used: false },
-  { id: 3, title: '为什么你越努力越焦虑？3 个思维陷阱正在消耗你', tag: '情感成长', heat: '4.1k', used: false },
-  { id: 4, title: '月薪 5000 如何一年存下 3 万？我的省钱清单公开', tag: '生活技巧', heat: '6.5k', used: false },
-  { id: 5, title: '30 岁后才明白：真正成熟的人，都懂得边界感', tag: '情感成长', heat: '2.9k', used: false },
-  { id: 6, title: 'AI 时代，普通人如何抓住新机会的 4 个思路', tag: 'AI 副业', heat: '7.2k', used: false }
-])
+// 灵感选题（来自标题库：管理端 AI 生成入库，按用户隔离已用）
+const topics = ref([])
+
+const loadTopics = async () => {
+  try {
+    const list = await fetchRandomTopics(6)
+    topics.value = (list || []).map(t => ({ id: t.id, title: t.title, summary: t.summary, used: false }))
+  } catch (e) {
+    // 拉取失败静默降级：胶囊区保持空并整体隐藏
+    topics.value = []
+  }
+}
 
 const applyTopic = (topic) => {
+  // 标题填入标题框、概要填入要求框，同时上报使用（该标题之后不再出现）
   customTitle.value = topic.title
-  if (customRequirement.value.trim()) {
-    customRequirement.value = customRequirement.value.trim() + '\n\n基于选题：' + topic.title
-  } else {
-    customRequirement.value = '请围绕这个选题生成一篇文章。'
-  }
+  customRequirement.value = topic.summary
   topic.used = true
+  markTopicUsed(topic.id).catch(() => {})
 }
 
 const refreshTopics = () => {
-  // 模拟换一批
-  const shuffled = [...topics.value].sort(() => Math.random() - 0.5)
-  topics.value = shuffled
+  loadTopics()
 }
 
 // 创作内容
