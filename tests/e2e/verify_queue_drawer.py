@@ -22,6 +22,8 @@ def main():
                    lambda r: r.fulfill(json={"code": 0, "data": {"list": [TASK], "total": 1}}))
         page.route("**/api/v1/user/generation-tasks",
                    lambda r: r.fulfill(json={"code": 0, "data": {"list": [TASK], "total": 1}}))
+        page.goto(f"{BASE}/console/create", wait_until="domcontentloaded")
+        page.evaluate("localStorage.setItem('aichuangzuo_create_mode', 'minimal')")
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
         page.wait_for_timeout(1500)
 

@@ -11,6 +11,13 @@ def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
         page = browser.new_page(viewport={"width": 1440, "height": 900})
+        page.route("**/api/v1/user/benefits/me", lambda r: r.fulfill(json={
+            "code": 0, "data": {"planKey": "pro", "planName": "专业版",
+                                "benefits": [{"code": "ai_article_quota", "value": "50", "remaining": 12}]}}))
+        page.route("**/api/v1/user/topics/**", lambda r: r.fulfill(json={"code": 0, "data": []}))
+        page.route("**/api/v1/user/styles/system-styles**", lambda r: r.fulfill(json={"code": 0, "data": []}))
+        page.route("**/api/v1/user/export-templates**", lambda r: r.fulfill(json={"code": 0, "data": []}))
+        page.route("**/api/v1/user/generation-tasks**", lambda r: r.fulfill(json={"code": 0, "data": {"list": [], "total": 0}}))
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
         page.wait_for_timeout(1200)
 
