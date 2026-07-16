@@ -1,10 +1,13 @@
 package com.aichuangzuo.user.modules.style.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.modules.style.dto.request.AnalyzeStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.CreateStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.UpdateStyleRequest;
+import com.aichuangzuo.user.modules.style.service.StyleAnalyzeService;
 import com.aichuangzuo.user.modules.style.service.SystemStyleService;
 import com.aichuangzuo.user.modules.style.service.UserStyleService;
+import com.aichuangzuo.user.modules.style.vo.StyleAnalyzeVO;
 import com.aichuangzuo.user.modules.style.vo.SystemStyleVO;
 import com.aichuangzuo.user.modules.style.vo.UserStyleVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +31,7 @@ public class UserStyleController {
 
     private final UserStyleService userStyleService;
     private final SystemStyleService systemStyleService;
+    private final StyleAnalyzeService styleAnalyzeService;
 
     /**
      * 获取当前登录用户的风格列表。
@@ -90,5 +94,17 @@ public class UserStyleController {
     public Result<List<SystemStyleVO>> listSystemStyles(
             @RequestParam(name = "keyword", required = false) String keyword) {
         return Result.success(systemStyleService.listEnabled(keyword));
+    }
+
+    /**
+     * AI 分析参考文章的写作风格，返回风格提示词与 2 段原文摘录。
+     *
+     * @param request 含参考文章正文（200-3000 字）
+     * @return 分析结果（excerpt 仅供展示，不入库）
+     */
+    @Operation(summary = "AI 分析参考文章风格")
+    @PostMapping("/analyze")
+    public Result<StyleAnalyzeVO> analyzeStyle(@Valid @RequestBody AnalyzeStyleRequest request) {
+        return Result.success(styleAnalyzeService.analyze(request.getText().trim()));
     }
 }
