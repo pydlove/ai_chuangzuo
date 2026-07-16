@@ -324,18 +324,16 @@ const editTopic = () => {
   push({ role: 'ai', kind: 'topic' })
 }
 
-// 风格步骤：从 chip 列表里的「＋ 新建我的风格」打开弹框；关闭后用最新数据重提一次问题
+// 风格步骤：从 chip 列表里的「＋ 新建我的风格」打开弹框；关闭后用最新数据原地刷新当前问题
 const openCreateStyle = (m) => {
-  m.done = true  // 先关掉当前问题，避免弹框期间用户乱点
-  let lastVisible = styleVisible.value
-  const stop = watch(styleVisible, async (open) => {
-    if (open === lastVisible) return
-    lastVisible = open
-    if (!open) {
-      stop()  // 弹框关闭后只重提一次
-      // 用最新 myStyles 重发风格问题；保留 m 的位置感（这里直接 push 新消息）
-      askStyle()
-    }
+  m.done = true  // 弹框期间禁用选项，避免用户乱点
+  const stop = watch(styleVisible, (open) => {
+    if (open) return  // 只关心关闭事件
+    stop()
+    // 复用当前消息：m.done 复位 + 用最新的 myStyles 重算 options（保留位置，不新增气泡）
+    m.options = collectStyleOptions()
+    m.done = false
+    scrollToBottom()
   })
   styleVisible.value = true
 }
