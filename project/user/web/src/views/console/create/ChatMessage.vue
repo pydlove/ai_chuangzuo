@@ -57,6 +57,12 @@ defineProps({ role: { type: String, default: 'ai' } })
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
+/* 含输入框的气泡扩到 100%，避免被 85% 压缩到内容宽度 */
+.chat-bubble:has(.topic-input-row) {
+  max-width: 100%;
+  width: 100%;
+}
+
 .chat-msg.user .chat-bubble {
   background: var(--color-primary);
   color: #fff;
