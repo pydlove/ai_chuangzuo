@@ -15,7 +15,14 @@ def main():
             "code": 0, "data": {"planKey": "pro", "planName": "专业版",
                                 "benefits": [{"code": "ai_article_quota", "value": "50", "remaining": 12}]}}))
         page.route("**/api/v1/user/generation-tasks**", lambda r: r.fulfill(json={"code": 0, "data": {"list": [], "total": 0}}))
-        page.route("**/api/v1/user/topics/**", lambda r: r.fulfill(json={"code": 0, "data": []}))
+        page.route("**/api/v1/user/topics/random*", lambda r: r.fulfill(json={
+            "code": 0, "data": [
+                {"id": 1, "title": "AI 写作工具横评"},
+                {"id": 2, "title": "职场新人生存指南"},
+                {"id": 3, "title": "副业赚钱的 5 个思路"},
+                {"id": 4, "title": "小红书爆款拆解"},
+                {"id": 5, "title": "如何高效学习一门技能"},
+                {"id": 6, "title": "独立开发者的一天"}]}))
         page.route("**/api/v1/user/styles/system-styles**", lambda r: r.fulfill(json={"code": 0, "data": [
             {"bizNo": "S1", "name": "轻松口语", "description": "像朋友聊天", "promptSummary": "口语化", "prompt": "...", "scope": "通用"}]}))
         page.route("**/api/v1/user/export-templates**", lambda r: r.fulfill(json={"code": 0, "data": [
@@ -44,7 +51,38 @@ def main():
         ok_send = page.query_selector(".hero-send") is not None
         send_disabled = page.get_attribute(".hero-send", "disabled") is not None
 
+        # 5. 灵感按钮（折叠态）
+        ok_inspire_btn = page.query_selector(".hero-inspire-btn") is not None
+        inspire_text = page.inner_text(".hero-inspire-btn") if page.query_selector(".hero-inspire-btn") else ""
+        ok_inspire_text = "没灵感" in inspire_text
+
         page.screenshot(path=f"{SHOTS}/guided_hero.png")
+
+        # 6. 点击灵感按钮 → 思考中
+        page.click(".hero-inspire-btn")
+        page.wait_for_timeout(150)
+        ok_thinking = page.query_selector(".hero-inspire-loading") is not None
+        ok_thinking_text = "小爱正在帮您思考选题灵感" in (page.inner_text(".hero-inspire-loading") if page.query_selector(".hero-inspire-loading") else "")
+        ok_dots = page.query_selector(".hero-dots") is not None
+
+        # 7. 等思考结束（600ms 延迟 + 流式展开）
+        page.wait_for_selector(".hero-inspire-status", timeout=5000)
+        ok_status = "小爱帮你推荐了" in page.inner_text(".hero-inspire-status") and "请您参考" in page.inner_text(".hero-inspire-status")
+
+        # 8. 6 个标题渐显（等所有 reveal 完成：600ms 思考 + 6*150ms 流式 ≈ 1.5s）
+        page.wait_for_selector(".hero-refresh", timeout=5000)
+        page.wait_for_timeout(1200)
+        topics = page.query_selector_all(".hero-topic")
+        visible_topics = [t for t in topics if t.is_visible()]
+        ok_six = len(visible_topics) == 6
+        ok_refresh = page.query_selector(".hero-refresh") is not None
+
+        page.screenshot(path=f"{SHOTS}/guided_hero_inspired.png")
+
+        # 9. 点一个标题 → 写入输入框
+        visible_topics[0].click()
+        page.wait_for_timeout(200)
+        ok_filled = page.input_value(".hero-input") == "AI 写作工具横评"
 
         # 5. 输入内容后 hero 切到对话态
         page.fill(".hero-input", "测试主题")
@@ -71,6 +109,15 @@ def main():
                    ("send-btn", ok_send),
                    ("send-disabled-empty", send_disabled),
                    ("send-enabled-typed", ok_enabled),
+                   ("inspire-btn", ok_inspire_btn),
+                   ("inspire-text", ok_inspire_text),
+                   ("thinking", ok_thinking),
+                   ("thinking-text", ok_thinking_text),
+                   ("thinking-dots", ok_dots),
+                   ("status-text", ok_status),
+                   ("six-topics", ok_six),
+                   ("refresh-btn", ok_refresh),
+                   ("filled-on-click", ok_filled),
                    ("hero-gone", ok_hero_gone),
                    ("chat-shown", ok_chat_shown),
                    ("topbar-shown", ok_topbar_shown),
