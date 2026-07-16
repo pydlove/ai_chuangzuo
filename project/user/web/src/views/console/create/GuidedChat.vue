@@ -10,7 +10,7 @@
         <!-- 纯文本 -->
         <template v-if="m.kind === 'text'">{{ m.text }}</template>
 
-        <!-- 步骤 1：主题输入 + 灵感胶囊 -->
+        <!-- 步骤 1：主题输入 + 流式灵感气泡 -->
         <template v-else-if="m.kind === 'topic'">
           <div class="chat-question">想写一篇什么主题的文章？</div>
           <div class="topic-input-row">
@@ -23,7 +23,7 @@
             />
             <button class="topic-send" @click="submitTopic(topicInput)">发送</button>
           </div>
-          <TopicCapsules @apply="onTopicCapsule" />
+          <TopicSuggestionBubble @select="onTopicCapsule" />
         </template>
 
         <!-- 平台/风格快捷回复（两段式：点选 → 效果卡 → 确认；确认后收起） -->
@@ -112,7 +112,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
 import QuickReplies from './QuickReplies.vue'
-import TopicCapsules from './TopicCapsules.vue'
+import TopicSuggestionBubble from './TopicSuggestionBubble.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
 import { systemStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
