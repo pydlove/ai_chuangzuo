@@ -1,6 +1,9 @@
 <template>
   <div class="chat-msg" :class="role">
-    <img v-if="role === 'ai'" class="chat-avatar" src="/ai-avatar.png" alt="AI" />
+    <div v-if="role === 'ai'" class="ai-info">
+      <img class="chat-avatar" src="/ai-avatar.png" alt="AI" />
+      <div class="ai-name">小爱</div>
+    </div>
     <div class="chat-bubble">
       <slot />
     </div>
@@ -22,12 +25,25 @@ defineProps({ role: { type: String, default: 'ai' } })
   justify-content: flex-end;
 }
 
+.ai-info {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
 .chat-avatar {
   width: 32px;
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  flex-shrink: 0;
+}
+
+.ai-name {
+  font-size: 11px;
+  color: var(--color-text-secondary);
+  line-height: 1;
 }
 
 .chat-bubble {
