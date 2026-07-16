@@ -53,6 +53,9 @@
         <!-- 主操作行：保存草稿 + 生成文章 -->
         <div class="hero-action-row">
           <div class="hero-action-left">
+            <button class="action-link" @click="queueOpen = true">
+              📋 队列<template v-if="activeCount > 0">（{{ activeCount }}）</template>
+            </button>
             <button class="action-link" @click="handleSaveDraft">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; vertical-align: -2px;">
                 <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
@@ -77,60 +80,9 @@
         <!-- 选题灵感胶囊（标题库为空时整体隐藏） -->
         <TopicCapsules ref="topicCapsulesRef" />
       </div>
-
-    <!-- 右侧生成队列 -->
-    <div class="queue-panel">
-      <div class="queue-panel-header">
-        <h3 class="queue-panel-title">生成队列</h3>
-        <button class="queue-more-btn" @click="router.push('/console/works')">查看更多 →</button>
-      </div>
-      <div v-if="miniQueueList.length === 0" class="queue-panel-empty">
-        <InboxOutlined class="empty-icon" />
-        <div class="empty-text">暂无生成任务</div>
-        <div class="empty-hint">点击「生成文章」开始创作</div>
-      </div>
-      <div v-else class="queue-panel-list">
-        <div
-          v-for="item in miniQueueList.slice(0, 5)"
-          :key="item.id"
-          :class="['queue-panel-item', item.status]"
-          :style="item.status === 'completed' ? 'cursor: pointer' : ''"
-          @click="item.status === 'completed' && router.push('/console/works')"
-        >
-          <div class="queue-item-top">
-            <div class="queue-item-icon">
-              <LoadingOutlined v-if="item.status === 'generating'" :spin="true" />
-              <CheckCircleOutlined v-else-if="item.status === 'completed'" />
-              <ClockCircleOutlined v-else-if="item.status === 'queued'" />
-              <CloseCircleOutlined v-else />
-            </div>
-            <div class="queue-item-info">
-              <a-tooltip :title="item.title" placement="top">
-                <span class="queue-item-title">{{ item.title }}</span>
-              </a-tooltip>
-              <div class="queue-item-meta">
-                <span class="queue-item-status-badge" :class="item.status">
-                  {{ item.status === 'generating' ? `生成中 ${Math.min(100, Math.round(item.progress))}%` : miniStatusText(item.status) }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <!-- 生成中进度条 -->
-          <div v-if="item.status === 'generating'" class="queue-item-progress">
-            <div class="progress-bar">
-              <div class="progress-fill" :style="{ width: Math.min(100, Math.round(item.progress)) + '%' }"></div>
-            </div>
-            <div class="progress-hint">已完成 {{ Math.min(100, Math.round(item.progress)) }}%</div>
-          </div>
-        </div>
-        <div v-if="miniQueueList.length > 5" class="queue-panel-more">
-          还有 {{ miniQueueList.length - 5 }} 个任务，<button class="queue-panel-more-link" @click="router.push('/console/works')">去我的作品查看 →</button>
-        </div>
-      </div>
-    </div>
   </div>
 
+    <QueueDrawer v-model:open="queueOpen" />
     <PlatformModal />
     <WordCountModal />
     <StyleModal />
@@ -139,26 +91,28 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { FolderOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, InboxOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
+import { FolderOutlined } from '@ant-design/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   currentStyle,
   applyStyle as applyStyleShared,
   loadSystemStyles
 } from '@/composables/useStyles.js'
-import { listGenerationTasks, submitGeneration } from '@/api/generation.js'
+import { submitGeneration } from '@/api/generation.js'
 import { marketStyles } from '@/composables/useStyleMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { saveDraft } from '@/api/draft.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
+import { useGenerationQueue } from './create/useGenerationQueue.js'
 import PlatformModal from './create/modals/PlatformModal.vue'
 import WordCountModal from './create/modals/WordCountModal.vue'
 import StyleModal from './create/modals/StyleModal.vue'
 import TemplateModal from './create/modals/TemplateModal.vue'
 import TopicCapsules from './create/TopicCapsules.vue'
+import QueueDrawer from './create/QueueDrawer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -173,6 +127,9 @@ const {
   currentPlatform, currentWordCount, selectedTemplateKey,
   platformVisible, wordCountVisible, styleVisible, templateVisible
 } = useCreateForm()
+
+// 生成队列（composable 单例：抽屉 + 轮询）
+const { activeCount, queueOpen, loadQueue, startPolling, stopPolling } = useGenerationQueue()
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
@@ -231,43 +188,13 @@ onMounted(async () => {
     }
   }
 
-  loadMiniQueue()
-  // 定时刷新队列
-  setInterval(loadMiniQueue, 5000)
+  startPolling()
 
   // 灵感胶囊：从标题库随机拉取（不阻塞草稿恢复）
   topicCapsulesRef.value?.loadTopics()
 })
 
-// 加载简化队列数据（从后端按当前用户查询）
-const miniQueueList = ref([])
-
-const mapStatus = (code) => {
-  return code === 0 ? 'queued' : code === 1 ? 'generating' : code === 2 ? 'completed' : code === 3 ? 'failed' : 'queued'
-}
-
-const loadMiniQueue = async () => {
-  try {
-    const data = await listGenerationTasks({ page: 1, pageSize: 5 })
-    miniQueueList.value = (data.list || []).map(t => ({
-      id: t.id,
-      title: t.title || t.inputParam?.title || '未命名',
-      platform: t.inputParam?.platform || '未选择',
-      wordCount: t.wordLimitTarget || 0,
-      status: mapStatus(t.status),
-      progress: t.progressPct || 0,
-      createdAt: t.createdAt,
-      completedAt: t.completedAt
-    }))
-  } catch (e) {
-    miniQueueList.value = []
-  }
-}
-
-const miniStatusText = (status) => {
-  const map = { generating: '生成中', queued: '排队中', completed: '已完成', failed: '失败' }
-  return map[status] || status
-}
+onUnmounted(stopPolling)
 
 // 额度（来自会员权益 ai_article_quota，ConsoleLayout 登录时已加载）
 const { benefits, loadBenefits } = useBenefits()
@@ -370,7 +297,8 @@ const handleGenerate = async () => {
     })
     message.success('已加入生成队列')
     clearForm()
-    loadMiniQueue()
+    loadQueue()
+    queueOpen.value = true
     loadBenefits() // 刷新本月剩余额度
   } catch (e) {
     message.error(e?.message || '提交失败，请稍后重试')
@@ -405,262 +333,6 @@ const clearForm = () => {
   flex-direction: column;
   box-sizing: border-box;
 }
-
-/* 生成队列面板 */
-.queue-panel {
-  width: 320px;
-  flex-shrink: 0;
-  background: #fafafa;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  display: flex;
-  flex-direction: column;
-}
-
-.queue-panel-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  flex-shrink: 0;
-}
-
-.queue-panel-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.queue-more-btn {
-  background: none;
-  border: none;
-  color: #8c8c8c;
-  font-size: 12px;
-  cursor: pointer;
-  padding: 4px 8px;
-  border-radius: 4px;
-  transition: all 0.2s;
-}
-
-.queue-more-btn:hover {
-  color: var(--color-primary);
-  background: #fff0f2;
-}
-
-.queue-panel-more {
-  margin-top: 12px;
-  padding: 10px 12px;
-  background: #fff;
-  border: 1px dashed #ffd1d9;
-  border-radius: 10px;
-  font-size: 13px;
-  color: #595959;
-  text-align: center;
-  line-height: 1.6;
-}
-
-.queue-panel-more-link {
-  display: inline;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: #ff2442;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.queue-panel-more-link:hover {
-  color: #e61e3a;
-  text-decoration: underline;
-}
-
-.queue-panel-empty {
-  text-align: center;
-  padding: 24px 0;
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
-
-.queue-panel-empty .empty-icon {
-  font-size: 32px;
-  color: #d9d9d9;
-  margin-bottom: 8px;
-}
-
-.queue-panel-empty .empty-text {
-  color: #8c8c8c;
-  font-size: 14px;
-  margin-bottom: 4px;
-}
-
-.queue-panel-empty .empty-hint {
-  color: #bfbfbf;
-  font-size: 12px;
-}
-
-.queue-panel-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  overflow-x: hidden;
-  flex: 1;
-  padding-right: 4px;
-}
-
-.queue-panel-item {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 14px;
-  transition: all 0.2s;
-}
-
-.queue-panel-item:hover {
-  border-color: #ffd1d9;
-  box-shadow: 0 2px 12px rgba(255, 36, 66, 0.08);
-}
-
-.queue-panel-item.generating {
-  background: #fff;
-  border-color: #ffd1d9;
-}
-
-.queue-panel-item.completed {
-  background: #fff;
-  border-color: #d9f7be;
-}
-
-.queue-panel-item.completed:hover {
-  border-color: #b7eb8f;
-  box-shadow: 0 2px 8px rgba(7, 193, 96, 0.08);
-}
-
-.queue-panel-item.queued {
-  background: #fff;
-  border-color: #e8e8e8;
-}
-
-.queue-panel-item.failed {
-  background: #fff;
-  border-color: #ffccc7;
-}
-
-.queue-item-top {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.queue-item-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.queue-panel-item.generating .queue-item-icon {
-  background: #fff0f2;
-  color: #ff2442;
-}
-
-.queue-panel-item.completed .queue-item-icon {
-  background: #f0fff2;
-  color: #07c160;
-}
-
-.queue-panel-item.queued .queue-item-icon {
-  background: #f5f5f5;
-  color: #8c8c8c;
-}
-
-.queue-panel-item.failed .queue-item-icon {
-  background: #fff0f0;
-  color: #ff4d4f;
-}
-
-.queue-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.queue-item-title {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: #1a1a1a;
-  font-size: 14px;
-  font-weight: 600;
-  margin-bottom: 6px;
-}
-
-.queue-item-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.queue-item-status-badge {
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.queue-item-status-badge.generating {
-  background: #ffeaea;
-  color: #ff2442;
-}
-
-.queue-item-status-badge.completed {
-  background: #e6fff2;
-  color: #07c160;
-}
-
-.queue-item-status-badge.queued {
-  background: #f5f5f5;
-  color: #595959;
-}
-
-.queue-item-status-badge.failed {
-  background: #fff0f0;
-  color: #ff4d4f;
-}
-
-.queue-item-progress {
-  margin-top: 12px;
-}
-
-.queue-item-progress .progress-bar {
-  height: 6px;
-  background: rgba(255, 36, 66, 0.15);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.queue-item-progress .progress-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #ff2442, #ff6b81);
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-
-.queue-item-progress .progress-hint {
-  margin-top: 6px;
-  font-size: 11px;
-  color: #8c8c8c;
-  line-height: 1.4;
-}
-
 
 .create-title {
   font-size: 22px;
@@ -702,7 +374,6 @@ const clearForm = () => {
   color: #8c8c8c;
 }
 
-
 .action-link {
   display: inline-flex;
   align-items: center;
@@ -720,7 +391,6 @@ const clearForm = () => {
   color: var(--color-primary);
   background: var(--color-primary-light);
 }
-
 
 /* ===== 单屏启动器新样式 ===== */
 
@@ -862,19 +532,9 @@ const clearForm = () => {
   flex-shrink: 0;
 }
 
-
 @media (max-width: 768px) {
   .create-layout {
     flex-direction: column;
-  }
-
-  .queue-panel {
-    width: 100%;
-    box-sizing: border-box;
-  }
-
-  .queue-panel-empty {
-    padding: 16px 0;
   }
 
   .create-card {
@@ -945,109 +605,6 @@ body[data-theme="dark"] .settings-chip {
   background: #2a2a2a;
   border-color: #434343;
   color: #d9d9d9;
-}
-
-body[data-theme="dark"] .queue-panel {
-  background: #181818;
-  box-shadow: none;
-}
-
-body[data-theme="dark"] .queue-panel-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .queue-panel-item {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .queue-panel-item:hover {
-  border-color: #434343;
-  box-shadow: none;
-}
-
-body[data-theme="dark"] .queue-panel-item.generating {
-  border-color: rgba(255, 36, 66, 0.35);
-}
-
-body[data-theme="dark"] .queue-panel-item.completed {
-  border-color: rgba(7, 193, 96, 0.35);
-}
-
-body[data-theme="dark"] .queue-panel-item.queued {
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .queue-panel-item.failed {
-  border-color: rgba(255, 77, 79, 0.35);
-}
-
-body[data-theme="dark"] .queue-panel-item.generating .queue-item-icon {
-  background: rgba(255, 36, 66, 0.15);
-  color: #ff4d6a;
-}
-
-body[data-theme="dark"] .queue-panel-item.completed .queue-item-icon {
-  background: rgba(7, 193, 96, 0.15);
-  color: #4ade80;
-}
-
-body[data-theme="dark"] .queue-panel-item.queued .queue-item-icon {
-  background: #2a2a2a;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .queue-panel-item.failed .queue-item-icon {
-  background: rgba(255, 77, 79, 0.15);
-  color: #ff7875;
-}
-
-body[data-theme="dark"] .queue-item-status-badge.generating {
-  background: rgba(255, 36, 66, 0.15);
-  color: #ff4d6a;
-}
-
-body[data-theme="dark"] .queue-item-status-badge.completed {
-  background: rgba(7, 193, 96, 0.15);
-  color: #4ade80;
-}
-
-body[data-theme="dark"] .queue-item-status-badge.queued {
-  background: #2a2a2a;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .queue-item-status-badge.failed {
-  background: rgba(255, 77, 79, 0.15);
-  color: #ff7875;
-}
-
-body[data-theme="dark"] .queue-item-progress .progress-hint {
-  color: #6a6a6a;
-}
-
-body[data-theme="dark"] .queue-item-footer {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .queue-export-btn {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .queue-export-btn:hover {
-  background: rgba(255, 36, 66, 0.15);
-}
-
-body[data-theme="dark"] .queue-panel-more {
-  background: transparent;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .queue-more-btn:hover {
-  background: #2a2a2a;
 }
 
 body[data-theme="dark"] .quota-pill {
