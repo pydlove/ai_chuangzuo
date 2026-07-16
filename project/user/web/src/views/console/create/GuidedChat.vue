@@ -31,7 +31,7 @@
         <!-- 平台/风格快捷回复（两段式：点选 → 效果卡 → 确认；确认后收起） -->
         <template v-else-if="m.kind === 'quick'">
           <div class="chat-question">{{ m.text }}</div>
-          <QuickReplies v-if="!m.done" :options="m.options" @confirm="(opt) => onQuickConfirm(m, opt)">
+          <QuickReplies v-if="!m.done" :options="m.options" :selected-key="chipSelectedKey(m)" @select="(opt) => onChipSelect(m, opt)" @confirm="(opt) => onQuickConfirm(m, opt)">
             <!-- 风格步骤额外提供"新建我的风格"入口 -->
             <template v-if="m.optionsType === 'style'" #footer>
               <button class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的风格</button>
@@ -282,6 +282,16 @@ const applyPlatformDefault = (p) => {
   const presets = wordCountPresets.platform[p.key] || wordCountPresets.platform.general
   const wc = presets.find(x => x.count === p.recommendWords) || presets[0]
   currentWordCount.value = { count: wc.count, label: wc.label, desc: wc.desc || '' }
+}
+
+// chip 选中态：模板步骤需要和 selectedTemplateKey 双向同步（弹框里改了 → 外面 chip 跟着变）
+const chipSelectedKey = (m) => {
+  return m.optionsType === 'template' ? selectedTemplateKey.value : null
+}
+const onChipSelect = (m, opt) => {
+  if (m.optionsType === 'template') {
+    selectedTemplateKey.value = opt.key  // 用户在 chat 里点了别的 → 弹框下次打开也是新的
+  }
 }
 
 const onQuickConfirm = (m, opt) => {

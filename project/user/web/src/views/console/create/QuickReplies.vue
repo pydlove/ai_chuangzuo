@@ -6,7 +6,7 @@
         :key="opt.key"
         :class="['quick-option', { selected: selected?.key === opt.key }]"
         :title="opt.label"
-        @click="selected = opt"
+        @click="onPick(opt)"
       >
         <span v-if="opt.raw?.sourceType" :class="['chip-source', `chip-source-${opt.raw.sourceType}`]" :title="sourceLabel(opt.raw.sourceType)"></span>
         <span class="chip-label">{{ opt.label }}</span>
@@ -23,14 +23,32 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
-defineProps({ options: { type: Array, default: () => [] } })
-const emit = defineEmits(['confirm'])
+const props = defineProps({
+  options: { type: Array, default: () => [] },
+  /** 外部选中的 key（响应式）；用户手动点 chip 也会同步到此 prop 之上 */
+  selectedKey: { type: String, default: null }
+})
+const emit = defineEmits(['confirm', 'update:selectedKey'])
 const selected = ref(null)
 
 const SOURCE_LABEL = { my: '我的风格', learned: '学习风格', favorite: '收藏的风格', system: '系统预设' }
 const sourceLabel = (t) => SOURCE_LABEL[t] || ''
+
+// 外部传入 selectedKey（弹框应用后等场景）→ 同步内部选中态
+watch(() => props.selectedKey, (k) => {
+  if (!k) return
+  const opt = props.options.find(o => o.key === k)
+  if (opt && (!selected.value || selected.value.key !== k)) {
+    selected.value = opt
+  }
+}, { immediate: true })
+
+const onPick = (opt) => {
+  selected.value = opt
+  emit('select', opt)
+}
 
 const onConfirm = () => {
   if (!selected.value) return
