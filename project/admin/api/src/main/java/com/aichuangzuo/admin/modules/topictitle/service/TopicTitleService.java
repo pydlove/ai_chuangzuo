@@ -56,16 +56,19 @@ public class TopicTitleService {
     private final ObjectMapper objectMapper;
 
     /**
-     * 分页列表：标题关键字模糊 + 按 id 倒序。
+     * 分页列表：标题关键字模糊 + 使用状态筛选（0-未用/1-已用/null-全部）+ 按 id 倒序。
      */
     public TopicTitlePageVO list(TopicTitleQueryRequest req) {
         long page = Math.max(1, req.getPage());
         long pageSize = Math.min(Math.max(1, req.getPageSize()), 100);
         String keyword = req.getKeyword() == null ? "" : req.getKeyword().trim();
+        Integer usedStatus = req.getUsedStatus();
 
         Page<TopicTitle> p = topicTitleMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<TopicTitle>()
                         .like(!keyword.isEmpty(), TopicTitle::getTitle, keyword)
+                        .eq(usedStatus != null && usedStatus == 0, TopicTitle::getUseCount, 0)
+                        .gt(usedStatus != null && usedStatus == 1, TopicTitle::getUseCount, 0)
                         .orderByDesc(TopicTitle::getId));
 
         TopicTitlePageVO vo = new TopicTitlePageVO();

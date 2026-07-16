@@ -141,6 +141,28 @@ class TopicTitleServiceTest {
     }
 
     @Test
+    void list_usedStatusFilter() {
+        insertTitle("未使用标题");
+        TopicTitle used = insertTitle("已使用标题");
+        used.setUseCount(3);
+        topicTitleMapper.updateById(used);
+
+        TopicTitleQueryRequest req = new TopicTitleQueryRequest();
+        req.setUsedStatus(0);
+        TopicTitlePageVO unused = topicTitleService.list(req);
+        assertEquals(1, unused.getTotal());
+        assertEquals("未使用标题", unused.getList().get(0).getTitle());
+
+        req.setUsedStatus(1);
+        TopicTitlePageVO usedPage = topicTitleService.list(req);
+        assertEquals(1, usedPage.getTotal());
+        assertEquals("已使用标题", usedPage.getList().get(0).getTitle());
+
+        req.setUsedStatus(null);
+        assertEquals(2, topicTitleService.list(req).getTotal());
+    }
+
+    @Test
     void delete_logicalDelete_excludedFromPool() {
         TopicTitle t = insertTitle("待删除标题");
 
