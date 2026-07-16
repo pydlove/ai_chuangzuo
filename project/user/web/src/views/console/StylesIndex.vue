@@ -498,7 +498,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { Modal, message } from 'ant-design-vue'
 import {
   systemStyles,
   myStyles,
@@ -768,12 +768,22 @@ const useFavoriteStyle = (style) => {
   }
 }
 
-const deleteStyle = async (name) => {
-  try {
-    await removeCustomStyle(name)
-  } catch {
-    // composable 已 message.error
-  }
+const deleteStyle = (name) => {
+  Modal.confirm({
+    title: '删除风格',
+    content: `确定要删除风格「${name}」吗？删除后不可恢复。`,
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: async () => {
+      try {
+        await removeCustomStyle(name)
+      } catch {
+        // composable 已 message.error
+      }
+    }
+  })
 }
 
 const openImportDialog = () => {
@@ -931,9 +941,16 @@ const saveLearnedResult = async () => {
   }
 }
 
-const deleteLearnedStyle = async (s) => {
-  if (!confirm('确定要删除「' + s.name + '」吗？')) return
-  await removeLearnedStyle(s.bizNo)
+const deleteLearnedStyle = (s) => {
+  Modal.confirm({
+    title: '删除风格',
+    content: `确定要删除「${s.name}」吗？删除后不可恢复。`,
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: () => removeLearnedStyle(s.bizNo)
+  })
 }
 
 const getMarketStatus = (name) => {

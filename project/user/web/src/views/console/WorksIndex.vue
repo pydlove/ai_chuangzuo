@@ -82,7 +82,7 @@
               导出&生成贴图
             </a-button>
             <button class="work-action-btn" @click="editWork(work.id)">编辑内容</button>
-            <button class="work-action-btn danger" @click="deleteWork(work.id)">删除</button>
+            <button class="work-action-btn danger" @click="deleteWork(work)">删除</button>
           </div>
         </div>
       </div>
@@ -112,7 +112,7 @@
           </div>
           <div class="work-actions">
             <button class="work-action-btn primary" @click="resumeDraft(draft.id)">继续编辑</button>
-            <button class="work-action-btn" @click="deleteDraft(draft.id)">删除</button>
+            <button class="work-action-btn" @click="deleteDraft(draft)">删除</button>
           </div>
         </div>
       </div>
@@ -123,9 +123,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { Modal } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
-import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
+import { deleteArticle as deleteArticleApi } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 
 const route = useRoute()
@@ -139,7 +140,8 @@ const platformOptions = [
   { key: 'toutiao', label: '今日头条' },
   { key: 'baijiahao', label: '百家号' },
   { key: 'douyin', label: '抖音图文' },
-  { key: 'zhihu', label: '知乎' }
+  { key: 'zhihu', label: '知乎' },
+  { key: 'bilibili', label: 'B站' }
 ]
 
 const styleOptions = [
@@ -208,7 +210,8 @@ const platformMap = {
   toutiao: '今日头条',
   baijiahao: '百家号',
   douyin: '抖音图文',
-  zhihu: '知乎'
+  zhihu: '知乎',
+  bilibili: 'B站'
 }
 
 onMounted(async () => {
@@ -297,61 +300,51 @@ const resumeDraft = async (bizNo) => {
   }
 }
 
-const deleteDraft = async (bizNo) => {
-  try {
-    await deleteDraftApi(bizNo)
-    draftsList.value = draftsList.value.filter((item) => item.bizNo !== bizNo)
-  } catch (e) {
-    console.warn('删除草稿失败', e)
-  }
+// 删除操作统一二次确认
+const deleteDraft = (draft) => {
+  Modal.confirm({
+    title: '删除草稿',
+    content: `确定要删除草稿「${draft.title}」吗？删除后不可恢复。`,
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: async () => {
+      try {
+        await deleteDraftApi(draft.id)
+        draftsList.value = draftsList.value.filter((item) => item.bizNo !== draft.id)
+      } catch (e) {
+        console.warn('删除草稿失败', e)
+      }
+    }
+  })
 }
 
-const deleteWork = async (bizNo) => {
-  try {
-    await deleteArticleApi(bizNo)
-    worksList.value = worksList.value.filter((item) => item.bizNo !== bizNo)
-  } catch (e) {
-    console.warn('删除作品失败', e)
-  }
+const deleteWork = (work) => {
+  Modal.confirm({
+    title: '删除作品',
+    content: `确定要删除作品「${work.title}」吗？删除后不可恢复。`,
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: async () => {
+      try {
+        await deleteArticleApi(work.id)
+        worksList.value = worksList.value.filter((item) => item.bizNo !== work.id)
+      } catch (e) {
+        console.warn('删除作品失败', e)
+      }
+    }
+  })
 }
 
-const openArticle = async (bizNo) => {
-  try {
-    const article = await getArticle(bizNo)
-    if (!article) return
-    // preview 页读取 aichuangzuo_current_article，结构是 {title, body, style, ...}
-    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
-      title: article.title,
-      body: article.body,
-      style: article.style,
-      platform: article.platform,
-      styleOverrides: article.styleOverrides
-    }))
-    router.push('/console/preview')
-  } catch (e) {
-    console.warn('加载作品失败', e)
-  }
+const openArticle = (bizNo) => {
+  router.push(`/console/preview/${bizNo}`)
 }
 
-const editWork = async (bizNo) => {
-  try {
-    const article = await getArticle(bizNo)
-    if (!article) return
-    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
-      id: article.bizNo,
-      title: article.title,
-      body: article.body,
-      wordCount: article.wordCount,
-      completedAt: article.completedAt,
-      style: article.style,
-      platform: article.platform,
-      template: article.template,
-      styleOverrides: article.styleOverrides
-    }))
-    router.push('/console/edit')
-  } catch (e) {
-    console.warn('加载作品失败', e)
-  }
+const editWork = (bizNo) => {
+  router.push(`/console/edit/${bizNo}`)
 }
 </script>
 
