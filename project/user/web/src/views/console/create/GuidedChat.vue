@@ -64,29 +64,73 @@
             </div>
           </div>
         </template>
+
+        <!-- 额度拦截 -->
+        <template v-else-if="m.kind === 'quota'">
+          <div class="chat-question">{{ m.text }}</div>
+          <button class="confirm-generate" @click="m.action">{{ m.actionText }}</button>
+        </template>
+
+        <!-- 进度卡片 -->
+        <template v-else-if="m.kind === 'progress'">
+          <div class="confirm-card">
+            <div class="confirm-title">📄 {{ customTitle }}</div>
+            <template v-if="m.status === 'generating'">
+              <div class="chat-progress">
+                <div class="chat-progress-fill" :style="{ width: Math.min(100, Math.round(m.progress)) + '%' }"></div>
+              </div>
+              <div class="progress-stage">{{ stageText(m.progress) }} {{ Math.min(100, Math.round(m.progress)) }}%</div>
+            </template>
+            <template v-else>
+              <div class="failed-text">❌ {{ m.failedReason }}</div>
+              <div class="confirm-actions">
+                <button class="confirm-generate" @click="retryTask(m)">重试</button>
+              </div>
+            </template>
+          </div>
+        </template>
+
+        <!-- 结果卡片 -->
+        <template v-else-if="m.kind === 'result'">
+          <div class="confirm-card">
+            <div class="confirm-title">✅ {{ customTitle }}</div>
+            <div class="confirm-meta">已生成完成</div>
+            <div class="confirm-actions">
+              <button class="confirm-generate" @click="router.push('/console/works')">查看文章</button>
+              <button class="confirm-edit" @click="restart">再写一篇</button>
+            </div>
+          </div>
+        </template>
       </ChatMessage>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
 import QuickReplies from './QuickReplies.vue'
 import TopicCapsules from './TopicCapsules.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
+import { useGenerationQueue } from './useGenerationQueue.js'
 import { systemStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { submitGeneration, getGenerationTask, retryGenerationTask } from '@/api/generation.js'
 
+const router = useRouter()
 const {
   setCreateMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey,
   platformVisible
 } = useCreateForm()
 const { templates: apiTemplates } = useExportTemplates()
-const { benefits } = useBenefits()
+const { benefits, loadBenefits } = useBenefits()
+const { loadQueue } = useGenerationQueue()
 
+const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
 
@@ -106,8 +150,17 @@ const push = (msg) => {
   scrollToBottom()
 }
 
-// 初始化：第一条 AI 消息（额度拦截在 Task 7 加）
-push({ role: 'ai', kind: 'topic' })
+// 初始化：先确保权益已加载，再决定第一条消息（额度拦截）
+onMounted(async () => {
+  await loadBenefits()
+  if (quotaTotal.value <= 0) {
+    push({ role: 'ai', kind: 'quota', text: '开通会员后才能使用 AI 生成文章', actionText: '去开通会员', action: () => router.push('/pricing') })
+  } else if (quotaRemaining.value <= 0) {
+    push({ role: 'ai', kind: 'quota', text: '本月额度已用完，升级会员可获得更多额度', actionText: '去升级', action: () => router.push('/pricing') })
+  } else {
+    push({ role: 'ai', kind: 'topic' })
+  }
+})
 
 // 改主题模式：答完直接回确认卡（平台/风格已答保留）
 const editingTopic = ref(false)
@@ -198,8 +251,69 @@ const editConfig = () => {
   platformVisible.value = true
 }
 
-// Task 7：生成 + 进度卡片
-const handleConfirmGenerate = () => {}
+// ===== 生成链路 =====
+const stageText = (pct) =>
+  pct < 30 ? '正在生成大纲…' : pct < 70 ? '正在撰写正文…' : pct < 95 ? '正在排版润色…' : '即将完成…'
+
+let pollTimer = null
+const stopTaskPoll = () => { clearInterval(pollTimer); pollTimer = null }
+onUnmounted(stopTaskPoll)
+
+const handleConfirmGenerate = async (confirmMsg) => {
+  if (!customTitle.value.trim()) return
+  try {
+    const task = await submitGeneration({
+      title: customTitle.value,
+      description: customRequirement.value,
+      platform: currentPlatform.value?.key || '',
+      styleRef: currentStyle.value?.id || currentStyle.value?.name || '',
+      wordCount: currentWordCount.value?.count || 800,
+      template: currentTemplate.value?.key || 'wechat'
+    })
+    // 确认卡原地替换为进度卡
+    Object.assign(confirmMsg, { kind: 'progress', taskId: task.id, progress: 0, status: 'generating' })
+    loadBenefits()
+    loadQueue()
+    pollTask(confirmMsg, task.id)
+  } catch (e) {
+    message.error(e?.message || '提交失败，请稍后重试')
+  }
+}
+
+const pollTask = (msg, taskId) => {
+  stopTaskPoll()
+  pollTimer = setInterval(async () => {
+    try {
+      const t = await getGenerationTask(taskId)
+      msg.progress = t.progressPct || 0
+      if (t.status === 2) {
+        stopTaskPoll()
+        Object.assign(msg, { kind: 'result', status: 'completed' })
+        loadQueue()
+      } else if (t.status === 3) {
+        stopTaskPoll()
+        Object.assign(msg, { status: 'failed', failedReason: t.failedReason || '生成失败' })
+        loadQueue()
+      }
+    } catch { /* 单次轮询失败忽略，下轮继续 */ }
+  }, 3000)
+}
+
+const retryTask = async (msg) => {
+  try {
+    await retryGenerationTask(msg.taskId)
+    Object.assign(msg, { status: 'generating', progress: 0 })
+    pollTask(msg, msg.taskId)
+  } catch (e) {
+    message.error(e?.message || '重试失败，请稍后再试')
+  }
+}
+
+const restart = () => {
+  stopTaskPoll()
+  messages.value = []
+  push({ role: 'ai', kind: 'topic' })
+}
 </script>
 
 <style scoped>
@@ -357,6 +471,33 @@ const handleConfirmGenerate = () => {}
 
 .confirm-edit:hover {
   color: var(--color-primary);
+}
+
+/* 进度卡片 */
+.chat-progress {
+  height: 6px;
+  background: rgba(255, 36, 66, 0.15);
+  border-radius: 3px;
+  overflow: hidden;
+  margin: 12px 0 8px;
+}
+
+.chat-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff2442, #ff6b81);
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.progress-stage {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+}
+
+.failed-text {
+  color: var(--color-error);
+  font-size: 13px;
+  margin: 8px 0 12px;
 }
 
 @media (max-width: 768px) {
