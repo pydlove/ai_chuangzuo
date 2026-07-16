@@ -22,6 +22,15 @@ export const DEFAULT_TEMPLATE_STYLE = {
   calloutBg: '#f6ffed', calloutBorder: '4px solid #07c160', calloutColor: '#262626'
 }
 
+/** 后端可能把 visualStyle 返回成 JSON 字符串，统一解析成对象 */
+function parseVisualStyle(v) {
+  if (!v) return null
+  if (typeof v === 'string') {
+    try { return JSON.parse(v) } catch { return null }
+  }
+  return v
+}
+
 export function useExportTemplates() {
   const load = async () => {
     if (loaded.value || loading.value) return
@@ -35,7 +44,7 @@ export function useExportTemplates() {
         platform: t.platform,
         bgColor: t.bgColor,
         textColor: t.textColor,
-        visualStyle: t.visualStyle,
+        visualStyle: parseVisualStyle(t.visualStyle),
         signatureText: t.signatureText,
         signaturePosition: t.signaturePosition,
         sortOrder: t.sortOrder
