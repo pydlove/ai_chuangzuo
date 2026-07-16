@@ -7,13 +7,23 @@
       </div>
 
       <div class="toolbar">
-        <a-input-search
-          v-model:value="keyword"
-          placeholder="搜索标题关键字"
-          style="width: 280px"
-          allow-clear
-          @search="onSearch"
-        />
+        <div class="toolbar-left">
+          <a-input-search
+            v-model:value="keyword"
+            placeholder="搜索标题关键字"
+            style="width: 280px"
+            allow-clear
+            @search="onSearch"
+          />
+          <a-select
+            v-model:value="usedStatus"
+            placeholder="是否使用"
+            style="width: 140px"
+            allow-clear
+            :options="usedStatusOptions"
+            @change="onSearch"
+          />
+        </div>
         <a-button type="primary" @click="openGenerateModal">
           <template #icon><ThunderboltOutlined /></template>
           AI 生成标题
@@ -31,7 +41,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'title'">
-            <span class="cell-ellipsis" :title="record.title">{{ record.title }}</span>
+            <span class="cell-ellipsis" :class="{ 'used-strike': record.useCount > 0 }" :title="record.title">{{ record.title }}</span>
           </template>
           <template v-else-if="column.key === 'summary'">
             <span class="cell-ellipsis" :title="record.summary">{{ record.summary }}</span>
@@ -41,6 +51,11 @@
           </template>
           <template v-else-if="column.key === 'createdAt'">
             {{ formatTime(record.createdAt) }}
+          </template>
+          <template v-else-if="column.key === 'used'">
+            <a-tag :color="record.useCount > 0 ? 'default' : 'green'">
+              {{ record.useCount > 0 ? '已使用' : '未使用' }}
+            </a-tag>
           </template>
           <template v-else-if="column.key === 'action'">
             <a-popconfirm
@@ -98,6 +113,11 @@ const total = ref(0)
 const page = ref(1)
 const pageSize = ref(20)
 const keyword = ref('')
+const usedStatus = ref(undefined)
+const usedStatusOptions = [
+  { value: 0, label: '未使用' },
+  { value: 1, label: '已使用' }
+]
 
 const generateModalOpen = ref(false)
 const generating = ref(false)
@@ -109,6 +129,7 @@ const columns = [
   { title: '概要', key: 'summary', ellipsis: true },
   { title: '方向提示词', key: 'direction', width: 200, ellipsis: true },
   { title: '使用次数', dataIndex: 'useCount', width: 90 },
+  { title: '是否使用', key: 'used', width: 90 },
   { title: '生成时间', key: 'createdAt', width: 170 },
   { title: '操作', key: 'action', width: 80, fixed: 'right' }
 ]
@@ -128,6 +149,7 @@ const reload = async () => {
   try {
     const res = await listTopicTitles({
       keyword: keyword.value.trim() || undefined,
+      usedStatus: usedStatus.value,
       page: page.value,
       pageSize: pageSize.value
     })
@@ -200,6 +222,15 @@ onMounted(reload)
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
+}
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.used-strike {
+  text-decoration: line-through;
+  color: #bfbfbf;
 }
 .cell-ellipsis {
   display: inline-block;
