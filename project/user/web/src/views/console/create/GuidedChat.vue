@@ -1,5 +1,7 @@
 <template>
-  <div class="guided-chat">
+  <GuidedHero v-if="isHeroState" @submit="onHeroSubmit" />
+
+  <div v-else class="guided-chat">
     <div class="guided-topbar">
       <h2 class="create-title">开始创作</h2>
       <button class="topbar-btn" @click="setCreateMode('minimal')">熟手模式 →</button>
@@ -125,6 +127,7 @@ import { message } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
 import QuickReplies from './QuickReplies.vue'
 import TopicSuggestionBubble from './TopicSuggestionBubble.vue'
+import GuidedHero from './GuidedHero.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
 import { systemStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
@@ -162,17 +165,23 @@ const push = (msg) => {
   scrollToBottom()
 }
 
-// 初始化：先确保权益已加载，再决定第一条消息（额度拦截）
+// 初始化：先确保权益已加载，再决定首屏（额度拦截走对话态，否则走 Kimi 风格 hero）
 onMounted(async () => {
   await loadBenefits()
   if (quotaTotal.value <= 0) {
     push({ role: 'ai', kind: 'quota', text: '开通会员后才能使用 AI 生成文章', actionText: '去开通会员', action: () => router.push('/pricing') })
   } else if (quotaRemaining.value <= 0) {
     push({ role: 'ai', kind: 'quota', text: '本月额度已用完，升级会员可获得更多额度', actionText: '去升级', action: () => router.push('/pricing') })
-  } else {
-    push({ role: 'ai', kind: 'topic' })
   }
 })
+
+const isHeroState = computed(() => messages.value.length === 0)
+
+const onHeroSubmit = (text) => {
+  customTitle.value = text
+  push({ role: 'user', kind: 'text', text })
+  afterTopic()
+}
 
 // 改主题模式：答完直接回确认卡（平台/风格已答保留）
 const editingTopic = ref(false)

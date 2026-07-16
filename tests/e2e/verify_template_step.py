@@ -33,7 +33,7 @@ def main():
         page.wait_for_timeout(1200)
 
         # topic
-        page.fill(".topic-input", "测试话题")
+        page.fill(".hero-input", "测试话题")
         page.keyboard.press("Enter")
         page.wait_for_timeout(400)
         # platform

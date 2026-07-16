@@ -21,7 +21,7 @@ def mock_common(page, quota_remaining=12, quota_value="50"):
 def run_flow_to_confirm(page):
     page.goto(f"{BASE}/console/create", wait_until="networkidle")
     page.wait_for_timeout(1200)
-    page.fill(".topic-input", "测试主题")
+    page.fill(".hero-input", "测试主题")
     page.keyboard.press("Enter")
     page.wait_for_timeout(400)
     page.click(".quick-option:has-text('公众号')")
@@ -95,7 +95,7 @@ def main():
         page2.goto(f"{BASE}/console/create", wait_until="networkidle")
         page2.wait_for_timeout(1200)
         ok_quota = page2.query_selector("text=本月额度已用完") is not None
-        ok_no_input = page2.query_selector(".topic-input") is None
+        ok_no_input = page2.query_selector(".hero-input") is None
         print("PASS quota-block" if ok_quota else "FAIL quota-block")
         print("PASS no-input" if ok_no_input else "FAIL no-input")
         page2.screenshot(path=f"{SHOTS}/guided_quota_block.png")

@@ -31,7 +31,7 @@ def main():
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
         page.wait_for_timeout(1200)
 
-        page.fill(".topic-input", "35岁被裁后，我靠副业翻身")
+        page.fill(".hero-input", "35岁被裁后，我靠副业翻身")
         page.keyboard.press("Enter")
         page.wait_for_timeout(500)
 

@@ -32,7 +32,7 @@ def main():
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
         page.wait_for_timeout(1200)
 
-        page.fill(".topic-input", "测试")
+        page.fill(".hero-input", "测试")
         page.keyboard.press("Enter")
         page.wait_for_timeout(400)
         page.click(".quick-option:has-text('小红书')")

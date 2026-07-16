@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""引导模式话题步骤：折叠按钮 → 点击 → 600ms 打字 → 6 标题渐显 → 换一批 → 选标题。"""
+"""引导模式话题步骤：折叠按钮 → 点击 → 600ms 打字 → 6 标题渐显 → 换一批 → 选标题。
+首屏是 Kimi 风格 hero，灵感气泡在「改主题」按钮触发后出现。"""
 import os
 from playwright.sync_api import sync_playwright
 
@@ -31,19 +32,40 @@ def main():
         page.route("**/api/v1/user/benefits/me", lambda r: r.fulfill(json={
             "code": 0, "data": {"planKey": "pro", "planName": "专业版",
                                 "benefits": [{"code": "ai_article_quota", "value": "50", "remaining": 12}]}}))
-        page.route("**/api/v1/user/styles/system-styles**", lambda r: r.fulfill(json={"code": 0, "data": []}))
-        page.route("**/api/v1/user/export-templates**", lambda r: r.fulfill(json={"code": 0, "data": []}))
+        page.route("**/api/v1/user/styles/system-styles**", lambda r: r.fulfill(json={"code": 0, "data": [
+            {"bizNo": "S1", "name": "轻松口语", "description": "x", "promptSummary": "x", "prompt": "x", "scope": "通用"}]}))
+        page.route("**/api/v1/user/export-templates**", lambda r: r.fulfill(json={"code": 0, "data": [
+            {"templateKey": "wechat-article", "name": "公众号深度文", "platform": "wechat"}]}))
         page.route("**/api/v1/user/generation-tasks**", lambda r: r.fulfill(json={"code": 0, "data": {"list": [], "total": 0}}))
         page.route("**/api/v1/user/topics/random*", on_topics)
 
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
-        page.wait_for_timeout(1200)
+        page.wait_for_timeout(1500)
+
+        # 先走完 4 步到确认卡
+        page.fill(".hero-input", "测试主题")
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(400)
+        page.click(".quick-option:has-text('公众号')")
+        page.click(".quick-confirm")
+        page.wait_for_timeout(400)
+        page.click(".quick-option:has-text('轻松口语')")
+        page.wait_for_timeout(300)
+        page.click(".quick-confirm")
+        page.wait_for_timeout(500)
+        page.click(".quick-option:has-text('公众号深度文')")
+        page.wait_for_timeout(300)
+        page.click(".quick-confirm")
+        page.wait_for_timeout(500)
+
+        # 点「改主题」→ 触发 TopicSuggestionBubble
+        page.click(".confirm-edit:has-text('改主题')")
+        page.wait_for_timeout(500)
 
         ok_collapsed = page.query_selector(".inspire-btn") is not None
         page.click(".inspire-btn")
         page.wait_for_timeout(100)
         ok_typing = page.query_selector(".typing-cursor") is not None
-        # 等到换一批可见（=流式结束）
         page.wait_for_selector(".refresh-suggestion", timeout=8000, state="visible")
         page.wait_for_timeout(200)
 
@@ -51,14 +73,12 @@ def main():
         visible = [c for c in cards if c.is_visible()]
         ok_six = len(visible) == 6
 
-        # 选第一个标题
         visible[0].query_selector(".suggestion-title").click()
         page.wait_for_timeout(400)
         ok_user = page.query_selector(".chat-msg.user") is not None
 
         page.screenshot(path=f"{SHOTS}/topic_streaming.png")
 
-        # 换一批
         before_refresh_n = batch_state["n"]
         page.click(".refresh-suggestion")
         page.wait_for_selector(".refresh-suggestion", timeout=5000)

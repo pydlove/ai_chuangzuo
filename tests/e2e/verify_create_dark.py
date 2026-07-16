@@ -34,7 +34,7 @@ def main():
         page.wait_for_timeout(1200)
 
         # 引导模式 → 走完到确认卡
-        page.fill(".topic-input", "深夜食堂的经济学")
+        page.fill(".hero-input", "深夜食堂的经济学")
         page.keyboard.press("Enter")
         page.wait_for_timeout(400)
         page.click(".quick-option:has-text('小红书')")

@@ -21,8 +21,8 @@ def main():
         page.goto(f"{BASE}/console/create", wait_until="networkidle")
         page.wait_for_timeout(1200)
 
-        ok_default = page.query_selector(".guided-chat") is not None
-        page.fill(".topic-input", "测试主题：AI 写作工具横评")
+        ok_default = page.query_selector(".guided-hero") is not None
+        page.fill(".hero-input", "测试主题：AI 写作工具横评")
         page.keyboard.press("Enter")
         page.wait_for_timeout(600)
         ok_user_bubble = page.query_selector(".chat-msg.user") is not None
