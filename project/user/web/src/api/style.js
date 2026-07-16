@@ -42,3 +42,13 @@ export function getSystemStyles(keyword = '') {
   const params = keyword ? { keyword } : {}
   return api.get('/styles/system-styles', { params })
 }
+
+/**
+ * AI 分析参考文章风格。
+ * 注意：AI 分析约 10-30 秒，axios 实例默认 timeout 10s 必然超时，必须单独传 90s。
+ * @param {string} text 参考文章正文（200-3000 字）
+ * @returns {Promise<{code:number, data:{excerpt1:string, excerpt2:string, prompt:string}}>}
+ */
+export function analyzeStyle(text) {
+  return api.post('/styles/analyze', { text }, { timeout: 90000 })
+}

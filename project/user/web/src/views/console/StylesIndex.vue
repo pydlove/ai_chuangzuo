@@ -498,6 +498,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   systemStyles,
   myStyles,
@@ -865,8 +866,12 @@ const submitUpload = async () => {
 }
 
 const runAnalysis = async (text, sourceType) => {
-  const tempResult = await analyzeArticleStyle(text, { sourceType })
-  learnedResult.value = { ...tempResult, name: '' }
+  try {
+    const tempResult = await analyzeArticleStyle(text, { sourceType })
+    learnedResult.value = { ...tempResult, name: '' }
+  } catch (err) {
+    message.error(err?.message || '分析失败，请重试')
+  }
 }
 
 const canSaveLearnedResult = computed(() => {
