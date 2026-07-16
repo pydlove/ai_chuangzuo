@@ -87,11 +87,20 @@ public class TopicTitleService {
                 .orderByAsc(ModelConfig::getId)
                 .last("LIMIT 1"));
         if (cfg == null) {
+            log.warn("AI 生成标题失败：无 active 模型配置 count={} direction={}", count, direction);
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE);
         }
+        log.info("AI 生成标题开始 count={} direction={} modelId={} provider={} modelCode={}",
+                count, direction, cfg.getId(), cfg.getProviderType(), cfg.getModelCode());
 
+        long startMs = System.currentTimeMillis();
         AiCallResult result = generationAiService.call(cfg.getId(), SYSTEM_MESSAGE,
                 buildUserMessage(count, direction), null);
+        log.info("AI 生成标题调用返回 duration={}ms contentLength={} tokens={}",
+                System.currentTimeMillis() - startMs,
+                result.getContent() == null ? 0 : result.getContent().length(),
+                result.getTotalTokens());
+
         List<TopicTitle> titles = parseTitles(result.getContent(), direction);
         titles.forEach(topicTitleMapper::insert);
         log.info("AI 生成标题入库 {} 条（请求 {} 条）direction={}", titles.size(), count, direction);
@@ -131,21 +140,26 @@ public class TopicTitleService {
         try {
             root = objectMapper.readTree(extractJson(content));
         } catch (BusinessException e) {
+            log.warn("AI 生成标题解析失败：无法定位 JSON 内容，AI 原始返回（截断 500 字符）：{}", abbreviate(content));
             throw e;
         } catch (Exception e) {
-            log.warn("标题 JSON 解析失败: {}", e.getMessage());
+            log.warn("AI 生成标题解析失败：JSON 格式错误 err={}，AI 原始返回（截断 500 字符）：{}",
+                    e.getMessage(), abbreviate(content));
             throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
         }
         JsonNode titlesNode = root.path("titles");
         if (!titlesNode.isArray() || titlesNode.isEmpty()) {
+            log.warn("AI 生成标题解析失败：titles 数组缺失或为空，AI 原始返回（截断 500 字符）：{}", abbreviate(content));
             throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
         }
 
         List<TopicTitle> result = new ArrayList<>();
+        int skipped = 0;
         for (JsonNode node : titlesNode) {
             String title = node.path("title").asText("").trim();
             String summary = node.path("summary").asText("").trim();
             if (title.isEmpty() || summary.isEmpty()) {
+                skipped++;
                 continue;
             }
             TopicTitle entity = new TopicTitle();
@@ -157,8 +171,11 @@ public class TopicTitleService {
             result.add(entity);
         }
         if (result.isEmpty()) {
+            log.warn("AI 生成标题解析失败：{} 条候选全部缺少 title/summary，AI 原始返回（截断 500 字符）：{}",
+                    titlesNode.size(), abbreviate(content));
             throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
         }
+        log.info("AI 生成标题解析完成：有效 {} 条，跳过空条目 {} 条", result.size(), skipped);
         return result;
     }
 
@@ -177,5 +194,13 @@ public class TopicTitleService {
 
     private static String truncate(String s, int max) {
         return s.length() > max ? s.substring(0, max) : s;
+    }
+
+    /** 日志用截断：AI 原始返回可能很长，最多打 500 字符。 */
+    private static String abbreviate(String s) {
+        if (s == null) {
+            return "<null>";
+        }
+        return s.length() > 500 ? s.substring(0, 500) + "..." : s;
     }
 }

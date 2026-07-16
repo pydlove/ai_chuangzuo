@@ -11,10 +11,10 @@ import lombok.Data;
 @Data
 public class TopicTitleGenerateRequest {
 
-    /** 生成数量：1-20。 */
+    /** 生成数量：1-100。 */
     @NotNull
     @Min(1)
-    @Max(20)
+    @Max(100)
     private Integer count;
 
     /** 生成方向提示词（可选，如「职场效率类，面向 25-35 岁打工人」）。 */

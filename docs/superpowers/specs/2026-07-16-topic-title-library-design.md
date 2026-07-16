@@ -49,7 +49,7 @@
 
 - 顶部操作条：「AI 生成标题」按钮 + 标题关键字搜索框
 - 列表列：标题、概要、方向提示词、使用次数、生成时间、操作（删除）
-- 生成弹框：数量（1-20，默认 10）+ 方向提示词 textarea（占位示例「职场效率类，面向 25-35 岁打工人」）。确认后 loading 等待，成功提示「已生成 N 条入库」并刷新列表。
+- 生成弹框：数量（1-100，默认 10）+ 方向提示词 textarea（占位示例「职场效率类，面向 25-35 岁打工人」）。确认后 loading 等待，成功提示「已生成 N 条入库」并刷新列表。
 
 ### 接口 `/api/v1/admin/topic-titles`
 
@@ -101,7 +101,7 @@
 
 ## 错误处理
 
-- 管理端：无 active 模型 → `GENERATION_MODEL_UNAVAILABLE`；AI 返回无法解析或 titles 为空 → 新错误码 `TOPIC_TITLE_GENERATE_FAILED`（"AI 生成失败，请重试"）；count 超 1-20 → 参数校验 400
+- 管理端：无 active 模型 → `GENERATION_MODEL_UNAVAILABLE`；AI 返回无法解析或 titles 为空 → 新错误码 `TOPIC_TITLE_GENERATE_FAILED`（"AI 生成失败，请重试"）；count 超 1-100 → 参数校验 400
 - 用户端 `/use`：标题不存在或已删除 → 404；重复 use → 静默成功
 - 用户端 `/random`：库为空 → 空数组，前端隐藏胶囊区
 

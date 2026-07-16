@@ -68,8 +68,8 @@
       <div class="generate-form">
         <div class="form-row">
           <span class="form-label">生成数量</span>
-          <a-input-number v-model:value="generateCount" :min="1" :max="20" style="width: 120px" />
-          <span class="form-hint">1-20 条</span>
+          <a-input-number v-model:value="generateCount" :min="1" :max="100" style="width: 120px" />
+          <span class="form-hint">1-100 条</span>
         </div>
         <div class="form-row form-row-top">
           <span class="form-label">方向提示词</span>
