@@ -32,6 +32,10 @@
         <template v-else-if="m.kind === 'quick'">
           <div class="chat-question">{{ m.text }}</div>
           <QuickReplies v-if="!m.done" :options="m.options" @confirm="(opt) => onQuickConfirm(m, opt)">
+            <!-- 风格步骤额外提供"新建我的风格"入口 -->
+            <template v-if="m.optionsType === 'style'" #footer>
+              <button class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的风格</button>
+            </template>
             <template #preview="{ option }">
               <!-- 平台效果卡 -->
               <div v-if="m.optionsType === 'platform'" class="effect-card">
@@ -128,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
@@ -147,7 +151,7 @@ const router = useRouter()
 const {
   setCreateMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey,
-  templateVisible
+  templateVisible, styleVisible
 } = useCreateForm()
 const { templates: apiTemplates } = useExportTemplates()
 const { benefits, loadBenefits } = useBenefits()
@@ -318,6 +322,22 @@ const openFullPreview = (tplRaw) => {
 const editTopic = () => {
   editingTopic.value = true
   push({ role: 'ai', kind: 'topic' })
+}
+
+// 风格步骤：从 chip 列表里的「＋ 新建我的风格」打开弹框；关闭后用最新数据重提一次问题
+const openCreateStyle = (m) => {
+  m.done = true  // 先关掉当前问题，避免弹框期间用户乱点
+  let lastVisible = styleVisible.value
+  const stop = watch(styleVisible, async (open) => {
+    if (open === lastVisible) return
+    lastVisible = open
+    if (!open) {
+      stop()  // 弹框关闭后只重提一次
+      // 用最新 myStyles 重发风格问题；保留 m 的位置感（这里直接 push 新消息）
+      askStyle()
+    }
+  })
+  styleVisible.value = true
 }
 
 // 编辑入口：push 的 quick 消息带 editingMode: true，让 onQuickConfirm 答完不再继续下一问，直接 push confirm
@@ -579,6 +599,23 @@ const restart = () => {
 .template-preview-btn:hover {
   background: var(--color-primary);
   color: #fff;
+}
+
+/* 风格步骤底部"＋ 新建我的风格"入口 */
+.quick-create-style {
+  margin-top: 10px;
+  border: 1px dashed var(--color-primary);
+  background: transparent;
+  color: var(--color-primary);
+  font-size: 13px;
+  padding: 6px 16px;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.quick-create-style:hover {
+  background: var(--color-primary-light);
 }
 
 /* 确认卡片 */

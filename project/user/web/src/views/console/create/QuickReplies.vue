@@ -5,9 +5,11 @@
         v-for="opt in options"
         :key="opt.key"
         :class="['quick-option', { selected: selected?.key === opt.key }]"
+        :title="opt.label"
         @click="selected = opt"
       >
-        {{ opt.label }}
+        <span v-if="opt.raw?.sourceType" :class="['chip-source', `chip-source-${opt.raw.sourceType}`]" :title="sourceLabel(opt.raw.sourceType)"></span>
+        <span class="chip-label">{{ opt.label }}</span>
       </button>
     </div>
     <div v-if="selected" class="quick-preview">
@@ -16,6 +18,7 @@
         <button class="quick-confirm" @click="onConfirm">确认 ✓</button>
       </div>
     </div>
+    <slot name="footer" />
   </div>
 </template>
 
@@ -25,6 +28,9 @@ import { ref } from 'vue'
 defineProps({ options: { type: Array, default: () => [] } })
 const emit = defineEmits(['confirm'])
 const selected = ref(null)
+
+const SOURCE_LABEL = { my: '我的风格', learned: '学习风格', favorite: '收藏的风格', system: '系统预设' }
+const sourceLabel = (t) => SOURCE_LABEL[t] || ''
 
 const onConfirm = () => {
   if (!selected.value) return
@@ -40,6 +46,9 @@ const onConfirm = () => {
 }
 
 .quick-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px solid var(--color-border-default);
   background: var(--color-bg-card);
   color: var(--color-text-regular);
@@ -48,7 +57,27 @@ const onConfirm = () => {
   border-radius: 16px;
   cursor: pointer;
   transition: all 0.2s;
+  max-width: 220px;
 }
+
+.chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 来源色点：4 种来源对应 4 种颜色 */
+.chip-source {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.chip-source-my { background: #ff2442; }
+.chip-source-learned { background: #2f54eb; }
+.chip-source-favorite { background: #fa8c16; }
+.chip-source-system { background: #bfbfbf; }
 
 .quick-option:hover {
   border-color: var(--color-primary);

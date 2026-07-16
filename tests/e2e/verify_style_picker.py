@@ -57,6 +57,17 @@ def main():
         ok_system_in = any("轻松口语" in l for l in labels) and any("专业严谨" in l for l in labels)
         ok_favorite_in = any("干货导师" in l for l in labels)
 
+        # 视觉：每个 chip 上应有 4 种来源对应的色点（红/蓝/橙/灰）
+        my_dot = page.query_selector(".quick-option:has-text('我的小红书风') .chip-source-my")
+        sys_dot = page.query_selector(".quick-option:has-text('轻松口语') .chip-source-system")
+        fav_dot = page.query_selector(".quick-option:has-text('干货导师') .chip-source-favorite")
+        ok_source_dots = all([my_dot, sys_dot, fav_dot])
+
+        # 「＋ 新建我的风格」入口
+        create_btn = page.query_selector(".quick-create-style")
+        ok_create_btn = create_btn is not None
+        ok_create_btn_text = ok_create_btn and "新建" in create_btn.inner_text()
+
         # 点"我的小红书风" → effect-card 应显示完整 prompt
         page.click(".quick-option:has-text('我的小红书风')")
         page.wait_for_timeout(300)
@@ -99,6 +110,9 @@ def main():
                    ("my-in-list", ok_my_in),
                    ("system-in-list", ok_system_in),
                    ("favorite-in-list", ok_favorite_in),
+                   ("source-dots", ok_source_dots),
+                   ("create-btn-exists", ok_create_btn),
+                   ("create-btn-text", ok_create_btn_text),
                    ("my-tag", ok_my_tag),
                    ("prompt-full", ok_prompt_full),
                    ("favorite-still", ok_favorite_still),
