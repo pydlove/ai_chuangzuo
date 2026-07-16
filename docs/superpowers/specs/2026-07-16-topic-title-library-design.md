@@ -21,7 +21,7 @@
 | id | BIGINT PK | |
 | title | VARCHAR(128) NOT NULL | 标题 |
 | summary | VARCHAR(512) NOT NULL | 标题概要（写作方向） |
-| direction | VARCHAR(256) DEFAULT '' | 生成时用的方向提示词（追溯用） |
+| direction | VARCHAR(1024) DEFAULT '' | 生成时用的方向提示词（追溯用） |
 | use_count | INT NOT NULL DEFAULT 0 | 全站累计使用次数（管理端列表展示） |
 | is_deleted | TINYINT NOT NULL DEFAULT 0 | 逻辑删除 |
 | tenant_id / created_at / updated_at / created_by / updated_by | — | 标准审计列 |
@@ -79,7 +79,7 @@
 {"titles": [{"title": "标题文字", "summary": "这篇文章的核心观点和写作方向"}]}
 ```
 
-5. 解析与入库：清洗可能的前言/代码围栏 → Jackson 解析 → 校验 titles 数组非空、每条 title/summary 非空、截断超长（title 128 / summary 512 / direction 256）→ 批量 insert（direction 落库）
+5. 解析与入库：清洗可能的前言/代码围栏 → Jackson 解析 → 校验 titles 数组非空、每条 title/summary 非空、截断超长（title 128 / summary 512 / direction 1024）→ 批量 insert（direction 落库）
 6. 解析失败：抛业务异常，不入库，管理员可重试
 
 ## 用户端

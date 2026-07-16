@@ -48,7 +48,7 @@ public class TopicTitleService {
 
     private static final int MAX_TITLE_LEN = 128;
     private static final int MAX_SUMMARY_LEN = 512;
-    private static final int MAX_DIRECTION_LEN = 256;
+    private static final int MAX_DIRECTION_LEN = 1024;
 
     private final TopicTitleMapper topicTitleMapper;
     private final ModelConfigMapper modelConfigMapper;

@@ -76,7 +76,6 @@
           <a-textarea
             v-model:value="generateDirection"
             :rows="4"
-            :maxlength="256"
             show-count
             placeholder="职场效率类，面向 25-35 岁打工人"
           />
