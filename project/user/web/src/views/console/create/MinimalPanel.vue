@@ -355,11 +355,17 @@ const handleGenerate = async () => {
 @media (max-width: 768px) {
   .minimal-panel { max-width: 100%; }
 
+  .create-title { font-size: 20px; }
+
+  .minimal-topbar-right { gap: 6px; }
+
+  .minimal-topbar-right .topbar-btn { font-size: 12px; padding: 5px 10px; }
+
   .hero-chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; }
 
   .hero-chips .settings-chip { flex-shrink: 0; }
 
-  .quota-text { display: none; }  /* 移动端额度并入抽屉顶部（Task 8 处理），先隐藏 */
+  .quota-text { display: none; }  /* 移动端额度并入抽屉顶部 */
 
   .hero-action-row { flex-direction: column; align-items: stretch; gap: 12px; }
 

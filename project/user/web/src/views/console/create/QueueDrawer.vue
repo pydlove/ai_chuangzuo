@@ -1,11 +1,16 @@
 <template>
   <a-drawer
     v-model:open="open"
-    title="生成队列"
     placement="right"
     :width="isMobile ? '100%' : 360"
     class="queue-drawer"
   >
+    <template #title>
+      <div class="drawer-title-row">
+        <span>生成队列</span>
+        <span v-if="isMobile" class="quota-text">本月剩余 <strong>{{ quotaRemaining }}</strong> / {{ quotaTotal }} 次</span>
+      </div>
+    </template>
     <template #extra>
       <button class="queue-more-btn" @click="goWorks">查看更多 →</button>
     </template>
@@ -57,6 +62,7 @@ import { useRouter } from 'vue-router'
 import { InboxOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useGenerationQueue, statusText } from './useGenerationQueue.js'
 import { useIsMobile } from '@/composables/useMobile.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['update:open'])
@@ -68,6 +74,9 @@ const open = computed({
 const router = useRouter()
 const isMobile = useIsMobile()
 const { queueList } = useGenerationQueue()
+const { benefits } = useBenefits()
+const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
+const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 const goWorks = () => {
   open.value = false
@@ -76,6 +85,23 @@ const goWorks = () => {
 </script>
 
 <style scoped>
+.drawer-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.drawer-title-row .quota-text {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.drawer-title-row .quota-text strong {
+  color: var(--color-primary);
+}
+
 .queue-more-btn {
   background: none;
   border: none;
@@ -358,8 +384,9 @@ body[data-theme="dark"] .queue-more-btn:hover {
 </style>
 
 <style>
-/* a-drawer 内容 teleport 到 body，暗色覆盖需全局 */
-body[data-theme="dark"] .queue-drawer .ant-drawer-content {
+/* a-drawer 内容 teleport 到 body，暗色覆盖需全局；
+   class="queue-drawer" 挂在 .ant-drawer-content 同一元素上，须用复合选择器 */
+body[data-theme="dark"] .queue-drawer.ant-drawer-content {
   background: #1f1f1f;
 }
 
