@@ -3,6 +3,7 @@ com/aichuangzuo/admin/modules/hotsearch/job/HotSearchCrawlJobTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/IntentAnchorStepTest.class
 com/aichuangzuo/admin/modules/order/service/AdminOrderServiceTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipelineTest.class
+com/aichuangzuo/admin/modules/topictitle/service/TopicTitleServiceTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/WordCountStepTest.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnArticleServiceImplTest.class
 com/aichuangzuo/admin/modules/generation/service/GenerationAiServiceModelParamsTest.class
@@ -13,6 +14,7 @@ com/aichuangzuo/admin/modules/generation/pipeline/steps/ExportRenderStepTest.cla
 com/aichuangzuo/admin/modules/generation/service/GenerationTaskServiceTest.class
 com/aichuangzuo/admin/modules/reminder/service/ExpireReminderServiceTest.class
 com/aichuangzuo/admin/modules/feedback/service/AdminFeedbackServiceTest.class
+com/aichuangzuo/admin/modules/generation/pipeline/steps/PublishMetaStepTest.class
 com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigServiceTest.class
 com/aichuangzuo/admin/modules/generation/pipeline/ProgressWeightTest.class
 com/aichuangzuo/shared/utils/AesUtilTest.class

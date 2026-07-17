@@ -1,74 +1,129 @@
 package com.aichuangzuo.admin.modules.generation.pipeline.steps;
 
-import com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage;
+import com.aichuangzuo.admin.modules.exporttemplate.entity.ExportTemplate;
+import com.aichuangzuo.admin.modules.exporttemplate.mapper.ExportTemplateMapper;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 /**
  * ExportRenderStep 行为测试：
  * <ul>
  *   <li>无 finalDraft → 抛异常</li>
- *   <li>正常渲染 → format=markdown / platform 取自 templateId 前缀 / renderedDocument 非空</li>
- *   <li>templateId=xiaohongshu → platform=xiaohongshu 且文本含 #小红书</li>
+ *   <li>从 task input 读 template key，查库拿签名</li>
+ *   <li>签名在尾部（end）或头部（start）</li>
+ *   <li>模板无签名 → body 不追加</li>
+ *   <li>body 不含 title</li>
+ *   <li>responsibility 渲染为 ## (N) resp 小标题</li>
  *   <li>fallbackToPlainText：draft JSON 不合法时返回原文</li>
  * </ul>
  */
 class ExportRenderStepTest {
 
-    private static GenerationContext ctx(String templateId, String finalDraftJson) {
+    private ExportTemplateMapper templateMapper;
+    private ExportRenderStep step;
+
+    @BeforeEach
+    void setUp() {
+        templateMapper = mock(ExportTemplateMapper.class);
+        step = new ExportRenderStep(templateMapper);
+    }
+
+    private static GenerationContext ctx(String templateKey, String finalDraftJson) {
         GenerationContext ctx = new GenerationContext();
         Map<String, Object> input = new HashMap<>();
         input.put("title", "测试标题");
+        input.put("template", templateKey);
+        input.put("platform", "wechat");
         ctx.setInput(input);
-        Map<Integer, PromptTemplateStage> stages = new HashMap<>();
-        PromptTemplateStage s12 = new PromptTemplateStage();
-        s12.setStageIndex(12);
-        s12.setRuleConfig("{\"templateId\":\"" + templateId + "\",\"fallbackToPlainText\":true}");
-        stages.put(12, s12);
-        ctx.setStages(stages);
         ctx.setFinalDraftJson(finalDraftJson);
         return ctx;
     }
 
+    private ExportTemplate tpl(String key, String sigText, String sigPos) {
+        ExportTemplate t = new ExportTemplate();
+        t.setTemplateKey(key);
+        t.setSignatureText(sigText);
+        t.setSignaturePosition(sigPos);
+        return t;
+    }
+
     @Test
     void process_shouldThrowWhenFinalDraftNull() {
-        ExportRenderStep step = new ExportRenderStep();
         GenerationContext ctx = new GenerationContext();
         assertThrows(RuntimeException.class, () -> step.process(ctx));
     }
 
     @Test
-    void process_shouldRenderWechatDefault() {
-        ExportRenderStep step = new ExportRenderStep();
-        String draft = "{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"建立好奇\",\"content\":\"第 1 段内容\"}]}";
-        GenerationContext ctx = ctx("wechat_default", draft);
+    void process_shouldAppendEndSignature() {
+        when(templateMapper.selectByKey("wechat")).thenReturn(tpl("wechat", "— 完 —", "end"));
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("wechat", draft);
 
         step.process(ctx);
 
-        GenerationContext.ExportResult r = ctx.getExportResult();
-        assertNotNull(r);
-        assertEquals("markdown", r.getFormat());
-        assertEquals("wechat", r.getPlatform());
-        assertTrue(r.getRenderedDocument().contains("第 1 段内容"));
-        assertTrue(r.getRenderedDocument().contains("— 完 —"));
+        String doc = ctx.getExportResult().getRenderedDocument();
+        assertTrue(doc.endsWith("— 完 —"), "尾部应有微信签名");
+        assertTrue(doc.contains("内容"));
+    }
+
+    @Test
+    void process_shouldPrependStartSignature() {
+        when(templateMapper.selectByKey("zhihu-answer")).thenReturn(tpl("zhihu-answer", "> 本文由爱创作 AI 生成。", "start"));
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("zhihu-answer", draft);
+
+        step.process(ctx);
+
+        String doc = ctx.getExportResult().getRenderedDocument();
+        assertTrue(doc.startsWith("> 本文由爱创作 AI 生成。"), "头部应有知乎签名");
+    }
+
+    @Test
+    void process_shouldAppendXiaohongshuSignature() {
+        when(templateMapper.selectByKey("xiaohongshu")).thenReturn(tpl("xiaohongshu", "#小红书 #爱创作", "end"));
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("xiaohongshu", draft);
+
+        step.process(ctx);
+
+        assertTrue(ctx.getExportResult().getRenderedDocument().endsWith("#小红书 #爱创作"));
+    }
+
+    @Test
+    void process_shouldNotAppendWhenSignatureNull() {
+        when(templateMapper.selectByKey("dark")).thenReturn(tpl("dark", null, "end"));
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("dark", draft);
+
+        step.process(ctx);
+
+        assertEquals("内容", ctx.getExportResult().getRenderedDocument().trim());
+    }
+
+    @Test
+    void process_shouldNotAppendWhenTemplateNotFound() {
+        when(templateMapper.selectByKey(anyString())).thenReturn(null);
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("nonexistent", draft);
+
+        step.process(ctx);
+
+        assertEquals("内容", ctx.getExportResult().getRenderedDocument().trim());
     }
 
     @Test
     void process_shouldRenderResponsibilityAsH2() {
-        // responsibility 是文章的小标题结构，应以 `## (N) resp` 形式写进 body，
-        // 前端按 markdown H2 渲染（不要按字面 ## 显示，也不要删除）。
-        ExportRenderStep step = new ExportRenderStep();
+        when(templateMapper.selectByKey(anyString())).thenReturn(tpl("wechat", null, "end"));
         String draft = "{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"建立好奇\",\"content\":\"内容\"}]}";
-        GenerationContext ctx = ctx("wechat_default", draft);
+        GenerationContext ctx = ctx("wechat", draft);
 
         step.process(ctx);
 
@@ -79,41 +134,34 @@ class ExportRenderStepTest {
 
     @Test
     void process_shouldNotEmbedTitleInBody() {
-        // body 不能含 title：preview/编辑/卡片页都单独读 article.title，
-        // 后端再塞就会出现双标题（preview 页 h1 + body 第一行各渲染一次）。
-        ExportRenderStep step = new ExportRenderStep();
+        when(templateMapper.selectByKey(anyString())).thenReturn(tpl("wechat", "— 完 —", "end"));
         String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
-
-        for (String tpl : new String[]{"wechat_default", "xiaohongshu_default",
-                "toutiao_default", "zhihu_default", "baijiahao_default",
-                "douyin_default", "general_default"}) {
-            GenerationContext ctx = ctx(tpl, draft);
-            step.process(ctx);
-            assertFalse(ctx.getExportResult().getRenderedDocument().contains("测试标题"),
-                    "templateId=" + tpl + " 不应在 body 嵌入 title");
-        }
-    }
-
-    @Test
-    void process_shouldRenderXiaohongshuPlatform() {
-        ExportRenderStep step = new ExportRenderStep();
-        String draft = "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}";
-        GenerationContext ctx = ctx("xiaohongshu_default", draft);
+        GenerationContext ctx = ctx("wechat", draft);
 
         step.process(ctx);
 
-        assertEquals("xiaohongshu", ctx.getExportResult().getPlatform());
-        assertTrue(ctx.getExportResult().getRenderedDocument().contains("#小红书"));
+        assertFalse(ctx.getExportResult().getRenderedDocument().contains("测试标题"),
+                "body 不应嵌入 title");
     }
 
     @Test
     void process_shouldFallbackToRawJsonWhenDraftUnparseable() {
-        ExportRenderStep step = new ExportRenderStep();
-        GenerationContext ctx = ctx("general_default", "not-a-json");
+        when(templateMapper.selectByKey(anyString())).thenReturn(tpl("wechat", null, "end"));
+        GenerationContext ctx = ctx("wechat", "not-a-json");
 
         step.process(ctx);
 
-        // renderDraft 解析失败 → 返回原文 JSON；wrapByTemplate(general) 不加装饰
         assertTrue(ctx.getExportResult().getRenderedDocument().contains("not-a-json"));
+    }
+
+    @Test
+    void process_shouldUseInputPlatform() {
+        when(templateMapper.selectByKey(anyString())).thenReturn(tpl("wechat", null, "end"));
+        GenerationContext ctx = ctx("wechat", "{\"draft\":[{\"paragraph_index\":1,\"content\":\"内容\"}]}");
+        ctx.getInput().put("platform", "xiaohongshu");
+
+        step.process(ctx);
+
+        assertEquals("xiaohongshu", ctx.getExportResult().getPlatform());
     }
 }

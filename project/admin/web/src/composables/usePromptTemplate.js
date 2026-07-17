@@ -56,8 +56,8 @@ export function usePromptTemplate() {
   }
 
   /**
-   * 12 阶段编辑器用的 payload 构造。
-   * 每次保存时按 stages 数组里每个 stage 的 stageIndex 1-12 一起提交。
+   * 13 阶段编辑器用的 payload 构造。
+   * 每次保存时按 stages 数组里每个 stage 的 stageIndex 1-13 一起提交。
    */
   const buildPayload = (form) => ({
     name: form.name?.trim(),
@@ -73,7 +73,7 @@ export function usePromptTemplate() {
 
   const handleCreate = async (payload) => {
     const id = await createTemplate(payload)
-    message.success('已创建 12 阶段默认模板')
+    message.success('已创建 13 阶段默认模板')
     return id
   }
 
@@ -88,13 +88,13 @@ export function usePromptTemplate() {
     await fetch()
   }
 
-  /** 老模板补齐 12 阶段默认值。 */
+  /** 老模板补齐 13 阶段默认值。 */
   const handleInitStages = async (id) => {
     const inserted = await initTemplateStages(id)
     if (inserted > 0) {
       message.success(`已初始化 ${inserted} 个阶段`)
     } else {
-      message.info('该模板已有 12 阶段，无需初始化')
+      message.info('该模板已有 13 阶段，无需初始化')
     }
     return inserted
   }

@@ -1,6 +1,12 @@
 <template>
   <div class="guided-hero">
-    <h1 class="hero-brand">爱 创 作</h1>
+    <div class="hero-header">
+      <div class="hero-title-row">
+        <img class="hero-avatar" src="/ai-avatar.png" alt="AI" />
+        <h1 class="hero-brand">爱 创 作</h1>
+      </div>
+      <div class="hero-slogan">{{ heroSlogan }}</div>
+    </div>
 
     <div class="hero-input-box" :class="{ active: topicInput.length > 0 }">
       <textarea
@@ -41,7 +47,15 @@
       </div>
     </div>
     <button v-else class="hero-inspire-btn" @click="expandInspire">
-      💡 没灵感？试试点我
+      <svg class="inspire-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18h6"/>
+        <path d="M10 22h4"/>
+        <path d="M15.09 14c.18-.9.27-1.48.27-2.26A5.24 5.24 0 0 0 10 6.5 5.24 5.24 0 0 0 4.64 11.74c0 .78.09 1.36.27 2.26"/>
+        <path d="M12 2v2"/>
+        <path d="M4.22 4.22l1.42 1.42"/>
+        <path d="M19.78 4.22l-1.42 1.42"/>
+      </svg>
+      <span>没灵感？试试点我</span>
     </button>
   </div>
 </template>
@@ -49,13 +63,19 @@
 <script setup>
 import { ref } from 'vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
+import { useCreateForm } from './useCreateForm.js'
 
 const emit = defineEmits(['submit'])
 const topicInput = ref('')
+const heroSlogan = ref('输入一个主题，AI 自动帮你写选题、写正文、排排版')
+const { customTitle, customRequirement } = useCreateForm()
 
 const submit = () => {
   const text = topicInput.value.trim()
   if (!text) return
+  // 带上已选灵感的 summary（如果有）
+  customTitle.value = text
+  // requirement 由 applyTopic 设置；如果是手动敲字没点灵感，留空
   emit('submit', text)
 }
 
@@ -70,7 +90,7 @@ let revealTimer = null
 const loadTopics = async () => {
   try {
     const list = await fetchRandomTopics(6)
-    topics.value = (list || []).map(t => ({ id: t.id, title: t.title }))
+    topics.value = (list || []).map(t => ({ id: t.id, title: t.title, summary: t.summary }))
   } catch {
     topics.value = []
   }
@@ -106,7 +126,10 @@ const refreshInspire = () => {
 }
 
 const applyTopic = (t) => {
+  // 把标题+观点一起回填（不仅标题），后续进入主题步骤时 description 会预填
   topicInput.value = t.title
+  customTitle.value = t.title
+  customRequirement.value = t.summary || ''
   markTopicUsed(t.id).catch(() => {})
 }
 </script>
@@ -116,23 +139,55 @@ const applyTopic = (t) => {
   min-height: calc(100vh - 200px);
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   padding: 24px;
   gap: 28px;
 }
 
+.hero-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  align-self: center;
+}
+
+.hero-title-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hero-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
 .hero-brand {
   margin: 0;
-  font-size: 64px;
+  font-size: 36px;
   font-weight: 700;
   color: var(--color-text-primary);
-  letter-spacing: 8px;
+  letter-spacing: 4px;
+  text-align: left;
+}
+
+.hero-slogan {
+  font-size: 14px;
+  color: var(--color-text-secondary);
   text-align: center;
+  line-height: 1.6;
+  max-width: 420px;
 }
 
 .hero-input-box {
   width: min(720px, 100%);
+  align-self: center;
   height: 130px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
@@ -197,6 +252,9 @@ const applyTopic = (t) => {
 
 /* ===== 灵感入口 ===== */
 .hero-inspire-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   border: 1px dashed var(--color-border-default);
   background: var(--color-bg-card);
   color: var(--color-text-secondary);
@@ -205,6 +263,20 @@ const applyTopic = (t) => {
   border-radius: 18px;
   cursor: pointer;
   transition: all 0.2s;
+  align-self: flex-start;
+  margin-left: calc((100% - min(720px, 100%)) / 2);
+}
+
+@media (max-width: 768px) {
+  .hero-inspire-btn {
+    margin-left: 0;
+  }
+}
+
+.hero-inspire-btn .inspire-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .hero-inspire-btn:hover {
@@ -218,7 +290,15 @@ const applyTopic = (t) => {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  align-self: flex-start;
   gap: 12px;
+  margin-left: calc((100% - min(720px, 100%)) / 2);
+}
+
+@media (max-width: 768px) {
+  .hero-inspire {
+    margin-left: 0;
+  }
 }
 
 .hero-inspire-loading {
@@ -331,8 +411,16 @@ body[data-theme="dark"] .hero-send:not(:disabled) {
 
 @media (max-width: 768px) {
   .hero-brand {
-    font-size: 44px;
+    font-size: 32px;
     letter-spacing: 4px;
+  }
+  .hero-avatar {
+    width: 48px;
+    height: 48px;
+  }
+  .hero-slogan {
+    font-size: 13px;
+    max-width: 320px;
   }
   .guided-hero {
     gap: 24px;

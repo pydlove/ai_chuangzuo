@@ -72,6 +72,7 @@ public class DraftServiceImpl implements DraftService {
         draft.setWordCount(request.getWordCount() == null ? 0 : Math.max(0, request.getWordCount()));
         draft.setStyle(request.getStyle());
         draft.setTemplate(request.getTemplate());
+        draft.setCreateMode(request.getCreateMode());
         draft.setSavedAt(LocalDateTime.now());
         draftMapper.insert(draft);
         log.info("保存草稿完成 userId={}, bizNo={}", userId, draft.getBizNo());
@@ -109,6 +110,10 @@ public class DraftServiceImpl implements DraftService {
         }
         if (request.getTemplate() != null) {
             wrapper.set(Draft::getTemplate, request.getTemplate());
+            touched = true;
+        }
+        if (request.getCreateMode() != null) {
+            wrapper.set(Draft::getCreateMode, request.getCreateMode());
             touched = true;
         }
         // 每次 update 都把 savedAt 滚到当前，便于草稿箱按保存时间排序
@@ -151,6 +156,7 @@ public class DraftServiceImpl implements DraftService {
         vo.setWordCount(draft.getWordCount());
         vo.setStyle(draft.getStyle());
         vo.setTemplate(draft.getTemplate());
+        vo.setCreateMode(draft.getCreateMode());
         vo.setSavedAt(draft.getSavedAt());
         vo.setCreatedAt(draft.getCreatedAt());
         vo.setUpdatedAt(draft.getUpdatedAt());

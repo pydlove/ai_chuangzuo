@@ -1,6 +1,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/ArticleServiceMonthlyCountTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/ArticleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/DraftServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/article/service/TitleOptimizeServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/mail/EmailMessageFactoryTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceLoginTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/AuthServiceRefreshAfterResetTest.java
@@ -21,7 +22,9 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/message/service/MessageServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/StyleAnalyzeServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/topic/service/TopicTitleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/mapper/UserMapperExistsByEmailTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/service/UserProfileServiceEmailTest.java

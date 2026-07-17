@@ -24,4 +24,10 @@ public class SaveDraftRequest {
 
     @Size(max = 64)
     private String template;
+
+    /**
+     * 创建模式：guided-引导模式，minimal-熟手模式。
+     */
+    @Size(max = 16)
+    private String createMode;
 }

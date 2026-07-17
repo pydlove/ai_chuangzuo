@@ -11,6 +11,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/AbstractAiStepTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/ExportRenderStepTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/IntentAnchorStepTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/PublishMetaStepTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/RhythmDetectStepTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/pipeline/steps/WordCountStepTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/generation/service/GenerationAiServiceModelParamsTest.java
@@ -34,5 +35,6 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/reminder/service/ExpireReminderServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylemarket/service/StyleMarketAdminServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/stylereview/service/StyleReviewServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/topictitle/service/TopicTitleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/admin/modules/user/service/AdminUserServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/test/java/com/aichuangzuo/shared/utils/AesUtilTest.java

@@ -18,6 +18,7 @@ com/aichuangzuo/shared/result/Result.class
 com/aichuangzuo/shared/creative/TemplateStatus.class
 com/aichuangzuo/shared/entity/BaseEntity.class
 com/aichuangzuo/shared/enums/error/AdminAuthErrorCode.class
+com/aichuangzuo/shared/entity/TopicTitle.class
 com/aichuangzuo/shared/enums/GenerationTaskStatus.class
 com/aichuangzuo/shared/enums/error/UserAuthErrorCode.class
 com/aichuangzuo/shared/enums/error/UserGenerationErrorCode.class

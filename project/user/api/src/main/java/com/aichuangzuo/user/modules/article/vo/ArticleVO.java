@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 作品详情 VO。
@@ -30,6 +31,12 @@ public class ArticleVO {
     private String template;
 
     private Integer wordCount;
+
+    /** 发布描述（pipeline 第 13 阶段 AI 生成）。 */
+    private String description;
+
+    /** 推荐标签（pipeline 第 13 阶段 AI 生成）。 */
+    private List<String> tags;
 
     private LocalDateTime completedAt;
 

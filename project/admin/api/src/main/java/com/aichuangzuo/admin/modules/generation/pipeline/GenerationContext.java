@@ -47,7 +47,7 @@ public class GenerationContext {
     /**
      * 任务允许调 AI 的总次数（默认 50）。
      *
-     * <p>覆盖 12 阶段流水线最坏情况：8 个 AI 阶段 × 4 次最坏尝试（1 首次 + 3 重试）= 32，
+     * <p>覆盖 13 阶段流水线最坏情况：9 个 AI 阶段 × 4 次最坏尝试（1 首次 + 3 重试）= 36，
      * 留余量到 50。如果未来加阶段或调高重试上限需要重评此值。
      *
      * <p>为什么保留 budget 而不是只用 retry 上限：budget 是「防失控」兜底，
@@ -73,7 +73,7 @@ public class GenerationContext {
     /** 当前 stage 的 AI 调用参数（来自 stage.modelParams）。每 step 启动时由编排器设入。 */
     private Map<String, Object> modelParams;
 
-    // ===== 12 阶段产出（按 stageIndex 顺序填充）=====
+    // ===== 13 阶段产出（按 stageIndex 顺序填充）=====
 
     /** Stage 1：拼好的 user_context_block 文本。 */
     private String userContextBlock;
@@ -110,6 +110,12 @@ public class GenerationContext {
 
     /** Stage 12：导出模板渲染结果。 */
     private ExportResult exportResult;
+
+    /** Stage 13：发布描述（AI 生成，80-120 字摘要）。 */
+    private String publishDescription;
+
+    /** Stage 13：推荐标签（AI 生成，4-6 个）。 */
+    private List<String> publishTags = new ArrayList<>();
 
     // ===== 收尾（PersistArticleStep 写入）=====
     /** 最终落库的 article 业务号。 */

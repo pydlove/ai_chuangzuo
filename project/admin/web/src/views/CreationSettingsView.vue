@@ -60,7 +60,7 @@
           <a-divider orientation="left">AI 调用默认参数</a-divider>
 
           <p class="section-tip">
-            12 阶段模板未配置 model_params 时回落到这里。
+            13 阶段模板未配置 model_params 时回落到这里。
             修改后下一个任务立即生效。
           </p>
 

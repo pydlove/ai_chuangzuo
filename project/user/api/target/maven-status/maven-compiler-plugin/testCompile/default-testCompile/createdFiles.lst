@@ -1,4 +1,5 @@
 com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.class
+com/aichuangzuo/user/modules/topic/service/TopicTitleServiceTest.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.class
 com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class
@@ -21,6 +22,7 @@ com/aichuangzuo/user/modules/auth/service/AuthServiceLoginTest.class
 com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceTokenTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceResetPasswordTest.class
+com/aichuangzuo/user/modules/style/service/StyleAnalyzeServiceImplTest.class
 com/aichuangzuo/user/modules/leaderboard/service/IncomeSubmissionServiceTest.class
 com/aichuangzuo/user/modules/auth/service/EmailCodeServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceRefreshAfterResetTest.class
@@ -28,3 +30,4 @@ com/aichuangzuo/user/modules/user/mapper/UserMapperExistsByEmailTest.class
 com/aichuangzuo/user/modules/generation/service/GenerationRateLimiterTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceEmailTest.class
 com/aichuangzuo/user/modules/feedback/service/FeedbackServiceTest.class
+com/aichuangzuo/user/modules/article/service/TitleOptimizeServiceTest.class

@@ -16,7 +16,7 @@ class ProgressWeightTest {
         for (PipelineStage s : PipelineStage.ALL) {
             sum += s.weight;
         }
-        assertEquals(100, sum, "12 阶段 + persist 阶段的 weight 合计必须为 100");
+        assertEquals(100, sum, "13 阶段 + persist 阶段的 weight 合计必须为 100");
     }
 
     @Test

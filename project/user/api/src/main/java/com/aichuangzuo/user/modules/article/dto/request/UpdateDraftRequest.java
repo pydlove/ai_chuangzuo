@@ -28,6 +28,12 @@ public class UpdateDraftRequest {
     private String template;
 
     /**
+     * 创建模式：guided-引导模式，minimal-熟手模式。
+     */
+    @Size(max = 16)
+    private String createMode;
+
+    /**
      * 重新保存时间；为 null 时服务端用 now()。
      */
     private LocalDateTime savedAt;

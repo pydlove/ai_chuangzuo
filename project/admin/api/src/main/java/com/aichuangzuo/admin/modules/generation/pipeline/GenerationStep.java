@@ -1,15 +1,15 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
 /**
- * 12 阶段流水线的一个步骤。
+ * 13 阶段流水线的一个步骤。
  *
  * <p>实现类应该是无状态的（Spring 单例 bean），所有可变状态走 {@link GenerationContext}。
  */
 public interface GenerationStep {
 
     /**
-     * 阶段序号 1-12。pipeline 按序号升序调用。
-     * PersistArticleStep 等非 12 阶段用 {@code > 12}（如 100）。
+     * 阶段序号 1-13。pipeline 按序号升序调用。
+     * PersistArticleStep 等非 13 阶段用 {@code > 13}（如 100）。
      */
     int stageIndex();
 

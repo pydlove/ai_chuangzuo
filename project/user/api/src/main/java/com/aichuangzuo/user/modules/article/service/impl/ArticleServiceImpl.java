@@ -13,6 +13,7 @@ import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -82,6 +83,8 @@ public class ArticleServiceImpl implements ArticleService {
         article.setPlatform(request.getPlatform());
         article.setStyle(request.getStyle());
         article.setTemplate(request.getTemplate());
+        article.setDescription(StringUtils.hasText(request.getDescription()) ? request.getDescription().trim() : null);
+        article.setTagsJson(toTagsJson(request.getTags()));
         article.setWordCount(request.getWordCount() == null ? 0 : Math.max(0, request.getWordCount()));
         article.setCompletedAt(request.getCompletedAt() != null ? request.getCompletedAt() : LocalDateTime.now());
         articleMapper.insert(article);
@@ -147,6 +150,8 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setPlatform(article.getPlatform());
         vo.setStyle(article.getStyle());
         vo.setTemplate(article.getTemplate());
+        vo.setDescription(article.getDescription());
+        vo.setTags(parseTags(article.getTagsJson()));
         vo.setWordCount(article.getWordCount());
         vo.setCompletedAt(article.getCompletedAt());
         vo.setCreatedAt(article.getCreatedAt());
@@ -172,6 +177,28 @@ public class ArticleServiceImpl implements ArticleService {
         }
         try {
             return objectMapper.readValue(raw, Object.class);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private String toTagsJson(List<String> tags) {
+        if (tags == null || tags.isEmpty()) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(tags);
+        } catch (JsonProcessingException e) {
+            return null;
+        }
+    }
+
+    private List<String> parseTags(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(raw, new TypeReference<List<String>>() {});
         } catch (JsonProcessingException e) {
             return null;
         }

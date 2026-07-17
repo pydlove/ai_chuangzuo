@@ -1,5 +1,16 @@
 <template>
   <div class="create-index">
+    <div class="topbar-right">
+      <span class="quota-text">本月剩余 <strong>{{ quotaRemaining }}</strong> / {{ quotaTotal }} 次</span>
+      <button class="topbar-btn" @click="queueOpen = true">
+        队列<template v-if="activeCount > 0">（{{ activeCount }}）</template>
+      </button>
+      <div class="mode-switch">
+        <button :class="['mode-tab', { active: createMode === 'guided' }]" @click="setCreateMode('guided')">引导模式</button>
+        <button :class="['mode-tab', { active: createMode === 'minimal' }]" @click="setCreateMode('minimal')">熟手模式</button>
+      </div>
+    </div>
+
     <GuidedChat v-if="createMode === 'guided'" />
     <MinimalPanel v-else />
 
@@ -44,15 +55,17 @@ const allTemplates = computed(() => apiTemplates.value)
 
 // 创作表单共享状态（composable 单例）
 const {
-  createMode, customTitle, customRequirement,
+  createMode, setCreateMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey
 } = useCreateForm()
 
 // 生成队列（composable 单例：抽屉 + 轮询）
-const { queueOpen, startPolling, stopPolling } = useGenerationQueue()
+const { queueOpen, activeCount, startPolling, stopPolling } = useGenerationQueue()
 
-// 额度（ConsoleLayout 登录时已加载，这里仅确保最新）
-const { loadBenefits } = useBenefits()
+// 额度（顶部统一显示：两种模式都能看到）
+const { benefits, loadBenefits } = useBenefits()
+const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
+const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
@@ -106,6 +119,8 @@ onUnmounted(stopPolling)
 const restoreDraft = (draft) => {
   customTitle.value = draft.customTitle || ''
   customRequirement.value = draft.customRequirement || ''
+  // 草稿从哪儿保存的，恢复到对应模式；默认走引导模式
+  createMode.value = draft.createMode === 'minimal' ? 'minimal' : 'guided'
   if (draft.platform) {
     const platformKey = typeof draft.platform === 'object' ? draft.platform.key : draft.platform
     const p = platforms.find(x => x.key === platformKey)
@@ -141,10 +156,95 @@ const restoreDraft = (draft) => {
   padding: 24px 24px 40px;
   background:
     radial-gradient(600px 300px at 50% -80px, rgba(255, 36, 66, 0.05), transparent 70%);
+  position: relative;
 }
 
 body[data-theme="dark"] .create-index {
   background:
     radial-gradient(600px 300px at 50% -80px, rgba(255, 36, 66, 0.08), transparent 70%);
+}
+
+/* 内容区右上角控件组：额度 + 队列 + 模式切换（两模式统一可见） */
+.topbar-right {
+  position: absolute;
+  top: 0;
+  right: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 10;
+  max-width: calc(100vw - 32px);
+  pointer-events: none;
+}
+
+.topbar-right > * {
+  pointer-events: auto;
+}
+
+.topbar-right .quota-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.topbar-right .quota-text strong {
+  color: var(--color-primary);
+  margin: 0 2px;
+}
+
+.topbar-right .topbar-btn {
+  border: none;
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.topbar-right .topbar-btn:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+/* 模式切换 tab（互斥） */
+.mode-switch {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-bg-card);
+  border-radius: 22px;
+  padding: 4px;
+  pointer-events: auto;
+}
+
+.mode-tab {
+  border: none;
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  padding: 6px 14px;
+  border-radius: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.mode-tab:hover {
+  color: var(--color-primary);
+}
+
+.mode-tab.active {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+@media (max-width: 768px) {
+  .topbar-right {
+    top: 4px;
+    right: 4px;
+    gap: 8px;
+  }
+  .topbar-right .quota-text { font-size: 11px; }
+  .topbar-right .topbar-btn { padding: 4px 10px; font-size: 12px; }
+  .mode-tab { padding: 4px 10px; font-size: 12px; }
 }
 </style>

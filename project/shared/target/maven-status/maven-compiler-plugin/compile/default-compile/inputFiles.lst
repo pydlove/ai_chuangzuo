@@ -6,6 +6,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/GenerationTask.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/PromptTemplate.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/PromptTemplateVersion.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/TopicTitle.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/GenerationTaskStatus.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/error/AdminAuthErrorCode.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.java

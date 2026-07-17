@@ -11,6 +11,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -49,6 +51,9 @@ public class GenerationTaskInternalController {
         req.setPlatform(asString(payload.get("platform")));
         req.setStyle(asString(payload.get("style")));
         req.setTemplate(asString(payload.get("template")));
+        String description = asString(payload.get("description"));
+        req.setDescription(description.isEmpty() ? null : description);
+        req.setTags(asStringList(payload.get("tags")));
         req.setWordCount(asInt(payload.get("wordCount")));
         req.setCompletedAt(LocalDateTime.now());
 
@@ -87,5 +92,16 @@ public class GenerationTaskInternalController {
     private static String asString(Object o) {
         if (o == null) return "";
         return o.toString();
+    }
+
+    private static List<String> asStringList(Object o) {
+        if (!(o instanceof List<?> list)) return null;
+        List<String> result = new ArrayList<>();
+        for (Object item : list) {
+            if (item != null && !item.toString().isBlank()) {
+                result.add(item.toString());
+            }
+        }
+        return result.isEmpty() ? null : result;
     }
 }

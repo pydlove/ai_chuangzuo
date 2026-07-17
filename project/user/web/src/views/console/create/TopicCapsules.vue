@@ -62,6 +62,7 @@ defineExpose({ loadTopics })
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 16px;
   margin-bottom: 16px;
   flex-shrink: 0;
   min-width: 0;
@@ -76,7 +77,7 @@ defineExpose({ loadTopics })
 
 .topic-capsules-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
@@ -132,12 +133,7 @@ defineExpose({ loadTopics })
   color: var(--color-primary);
 }
 
-
 @media (max-width: 768px) {
-  .topic-capsules-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .refresh-capsule {
     align-self: center;
   }

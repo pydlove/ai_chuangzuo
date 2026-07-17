@@ -26,6 +26,8 @@ public class DraftVO {
 
     private String template;
 
+    private String createMode;
+
     private LocalDateTime savedAt;
 
     private LocalDateTime createdAt;

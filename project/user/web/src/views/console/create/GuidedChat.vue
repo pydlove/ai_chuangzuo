@@ -4,7 +4,6 @@
   <div v-else class="guided-chat">
     <div class="guided-topbar">
       <h2 class="create-title">开始创作</h2>
-      <button class="topbar-btn" @click="setCreateMode('minimal')">熟手模式 →</button>
     </div>
 
     <div ref="msgListEl" class="chat-list">
@@ -25,6 +24,14 @@
             />
             <button class="topic-send" @click="submitTopic(topicInput)">发送</button>
           </div>
+          <textarea
+            v-model="requirementInput"
+            class="topic-requirement"
+            placeholder="你希望文章突出什么观点？或想从什么角度展开？（可选）"
+            rows="2"
+            maxlength="500"
+          ></textarea>
+          <div class="topic-requirement-hint">{{ (requirementInput || '').length }} / 500</div>
           <TopicSuggestionBubble @select="onTopicCapsule" />
         </template>
 
@@ -74,7 +81,8 @@
         <!-- 步骤 4：确认卡片 -->
         <template v-else-if="m.kind === 'confirm'">
           <div class="confirm-card">
-            <div class="confirm-title">📄 {{ customTitle }}</div>
+            <div class="confirm-title">{{ customTitle }}</div>
+            <div v-if="customRequirement" class="confirm-requirement">{{ customRequirement }}</div>
             <div class="confirm-meta">
               {{ currentPlatform?.name || '未选' }} · {{ currentStyle?.name || '默认风格' }} · {{ currentTemplate?.name || '默认模板' }}
             </div>
@@ -86,6 +94,7 @@
               <button class="confirm-edit" @click="editPlatform">改平台</button>
               <button class="confirm-edit" @click="editStyle">改风格</button>
               <button class="confirm-edit" @click="editTemplate">改模板</button>
+              <button class="confirm-edit" @click="handleSaveDraft">保存草稿</button>
             </div>
           </div>
         </template>
@@ -99,7 +108,7 @@
         <!-- 进度卡片 -->
         <template v-else-if="m.kind === 'progress'">
           <div class="confirm-card">
-            <div class="confirm-title">📄 {{ customTitle }}</div>
+            <div class="confirm-title">{{ customTitle }}</div>
             <template v-if="m.status === 'generating'">
               <div class="chat-progress">
                 <div class="chat-progress-fill" :style="{ width: Math.min(100, Math.round(m.progress)) + '%' }"></div>
@@ -118,7 +127,7 @@
         <!-- 结果卡片 -->
         <template v-else-if="m.kind === 'result'">
           <div class="confirm-card">
-            <div class="confirm-title">✅ {{ customTitle }}</div>
+            <div class="confirm-title">{{ customTitle }}</div>
             <div class="confirm-meta">已生成完成</div>
             <div class="confirm-actions">
               <button class="confirm-generate" @click="router.push('/console/works')">查看文章</button>
@@ -146,10 +155,11 @@ import { favoriteStyles } from '@/composables/useStyleMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration, getGenerationTask, retryGenerationTask } from '@/api/generation.js'
+import { saveDraft } from '@/api/draft.js'
 
 const router = useRouter()
 const {
-  setCreateMode, customTitle, customRequirement,
+  createMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey,
   templateVisible, styleVisible
 } = useCreateForm()
@@ -164,12 +174,23 @@ const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === se
 let seq = 0
 const messages = ref([])
 const topicInput = ref('')
+const requirementInput = ref('')  // 主题步骤的可选描述输入（与 customRequirement 双向同步）
 const msgListEl = ref(null)
 
 const scrollToBottom = async () => {
   await nextTick()
+  // chat-list 不再自己滚动；找到最近的滚动容器（console-content）并滚到底部
   const el = msgListEl.value
-  if (el) el.scrollTop = el.scrollHeight
+  if (!el) return
+  let scrollEl = el
+  while (scrollEl && scrollEl !== document.body) {
+    const style = getComputedStyle(scrollEl)
+    if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+      break
+    }
+    scrollEl = scrollEl.parentElement
+  }
+  if (scrollEl) scrollEl.scrollTop = scrollEl.scrollHeight
 }
 
 const push = (msg) => {
@@ -189,10 +210,14 @@ onMounted(async () => {
 
 const isHeroState = computed(() => messages.value.length === 0)
 
+// hero → 进入聊天态：先回显用户输入，再展示主题步骤（让用户能补描述，再去平台）
+// 如果用户在 hero 里点了灵感，customRequirement 已经被 applyTopic 写好，不要清
 const onHeroSubmit = (text) => {
   customTitle.value = text
+  topicInput.value = text
+  requirementInput.value = customRequirement.value || ''  // 同步灵感带过来的观点
   push({ role: 'user', kind: 'text', text })
-  afterTopic()
+  push({ role: 'ai', kind: 'topic' })
 }
 
 // 改主题模式：答完直接回确认卡（平台/风格已答保留）
@@ -202,15 +227,20 @@ const submitTopic = (text) => {
   const title = (text || '').trim()
   if (!title) return
   customTitle.value = title
+  customRequirement.value = (requirementInput.value || '').trim()
   push({ role: 'user', kind: 'text', text: title })
   topicInput.value = ''
+  requirementInput.value = ''
   afterTopic()
 }
 
 const onTopicCapsule = (topic) => {
   // TopicCapsules 已把标题/概要写入 customTitle/customRequirement
+  // 把概要同步到本地输入框，用户点灵感后进入主题步骤看到完整观点，再点发送确认
+  requirementInput.value = topic.summary || ''
+  topicInput.value = topic.title  // 也回填标题，万一用户想微调
   push({ role: 'user', kind: 'text', text: topic.title })
-  afterTopic()
+  push({ role: 'ai', kind: 'topic' })
 }
 
 const afterTopic = () => {
@@ -331,6 +361,9 @@ const openFullPreview = (tplRaw) => {
 
 const editTopic = () => {
   editingTopic.value = true
+  // 把当前标题/描述回填到输入框，用户可改
+  topicInput.value = customTitle.value
+  requirementInput.value = customRequirement.value
   push({ role: 'ai', kind: 'topic' })
 }
 
@@ -381,6 +414,27 @@ const stageText = (pct) =>
 let pollTimer = null
 const stopTaskPoll = () => { clearInterval(pollTimer); pollTimer = null }
 onUnmounted(stopTaskPoll)
+
+const handleSaveDraft = async () => {
+  if (!customTitle.value.trim()) {
+    message.warning('请输入文章标题')
+    return
+  }
+  try {
+    await saveDraft({
+      customTitle: customTitle.value,
+      customRequirement: customRequirement.value,
+      platform: currentPlatform.value?.name,
+      wordCount: currentWordCount.value?.count,
+      style: currentStyle.value?.name,
+      template: currentTemplate.value?.name,
+      createMode: createMode.value
+    })
+    message.success('草稿已保存')
+  } catch (e) {
+    message.error(e?.message || '保存草稿失败，请稍后重试')
+  }
+}
 
 const handleConfirmGenerate = async (confirmMsg) => {
   if (!customTitle.value.trim()) return
@@ -464,9 +518,9 @@ const restart = () => {
 }
 
 .chat-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 4px 2px;
+  /* 不再自己滚动：让外层 console-content 接管滚动，滚轮因此落到屏幕最右边缘。
+     内容保持 720px 居中显示（由 .guided-chat 的 max-width 保证） */
+  padding: 4px 0;
 }
 
 .chat-question {
@@ -510,6 +564,36 @@ const restart = () => {
 
 .topic-send:hover {
   background: var(--color-primary-hover);
+}
+
+/* 主题步骤的可选描述输入框 */
+.topic-requirement {
+  width: 100%;
+  border: 1px solid var(--color-border-default);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-regular);
+  background: var(--color-bg-card);
+  outline: none;
+  resize: vertical;
+  margin-bottom: 4px;
+  transition: border-color 0.2s;
+}
+.topic-requirement:focus {
+  border-color: var(--color-primary);
+}
+.topic-requirement::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.topic-requirement-hint {
+  text-align: right;
+  font-size: 11px;
+  color: var(--color-text-placeholder);
+  margin-bottom: 10px;
 }
 
 /* 效果预览卡 */
@@ -588,7 +672,6 @@ const restart = () => {
   border-radius: 50%;
   margin: 0 4px;
   vertical-align: middle;
-  border: 1px solid var(--color-border-light);
 }
 
 .template-preview-btn {
@@ -628,7 +711,6 @@ const restart = () => {
 
 /* 确认卡片 */
 .confirm-card {
-  border: 1px solid var(--color-border-light);
   border-radius: 12px;
   padding: 16px;
   background: var(--color-bg-card);
@@ -646,6 +728,18 @@ const restart = () => {
   font-size: 13px;
   color: var(--color-text-secondary);
   line-height: 1.8;
+}
+
+.confirm-requirement {
+  font-size: 13px;
+  color: var(--color-text-regular);
+  background: var(--color-primary-light);
+  border-left: 3px solid var(--color-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  line-height: 1.6;
+  word-break: break-word;
 }
 
 .confirm-quota {

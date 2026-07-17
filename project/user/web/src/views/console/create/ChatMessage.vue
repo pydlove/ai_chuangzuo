@@ -17,7 +17,7 @@ defineProps({ role: { type: String, default: 'ai' } })
 <style scoped>
 .chat-msg {
   display: flex;
-  margin-bottom: 16px;
+  margin: 0 12px 16px;
   gap: 10px;
 }
 
@@ -48,7 +48,8 @@ defineProps({ role: { type: String, default: 'ai' } })
 
 .chat-bubble {
   max-width: 85%;
-  background: var(--color-bg-card);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border-light);
   border-radius: 12px;
   padding: 12px 16px;
   font-size: 14px;

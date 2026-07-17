@@ -5,8 +5,10 @@ import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.dto.request.UpdateArticleRequest;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
+import com.aichuangzuo.user.modules.article.service.TitleOptimizeService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
+import com.aichuangzuo.user.modules.article.vo.TitleOptimizeVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final TitleOptimizeService titleOptimizeService;
 
     /**
      * 分页查询当前用户的作品列表。
@@ -94,6 +97,16 @@ public class ArticleController {
         Long userId = SecurityUserContext.getCurrentUserId();
         articleService.delete(userId, bizNo);
         return Result.success();
+    }
+
+    /**
+     * AI 标题优化：有权益的用户首次点击调用大模型生成，之后返回首次缓存结果。
+     */
+    @Operation(summary = "AI 标题优化")
+    @PostMapping("/{bizNo}/title-optimize")
+    public Result<TitleOptimizeVO> titleOptimize(@PathVariable("bizNo") String bizNo) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(titleOptimizeService.optimize(userId, bizNo));
     }
 
     /**

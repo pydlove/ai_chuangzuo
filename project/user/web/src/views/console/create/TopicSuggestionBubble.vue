@@ -1,7 +1,15 @@
 <template>
   <div class="topic-suggestion">
     <button v-if="collapsed" class="inspire-btn" @click="expand">
-      💡 没灵感？试试点我
+      <svg class="inspire-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M9 18h6"/>
+        <path d="M10 22h4"/>
+        <path d="M15.09 14c.18-.9.27-1.48.27-2.26A5.24 5.24 0 0 0 10 6.5 5.24 5.24 0 0 0 4.64 11.74c0 .78.09 1.36.27 2.26"/>
+        <path d="M12 2v2"/>
+        <path d="M4.22 4.22l1.42 1.42"/>
+        <path d="M19.78 4.22l-1.42 1.42"/>
+      </svg>
+      <span>没灵感？试试点我</span>
     </button>
     <div v-else>
       <div class="suggestion-status">已为你想到几个方向 👇</div>
@@ -91,6 +99,9 @@ defineExpose({ loadTopics })
 .topic-suggestion { margin-top: 4px; }
 
 .inspire-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   background: var(--color-bg-card);
   border: 1px dashed var(--color-border-default);
   border-radius: 18px;
@@ -99,6 +110,12 @@ defineExpose({ loadTopics })
   color: var(--color-text-secondary);
   cursor: pointer;
   transition: all 0.2s;
+}
+
+.inspire-btn .inspire-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
 }
 
 .inspire-btn:hover {

@@ -30,6 +30,15 @@ public class Article {
 
     private String body;
 
+    /** 发布描述（pipeline 第 13 阶段 AI 生成摘要）。 */
+    private String description;
+
+    /** 推荐标签，JSON 数组字符串，形如 ["时间管理","效率提升"]。 */
+    private String tagsJson;
+
+    /** AI 优化标题缓存，JSON 对象字符串，形如 {"titles":{"wechat":["标题1","标题2"]}}；首次生成后不再变。 */
+    private String optimizedTitlesJson;
+
     /**
      * 编辑器内联样式覆盖，JSON 字符串。
      * 形如：{"blocks":{},"inlines":[{"block":0,"start":1,"end":5,"styles":{...}}]}。

@@ -223,7 +223,7 @@ public class GenerationTaskService {
     private static List<String> defaultToneTags(String platform) {
         if (platform == null) return List.of();
         return switch (platform.toLowerCase()) {
-            case "wechat", "toutiao", "baijiahao", "zhihu" -> List.of("正式", "信息密度高");
+            case "wechat", "toutiao", "baijiahao", "zhihu", "bilibili" -> List.of("正式", "信息密度高");
             case "xiaohongshu", "douyin" -> List.of("口语化", "emoji 节奏");
             default -> List.of("中性");
         };

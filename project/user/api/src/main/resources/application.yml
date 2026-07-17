@@ -41,3 +41,8 @@ auth:
 
 internal:
   api-key: ${INTERNAL_API_KEY:default-change-me}
+
+user:
+  model:
+    # 与管理端共用同一密钥解密 a_model_config.api_key_encrypted
+    api-key-secret: ${ADMIN_MODEL_API_KEY_SECRET:0123456789abcdef0123456789abcdef}

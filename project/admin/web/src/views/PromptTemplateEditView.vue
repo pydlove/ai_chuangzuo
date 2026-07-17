@@ -29,25 +29,25 @@
             </a-col>
           </a-row>
 
-          <!-- 老模板未初始化 12 阶段时显示 -->
+          <!-- 老模板未初始化 13 阶段时显示 -->
           <a-alert
             v-if="editingId && stagesInitialized === false"
             type="warning"
             show-icon
             style="margin-bottom: 16px"
-            message="该模板还没初始化 12 阶段"
-            description="点击下方按钮会用设计文档里的默认值补齐 12 个阶段配置（可后续逐个微调）。"
+            message="该模板还没初始化 13 阶段"
+            description="点击下方按钮会用设计文档里的默认值补齐 13 个阶段配置（可后续逐个微调）。"
           >
             <template #action>
               <a-button size="small" type="primary" @click="onInitStages">
-                初始化 12 阶段
+                初始化 13 阶段
               </a-button>
             </template>
           </a-alert>
 
-          <!-- 12 阶段编辑器 -->
+          <!-- 13 阶段编辑器 -->
           <a-row :gutter="16" v-if="form.stages && form.stages.length">
-            <!-- 左：12 阶段列表 -->
+            <!-- 左：13 阶段列表 -->
             <a-col :xs="24" :md="9" :lg="8">
               <div class="stage-list">
                 <div

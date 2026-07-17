@@ -1,15 +1,8 @@
 <template>
   <div class="minimal-panel">
-    <!-- 顶部行 -->
+    <!-- 顶部行（额度/队列/模式切换统一在 CreateIndex 顶部行） -->
     <div class="minimal-topbar">
       <h2 class="create-title">开始创作</h2>
-      <div class="minimal-topbar-right">
-        <span class="quota-text">本月剩余 <strong>{{ quotaRemaining }}</strong> / {{ quotaTotal }} 次</span>
-        <button class="topbar-btn" @click="queueOpen = true">
-          📋 队列<template v-if="activeCount > 0">（{{ activeCount }}）</template>
-        </button>
-        <button class="topbar-btn" @click="setCreateMode('guided')">💬 引导模式</button>
-      </div>
     </div>
 
     <!-- 一体化输入卡片 -->
@@ -37,16 +30,16 @@
 
       <div class="hero-chips">
         <button class="settings-chip" @click="platformVisible = true">
-          <span class="chip-icon">📱</span><span>{{ currentPlatform.name }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentPlatform.name }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="wordCountVisible = true">
-          <span class="chip-icon">📝</span><span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="styleVisible = true">
-          <span class="chip-icon">🎨</span><span>{{ currentStyle?.name || '选择风格' }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentStyle?.name || '选择风格' }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="templateVisible = true">
-          <span class="chip-icon">🖼</span><span>{{ currentTemplate?.name }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentTemplate?.name }}</span><span class="chip-caret">▾</span>
         </button>
       </div>
 
@@ -84,18 +77,16 @@ import { saveDraft } from '@/api/draft.js'
 
 const router = useRouter()
 const {
-  setCreateMode, customTitle, customRequirement,
+  createMode, customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey,
   platformVisible, wordCountVisible, styleVisible, templateVisible,
   clearForm
 } = useCreateForm()
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates } = useExportTemplates()
-const { benefits, loadBenefits } = useBenefits()
+const { loadBenefits } = useBenefits()
 
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
-const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
-const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 const heroFocused = ref(false)
 const requirementEl = ref(null)
@@ -114,7 +105,8 @@ const handleSaveDraft = async () => {
       platform: currentPlatform.value?.name,
       wordCount: currentWordCount.value?.count,
       style: currentStyle.value?.name,
-      template: currentTemplate.value?.name
+      template: currentTemplate.value?.name,
+      createMode: createMode.value
     })
     message.success('草稿已保存')
   } catch (e) {
@@ -180,22 +172,6 @@ const handleGenerate = async () => {
   font-size: 22px;
   font-weight: 600;
   color: var(--color-text-primary);
-}
-
-.minimal-topbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quota-text {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  margin-right: 4px;
-}
-
-.quota-text strong {
-  color: var(--color-primary);
 }
 
 /* 一体化输入卡片 */
@@ -283,10 +259,6 @@ const handleGenerate = async () => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-bg);
-}
-
-.chip-icon {
-  font-size: 13px;
 }
 
 .chip-caret {

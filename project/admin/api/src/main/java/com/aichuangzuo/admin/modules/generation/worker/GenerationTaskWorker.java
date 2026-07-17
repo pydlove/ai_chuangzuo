@@ -33,7 +33,7 @@ import java.util.function.BooleanSupplier;
  * <ol>
  *   <li>每轮开头做一次 lease 超时回收（防卡死任务）</li>
  *   <li>从队列表抢占 N 个任务（FOR UPDATE SKIP LOCKED，N 由 {@code claimBatchSize} 决定）</li>
- *   <li>推给 {@link GenerationPipeline} 跑 12 阶段流水线（AI 调 + 规则检测 + 落 article）</li>
+ *   <li>推给 {@link GenerationPipeline} 跑 13 阶段流水线（AI 调 + 规则检测 + 落 article）</li>
  *   <li>睡 {@code pollIntervalMs}</li>
  * </ol>
  *
@@ -135,7 +135,7 @@ public class GenerationTaskWorker {
     }
 
     /**
-     * 处理单个任务：跑 12 阶段 pipeline → 标完成 / 失败 + 退文章额度。
+     * 处理单个任务：跑 13 阶段 pipeline → 标完成 / 失败 + 退文章额度。
      */
     private void processOne(GenerationTask task) {
         Long taskId = task.getId();

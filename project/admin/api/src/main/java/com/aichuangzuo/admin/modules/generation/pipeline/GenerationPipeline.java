@@ -13,9 +13,9 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 
 /**
- * 12 阶段流水线编排器。
+ * 13 阶段流水线编排器。
  *
- * <p>Spring 自动注入所有 {@link GenerationStep} bean（13 个：12 阶段 + 1 PersistArticleStep），
+ * <p>Spring 自动注入所有 {@link GenerationStep} bean（14 个：13 阶段 + 1 PersistArticleStep），
  * 按 stageIndex 升序逐个执行。
  *
  * <p>入口：{@link #run(GenerationTask)} — worker 调用。
@@ -29,7 +29,7 @@ public class GenerationPipeline {
     private final PipelineTemplateResolver templateResolver;
 
     /**
-     * 跑完整流水线：从加载模板 → 12 阶段 → persist article。
+     * 跑完整流水线：从加载模板 → 13 阶段 → persist article。
      * 任意 step 抛异常 → 整条 task 失败（让 worker 走 retry / 退币）。
      */
     public GenerationContext run(GenerationTask task) {

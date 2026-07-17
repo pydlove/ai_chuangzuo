@@ -3,7 +3,7 @@ package com.aichuangzuo.admin.modules.generation.pipeline;
 import java.util.List;
 
 /**
- * 12 阶段流水线元信息（与设计文档 2026-07-09-de-ai-flavor-writing-pipeline-design.md 一一对应）。
+ * 13 阶段流水线元信息（与设计文档 2026-07-09-de-ai-flavor-writing-pipeline-design.md 一一对应）。
  *
  * <p>每个 {@code PipelineStage} 持有：
  * <ul>
@@ -14,7 +14,7 @@ import java.util.List;
  *   <li>该规则阶段的表单字段定义（仅规则阶段）</li>
  * </ul>
  *
- * <p>所有 12 个 stage 用 {@link #ALL} 数组持有，UI / API / 后续 executor 都从这一处读。
+ * <p>所有 13 个 stage 用 {@link #ALL} 数组持有，UI / API / 后续 executor 都从这一处读。
  */
 public enum PipelineStage {
 
@@ -177,7 +177,7 @@ public enum PipelineStage {
                     new Placeholder("materials", "素材清单")
             ),
             List.of(),
-            22
+            20
     ),
 
     // ===== 5. 韵律检测（规则）=====
@@ -368,7 +368,7 @@ public enum PipelineStage {
                     new Placeholder("userStylePrompt", "用户写作风格")
             ),
             List.of(),
-            12
+            11
     ),
 
     // ===== 10. 字数统计（规则）=====
@@ -478,7 +478,42 @@ public enum PipelineStage {
             4
     ),
 
-    // ===== 100. 落库（非 12 阶段之一，用于 GenerationPipeline 编排器排序）=====
+    // ===== 13. 发布描述标签（AI）=====
+    PUBLISH_META(
+            13, "publish_meta", "发布描述标签", StageType.AI_PROMPT,
+            "根据最终稿生成发布描述（摘要）和推荐标签，供发布页直接使用。",
+            """
+            你是一位资深新媒体编辑。请根据文章标题和最终稿，生成发布描述和推荐标签。
+
+            文章标题：{{title}}
+
+            最终稿（JSON 分块）：
+            {{finalDraft}}
+
+            任务：
+            - 写一条发布描述：概括文章核心价值，勾起点击欲，80-120 字，口语化，不要"本文介绍了"开头
+            - 给 4-6 个推荐标签：简短名词或动宾短语，2-8 个字，贴合文章内容，不要泛词（如"生活""分享"）
+
+            输出格式（JSON）：
+            {
+              "description": "发布描述文本",
+              "tags": ["标签1", "标签2", "标签3", "标签4"]
+            }
+
+            约束：
+            - 描述必须基于文章实际内容，不夸大、不虚构数据
+            - 标签之间不重复、不互相包含
+            - 只输出 JSON，不要输出任何解释""",
+            null,
+            List.of(
+                    new Placeholder("title", "文章标题"),
+                    new Placeholder("finalDraft", "字数调整后的最终稿")
+            ),
+            List.of(),
+            3
+    ),
+
+    // ===== 100. 落库（非 13 阶段之一，用于 GenerationPipeline 编排器排序）=====
     PERSIST_ARTICLE(
             100, "persist_article", "持久化文章", StageType.PASSTHROUGH,
             "pipeline 收尾：把 exportResult 或 finalDraft 写到 article。",
@@ -489,12 +524,13 @@ public enum PipelineStage {
             2
     );
 
-    /** 所有 12 个 stage + persist 收尾阶段（按 index 升序）。 */
+    /** 所有 13 个 stage + persist 收尾阶段（按 index 升序）。 */
     public static final PipelineStage[] ALL = new PipelineStage[]{
             INTENT_ANCHOR, OUTLINE, MATERIAL_LIST, DRAFT,
             RHYTHM_DETECT, RHYTHM_REWRITE, EXTERNAL_REVIEW,
             TARGETED_REWRITE, RHYTHM_POLISH,
             WORD_COUNT, WORD_ADJUST, EXPORT_RENDER,
+            PUBLISH_META,
             PERSIST_ARTICLE
     };
 
