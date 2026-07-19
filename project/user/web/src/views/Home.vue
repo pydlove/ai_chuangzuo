@@ -2,55 +2,47 @@
   <div class="home-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
-    <!-- 顶部 Banner 轮播 -->
-    <section v-if="banners.length" class="home-banner-section">
-      <a-carousel autoplay arrows :dots="true" dot-position="bottom" class="home-banner-carousel">
-        <template #prevArrow>
-          <div class="home-banner-arrow home-banner-arrow-prev">
-            <LeftOutlined />
-          </div>
-        </template>
-        <template #nextArrow>
-          <div class="home-banner-arrow home-banner-arrow-next">
-            <RightOutlined />
-          </div>
-        </template>
-        <div v-for="b in banners" :key="b.id" class="home-banner-slide">
-          <a v-if="b.linkUrl" :href="b.linkUrl" target="_blank" rel="noopener">
-            <img :src="b.imageUrl" :alt="'banner-' + b.id" class="home-banner-img" />
-          </a>
-          <img v-else :src="b.imageUrl" :alt="'banner-' + b.id" class="home-banner-img" />
-        </div>
-      </a-carousel>
-    </section>
-
-    <!-- Hero 区 -->
+    <!-- Hero 区(banner 嵌入右侧) -->
     <section class="hero">
       <div class="hero-deco hero-deco-1" :style="{ transform: `translateY(${scrollY * 0.15}px)` }"></div>
       <div class="hero-deco hero-deco-2" :style="{ transform: `translateY(${scrollY * 0.08}px)` }"></div>
       <div class="hero-deco hero-deco-3" :style="{ transform: `translateY(${scrollY * 0.12}px)` }"></div>
       <div class="hero-inner">
-        <div class="hero-badge">
-          <span class="hero-badge-dot"></span>
-          AI 写作助手 · 多平台变现 · 账号长期增值
+        <div class="hero-text">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
+            AI 写作助手 · 多平台变现 · 账号长期增值
+          </div>
+          <h1 class="hero-title">会增值的自媒体账号<br />从第一篇文章开始</h1>
+          <p class="hero-desc">
+            3 分钟产出一篇能直接发的文章，平台内多重赚钱机制，<br />
+            让你的自媒体账号像滚雪球一样，越做越大、越来越值钱。
+          </p>
+          <div class="hero-actions">
+            <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+            <router-link to="/guide" class="hero-btn-secondary">看看能赚多少钱</router-link>
+          </div>
+          <div class="hero-checkmarks">
+            <span class="check-item"><span class="check-icon">✓</span>单篇 3 分钟成稿</span>
+            <span class="check-item"><span class="check-icon">✓</span>多平台一稿多发变现</span>
+            <span class="check-item"><span class="check-icon">✓</span>账号越久越值钱</span>
+          </div>
+          <div class="hero-guide-link">
+            <router-link to="/guide">不知道怎么变现？先看看玩法指南 →</router-link>
+          </div>
         </div>
-        <h1 class="hero-title">会增值的自媒体账号<br />从第一篇文章开始</h1>
-        <p class="hero-desc">
-          3 分钟产出一篇能直接发的文章，平台内多重赚钱机制，<br />
-          让你的自媒体账号像滚雪球一样，越做越大、越来越值钱。
-        </p>
-        <div class="hero-actions">
-          <router-link to="/login" class="hero-btn">立即开始创作</router-link>
-          <router-link to="/guide" class="hero-btn-secondary">看看能赚多少钱</router-link>
-        </div>
-        <div class="hero-checkmarks">
-          <span class="check-item"><span class="check-icon">✓</span>单篇 3 分钟成稿</span>
-          <span class="check-item"><span class="check-icon">✓</span>多平台一稿多发变现</span>
-          <span class="check-item"><span class="check-icon">✓</span>账号越久越值钱</span>
-        </div>
-        <div class="hero-guide-link">
-          <router-link to="/guide">不知道怎么变现？先看看玩法指南 →</router-link>
-        </div>
+        <component
+          v-if="banners.length"
+          :is="banners[0].linkUrl ? 'a' : 'div'"
+          v-bind="banners[0].linkUrl ? { href: banners[0].linkUrl, target: '_blank', rel: 'noopener' } : {}"
+          class="hero-banner-card"
+        >
+          <img :src="banners[0].imageUrl" :alt="'banner-' + banners[0].id" class="hero-banner-card__img" />
+          <div class="hero-banner-card__cta">
+            <span>查看详情</span>
+            <span class="hero-banner-card__arrow">→</span>
+          </div>
+        </component>
       </div>
     </section>
 
@@ -267,7 +259,6 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import { fetchHomeBanners } from '@/api/home.js'
 
@@ -365,75 +356,12 @@ onUnmounted(() => {
   }
 }
 
-/* ====================== 顶部 Banner 轮播 ====================== */
-.home-banner-section {
-  max-width: 1200px;
-  margin: 24px auto 40px;
-  padding: 0 24px;
-}
-.home-banner-carousel {
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 8px 32px rgba(255, 36, 66, 0.12);
-}
-.home-banner-carousel :deep(.slick-list) {
-  border-radius: 16px;
-  overflow: hidden;
-}
-.home-banner-carousel :deep(.slick-arrow) {
-  z-index: 2;
-  width: 44px; height: 44px;
-  display: flex !important;
-  align-items: center;
-  justify-content: center;
-  font-size: 0;
-}
-.home-banner-carousel :deep(.slick-arrow > *) { font-size: 18px; }
-.home-banner-arrow {
-  width: 44px; height: 44px;
-  background: rgba(255,255,255,0.92);
-  border-radius: 50%;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.18);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  color: #333;
-  transition: all 0.2s ease;
-}
-.home-banner-arrow:hover {
-  background: #fff;
-  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.25);
-  color: #FF2442;
-  transform: scale(1.05);
-}
-.home-banner-carousel :deep(.slick-dots) { bottom: 14px; }
-.home-banner-carousel :deep(.slick-dots li button) {
-  background: rgba(255,255,255,0.6);
-  width: 8px; height: 8px;
-  border-radius: 50%;
-}
-.home-banner-carousel :deep(.slick-dots li.slick-active button) {
-  background: #FF2442;
-  width: 24px;
-  border-radius: 4px;
-}
-.home-banner-slide { height: auto; }
-.home-banner-img {
-  width: 100%;
-  height: 300px;
-  display: block;
-  object-fit: cover;
-}
-.home-banner-carousel :deep(.slick-prev) { left: 8px; }
-.home-banner-carousel :deep(.slick-next) { right: 8px; }
-
 /* ====================== Hero ====================== */
 .hero {
   position: relative;
   background: linear-gradient(180deg, #FFE5EB 0%, #fff 100%);
-  padding: 90px 48px 70px;
-  text-align: center;
+  padding: 80px 48px 60px;
+  text-align: left;
   overflow: hidden;
 }
 .hero-deco {
@@ -459,10 +387,14 @@ onUnmounted(() => {
   bottom: -40px; left: 30%;
 }
 .hero-inner {
-  max-width: 660px;
+  max-width: 1140px;
   margin: 0 auto;
   position: relative;
   z-index: 1;
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 48px;
+  align-items: center;
 }
 
 .hero-badge {
@@ -588,6 +520,58 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+/* ===== Hero 内嵌 Banner 侧卡 ===== */
+.hero-banner-card {
+  display: block;
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 12px 36px rgba(255, 36, 66, 0.18);
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  text-decoration: none;
+  color: #fff;
+  aspect-ratio: 4 / 3;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+a.hero-banner-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 48px rgba(255, 36, 66, 0.32);
+}
+.hero-banner-card__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.4s ease;
+}
+a.hero-banner-card:hover .hero-banner-card__img {
+  transform: scale(1.04);
+}
+.hero-banner-card__cta {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #FF2442;
+  font-size: 14px;
+  font-weight: 600;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+}
+.hero-banner-card__arrow {
+  font-size: 16px;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+a.hero-banner-card:hover .hero-banner-card__arrow {
+  transform: translateX(3px);
 }
 
 /* ====================== 数据区 ====================== */
@@ -904,7 +888,6 @@ onUnmounted(() => {
 
 /* ========== 暗色主题 ========== */
 body[data-theme="dark"] .home-page { background: #141414; }
-body[data-theme="dark"] .home-banner-carousel { box-shadow: 0 8px 32px rgba(255, 36, 66, 0.2); }
 
 body[data-theme="dark"] .hero {
   background: linear-gradient(180deg, rgba(255, 36, 66, 0.15) 0%, #141414 100%);
@@ -1022,26 +1005,11 @@ body[data-theme="dark"] .home-footer {
 }
 body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 
-body[data-theme="dark"] .home-banner-arrow {
-  background: rgba(40,40,40,0.85);
-  color: #e0e0e0;
-}
-body[data-theme="dark"] .home-banner-arrow:hover {
-  background: #2f2f2f;
-  color: #FF2442;
-}
-body[data-theme="dark"] .home-banner-carousel :deep(.slick-dots li button) {
-  background: rgba(255,255,255,0.3);
-}
-
 /* ========== 媒体查询：手机端 ≤768px ========== */
 @media (max-width: 768px) {
-  .home-banner-section { margin-top: 12px; padding: 0 12px; }
-  .home-banner-carousel { border-radius: 12px; }
-  .home-banner-carousel :deep(.slick-list) { border-radius: 12px; }
-  .home-banner-arrow { width: 36px; height: 36px; font-size: 14px; }
-
   .hero { padding: 48px 20px 40px; }
+  .hero-inner { grid-template-columns: 1fr; gap: 28px; }
+  .hero-banner-card { aspect-ratio: 16 / 9; border-radius: 16px; }
   .hero-badge { font-size: 12px; padding: 5px 12px; margin-bottom: 16px; }
   .hero-title { font-size: 26px; line-height: 1.3; margin-bottom: 14px; }
   .hero-desc { font-size: 15px; margin-bottom: 24px; }
