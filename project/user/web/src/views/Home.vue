@@ -532,7 +532,7 @@ onUnmounted(() => {
   background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
   text-decoration: none;
   color: #fff;
-  aspect-ratio: 4 / 3;
+  aspect-ratio: 16 / 9;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 a.hero-banner-card:hover {
@@ -542,7 +542,7 @@ a.hero-banner-card:hover {
 .hero-banner-card__img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;  /* 始终完整显示图片,空隙由卡片渐变背景兜底 */
   display: block;
   transition: transform 0.4s ease;
 }
@@ -1009,7 +1009,7 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 @media (max-width: 768px) {
   .hero { padding: 48px 20px 40px; }
   .hero-inner { grid-template-columns: 1fr; gap: 28px; }
-  .hero-banner-card { aspect-ratio: 16 / 9; border-radius: 16px; }
+  .hero-banner-card { border-radius: 16px; }
   .hero-badge { font-size: 12px; padding: 5px 12px; margin-bottom: 16px; }
   .hero-title { font-size: 26px; line-height: 1.3; margin-bottom: 14px; }
   .hero-desc { font-size: 15px; margin-bottom: 24px; }
