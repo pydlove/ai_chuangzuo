@@ -15,6 +15,34 @@ export const MEMBERSHIP_QUEUE_LIMITS = {
   flagship: 10,
 }
 
+/**
+ * 会员等级 → 「发布到风格市场」月度额度
+ * 与后端 u_plan_benefit 中 style_market_publish 的值保持一致。
+ *   - basic 基础版:           0 (禁止发布)
+ *   - pro 专业版:             1
+ *   - flagship 旗舰版:        2
+ */
+export const MEMBERSHIP_STYLE_PUBLISH_QUOTA = {
+  free: 0,
+  basic: 0,
+  pro: 1,
+  flagship: 2,
+}
+
+/**
+ * 会员等级 → 「学习我的风格」月度次数
+ * 与后端 u_plan_benefit 中 style_learn_analyze 的值保持一致。
+ *   - basic 基础版:           0 (禁止使用)
+ *   - pro 专业版:             1
+ *   - flagship 旗舰版:        2
+ */
+export const MEMBERSHIP_STYLE_LEARN_QUOTA = {
+  free: 0,
+  basic: 0,
+  pro: 1,
+  flagship: 2,
+}
+
 export const PLAN_KEY_TO_NAME = {
   basic: '基础版',
   pro: '专业版',
@@ -83,4 +111,18 @@ export function getQueueLimit() {
 export function getCurrentPlanName() {
   const key = getCurrentPlanKey()
   return key === 'free' ? '免费用户' : (PLAN_KEY_TO_NAME[key] || '免费用户')
+}
+
+/**
+ * 当前档位「发布到风格市场」月度额度。0 = 禁止发布。
+ */
+export function getStylePublishQuota() {
+  return MEMBERSHIP_STYLE_PUBLISH_QUOTA[getCurrentPlanKey()] ?? 0
+}
+
+/**
+ * 当前档位「学习我的风格」月度次数。0 = 禁止使用。
+ */
+export function getStyleLearnQuota() {
+  return MEMBERSHIP_STYLE_LEARN_QUOTA[getCurrentPlanKey()] ?? 0
 }

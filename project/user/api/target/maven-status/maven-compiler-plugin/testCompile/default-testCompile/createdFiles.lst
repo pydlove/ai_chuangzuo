@@ -1,5 +1,6 @@
 com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.class
 com/aichuangzuo/user/modules/topic/service/TopicTitleServiceTest.class
+com/aichuangzuo/user/modules/benefit/service/PlanCatalogServiceImplTest.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.class
 com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class

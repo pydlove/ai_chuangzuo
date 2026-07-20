@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.style.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.style.dto.request.AnalyzeStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.CreateStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.UpdateStyleRequest;
@@ -99,12 +100,16 @@ public class UserStyleController {
     /**
      * AI 分析参考文章的写作风格，返回风格提示词与 2 段原文摘录。
      *
+     * <p>会消费本月 style_learn_analyze 额度（basic=0/pro=1/flagship=2），
+     * 额度不足返回 118003 {@code QUOTA_EXHAUSTED}。
+     *
      * @param request 含参考文章正文（200-3000 字）
      * @return 分析结果（excerpt 仅供展示，不入库）
      */
     @Operation(summary = "AI 分析参考文章风格")
     @PostMapping("/analyze")
     public Result<StyleAnalyzeVO> analyzeStyle(@Valid @RequestBody AnalyzeStyleRequest request) {
-        return Result.success(styleAnalyzeService.analyze(request.getText().trim()));
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(styleAnalyzeService.analyze(userId, request.getText().trim()));
     }
 }

@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.style.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.style.enums.StyleErrorCode;
 import com.aichuangzuo.user.modules.style.service.StyleAnalyzeAiService;
 import com.aichuangzuo.user.modules.style.service.StyleAnalyzeService;
@@ -65,10 +66,17 @@ public class StyleAnalyzeServiceImpl implements StyleAnalyzeService {
             """;
 
     private final StyleAnalyzeAiService aiService;
+    private final BenefitService benefitService;
     private final ObjectMapper objectMapper;
 
+    /** 学习我的风格月度额度权益编码（basic=0/pro=1/flagship=2）。 */
+    private static final String LEARN_ANALYZE_BENEFIT = "style_learn_analyze";
+
     @Override
-    public StyleAnalyzeVO analyze(String text) {
+    public StyleAnalyzeVO analyze(Long userId, String text) {
+        // 额度门：消费本月 style_learn_analyze；basic=0 直接抛 QUOTA_EXHAUSTED
+        benefitService.consume(userId, LEARN_ANALYZE_BENEFIT);
+
         String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
         JsonNode root = parseJson(stripCodeFence(aiResp));
 

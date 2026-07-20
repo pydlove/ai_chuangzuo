@@ -10,8 +10,9 @@ public interface StyleAnalyzeService {
     /**
      * 分析参考文章风格。
      *
+     * @param userId 当前用户 ID（用于消费 style_learn_analyze 月度额度）
      * @param text 参考文章正文（200-3000 字，Controller 层已校验）
      * @return 风格提示词 + 2 段原文摘录
      */
-    StyleAnalyzeVO analyze(String text);
+    StyleAnalyzeVO analyze(Long userId, String text);
 }

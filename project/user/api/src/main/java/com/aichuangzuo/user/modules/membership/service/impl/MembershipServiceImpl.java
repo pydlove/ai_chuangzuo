@@ -17,6 +17,7 @@ import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
+import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
@@ -53,6 +54,7 @@ public class MembershipServiceImpl implements MembershipService {
     private final UserMapper userMapper;
     private final MessageService messageService;
     private final CoinRecordService coinRecordService;
+    private final PlanLookupService planLookupService;
 
     @Override
     @Transactional
@@ -84,7 +86,7 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setDays(cycle.getDays());
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         vo.setInviterRewarded(rewarded);
-        vo.setRewardAmount(rewarded ? plan.getInviterReward() : BigDecimal.ZERO);
+        vo.setRewardAmount(rewarded ? planLookupService.getInviterReward(plan.getKey()) : BigDecimal.ZERO);
         return vo;
     }
 
@@ -97,10 +99,9 @@ public class MembershipServiceImpl implements MembershipService {
             return vo;
         }
 
-        MembershipPlan plan = MembershipPlan.of(membership.getLevel());
         vo.setHasMembership(true);
         vo.setLevel(membership.getLevel());
-        vo.setLevelName(plan == null ? membership.getLevel() : plan.getDisplayName());
+        vo.setLevelName(planLookupService.getDisplayName(membership.getLevel()));
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         return vo;
     }
@@ -158,7 +159,7 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     private void sendSubscriptionNotification(Long userId, MembershipPlan plan, UserMembership membership) {
-        String levelName = plan.getDisplayName();
+        String levelName = planLookupService.getDisplayName(plan.getKey());
         String expiresAt = membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE);
         String summary = String.format("您已成功开通 %s，有效期至 %s", levelName, expiresAt);
         String content = String.format(
@@ -189,14 +190,16 @@ public class MembershipServiceImpl implements MembershipService {
 
         User invitee = userMapper.selectById(userId);
         String inviteeName = invitee == null ? "好友" : (invitee.getNickname() == null ? "好友" : invitee.getNickname());
-        String remark = String.format("%s 订阅 %s，邀请奖励", inviteeName, plan.getDisplayName());
+        String planName = planLookupService.getDisplayName(plan.getKey());
+        BigDecimal reward = planLookupService.getInviterReward(plan.getKey());
+        String remark = String.format("%s 订阅 %s，邀请奖励", inviteeName, planName);
 
-        coinRecordService.grant(inviterId, COIN_BIZ_TYPE_INVITE_REWARD, plan.getInviterReward(), order.getId().toString(), remark);
+        coinRecordService.grant(inviterId, COIN_BIZ_TYPE_INVITE_REWARD, reward, order.getId().toString(), remark);
 
-        String summary = String.format("好友 %s 订阅 %s，您获得 %s 创作币", inviteeName, plan.getDisplayName(), plan.getInviterReward().toPlainString());
+        String summary = String.format("好友 %s 订阅 %s，您获得 %s 创作币", inviteeName, planName, reward.toPlainString());
         String content = String.format(
                 "恭喜您！\n\n您邀请的好友 %s 成功订阅 %s，系统已向您发放 %s 创作币奖励。\n\n感谢您的分享！",
-                inviteeName, plan.getDisplayName(), plan.getInviterReward().toPlainString());
+                inviteeName, planName, reward.toPlainString());
 
         messageService.pushPersonal(inviterId, "reward", "邀请奖励到账", summary, null, content, null);
         return true;

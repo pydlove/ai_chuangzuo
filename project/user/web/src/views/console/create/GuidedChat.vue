@@ -32,7 +32,6 @@
             maxlength="500"
           ></textarea>
           <div class="topic-requirement-hint">{{ (requirementInput || '').length }} / 500</div>
-          <TopicSuggestionBubble @select="onTopicCapsule" />
         </template>
 
         <!-- 平台/风格快捷回复（两段式：点选 → 效果卡 → 确认；确认后收起） -->
@@ -146,7 +145,6 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
 import QuickReplies from './QuickReplies.vue'
-import TopicSuggestionBubble from './TopicSuggestionBubble.vue'
 import GuidedHero from './GuidedHero.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
@@ -232,15 +230,6 @@ const submitTopic = (text) => {
   topicInput.value = ''
   requirementInput.value = ''
   afterTopic()
-}
-
-const onTopicCapsule = (topic) => {
-  // TopicCapsules 已把标题/概要写入 customTitle/customRequirement
-  // 把概要同步到本地输入框，用户点灵感后进入主题步骤看到完整观点，再点发送确认
-  requirementInput.value = topic.summary || ''
-  topicInput.value = topic.title  // 也回填标题，万一用户想微调
-  push({ role: 'user', kind: 'text', text: topic.title })
-  push({ role: 'ai', kind: 'topic' })
 }
 
 const afterTopic = () => {

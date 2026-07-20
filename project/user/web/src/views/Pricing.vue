@@ -30,8 +30,10 @@
 
         <!-- 定价卡片 -->
         <div class="pricing-cards">
+          <div v-if="catalogLoading" class="pricing-loading">套餐加载中…</div>
           <div
             v-for="plan in plans"
+            v-else
             :key="plan.key"
             :class="['pricing-card', { recommended: plan.recommended }]"
           >
@@ -53,7 +55,7 @@
               立即订阅
             </button>
             <ul class="plan-features">
-              <li v-for="feature in plan.features" :key="feature.text" :class="{ disabled: !feature.included }">
+              <li v-for="feature in plan.features" :key="feature.code + '-' + feature.text" :class="{ disabled: !feature.included }">
                 <span class="feature-icon">{{ feature.included ? '✓' : '✗' }}</span>
                 {{ feature.text }}
               </li>
@@ -79,7 +81,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="row in compareRows" :key="row.label">
+              <tr v-for="row in compareRows" :key="row.code">
                 <td>{{ row.label }}</td>
                 <td v-html="getCell(row, 'basic')"></td>
                 <td class="recommended-col" v-html="getCell(row, 'pro')"></td>
@@ -123,10 +125,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { subscribe } from '@/api/membership'
+import { subscribe, getPlanCatalog } from '@/api/membership'
 import NavBar from '@/components/layout/NavBar.vue'
 
 const navLinks = [
@@ -145,6 +147,10 @@ const selectedPlan = ref(null)
 const payCode = ref('')
 const subscribeLoading = ref(false)
 
+const plans = ref([])
+const compareRows = ref([])
+const catalogLoading = ref(false)
+
 const planKeyToName = {
   basic: '基础版',
   pro: '专业版',
@@ -156,6 +162,19 @@ const cycleLabel = {
   quarter: '季度',
   year: '年度'
 }
+
+onMounted(async () => {
+  catalogLoading.value = true
+  try {
+    const res = await getPlanCatalog()
+    plans.value = res.data.plans || []
+    compareRows.value = res.data.compareRows || []
+  } catch (err) {
+    message.error(err.message || '定价加载失败')
+  } finally {
+    catalogLoading.value = false
+  }
+})
 
 const handleSubscribe = (plan) => {
   if (!localStorage.getItem('aichuangzuo_access_token')) {
@@ -213,120 +232,29 @@ const getPeriodLabel = () => {
     : activeCycle.value === 'quarter' ? '季' : '年'
 }
 
-const plans = [
-  {
-    key: 'basic',
-    name: '基础版',
-    recommended: false,
-    monthly: { original: null, current: 29.9, articles: '30 篇 AI 文章/月' },
-    quarter: { original: 89.7, current: 80.7, articles: '90 篇 AI 文章/季' },
-    year: { original: 358.8, current: 251.2, articles: '360 篇 AI 文章/年', savings: 107.6 },
-    features: [
-      { text: '30 篇/月 AI 文章生成', included: true },
-      { text: '导出 Word', included: true },
-      { text: '复制正文', included: true },
-      { text: 'AI 选题灵感', included: true },
-      { text: 'AI 标题优化', included: false },
-      { text: '在线编辑', included: false },
-      { text: '写作风格定制', included: false },
-      { text: 'SEO 关键词建议', included: false },
-      { text: '8 款基础模板', included: true },
-      { text: '5 张贴图/月', included: true },
-      { text: '批量生成/改写', included: false },
-      { text: '批量导出', included: false },
-      { text: '30 天历史记录', included: true },
-      { text: '标准生成队列', included: true },
-      { text: '队列最多 1 个任务', included: true },
-    ]
-  },
-  {
-    key: 'pro',
-    name: '专业版',
-    recommended: true,
-    monthly: { original: null, current: 59.9, articles: '100 篇 AI 文章/月' },
-    quarter: { original: 179.7, current: 161.7, articles: '300 篇 AI 文章/季' },
-    year: { original: 718.8, current: 503.2, articles: '1200 篇 AI 文章/年', savings: 215.6 },
-    features: [
-      { text: '100 篇/月 AI 文章生成', included: true },
-      { text: '导出 Word', included: true },
-      { text: '复制正文', included: true },
-      { text: 'AI 选题灵感', included: true },
-      { text: 'AI 标题优化', included: true },
-      { text: '在线编辑', included: true },
-      { text: '3 种预置写作风格', included: true },
-      { text: 'SEO 关键词建议', included: false },
-      { text: '全部 20+ 模板', included: true },
-      { text: '30 张贴图/月', included: true },
-      { text: '批量生成/改写', included: false },
-      { text: '批量导出', included: false },
-      { text: '永久历史记录', included: true },
-      { text: '优先生成队列', included: true },
-      { text: '队列最多 5 个任务', included: true },
-    ]
-  },
-  {
-    key: 'flagship',
-    name: '旗舰版',
-    recommended: false,
-    monthly: { original: null, current: 99.9, articles: '300 篇 AI 文章/月' },
-    quarter: { original: 299.7, current: 269.7, articles: '900 篇 AI 文章/季' },
-    year: { original: 1198.8, current: 839.2, articles: '3600 篇 AI 文章/年', savings: 359.6 },
-    features: [
-      { text: '300 篇/月 AI 文章生成', included: true },
-      { text: '导出 Word', included: true },
-      { text: '复制正文', included: true },
-      { text: 'AI 选题灵感', included: true },
-      { text: 'AI 标题优化', included: true },
-      { text: '在线编辑', included: true },
-      { text: '自定义风格 + 记忆偏好', included: true },
-      { text: 'SEO 关键词建议', included: true },
-      { text: '全部模板 + 自定义模板', included: true },
-      { text: '100 张贴图/月', included: true },
-      { text: '批量生成/改写', included: true },
-      { text: '批量导出', included: true },
-      { text: '永久历史记录', included: true },
-      { text: '极速生成通道', included: true },
-      { text: '队列最多 10 个任务', included: true },
-    ]
-  }
-]
-
 const getPrice = (plan) => {
   const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
   const cycle = plan[keyMap[activeCycle.value]]
-  return { original: cycle.original, current: cycle.current }
+  return { original: cycle?.original, current: cycle?.current }
 }
 
 const getArticles = (plan) => {
   const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
-  return plan[keyMap[activeCycle.value]].articles
+  return plan[keyMap[activeCycle.value]]?.articles
 }
 
 const getSavings = (plan) => {
   const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
-  return plan[keyMap[activeCycle.value]].savings || null
+  return plan[keyMap[activeCycle.value]]?.savings || null
 }
 
-const compareRows = [
-  { label: 'AI 文章生成', basic: '30 篇/月', pro: '100 篇/月', flagship: '300 篇/月' },
-  { label: '导出 Word', basic: true, pro: true, flagship: true },
-  { label: '复制正文', basic: true, pro: true, flagship: true },
-  { label: 'AI 选题灵感', basic: true, pro: true, flagship: true },
-  { label: 'AI 标题优化', basic: false, pro: true, flagship: true },
-  { label: '在线编辑', basic: false, pro: true, flagship: true },
-  { label: '写作风格定制', basic: false, pro: '3 种预置', flagship: '自定义 + 记忆' },
-  { label: 'SEO 关键词建议', basic: false, pro: false, flagship: true },
-  { label: '文章模板', basic: '8 款基础', pro: '全部 20+', flagship: '全部 + 自定义' },
-  { label: '贴图生成', basic: '5 张/月', pro: '30 张/月', flagship: '100 张/月' },
-  { label: '批量生成/改写', basic: false, pro: false, flagship: true },
-  { label: '批量导出', basic: false, pro: false, flagship: true },
-  { label: '历史记录', basic: '30 天', pro: '永久', flagship: '永久' },
-  { label: '生成队列优先级', basic: '标准', pro: '优先', flagship: '极速' },
-  { label: '队列任务数', basic: '1 个', pro: '5 个', flagship: '10 个' },
-]
+/** CompareCell 包装对象 → 渲染字符串（true=✓，false=✗，其他原样）。 */
+const cellValue = (cell) => (cell == null ? null : cell.value)
 
 const getCell = (row, col) => {
-  const val = row[col]
+  const cell = row[col]
+  if (cell == null) return ''
+  const val = cell.value
   if (val === true) return '<span style="color:#FF2442;font-weight:600;">✓</span>'
   if (val === false) return '<span style="color:#FF2442;font-weight:600;">✗</span>'
   return `<span style="font-weight:500;">${val}</span>`
@@ -433,6 +361,14 @@ const scrollToCompare = () => {
   gap: 24px;
   margin-bottom: 40px;
   text-align: left;
+}
+
+.pricing-loading {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 14px;
+  padding: 48px 0;
 }
 
 .pricing-card {

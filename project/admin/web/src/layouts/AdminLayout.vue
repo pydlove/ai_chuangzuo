@@ -135,6 +135,12 @@
             <SettingOutlined />
           </template>
           <template #title>系统设置</template>
+          <a-menu-item key="/console/plans">
+            <template #icon>
+              <TagsOutlined />
+            </template>
+            套餐管理
+          </a-menu-item>
           <a-menu-item key="/console/model-configs">
             <template #icon>
               <ApiOutlined />
@@ -176,7 +182,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -200,7 +206,7 @@ const parentMenuKey = computed(() => {
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/model-configs' || p === '/console/home-banner') return '/console/settings'
+  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans') return '/console/settings'
   return null
 })
 
@@ -240,6 +246,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/orders/list') return '订单列表'
   if (route.path === '/console/orders/stats') return '数据统计'
   if (route.path === '/console/home-banner') return '首页 Banner'
+  if (route.path === '/console/plans') return '套餐管理'
   return ''
 })
 

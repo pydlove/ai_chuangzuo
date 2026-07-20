@@ -12,8 +12,8 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.benefit.vo.UserBenefitVO;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
-import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
+import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -46,6 +46,7 @@ public class BenefitServiceImpl implements BenefitService {
     private final PlanBenefitMapper planBenefitMapper;
     private final BenefitUsageMapper benefitUsageMapper;
     private final UserMembershipMapper userMembershipMapper;
+    private final PlanLookupService planLookupService;
 
     @Override
     public UserBenefitVO getMyBenefits(Long userId) {
@@ -60,8 +61,7 @@ public class BenefitServiceImpl implements BenefitService {
         }
 
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
-        MembershipPlan plan = MembershipPlan.of(planKey);
-        vo.setPlanName(plan == null ? planKey : plan.getDisplayName());
+        vo.setPlanName(planLookupService.getDisplayName(planKey));
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
 
         Map<String, Benefit> benefitMap = loadActiveBenefitMap();

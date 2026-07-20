@@ -179,6 +179,8 @@
                 <button
                   v-else-if="!getMarketStatus(s.name)"
                   class="style-action-btn primary"
+                  :disabled="publishBlocked"
+                  :title="publishQuotaHint"
                   @click.stop="openPublishConfirm(s, 'my')"
                 >发布</button>
               </div>
@@ -282,6 +284,8 @@
               <button
                 v-else-if="!getMarketStatus(s.name)"
                 class="style-action-btn primary"
+                :disabled="publishBlocked"
+                :title="publishQuotaHint"
                 @click.stop="openPublishConfirm(s, 'learned')"
               >发布</button>
             </div>
@@ -481,6 +485,7 @@
   >
     <div class="publish-confirm-body">
       <p class="publish-confirm-title">确认发布「{{ pendingPublish.style?.name }}」？</p>
+      <div class="publish-confirm-quota">{{ publishQuotaHint }}</div>
       <ol class="publish-confirm-list">
         <li>发布后将进入<span class="publish-confirm-highlight">平台审核流程</span>，审核通过后其他用户才可在风格市场中发现并使用该风格。</li>
         <li>审核期间该风格会显示<span class="publish-confirm-highlight">「审核中」</span>状态，你可以随时查看进度。</li>
@@ -525,8 +530,10 @@ import {
   approveMarketStyle,
   favoriteStyles,
   toggleFavorite,
-  useMarketStyle
+  useMarketStyle,
+  getRemainingPublishQuota
 } from '@/composables/useStyleMarket.js'
+import { getStylePublishQuota, getCurrentPlanName } from '@/utils/membershipLimits.js'
 
 const router = useRouter()
 const activeTab = ref('my')
@@ -974,9 +981,20 @@ const shareStyle = (style, sourceType) => {
   try {
     shareStyleToMarket(style, sourceType)
   } catch (err) {
-    alert(err.message)
+    message.error(err.message)
   }
 }
+
+/** 当前档位的发布额度（用于按钮 tooltip / 顶部 banner）。 */
+const publishQuota = computed(() => getStylePublishQuota())
+const remainingPublishQuota = computed(() => getRemainingPublishQuota())
+const publishBlocked = computed(() => remainingPublishQuota.value <= 0)
+const publishQuotaHint = computed(() => {
+  if (publishQuota.value <= 0) {
+    return `${getCurrentPlanName()}不支持发布到市场，升级后可发布`
+  }
+  return `本月还可发布 ${remainingPublishQuota.value} / ${publishQuota.value} 次`
+})
 
 const openPublishConfirm = (style, sourceType) => {
   pendingPublish.value = { style, sourceType }
@@ -1375,6 +1393,17 @@ const simulateApprove = (name) => {
   font-size: 13px;
   color: #8c8c8c;
   margin: 0;
+}
+
+.publish-confirm-quota {
+  display: inline-block;
+  font-size: 12px;
+  color: #ff2442;
+  background: #fff0f2;
+  border: 1px solid #ffd1d9;
+  border-radius: 12px;
+  padding: 4px 12px;
+  margin-bottom: 12px;
 }
 
 .publish-confirm-highlight {
@@ -2049,6 +2078,12 @@ body[data-theme="dark"] .publish-confirm-tip {
 
 body[data-theme="dark"] .publish-confirm-highlight {
   color: var(--color-primary);
+}
+
+body[data-theme="dark"] .publish-confirm-quota {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: rgba(255, 36, 66, 0.4);
+  color: #ff4d6a;
 }
 
 body[data-theme="dark"] .publish-confirm-cancel {

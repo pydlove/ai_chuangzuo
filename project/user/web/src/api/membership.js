@@ -7,3 +7,7 @@ export function subscribe(data) {
 export function getMyMembership() {
   return request.get('/membership/me')
 }
+
+export function getPlanCatalog() {
+  return request.get('/plans')
+}

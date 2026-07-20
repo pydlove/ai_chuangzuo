@@ -1,5 +1,6 @@
 import { ref, computed } from 'vue'
 import { getMarketStyles } from '@/api/marketStyle.js'
+import { getStylePublishQuota } from '@/utils/membershipLimits.js'
 
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
@@ -105,7 +106,38 @@ function getCurrentWeek() {
   return getWeekFromDate(new Date())
 }
 
+/** 当前 yyyy-MM 字符串，用于「本月已发布数」计数隔离。 */
+function getCurrentMonth() {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+/** 当前用户本月已发布到市场的风格数（按 marketStyles 实时统计）。 */
+export function countMyPublishesThisMonth() {
+  const uid = getUserId()
+  const month = getCurrentMonth()
+  return marketStyles.value.filter(
+    s => s.creatorId === uid && (s.createdAt || '').startsWith(month)
+  ).length
+}
+
+/** 当前档位本月还可发布多少次；-1 表示不限制（套餐不限），0 表示禁止发布。 */
+export function getRemainingPublishQuota() {
+  const quota = getStylePublishQuota()
+  if (quota <= 0) return 0
+  return Math.max(quota - countMyPublishesThisMonth(), 0)
+}
+
 export function shareStyleToMarket(style, sourceType) {
+  const remaining = getRemainingPublishQuota()
+  if (remaining <= 0) {
+    const quota = getStylePublishQuota()
+    if (quota <= 0) {
+      throw new Error('当前套餐不支持发布风格到市场，请升级会员')
+    }
+    throw new Error(`本月发布额度已用完（${quota} 次），下月 1 日重置`)
+  }
+
   const existing = marketStyles.value.find(
     s => s.originalName === style.name && s.creatorId === getUserId() && s.sourceType === sourceType
   )

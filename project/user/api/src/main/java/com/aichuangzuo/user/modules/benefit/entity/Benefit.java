@@ -30,6 +30,15 @@ public class Benefit {
     /** 权益描述。 */
     private String description;
 
+    /** 对比表行标签 / 默认名称。 */
+    private String displayLabel;
+
+    /** 价格卡值模板，含 {value} 占位；为空时仅显示 value。 */
+    private String cardValueTpl;
+
+    /** value→显示文本 JSON 覆盖（tier 类型 / 特殊值如 -1→永久）。 */
+    private String valueLabelJson;
+
     /** 排序号。 */
     private Integer sortOrder;
 

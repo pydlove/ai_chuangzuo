@@ -1,22 +1,29 @@
 package com.aichuangzuo.user.modules.style.service;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.style.service.impl.StyleAnalyzeServiceImpl;
 import com.aichuangzuo.user.modules.style.vo.StyleAnalyzeVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatchers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * StyleAnalyzeServiceImpl 纯单测：mock AI 调用器，不起 Spring 上下文。
+ * StyleAnalyzeServiceImpl 纯单测：mock AI 调用器 + mock BenefitService，不起 Spring 上下文。
  */
 class StyleAnalyzeServiceImplTest {
+
+    private static final long USER_ID = 1L;
 
     private static final String ARTICLE = """
             清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。
@@ -38,15 +45,28 @@ class StyleAnalyzeServiceImplTest {
             {"excerpt1":"清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。","excerpt2":"慢到可以听见自己的心跳","prompt":"%s"}
             """.formatted(VALID_PROMPT.replace("\n", "\\n").replace("\"", "\\\""));
 
+    /** 构造一个 BenefitService mock：默认任何 userId 都允许消费额度。 */
+    private BenefitService mockBenefitServiceAllowed() {
+        BenefitService bs = mock(BenefitService.class);
+        BenefitCheckVO vo = new BenefitCheckVO();
+        vo.setAllowed(true);
+        when(bs.consume(anyLong(), anyString())).thenReturn(vo);
+        return bs;
+    }
+
     private StyleAnalyzeServiceImpl serviceWith(String aiResponse) {
+        return serviceWith(aiResponse, mockBenefitServiceAllowed());
+    }
+
+    private StyleAnalyzeServiceImpl serviceWith(String aiResponse, BenefitService benefitService) {
         StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(aiResponse);
-        return new StyleAnalyzeServiceImpl(aiService, new ObjectMapper());
+        return new StyleAnalyzeServiceImpl(aiService, benefitService, new ObjectMapper());
     }
 
     @Test
     void analyze_shouldReturnParsedResultOnCleanJson() {
-        StyleAnalyzeVO vo = serviceWith(VALID_JSON).analyze(ARTICLE);
+        StyleAnalyzeVO vo = serviceWith(VALID_JSON).analyze(USER_ID, ARTICLE);
 
         assertEquals("清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。", vo.getExcerpt1());
         assertEquals("慢到可以听见自己的心跳", vo.getExcerpt2());
@@ -55,14 +75,14 @@ class StyleAnalyzeServiceImplTest {
 
     @Test
     void analyze_shouldStripCodeFence() {
-        StyleAnalyzeVO vo = serviceWith("```json\n" + VALID_JSON + "\n```").analyze(ARTICLE);
+        StyleAnalyzeVO vo = serviceWith("```json\n" + VALID_JSON + "\n```").analyze(USER_ID, ARTICLE);
 
         assertEquals(VALID_PROMPT, vo.getPrompt());
     }
 
     @Test
     void analyze_shouldThrowOnInvalidJson() {
-        assertThrows(BusinessException.class, () -> serviceWith("这不是 JSON").analyze(ARTICLE));
+        assertThrows(BusinessException.class, () -> serviceWith("这不是 JSON").analyze(USER_ID, ARTICLE));
     }
 
     @Test
@@ -71,7 +91,7 @@ class StyleAnalyzeServiceImplTest {
         String json = """
                 {"excerpt1":"","excerpt2":"","prompt":"%s"}
                 """.formatted(badPrompt);
-        assertThrows(BusinessException.class, () -> serviceWith(json).analyze(ARTICLE));
+        assertThrows(BusinessException.class, () -> serviceWith(json).analyze(USER_ID, ARTICLE));
     }
 
     @Test
@@ -80,7 +100,7 @@ class StyleAnalyzeServiceImplTest {
         String json = """
                 {"excerpt1":"","excerpt2":"","prompt":"%s"}
                 """.formatted(longPrompt.replace("\n", "\\n"));
-        assertThrows(BusinessException.class, () -> serviceWith(json).analyze(ARTICLE));
+        assertThrows(BusinessException.class, () -> serviceWith(json).analyze(USER_ID, ARTICLE));
     }
 
     @Test
@@ -89,7 +109,7 @@ class StyleAnalyzeServiceImplTest {
                 {"excerpt1":"这是模型编造的片段，原文里根本没有这句话。","excerpt2":"同样是编造的","prompt":"%s"}
                 """.formatted(VALID_PROMPT.replace("\n", "\\n"));
 
-        StyleAnalyzeVO vo = serviceWith(json).analyze(ARTICLE);
+        StyleAnalyzeVO vo = serviceWith(json).analyze(USER_ID, ARTICLE);
 
         // excerpt1 降级为首段（≤120字）；excerpt2 降级为最长句（≤80字）
         assertEquals("清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。", vo.getExcerpt1());
@@ -102,7 +122,7 @@ class StyleAnalyzeServiceImplTest {
                 {"excerpt1":"","excerpt2":"","prompt":"%s"}
                 """.formatted(VALID_PROMPT.replace("\n", "\\n"));
 
-        StyleAnalyzeVO vo = serviceWith(json).analyze(ARTICLE);
+        StyleAnalyzeVO vo = serviceWith(json).analyze(USER_ID, ARTICLE);
 
         assertTrue(vo.getExcerpt1().length() <= 120 && !vo.getExcerpt1().isEmpty());
         assertTrue(vo.getExcerpt2().length() <= 80 && !vo.getExcerpt2().isEmpty());
@@ -111,8 +131,40 @@ class StyleAnalyzeServiceImplTest {
     @Test
     void analyze_shouldHandlePercentInText() {
         String textWithPercent = ARTICLE + "\n\n转化率提升 100%s 的写法不应影响模板拼接，占比 50%% 也一样。";
-        StyleAnalyzeVO vo = serviceWith(VALID_JSON).analyze(textWithPercent);
+        StyleAnalyzeVO vo = serviceWith(VALID_JSON).analyze(USER_ID, textWithPercent);
 
         assertEquals(VALID_PROMPT, vo.getPrompt());
+    }
+
+    /** 额度不足（basic=0 / pro/flagship 用满）应当阻断：抛 BusinessException 而不再调 AI。 */
+    @Test
+    void analyze_shouldThrowWhenQuotaExhausted() {
+        BenefitService bs = mock(BenefitService.class);
+        doThrow(new BusinessException(com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode.QUOTA_EXHAUSTED))
+                .when(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        // 若 AI 被错误调用就 fail
+        when(aiService.call(anyString(), anyString())).thenThrow(new AssertionError("AI 不应在额度不足时被调用"));
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
+    }
+
+    /** 额度校验放行后必须实际触发消费（含写入 u_benefit_usage）。 */
+    @Test
+    void analyze_shouldConsumeQuotaBeforeCallingAi() {
+        BenefitService bs = mock(BenefitService.class);
+        BenefitCheckVO vo = new BenefitCheckVO();
+        vo.setAllowed(true);
+        when(bs.consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"))).thenReturn(vo);
+
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        svc.analyze(USER_ID, ARTICLE);
+
+        org.mockito.Mockito.verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
     }
 }

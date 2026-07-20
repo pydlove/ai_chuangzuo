@@ -54,6 +54,18 @@ public class CaffeineConfig {
                         .maximumSize(100)
                         .expireAfterWrite(10, TimeUnit.MINUTES)
                         .build());
+        // 公开定价目录：5 分钟 TTL（管理端改动后下次刷新即可生效）
+        manager.registerCustomCache("planCatalog",
+                Caffeine.newBuilder()
+                        .maximumSize(20)
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .build());
+        // 套餐元数据：10 分钟 TTL（价格/邀请奖励读取）
+        manager.registerCustomCache("plans",
+                Caffeine.newBuilder()
+                        .maximumSize(100)
+                        .expireAfterWrite(10, TimeUnit.MINUTES)
+                        .build());
         return manager;
     }
 }

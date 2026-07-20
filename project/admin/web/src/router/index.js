@@ -162,6 +162,11 @@ const routes = [
         path: 'orders/stats',
         name: 'AdminOrderStats',
         component: () => import('@/views/OrderStatsView.vue')
+      },
+      {
+        path: 'plans',
+        name: 'AdminPlanList',
+        component: () => import('@/views/PlanListView.vue')
       }
     ]
   },
