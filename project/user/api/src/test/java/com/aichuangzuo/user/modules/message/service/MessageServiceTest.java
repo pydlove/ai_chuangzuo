@@ -13,6 +13,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,7 +42,7 @@ class MessageServiceTest {
         String longContent = "完整公告正文\n第二段\n第三段".repeat(200);
         messageMapper.insert(buildBroadcast("announcement", "测试公告", "列表摘要", longContent, null));
 
-        List<MessageVO> list = messageService.listVisibleMessages(user.getId());
+        List<MessageVO> list = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
 
         MessageVO vo = list.stream()
                 .filter(v -> "测试公告".equals(v.getTitle()))
@@ -58,7 +59,7 @@ class MessageServiceTest {
         User user = createUser("msg-expiring@test.com");
         messageMapper.insert(buildBroadcast("membership", "会员到期", "摘要", "正文", MessageSubType.EXPIRING.getCode()));
 
-        List<MessageVO> list = messageService.listVisibleMessages(user.getId());
+        List<MessageVO> list = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
 
         MessageVO vo = list.stream()
                 .filter(v -> "会员到期".equals(v.getTitle()))
@@ -83,7 +84,7 @@ class MessageServiceTest {
         assertEquals("完整内容\n有效期至 2027-07-08", stored.getContent());
         assertEquals("subscribed", stored.getSubType());
 
-        List<MessageVO> visible = messageService.listVisibleMessages(user.getId());
+        List<MessageVO> visible = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
         MessageVO vo = visible.stream()
                 .filter(v -> id.equals(v.getId()))
                 .findFirst()
@@ -98,16 +99,16 @@ class MessageServiceTest {
         Long id2 = messageService.publishBroadcast("feature", "新功能B", "摘要B", null, "内容B", null);
 
         // markRead 单条
-        messageService.markRead(user.getId(), id1);
-        List<MessageVO> afterSingle = messageService.listVisibleMessages(user.getId());
+        messageService.markRead(user.getId(), user.getCreatedAt(), id1);
+        List<MessageVO> afterSingle = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
         MessageVO vo1 = afterSingle.stream().filter(v -> id1.equals(v.getId())).findFirst().orElseThrow();
         MessageVO vo2 = afterSingle.stream().filter(v -> id2.equals(v.getId())).findFirst().orElseThrow();
         assertTrue(vo1.getRead());
         assertFalse(vo2.getRead());
 
         // markAllRead 把剩余未读全部标记
-        messageService.markAllRead(user.getId());
-        List<MessageVO> afterAll = messageService.listVisibleMessages(user.getId());
+        messageService.markAllRead(user.getId(), user.getCreatedAt());
+        List<MessageVO> afterAll = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
         assertTrue(afterAll.stream().allMatch(MessageVO::getRead));
     }
 
@@ -121,7 +122,7 @@ class MessageServiceTest {
         assertEquals(MessageScope.BROADCAST.getCode(), stored.getScope());
         assertNull(stored.getTargetUserId());
 
-        List<MessageVO> visible = messageService.listVisibleMessages(user.getId());
+        List<MessageVO> visible = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
         MessageVO vo = visible.stream()
                 .filter(v -> id.equals(v.getId()))
                 .findFirst()

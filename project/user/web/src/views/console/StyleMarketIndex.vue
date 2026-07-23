@@ -48,7 +48,6 @@
           <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-market-card-scope">{{ tag }}</span>
         </div>
         <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
-        <div v-show="expandedIds.has(s.id)" class="style-market-prompt-full">{{ s.prompt }}</div>
         <div class="style-market-card-stats">
           <span>🔥 本周 {{ s.weeklyUses }} 次</span>
           <span>累计 {{ s.totalUses }} 次</span>
@@ -63,15 +62,15 @@
           <button
             :class="['style-market-favorite-btn', { active: isFavorite(s.id) }]"
             :title="isFavorite(s.id) ? '已收藏' : '收藏'"
-            @click="toggleFavorite(s.id)"
+            @click="handleToggleFavorite(s.id)"
           >
             {{ isFavorite(s.id) ? '♥' : '♡' }}
           </button>
           <button
             class="style-market-simulate-btn"
-            @click="togglePrompt(s.id)"
+            @click="openPromptModal(s)"
           >
-            {{ expandedIds.has(s.id) ? '收起' : '查看' }}
+            查看
           </button>
           <button
             v-if="s.creatorId === currentUserId"
@@ -103,6 +102,47 @@
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
+
+  <a-modal
+    class="favorite-hint-modal"
+    :open="favoriteHintVisible"
+    :title="favoriteHintTitle"
+    :footer="null"
+    :width="400"
+    centered
+    @cancel="favoriteHintVisible = false"
+  >
+    <div class="favorite-hint-body">
+      <p>{{ favoriteHintText }}</p>
+    </div>
+    <div class="favorite-hint-actions">
+      <button class="favorite-hint-btn primary" @click="favoriteHintVisible = false">我知道了</button>
+    </div>
+  </a-modal>
+
+  <a-modal
+    class="prompt-detail-modal"
+    :open="promptModalVisible"
+    :title="selectedStyle?.name"
+    :footer="null"
+    :width="560"
+    centered
+    @cancel="promptModalVisible = false"
+  >
+    <div class="prompt-detail-creator">by {{ selectedStyle?.creatorName }}</div>
+    <div v-if="selectedStyle?.scope" class="prompt-detail-scope-list">
+      <span v-for="tag in parseScopeTags(selectedStyle.scope)" :key="tag" class="prompt-detail-scope">{{ tag }}</span>
+    </div>
+    <div class="prompt-detail-prompt">{{ selectedStyle?.prompt }}</div>
+    <div class="prompt-detail-stats">
+      <span>🔥 本周 {{ selectedStyle?.weeklyUses }} 次</span>
+      <span>累计 {{ selectedStyle?.totalUses }} 次</span>
+    </div>
+    <div class="prompt-detail-actions">
+      <button class="prompt-detail-use-btn" @click="handleUse(selectedStyle); promptModalVisible = false">使用</button>
+      <button class="prompt-detail-close-btn" @click="promptModalVisible = false">关闭</button>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -121,8 +161,12 @@ const router = useRouter()
 const searchQuery = ref('')
 const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
-const expandedIds = ref(new Set())
 const rulesVisible = ref(false)
+const favoriteHintVisible = ref(false)
+const favoriteHintTitle = ref('')
+const favoriteHintText = ref('')
+const promptModalVisible = ref(false)
+const selectedStyle = ref(null)
 
 const parseScopeTags = (scopeStr) => {
   if (!scopeStr) return []
@@ -170,14 +214,9 @@ const promptSummary = (prompt) => {
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
 }
 
-const togglePrompt = (id) => {
-  const set = new Set(expandedIds.value)
-  if (set.has(id)) {
-    set.delete(id)
-  } else {
-    set.add(id)
-  }
-  expandedIds.value = set
+const openPromptModal = (style) => {
+  selectedStyle.value = style
+  promptModalVisible.value = true
 }
 
 const handleUse = (s) => {
@@ -195,6 +234,19 @@ const handleSimulate = (s) => {
   } catch (err) {
     alert(err.message)
   }
+}
+
+const handleToggleFavorite = (id) => {
+  const wasFavorite = isFavorite(id)
+  toggleFavorite(id)
+  if (wasFavorite) {
+    favoriteHintTitle.value = '已取消收藏'
+    favoriteHintText.value = '已从收藏列表中移除该风格。'
+  } else {
+    favoriteHintTitle.value = '收藏成功'
+    favoriteHintText.value = '可在「我的风格 → 收藏的风格」中查看和使用该风格。'
+  }
+  favoriteHintVisible.value = true
 }
 
 onMounted(() => {
@@ -505,22 +557,10 @@ body[data-theme="dark"] .style-market-tab.active {
   color: #595959;
   line-height: 1.7;
   margin-bottom: 16px;
-  flex: 1;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
-}
-
-.style-market-prompt-full {
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.7;
-  background: #fafafa;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  white-space: pre-line;
 }
 
 .style-market-card-stats {
@@ -604,6 +644,134 @@ body[data-theme="dark"] .style-market-tab.active {
   background: #fff0f2;
 }
 
+.favorite-hint-body {
+  text-align: center;
+  padding: 8px 0 16px;
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.7;
+}
+
+.favorite-hint-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.favorite-hint-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.favorite-hint-btn.primary {
+  background: #ff2442;
+  border-color: #ff2442;
+  color: #fff;
+}
+
+.favorite-hint-btn.primary:hover {
+  background: #e61e3a;
+}
+
+.prompt-detail-creator {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+
+.prompt-detail-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.prompt-detail-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  color: #ff2442;
+  background: #fff0f2;
+  border: 1px solid #ffd1d9;
+  padding: 4px 12px;
+  border-radius: 20px;
+}
+
+.prompt-detail-scope::before {
+  content: '#';
+  opacity: 0.7;
+}
+
+.prompt-detail-prompt {
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.8;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  white-space: pre-line;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.prompt-detail-stats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 20px;
+}
+
+.prompt-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.prompt-detail-use-btn {
+  padding: 8px 20px;
+  background: #ff2442;
+  border: 1px solid #ff2442;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prompt-detail-use-btn:hover {
+  background: #e61e3a;
+}
+
+.prompt-detail-close-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prompt-detail-close-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+  background: #fff0f2;
+}
+
 /* 暗色主题 */
 body[data-theme="dark"] .style-market-search-input {
   background: #1f1f1f;
@@ -635,11 +803,6 @@ body[data-theme="dark"] .style-market-card-title {
 body[data-theme="dark"] .style-market-card-creator,
 body[data-theme="dark"] .style-market-card-prompt,
 body[data-theme="dark"] .style-market-card-stats {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-prompt-full {
-  background: #141414;
   color: #a6a6a6;
 }
 
@@ -693,5 +856,87 @@ body[data-theme="dark"] .rules-modal .ant-modal-close {
 body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* 暗色主题 - 收藏提示弹层外壳适配（全局，非 scoped） */
+body[data-theme="dark"] .favorite-hint-modal .ant-modal-content,
+body[data-theme="dark"] .favorite-hint-modal .ant-modal-header {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .favorite-hint-modal .ant-modal-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .favorite-hint-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .favorite-hint-modal .ant-modal-close:hover {
+  color: #f0f0f0;
+  background: #2a2a2a;
+}
+
+/* 暗色主题 - 提示词详情弹层外壳适配（全局，非 scoped） */
+body[data-theme="dark"] .prompt-detail-modal .ant-modal-content,
+body[data-theme="dark"] .prompt-detail-modal .ant-modal-header {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .prompt-detail-modal .ant-modal-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .prompt-detail-modal .ant-modal-close {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .prompt-detail-modal .ant-modal-close:hover {
+  color: #f0f0f0;
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .prompt-detail-creator,
+body[data-theme="dark"] .prompt-detail-stats {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .prompt-detail-scope {
+  background: rgba(255, 36, 66, 0.15);
+  border-color: rgba(255, 36, 66, 0.4);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .prompt-detail-prompt {
+  background: #141414;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .prompt-detail-actions {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .prompt-detail-use-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .prompt-detail-use-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+body[data-theme="dark"] .prompt-detail-close-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .prompt-detail-close-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
 }
 </style>

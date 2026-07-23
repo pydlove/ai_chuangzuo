@@ -10,11 +10,13 @@ import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
 import com.aichuangzuo.user.modules.membership.entity.Order;
+import com.aichuangzuo.user.modules.membership.entity.Plan;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
 import com.aichuangzuo.user.modules.membership.enums.MembershipCycle;
 import com.aichuangzuo.user.modules.membership.enums.MembershipErrorCode;
 import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
+import com.aichuangzuo.user.modules.membership.mapper.PlanMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
@@ -29,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -47,6 +50,11 @@ public class MembershipServiceImpl implements MembershipService {
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
     private static final int EFFECTIVE_STATUS = 1;
 
+    private static final String NEWCOMER_PLAN_KEY = "flagship";
+    private static final String NEWCOMER_CYCLE = "year";
+    private static final BigDecimal NEWCOMER_EXTRA_DISCOUNT = new BigDecimal("0.8");
+    private static final BigDecimal AMOUNT_TOLERANCE = new BigDecimal("0.01");
+
     private final OrderMapper orderMapper;
     private final UserMembershipMapper userMembershipMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
@@ -55,6 +63,7 @@ public class MembershipServiceImpl implements MembershipService {
     private final MessageService messageService;
     private final CoinRecordService coinRecordService;
     private final PlanLookupService planLookupService;
+    private final PlanMapper planMapper;
 
     @Override
     @Transactional
@@ -71,7 +80,13 @@ public class MembershipServiceImpl implements MembershipService {
             throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
         }
 
-        Order order = createPaidOrder(userId, plan, cycle, request.getAmount());
+        BigDecimal expectedAmount = resolveExpectedAmount(userId, plan.getKey(), cycle.getCode());
+        if (request.getAmount() == null ||
+                request.getAmount().subtract(expectedAmount).abs().compareTo(AMOUNT_TOLERANCE) > 0) {
+            throw new BusinessException(MembershipErrorCode.INVALID_AMOUNT);
+        }
+
+        Order order = createPaidOrder(userId, plan, cycle, expectedAmount);
         UserMembership membership = activateOrExtendMembership(userId, plan, cycle);
 
         sendSubscriptionNotification(userId, plan, membership);
@@ -88,6 +103,50 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setInviterRewarded(rewarded);
         vo.setRewardAmount(rewarded ? planLookupService.getInviterReward(plan.getKey()) : BigDecimal.ZERO);
         return vo;
+    }
+
+    /**
+     * 计算本次订阅应付金额：新人首冲旗舰版年包在正常年付价上再打 8 折。
+     */
+    private BigDecimal resolveExpectedAmount(Long userId, String planKey, String cycleCode) {
+        Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
+                .eq(Plan::getPlanKey, planKey)
+                .eq(Plan::getStatus, EFFECTIVE_STATUS));
+        if (plan == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
+        }
+
+        BigDecimal basePrice;
+        if ("month".equals(cycleCode)) {
+            basePrice = plan.getPriceMonthly();
+        } else if ("quarter".equals(cycleCode)) {
+            basePrice = plan.getPriceQuarter();
+        } else if ("year".equals(cycleCode)) {
+            basePrice = plan.getPriceYear();
+        } else {
+            throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
+        }
+        if (basePrice == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
+        }
+
+        boolean eligibleForNewcomer = NEWCOMER_PLAN_KEY.equals(planKey)
+                && NEWCOMER_CYCLE.equals(cycleCode)
+                && isNewcomerEligible(userId);
+        if (eligibleForNewcomer) {
+            return basePrice.multiply(NEWCOMER_EXTRA_DISCOUNT)
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+        return basePrice;
+    }
+
+    private boolean isNewcomerEligible(Long userId) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership != null && !membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return false;
+        }
+        UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(userId);
+        return relation == null;
     }
 
     @Override

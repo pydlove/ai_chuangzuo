@@ -24,16 +24,19 @@ def run_flow_to_confirm(page):
     page.fill(".hero-input", "测试主题")
     page.keyboard.press("Enter")
     page.wait_for_timeout(400)
-    page.click(".quick-option:has-text('公众号')")
-    page.click(".quick-confirm")
+    # topic 步骤再发送一次才进入平台选择
+    page.locator(".topic-send").click()
     page.wait_for_timeout(400)
-    page.click(".quick-option:has-text('轻松口语')")
-    page.click(".quick-confirm")
+    page.locator(".quick-option", has_text="公众号").click()
+    page.locator(".quick-confirm").click()
+    page.wait_for_timeout(400)
+    page.locator(".quick-option", has_text="轻松口语").click()
+    page.locator(".quick-confirm").click()
     page.wait_for_timeout(500)
     # 第 4 步：模板
-    page.click(".quick-option:has-text('公众号深度文')")
+    page.locator(".quick-option", has_text="公众号深度文").click()
     page.wait_for_timeout(300)
-    page.click(".quick-confirm")
+    page.locator(".quick-confirm").click()
     page.wait_for_timeout(600)
 
 
@@ -88,21 +91,31 @@ def main():
         print("PASS retry" if ok_retry else "FAIL retry")
         page3.close()
 
-        # --- 场景 3：额度 0 拦截 ---
+        # --- 场景 3：未开通会员，正常走流程，点击"开始生成"时弹确认框 ---
         page2 = browser.new_page(viewport={"width": 1440, "height": 900})
         mock_common(page2, quota_remaining=0)
+        page2.route("**/api/v1/user/benefits/me", lambda r: r.fulfill(json={
+            "code": 0, "data": {"planKey": "free", "planName": "免费版",
+                                "benefits": [{"code": "ai_article_quota", "value": "0", "remaining": 0}]}}))
         page2.route("**/api/v1/user/generation-tasks**", lambda r: r.fulfill(json={"code": 0, "data": {"list": [], "total": 0}}))
         page2.goto(f"{BASE}/console/create", wait_until="networkidle")
         page2.wait_for_timeout(1200)
-        ok_quota = page2.query_selector("text=本月额度已用完") is not None
-        ok_no_input = page2.query_selector(".hero-input") is None
-        print("PASS quota-block" if ok_quota else "FAIL quota-block")
-        print("PASS no-input" if ok_no_input else "FAIL no-input")
+        ok_hero = page2.query_selector(".hero-input") is not None
+        run_flow_to_confirm(page2)
+        page2.locator(".confirm-generate").click()
+        page2.wait_for_timeout(600)
+        ok_modal_title = page2.query_selector(".ant-modal-confirm-title") is not None and \
+                         page2.inner_text(".ant-modal-confirm-title") == "需要开通会员"
+        ok_modal_body = page2.query_selector(".ant-modal-confirm-content") is not None and \
+                        "开通会员后才能使用 AI 生成文章" in page2.inner_text(".ant-modal-confirm-content")
+        print("PASS free-user-hero-visible" if ok_hero else "FAIL free-user-hero-visible")
+        print("PASS free-user-modal-title" if ok_modal_title else "FAIL free-user-modal-title")
+        print("PASS free-user-modal-body" if ok_modal_body else "FAIL free-user-modal-body")
         page2.screenshot(path=f"{SHOTS}/guided_quota_block.png")
         page2.close()
 
         browser.close()
-        if not all([ok_progress, ok_result, ok_failed, ok_retry, ok_quota, ok_no_input]):
+        if not all([ok_progress, ok_result, ok_failed, ok_retry, ok_hero, ok_modal_title, ok_modal_body]):
             raise SystemExit("FAILED")
         print("ALL PASS")
 

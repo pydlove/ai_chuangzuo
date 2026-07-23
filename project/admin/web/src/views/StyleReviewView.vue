@@ -27,6 +27,13 @@
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
+        <a-button
+          type="primary"
+          :disabled="!canBatchApprove"
+          @click="openBatchApproveModal"
+        >
+          批量通过
+        </a-button>
       </div>
 
       <!-- 表格 -->
@@ -37,6 +44,7 @@
         :pagination="false"
         row-key="id"
         size="middle"
+        :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'sourceType'">
@@ -64,6 +72,21 @@
             <a-button
               type="link"
               size="small"
+              @click="openDetailModal(record)"
+            >
+              查看
+            </a-button>
+            <a-button
+              type="link"
+              size="small"
+              :disabled="record.status !== 'pending'"
+              @click="openApproveModal(record)"
+            >
+              通过
+            </a-button>
+            <a-button
+              type="link"
+              size="small"
               danger
               :disabled="record.status === 'rejected'"
               @click="openRejectModal(record)"
@@ -88,6 +111,33 @@
         />
       </div>
     </a-card>
+
+    <!-- 通过弹框 -->
+    <a-modal
+      v-model:open="approveVisible"
+      title="通过风格"
+      ok-text="确认通过"
+      cancel-text="取消"
+      :confirm-loading="approveSubmitting"
+      @ok="confirmApprove"
+    >
+      <p v-if="approveTarget">风格名称：<strong>{{ approveTarget.name }}</strong></p>
+      <p v-if="approveTarget" style="margin-top: 8px">创作者：<strong>{{ approveTarget.creatorName }}</strong></p>
+      <p style="margin-top: 16px; color: #595959">通过后该风格将立即上架到风格市场，是否确认？</p>
+    </a-modal>
+
+    <!-- 批量通过弹框 -->
+    <a-modal
+      v-model:open="batchApproveVisible"
+      title="批量通过风格"
+      ok-text="确认通过"
+      cancel-text="取消"
+      :confirm-loading="batchApproveSubmitting"
+      @ok="confirmBatchApprove"
+    >
+      <p>已选择 <strong>{{ selectedRowKeys.length }}</strong> 条风格</p>
+      <p style="margin-top: 8px; color: #595959">仅状态为「待审核」的记录会被通过并上架，其他状态会自动跳过。是否确认？</p>
+    </a-modal>
 
     <!-- 打回弹框 -->
     <a-modal
@@ -122,6 +172,39 @@
       <a-divider style="margin: 12px 0" />
       <p>{{ reasonTarget?.rejectReason || '—' }}</p>
     </a-modal>
+
+    <!-- 风格详情弹框 -->
+    <a-modal
+      v-model:open="detailVisible"
+      title="风格详情"
+      :footer="null"
+      :width="640"
+    >
+      <div v-if="detailTarget" class="style-detail-body">
+        <div class="style-detail-item">
+          <div class="style-detail-label">风格名称</div>
+          <div class="style-detail-content">{{ detailTarget.name }}</div>
+        </div>
+        <div class="style-detail-item">
+          <div class="style-detail-label">来源类型</div>
+          <div class="style-detail-content">
+            {{ detailTarget.sourceType === 'my' ? '我的风格' : '学习的风格' }}
+          </div>
+        </div>
+        <div class="style-detail-item">
+          <div class="style-detail-label">创作者</div>
+          <div class="style-detail-content">{{ detailTarget.creatorName }}</div>
+        </div>
+        <div class="style-detail-item">
+          <div class="style-detail-label">适用范围</div>
+          <div class="style-detail-content">{{ detailTarget.scope || '—' }}</div>
+        </div>
+        <div class="style-detail-item">
+          <div class="style-detail-label">风格提示词</div>
+          <div class="style-detail-prompt">{{ detailTarget.prompt || '—' }}</div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -142,7 +225,9 @@ const {
   handleSearch,
   handleReset,
   handlePageChange,
-  handleReject
+  handleReject,
+  handleApprove,
+  handleApproveBatch
 } = useStyleReview()
 
 const statusOptions = [
@@ -167,8 +252,30 @@ const rejectTarget = ref(null)
 const rejectReason = ref('')
 const rejectSubmitting = ref(false)
 
+const approveVisible = ref(false)
+const approveTarget = ref(null)
+const approveSubmitting = ref(false)
+
 const reasonVisible = ref(false)
 const reasonTarget = ref(null)
+
+const detailVisible = ref(false)
+const detailTarget = ref(null)
+
+const openApproveModal = (style) => {
+  approveTarget.value = style
+  approveVisible.value = true
+}
+
+const confirmApprove = async () => {
+  if (!approveTarget.value) return
+  approveSubmitting.value = true
+  const ok = await handleApprove(approveTarget.value)
+  approveSubmitting.value = false
+  if (ok) {
+    approveVisible.value = false
+  }
+}
 
 const openRejectModal = (style) => {
   rejectTarget.value = style
@@ -192,6 +299,11 @@ const confirmReject = async () => {
 const openReasonModal = (style) => {
   reasonTarget.value = style
   reasonVisible.value = true
+}
+
+const openDetailModal = (style) => {
+  detailTarget.value = style
+  detailVisible.value = true
 }
 
 onMounted(() => {
@@ -237,5 +349,39 @@ onMounted(() => {
 .reason-link {
   padding: 0 0 0 8px;
   font-size: 12px;
+}
+
+.style-detail-body {
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.style-detail-item {
+  margin-bottom: 16px;
+}
+
+.style-detail-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #8c8c8c;
+  margin-bottom: 6px;
+}
+
+.style-detail-content {
+  font-size: 14px;
+  color: #1a1a1a;
+  line-height: 1.6;
+  word-break: break-all;
+}
+
+.style-detail-prompt {
+  font-size: 14px;
+  color: #1a1a1a;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background: #f6f6f6;
+  border-radius: 6px;
+  padding: 12px;
 }
 </style>

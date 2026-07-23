@@ -56,6 +56,7 @@
             centered
             class="invite-modal"
             :mask-style="{ background: 'transparent' }"
+            @cancel="handleInviteClose"
           >
             <div class="invite-panel">
               <div class="invite-header">
@@ -198,6 +199,10 @@
                     </div>
                   </div>
                 </div>
+              </div>
+
+              <div v-if="inviteAutoOpened" class="invite-modal-auto-footer">
+                <a-checkbox v-model:checked="inviteModalDontShow">我已经知道，不再弹出</a-checkbox>
               </div>
             </div>
           </a-modal>
@@ -865,6 +870,13 @@
                     <span class="user-row-label">邀请人</span>
                     <span class="user-row-value user-row-edit">点击绑定 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
+                  <div
+                    v-else
+                    class="user-row"
+                  >
+                    <span class="user-row-label">邀请人</span>
+                    <span class="user-row-value">{{ userProfile.profile.value?.inviterNickname || '已绑定' }}</span>
+                  </div>
                   <div class="user-row">
                     <span class="user-row-label">本月已生成</span>
                     <span class="user-row-value">{{ monthlyWorks }} 篇</span>
@@ -913,6 +925,15 @@
           <span>返回</span>
         </div>
         <div v-if="subpageTitle" class="mobile-subpage-title">{{ subpageTitle }}</div>
+      </div>
+
+      <!-- 新人首冲优惠横幅 -->
+      <div v-if="newcomerBannerVisible" class="newcomer-banner">
+        <span class="newcomer-banner-text" @click="goToNewcomerOffer">
+          🎁 新人首冲特惠：旗舰版年包再享 8 折，<span class="newcomer-price-current">¥{{ newcomerOffer.finalPrice }}</span>
+          <span class="newcomer-price-original">¥{{ newcomerOffer.originalPrice }}</span> 立即开通 →
+        </span>
+        <span class="newcomer-banner-close" @click="dismissNewcomerBanner">✕</span>
       </div>
 
       <!-- 玩法指南横幅 -->
@@ -1104,7 +1125,7 @@
       <div class="email-item">
         <label class="email-label">新邮箱</label>
         <input
-          v-model="emailForm.email"
+          v-model="emailForm.newEmail"
           type="email"
           class="email-input"
           placeholder="请输入新邮箱"
@@ -1146,7 +1167,7 @@
   >
     <p class="slider-modal-tip">
       拖动滑块完成验证后将向
-      <b>{{ emailForm.email || '当前邮箱' }}</b>
+      <b>{{ emailForm.newEmail || '当前邮箱' }}</b>
       发送 6 位邮箱验证码
     </p>
     <SliderCaptcha v-model="emailSliderPassed" />
@@ -1176,6 +1197,37 @@
       <button class="invite-binding-submit" @click="handleInviteBindingSubmit">确认绑定</button>
     </div>
   </a-modal>
+
+  <!-- 新人首冲优惠弹框 -->
+  <a-modal
+    v-model:open="newcomerModalVisible"
+    title="新人首冲特惠"
+    :footer="null"
+    :mask-closable="false"
+    :width="420"
+    centered
+    class="newcomer-modal"
+    @cancel="closeNewcomerModal"
+  >
+    <div class="newcomer-modal-body">
+      <p class="newcomer-modal-desc">开通旗舰版年包，再享 8 折限时优惠</p>
+      <div class="newcomer-modal-price">
+        <span class="newcomer-modal-final">¥{{ newcomerOffer.finalPrice }}</span>
+        <span class="newcomer-modal-original">¥{{ newcomerOffer.originalPrice }}</span>
+      </div>
+      <ul v-if="newcomerOffer.benefits && newcomerOffer.benefits.length" class="newcomer-modal-benefits">
+        <li v-for="(item, idx) in newcomerOffer.benefits" :key="idx">{{ item }}</li>
+      </ul>
+      <div class="newcomer-modal-actions">
+        <a-checkbox v-model:checked="newcomerModalDontShow">我已经知道，不再弹出</a-checkbox>
+        <div class="newcomer-modal-btns">
+          <button class="newcomer-modal-later" @click="closeNewcomerModal">稍后再说</button>
+          <button class="newcomer-modal-buy" @click="newcomerModalGoToPricing">立即开通</button>
+        </div>
+      </div>
+    </div>
+  </a-modal>
+
 </template>
 
 <script setup>
@@ -1192,6 +1244,7 @@ import { useUserProfile } from '@/composables/useUserProfile'
 import { useBenefits } from '@/composables/useBenefits'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
+import { getNewcomerOffer } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
 import { listArticles, getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
@@ -1251,6 +1304,9 @@ watch(
 
 // ---------- 玩法指南新手横幅 ----------
 const GUIDE_BANNER_DISMISSED_KEY = 'aichuangzuo_guide_banner_dismissed'
+const NEWCOMER_BANNER_DISMISSED_KEY = 'aichuangzuo_newcomer_banner_dismissed'
+const NEWCOMER_MODAL_DISMISSED_KEY = 'aichuangzuo_newcomer_modal_dismissed'
+const INVITE_MODAL_DISMISSED_KEY = 'aichuangzuo_invite_modal_dismissed'
 
 const hasWorks = async () => {
   try {
@@ -1280,6 +1336,74 @@ const dismissGuideBanner = () => {
 
 const goToGuide = () => {
   router.push('/guide')
+}
+
+// ---------- 新人首冲优惠横幅 ----------
+const newcomerOffer = ref({ eligible: false })
+const newcomerBannerVisible = ref(false)
+const newcomerModalVisible = ref(false)
+const newcomerModalDontShow = ref(false)
+
+const loadNewcomerOffer = async () => {
+  if (!localStorage.getItem('aichuangzuo_access_token')) return
+  try {
+    const res = await getNewcomerOffer()
+    const data = res.data || res
+    if (data && data.eligible) {
+      newcomerOffer.value = data
+      newcomerBannerVisible.value = !localStorage.getItem(NEWCOMER_BANNER_DISMISSED_KEY)
+    }
+  } catch {
+    newcomerOffer.value = { eligible: false }
+  }
+}
+
+const tryShowNewcomerModal = () => {
+  if (route.path !== '/console/create') return
+  if (!localStorage.getItem('aichuangzuo_access_token')) return
+  if (localStorage.getItem(NEWCOMER_MODAL_DISMISSED_KEY)) return
+  if (newcomerOffer.value.eligible) {
+    newcomerModalVisible.value = true
+  }
+}
+
+const closeNewcomerModal = () => {
+  newcomerModalVisible.value = false
+  if (newcomerModalDontShow.value) {
+    localStorage.setItem(NEWCOMER_MODAL_DISMISSED_KEY, '1')
+  }
+  if (route.path === '/console/create' && localStorage.getItem('aichuangzuo_access_token') && !localStorage.getItem(INVITE_MODAL_DISMISSED_KEY)) {
+    inviteAutoOpened.value = true
+    openInviteModal()
+  }
+}
+
+const inviteAutoOpened = ref(false)
+const inviteModalDontShow = ref(false)
+
+const handleInviteClose = () => {
+  if (inviteAutoOpened.value && inviteModalDontShow.value) {
+    localStorage.setItem(INVITE_MODAL_DISMISSED_KEY, '1')
+  }
+  inviteAutoOpened.value = false
+  inviteModalDontShow.value = false
+}
+
+const newcomerModalGoToPricing = () => {
+  newcomerModalVisible.value = false
+  if (newcomerModalDontShow.value) {
+    localStorage.setItem(NEWCOMER_MODAL_DISMISSED_KEY, '1')
+  }
+  router.push('/pricing?newcomer=1')
+}
+
+const dismissNewcomerBanner = () => {
+  newcomerBannerVisible.value = false
+  localStorage.setItem(NEWCOMER_BANNER_DISMISSED_KEY, '1')
+}
+
+const goToNewcomerOffer = () => {
+  router.push('/pricing?newcomer=1')
 }
 
 const navItems = [
@@ -1571,8 +1695,10 @@ const profileForm = reactive({
 })
 
 const emailForm = reactive({
+  // 当前邮箱：只读展示，修改邮箱弹框里不要回填旧邮箱
   get email() { return userProfile.profile.value?.email ?? '' },
-  set email(v) { userProfile.profile.value && (userProfile.profile.value.email = v) },
+  set email(v) { /* 当前邮箱通过 saveEmail 成功后重新拉取 profile 更新 */ },
+  newEmail: '',
   code: ''
 })
 
@@ -1593,7 +1719,7 @@ const startEmailCodeCountdown = () => {
 
 const sendEmailCode = async () => {
   if (codeCountdown.value > 0) return
-  const email = emailForm.email.trim()
+  const email = emailForm.newEmail.trim()
   if (!email) {
     message.warning('请输入邮箱')
     return
@@ -1616,7 +1742,7 @@ watch(emailSliderPassed, async (val) => {
   if (!val || emailSliderSending) return
   emailSliderSending = true
   try {
-    const email = emailForm.email.trim()
+    const email = emailForm.newEmail.trim()
     await sendEmailCodeApi({ email })
     startEmailCodeCountdown()
     message.success('验证码已发送，请查收邮箱')
@@ -1636,7 +1762,8 @@ const openProfileModal = () => {
 
 const openEmailModal = () => {
   userCenterVisible.value = false
-  emailForm.code = ''  // 验证码每次重新输入
+  emailForm.newEmail = ''  // 新邮箱每次重新输入，不默认填旧邮箱
+  emailForm.code = ''      // 验证码每次重新输入
   emailVisible.value = true
 }
 
@@ -1652,8 +1779,13 @@ const copyAccountUserId = async () => {
 }
 
 const handleProfileSubmit = async () => {
-  if (!profileForm.nickname.trim()) {
+  const trimmed = profileForm.nickname.trim()
+  if (!trimmed) {
     message.warning('昵称不能为空')
+    return
+  }
+  if (trimmed.length > 20) {
+    message.warning('昵称长度不能超过 20 个字符')
     return
   }
   try {
@@ -1665,13 +1797,14 @@ const handleProfileSubmit = async () => {
 }
 
 const handleEmailSubmit = async () => {
-  if (!emailForm.email.trim() || !emailForm.code.trim()) {
+  if (!emailForm.newEmail.trim() || !emailForm.code.trim()) {
     message.warning('邮箱和验证码不能为空')
     return
   }
   try {
-    await userProfile.saveEmail(emailForm.email, emailForm.code)
+    await userProfile.saveEmail(emailForm.newEmail, emailForm.code)
     emailVisible.value = false
+    emailForm.newEmail = ''
     emailForm.code = ''
   } catch {
     // composable 已 message.error
@@ -1851,6 +1984,12 @@ const refreshMembershipFromApi = async () => {
         level: membershipLevel.value,
         expiresAt: membershipExpiry.value
       }))
+    } else {
+      // 后端确认当前无会员/已过期：同步清空本地缓存和状态
+      hasMembership.value = false
+      membershipLevel.value = '会员'
+      membershipExpiry.value = ''
+      localStorage.removeItem(MEMBERSHIP_KEY)
     }
   } catch (err) {
     // 静默失败，继续使用本地缓存
@@ -1985,7 +2124,7 @@ const simulateEmail = ref('')
 const withdrawAmount = ref(null)
 const withdrawAccount = ref('')
 const withdrawName = ref('')
-const userId = ref('88886666')
+const userId = computed(() => userProfile.profile.value?.userId || '88886666')
 
 const inviteStats = ref({
   invitedCount: 0,
@@ -2578,6 +2717,8 @@ onMounted(async () => {
   refreshMembershipFromApi()
   userProfile.loadProfile()
   loadBenefits()
+  await loadNewcomerOffer()
+  tryShowNewcomerModal()
 
   monthlyWorks.value = await readMonthlyWorks()
   guideBannerVisible.value = guideBannerVisible.value && !(await hasWorks())
@@ -2897,6 +3038,137 @@ provide('consoleActions', {
   display: flex;
   flex-direction: column;
   background: var(--color-bg-page);
+}
+
+/* 新人首冲优惠横幅 */
+.newcomer-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 24px;
+  background: linear-gradient(90deg, #fff5f7, #fff0f2);
+  border-bottom: 1px solid #ffd1d9;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.newcomer-banner-text {
+  color: #ff2442;
+  cursor: pointer;
+  font-weight: 500;
+}
+.newcomer-banner-text:hover {
+  text-decoration: underline;
+}
+.newcomer-price-current {
+  font-weight: 700;
+  margin: 0 4px;
+}
+.newcomer-price-original {
+  text-decoration: line-through;
+  color: #8c8c8c;
+  font-weight: 400;
+  margin-left: 4px;
+}
+.newcomer-banner-close {
+  color: #8c8c8c;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 0 4px;
+}
+.newcomer-banner-close:hover {
+  color: #595959;
+}
+
+/* 新人首冲优惠弹框 */
+.newcomer-modal .newcomer-modal-body {
+  padding: 8px 4px 4px;
+  text-align: center;
+}
+.newcomer-modal-desc {
+  color: #595959;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.newcomer-modal-price {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.newcomer-modal-final {
+  font-size: 36px;
+  font-weight: 800;
+  color: #ff2442;
+}
+.newcomer-modal-original {
+  font-size: 16px;
+  color: #8c8c8c;
+  text-decoration: line-through;
+}
+.newcomer-modal-benefits {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 20px;
+  text-align: left;
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 14px 18px;
+}
+.newcomer-modal-benefits li {
+  position: relative;
+  padding-left: 20px;
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.newcomer-modal-benefits li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #07c160;
+  font-weight: 700;
+}
+.newcomer-modal-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+}
+.newcomer-modal-actions .ant-checkbox-wrapper {
+  color: #8c8c8c;
+  font-size: 13px;
+}
+.newcomer-modal-btns {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  width: 100%;
+}
+.newcomer-modal-later,
+.newcomer-modal-buy {
+  flex: 1;
+  padding: 10px 0;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+}
+.newcomer-modal-later {
+  background: #f0f0f0;
+  color: #595959;
+}
+.newcomer-modal-later:hover {
+  background: #e0e0e0;
+}
+.newcomer-modal-buy {
+  background: #ff2442;
+  color: #fff;
+}
+.newcomer-modal-buy:hover {
+  background: #e61e3a;
 }
 
 /* 玩法指南横幅 */
@@ -3614,6 +3886,46 @@ body[data-theme="dark"] .console-header {
 
 body[data-theme="dark"] .console-content {
   background: #141414;
+}
+
+body[data-theme="dark"] .newcomer-banner {
+  background: linear-gradient(90deg, #331018, #2a0d12);
+  border-bottom-color: #52222b;
+}
+body[data-theme="dark"] .newcomer-banner-text {
+  color: #ff4d6f;
+}
+body[data-theme="dark"] .newcomer-price-original {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-banner-close {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-banner-close:hover {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .newcomer-modal-desc {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-modal-original {
+  color: #8c8c8c;
+}
+body[data-theme="dark"] .newcomer-modal-benefits {
+  background: #1f1f1f;
+}
+body[data-theme="dark"] .newcomer-modal-benefits li {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-modal-actions .ant-checkbox-wrapper {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-modal-later {
+  background: #2c2c2c;
+  color: #bfbfbf;
+}
+body[data-theme="dark"] .newcomer-modal-later:hover {
+  background: #3a3a3a;
 }
 
 body[data-theme="dark"] .guide-banner {
@@ -4472,6 +4784,20 @@ body[data-theme="dark"] .password-input::placeholder {
   overflow-y: auto;
   min-height: 0;
   padding-bottom: 4px;
+}
+
+.invite-modal-auto-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+  padding: 12px 20px 16px;
+  background: #fff;
+  border-top: 1px solid #f0f0f0;
+}
+
+.invite-modal-auto-footer .ant-checkbox-wrapper {
+  color: #8c8c8c;
+  font-size: 13px;
 }
 
 .invite-title {
@@ -5826,6 +6152,15 @@ body[data-theme="dark"] .notif-detail-modal .ant-modal-content,
 body[data-theme="dark"] .renewal-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
+}
+
+body[data-theme="dark"] .invite-modal-auto-footer {
+  background: #141414;
+  border-top-color: #2c2c2c;
+}
+
+body[data-theme="dark"] .invite-modal-auto-footer .ant-checkbox-wrapper {
+  color: #a6a6a6;
 }
 
 /* 消息中心：去掉弹框内容区默认 padding，并把标题头背景也改成和面板一致，避免暗色下出现异色外圈 */

@@ -17,14 +17,18 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ScheduledFuture;
@@ -50,7 +54,7 @@ public class HotSearchCrawlJob {
                              HotSearchDailyMapper dailyMapper,
                              List<HotSearchFetcher> fetchers,
                              HotSearchConfigService configService,
-                             ThreadPoolTaskScheduler hotSearchTaskScheduler) {
+                             @Qualifier("hotSearchTaskScheduler") ThreadPoolTaskScheduler hotSearchTaskScheduler) {
         this.platformMapper = platformMapper;
         this.dailyMapper = dailyMapper;
         this.fetchers = fetchers;
@@ -59,9 +63,9 @@ public class HotSearchCrawlJob {
     }
 
     /**
-     * 监听配置变更事件，触发 reschedule。
+     * 监听配置变更事件，事务提交后再 reschedule，避免读到未提交的旧配置。
      */
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void onConfigChanged(HotSearchConfigChangedEvent event) {
         log.info("收到配置变更事件，adminId={}，开始 reschedule", event.adminId());
         reschedule();
@@ -89,11 +93,12 @@ public class HotSearchCrawlJob {
         var cfg = configService.getConfig();
         if (cfg.getEnabled() != null && cfg.getEnabled() == 1) {
             try {
-                new CronTrigger(cfg.getCron()); // 校验
-                scheduledFuture = taskScheduler.schedule(this::crawl, new CronTrigger(cfg.getCron()));
-                log.info("热搜定时抓取已注册，cron={}", cfg.getCron());
+                ZoneId zone = ZoneId.of("Asia/Shanghai");
+                new CronTrigger(cfg.getCron(), zone); // 校验
+                scheduledFuture = taskScheduler.schedule(this::crawl, new CronTrigger(cfg.getCron(), zone));
+                log.info("热搜定时抓取已注册，cron={}，时区={}", cfg.getCron(), zone);
             } catch (Exception e) {
-                log.warn("热搜 cron 表达式非法，注册失败: {}", cfg.getCron());
+                log.warn("热搜 cron 表达式非法，注册失败: {}", cfg.getCron(), e);
             }
         } else {
             log.info("热搜定时抓取已停用");
@@ -104,11 +109,13 @@ public class HotSearchCrawlJob {
      * 定时任务入口。
      */
     public void crawl() {
+        log.info("热搜定时抓取任务开始执行");
         try {
             crawlAll();
         } catch (Exception e) {
             log.error("定时抓取异常", e);
         }
+        log.info("热搜定时抓取任务执行结束");
     }
 
     /**

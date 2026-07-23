@@ -30,14 +30,14 @@ public class MessageServiceImpl implements MessageService {
     private final MessageReadMapper messageReadMapper;
 
     @Override
-    public List<MessageVO> listVisibleMessages(Long userId) {
-        return messageMapper.selectVisibleMessages(userId);
+    public List<MessageVO> listVisibleMessages(Long userId, LocalDateTime registerAt) {
+        return messageMapper.selectVisibleMessages(userId, registerAt);
     }
 
     @Override
     @Transactional
-    public void markRead(Long userId, Long messageId) {
-        Long visibleId = messageMapper.selectVisibleMessageId(messageId, userId);
+    public void markRead(Long userId, LocalDateTime registerAt, Long messageId) {
+        Long visibleId = messageMapper.selectVisibleMessageId(messageId, userId, registerAt);
         if (visibleId == null) {
             throw new BusinessException(MessageErrorCode.MESSAGE_NOT_FOUND);
         }
@@ -62,8 +62,8 @@ public class MessageServiceImpl implements MessageService {
 
     @Override
     @Transactional
-    public void markAllRead(Long userId) {
-        List<MessageVO> unreadMessages = listVisibleMessages(userId).stream()
+    public void markAllRead(Long userId, LocalDateTime registerAt) {
+        List<MessageVO> unreadMessages = listVisibleMessages(userId, registerAt).stream()
                 .filter(m -> Boolean.FALSE.equals(m.getRead()))
                 .toList();
 

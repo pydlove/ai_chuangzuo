@@ -77,6 +77,33 @@ public class StyleReviewServiceImpl implements StyleReviewService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public int batchApprove(List<String> bizNos) {
+        if (bizNos == null || bizNos.isEmpty()) {
+            return 0;
+        }
+        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        LocalDateTime now = LocalDateTime.now();
+        int count = 0;
+        for (String bizNo : bizNos) {
+            UserStyleAggregate style = loadByBizNo(bizNo);
+            AuditStatus current = AuditStatus.of(style.getAuditStatus());
+            if (current != AuditStatus.PENDING) {
+                log.warn("批量通过跳过非待审核记录 bizNo={}, status={}", bizNo, current);
+                continue;
+            }
+            style.setAuditStatus(AuditStatus.APPROVED.getCode());
+            style.setAuditedBy(adminId);
+            style.setAuditedAt(now);
+            style.setRejectReason(null);
+            styleReviewMapper.updateById(style);
+            count++;
+            log.info("批量风格审核通过 bizNo={}, adminId={}", bizNo, adminId);
+        }
+        return count;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void reject(String bizNo, String reason) {
         if (!StringUtils.hasText(reason) || !StringUtils.hasText(reason.trim())) {
             throw new BusinessException(AdminStyleReviewErrorCode.REJECT_REASON_EMPTY);

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { getMarketStyles } from '@/api/marketStyle.js'
-import { getStylePublishQuota } from '@/utils/membershipLimits.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
@@ -121,17 +121,17 @@ export function countMyPublishesThisMonth() {
   ).length
 }
 
-/** 当前档位本月还可发布多少次；-1 表示不限制（套餐不限），0 表示禁止发布。 */
+/** 当前档位本月还可发布多少次；0 表示禁止发布或额度已用完。 */
 export function getRemainingPublishQuota() {
-  const quota = getStylePublishQuota()
-  if (quota <= 0) return 0
-  return Math.max(quota - countMyPublishesThisMonth(), 0)
+  const { benefitRemaining } = useBenefits()
+  return Math.max(benefitRemaining('style_market_publish'), 0)
 }
 
 export function shareStyleToMarket(style, sourceType) {
-  const remaining = getRemainingPublishQuota()
+  const { benefitRemaining, benefitValue } = useBenefits()
+  const remaining = benefitRemaining('style_market_publish')
   if (remaining <= 0) {
-    const quota = getStylePublishQuota()
+    const quota = parseInt(benefitValue('style_market_publish') || '0', 10)
     if (quota <= 0) {
       throw new Error('当前套餐不支持发布风格到市场，请升级会员')
     }
@@ -166,13 +166,6 @@ export function shareStyleToMarket(style, sourceType) {
     createdAt: new Date().toISOString()
   })
   return id
-}
-
-export function approveMarketStyle(marketId) {
-  const s = marketStyles.value.find(x => x.id === marketId)
-  if (s) {
-    s.status = 'approved'
-    }
 }
 
 export function useMarketStyle(marketId) {

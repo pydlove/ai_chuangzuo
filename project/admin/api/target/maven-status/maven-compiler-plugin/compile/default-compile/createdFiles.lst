@@ -281,6 +281,7 @@ com/aichuangzuo/admin/modules/style/review/service/impl/StyleReviewServiceImpl.c
 com/aichuangzuo/admin/config/AuthProperties.class
 com/aichuangzuo/admin/modules/topictitle/service/TopicTitleService.class
 com/aichuangzuo/admin/modules/leaderboard/entity/RewardRecord.class
+com/aichuangzuo/admin/modules/style/review/dto/request/BatchApproveStyleReviewRequest.class
 com/aichuangzuo/admin/modules/style/market/enums/AdminStyleMarketErrorCode.class
 com/aichuangzuo/admin/modules/learn/dto/request/LearnCategoryReq.class
 com/aichuangzuo/admin/modules/generation/service/AiCallResult.class

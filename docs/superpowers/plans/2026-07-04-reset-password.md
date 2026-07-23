@@ -14,7 +14,7 @@
 - HTTP 路径：`/api/v1/user/auth/reset-password`
 - mock 测试：`SPRING_PROFILES_ACTIVE=test` 时 captcha=`TEST12`、邮箱码=`000000`
 - BCrypt 密码（与 register/login 同一 `PasswordEncoder` Bean）
-- 错误码全部复用现有 `UserAuthErrorCode`：`CAPTCHA_ERROR` / `EMAIL_CODE_ERROR` / `USER_NOT_FOUND` / `PASSWORD_NOT_MATCH` / `REFRESH_TOKEN_INVALID`
+- 错误码全部复用现有 `UserAuthErrorCode`：`CAPTCHA_ERROR` / `EMAIL_CODE_ERROR` / `RESET_PASSWORD_FAILED` / `PASSWORD_NOT_MATCH` / `REFRESH_TOKEN_INVALID`（未注册邮箱返回 `RESET_PASSWORD_FAILED`，防止账号枚举）
 - 启动脚本：`scripts/local/user-full-stack/{start,stop,restart}.sh`，后端 25050 / 前端 22345
 - 重置日志：`u_user_login_log.login_type = 3`（与 `1 = 登录 / 2 = 注册` 并存）
 - 前端 API：`project/user/web/src/api/auth.js` 与 `project/user/web/src/views/Forgot.vue`
@@ -328,7 +328,7 @@ class AuthServiceResetPasswordTest {
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> authService.resetPassword(buildRequest("no_such@example.com", "NewPass456"),
                         "127.0.0.1"));
-        assertEquals(UserAuthErrorCode.USER_NOT_FOUND.getCode(), ex.getErrorCode().getCode());
+        assertEquals(UserAuthErrorCode.RESET_PASSWORD_FAILED.getCode(), ex.getErrorCode().getCode());
     }
 
     @Test
@@ -406,7 +406,7 @@ public void resetPassword(ResetPasswordRequest request, String clientIp) {
 
     User user = userMapper.selectByEmail(request.getEmail());
     if (user == null) {
-        throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        throw new BusinessException(UserAuthErrorCode.RESET_PASSWORD_FAILED);
     }
 
     if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {

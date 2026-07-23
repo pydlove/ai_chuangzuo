@@ -11,11 +11,12 @@ import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import java.util.List;
 
 public interface AdminUserService {
-    AdminUserPageVO listUsers(String keyword, int page, int pageSize);
+    AdminUserPageVO listUsers(String keyword, String inviteCode, int page, int pageSize);
     AdminUserVO getUser(Long id);
     void updateStatus(Long id, AdminUserStatusRequest request);
     AdminUserResetPasswordVO resetPassword(Long id);
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserVO createUser(AdminUserCreateRequest request);
     AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
+    void deleteUser(Long id);
 }

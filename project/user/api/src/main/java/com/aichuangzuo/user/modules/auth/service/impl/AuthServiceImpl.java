@@ -26,6 +26,7 @@ import com.aichuangzuo.user.modules.auth.vo.UserVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,7 +70,7 @@ public class AuthServiceImpl implements AuthService {
 
         User user = userMapper.selectByEmail(request.getEmail());
         if (user == null) {
-            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+            throw new BusinessException(UserAuthErrorCode.RESET_PASSWORD_FAILED);
         }
 
         if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {
@@ -94,13 +95,17 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AuthTokenVO register(RegisterRequest request, String clientIp, String userAgent) {
+        String email = request.getEmail().trim().toLowerCase();
+        String inviteCode = request.getInviteCode() == null ? null
+                : request.getInviteCode().trim().toUpperCase();
+
         checkIpRegisterLimit(clientIp);
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
         }
 
-        if (userMapper.selectByEmail(request.getEmail()) != null) {
+        if (userMapper.selectByEmail(email) != null) {
             throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
         }
 
@@ -108,17 +113,28 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
         }
 
+        if (inviteCode != null && !inviteCode.isBlank()) {
+            if (userMapper.selectByInviteCode(inviteCode) == null) {
+                throw new BusinessException(UserAuthErrorCode.INVITE_CODE_INVALID);
+            }
+        }
+
         User user = new User();
         user.setBizNo("U" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
-        user.setEmail(request.getEmail());
+        user.setEmail(email);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setInviteCode(generateInviteCode());
         user.setUserStatus(1);
         user.setEmailVerified(1);
-        userMapper.insert(user);
 
-        if (request.getInviteCode() != null && !request.getInviteCode().isBlank()) {
-            handleInviteRelation(user, request.getInviteCode().trim().toUpperCase());
+        try {
+            userMapper.insert(user);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+        }
+
+        if (inviteCode != null && !inviteCode.isBlank()) {
+            handleInviteRelation(user, inviteCode);
         }
 
         ipRegisterLimitMapper.incrementRegisterCount(clientIp);

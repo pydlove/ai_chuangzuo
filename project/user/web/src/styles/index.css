@@ -180,6 +180,23 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   font-weight: 600;
 }
 
+/* 开通会员/额度不足等确认弹框：让主按钮使用项目主题色 */
+.membership-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.membership-confirm-modal .ant-btn-primary:hover,
+.membership-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.membership-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
 .invite-coin-tooltip-section + .invite-coin-tooltip-section {
   margin-top: 8px;
   padding-top: 8px;

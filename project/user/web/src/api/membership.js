@@ -11,3 +11,7 @@ export function getMyMembership() {
 export function getPlanCatalog() {
   return request.get('/plans')
 }
+
+export function getNewcomerOffer() {
+  return request.get('/plans/newcomer-offer')
+}

@@ -60,12 +60,41 @@ class AdminUserServiceTest {
         when(platformUserMapper.selectPage(any(Page.class), any())).thenReturn(page);
         when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
 
-        AdminUserPageVO result = adminUserService.listUsers("", 1, 10);
+        AdminUserPageVO result = adminUserService.listUsers("", null, 1, 10);
 
         assertEquals(1, result.getTotal());
         assertEquals(1, result.getList().size());
         assertEquals("user@example.com", result.getList().get(0).getAccount());
         assertEquals("enabled", result.getList().get(0).getStatus());
+    }
+
+    @Test
+    void listUsers_withInviteCode_shouldFilterByExactInviteCode() {
+        PlatformUser user = new PlatformUser();
+        user.setId(1L);
+        user.setEmail("user@example.com");
+        user.setNickname("test");
+        user.setInviteCode("ABC123");
+        user.setUserStatus(1);
+        user.setCreatedAt(LocalDateTime.now());
+        user.setIsDeleted(0);
+
+        Page<PlatformUser> page = new Page<>(1, 10);
+        page.setRecords(Collections.singletonList(user));
+        page.setTotal(1);
+
+        when(platformUserMapper.selectPage(any(Page.class), any())).thenReturn(page);
+        when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
+
+        AdminUserPageVO result = adminUserService.listUsers(null, "ABC123", 1, 10);
+
+        assertEquals(1, result.getTotal());
+        assertEquals("ABC123", result.getList().get(0).getInviteCode());
+
+        ArgumentCaptor<LambdaQueryWrapper<PlatformUser>> wrapperCaptor = ArgumentCaptor.forClass(LambdaQueryWrapper.class);
+        verify(platformUserMapper).selectPage(any(Page.class), wrapperCaptor.capture());
+        LambdaQueryWrapper<PlatformUser> captured = wrapperCaptor.getValue();
+        assertNotNull(captured);
     }
 
     @Test

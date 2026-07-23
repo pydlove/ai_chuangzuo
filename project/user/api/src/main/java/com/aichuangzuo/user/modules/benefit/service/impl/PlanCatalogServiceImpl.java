@@ -1,13 +1,18 @@
 package com.aichuangzuo.user.modules.benefit.service.impl;
 
+import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
+import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.benefit.entity.Benefit;
 import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
 import com.aichuangzuo.user.modules.benefit.mapper.BenefitMapper;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
 import com.aichuangzuo.user.modules.benefit.service.PlanCatalogService;
+import com.aichuangzuo.user.modules.benefit.vo.NewcomerOfferVO;
 import com.aichuangzuo.user.modules.benefit.vo.PlanCatalogVO;
 import com.aichuangzuo.user.modules.membership.entity.Plan;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
 import com.aichuangzuo.user.modules.membership.mapper.PlanMapper;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,6 +23,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -44,7 +51,13 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private final PlanMapper planMapper;
     private final BenefitMapper benefitMapper;
     private final PlanBenefitMapper planBenefitMapper;
+    private final UserMembershipMapper userMembershipMapper;
+    private final UserInviteRelationMapper userInviteRelationMapper;
     private final ObjectMapper objectMapper;
+
+    private static final String NEWCOMER_PLAN_KEY = "flagship";
+    private static final String NEWCOMER_CYCLE = "year";
+    private static final BigDecimal NEWCOMER_EXTRA_DISCOUNT = new BigDecimal("0.8");
 
     @Override
     @Cacheable(cacheNames = "planCatalog", key = "'v1'")
@@ -62,6 +75,62 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
         PlanCatalogVO vo = new PlanCatalogVO();
         vo.setPlans(renderPlans(plans, benefits, valueByPlan, benefitByCode));
         vo.setCompareRows(renderCompareRows(benefits, valueByPlan, planByKey));
+        return vo;
+    }
+
+    @Override
+    public NewcomerOfferVO getNewcomerOffer(Long userId) {
+        NewcomerOfferVO vo = new NewcomerOfferVO();
+        vo.setEligible(false);
+        vo.setPlanKey(NEWCOMER_PLAN_KEY);
+        vo.setCycle(NEWCOMER_CYCLE);
+
+        // 已开通会员的不享受新人价
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership != null && !membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return vo;
+        }
+
+        // 通过邀请码注册的不享受新人价
+        UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(userId);
+        if (relation != null) {
+            return vo;
+        }
+
+        Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
+                .eq(Plan::getPlanKey, NEWCOMER_PLAN_KEY)
+                .eq(Plan::getStatus, ACTIVE));
+        if (plan == null || plan.getPriceYear() == null || plan.getOriginalYear() == null) {
+            return vo;
+        }
+
+        BigDecimal regularPrice = plan.getPriceYear();
+        BigDecimal finalPrice = regularPrice.multiply(NEWCOMER_EXTRA_DISCOUNT)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        vo.setEligible(true);
+        vo.setPlanName(plan.getDisplayName());
+        vo.setOriginalPrice(plan.getOriginalYear());
+        vo.setRegularPrice(regularPrice);
+        vo.setFinalPrice(finalPrice);
+        vo.setSavings(plan.getOriginalYear().subtract(finalPrice));
+
+        List<Benefit> benefits = activeBenefits();
+        if (benefits == null) {
+            benefits = Collections.emptyList();
+        }
+        Map<String, Benefit> benefitByCode = benefits.stream()
+                .collect(Collectors.toMap(Benefit::getCode, Function.identity(), (a, b) -> a));
+        Map<String, Map<String, String>> valueByPlan = loadValueByPlan();
+        if (valueByPlan == null) {
+            valueByPlan = Collections.emptyMap();
+        }
+        List<PlanCatalogVO.FeatureVO> features = renderFeaturesForPlan(
+                NEWCOMER_PLAN_KEY, benefits, valueByPlan, benefitByCode);
+        vo.setBenefits(features.stream()
+                .filter(PlanCatalogVO.FeatureVO::isIncluded)
+                .map(PlanCatalogVO.FeatureVO::getText)
+                .collect(Collectors.toList()));
         return vo;
     }
 

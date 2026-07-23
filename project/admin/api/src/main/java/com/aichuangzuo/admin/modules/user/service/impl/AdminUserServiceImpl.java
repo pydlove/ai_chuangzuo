@@ -93,10 +93,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public AdminUserPageVO listUsers(String keyword, int page, int pageSize) {
+    public AdminUserPageVO listUsers(String keyword, String inviteCode, int page, int pageSize) {
         Page<PlatformUser> pageParam = new Page<>(page, pageSize);
         LambdaQueryWrapper<PlatformUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PlatformUser::getIsDeleted, 0);
+        if (StringUtils.hasText(inviteCode)) {
+            wrapper.eq(PlatformUser::getInviteCode, inviteCode.trim());
+        }
         if (keyword != null && !keyword.isBlank()) {
             String kw = keyword.trim();
             wrapper.and(w -> w.like(PlatformUser::getEmail, kw)
@@ -179,6 +182,16 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setMembershipPlan(request.getMembershipPlan());
         platformUserMapper.updateById(user);
         return toAdminUserVO(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteUser(Long id) {
+        PlatformUser user = platformUserMapper.selectById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+        platformUserMapper.deleteById(id);
     }
 
     @Override

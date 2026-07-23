@@ -15,6 +15,7 @@ import lombok.Data;
  *   <li>avatarUrl - 头像 URL；空时前端用通用图标兜底</li>
  *   <li>emailVerified - 0/1；改邮箱成功后置 1</li>
  *   <li>inviterUserId - 邀请人用户主键 ID；null 表示未绑定，用于前端控制"绑定邀请人"入口</li>
+ *   <li>inviterNickname - 邀请人展示名；优先返回昵称，未设置时退化为邮箱；null 表示未绑定或邀请人不存在</li>
  * </ul>
  */
 @Data
@@ -25,4 +26,5 @@ public class UserProfileVO {
     private String avatarUrl;
     private Integer emailVerified;
     private Long inviterUserId;
+    private String inviterNickname;
 }

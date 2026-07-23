@@ -28,6 +28,23 @@
           </span>
         </div>
 
+        <!-- 新人首冲优惠卡片 -->
+        <div v-if="newcomerOffer" class="newcomer-offer-card">
+          <div class="newcomer-offer-badge">新人首冲</div>
+          <div class="newcomer-offer-main">
+            <div class="newcomer-offer-title">旗舰版年包再享 8 折</div>
+            <div class="newcomer-offer-desc">限时一次，非邀请用户专享</div>
+            <div class="newcomer-offer-price-row">
+              <span class="newcomer-offer-final">¥{{ newcomerOffer.finalPrice }}</span>
+              <span class="newcomer-offer-regular">¥{{ newcomerOffer.regularPrice }}</span>
+              <span class="newcomer-offer-original">¥{{ newcomerOffer.originalPrice }}</span>
+              <span class="newcomer-offer-period">/年</span>
+            </div>
+            <div class="newcomer-offer-savings">共省 ¥{{ newcomerOffer.savings }}</div>
+          </div>
+          <button class="newcomer-offer-btn" @click="handleNewcomerSubscribe">立即开通</button>
+        </div>
+
         <!-- 定价卡片 -->
         <div class="pricing-cards">
           <div v-if="catalogLoading" class="pricing-loading">套餐加载中…</div>
@@ -126,9 +143,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { subscribe, getPlanCatalog } from '@/api/membership'
+import { subscribe, getPlanCatalog, getNewcomerOffer } from '@/api/membership'
 import NavBar from '@/components/layout/NavBar.vue'
 
 const navLinks = [
@@ -141,6 +158,7 @@ const ctaTo = '/login'
 const ctaLabel = '开始创作'
 
 const router = useRouter()
+const route = useRoute()
 
 const modalVisible = ref(false)
 const selectedPlan = ref(null)
@@ -150,6 +168,9 @@ const subscribeLoading = ref(false)
 const plans = ref([])
 const compareRows = ref([])
 const catalogLoading = ref(false)
+
+const newcomerOffer = ref(null)
+const newcomerLoading = ref(false)
 
 const planKeyToName = {
   basic: '基础版',
@@ -174,6 +195,26 @@ onMounted(async () => {
   } finally {
     catalogLoading.value = false
   }
+
+  // 登录状态下查询新人首冲优惠（从横幅跳转或 Pricing 页直接访问）
+  if (localStorage.getItem('aichuangzuo_access_token')) {
+    newcomerLoading.value = true
+    try {
+      const res = await getNewcomerOffer()
+      const data = res.data || res
+      if (data?.eligible) {
+        newcomerOffer.value = data
+        // 从横幅跳转过来时，默认切到年付周期方便突出年包优惠
+        if (route.query.newcomer === '1') {
+          activeCycle.value = 'year'
+        }
+      }
+    } catch {
+      newcomerOffer.value = null
+    } finally {
+      newcomerLoading.value = false
+    }
+  }
 })
 
 const handleSubscribe = (plan) => {
@@ -187,6 +228,21 @@ const handleSubscribe = (plan) => {
   modalVisible.value = true
 }
 
+const handleNewcomerSubscribe = () => {
+  if (!localStorage.getItem('aichuangzuo_access_token')) {
+    message.info('请先登录后再订阅')
+    router.push('/login')
+    return
+  }
+  if (!newcomerOffer.value) return
+  const plan = plans.value.find(p => p.key === newcomerOffer.value.planKey)
+  if (!plan) return
+  selectedPlan.value = plan
+  activeCycle.value = 'year'
+  payCode.value = ''
+  modalVisible.value = true
+}
+
 const handlePay = async () => {
   if (!payCode.value || payCode.value.length !== 6) {
     message.warning('请输入 6 位支付码')
@@ -195,7 +251,12 @@ const handlePay = async () => {
 
   const plan = selectedPlan.value
   const cycle = activeCycle.value
-  const price = plan[cycle === 'month' ? 'monthly' : cycle]
+  const isNewcomerDeal = newcomerOffer.value &&
+    plan.key === newcomerOffer.value.planKey &&
+    cycle === newcomerOffer.value.cycle
+  const price = isNewcomerDeal
+    ? { current: newcomerOffer.value.finalPrice }
+    : plan[cycle === 'month' ? 'monthly' : cycle]
 
   subscribeLoading.value = true
   try {
@@ -352,6 +413,92 @@ const scrollToCompare = () => {
 
 .arrow {
   font-size: 12px;
+}
+
+/* 新人首冲优惠卡片 */
+.newcomer-offer-card {
+  background: linear-gradient(135deg, #fff5f7 0%, #ffe8ec 100%);
+  border: 2px solid #ff2442;
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+.newcomer-offer-badge {
+  position: absolute;
+  top: 12px;
+  right: -28px;
+  background: #ff2442;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 32px;
+  transform: rotate(30deg);
+}
+.newcomer-offer-main {
+  flex: 1;
+}
+.newcomer-offer-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+.newcomer-offer-desc {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 10px;
+}
+.newcomer-offer-price-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.newcomer-offer-final {
+  font-size: 36px;
+  font-weight: 800;
+  color: #ff2442;
+}
+.newcomer-offer-period {
+  font-size: 14px;
+  color: #595959;
+}
+.newcomer-offer-regular {
+  font-size: 16px;
+  color: #8c8c8c;
+  text-decoration: line-through;
+}
+.newcomer-offer-original {
+  font-size: 14px;
+  color: #bfbfbf;
+  text-decoration: line-through;
+}
+.newcomer-offer-savings {
+  font-size: 13px;
+  color: #ff2442;
+  font-weight: 500;
+}
+.newcomer-offer-btn {
+  flex-shrink: 0;
+  padding: 12px 32px;
+  background: #ff2442;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.newcomer-offer-btn:hover {
+  background: #e61e3a;
 }
 
 /* 定价卡片 */
@@ -613,6 +760,25 @@ const scrollToCompare = () => {
   .compare-link {
     margin-bottom: 20px;
   }
+  .newcomer-offer-card {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 20px;
+  }
+  .newcomer-offer-badge {
+    top: 8px;
+    right: -32px;
+    padding: 3px 36px;
+  }
+  .newcomer-offer-title {
+    font-size: 18px;
+  }
+  .newcomer-offer-final {
+    font-size: 30px;
+  }
+  .newcomer-offer-btn {
+    width: 100%;
+  }
   .pricing-cards {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -662,6 +828,33 @@ const scrollToCompare = () => {
 }
 
 /* ========== 暗色主题 ========== */
+body[data-theme="dark"] .newcomer-offer-card {
+  background: linear-gradient(135deg, #331018 0%, #2a0d12 100%);
+  border-color: #ff4d6f;
+}
+body[data-theme="dark"] .newcomer-offer-badge {
+  background: #ff4d6f;
+}
+body[data-theme="dark"] .newcomer-offer-title {
+  color: #e0e0e0;
+}
+body[data-theme="dark"] .newcomer-offer-desc,
+body[data-theme="dark"] .newcomer-offer-period,
+body[data-theme="dark"] .newcomer-offer-regular,
+body[data-theme="dark"] .newcomer-offer-original {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .newcomer-offer-final,
+body[data-theme="dark"] .newcomer-offer-savings {
+  color: #ff4d6f;
+}
+body[data-theme="dark"] .newcomer-offer-btn {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+body[data-theme="dark"] .newcomer-offer-btn:hover {
+  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
 body[data-theme="dark"] .pricing-page {
   background: #141414;
 }

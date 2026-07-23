@@ -8,6 +8,8 @@ import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
+import com.aichuangzuo.user.modules.style.market.entity.StyleMarket;
+import com.aichuangzuo.user.modules.style.market.mapper.StyleMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -39,6 +41,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private final ArticleMapper articleMapper;
     private final ObjectMapper objectMapper;
+    private final StyleMarketMapper styleMarketMapper;
 
     @Override
     public ArticlePageVO list(Long userId, String keyword, long page, long pageSize) {
@@ -149,6 +152,7 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setStyleOverrides(parseStyleOverrides(article.getStyleOverrides()));
         vo.setPlatform(article.getPlatform());
         vo.setStyle(article.getStyle());
+        vo.setStyleName(resolveStyleName(article.getStyle()));
         vo.setTemplate(article.getTemplate());
         vo.setDescription(article.getDescription());
         vo.setTags(parseTags(article.getTagsJson()));
@@ -157,6 +161,28 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setCreatedAt(article.getCreatedAt());
         vo.setUpdatedAt(article.getUpdatedAt());
         return vo;
+    }
+
+    /**
+     * 解析风格可读名称。
+     * <p>市场风格以 SM 开头，需查 u_style_market.biz_no 获取 style_name；
+     * 其余情况 style 字段本身即为名称（用户自定义/学习/系统预设风格名）。
+     */
+    private String resolveStyleName(String style) {
+        if (!StringUtils.hasText(style)) {
+            return null;
+        }
+        if (style.startsWith("SM")) {
+            StyleMarket market = styleMarketMapper.selectOne(
+                    new LambdaQueryWrapper<StyleMarket>()
+                            .eq(StyleMarket::getBizNo, style)
+                            .eq(StyleMarket::getIsDeleted, 0)
+                            .last("LIMIT 1"));
+            return market != null && StringUtils.hasText(market.getStyleName())
+                    ? market.getStyleName()
+                    : style;
+        }
+        return style;
     }
 
     private String normalizeStyleOverrides(String raw) {

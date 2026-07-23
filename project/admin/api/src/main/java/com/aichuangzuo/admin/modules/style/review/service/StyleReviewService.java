@@ -4,6 +4,8 @@ import com.aichuangzuo.admin.modules.style.review.dto.request.StyleReviewPageReq
 import com.aichuangzuo.admin.modules.style.review.vo.StyleReviewVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import java.util.List;
+
 /**
  * 风格审核服务。
  */
@@ -18,6 +20,14 @@ public interface StyleReviewService {
      * 通过风格审核（pending → approved）。
      */
     void approve(String bizNo);
+
+    /**
+     * 批量通过风格审核。
+     *
+     * @param bizNos 业务编号列表
+     * @return 实际通过数量
+     */
+    int batchApprove(List<String> bizNos);
 
     /**
      * 打回风格审核（pending/approved → rejected）。

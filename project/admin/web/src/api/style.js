@@ -4,14 +4,17 @@ const SOURCE_TYPE_MAP = { 1: 'my', 2: 'learned' }
 const STATUS_MAP = { 0: 'pending', 1: 'approved', 2: 'rejected' }
 
 function normalize(row) {
+  // 后端 StyleReviewVO 已做 int → string 转换；这里兜底兼容原始行。
+  const sourceType = SOURCE_TYPE_MAP[row.sourceType] ?? row.sourceType ?? 'my'
+  const status = STATUS_MAP[row.auditStatus] ?? row.status ?? 'pending'
   return {
-    id: row.bizNo,
-    name: row.styleName,
-    sourceType: SOURCE_TYPE_MAP[row.sourceType] ?? 'my',
+    id: row.bizNo || row.id,
+    name: row.styleName || row.name,
+    sourceType,
     creatorName: row.creatorName,
     prompt: row.prompt,
     scope: row.scope,
-    status: STATUS_MAP[row.auditStatus] ?? 'pending',
+    status,
     rejectReason: row.rejectReason,
     createdAt: row.createdAt
   }
@@ -35,4 +38,14 @@ export function listStyles(params = {}) {
 
 export function rejectStyle(id, reason) {
   return request.post(`/api/v1/admin/style-reviews/${id}/actions/reject`, { reason })
+}
+
+export function approveStyle(id) {
+  return request.post(`/api/v1/admin/style-reviews/${id}/actions/approve`)
+}
+
+export function approveBatch(ids) {
+  return request.post('/api/v1/admin/style-reviews/actions/batch-approve', { bizNos: ids }).then((body) => {
+    return body.data || 0
+  })
 }

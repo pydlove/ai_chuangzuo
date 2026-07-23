@@ -125,7 +125,7 @@ public class UserProfileServiceImpl implements UserProfileService {
      * <p>成功后仅更新密码字段，不签发新 token —— 客户端继续使用旧 access token。
      *
      * @param request 旧/新/确认密码
-     * @throws BusinessException PASSWORD_INCORRECT / PASSWORD_FORMAT_ERROR / PASSWORD_NOT_MATCH / USER_NOT_FOUND
+     * @throws BusinessException ACCOUNT_DISABLED / PASSWORD_INCORRECT / PASSWORD_FORMAT_ERROR / PASSWORD_NOT_MATCH / USER_NOT_FOUND
      */
     @Override
     public void changePassword(ChangePasswordRequest request) {
@@ -133,6 +133,9 @@ public class UserProfileServiceImpl implements UserProfileService {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        if (user.getUserStatus() == null || user.getUserStatus() != 1) {
+            throw new BusinessException(UserAuthErrorCode.ACCOUNT_DISABLED);
         }
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHash())) {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_INCORRECT);
@@ -150,9 +153,11 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
-     * 把邀请人主键 ID 回填到视图对象。
+     * 把邀请人信息回填到视图对象。
      *
-     * <p>u_user 表不存邀请关系，需要从 u_user_invite_relation 查询。
+     * <p>u_user 表不存邀请关系，需要从 u_user_invite_relation 查询；
+     * 拿到 inviter_id 后再查 u_user 取昵称用于展示。若邀请人未设置昵称，
+     * 则退化为邮箱，确保前端始终能展示可识别的邀请人信息。
      *
      * @param vo     已转换的 UserProfileVO
      * @param userId 当前用户主键 ID
@@ -165,6 +170,14 @@ public class UserProfileServiceImpl implements UserProfileService {
         UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(userId);
         if (relation != null) {
             vo.setInviterUserId(relation.getInviterId());
+            User inviter = userMapper.selectById(relation.getInviterId());
+            if (inviter != null) {
+                String displayName = inviter.getNickname();
+                if (displayName == null || displayName.isBlank()) {
+                    displayName = inviter.getEmail();
+                }
+                vo.setInviterNickname(displayName);
+            }
         }
         return vo;
     }

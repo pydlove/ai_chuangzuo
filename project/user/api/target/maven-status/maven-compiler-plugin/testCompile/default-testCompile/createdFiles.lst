@@ -10,6 +10,7 @@ com/aichuangzuo/user/modules/benefit/service/BenefitServiceTest.class
 com/aichuangzuo/user/modules/article/service/DraftServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceTest.class
+com/aichuangzuo/user/modules/user/dto/request/UpdateNicknameRequestValidationTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServicePasswordTest.class
 com/aichuangzuo/user/modules/earnings/service/EarningsServiceTest.class
 com/aichuangzuo/user/modules/generation/service/GenerationTaskServiceTest.class

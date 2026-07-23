@@ -101,20 +101,6 @@
             <div class="style-scope-hint">最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字</div>
             <div v-if="errors.scope" class="style-editor-error">{{ errors.scope }}</div>
           </div>
-          <div class="style-editor-presets">
-            <div class="style-editor-preset-label">快速填充模板：</div>
-            <div class="style-editor-preset-list">
-              <div
-                v-for="preset in systemStyles"
-                :key="preset.name"
-                class="style-preset-card"
-                @click="editingStyle.prompt = preset.prompt"
-              >
-                <div class="style-preset-title">{{ preset.name }}</div>
-                <div class="style-preset-desc">{{ preset.desc }}</div>
-              </div>
-            </div>
-          </div>
           <button
             class="save-style-btn"
             :disabled="!isFormValid"
@@ -126,14 +112,23 @@
       </div>
 
       <div v-else>
+        <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
+          当前套餐不支持自定义风格，升级基础版及以上套餐后即可创建
+        </div>
+        <div v-else-if="isCustomQuotaFull" class="styles-upgrade-banner">
+          我的风格数量已达上限（{{ customStyleQuotaText }}），删除旧风格后可继续创建，或升级套餐保存更多
+        </div>
+        <div v-if="canUseCustomStyles" class="styles-quota-hint">
+          已创建 {{ customStyleQuotaText }} 个我的风格
+        </div>
         <div v-if="filteredMyStyles.length === 0" class="styles-empty">
-          <div class="style-add-card" @click="goToCreate">
+          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的风格</div>
           </div>
         </div>
         <div v-else class="styles-grid">
-          <div class="style-add-card" @click="goToCreate">
+          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的风格</div>
           </div>
@@ -172,12 +167,7 @@
                 </button>
                 <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
                 <button
-                  v-if="getMarketStatus(s.name) === '审核中'"
-                  class="style-action-btn success"
-                  @click.stop="simulateApprove(s.name)"
-                >通过</button>
-                <button
-                  v-else-if="!getMarketStatus(s.name)"
+                  v-if="!getMarketStatus(s.name)"
                   class="style-action-btn primary"
                   :disabled="publishBlocked"
                   :title="publishQuotaHint"
@@ -192,7 +182,10 @@
 
     <!-- 系统预设 -->
     <div v-show="activeTab === 'system'" class="styles-content">
-      <div v-if="filteredSystemStyles.length === 0" class="styles-empty">
+      <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
+        当前套餐不支持系统预设风格，开通会员后即可解锁
+      </div>
+      <div v-else-if="filteredSystemStyles.length === 0" class="styles-empty">
         没有找到匹配的系统预设风格
       </div>
       <div v-else class="styles-grid">
@@ -227,16 +220,16 @@
     <!-- 学习的风格 -->
     <div v-show="activeTab === 'learned'" class="styles-content">
       <div class="learned-banner">
-        上传或粘贴一篇文章，AI 会分析它的写作风格并保存为「我的风格」
+        {{ learnBannerText }}
       </div>
       <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
-        <div class="style-add-card" @click="openImportDialog">
+        <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新风格</div>
         </div>
       </div>
       <div v-else class="styles-grid">
-        <div class="style-add-card" @click="openImportDialog">
+        <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新风格</div>
         </div>
@@ -277,12 +270,7 @@
               </button>
               <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
               <button
-                v-if="getMarketStatus(s.name) === '审核中'"
-                class="style-action-btn success"
-                @click.stop="simulateApprove(s.name)"
-              >通过</button>
-              <button
-                v-else-if="!getMarketStatus(s.name)"
+                v-if="!getMarketStatus(s.name)"
                 class="style-action-btn primary"
                 :disabled="publishBlocked"
                 :title="publishQuotaHint"
@@ -527,21 +515,47 @@ import {
 import {
   marketStyles,
   shareStyleToMarket,
-  approveMarketStyle,
   favoriteStyles,
   toggleFavorite,
-  useMarketStyle,
-  getRemainingPublishQuota
+  useMarketStyle
 } from '@/composables/useStyleMarket.js'
-import { getStylePublishQuota, getCurrentPlanName } from '@/utils/membershipLimits.js'
+import { useBenefits } from '@/composables/useBenefits.js'
+import { getCustomStyleLimit } from '@/utils/membershipLimits.js'
 
 const router = useRouter()
+const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const activeTab = ref('my')
 const searchQuery = ref('')
 
-onMounted(() => {
-  loadMyStyles()
-  loadLearnedStyles()
+// 套餐权益相关
+const styleCustomLimit = computed(() => {
+  // 优先用后端的实时权益值，拿不到再按本地当前档位兜底
+  const fromBenefit = parseInt(benefitValue('style_custom') || '0', 10)
+  return fromBenefit > 0 ? fromBenefit : getCustomStyleLimit()
+})
+const canUseCustomStyles = computed(() => styleCustomLimit.value > 0)
+const canCreateCustom = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length < styleCustomLimit.value)
+const isCustomQuotaFull = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length >= styleCustomLimit.value)
+const customStyleQuotaText = computed(() => `${filteredMyStyles.value.length} / ${styleCustomLimit.value}`)
+
+const learnRemaining = computed(() => benefitRemaining('style_learn_analyze'))
+const learnTotal = computed(() => parseInt(benefitValue('style_learn_analyze') || '0', 10))
+const canLearn = computed(() => learnRemaining.value > 0)
+const learnBannerText = computed(() => {
+  if (!canLearn.value) {
+    if (learnTotal.value <= 0) return '当前套餐不支持 AI 风格学习，升级专业版/旗舰版后解锁'
+    return `本月学习额度已用完（${learnTotal.value} 次），下月 1 日重置`
+  }
+  return `本月还可学习 ${learnRemaining.value} / ${learnTotal.value} 次 AI 风格分析`
+})
+
+const publishRemaining = computed(() => benefitRemaining('style_market_publish'))
+const publishTotal = computed(() => parseInt(benefitValue('style_market_publish') || '0', 10))
+
+onMounted(async () => {
+  await loadBenefits()
+  await loadMyStyles()
+  await loadLearnedStyles()
 })
 
 const MAX_SCOPE_TAGS = 3
@@ -986,14 +1000,15 @@ const shareStyle = (style, sourceType) => {
 }
 
 /** 当前档位的发布额度（用于按钮 tooltip / 顶部 banner）。 */
-const publishQuota = computed(() => getStylePublishQuota())
-const remainingPublishQuota = computed(() => getRemainingPublishQuota())
-const publishBlocked = computed(() => remainingPublishQuota.value <= 0)
+const publishBlocked = computed(() => publishRemaining.value <= 0)
 const publishQuotaHint = computed(() => {
-  if (publishQuota.value <= 0) {
-    return `${getCurrentPlanName()}不支持发布到市场，升级后可发布`
+  if (publishTotal.value <= 0) {
+    return '当前套餐不支持发布到风格市场，请升级专业版/旗舰版会员'
   }
-  return `本月还可发布 ${remainingPublishQuota.value} / ${publishQuota.value} 次`
+  if (publishRemaining.value <= 0) {
+    return `本月发布额度已用完（${publishTotal.value} 次），下月 1 日重置`
+  }
+  return `本月还可发布 ${publishRemaining.value} / ${publishTotal.value} 次`
 })
 
 const openPublishConfirm = (style, sourceType) => {
@@ -1013,13 +1028,6 @@ const confirmPublish = () => {
 const closePublishConfirm = () => {
   publishConfirmVisible.value = false
   pendingPublish.value = { style: null, sourceType: '' }
-}
-
-const simulateApprove = (name) => {
-  const s = marketStyles.value.find(
-    m => m.originalName === name && m.creatorId === localStorage.getItem('aichuangzuo_user_id')
-  )
-  if (s) approveMarketStyle(s.id)
 }
 </script>
 
@@ -1356,6 +1364,20 @@ const simulateApprove = (name) => {
   background: #e61e3a;
 }
 
+.style-action-btn:disabled,
+.style-action-btn.primary:disabled {
+  background: #d9d9d9;
+  border-color: #d9d9d9;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.style-action-btn.success:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+}
+
 .style-action-btn.success {
   background: #f6ffed;
   color: #52c41a;
@@ -1470,7 +1492,7 @@ const simulateApprove = (name) => {
 }
 
 .style-editor-back:hover {
-  color: #07c160;
+  color: var(--color-primary);
 }
 
 .style-editor-title {
@@ -1595,51 +1617,6 @@ const simulateApprove = (name) => {
   color: #ff4d4f;
 }
 
-.style-editor-presets {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.style-editor-preset-label {
-  font-size: 13px;
-  color: #595959;
-}
-
-.style-editor-preset-list {
-  display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 4px;
-}
-
-.style-preset-card {
-  flex: 0 0 160px;
-  border: 1px solid #e8e8e8;
-  border-radius: 8px;
-  padding: 10px 12px;
-  background: #fff;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.style-preset-card:hover {
-  border-color: #07c160;
-  background: #f6ffed;
-}
-
-.style-preset-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.style-preset-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
 .save-style-btn {
   padding: 10px 20px;
   background: #ff2442;
@@ -1672,6 +1649,23 @@ const simulateApprove = (name) => {
   margin-bottom: 16px;
 }
 
+.styles-upgrade-banner {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 16px;
+}
+
+.styles-quota-hint {
+  padding: 8px 0;
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+
 .learned-subtabs {
   display: flex;
   gap: 4px;
@@ -1693,8 +1687,8 @@ const simulateApprove = (name) => {
 }
 
 .learned-subtab.active {
-  background: #fff;
-  color: #1a1a1a;
+  background: var(--color-primary);
+  color: #fff;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
@@ -1796,12 +1790,6 @@ const simulateApprove = (name) => {
 .learned-progress {
   text-align: center;
   padding: 40px 0;
-}
-
-/* 导入对话框三种状态（分析中 / 粘贴上传 / 结果页）共用固定高度，避免弹框随内容跳动 */
-.learned-import-modal .ant-modal-body {
-  height: 520px;
-  overflow-y: auto;
 }
 
 .learned-progress-text {
@@ -1927,8 +1915,7 @@ body[data-theme="dark"] .styles-search-input {
 }
 
 body[data-theme="dark"] .style-card,
-body[data-theme="dark"] .style-add-card,
-body[data-theme="dark"] .style-preset-card {
+body[data-theme="dark"] .style-add-card {
   background: #1f1f1f;
   border-color: #303030;
 }
@@ -2067,6 +2054,19 @@ body[data-theme="dark"] .style-action-btn.success:hover {
   border-color: #4ade80;
 }
 
+body[data-theme="dark"] .style-action-btn:disabled,
+body[data-theme="dark"] .style-action-btn.primary:disabled {
+  background: #434343;
+  border-color: #434343;
+  color: #737373;
+}
+
+body[data-theme="dark"] .style-action-btn.success:disabled {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #434343;
+  color: #595959;
+}
+
 body[data-theme="dark"] .publish-confirm-title {
   color: #f0f0f0;
 }
@@ -2109,6 +2109,10 @@ body[data-theme="dark"] .style-editor-back {
   background: #2a2a2a;
   border-color: #434343;
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-editor-back:hover {
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .style-editor-title {
@@ -2172,27 +2176,6 @@ body[data-theme="dark"] .style-editor-counter.over {
   color: #ff7875;
 }
 
-body[data-theme="dark"] .style-editor-preset-label {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-preset-card {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .style-preset-card:hover {
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-preset-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-preset-desc {
-  color: #a6a6a6;
-}
-
 body[data-theme="dark"] .save-style-btn {
   background: var(--color-primary);
 }
@@ -2209,6 +2192,12 @@ body[data-theme="dark"] .save-style-btn:disabled {
 body[data-theme="dark"] .learned-banner {
   background: #1f1f1f;
   border-color: #303030;
+}
+
+body[data-theme="dark"] .styles-upgrade-banner {
+  background: #1a1a1a;
+  border-color: #303030;
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .learned-subtabs {
@@ -2348,6 +2337,11 @@ body[data-theme="dark"] .modal-title {
 
 <style>
 /* 学习风格导入对话框：teleport 到 body，需非 scoped 全局覆盖 */
+.learned-import-modal .ant-modal-body {
+  height: 520px;
+  overflow-y: auto;
+}
+
 body[data-theme="dark"] .learned-import-modal .ant-modal-content,
 body[data-theme="dark"] .learned-import-modal .ant-modal-header {
   background: #1f1f1f !important;

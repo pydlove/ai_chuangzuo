@@ -16,6 +16,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -166,5 +168,78 @@ class StyleAnalyzeServiceImplTest {
         svc.analyze(USER_ID, ARTICLE);
 
         org.mockito.Mockito.verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+    }
+
+    /** AI 调用失败时应当退回额度，避免学习失败也扣次数。 */
+    @Test
+    void analyze_shouldRefundQuotaWhenAiFails() {
+        BenefitService bs = mockBenefitServiceForRefundTest();
+
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenThrow(new BusinessException(
+                com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode.QUOTA_EXHAUSTED));
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
+
+        verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+        verify(bs).refund(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+    }
+
+    /** AI 返回无法解析的响应时应当退回额度。 */
+    @Test
+    void analyze_shouldRefundQuotaWhenJsonInvalid() {
+        BenefitService bs = mockBenefitServiceForRefundTest();
+
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn("这不是 JSON");
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
+
+        verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+        verify(bs).refund(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+    }
+
+    /** AI 返回的 prompt 校验不通过时应当退回额度。 */
+    @Test
+    void analyze_shouldRefundQuotaWhenPromptInvalid() {
+        BenefitService bs = mockBenefitServiceForRefundTest();
+
+        String badPrompt = "你是一位中文写手。【语气】温和【词汇】书面【句式】短句为主，没有结构标记";
+        String json = """
+                {"excerpt1":"","excerpt2":"","prompt":"%s"}
+                """.formatted(badPrompt);
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn(json);
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
+
+        verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+        verify(bs).refund(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+    }
+
+    /** 成功时不应退回额度。 */
+    @Test
+    void analyze_shouldNotRefundQuotaOnSuccess() {
+        BenefitService bs = mockBenefitServiceForRefundTest();
+
+        StyleAnalyzeAiService aiService = mock(StyleAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
+
+        StyleAnalyzeServiceImpl svc = new StyleAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        svc.analyze(USER_ID, ARTICLE);
+
+        verify(bs).consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+        verify(bs, never()).refund(anyLong(), ArgumentMatchers.eq("style_learn_analyze"));
+    }
+
+    private BenefitService mockBenefitServiceForRefundTest() {
+        BenefitService bs = mock(BenefitService.class);
+        BenefitCheckVO vo = new BenefitCheckVO();
+        vo.setAllowed(true);
+        when(bs.consume(anyLong(), ArgumentMatchers.eq("style_learn_analyze"))).thenReturn(vo);
+        return bs;
     }
 }

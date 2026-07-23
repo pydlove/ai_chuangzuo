@@ -12,7 +12,14 @@
           v-model:value="keyword"
           placeholder="账号或邮箱"
           allow-clear
-          style="width: 280px"
+          style="width: 200px"
+          @press-enter="handleSearch"
+        />
+        <a-input
+          v-model:value="inviteCode"
+          placeholder="邀请码"
+          allow-clear
+          style="width: 160px"
           @press-enter="handleSearch"
         />
         <a-button type="primary" @click="handleSearch">查询</a-button>
@@ -73,6 +80,7 @@
                   <a-menu-item @click="openEditModal(record)">编辑</a-menu-item>
                   <a-menu-item @click="openResetPasswordModal(record)">重置密码</a-menu-item>
                   <a-menu-item @click="openDetailDrawer(record)">查看详情</a-menu-item>
+                  <a-menu-item danger @click="confirmDelete(record)">删除</a-menu-item>
                 </a-menu>
               </template>
             </a-dropdown>
@@ -253,13 +261,15 @@ const {
   page,
   pageSize,
   keyword,
+  inviteCode,
   fetchUsers,
   handleSearch,
   handleReset,
   handlePageChange,
   handleStatusChange,
   handleResetPassword,
-  handleCreateUser
+  handleCreateUser,
+  handleDeleteUser
 } = useUserManagement()
 
 const columns = [
@@ -326,7 +336,7 @@ const createRules = {
     { min: 1, max: 64, message: '昵称长度 1-64 字符', trigger: 'blur' }
   ],
   password: [
-    { min: 6, max: 32, message: '密码长度 6-32 字符，留空则使用默认密码', trigger: 'blur' }
+    { min: 6, max: 32, message: '密码不符合要求，长度需在 6-32 字符之间', trigger: 'blur' }
   ],
   userType: [
     { required: true, message: '请选择用户类型', trigger: 'change' }
@@ -350,6 +360,17 @@ const confirmStatusChange = (user) => {
     okText: '确认',
     cancelText: '取消',
     onOk: () => handleStatusChange(user)
+  })
+}
+
+const confirmDelete = (user) => {
+  Modal.confirm({
+    title: '确定删除该用户？',
+    content: `账号：${user.email}，删除后不可恢复。`,
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: () => handleDeleteUser(user)
   })
 }
 

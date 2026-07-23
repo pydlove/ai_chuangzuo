@@ -18,7 +18,7 @@ function normalizeArticle(raw) {
     platform: raw.platform || '',
     platformName: raw.platform || '未选择',
     style: raw.style || '',
-    styleName: raw.style || '未选择',
+    styleName: raw.styleName || raw.style || '未选择',
     template: raw.template || '',
     wordCount: raw.wordCount || 0,
     completedAt: raw.completedAt,

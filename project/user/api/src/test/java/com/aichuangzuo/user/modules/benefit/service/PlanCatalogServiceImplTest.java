@@ -5,14 +5,20 @@ import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
 import com.aichuangzuo.user.modules.benefit.mapper.BenefitMapper;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
 import com.aichuangzuo.user.modules.benefit.service.impl.PlanCatalogServiceImpl;
+import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
+import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
+import com.aichuangzuo.user.modules.benefit.vo.NewcomerOfferVO;
 import com.aichuangzuo.user.modules.benefit.vo.PlanCatalogVO;
 import com.aichuangzuo.user.modules.membership.entity.Plan;
 import com.aichuangzuo.user.modules.membership.mapper.PlanMapper;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -29,6 +35,8 @@ class PlanCatalogServiceImplTest {
     private PlanMapper planMapper;
     private BenefitMapper benefitMapper;
     private PlanBenefitMapper planBenefitMapper;
+    private UserMembershipMapper userMembershipMapper;
+    private UserInviteRelationMapper userInviteRelationMapper;
     private PlanCatalogServiceImpl service;
 
     @BeforeEach
@@ -36,7 +44,10 @@ class PlanCatalogServiceImplTest {
         planMapper = mock(PlanMapper.class);
         benefitMapper = mock(BenefitMapper.class);
         planBenefitMapper = mock(PlanBenefitMapper.class);
-        service = new PlanCatalogServiceImpl(planMapper, benefitMapper, planBenefitMapper, new ObjectMapper());
+        userMembershipMapper = mock(UserMembershipMapper.class);
+        userInviteRelationMapper = mock(UserInviteRelationMapper.class);
+        service = new PlanCatalogServiceImpl(planMapper, benefitMapper, planBenefitMapper,
+                userMembershipMapper, userInviteRelationMapper, new ObjectMapper());
     }
 
     @Test
@@ -88,15 +99,21 @@ class PlanCatalogServiceImplTest {
     }
 
     @Test
-    void getCatalog_tierUsesValueLabelJson() {
+    void getCatalog_quotaAndTierUsesValueLabelJson() {
         when(planMapper.selectList(any())).thenReturn(plans());
         when(benefitMapper.selectList(any())).thenReturn(benefits());
         when(planBenefitMapper.selectList(any())).thenReturn(planBenefits());
 
-        PlanCatalogVO.PlanVO pro = service.getCatalog().getPlans().get(1);
+        PlanCatalogVO vo = service.getCatalog();
+        PlanCatalogVO.PlanVO basic = vo.getPlans().get(0);
+        PlanCatalogVO.PlanVO pro = vo.getPlans().get(1);
+        PlanCatalogVO.PlanVO flagship = vo.getPlans().get(2);
 
-        // style_custom pro=preset → "3 种预置"
-        assertFeature(pro, "style_custom", "3 种预置", true);
+        // style_custom 已改为 quota：1 / 2 / 4 个
+        assertFeature(basic, "style_custom", "1 个", true);
+        assertFeature(pro, "style_custom", "2 个", true);
+        assertFeature(flagship, "style_custom", "4 个", true);
+
         // history_days pro=-1 → "永久"
         assertFeature(pro, "history_days", "永久", true);
         // queue_priority pro=priority → "优先"
@@ -165,6 +182,48 @@ class PlanCatalogServiceImplTest {
         assertFalse(vo.getPlans().get(0).getFeatures().stream().anyMatch(f -> "hidden_benefit".equals(f.getCode())));
     }
 
+    @Test
+    void getNewcomerOffer_noMembershipNoInvite_returnsDiscountedPrice() {
+        when(userMembershipMapper.selectByUserId(1L)).thenReturn(null);
+        when(userInviteRelationMapper.selectByInviteeId(1L)).thenReturn(null);
+        when(planMapper.selectOne(any())).thenReturn(flagshipPlan());
+
+        NewcomerOfferVO vo = service.getNewcomerOffer(1L);
+
+        assertTrue(vo.isEligible());
+        assertEquals("flagship", vo.getPlanKey());
+        assertEquals("year", vo.getCycle());
+        assertEquals(new BigDecimal("1198.80"), vo.getOriginalPrice());
+        assertEquals(new BigDecimal("839.20"), vo.getRegularPrice());
+        assertEquals(new BigDecimal("671.36"), vo.getFinalPrice());
+        assertEquals(new BigDecimal("527.44"), vo.getSavings());
+    }
+
+    @Test
+    void getNewcomerOffer_hasActiveMembership_returnsNotEligible() {
+        UserMembership membership = new UserMembership();
+        membership.setUserId(2L);
+        membership.setExpiresAt(LocalDate.now().plusDays(30));
+        when(userMembershipMapper.selectByUserId(2L)).thenReturn(membership);
+
+        NewcomerOfferVO vo = service.getNewcomerOffer(2L);
+
+        assertFalse(vo.isEligible());
+    }
+
+    @Test
+    void getNewcomerOffer_hasInviteRelation_returnsNotEligible() {
+        when(userMembershipMapper.selectByUserId(3L)).thenReturn(null);
+        UserInviteRelation relation = new UserInviteRelation();
+        relation.setInviteeId(3L);
+        relation.setInviterId(4L);
+        when(userInviteRelationMapper.selectByInviteeId(3L)).thenReturn(relation);
+
+        NewcomerOfferVO vo = service.getNewcomerOffer(3L);
+
+        assertFalse(vo.isEligible());
+    }
+
     // ── helpers ──
 
     private void assertFeature(PlanCatalogVO.PlanVO plan, String code, String expectedText, boolean expectedIncluded) {
@@ -181,6 +240,13 @@ class PlanCatalogServiceImplTest {
                 .filter(r -> code.equals(r.getCode()))
                 .findFirst()
                 .orElseThrow(() -> new AssertionError("未找到 compare row " + code));
+    }
+
+    private Plan flagshipPlan() {
+        return plan("flagship", "旗舰版", 3, false,
+                "99.90", "269.70", "839.20", null, "299.70", "1198.80",
+                "300 篇 AI 文章/月", "900 篇 AI 文章/季", "3600 篇 AI 文章/年",
+                "359.60", "10.00");
     }
 
     private List<Plan> plans() {
@@ -233,8 +299,7 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("ai_topic", "AI 选题灵感", "boolean", "AI 选题灵感", null, null, 4));
         list.add(benefit("ai_title_optimize", "AI 标题优化", "boolean", "AI 标题优化", null, null, 5));
         list.add(benefit("online_edit", "在线编辑", "boolean", "在线编辑", null, null, 6));
-        list.add(benefit("style_custom", "写作风格定制", "tier", "写作风格定制", null,
-                "{\"none\":\"不可用\",\"preset\":\"3 种预置\",\"custom\":\"自定义 + 记忆\"}", 7));
+        list.add(benefit("style_custom", "我的风格数量", "quota", "我的风格", "{value} 个", null, 7));
         list.add(benefit("seo_keywords", "SEO 关键词建议", "boolean", "SEO 关键词建议", null, null, 8));
         list.add(benefit("template_access", "文章模板", "tier", "文章模板", null,
                 "{\"basic_8\":\"8 款基础\",\"all_20\":\"全部 20+\",\"all_custom\":\"全部 + 自定义\"}", 9));
@@ -285,9 +350,9 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "online_edit", "false"));
         list.add(pb("pro", "online_edit", "true"));
         list.add(pb("flagship", "online_edit", "true"));
-        list.add(pb("basic", "style_custom", "none"));
-        list.add(pb("pro", "style_custom", "preset"));
-        list.add(pb("flagship", "style_custom", "custom"));
+        list.add(pb("basic", "style_custom", "1"));
+        list.add(pb("pro", "style_custom", "2"));
+        list.add(pb("flagship", "style_custom", "4"));
         list.add(pb("basic", "seo_keywords", "false"));
         list.add(pb("pro", "seo_keywords", "false"));
         list.add(pb("flagship", "seo_keywords", "true"));

@@ -4,6 +4,8 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.style.dto.request.CreateStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.UpdateStyleRequest;
 import com.aichuangzuo.user.modules.style.entity.UserStyle;
@@ -17,6 +19,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -38,6 +41,9 @@ class UserStyleServiceTest {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private UserMembershipMapper userMembershipMapper;
 
     @AfterEach
     void clear() {
@@ -216,6 +222,15 @@ class UserStyleServiceTest {
         user.setEmailVerified(1);
         user.setCreatedAt(LocalDateTime.now());
         userMapper.insert(user);
+
+        // 默认给测试用户一个旗舰版会员，确保我的风格额度充足
+        UserMembership membership = new UserMembership();
+        membership.setUserId(user.getId());
+        membership.setLevel("flagship");
+        membership.setStartedAt(LocalDate.now());
+        membership.setExpiresAt(LocalDate.now().plusDays(30));
+        membership.setTenantId(0L);
+        userMembershipMapper.insert(membership);
         return user;
     }
 

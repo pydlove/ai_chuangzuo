@@ -216,6 +216,8 @@ import { sendEmailCode, register as registerApi, login as loginApi } from '@/api
 
 const router = useRouter()
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
@@ -320,6 +322,10 @@ const openSliderModal = () => {
     message.warning('请先填写邮箱')
     return
   }
+  if (!EMAIL_REGEX.test(registerForm.email)) {
+    message.warning('邮箱格式不正确')
+    return
+  }
   sliderModalPassed.value = false
   sliderModalVisible.value = true
 }
@@ -357,6 +363,11 @@ const startCodeCountdown = () => {
 const persistTokens = (data) => {
   localStorage.setItem('aichuangzuo_access_token', data.accessToken)
   localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
+  // 登录/注册切换账号时，清空旧的本地会员缓存，避免右上角显示成上一个账号的会员
+  localStorage.removeItem('aichuangzuo_membership')
+  // 切换账号后重新判断新人弹框资格
+  localStorage.removeItem('aichuangzuo_newcomer_modal_dismissed')
+  localStorage.removeItem('aichuangzuo_invite_modal_dismissed')
 }
 
 const handleLogin = async () => {
@@ -364,6 +375,40 @@ const handleLogin = async () => {
 }
 
 const handleRegister = async () => {
+  // 前端基础校验：按填写顺序给出明确提示
+  if (!registerForm.email) {
+    message.warning('请输入邮箱')
+    return
+  }
+  if (!EMAIL_REGEX.test(registerForm.email)) {
+    message.warning('邮箱格式不正确')
+    return
+  }
+  if (!registerForm.code) {
+    message.warning('请输入邮箱验证码')
+    return
+  }
+  if (!/^\d{6}$/.test(registerForm.code)) {
+    message.warning('邮箱验证码为 6 位数字')
+    return
+  }
+  if (!registerForm.password) {
+    message.warning('请输入密码')
+    return
+  }
+  if (registerForm.password.length < 6 || registerForm.password.length > 20) {
+    message.warning('密码长度需在 6-20 位之间')
+    return
+  }
+  if (!registerForm.confirmPassword) {
+    message.warning('请再次输入确认密码')
+    return
+  }
+  if (registerForm.password !== registerForm.confirmPassword) {
+    message.warning('两次输入的密码不一致')
+    return
+  }
+
   const inviteCode = registerForm.inviteCode.trim().toUpperCase()
 
   // 1. 自邀请校验

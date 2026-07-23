@@ -2,6 +2,10 @@ package com.aichuangzuo.user.modules.style.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
+import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.style.dto.request.CreateStyleRequest;
 import com.aichuangzuo.user.modules.style.dto.request.UpdateStyleRequest;
 import com.aichuangzuo.user.modules.style.entity.UserStyle;
@@ -14,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -30,8 +35,11 @@ public class UserStyleServiceImpl implements UserStyleService {
     private static final int MAX_SCOPE_TAGS = 3;
     private static final int MAX_SCOPE_TAG_LENGTH = 8;
     private static final int SOURCE_TYPE_CUSTOM = 1;
+    private static final String BENEFIT_CODE_STYLE_CUSTOM = "style_custom";
 
     private final UserStyleMapper userStyleMapper;
+    private final UserMembershipMapper userMembershipMapper;
+    private final PlanBenefitMapper planBenefitMapper;
 
     @Override
     public List<UserStyleVO> listMyStyles(Integer sourceType) {
@@ -54,6 +62,7 @@ public class UserStyleServiceImpl implements UserStyleService {
 
         validateScope(scope);
         ensureNameNotExists(userId, styleName, null);
+        ensureStyleQuotaNotExceeded(userId);
 
         UserStyle style = new UserStyle();
         style.setBizNo(generateBizNo());
@@ -111,6 +120,44 @@ public class UserStyleServiceImpl implements UserStyleService {
             throw new BusinessException(StyleErrorCode.STYLE_NOT_FOUND);
         }
         return style;
+    }
+
+    /**
+     * 校验当前用户的「我的风格」数量是否达到套餐上限。
+     * style_custom 已改为 quota 类型，值表示可同时保存的自定义风格数量上限。
+     */
+    private void ensureStyleQuotaNotExceeded(Long userId) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            throw new BusinessException(StyleErrorCode.STYLE_QUOTA_EXCEEDED);
+        }
+
+        String planKey = membership.getLevel();
+        PlanBenefit planBenefit = planBenefitMapper.selectOne(new LambdaQueryWrapper<PlanBenefit>()
+                .eq(PlanBenefit::getPlanKey, planKey)
+                .eq(PlanBenefit::getBenefitCode, BENEFIT_CODE_STYLE_CUSTOM));
+        int limit = planBenefit == null ? 0 : parseInt(planBenefit.getBenefitValue(), 0);
+        if (limit <= 0) {
+            throw new BusinessException(StyleErrorCode.STYLE_QUOTA_EXCEEDED);
+        }
+
+        Long currentCount = userStyleMapper.selectCount(new LambdaQueryWrapper<UserStyle>()
+                .eq(UserStyle::getUserId, userId)
+                .eq(UserStyle::getSourceType, SOURCE_TYPE_CUSTOM));
+        if (currentCount != null && currentCount >= limit) {
+            throw new BusinessException(StyleErrorCode.STYLE_QUOTA_EXCEEDED);
+        }
+    }
+
+    private int parseInt(String value, int fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 
     /**

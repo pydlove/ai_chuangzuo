@@ -45,6 +45,20 @@ class UserProfileServicePasswordTest {
     }
 
     @Test
+    void shouldThrowWhenAccountDisabled() {
+        User u = newUserWithHash("pwd-disabled@test.com", passwordEncoder.encode("old123"));
+        u.setUserStatus(0);
+        userMapper.insert(u);
+        SecurityUserContext.setCurrentUserId(u.getId());
+
+        ChangePasswordRequest req = new ChangePasswordRequest();
+        req.setOldPassword("old123");
+        req.setNewPassword("new123456");
+        req.setConfirmPassword("new123456");
+        assertThrows(BusinessException.class, () -> userProfileService.changePassword(req));
+    }
+
+    @Test
     void shouldThrowWhenOldPasswordWrong() {
         User u = newUserWithHash("pwd-wrong@test.com", passwordEncoder.encode("old123"));
         userMapper.insert(u);

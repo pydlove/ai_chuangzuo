@@ -9,6 +9,8 @@ spring:
       mail.smtp.auth: true
       mail.smtp.ssl.enable: false
       mail.smtp.starttls.enable: false
+  flyway:
+    locations: classpath:db/migration,classpath:db/migration/local
 
 logging:
   level:

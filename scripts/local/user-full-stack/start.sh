@@ -74,7 +74,18 @@ start_backend() {
   cd "${ROOT_DIR}/project" || return 1
   # 先把 shared 模块装到本地仓库，避免 user/api 找不到依赖
   mvn -pl shared install -DskipTests -q
-  nohup mvn -pl user/api spring-boot:run -DskipTests \
+
+  # dev 环境：注入 DLP CA truststore（minimax 等 AI API 被本地 DLP 代理替换为自签证书）
+  # 生产用 Linux 系统 cacerts 默认信任，无需 truststore
+  local truststore="${ROOT_DIR}/config/ssl/admin-api-truststore.p12"
+  local extra_jvm_opts=""
+  if [ -f "${truststore}" ]; then
+    extra_jvm_opts="-Djavax.net.ssl.trustStore=${truststore} -Djavax.net.ssl.trustStorePassword=changeit -Djavax.net.ssl.trustStoreType=PKCS12"
+    echo "已注入 dev truststore：${truststore}"
+  fi
+
+  nohup env _JAVA_OPTIONS="${extra_jvm_opts}" \
+    mvn -pl user/api spring-boot:run -Dspring-boot.run.jvmArguments="${extra_jvm_opts}" -DskipTests \
     > "${BACKEND_LOG}" 2>&1 &
   echo $! > "${BACKEND_PID_FILE}"
   echo "后端 PID：$(cat "${BACKEND_PID_FILE}")，日志：${BACKEND_LOG}"

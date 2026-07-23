@@ -43,6 +43,27 @@ export const MEMBERSHIP_STYLE_LEARN_QUOTA = {
   flagship: 2,
 }
 
+/**
+ * 会员等级 → 「我的风格」保存数量上限
+ * 与后端 u_plan_benefit 中 style_custom 的值保持一致。
+ *   - basic 基础版:           1
+ *   - pro 专业版:             2
+ *   - flagship 旗舰版:        4
+ */
+export const MEMBERSHIP_CUSTOM_STYLE_LIMIT = {
+  free: 0,
+  basic: 1,
+  pro: 2,
+  flagship: 4,
+}
+
+/**
+ * 当前档位「我的风格」保存数量上限。未开通或已过期 → 0。
+ */
+export function getCustomStyleLimit() {
+  return MEMBERSHIP_CUSTOM_STYLE_LIMIT[getCurrentPlanKey()] ?? 0
+}
+
 export const PLAN_KEY_TO_NAME = {
   basic: '基础版',
   pro: '专业版',

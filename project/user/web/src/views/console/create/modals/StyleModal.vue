@@ -108,9 +108,12 @@
 
         <!-- 我的风格 -->
         <div v-show="styleTab === 'my'" class="style-grid">
-          <div class="style-add-card" @click="goToCreateStyle">
+          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreateStyle">
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的风格</div>
+          </div>
+          <div v-else-if="styleCustomLimit > 0" class="style-quota-card">
+            <div class="style-quota-text">已达上限 {{ customQuotaText }}</div>
           </div>
           <div
             v-for="(m, idx) in myStyles"
@@ -175,7 +178,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch } from 'vue'
+import { ref, reactive, watch, computed } from 'vue'
 import { Modal } from 'ant-design-vue'
 import {
   systemStyles,
@@ -189,8 +192,10 @@ import {
   loadLearnedStyles
 } from '@/composables/useStyles.js'
 import { useCreateForm } from '../useCreateForm.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const { styleVisible } = useCreateForm()
+const { benefitValue, loadBenefits } = useBenefits()
 
 const styleTab = ref('my')
 const selectedStyleName = ref(null)
@@ -206,8 +211,13 @@ watch(styleVisible, async (open) => {
   selectedStyleName.value = null
   expandedPromptIdx.value = null
   createStyleMode.value = false
+  await loadBenefits()
   await loadMyStyles()
 })
+
+const styleCustomLimit = computed(() => parseInt(benefitValue('style_custom') || '0', 10))
+const canCreateCustom = computed(() => styleCustomLimit.value > 0 && myStyles.value.length < styleCustomLimit.value)
+const customQuotaText = computed(() => `${myStyles.value.length} / ${styleCustomLimit.value}`)
 
 const selectStyle = (s) => {
   selectedStyleName.value = s.name
@@ -411,6 +421,22 @@ const stylePresets = [
 .style-add-card:hover {
   border-color: var(--color-primary);
   background: #fff0f2;
+}
+
+.style-quota-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  border: 2px dashed #e8e8e8;
+  border-radius: 10px;
+  min-height: 100px;
+}
+
+.style-quota-text {
+  font-size: 13px;
+  color: #8c8c8c;
 }
 
 .style-add-icon {

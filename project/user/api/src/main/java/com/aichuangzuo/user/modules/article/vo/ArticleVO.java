@@ -28,6 +28,12 @@ public class ArticleVO {
 
     private String style;
 
+    /**
+     * 风格可读名称；市场风格（SM 开头）会解析为 u_style_market.style_name，
+     * 用户/系统预设风格直接回显 style 字段本身。
+     */
+    private String styleName;
+
     private String template;
 
     private Integer wordCount;

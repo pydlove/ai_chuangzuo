@@ -16,7 +16,8 @@ public enum StyleErrorCode implements ErrorCode {
     STYLE_NAME_EMPTY(112003, "风格名称不能为空"),
     STYLE_PROMPT_EMPTY(112004, "风格提示词不能为空"),
     STYLE_SCOPE_TOO_LONG(112005, "适用范围标签过多或过长"),
-    STYLE_ANALYZE_FAILED(112006, "风格分析失败，请重试");
+    STYLE_ANALYZE_FAILED(112006, "风格分析失败，请重试"),
+    STYLE_QUOTA_EXCEEDED(112007, "当前套餐我的风格数量已达上限，升级套餐可保存更多风格");
 
     private final int code;
     private final String message;

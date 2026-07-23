@@ -9,7 +9,8 @@ public enum MembershipErrorCode implements ErrorCode {
 
     INVALID_PAY_CODE(116001, "支付码错误"),
     INVALID_PLAN_KEY(116002, "套餐不存在"),
-    INVALID_CYCLE(116003, "订阅周期不存在");
+    INVALID_CYCLE(116003, "订阅周期不存在"),
+    INVALID_AMOUNT(116004, "支付金额与系统计算不符");
 
     private final int code;
     private final String message;

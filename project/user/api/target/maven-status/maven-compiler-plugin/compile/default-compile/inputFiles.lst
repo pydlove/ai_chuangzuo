@@ -78,6 +78,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/service/impl/BenefitServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/service/impl/PlanCatalogServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/vo/BenefitCheckVO.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/vo/NewcomerOfferVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/benefit/vo/UserBenefitVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/earnings/controller/AccountController.java

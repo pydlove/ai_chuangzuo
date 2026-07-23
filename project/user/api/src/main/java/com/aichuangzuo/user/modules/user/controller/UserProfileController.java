@@ -71,11 +71,18 @@ public class UserProfileController {
     }
 
     /**
-     * 修改密码。需要原密码校验通过。
+     * 修改密码。需要原密码校验通过，且账号未被禁用。
      *
      * @param request 旧/新/确认密码
      * @return 成功响应（无 data）
      */
+    @Operation(summary = "修改密码")
+    @PutMapping("/password")
+    public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        userProfileService.changePassword(request);
+        return Result.success();
+    }
+
     /**
      * 绑定邀请人。注册 7 天内且未绑定过邀请人时可补绑。
      *

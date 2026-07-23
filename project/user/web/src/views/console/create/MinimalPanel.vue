@@ -64,7 +64,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import TopicCapsules from './TopicCapsules.vue'
 import { useCreateForm } from './useCreateForm.js'
@@ -84,7 +84,10 @@ const {
 } = useCreateForm()
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates } = useExportTemplates()
-const { loadBenefits } = useBenefits()
+const { benefits, loadBenefits } = useBenefits()
+
+const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
+const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
 
@@ -124,13 +127,26 @@ const handleGenerate = async () => {
     return
   }
   if (quotaTotal.value <= 0) {
-    message.warning('开通会员后才能使用 AI 生成文章')
-    router.push('/pricing')
+    Modal.confirm({
+      title: '需要开通会员',
+      content: '开通会员后才能使用 AI 生成文章，是否去开通？',
+      okText: '去开通',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => router.push('/pricing')
+    })
     return
   }
   if (quotaRemaining.value <= 0) {
-    message.warning('本月额度已用完，升级会员可获得更多额度')
-    router.push('/pricing')
+    Modal.confirm({
+      title: '额度已用完',
+      content: '本月额度已用完，升级会员可获得更多额度，是否去升级？',
+      okText: '去升级',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => router.push('/pricing')
+    })
     return
   }
   try {

@@ -22,5 +22,6 @@ public interface UserConverter {
      */
     @Mapping(source = "bizNo", target = "userId")
     @Mapping(target = "inviterUserId", ignore = true)
+    @Mapping(target = "inviterNickname", ignore = true)
     UserProfileVO toProfileVO(User user);
 }

@@ -98,6 +98,14 @@
           <span class="mine-list-label">绑定邀请人</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
+        <li
+          v-else
+          class="mine-list-item"
+        >
+          <UserAddOutlined class="mine-list-icon" />
+          <span class="mine-list-label">我的邀请人</span>
+          <span class="mine-list-extra">{{ actions.profile?.value?.inviterNickname || '已绑定' }}</span>
+        </li>
         <li class="mine-list-item" @click="$router.push('/console/invite')">
           <GiftOutlined class="mine-list-icon mine-list-icon-gift" />
           <span class="mine-list-label">邀请有礼</span>

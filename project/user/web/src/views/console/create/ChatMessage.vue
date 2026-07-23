@@ -2,7 +2,7 @@
   <div class="chat-msg" :class="role">
     <div v-if="role === 'ai'" class="ai-info">
       <img class="chat-avatar" src="/ai-avatar.png" alt="AI" />
-      <div class="ai-name">小爱</div>
+      <div class="ai-name">灵犀同学</div>
     </div>
     <div class="chat-bubble">
       <slot />
@@ -60,6 +60,12 @@ defineProps({ role: { type: String, default: 'ai' } })
 
 /* 含输入框的气泡扩到 100%，避免被 85% 压缩到内容宽度 */
 .chat-bubble:has(.topic-input-row) {
+  max-width: 100%;
+  width: 100%;
+}
+
+/* 进度卡片同样扩到 100%，生成中状态不要太窄 */
+.chat-bubble:has(.chat-progress) {
   max-width: 100%;
   width: 100%;
 }

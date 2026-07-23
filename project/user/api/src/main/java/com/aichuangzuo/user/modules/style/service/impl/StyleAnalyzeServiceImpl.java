@@ -77,17 +77,23 @@ public class StyleAnalyzeServiceImpl implements StyleAnalyzeService {
         // 额度门：消费本月 style_learn_analyze；basic=0 直接抛 QUOTA_EXHAUSTED
         benefitService.consume(userId, LEARN_ANALYZE_BENEFIT);
 
-        String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
-        JsonNode root = parseJson(stripCodeFence(aiResp));
+        try {
+            String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
+            JsonNode root = parseJson(stripCodeFence(aiResp));
 
-        String prompt = root.path("prompt").asText("").trim();
-        validatePrompt(prompt);
+            String prompt = root.path("prompt").asText("").trim();
+            validatePrompt(prompt);
 
-        StyleAnalyzeVO vo = new StyleAnalyzeVO();
-        vo.setPrompt(prompt);
-        vo.setExcerpt1(resolveExcerpt(root.path("excerpt1").asText(""), text, true));
-        vo.setExcerpt2(resolveExcerpt(root.path("excerpt2").asText(""), text, false));
-        return vo;
+            StyleAnalyzeVO vo = new StyleAnalyzeVO();
+            vo.setPrompt(prompt);
+            vo.setExcerpt1(resolveExcerpt(root.path("excerpt1").asText(""), text, true));
+            vo.setExcerpt2(resolveExcerpt(root.path("excerpt2").asText(""), text, false));
+            return vo;
+        } catch (Exception e) {
+            // 学习失败时退回额度，避免 AI/解析/校验异常导致白扣次数
+            benefitService.refund(userId, LEARN_ANALYZE_BENEFIT);
+            throw e;
+        }
     }
 
     private JsonNode parseJson(String raw) {

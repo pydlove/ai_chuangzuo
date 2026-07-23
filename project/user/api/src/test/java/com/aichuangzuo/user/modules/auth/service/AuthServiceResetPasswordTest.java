@@ -91,7 +91,7 @@ class AuthServiceResetPasswordTest {
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> authService.resetPassword(buildRequest("no_such@example.com", "NewPass456"),
                         "127.0.0.1"));
-        assertEquals(UserAuthErrorCode.USER_NOT_FOUND.getCode(), ex.getCode());
+        assertEquals(UserAuthErrorCode.RESET_PASSWORD_FAILED.getCode(), ex.getCode());
     }
 
     @Test

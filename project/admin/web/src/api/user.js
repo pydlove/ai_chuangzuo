@@ -23,3 +23,7 @@ export function resetUserPassword(id) {
 export function updateUser(id, data) {
   return request.put(`/api/v1/admin/users/${id}`, data).then((res) => res.data)
 }
+
+export function deleteUser(id) {
+  return request.delete(`/api/v1/admin/users/${id}`).then((res) => res.data)
+}

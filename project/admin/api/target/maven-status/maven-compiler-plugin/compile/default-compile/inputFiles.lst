@@ -341,6 +341,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/preset/vo/GlobalStyleVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/controller/StyleReviewAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/dto/StyleReviewRow.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/dto/request/BatchApproveStyleReviewRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/dto/request/RejectStyleReviewRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/dto/request/StyleReviewPageRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/style/review/entity/AuditStatus.java

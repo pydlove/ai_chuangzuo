@@ -40,7 +40,7 @@
           <QuickReplies v-if="!m.done" :options="m.options" :selected-key="chipSelectedKey(m)" @select="(opt) => onChipSelect(m, opt)" @confirm="(opt) => onQuickConfirm(m, opt)">
             <!-- 风格步骤额外提供"新建我的风格"入口 -->
             <template v-if="m.optionsType === 'style'" #footer>
-              <button class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的风格</button>
+              <button v-if="canCreateCustomStyle" class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的风格</button>
             </template>
             <template #preview="{ option }">
               <!-- 平台效果卡 -->
@@ -98,12 +98,6 @@
           </div>
         </template>
 
-        <!-- 额度拦截 -->
-        <template v-else-if="m.kind === 'quota'">
-          <div class="chat-question">{{ m.text }}</div>
-          <button class="confirm-generate" @click="m.action">{{ m.actionText }}</button>
-        </template>
-
         <!-- 进度卡片 -->
         <template v-else-if="m.kind === 'progress'">
           <div class="confirm-card">
@@ -142,7 +136,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import ChatMessage from './ChatMessage.vue'
 import QuickReplies from './QuickReplies.vue'
 import GuidedHero from './GuidedHero.vue'
@@ -168,6 +162,9 @@ const { loadQueue } = useGenerationQueue()
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
+
+const styleCustomLimit = computed(() => Number(benefits.value['style_custom']?.value) || 0)
+const canCreateCustomStyle = computed(() => styleCustomLimit.value > 0 && myStyles.value.length < styleCustomLimit.value)
 
 let seq = 0
 const messages = ref([])
@@ -196,14 +193,9 @@ const push = (msg) => {
   scrollToBottom()
 }
 
-// 初始化：先确保权益已加载，再决定首屏（额度拦截走对话态，否则走 Kimi 风格 hero）
+// 初始化：加载权益即可，未开通会员也正常展示 hero/引导流程
 onMounted(async () => {
   await loadBenefits()
-  if (quotaTotal.value <= 0) {
-    push({ role: 'ai', kind: 'quota', text: '开通会员后才能使用 AI 生成文章', actionText: '去开通会员', action: () => router.push('/pricing') })
-  } else if (quotaRemaining.value <= 0) {
-    push({ role: 'ai', kind: 'quota', text: '本月额度已用完，升级会员可获得更多额度', actionText: '去升级', action: () => router.push('/pricing') })
-  }
 })
 
 const isHeroState = computed(() => messages.value.length === 0)
@@ -211,6 +203,18 @@ const isHeroState = computed(() => messages.value.length === 0)
 // hero → 进入聊天态：先回显用户输入，再展示主题步骤（让用户能补描述，再去平台）
 // 如果用户在 hero 里点了灵感，customRequirement 已经被 applyTopic 写好，不要清
 const onHeroSubmit = (text) => {
+  if (quotaTotal.value <= 0) {
+    Modal.confirm({
+      title: '需要开通会员',
+      content: '开通会员后才能使用 AI 生成文章，是否去开通？',
+      okText: '去开通',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => router.push('/pricing')
+    })
+    return
+  }
   customTitle.value = text
   topicInput.value = text
   requirementInput.value = customRequirement.value || ''  // 同步灵感带过来的观点
@@ -427,6 +431,31 @@ const handleSaveDraft = async () => {
 
 const handleConfirmGenerate = async (confirmMsg) => {
   if (!customTitle.value.trim()) return
+
+  if (quotaTotal.value <= 0) {
+    Modal.confirm({
+      title: '需要开通会员',
+      content: '开通会员后才能使用 AI 生成文章，是否去开通？',
+      okText: '去开通',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => router.push('/pricing')
+    })
+    return
+  }
+  if (quotaRemaining.value <= 0) {
+    Modal.confirm({
+      title: '额度已用完',
+      content: '本月额度已用完，升级会员可获得更多额度，是否去升级？',
+      okText: '去升级',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => router.push('/pricing')
+    })
+    return
+  }
+
   try {
     const task = await submitGeneration({
       title: customTitle.value,

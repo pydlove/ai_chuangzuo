@@ -124,6 +124,38 @@ class MembershipServiceTest {
     }
 
     @Test
+    void subscribe_invalidAmount_throwsBusinessException() {
+        User user = createUser("sub-amount@test.com");
+        SubscribeRequest request = buildRequest("pro", "year", "123456", new BigDecimal("1.00"));
+
+        try {
+            membershipService.subscribe(user.getId(), request);
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("支付金额"));
+            return;
+        }
+        throw new AssertionError("应抛出支付金额错误异常");
+    }
+
+    @Test
+    void subscribe_newcomerFlagshipYear_usesDiscountedAmount() {
+        User user = createUser("sub-newcomer@test.com");
+        SubscribeRequest request = buildRequest("flagship", "year", "123456", new BigDecimal("671.36"));
+
+        SubscribeResultVO result = membershipService.subscribe(user.getId(), request);
+
+        assertNotNull(result.getOrderNo());
+        assertEquals("flagship", result.getLevel());
+        assertEquals(365, result.getDays());
+        assertFalse(result.isInviterRewarded());
+
+        UserMembership membership = userMembershipMapper.selectByUserId(user.getId());
+        assertNotNull(membership);
+        assertEquals("flagship", membership.getLevel());
+        assertEquals(LocalDate.now().plusDays(365), membership.getExpiresAt());
+    }
+
+    @Test
     void getMyMembership_expired_returnsFalse() {
         User user = createUser("sub-expired@test.com");
         UserMembership membership = new UserMembership();

@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.style.review.controller;
 
+import com.aichuangzuo.admin.modules.style.review.dto.request.BatchApproveStyleReviewRequest;
 import com.aichuangzuo.admin.modules.style.review.dto.request.RejectStyleReviewRequest;
 import com.aichuangzuo.admin.modules.style.review.dto.request.StyleReviewPageRequest;
 import com.aichuangzuo.admin.modules.style.review.service.StyleReviewService;
@@ -39,6 +40,13 @@ public class StyleReviewAdminController {
     public Result<Void> approve(@PathVariable String bizNo) {
         styleReviewService.approve(bizNo);
         return Result.success();
+    }
+
+    @Operation(summary = "批量通过风格")
+    @PostMapping("/actions/batch-approve")
+    public Result<Integer> batchApprove(@Valid @RequestBody BatchApproveStyleReviewRequest request) {
+        int count = styleReviewService.batchApprove(request.getBizNos());
+        return Result.success(count);
     }
 
     @Operation(summary = "打回风格")

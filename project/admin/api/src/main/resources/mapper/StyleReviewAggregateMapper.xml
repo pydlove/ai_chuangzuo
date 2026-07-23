@@ -7,6 +7,8 @@
                s.user_id       AS userId,
                u.nickname      AS creatorName,
                s.style_name    AS styleName,
+               s.prompt        AS prompt,
+               s.scope         AS scope,
                s.source_type   AS sourceType,
                s.audit_status  AS auditStatus,
                s.reject_reason AS rejectReason,

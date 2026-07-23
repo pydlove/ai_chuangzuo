@@ -18,7 +18,7 @@ public class AdminUserCreateRequest {
     @Size(min = 1, max = 64, message = "昵称长度需在 1-64 字符之间")
     private String nickname;
 
-    @Size(min = 6, max = 32, message = "密码长度需在 6-32 字符之间")
+    /** 留空则使用默认密码；非空时由 Service 校验长度 6-32 字符 */
     private String password;
 
     @NotNull(message = "用户类型不能为空")

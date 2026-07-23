@@ -85,6 +85,7 @@ com/aichuangzuo/user/modules/user/converter/UserConverter.class
 com/aichuangzuo/user/modules/article/service/impl/ArticleServiceImpl$1.class
 com/aichuangzuo/user/modules/auth/entity/IpRegisterLimit.class
 com/aichuangzuo/user/modules/leaderboard/controller/CoinRecordInternalController.class
+com/aichuangzuo/user/modules/benefit/vo/NewcomerOfferVO.class
 com/aichuangzuo/user/modules/auth/mail/EmailMessageFactory.class
 com/aichuangzuo/user/modules/article/controller/ArticleController.class
 com/aichuangzuo/user/modules/benefit/controller/PlanCatalogController.class

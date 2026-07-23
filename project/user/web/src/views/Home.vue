@@ -31,18 +31,31 @@
             <router-link to="/guide">不知道怎么变现？先看看玩法指南 →</router-link>
           </div>
         </div>
-        <component
-          v-if="banners.length"
-          :is="banners[0].linkUrl ? 'a' : 'div'"
-          v-bind="banners[0].linkUrl ? { href: banners[0].linkUrl, target: '_blank', rel: 'noopener' } : {}"
-          class="hero-banner-card"
-        >
-          <img :src="banners[0].imageUrl" :alt="'banner-' + banners[0].id" class="hero-banner-card__img" />
-          <div class="hero-banner-card__cta">
-            <span>查看详情</span>
-            <span class="hero-banner-card__arrow">→</span>
+        <div v-if="banners.length" class="hero-banner-carousel" @mouseenter="stopBannerCarousel" @mouseleave="startBannerCarousel">
+          <component
+            v-for="(banner, index) in banners"
+            :key="banner.id"
+            :is="banner.linkUrl ? 'a' : 'div'"
+            v-bind="banner.linkUrl ? { href: banner.linkUrl, target: '_blank', rel: 'noopener' } : {}"
+            class="hero-banner-card"
+            :class="{ active: index === activeBannerIndex }"
+          >
+            <img :src="banner.imageUrl" :alt="'banner-' + banner.id" class="hero-banner-card__img" />
+            <div class="hero-banner-card__cta">
+              <span>查看详情</span>
+              <span class="hero-banner-card__arrow">→</span>
+            </div>
+          </component>
+          <div v-if="banners.length > 1" class="hero-banner-dots">
+            <span
+              v-for="(_, index) in banners"
+              :key="index"
+              class="hero-banner-dot"
+              :class="{ active: index === activeBannerIndex }"
+              @click="activeBannerIndex = index"
+            ></span>
           </div>
-        </component>
+        </div>
       </div>
     </section>
 
@@ -258,7 +271,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import { fetchHomeBanners } from '@/api/home.js'
 
@@ -272,6 +285,8 @@ const ctaTo = '/login'
 const ctaLabel = '开始创作'
 
 const banners = ref([])
+const activeBannerIndex = ref(0)
+let bannerTimer = null
 
 async function loadBanners() {
   try {
@@ -280,6 +295,30 @@ async function loadBanners() {
     banners.value = []
   }
 }
+
+function startBannerCarousel() {
+  stopBannerCarousel()
+  if (banners.value.length <= 1) return
+  bannerTimer = setInterval(() => {
+    activeBannerIndex.value = (activeBannerIndex.value + 1) % banners.value.length
+  }, 5000)
+}
+
+function stopBannerCarousel() {
+  if (bannerTimer) {
+    clearInterval(bannerTimer)
+    bannerTimer = null
+  }
+}
+
+watch(banners, (newBanners) => {
+  activeBannerIndex.value = 0
+  if (newBanners.length > 1) {
+    startBannerCarousel()
+  } else {
+    stopBannerCarousel()
+  }
+}, { flush: 'post' })
 
 // ---- 滚动揭示动画 ----
 let observer = null
@@ -326,6 +365,7 @@ onMounted(() => {
 onUnmounted(() => {
   observer?.disconnect()
   window.removeEventListener('scroll', onScroll)
+  stopBannerCarousel()
 })
 </script>
 
@@ -523,17 +563,29 @@ onUnmounted(() => {
 }
 
 /* ===== Hero 内嵌 Banner 侧卡 ===== */
-.hero-banner-card {
-  display: block;
+.hero-banner-carousel {
   position: relative;
   border-radius: 20px;
   overflow: hidden;
   box-shadow: 0 12px 36px rgba(255, 36, 66, 0.18);
   background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  aspect-ratio: 16 / 9;
+}
+.hero-banner-card {
+  display: block;
+  position: absolute;
+  inset: 0;
   text-decoration: none;
   color: #fff;
-  aspect-ratio: 16 / 9;
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease, transform 0.25s ease, box-shadow 0.25s ease;
+  z-index: 1;
+}
+.hero-banner-card.active {
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 2;
 }
 a.hero-banner-card:hover {
   transform: translateY(-4px);
@@ -564,6 +616,7 @@ a.hero-banner-card:hover .hero-banner-card__img {
   font-weight: 600;
   backdrop-filter: blur(6px);
   box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
+  z-index: 3;
 }
 .hero-banner-card__arrow {
   font-size: 16px;
@@ -572,6 +625,30 @@ a.hero-banner-card:hover .hero-banner-card__img {
 }
 a.hero-banner-card:hover .hero-banner-card__arrow {
   transform: translateX(3px);
+}
+.hero-banner-dots {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 4;
+}
+.hero-banner-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+.hero-banner-dot.active {
+  background: #fff;
+  transform: scale(1.25);
+}
+.hero-banner-dot:hover {
+  background: rgba(255, 255, 255, 0.85);
 }
 
 /* ====================== 数据区 ====================== */
@@ -1009,8 +1086,10 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 @media (max-width: 768px) {
   .hero { padding: 48px 20px 40px; }
   .hero-inner { grid-template-columns: 1fr; gap: 28px; }
-  .hero-banner-card { border-radius: 16px; }
-  .hero-badge { font-size: 12px; padding: 5px 12px; margin-bottom: 16px; }
+  .hero-banner-carousel { border-radius: 16px; }
+  .hero-banner-card__cta { left: 12px; bottom: 12px; padding: 6px 14px; font-size: 13px; }
+  .hero-banner-dots { bottom: 10px; gap: 6px; }
+  .hero-banner-dot { width: 6px; height: 6px; }
   .hero-title { font-size: 26px; line-height: 1.3; margin-bottom: 14px; }
   .hero-desc { font-size: 15px; margin-bottom: 24px; }
   .hero-btn { padding: 14px 32px; border-radius: 24px; font-size: 16px; }

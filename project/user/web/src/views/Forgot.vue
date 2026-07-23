@@ -127,6 +127,8 @@ import { sendEmailCode, resetPassword } from '@/api/auth'
 
 const router = useRouter()
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
@@ -199,6 +201,10 @@ const openCodeSlider = () => {
   if (codeCountdown.value > 0) return
   if (!form.email) {
     message.warning('请先填写邮箱')
+    return
+  }
+  if (!EMAIL_REGEX.test(form.email)) {
+    message.warning('邮箱格式不正确')
     return
   }
   codeModalPassed.value = false

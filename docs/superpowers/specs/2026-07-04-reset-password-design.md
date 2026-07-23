@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- 沿用 `UserAuthErrorCode` 既有错误码（CAPTCHA_ERROR / EMAIL_CODE_ERROR / USER_NOT_FOUND / PASSWORD_NOT_MATCH / REFRESH_TOKEN_INVALID），不新增
+- 沿用 `UserAuthErrorCode` 既有错误码（`CAPTCHA_ERROR` / `EMAIL_CODE_ERROR` / `RESET_PASSWORD_FAILED` / `PASSWORD_NOT_MATCH` / `REFRESH_TOKEN_INVALID`），其中未注册邮箱场景返回 `RESET_PASSWORD_FAILED` 以防账号枚举
 - 后端 mock 测试环境（`SPRING_PROFILES_ACTIVE=test`）保留 captcha mock code `TEST12`、邮箱码 mock code `000000`
 - 密码 BCrypt 编码，与 register/login 同一 `PasswordEncoder` Bean
 - 启动脚本：`scripts/local/user-full-stack/{start,stop,restart}.sh`（后端 25050 / 前端 22345）
@@ -43,7 +43,7 @@ Body: {
 错误码（沿用）：
 - CAPTCHA_ERROR          captchaKey/code 不匹配或过期
 - EMAIL_CODE_ERROR       邮箱码错误或已使用（一次性）
-- USER_NOT_FOUND         邮箱未注册
+- RESET_PASSWORD_FAILED  邮箱未注册（统一模糊提示，防止账号枚举）
 - PASSWORD_NOT_MATCH     password != confirmPassword
 ```
 
@@ -72,7 +72,7 @@ void resetPassword(ResetPasswordRequest request, String clientIp);
    → 抛 CAPTCHA_ERROR
 2. if (!password.equals(confirmPassword)) 抛 PASSWORD_NOT_MATCH
 3. User user = userMapper.selectByEmail(email)
-   if (user == null) 抛 USER_NOT_FOUND   // 不静默，与 register/login 行为一致
+   if (user == null) 抛 RESET_PASSWORD_FAILED   // 统一模糊提示，防止账号枚举
 4. if (!emailCodeService.validateEmailCode(email, emailCode))
    抛 EMAIL_CODE_ERROR
 5. passwordEncoder.encode(newPassword) → userMapper.updatePassword(user.id, hash)

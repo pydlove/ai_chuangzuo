@@ -20,7 +20,7 @@
             AND mr.is_deleted = 0
         WHERE m.is_deleted = 0
           AND (
-              m.scope = 1
+              (m.scope = 1 AND m.created_at &gt;= #{registerAt})
               OR (m.scope = 2 AND m.target_user_id = #{userId})
           )
         ORDER BY m.created_at DESC
@@ -33,7 +33,7 @@
         WHERE m.is_deleted = 0
           AND m.id = #{messageId}
           AND (
-              m.scope = 1
+              (m.scope = 1 AND m.created_at &gt;= #{registerAt})
               OR (m.scope = 2 AND m.target_user_id = #{userId})
           )
         LIMIT 1

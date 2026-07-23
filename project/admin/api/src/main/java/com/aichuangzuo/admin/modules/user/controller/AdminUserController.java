@@ -34,10 +34,11 @@ public class AdminUserController {
     @GetMapping
     public Result<AdminUserPageVO> listUsers(
             @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "inviteCode", required = false) String inviteCode,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
         checkSuperAdmin();
-        return Result.success(adminUserService.listUsers(keyword, page, pageSize));
+        return Result.success(adminUserService.listUsers(keyword, inviteCode, page, pageSize));
     }
 
     @Operation(summary = "手动创建用户")
@@ -76,6 +77,14 @@ public class AdminUserController {
                                           @Valid @RequestBody AdminUserUpdateRequest request) {
         checkSuperAdmin();
         return Result.success(adminUserService.updateUser(id, request));
+    }
+
+    @Operation(summary = "删除用户")
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteUser(@PathVariable(name = "id") Long id) {
+        checkSuperAdmin();
+        adminUserService.deleteUser(id);
+        return Result.success();
     }
 
     @Operation(summary = "用户下拉选项（发布者选择）")

@@ -1,7 +1,9 @@
 package com.aichuangzuo.user.modules.benefit.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.benefit.service.PlanCatalogService;
+import com.aichuangzuo.user.modules.benefit.vo.NewcomerOfferVO;
 import com.aichuangzuo.user.modules.benefit.vo.PlanCatalogVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -23,5 +25,11 @@ public class PlanCatalogController {
     @GetMapping
     public Result<PlanCatalogVO> getCatalog() {
         return Result.success(planCatalogService.getCatalog());
+    }
+
+    @GetMapping("/newcomer-offer")
+    public Result<NewcomerOfferVO> getNewcomerOffer() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(planCatalogService.getNewcomerOffer(userId));
     }
 }

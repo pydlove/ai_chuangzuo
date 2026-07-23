@@ -15,6 +15,13 @@ spring:
       mail.smtp.connectiontimeout: 10000
       mail.smtp.timeout: 10000
       mail.smtp.writetimeout: 10000
+  flyway:
+    locations: classpath:db/migration,classpath:db/migration/local
+    # 本地开发允许已应用但已删除的迁移存在，避免 untracked local 迁移重命名/删除后启动失败
+    # Flyway 9.x 使用 ignore-migration-patterns 替代已废弃的 ignore-missing-migrations
+    ignore-migration-patterns: "*:missing"
+    # 本地开发允许乱序执行，方便在已有高版本迁移后补低版本清理脚本
+    out-of-order: true
 
 logging:
   level:

@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listUsers, updateUserStatus, resetUserPassword, createUser } from '@/api/user.js'
+import { listUsers, updateUserStatus, resetUserPassword, createUser, deleteUser } from '@/api/user.js'
 
 export function useUserManagement() {
   const users = ref([])
@@ -9,12 +9,14 @@ export function useUserManagement() {
   const page = ref(1)
   const pageSize = ref(10)
   const keyword = ref('')
+  const inviteCode = ref('')
 
   const fetchUsers = async () => {
     loading.value = true
     try {
       const res = await listUsers({
         keyword: keyword.value,
+        inviteCode: inviteCode.value,
         page: page.value,
         pageSize: pageSize.value
       })
@@ -34,6 +36,7 @@ export function useUserManagement() {
 
   const handleReset = () => {
     keyword.value = ''
+    inviteCode.value = ''
     page.value = 1
     fetchUsers()
   }
@@ -71,6 +74,12 @@ export function useUserManagement() {
     return res
   }
 
+  const handleDeleteUser = async (user) => {
+    await deleteUser(user.id)
+    message.success('用户已删除')
+    fetchUsers()
+  }
+
   return {
     users,
     total,
@@ -78,12 +87,14 @@ export function useUserManagement() {
     page,
     pageSize,
     keyword,
+    inviteCode,
     fetchUsers,
     handleSearch,
     handleReset,
     handlePageChange,
     handleStatusChange,
     handleResetPassword,
-    handleCreateUser
+    handleCreateUser,
+    handleDeleteUser
   }
 }

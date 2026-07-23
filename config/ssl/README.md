@@ -4,10 +4,10 @@
 
 ## 用途
 
-部分国内平台（如 `*.baidu.com`、`*.weibo.com`）的 HTTPS 证书由自有私有 CA（DLP CA）签发，
-标准 JDK cacerts 不信任这些证书，导致 jsoup / HttpClient 在抓取公开页面时抛 `PKIX path building failed`。
+部分国内平台（如 `*.baidu.com`、`*.weibo.com`）以及本地 AI 调用（如 `*.minimax.chat`）的 HTTPS 证书会被本地 DLP 代理替换为私有 CA（DLP CA）签发的证书，
+标准 JDK cacerts 不信任这些证书，导致 jsoup / HttpClient / RestTemplate 抛 `PKIX path building failed`。
 
-线上 Linux JDK 的 cacerts 通常已包含国内 CA 列表，**生产环境不需要这里的 truststore**。
+线上 Linux JDK 的 cacerts 通常已包含国内 CA 列表且不存在本地 DLP 拦截，**生产环境不需要这里的 truststore**。
 
 ## 重新生成（首次拉代码后）
 
@@ -34,7 +34,7 @@ keytool -import -trustcacerts -alias dlp_ca_root \
 
 ## 启动方式
 
-`scripts/local/admin-full-stack/start.sh` 检测到本文件存在时会自动通过 `-Djavax.net.ssl.trustStore=...` 注入到 mvn spring-boot:run。
+`scripts/local/admin-full-stack/start.sh` 与 `scripts/local/user-full-stack/start.sh` 检测到本文件存在时会自动通过 `-Djavax.net.ssl.trustStore=...` 注入到 mvn spring-boot:run。
 无需额外操作。
 
 ## 平台根因表（不要再来回试）

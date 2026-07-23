@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.message.service;
 
 import com.aichuangzuo.user.modules.message.vo.MessageVO;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -11,26 +12,30 @@ public interface MessageService {
 
     /**
      * 查询当前用户可见的全部消息，附带已读标记。
+     * <p>广播消息仅返回用户注册时间之后发布的。</p>
      *
-     * @param userId 用户ID
+     * @param userId     用户ID
+     * @param registerAt 用户注册时间
      * @return 消息列表
      */
-    List<MessageVO> listVisibleMessages(Long userId);
+    List<MessageVO> listVisibleMessages(Long userId, LocalDateTime registerAt);
 
     /**
      * 单条标记已读。
      *
-     * @param userId    用户ID
-     * @param messageId 消息ID
+     * @param userId     用户ID
+     * @param registerAt 用户注册时间
+     * @param messageId  消息ID
      */
-    void markRead(Long userId, Long messageId);
+    void markRead(Long userId, LocalDateTime registerAt, Long messageId);
 
     /**
      * 全部已读。
      *
-     * @param userId 用户ID
+     * @param userId     用户ID
+     * @param registerAt 用户注册时间
      */
-    void markAllRead(Long userId);
+    void markAllRead(Long userId, LocalDateTime registerAt);
 
     /**
      * 推送一条个人消息，供其他业务模块进程内调用。
