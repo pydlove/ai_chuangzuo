@@ -1,6 +1,9 @@
 import { ref } from 'vue'
 import { getInviteStats } from '@/api/invite'
 
+const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
+const DEFAULT_COIN_BALANCE = 100
+
 // 模块级 ref：ConsoleLayout 和 MineIndex 共享同一份邀请统计。
 const inviteStats = ref({
   invitedCount: 0,
@@ -10,9 +13,6 @@ const inviteStats = ref({
 })
 const coinBalance = ref(readCoinBalance())
 const loading = ref(false)
-
-const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
-const DEFAULT_COIN_BALANCE = 100
 
 function readCoinBalance() {
   try {
