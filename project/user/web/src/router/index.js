@@ -113,6 +113,21 @@ const routes = [
         path: 'invite-rules',
         name: 'ConsoleInviteRules',
         component: () => import('@/views/console/InviteRulesIndex.vue')
+      },
+      {
+        path: 'commission',
+        name: 'ConsoleCommission',
+        component: () => import('@/views/console/CommissionIndex.vue')
+      },
+      {
+        path: 'commission/publish',
+        name: 'ConsoleCommissionPublish',
+        component: () => import('@/views/console/CommissionPublish.vue')
+      },
+      {
+        path: 'commission/:id',
+        name: 'ConsoleCommissionDetail',
+        component: () => import('@/views/console/CommissionDetail.vue')
       }
     ]
   }

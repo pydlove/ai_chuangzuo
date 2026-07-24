@@ -182,7 +182,7 @@
                   </div>
                   <div class="invite-friend-list">
                     <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>
-                    <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
+                    <div v-for="f in paginatedInviteFriends" :key="f.email" class="invite-friend-item">
                       <div>
                         <span class="invite-friend-email">{{ f.email }}</span>
                       </div>
@@ -191,6 +191,15 @@
                       </span>
                     </div>
                   </div>
+                  <a-pagination
+                    v-if="inviteStats.friends.length > INVITE_FRIEND_PAGE_SIZE"
+                    :current="inviteFriendPage"
+                    :page-size="INVITE_FRIEND_PAGE_SIZE"
+                    :total="inviteStats.friends.length"
+                    simple
+                    class="invite-friend-pager"
+                    @change="onInviteFriendPageChange"
+                  />
                 </div>
               </div>
 
@@ -264,6 +273,7 @@
                     <li>超过 5 人后，每多邀请 1 人额外奖励 2 天专业版会员，会员天数可累计叠加。</li>
                     <li>好友首次购买会员可获 10% 创作币返佣，续费返佣 5%，返佣以创作币形式即时到账。</li>
                     <li>被邀请的好友通过你的链接首次下单后，该笔订单视为你邀请的返佣订单。</li>
+                    <li>好友需先建立邀请关系再购买会员；若先购买会员、再绑定邀请关系，首购订单不计入邀请返佣，但绑定后好友的后续续费仍可享受续费返佣。</li>
                   </ul>
                 </section>
 
@@ -1252,7 +1262,8 @@ import {
   ShopOutlined,
   DollarOutlined,
   TrophyOutlined,
-  UserOutlined
+  UserOutlined,
+  FileTextOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1280,7 +1291,10 @@ const pageTitleMap = {
   '/console/mine': '我的',
   '/console/edit': '编辑文章',
   '/console/preview': '预览文章',
-  '/console/coin': '创作币'
+  '/console/coin': '创作币',
+  '/console/commission': '约稿中心',
+  '/console/commission/publish': '发布约稿',
+  '/console/commission/:id': '约稿详情'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')
 const goBack = () => router.back()
@@ -1375,6 +1389,16 @@ const closeNewcomerModal = () => {
 
 const inviteAutoOpened = ref(false)
 const inviteModalDontShow = ref(false)
+const INVITE_FRIEND_PAGE_SIZE = 5
+const inviteFriendPage = ref(1)
+const paginatedInviteFriends = computed(() => {
+  const list = inviteStats.value.friends || []
+  const start = (inviteFriendPage.value - 1) * INVITE_FRIEND_PAGE_SIZE
+  return list.slice(start, start + INVITE_FRIEND_PAGE_SIZE)
+})
+const onInviteFriendPageChange = (page) => {
+  inviteFriendPage.value = page
+}
 
 const handleInviteClose = () => {
   if (inviteAutoOpened.value && inviteModalDontShow.value) {
@@ -1404,6 +1428,7 @@ const goToNewcomerOffer = () => {
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/works', label: '我的作品', icon: FolderOutlined },
+  { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
   { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
@@ -2438,6 +2463,7 @@ const downloadSelectedPoster = async () => {
 
 const openInviteModal = () => {
   loadInviteStats()
+  inviteFriendPage.value = 1
   inviteVisible.value = true
 }
 
@@ -5164,10 +5190,14 @@ body[data-theme="dark"] .password-input::placeholder {
 }
 
 .invite-friend-list {
-  max-height: 160px;
-  overflow-y: auto;
+  min-height: 40px;
 }
 
+.invite-friend-pager {
+  margin-top: 12px;
+  display: flex;
+  justify-content: center;
+}
 .invite-friend-empty {
   padding: 20px 0;
   text-align: center;
