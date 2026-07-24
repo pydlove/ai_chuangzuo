@@ -1493,7 +1493,7 @@ const loadTheme = () => {
 
 // ---------- 消息通知 ----------
 const notifVisible = ref(false)
-const activeTab = ref('generation')
+const activeTab = ref('all')
 const notifications = ref([])
 
 // 消息详情弹框(announcement / feature / promotion / membership / reward)
@@ -2499,11 +2499,11 @@ const submitWithdraw = () => {
 }
 
 const notifTabs = [
+  { type: 'all', label: '全部' },
   { type: 'announcement', label: '公告' },
-  { type: 'feedback', label: '我的反馈' },
-  { type: 'style', label: '风格审核' },
-  { type: 'generation', label: '生成完成' },
   { type: 'station', label: '站内消息' },
+  { type: 'generation', label: '生成完成' },
+  { type: 'style', label: '风格审核' },
   { type: 'feature', label: '新功能' },
   { type: 'promotion', label: '优惠活动' }
 ]
@@ -2514,15 +2514,25 @@ const activeTabLabel = computed(() => {
 
 const currentNotifs = computed(() => {
   return notifications.value
-    .filter(n => activeTab.value === 'station'
-      ? (n.type === 'membership' || n.type === 'reward')
-      : n.type === activeTab.value)
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+    .filter(n => {
+      if (activeTab.value === 'all') return true
+      if (activeTab.value === 'station') {
+        return n.type === 'membership' || n.type === 'reward'
+      }
+      return n.type === activeTab.value
+    })
+    .sort((a, b) => {
+      if (a.read !== b.read) return a.read ? 1 : -1
+      return new Date(b.createdAt) - new Date(a.createdAt)
+    })
 })
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 
 const getUnreadByType = (type) => {
+  if (type === 'all') {
+    return notifications.value.filter(n => !n.read).length
+  }
   if (type === 'station') {
     return notifications.value.filter(n => (n.type === 'membership' || n.type === 'reward') && !n.read).length
   }

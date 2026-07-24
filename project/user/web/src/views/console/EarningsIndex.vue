@@ -117,6 +117,68 @@
       <div class="account-rules-footer">* 活动最终解释权归平台所有。</div>
     </a-modal>
 
+    <!-- 邀请奖励结算详情 -->
+    <a-modal
+      v-model:open="detailVisible"
+      title="邀请奖励结算详情"
+      :footer="null"
+      :width="440"
+      centered
+      class="earnings-detail-modal"
+      @ok="detailVisible = false"
+    >
+      <div v-if="detailRecord" class="earnings-detail-body">
+        <div class="earnings-detail-amount">
+          <span class="earnings-detail-amount-value">+{{ detailRecord.amount.toFixed(2) }}</span>
+          <span class="earnings-detail-amount-unit">创作币</span>
+        </div>
+        <div class="earnings-detail-status">
+          <span :class="['earnings-status', detailRecord.status]">{{ detailRecord.statusLabel }}</span>
+        </div>
+
+        <div class="earnings-detail-section">
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">被邀请人</span>
+            <span class="earnings-detail-value">{{ detailRecord.sourceLabel || '—' }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">订阅套餐</span>
+            <span class="earnings-detail-value">{{ detailPlanText }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">订单金额</span>
+            <span class="earnings-detail-value">¥{{ detailRecord.orderAmount.toFixed(2) }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">返佣类型</span>
+            <span class="earnings-detail-value">{{ detailRecord.isFirstPurchase === 1 ? '首购返佣' : '续费返佣' }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">返佣比例</span>
+            <span class="earnings-detail-value">{{ (detailRecord.commissionRate * 100).toFixed(0) }}%</span>
+          </div>
+        </div>
+
+        <div class="earnings-detail-formula">
+          <div class="earnings-detail-formula-label">计算明细</div>
+          <div class="earnings-detail-formula-value">
+            {{ detailPlanText }} ¥{{ detailRecord.orderAmount.toFixed(2) }} × {{ (detailRecord.commissionRate * 100).toFixed(0) }}% = {{ detailRecord.amount.toFixed(2) }} 创作币
+          </div>
+        </div>
+
+        <div class="earnings-detail-section">
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">到账时间</span>
+            <span class="earnings-detail-value">{{ formatTime(detailRecord.createdAt) }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">结算月份</span>
+            <span class="earnings-detail-value">{{ detailRecord.settlementMonth }}</span>
+          </div>
+        </div>
+      </div>
+    </a-modal>
+
     <!-- 收益明细 -->
     <div v-show="activeTab === 'earnings'" class="account-content">
       <div class="earnings-filters">
@@ -170,6 +232,8 @@
           v-for="r in filteredRecords"
           :key="r.id"
           class="earnings-item"
+          :class="{ clickable: isInviteReward(r) }"
+          @click="isInviteReward(r) ? openDetail(r) : null"
         >
           <div class="earnings-item-left">
             <div class="earnings-item-title">{{ r.title }}</div>
@@ -186,6 +250,13 @@
             <span class="earnings-item-amount" :class="{ negative: r.amount < 0 }">
               {{ r.amount > 0 ? '+' : '' }}{{ r.amount.toFixed(2) }}
             </span>
+            <button
+              v-if="isInviteReward(r)"
+              class="earnings-detail-btn"
+              @click.stop="openDetail(r)"
+            >
+              详情
+            </button>
           </div>
         </div>
       </div>
@@ -213,6 +284,8 @@ const {
 const activeTab = ref('overview')
 const activeFilter = ref('all')
 const rulesVisible = ref(false)
+const detailVisible = ref(false)
+const detailRecord = ref(null)
 
 const filters = [
   { key: 'all', label: '全部' },
@@ -257,6 +330,22 @@ const formatTime = (iso) => {
 }
 
 const isInviteReward = (record) => record.type === 'INVITE_REWARD' && record.orderAmount > 0
+
+const openDetail = (record) => {
+  detailRecord.value = record
+  detailVisible.value = true
+}
+
+const detailPlanText = computed(() => {
+  if (!detailRecord.value) return ''
+  const cycleLabel = {
+    month: '月卡',
+    quarter: '季卡',
+    year: '年卡'
+  }[detailRecord.value.cycle] || detailRecord.value.cycle
+  const planName = detailRecord.value.planName || detailRecord.value.planKey
+  return `${planName}${cycleLabel}`
+})
 
 const formatCommissionDetail = (record) => {
   if (!record.orderAmount || record.orderAmount <= 0 || !record.commissionRate) {
@@ -495,20 +584,6 @@ onMounted(() => {
   color: #e61e3a;
 }
 
-.account-rules-link {
-  color: #ff2442;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-left: 8px;
-}
-
-.account-rules-link:hover {
-  color: #e61e3a;
-}
-
 .account-rules-list {
   margin: 0;
   padding-left: 20px;
@@ -633,6 +708,16 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.earnings-item.clickable {
+  cursor: pointer;
+}
+
+.earnings-item.clickable:hover {
+  background: #fff8f9;
+  border-color: #ffd1d9;
 }
 
 .earnings-item-title {
@@ -664,6 +749,21 @@ onMounted(() => {
   flex-shrink: 0;
 }
 
+.earnings-detail-btn {
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: #fff0f2;
+  color: #ff2442;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.earnings-detail-btn:hover {
+  background: #ffd1d9;
+}
+
 .earnings-status {
   font-size: 12px;
   padding: 3px 8px;
@@ -691,6 +791,83 @@ onMounted(() => {
 
 .earnings-item-amount.negative {
   color: #ff4d4f;
+}
+
+.earnings-detail-body {
+  padding: 8px 4px;
+}
+
+.earnings-detail-amount {
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.earnings-detail-amount-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #ff2442;
+}
+
+.earnings-detail-amount-unit {
+  font-size: 14px;
+  color: #595959;
+  margin-left: 4px;
+}
+
+.earnings-detail-status {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.earnings-detail-section {
+  background: #fafafa;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.earnings-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px dashed #f0f0f0;
+  font-size: 14px;
+}
+
+.earnings-detail-row:last-child {
+  border-bottom: none;
+}
+
+.earnings-detail-label {
+  color: #8c8c8c;
+}
+
+.earnings-detail-value {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+
+.earnings-detail-formula {
+  background: #fff5f7;
+  border: 1px dashed #ffd1d9;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+.earnings-detail-formula-label {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 8px;
+}
+
+.earnings-detail-formula-value {
+  font-size: 15px;
+  color: #1a1a1a;
+  font-weight: 500;
+  line-height: 1.6;
+  word-break: break-all;
 }
 
 @media (max-width: 900px) {
@@ -748,6 +925,37 @@ body[data-theme="dark"] .earnings-item-source {
 
 body[data-theme="dark"] .earnings-item-commission {
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .earnings-item.clickable:hover {
+  background: #331018;
+  border-color: #52222b;
+}
+
+body[data-theme="dark"] .earnings-detail-btn {
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .earnings-detail-btn:hover {
+  background: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .earnings-detail-section {
+  background: #262626;
+}
+
+body[data-theme="dark"] .earnings-detail-row {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .earnings-detail-value,
+body[data-theme="dark"] .earnings-detail-formula-value {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .earnings-detail-formula {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.3);
 }
 
 body[data-theme="dark"] .account-tabs {
@@ -848,6 +1056,26 @@ body[data-theme="dark"] .account-rules-modal .ant-modal-close-x {
 }
 
 body[data-theme="dark"] .account-rules-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+/* 邀请奖励结算详情弹框：暗色全局覆盖 */
+body[data-theme="dark"] .earnings-detail-modal .ant-modal-content,
+body[data-theme="dark"] .earnings-detail-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .earnings-detail-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .earnings-detail-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .earnings-detail-modal .ant-modal-close:hover {
   background: #2a2a2a !important;
   color: #f0f0f0 !important;
 }

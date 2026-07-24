@@ -23,7 +23,7 @@
               (m.scope = 1 AND m.created_at &gt;= #{registerAt})
               OR (m.scope = 2 AND m.target_user_id = #{userId})
           )
-        ORDER BY m.created_at DESC
+        ORDER BY (mr.id IS NOT NULL) ASC, m.created_at DESC
         LIMIT 200
     </select>
 

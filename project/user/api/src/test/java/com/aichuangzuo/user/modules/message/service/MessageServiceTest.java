@@ -139,6 +139,32 @@ class MessageServiceTest {
         assertNull(MessageSubType.of(null));
     }
 
+    @Test
+    void listVisibleMessages_unreadFirst() {
+        User user = createUser("msg-unread-first@test.com");
+        Message olderUnread = buildBroadcast("announcement", "旧未读", "旧摘要", null, null);
+        messageMapper.insert(olderUnread);
+
+        Message newerRead = buildBroadcast("feature", "新已读", "新摘要", null, null);
+        messageMapper.insert(newerRead);
+        messageService.markRead(user.getId(), user.getCreatedAt(), newerRead.getId());
+
+        List<MessageVO> list = messageService.listVisibleMessages(user.getId(), user.getCreatedAt());
+
+        int olderIndex = findIndexByTitle(list, "旧未读");
+        int newerIndex = findIndexByTitle(list, "新已读");
+        assertTrue(olderIndex < newerIndex, "未读消息应排在已读消息之前");
+    }
+
+    private int findIndexByTitle(List<MessageVO> list, String title) {
+        for (int i = 0; i < list.size(); i++) {
+            if (title.equals(list.get(i).getTitle())) {
+                return i;
+            }
+        }
+        return -1;
+    }
+
     private User createUser(String email) {
         User user = new User();
         user.setBizNo("B" + System.nanoTime());
