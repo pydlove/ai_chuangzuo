@@ -45,7 +45,13 @@
         size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'status'">
+          <template v-if="column.key === 'email'">
+            <span>{{ record.email }}</span>
+            <a-button type="link" size="small" class="email-copy-btn" @click="copyEmail(record.email)">
+              <template #icon><CopyOutlined /></template>
+            </a-button>
+          </template>
+          <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 'enabled' ? 'green' : 'red'">
               {{ record.status === 'enabled' ? '启用' : '禁用' }}
             </a-tag>
@@ -54,6 +60,29 @@
             <a-tag :color="record.userType === 'robot' ? 'orange' : 'blue'">
               {{ record.userType === 'robot' ? '机器人' : '真实用户' }}
             </a-tag>
+          </template>
+          <template v-else-if="column.key === 'inviteCode'">
+            <span v-if="record.inviteCode">{{ record.inviteCode }}</span>
+            <span v-else style="color: #8c8c8c">—</span>
+            <a-button
+              v-if="record.inviteCode"
+              type="link"
+              size="small"
+              class="invite-code-copy-btn"
+              @click="copyInviteCode(record.inviteCode)"
+            >
+              <template #icon><CopyOutlined /></template>
+            </a-button>
+          </template>
+          <template v-else-if="column.key === 'inviter'">
+            <span v-if="record.inviterEmail">
+              {{ record.inviterNickname || record.inviterEmail }}
+              <span style="color: #8c8c8c; font-size: 12px">({{ record.inviterEmail }})</span>
+            </span>
+            <span v-else style="color: #8c8c8c">—</span>
+          </template>
+          <template v-else-if="column.key === 'invitedCount'">
+            <a-tag :color="record.invitedCount > 0 ? 'green' : 'default'">{{ record.invitedCount || 0 }}</a-tag>
           </template>
           <template v-else-if="column.key === 'membershipExpireAt'">
             <span v-if="record.membershipExpireAt">{{ formatDateTime(record.membershipExpireAt) }}</span>
@@ -79,6 +108,7 @@
                   </a-menu-item>
                   <a-menu-item @click="openEditModal(record)">编辑</a-menu-item>
                   <a-menu-item @click="openResetPasswordModal(record)">重置密码</a-menu-item>
+                  <a-menu-item @click="openInviteModal(record)">邀请关系</a-menu-item>
                   <a-menu-item @click="openDetailDrawer(record)">查看详情</a-menu-item>
                   <a-menu-item danger @click="confirmDelete(record)">删除</a-menu-item>
                 </a-menu>
@@ -208,6 +238,60 @@
       </template>
     </a-drawer>
 
+    <!-- 邀请关系弹框 -->
+    <a-modal
+      v-model:open="inviteModalVisible"
+      title="邀请关系"
+      width="720"
+      :footer="null"
+      @cancel="closeInviteModal"
+    >
+      <a-spin :spinning="inviteLoading">
+        <div v-if="inviteDetail" class="invite-modal-content">
+          <a-descriptions :column="2" bordered size="small">
+            <a-descriptions-item label="当前用户">
+              {{ inviteTarget?.nickname || inviteTarget?.email }}
+              <span style="color: #8c8c8c">({{ inviteTarget?.email }})</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="邀请码">{{ inviteDetail.inviteCode || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="邀请人" :span="2">
+              <div v-if="inviteDetail.inviter">
+                <div>
+                  {{ inviteDetail.inviter.nickname || inviteDetail.inviter.email }}
+                  <span style="color: #8c8c8c">({{ inviteDetail.inviter.email }})</span>
+                </div>
+                <div style="color: #8c8c8c; font-size: 12px; margin-top: 4px">
+                  绑定时间：{{ formatDateTime(inviteDetail.inviter.createdAt) }}
+                </div>
+              </div>
+              <span v-else style="color: #8c8c8c">—</span>
+            </a-descriptions-item>
+          </a-descriptions>
+
+          <div class="invite-section-title">邀请列表（{{ inviteDetail.invitees.length }} 人）</div>
+          <a-table
+            :columns="inviteColumns"
+            :data-source="inviteDetail.invitees"
+            :pagination="false"
+            size="small"
+            row-key="id"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'email'">
+                {{ record.email }}
+              </template>
+              <template v-else-if="column.key === 'nickname'">
+                {{ record.nickname || '—' }}
+              </template>
+              <template v-else-if="column.key === 'createdAt'">
+                {{ formatDateTime(record.createdAt) || '—' }}
+              </template>
+            </template>
+          </a-table>
+        </div>
+      </a-spin>
+    </a-modal>
+
     <!-- 手动创建用户弹框 -->
     <a-modal
       v-model:open="createModalVisible"
@@ -250,9 +334,9 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { DownOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
-import { getUser, updateUser } from '@/api/user.js'
+import { getUser, getUserInvites, updateUser } from '@/api/user.js'
 
 const {
   users,
@@ -278,6 +362,9 @@ const columns = [
   { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 140 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
+  { title: '邀请码', dataIndex: 'inviteCode', key: 'inviteCode', width: 140 },
+  { title: '邀请人', key: 'inviter', width: 180 },
+  { title: '邀请人数', key: 'invitedCount', width: 100 },
   { title: '会员套餐', dataIndex: 'membershipPlan', key: 'membershipPlan', width: 100 },
   { title: '会员到期', dataIndex: 'membershipExpireAt', key: 'membershipExpireAt', width: 170 },
   { title: '注册时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
@@ -285,10 +372,22 @@ const columns = [
   { title: '操作', key: 'actions', fixed: 'right', width: 100 }
 ]
 
+const inviteColumns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: '邮箱', dataIndex: 'email', key: 'email', ellipsis: true },
+  { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
+  { title: '绑定/注册时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 }
+]
+
 const resetPasswordVisible = ref(false)
 const resetPasswordTarget = ref(null)
 const detailVisible = ref(false)
 const detailUser = ref(null)
+
+const inviteModalVisible = ref(false)
+const inviteDetail = ref(null)
+const inviteLoading = ref(false)
+const inviteTarget = ref(null)
 
 const editModalVisible = ref(false)
 const editFormRef = ref()
@@ -351,6 +450,24 @@ const planLabel = (code) => {
 const formatDateTime = (s) => {
   if (!s) return ''
   return s.replace('T', ' ').slice(0, 19)
+}
+
+const copyEmail = async (email) => {
+  try {
+    await navigator.clipboard.writeText(email)
+    message.success('邮箱已复制')
+  } catch (error) {
+    message.error('复制失败')
+  }
+}
+
+const copyInviteCode = async (inviteCode) => {
+  try {
+    await navigator.clipboard.writeText(inviteCode)
+    message.success('邀请码已复制')
+  } catch (error) {
+    message.error('复制失败')
+  }
 }
 
 const confirmStatusChange = (user) => {
@@ -441,6 +558,8 @@ const submitCreateForm = () => {
         userType: createForm.userType
       })
       closeCreateModal()
+    } catch (error) {
+      // 错误已在 useUserManagement 中提示，此处仅阻止弹框关闭
     } finally {
       createLoading.value = false
     }
@@ -466,6 +585,26 @@ const openDetailDrawer = async (user) => {
     detailUser.value = user
     detailVisible.value = true
   }
+}
+
+const openInviteModal = async (user) => {
+  inviteTarget.value = user
+  inviteLoading.value = true
+  inviteModalVisible.value = true
+  try {
+    inviteDetail.value = await getUserInvites(user.id)
+  } catch (error) {
+    message.error(error.message || '加载邀请关系失败')
+    inviteDetail.value = { userId: user.id, inviteCode: user.inviteCode, inviter: null, invitees: [] }
+  } finally {
+    inviteLoading.value = false
+  }
+}
+
+const closeInviteModal = () => {
+  inviteModalVisible.value = false
+  inviteDetail.value = null
+  inviteTarget.value = null
 }
 
 onMounted(() => {
@@ -506,5 +645,39 @@ onMounted(() => {
   margin-top: 16px;
   display: flex;
   justify-content: flex-end;
+}
+
+.email-copy-btn {
+  padding: 0 4px;
+  height: auto;
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.email-copy-btn:hover {
+  color: #07c160;
+}
+
+.invite-code-copy-btn {
+  padding: 0 4px;
+  height: auto;
+  line-height: 1;
+  vertical-align: middle;
+  margin-left: 2px;
+}
+
+.invite-code-copy-btn:hover {
+  color: #07c160;
+}
+
+.invite-modal-content .invite-section-title {
+  margin: 16px 0 8px 0;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.invite-modal-content .ant-descriptions {
+  margin-bottom: 8px;
 }
 </style>

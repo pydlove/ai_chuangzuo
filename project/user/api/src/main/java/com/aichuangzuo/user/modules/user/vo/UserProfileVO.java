@@ -27,4 +27,6 @@ public class UserProfileVO {
     private Integer emailVerified;
     private Long inviterUserId;
     private String inviterNickname;
+    /** 个人邀请码，6 位字母数字。 */
+    private String inviteCode;
 }

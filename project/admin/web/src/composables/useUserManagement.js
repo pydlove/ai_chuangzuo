@@ -68,10 +68,15 @@ export function useUserManagement() {
   }
 
   const handleCreateUser = async (values) => {
-    const res = await createUser(values)
-    message.success('用户创建成功')
-    fetchUsers()
-    return res
+    try {
+      const res = await createUser(values)
+      message.success('用户创建成功')
+      fetchUsers()
+      return res
+    } catch (error) {
+      message.error(error.message || '创建用户失败')
+      throw error
+    }
   }
 
   const handleDeleteUser = async (user) => {

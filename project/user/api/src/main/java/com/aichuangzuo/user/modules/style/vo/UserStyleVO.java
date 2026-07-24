@@ -24,7 +24,4 @@ public class UserStyleVO {
 
     /** 审核状态：0-待审核，1-已通过，2-已拒绝。 */
     private Integer auditStatus;
-
-    /** 打回原因（被拒绝时返回）。 */
-    private String rejectReason;
 }

@@ -41,9 +41,6 @@
             <PriceCell :record="record" field="priceYear" :original-field="record.originalYear ? 'originalYear' : null" />
             <div v-if="record.savingsYear" class="savings">立省 ¥{{ formatPrice(record.savingsYear) }}</div>
           </template>
-          <template v-else-if="column.key === 'inviterReward'">
-            {{ record.inviterReward ?? 0 }} 创作币
-          </template>
           <template v-else-if="column.key === 'action'">
             <a @click="onEdit(record)">编辑</a>
           </template>
@@ -160,14 +157,8 @@
         </div>
 
         <div class="form-section">
-          <div class="section-title">邀请与状态</div>
+          <div class="section-title">状态</div>
           <a-row :gutter="16">
-            <a-col :span="12">
-              <a-form-item label="邀请奖励（创作币）" required>
-                <a-input-number v-model:value="form.inviterReward" :min="0" :precision="2" style="width: 100%" />
-                <div class="form-hint">被邀请者开通本套餐时，邀请人获得的创作币</div>
-              </a-form-item>
-            </a-col>
             <a-col :span="12">
               <a-form-item label="状态" required>
                 <a-radio-group v-model:value="form.status">
@@ -285,7 +276,6 @@ const columns = [
   { title: '季度价', key: 'priceQuarter', width: 130 },
   { title: '年度价', key: 'priceYear', width: 180 },
   { title: '推荐', key: 'recommended', width: 80 },
-  { title: '邀请奖励', key: 'inviterReward', width: 110 },
   { title: '状态', key: 'status', width: 110 },
   { title: '操作', key: 'action', width: 80, fixed: 'right' }
 ]
@@ -306,7 +296,6 @@ function blankForm() {
     articlesQuarter: '',
     articlesYear: '',
     savingsYear: null,
-    inviterReward: 0,
     status: 1
   }
 }
@@ -437,7 +426,6 @@ function onEdit(record) {
     articlesQuarter: record.articlesQuarter || '',
     articlesYear: record.articlesYear || '',
     savingsYear: record.savingsYear != null ? Number(record.savingsYear) : null,
-    inviterReward: Number(record.inviterReward || 0),
     status: record.status ?? 1
   })
   fillBenefitValues(record.planKey)
@@ -452,7 +440,6 @@ async function onToggleStatus(record, checked) {
       priceMonthly: Number(record.priceMonthly),
       priceQuarter: Number(record.priceQuarter),
       priceYear: Number(record.priceYear),
-      inviterReward: Number(record.inviterReward),
       status: checked ? 1 : 0
     })
     message.success(checked ? '已启用' : '已停用')

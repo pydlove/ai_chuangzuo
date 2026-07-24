@@ -246,7 +246,7 @@ class PlanCatalogServiceImplTest {
         return plan("flagship", "旗舰版", 3, false,
                 "99.90", "269.70", "839.20", null, "299.70", "1198.80",
                 "300 篇 AI 文章/月", "900 篇 AI 文章/季", "3600 篇 AI 文章/年",
-                "359.60", "10.00");
+                "359.60");
     }
 
     private List<Plan> plans() {
@@ -254,15 +254,15 @@ class PlanCatalogServiceImplTest {
         list.add(plan("basic", "基础版", 1, false,
                 "29.90", "80.70", "251.20", null, "89.70", "358.80",
                 "30 篇 AI 文章/月", "90 篇 AI 文章/季", "360 篇 AI 文章/年",
-                "107.60", "3.00"));
+                "107.60"));
         list.add(plan("pro", "专业版", 2, true,
                 "59.90", "161.70", "503.20", null, "179.70", "718.80",
                 "100 篇 AI 文章/月", "300 篇 AI 文章/季", "1200 篇 AI 文章/年",
-                "215.60", "5.00"));
+                "215.60"));
         list.add(plan("flagship", "旗舰版", 3, false,
                 "99.90", "269.70", "839.20", null, "299.70", "1198.80",
                 "300 篇 AI 文章/月", "900 篇 AI 文章/季", "3600 篇 AI 文章/年",
-                "359.60", "10.00"));
+                "359.60"));
         return list;
     }
 
@@ -270,7 +270,7 @@ class PlanCatalogServiceImplTest {
             String pm, String pq, String py,
             String om, String oq, String oy,
             String am, String aq, String ay,
-            String sy, String reward) {
+            String sy) {
         Plan p = new Plan();
         p.setPlanKey(key);
         p.setDisplayName(name);
@@ -286,7 +286,6 @@ class PlanCatalogServiceImplTest {
         p.setArticlesQuarter(aq);
         p.setArticlesYear(ay);
         p.setSavingsYear(new BigDecimal(sy));
-        p.setInviterReward(new BigDecimal(reward));
         p.setStatus(1);
         return p;
     }

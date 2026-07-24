@@ -44,9 +44,6 @@ public class Plan {
 
     private BigDecimal savingsYear;
 
-    /** 邀请奖励（创作币）。 */
-    private BigDecimal inviterReward;
-
     /** 状态：0-停用，1-启用。 */
     private Integer status;
 

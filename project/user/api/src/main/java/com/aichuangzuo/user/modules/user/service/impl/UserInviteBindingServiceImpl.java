@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.user.dto.request.BindInviteCodeRequest;
+import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.user.service.UserInviteBindingService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -38,6 +39,7 @@ public class UserInviteBindingServiceImpl implements UserInviteBindingService {
 
     private final UserMapper userMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
+    private final InviteRewardService inviteRewardService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -76,8 +78,10 @@ public class UserInviteBindingServiceImpl implements UserInviteBindingService {
         relation.setInviteeId(currentUserId);
         relation.setInviteCode(code);
         relation.setSourceType(2); // 手动填写
-        relation.setEffectiveStatus(0); // 与注册时保持一致：待验证
+        relation.setEffectiveStatus(1); // 立即生效
         userInviteRelationMapper.insert(relation);
+
+        inviteRewardService.rewardAfterBinding(currentUser, inviter);
 
         log.info("用户 {} 补绑邀请人 {}，inviteCode={}", currentUserId, inviter.getId(), code);
     }

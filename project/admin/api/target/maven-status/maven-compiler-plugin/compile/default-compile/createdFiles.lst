@@ -75,6 +75,7 @@ com/aichuangzuo/admin/modules/reminder/service/ReminderConfigService.class
 com/aichuangzuo/admin/modules/generation/service/GenerationRetentionService.class
 com/aichuangzuo/admin/modules/style/market/dto/request/CreateStyleMarketRequest.class
 com/aichuangzuo/admin/modules/feedback/enums/AdminFeedbackErrorCode.class
+com/aichuangzuo/admin/modules/user/vo/AdminUserInviteDetailVO.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipeline$1.class
 com/aichuangzuo/admin/modules/style/preset/service/GlobalStyleService.class
@@ -219,6 +220,7 @@ com/aichuangzuo/admin/infrastructure/cache/CacheValue.class
 com/aichuangzuo/admin/modules/order/service/impl/AdminOrderServiceImpl.class
 com/aichuangzuo/admin/modules/reminder/service/ExpireReminderService.class
 com/aichuangzuo/admin/modules/leaderboard/entity/SubmissionStatus.class
+com/aichuangzuo/admin/modules/user/entity/UserInviteRelation.class
 com/aichuangzuo/admin/modules/hotsearch/dto/request/HotSearchDailyRequest.class
 com/aichuangzuo/admin/modules/generation/pipeline/StageType.class
 com/aichuangzuo/admin/modules/style/preset/dto/request/UpdateGlobalStyleRequest.class
@@ -257,6 +259,7 @@ com/aichuangzuo/admin/modules/modelconfig/service/impl/ModelConfigServiceImpl.cl
 com/aichuangzuo/admin/modules/modelconfig/controller/ModelConfigController.class
 com/aichuangzuo/admin/modules/generation/worker/GenerationTaskWorker.class
 com/aichuangzuo/admin/modules/planbenefit/entity/PlanBenefit.class
+com/aichuangzuo/admin/modules/user/mapper/UserInviteRelationMapper.class
 com/aichuangzuo/admin/modules/style/market/dto/request/StyleMarketPageRequest.class
 com/aichuangzuo/admin/modules/generation/service/PromptTemplateService$2.class
 com/aichuangzuo/admin/modules/learn/enums/ContentType.class
@@ -322,6 +325,7 @@ com/aichuangzuo/admin/modules/order/vo/OrderPageVO.class
 com/aichuangzuo/admin/modules/generation/pipeline/AiCallRecord.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipeline.class
 com/aichuangzuo/admin/modules/learn/exception/LearnErrorCode.class
+com/aichuangzuo/admin/modules/user/vo/AdminUserInviteeVO.class
 com/aichuangzuo/admin/modules/learn/mapper/LearnCategoryMapper.class
 com/aichuangzuo/admin/modules/topictitle/mapper/TopicTitleMapper.class
 com/aichuangzuo/admin/modules/earnings/service/SettlementAdminService.class

@@ -8,6 +8,10 @@ export function getUser(id) {
   return request.get(`/api/v1/admin/users/${id}`).then((res) => res.data)
 }
 
+export function getUserInvites(id) {
+  return request.get(`/api/v1/admin/users/${id}/invites`).then((res) => res.data)
+}
+
 export function createUser(data) {
   return request.post('/api/v1/admin/users', data).then((res) => res.data)
 }

@@ -128,6 +128,9 @@ router.beforeEach((to) => {
   if (token && to.path === '/login') {
     return { path: '/console' }
   }
+  if (!token && to.path.startsWith('/console')) {
+    return { path: '/login' }
+  }
 })
 
 export default router

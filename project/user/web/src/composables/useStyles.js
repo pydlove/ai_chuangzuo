@@ -52,7 +52,8 @@ export async function loadMyStyles() {
       desc: '自定义风格',
       prompt: s.prompt,
       scope: s.scope,
-      count: s.useCount || 0
+      count: s.useCount || 0,
+      auditStatus: s.auditStatus
     }))
   } catch (e) {
     message.error(errMsg(e))
@@ -143,7 +144,8 @@ export async function loadLearnedStyles() {
       prompt: s.prompt,
       scope: s.scope,
       count: s.useCount || 0,
-      createdAt: s.createdAt
+      createdAt: s.createdAt,
+      auditStatus: s.auditStatus
     }))
   } catch (e) {
     message.error(errMsg(e))

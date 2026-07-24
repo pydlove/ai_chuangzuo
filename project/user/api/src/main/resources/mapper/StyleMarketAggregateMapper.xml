@@ -10,7 +10,7 @@
                s.prompt          AS prompt,
                s.scope           AS scope,
                s.publisher_user_id AS publisherUserId,
-               u.nickname        AS publisherName,
+               COALESCE(u.nickname, CONCAT('用户', u.biz_no)) AS publisherName,
                s.price           AS price,
                s.total_uses      AS totalUses,
                s.weekly_uses     AS weeklyUses,

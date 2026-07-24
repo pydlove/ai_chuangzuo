@@ -9,9 +9,12 @@ import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
 import com.aichuangzuo.user.modules.earnings.vo.AccountSummaryVO;
 import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordPageVO;
+import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordVO;
 import com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO;
 import com.aichuangzuo.user.modules.earnings.vo.SettleLastMonthResultVO;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.aichuangzuo.user.modules.message.entity.Message;
+import com.aichuangzuo.user.modules.message.mapper.MessageMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest
@@ -44,6 +48,9 @@ class EarningsServiceTest {
 
     @Autowired
     private CoinRecordService coinRecordService;
+
+    @Autowired
+    private MessageMapper messageMapper;
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
 
@@ -116,6 +123,102 @@ class EarningsServiceTest {
     }
 
     @Test
+    void listEarnings_shouldReturnSourceLabelForInviteReward() {
+        User inviter = createUser("earnings-inviter@test.com");
+        User invitee = createUser("earnings-invitee@test.com");
+        invitee.setNickname("小明");
+        userMapper.updateById(invitee);
+        String month = currentMonth();
+
+        earningsService.recordSettledEarnings(inviter.getId(), EarningsType.INVITE_REWARD.getCode(),
+                "invite", invitee.getId().toString(), "邀请奖励",
+                "小明 订阅 专业版年包，邀请奖励", new BigDecimal("15.00"), month);
+
+        ListEarningsRequest request = new ListEarningsRequest();
+        request.setPage(1);
+        request.setPageSize(10);
+        EarningsRecordPageVO page = earningsService.listEarnings(inviter.getId(), request);
+
+        assertEquals(1, page.getTotal());
+        EarningsRecordVO record = page.getList().get(0);
+        assertEquals("invite", record.getSourceType());
+        assertEquals(invitee.getId().toString(), record.getSourceId());
+        assertEquals("来自 小明 的 会员 订阅", record.getSourceLabel());
+        assertEquals(EarningsStatus.SETTLED.getCode(), record.getStatus());
+    }
+
+    @Test
+    void listEarnings_shouldReturnCommissionDetailsForInviteReward() {
+        User inviter = createUser("earnings-inviter-commission@test.com");
+        User invitee = createUser("earnings-invitee-commission@test.com");
+        invitee.setNickname("小明");
+        userMapper.updateById(invitee);
+        String month = currentMonth();
+
+        earningsService.recordInviteRewardEarnings(inviter.getId(), invitee.getId(), "pro", "专业版",
+                "year", new BigDecimal("503.20"), true,
+                new BigDecimal("0.10"), new BigDecimal("50.32"), month);
+
+        ListEarningsRequest request = new ListEarningsRequest();
+        request.setPage(1);
+        request.setPageSize(10);
+        EarningsRecordPageVO page = earningsService.listEarnings(inviter.getId(), request);
+
+        assertEquals(1, page.getTotal());
+        EarningsRecordVO record = page.getList().get(0);
+        assertEquals("invite", record.getSourceType());
+        assertEquals(invitee.getId().toString(), record.getSourceId());
+        assertEquals("来自 小明 的 专业版 订阅", record.getSourceLabel());
+        assertEquals("pro", record.getPlanKey());
+        assertEquals("专业版", record.getPlanName());
+        assertEquals("year", record.getCycle());
+        assertEquals(0, record.getOrderAmount().compareTo(new BigDecimal("503.20")));
+        assertEquals(0, record.getCommissionRate().compareTo(new BigDecimal("0.10")));
+        assertEquals(Integer.valueOf(1), record.getIsFirstPurchase());
+        assertEquals(0, record.getAmount().compareTo(new BigDecimal("50.32")));
+    }
+
+    @Test
+    void listEarnings_shouldReturnNullSourceLabelWhenSourceUserNotFound() {
+        User user = createUser("earnings-source-missing@test.com");
+        String month = currentMonth();
+
+        earningsService.recordSettledEarnings(user.getId(), EarningsType.INVITE_REWARD.getCode(),
+                "invite", "999999999", "邀请奖励",
+                "好友 订阅 专业版年包，邀请奖励", new BigDecimal("15.00"), month);
+
+        ListEarningsRequest request = new ListEarningsRequest();
+        request.setPage(1);
+        request.setPageSize(10);
+        EarningsRecordPageVO page = earningsService.listEarnings(user.getId(), request);
+
+        assertEquals(1, page.getTotal());
+        EarningsRecordVO record = page.getList().get(0);
+        assertEquals("invite", record.getSourceType());
+        assertNull(record.getSourceLabel());
+    }
+
+    @Test
+    void recordSettledEarnings_shouldSendRewardMessage() {
+        User user = createUser("earnings-msg@test.com");
+        String month = currentMonth();
+
+        earningsService.recordSettledEarnings(user.getId(), EarningsType.INVITE_REWARD.getCode(),
+                "invite", null, "邀请奖励",
+                "小明 订阅 专业版年包，邀请奖励", new BigDecimal("15.00"), month);
+
+        List<Message> messages = messageMapper.selectList(
+                new LambdaQueryWrapper<Message>()
+                        .eq(Message::getTargetUserId, user.getId())
+                        .eq(Message::getMsgType, "reward"));
+        assertEquals(1, messages.size());
+        assertEquals("邀请奖励", messages.get(0).getTitle());
+        assertTrue(messages.get(0).getSummary().contains("15.00"));
+        assertTrue(messages.get(0).getSummary().contains("邀请奖励"));
+        assertTrue(messages.get(0).getContent().contains("小明 订阅 专业版年包，邀请奖励"));
+    }
+
+    @Test
     void settleLastMonth_shouldSettlePendingRecordsAndGrantCoins() {
         User user = createUser("earnings-settle@test.com");
         String lastMonth = previousMonth();
@@ -129,6 +232,15 @@ class EarningsServiceTest {
         assertEquals(2, result.getSettledCount());
         assertEquals(0, result.getSettledAmount().compareTo(new BigDecimal("30.00")));
         assertEquals(0, coinRecordService.getBalance(user.getId()).compareTo(new BigDecimal("30.00")));
+
+        List<Message> messages = messageMapper.selectList(
+                new LambdaQueryWrapper<Message>()
+                        .eq(Message::getTargetUserId, user.getId())
+                        .eq(Message::getMsgType, "reward"));
+        assertEquals(1, messages.size());
+        assertEquals("收益结算完成", messages.get(0).getTitle());
+        assertTrue(messages.get(0).getSummary().contains(lastMonth));
+        assertTrue(messages.get(0).getSummary().contains("30.00"));
 
         long unsettledLastMonth = earningsRecordMapper.selectCount(
                 new LambdaQueryWrapper<EarningsRecord>()

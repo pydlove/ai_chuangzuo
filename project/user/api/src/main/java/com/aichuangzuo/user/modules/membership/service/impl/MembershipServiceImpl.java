@@ -18,6 +18,7 @@ import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.mapper.PlanMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
@@ -50,6 +51,9 @@ public class MembershipServiceImpl implements MembershipService {
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
     private static final int EFFECTIVE_STATUS = 1;
 
+    private static final BigDecimal FIRST_PURCHASE_RATE = new BigDecimal("0.10");
+    private static final BigDecimal RENEWAL_RATE = new BigDecimal("0.05");
+
     private static final String NEWCOMER_PLAN_KEY = "flagship";
     private static final String NEWCOMER_CYCLE = "year";
     private static final BigDecimal NEWCOMER_EXTRA_DISCOUNT = new BigDecimal("0.8");
@@ -62,6 +66,7 @@ public class MembershipServiceImpl implements MembershipService {
     private final UserMapper userMapper;
     private final MessageService messageService;
     private final CoinRecordService coinRecordService;
+    private final EarningsService earningsService;
     private final PlanLookupService planLookupService;
     private final PlanMapper planMapper;
 
@@ -101,7 +106,7 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setDays(cycle.getDays());
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         vo.setInviterRewarded(rewarded);
-        vo.setRewardAmount(rewarded ? planLookupService.getInviterReward(plan.getKey()) : BigDecimal.ZERO);
+        vo.setRewardAmount(rewarded ? calculateInviteReward(order.getAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
         return vo;
     }
 
@@ -163,6 +168,34 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setLevelName(planLookupService.getDisplayName(membership.getLevel()));
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void extendMembership(Long userId, String level, long days) {
+        LocalDate today = LocalDate.now();
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        LocalDate baseDate = today;
+        if (membership != null && !membership.getExpiresAt().isBefore(today)) {
+            baseDate = membership.getExpiresAt();
+        }
+        LocalDate newExpiresAt = baseDate.plusDays(days);
+
+        if (membership == null) {
+            membership = new UserMembership();
+            membership.setUserId(userId);
+            membership.setLevel(level);
+            membership.setStartedAt(today);
+            membership.setExpiresAt(newExpiresAt);
+            membership.setTenantId(0L);
+            userMembershipMapper.insert(membership);
+        } else {
+            membership.setLevel(level);
+            membership.setStartedAt(today);
+            membership.setExpiresAt(newExpiresAt);
+            userMembershipMapper.updateById(membership);
+        }
+        log.info("会员延长 userId={}, level={}, days={}, expiresAt={}", userId, level, days, newExpiresAt);
     }
 
     private void validatePayCode(String payCode) {
@@ -247,21 +280,37 @@ public class MembershipServiceImpl implements MembershipService {
             return false;
         }
 
+        boolean firstPurchase = isFirstPurchase(userId, order.getId());
+        BigDecimal rate = firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE;
+        BigDecimal reward = order.getAmount().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+
         User invitee = userMapper.selectById(userId);
         String inviteeName = invitee == null ? "好友" : (invitee.getNickname() == null ? "好友" : invitee.getNickname());
         String planName = planLookupService.getDisplayName(plan.getKey());
-        BigDecimal reward = planLookupService.getInviterReward(plan.getKey());
-        String remark = String.format("%s 订阅 %s，邀请奖励", inviteeName, planName);
+        String remark = String.format("%s %s %s，邀请奖励 %s 创作币",
+                inviteeName, firstPurchase ? "首次购买" : "续费", planName, reward.toPlainString());
 
         coinRecordService.grant(inviterId, COIN_BIZ_TYPE_INVITE_REWARD, reward, order.getId().toString(), remark);
 
-        String summary = String.format("好友 %s 订阅 %s，您获得 %s 创作币", inviteeName, planName, reward.toPlainString());
-        String content = String.format(
-                "恭喜您！\n\n您邀请的好友 %s 成功订阅 %s，系统已向您发放 %s 创作币奖励。\n\n感谢您的分享！",
-                inviteeName, planName, reward.toPlainString());
-
-        messageService.pushPersonal(inviterId, "reward", "邀请奖励到账", summary, null, content, null);
+        String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        earningsService.recordInviteRewardEarnings(inviterId, userId, plan.getKey(), planName,
+                order.getCycle(), order.getAmount(), firstPurchase, rate, reward, settlementMonth);
         return true;
+    }
+
+    private boolean isFirstPurchase(Long userId, Long currentOrderId) {
+        Long paidCount = orderMapper.selectCount(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getStatus, 1)
+                        .ne(Order::getId, currentOrderId)
+        );
+        return paidCount == null || paidCount == 0;
+    }
+
+    private BigDecimal calculateInviteReward(BigDecimal orderAmount, boolean firstPurchase) {
+        BigDecimal rate = firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE;
+        return orderAmount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
     }
 
     private boolean alreadyRewarded(Long orderId) {

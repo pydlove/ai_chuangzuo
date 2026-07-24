@@ -16,6 +16,7 @@ public interface StyleReviewAggregateMapper {
      * 分页查询审核列表（含状态过滤和关键词搜索）。
      */
     List<StyleReviewRow> selectReviewPage(@Param("status") Integer status,
+                                          @Param("reviewed") Boolean reviewed,
                                           @Param("keyword") String keyword,
                                           @Param("offset") long offset,
                                           @Param("limit") long limit);
@@ -24,5 +25,6 @@ public interface StyleReviewAggregateMapper {
      * 同条件下的总数。
      */
     long countReviewPage(@Param("status") Integer status,
-                          @Param("keyword") String keyword);
+                         @Param("reviewed") Boolean reviewed,
+                         @Param("keyword") String keyword);
 }

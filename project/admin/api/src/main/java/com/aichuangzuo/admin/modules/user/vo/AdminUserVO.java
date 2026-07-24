@@ -13,6 +13,10 @@ public class AdminUserVO {
     private String status;
     private String userType;
     private String inviteCode;
+    private Integer invitedCount;
+    private Long inviterId;
+    private String inviterEmail;
+    private String inviterNickname;
     private LocalDateTime membershipExpireAt;
     private String membershipPlan;
     private LocalDateTime createdAt;

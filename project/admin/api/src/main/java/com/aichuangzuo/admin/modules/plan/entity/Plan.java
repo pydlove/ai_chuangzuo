@@ -41,7 +41,6 @@ public class Plan {
 
     private BigDecimal savingsYear;
 
-    private BigDecimal inviterReward;
     private Integer status;
 
     private Long tenantId;

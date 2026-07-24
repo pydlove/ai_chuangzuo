@@ -191,13 +191,6 @@
                       </span>
                     </div>
                   </div>
-                  <div class="invite-simulate">
-                    <div class="invite-simulate-label">模拟：好友通过邀请链接注册</div>
-                    <div class="invite-simulate-row">
-                      <input v-model="simulateEmail" class="invite-form-input" placeholder="好友邮箱" />
-                      <button class="invite-btn invite-btn-primary" @click="simulateInviteRegister">模拟注册</button>
-                    </div>
-                  </div>
                 </div>
               </div>
 
@@ -441,7 +434,7 @@
             </div>
           </a-modal>
 
-          <!-- 消息详情弹框（announcement / feature / promotion / membership.subscribed） -->
+          <!-- 消息详情弹框（announcement / feature / promotion / membership / reward） -->
           <a-modal
             v-model:open="notifDetailVisible"
             :width="640"
@@ -1233,7 +1226,7 @@
 <script setup>
 import { ref, computed, reactive, onMounted, watch, nextTick, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
@@ -1241,6 +1234,7 @@ import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
+import { useInviteStats } from '@/composables/useInviteStats'
 import { useBenefits } from '@/composables/useBenefits'
 import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
 import { getMyMembership } from '@/api/membership'
@@ -1265,6 +1259,7 @@ const route = useRoute()
 const router = useRouter()
 
 const userProfile = useUserProfile()
+const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
 const { benefits, loadBenefits } = useBenefits()
 
 const isMobile = useIsMobile()
@@ -1501,7 +1496,7 @@ const notifVisible = ref(false)
 const activeTab = ref('generation')
 const notifications = ref([])
 
-// 消息详情弹框(announcement / feature / promotion / membership.subscribed)
+// 消息详情弹框(announcement / feature / promotion / membership / reward)
 const notifDetailVisible = ref(false)
 const notifDetail = ref(null)
 
@@ -1512,11 +1507,15 @@ const expiringNotif = ref(null)
 // 续订 fallback 文案,后端无 content 时前端兜底
 const RENEWAL_FALLBACK_COPY = '您的会员即将到期。\n续订后可继续享受无限生成、多平台爆款标题优化、专属客服等全部权益。\n错过将影响您的创作节奏,建议尽快续订。'
 
-// 消息类型 → 显示名(membership 单独按 subType 区分)
+// 消息类型 → 显示名(membership / reward 统一在站内消息 tab 下)
 const notifTypeLabel = (n) => {
+  if (n.type === 'reward') {
+    return '收益到账'
+  }
   if (n.type === 'membership') {
     if (n.subType === 'expiring') return '会员到期'
     if (n.subType === 'subscribed') return '订阅成功'
+    if (n.subType === 'invite_reward') return '邀请奖励'
     return '会员提醒'
   }
   const tab = notifTabs.find(t => t.type === n.type)
@@ -1672,19 +1671,28 @@ const openInviteBindingModal = () => {
   inviteBindingVisible.value = true
 }
 
-const handleInviteBindingSubmit = async () => {
+const handleInviteBindingSubmit = () => {
   const code = inviteBindingForm.inviteCode.trim()
   if (!code) {
     message.warning('请输入邀请码')
     return
   }
-  try {
-    await userProfile.saveInviteCode(code)
-    inviteBindingVisible.value = false
-    inviteBindingForm.inviteCode = ''
-  } catch {
-    // composable 已 message.error
-  }
+  Modal.confirm({
+    title: '确认绑定邀请人',
+    content: '邀请人绑定后不可修改，确定要绑定吗？',
+    okText: '确认绑定',
+    cancelText: '取消',
+    centered: true,
+    async onOk() {
+      try {
+        await userProfile.saveInviteCode(code)
+        inviteBindingVisible.value = false
+        inviteBindingForm.inviteCode = ''
+      } catch {
+        // composable 已 message.error
+      }
+    }
+  })
 }
 
 // 表单字段直接派生自 profile：profile 没加载时为 ''，加载后双向绑定。
@@ -1997,11 +2005,7 @@ const refreshMembershipFromApi = async () => {
 }
 
 // ---------- 邀请有礼 ----------
-const INVITE_CODE_KEY = 'aichuangzuo_invite_code'
-const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
-const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
-const COIN_BONUS_NEW_USER = 5
 
 // ---------- 兑换码 ----------
 const REDEEM_USED_KEY = 'aichuangzuo_redeem_codes'
@@ -2027,8 +2031,6 @@ const openRedeemModal = () => {
 }
 
 const REDEEM_PRESETS = {
-  COIN100: { type: 'coin', reward: 100 },
-  COIN500: { type: 'coin', reward: 500 },
   VIP7DAY: { type: 'membership', reward: 7, level: '专业版会员' },
   VIP30DAY: { type: 'membership', reward: 30, level: '专业版会员' }
 }
@@ -2095,10 +2097,7 @@ const submitRedeem = () => {
       redeemedAt: new Date().toISOString()
     })
 
-    if (preset.type === 'coin') {
-      addCoin(preset.reward, `兑换码 ${code}`)
-      redeemStatus.value = { type: 'success', message: `✅ 兑换成功 +${preset.reward} 创作币` }
-    } else if (preset.type === 'membership') {
+    if (preset.type === 'membership') {
       extendMembership(preset.reward, preset.level)
       redeemStatus.value = { type: 'success', message: `✅ 兑换成功 +${preset.reward} 天${preset.level}` }
     }
@@ -2118,85 +2117,16 @@ const inviteRulesVisible = ref(false)
 const posterVisible = ref(false)
 const posterSelectedId = ref('classic-red')
 const posterPreviewRefs = ref({})
-const inviteCode = ref('')
-const coinBalance = ref(0)
-const simulateEmail = ref('')
 const withdrawAmount = ref(null)
 const withdrawAccount = ref('')
 const withdrawName = ref('')
 const userId = computed(() => userProfile.profile.value?.userId || '88886666')
 
-const inviteStats = ref({
-  invitedCount: 0,
-  membershipDaysEarned: 0,
-  coinEarned: 0,
-  friends: []
-})
+const inviteCode = computed(() => userProfile.profile.value?.inviteCode || '')
 
 const inviteLink = computed(() => {
   return `${window.location.origin}/login?ref=${inviteCode.value}`
 })
-
-const generateInviteCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
-}
-
-const getStoredInviteCode = () => {
-  let code = localStorage.getItem(INVITE_CODE_KEY)
-  if (!code) {
-    code = generateInviteCode()
-    localStorage.setItem(INVITE_CODE_KEY, code)
-  }
-  return code
-}
-
-const loadInviteStats = () => {
-  const raw = localStorage.getItem(INVITE_STATS_KEY)
-  if (raw) {
-    inviteStats.value = JSON.parse(raw)
-  } else {
-    inviteStats.value = {
-      invitedCount: 0,
-      membershipDaysEarned: 0,
-      coinEarned: 0,
-      friends: []
-    }
-  }
-}
-
-const saveInviteStats = () => {
-  localStorage.setItem(INVITE_STATS_KEY, JSON.stringify(inviteStats.value))
-}
-
-const loadCoinBalance = () => {
-  const raw = localStorage.getItem(COIN_BALANCE_KEY)
-  coinBalance.value = raw ? parseInt(raw, 10) : 0
-}
-
-const setCoinBalance = (amount) => {
-  coinBalance.value = amount
-  localStorage.setItem(COIN_BALANCE_KEY, String(amount))
-}
-
-const addCoin = (amount, reason) => {
-  const balance = coinBalance.value + amount
-  setCoinBalance(balance)
-  inviteStats.value.coinEarned += amount
-  saveInviteStats()
-  console.log('创作币变动:', reason, amount, '余额:', balance)
-}
-
-const calculateMembershipReward = (totalInvited) => {
-  if (totalInvited === 3) return 3
-  if (totalInvited === 5) return 5
-  if (totalInvited > 5) return 2
-  return 0
-}
 
 // ---------- 海报样式 ----------
 const posterTemplates = [
@@ -2507,9 +2437,7 @@ const downloadSelectedPoster = async () => {
 }
 
 const openInviteModal = () => {
-  inviteCode.value = getStoredInviteCode()
   loadInviteStats()
-  loadCoinBalance()
   inviteVisible.value = true
 }
 
@@ -2533,46 +2461,6 @@ const copyUserId = () => {
   navigator.clipboard.writeText(userId.value).then(() => {
     message.success('ID 已复制')
   })
-}
-
-const simulateInviteRegister = () => {
-  const email = simulateEmail.value.trim()
-  if (!email || !email.includes('@')) {
-    message.warning('请输入有效的邮箱')
-    return
-  }
-  if (inviteStats.value.friends.some(f => f.email === email)) {
-    message.warning('该邮箱已被邀请')
-    return
-  }
-  inviteStats.value.invitedCount += 1
-  const days = calculateMembershipReward(inviteStats.value.invitedCount)
-  if (days > 0) {
-    inviteStats.value.membershipDaysEarned += days
-  }
-  inviteStats.value.friends.unshift({
-    email,
-    status: 'registered',
-    commission: 0,
-    createdAt: new Date().toISOString()
-  })
-  saveInviteStats()
-  simulateEmail.value = ''
-  message.success('模拟注册成功')
-}
-
-const simulateFriendPurchase = (friendEmail, orderAmount, isFirst) => {
-  const friend = inviteStats.value.friends.find(f => f.email === friendEmail)
-  if (!friend) {
-    message.warning('未找到该好友')
-    return
-  }
-  const rate = isFirst ? 0.1 : 0.05
-  const commission = Math.ceil(orderAmount * rate)
-  friend.status = 'purchased'
-  friend.commission += commission
-  saveInviteStats()
-  addCoin(commission, '好友购买返利 ' + friendEmail)
 }
 
 const openWithdrawModal = () => {
@@ -2606,22 +2494,16 @@ const submitWithdraw = () => {
   const requests = JSON.parse(localStorage.getItem(WITHDRAW_REQUESTS_KEY) || '[]')
   requests.push({ amount, account, name, status: 'pending', createdAt: new Date().toISOString() })
   localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(requests))
-  setCoinBalance(coinBalance.value - amount)
   withdrawVisible.value = false
   message.success('提现申请已提交，预计 7 天内到账')
-}
-
-const loadInviteData = () => {
-  inviteCode.value = getStoredInviteCode()
-  loadInviteStats()
-  loadCoinBalance()
 }
 
 const notifTabs = [
   { type: 'announcement', label: '公告' },
   { type: 'feedback', label: '我的反馈' },
+  { type: 'style', label: '风格审核' },
   { type: 'generation', label: '生成完成' },
-  { type: 'membership', label: '会员提醒' },
+  { type: 'station', label: '站内消息' },
   { type: 'feature', label: '新功能' },
   { type: 'promotion', label: '优惠活动' }
 ]
@@ -2632,13 +2514,18 @@ const activeTabLabel = computed(() => {
 
 const currentNotifs = computed(() => {
   return notifications.value
-    .filter(n => n.type === activeTab.value)
+    .filter(n => activeTab.value === 'station'
+      ? (n.type === 'membership' || n.type === 'reward')
+      : n.type === activeTab.value)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
 })
 
 const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
 
 const getUnreadByType = (type) => {
+  if (type === 'station') {
+    return notifications.value.filter(n => (n.type === 'membership' || n.type === 'reward') && !n.read).length
+  }
   return notifications.value.filter(n => n.type === type && !n.read).length
 }
 
@@ -2716,6 +2603,7 @@ onMounted(async () => {
   loadMembership()
   refreshMembershipFromApi()
   userProfile.loadProfile()
+  loadInviteStats()
   loadBenefits()
   await loadNewcomerOffer()
   tryShowNewcomerModal()
@@ -5310,23 +5198,6 @@ body[data-theme="dark"] .password-input::placeholder {
   color: #fa8c16;
 }
 
-.invite-simulate {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.invite-simulate-label {
-  font-size: 12px;
-  color: #595959;
-  margin-bottom: 8px;
-}
-
-.invite-simulate-row {
-  display: flex;
-  gap: 10px;
-}
-
 .invite-form-input {
   flex: 1;
   padding: 8px 12px;
@@ -5695,7 +5566,6 @@ body[data-theme="dark"] .invite-stat-label,
 body[data-theme="dark"] .invite-code-label,
 body[data-theme="dark"] .invite-progress-desc,
 body[data-theme="dark"] .invite-progress-text,
-body[data-theme="dark"] .invite-simulate-label,
 body[data-theme="dark"] .withdraw-label,
 body[data-theme="dark"] .withdraw-hint {
   color: #a6a6a6;

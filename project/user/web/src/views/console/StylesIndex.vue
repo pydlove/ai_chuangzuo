@@ -1,5 +1,5 @@
 <template>
-  <div class="styles-index">
+  <div ref="stylesIndexRef" class="styles-index">
     <div class="styles-header">
       <div>
         <h2 class="styles-title">我的风格</h2>
@@ -62,6 +62,9 @@
               placeholder="例如：我的小红书风"
               maxlength="20"
             />
+            <div class="style-editor-counter" :class="{ over: (editingStyle.name || '').length > 20 }">
+              {{ (editingStyle.name || '').length }} / 20
+            </div>
             <div v-if="errors.name" class="style-editor-error">{{ errors.name }}</div>
           </div>
           <div class="style-editor-field">
@@ -143,31 +146,39 @@
                 <div class="style-card-title-row">
                   <div class="style-card-title">{{ s.name }}</div>
                   <div
-                    v-if="getMarketStatus(s.name)"
+                    v-if="auditStatusText(s.auditStatus)"
+                    class="style-card-status"
+                    :class="auditStatusClass(s.auditStatus)"
+                  >
+                    {{ auditStatusText(s.auditStatus) }}
+                  </div>
+                  <div
+                    v-else-if="getMarketStatus(s.name)"
                     class="style-card-status"
                     :class="statusClass(s.name)"
                   >
                     {{ getMarketStatus(s.name) }}
                   </div>
                 </div>
-                <div class="style-card-meta">自定义风格 · 已用 {{ s.count }} 次</div>
+                <div class="style-card-meta">
+                  <span>自定义风格</span>
+                  <span class="style-card-meta-dot">·</span>
+                  <span>已用 {{ s.count }} 次</span>
+                </div>
               </div>
               <button class="style-card-remove" @click.stop="deleteStyle(s.name)">删除</button>
             </div>
             <div v-if="s.scope" class="style-card-scope-list">
               <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
             </div>
-            <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-            <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
+            <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
             <div class="style-card-footer">
               <div class="style-card-actions">
                 <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-                <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-                  {{ expandedNames.has(s.name) ? '收起' : '查看' }}
-                </button>
+                <button class="style-action-btn" @click.stop="openMyStylePromptModal(s)">查看</button>
                 <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
                 <button
-                  v-if="!getMarketStatus(s.name)"
+                  v-if="s.auditStatus !== 1"
                   class="style-action-btn primary"
                   :disabled="publishBlocked"
                   :title="publishQuotaHint"
@@ -244,7 +255,14 @@
               <div class="style-card-title-row">
                 <div class="style-card-title">{{ s.name }}</div>
                 <div
-                  v-if="getMarketStatus(s.name)"
+                  v-if="auditStatusText(s.auditStatus)"
+                  class="style-card-status"
+                  :class="auditStatusClass(s.auditStatus)"
+                >
+                  {{ auditStatusText(s.auditStatus) }}
+                </div>
+                <div
+                  v-else-if="getMarketStatus(s.name)"
                   class="style-card-status"
                   :class="statusClass(s.name)"
                 >
@@ -270,7 +288,7 @@
               </button>
               <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
               <button
-                v-if="!getMarketStatus(s.name)"
+                v-if="s.auditStatus !== 1"
                 class="style-action-btn primary"
                 :disabled="publishBlocked"
                 :title="publishQuotaHint"
@@ -301,7 +319,7 @@
               </div>
               <div class="style-card-meta">by {{ s.creatorName }}</div>
             </div>
-            <button class="style-card-remove" @click.stop="toggleFavorite(s.id)">取消收藏</button>
+            <button class="style-card-remove" @click.stop="confirmUnfavorite(s)">取消收藏</button>
           </div>
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
@@ -448,6 +466,9 @@
           placeholder="例如：我的小红书风"
           maxlength="20"
         />
+        <div class="style-editor-counter" :class="{ over: (learnedResult.name || '').length > 20 }">
+          {{ (learnedResult.name || '').length }} / 20
+        </div>
         <div v-if="learnedNameConflict" class="learned-error">该风格名称已存在</div>
         <div v-else-if="learnedResult.name.trim().length > 20" class="learned-error">风格名称最多 20 字</div>
         <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
@@ -486,10 +507,45 @@
       <button class="publish-confirm-submit" @click="confirmPublish">确认发布</button>
     </div>
   </a-modal>
+
+  <!-- 我的风格提示词详情弹框 -->
+  <a-modal
+    class="my-style-prompt-modal"
+    :open="myStylePromptVisible"
+    :title="selectedMyStyle?.name"
+    :footer="null"
+    :width="560"
+    centered
+    @cancel="closeMyStylePromptModal"
+  >
+    <div v-if="selectedMyStyle" class="my-style-prompt-body">
+      <div class="my-style-prompt-meta">
+        <span>自定义风格</span>
+        <span class="my-style-prompt-meta-dot">·</span>
+        <span>已用 {{ selectedMyStyle.count || 0 }} 次</span>
+      </div>
+      <div v-if="selectedMyStyle.scope" class="my-style-prompt-scope-list">
+        <span v-for="tag in parseScopeTags(selectedMyStyle.scope)" :key="tag" class="my-style-prompt-scope">{{ tag }}</span>
+      </div>
+      <div class="my-style-prompt-text">{{ selectedMyStyle.prompt }}</div>
+      <div class="my-style-prompt-actions">
+        <button class="my-style-prompt-use-btn" @click="useStyle(selectedMyStyle); closeMyStylePromptModal()">使用</button>
+        <button class="my-style-prompt-edit-btn" @click="goToEdit(selectedMyStyle); closeMyStylePromptModal()">编辑</button>
+        <button
+          v-if="selectedMyStyle.auditStatus !== 1"
+          class="my-style-prompt-publish-btn"
+          :disabled="publishBlocked"
+          :title="publishQuotaHint"
+          @click="openPublishConfirm(selectedMyStyle, 'my'); closeMyStylePromptModal()"
+        >发布</button>
+        <button class="my-style-prompt-close-btn" @click="closeMyStylePromptModal">关闭</button>
+      </div>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import {
@@ -521,9 +577,11 @@ import {
 } from '@/composables/useStyleMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { getCustomStyleLimit } from '@/utils/membershipLimits.js'
+import { updateStyle } from '@/api/style.js'
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
+const stylesIndexRef = ref(null)
 const activeTab = ref('my')
 const searchQuery = ref('')
 
@@ -635,6 +693,16 @@ const filteredSystemStyles = computed(() =>
 
 // 导入对话框状态
 const importDialogVisible = ref(false)
+watch(importDialogVisible, (visible) => {
+  const el = stylesIndexRef.value
+  if (!el) return
+  // 弹框打开时锁定本页及外层内容区滚动，避免背景抖动
+  el.style.overflowY = visible ? 'hidden' : ''
+  const consoleContent = el.closest('.console-content')
+  if (consoleContent) {
+    consoleContent.style.overflowY = visible ? 'hidden' : ''
+  }
+})
 const importSubTab = ref('paste')
 const pasteText = ref('')
 const pasteError = ref('')
@@ -649,6 +717,8 @@ const editorMode = ref(false)
 const expandedNames = ref(new Set())
 const publishConfirmVisible = ref(false)
 const pendingPublish = ref({ style: null, sourceType: '' })
+const myStylePromptVisible = ref(false)
+const selectedMyStyle = ref(null)
 
 const editingStyle = reactive({
   originalName: '',
@@ -974,6 +1044,18 @@ const deleteLearnedStyle = (s) => {
   })
 }
 
+const confirmUnfavorite = (s) => {
+  Modal.confirm({
+    title: '取消收藏',
+    content: `确定要取消收藏「${s.name}」吗？`,
+    okText: '取消收藏',
+    cancelText: '再想想',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: () => toggleFavorite(s.id)
+  })
+}
+
 const getMarketStatus = (name) => {
   const s = marketStyles.value.find(
     m => m.originalName === name && m.creatorId === localStorage.getItem('aichuangzuo_user_id')
@@ -988,6 +1070,20 @@ const statusClass = (name) => {
   const status = getMarketStatus(name)
   if (status === '已上架') return 'approved'
   if (status === '审核中') return 'pending'
+  return ''
+}
+
+const auditStatusText = (status) => {
+  if (status === 0) return '审核中'
+  if (status === 1) return '已通过'
+  if (status === 2) return '已打回'
+  return ''
+}
+
+const auditStatusClass = (status) => {
+  if (status === 0) return 'pending'
+  if (status === 1) return 'approved'
+  if (status === 2) return 'rejected'
   return ''
 }
 
@@ -1016,18 +1112,52 @@ const openPublishConfirm = (style, sourceType) => {
   publishConfirmVisible.value = true
 }
 
-const confirmPublish = () => {
+const confirmPublish = async () => {
   const { style, sourceType } = pendingPublish.value
-  if (style && sourceType) {
-    shareStyle(style, sourceType)
+  if (!style || !sourceType) return
+
+  try {
+    // 发布后重新进入待审核状态（后端 updateStyle 会重置 audit_status）
+    await updateStyle(style.bizNo, {
+      styleName: style.name,
+      prompt: style.prompt,
+      scope: style.scope || ''
+    })
+
+    // 本地市场 mock：已分享过则忽略，避免重复报错
+    try {
+      shareStyle(style, sourceType)
+    } catch {
+      // 本地记录已存在或额度不足，不影响后端重提
+    }
+
+    if (sourceType === 'my') {
+      await loadMyStyles()
+    } else {
+      await loadLearnedStyles()
+    }
+    message.success('风格已重新提交审核')
+  } catch (err) {
+    message.error(err?.message || '提交失败')
+  } finally {
+    publishConfirmVisible.value = false
+    pendingPublish.value = { style: null, sourceType: '' }
   }
-  publishConfirmVisible.value = false
-  pendingPublish.value = { style: null, sourceType: '' }
 }
 
 const closePublishConfirm = () => {
   publishConfirmVisible.value = false
   pendingPublish.value = { style: null, sourceType: '' }
+}
+
+const openMyStylePromptModal = (style) => {
+  selectedMyStyle.value = style
+  myStylePromptVisible.value = true
+}
+
+const closeMyStylePromptModal = () => {
+  myStylePromptVisible.value = false
+  selectedMyStyle.value = null
 }
 </script>
 
@@ -1138,82 +1268,87 @@ const closePublishConfirm = () => {
 
 .style-add-card {
   border: 2px dashed #e8e8e8;
-  border-radius: 20px;
-  padding: 32px;
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 10px;
   cursor: pointer;
-  transition: all 0.2s;
-  min-height: 270px;
+  transition: all 0.25s ease;
+  min-height: 220px;
   box-sizing: border-box;
+  background: #fff;
 }
 
 .style-add-card:hover {
-  border-color: #ff2442;
-  background: #fff8f9;
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .style-add-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: #f5f5f5;
-  color: #8c8c8c;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff0f2;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 28px;
+  font-size: 20px;
+  font-weight: 700;
 }
 
 .style-add-text {
-  font-size: 15px;
+  font-size: 14px;
   color: #595959;
+  font-weight: 500;
 }
 
 .style-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
-  position: relative;
   overflow: hidden;
 }
 
 .style-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 36px rgba(255, 36, 66, 0.13);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .style-card-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 14px;
   margin-bottom: 16px;
 }
 
 .style-card-avatar {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ff2442, #ff8a9b);
-  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff0f2;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .style-card-avatar.learned {
-  background: linear-gradient(135deg, #ff8a9b, #ffc2cb);
+  background: #fff5f7;
+  color: var(--color-primary);
 }
 
 .style-card-title-wrap {
@@ -1229,8 +1364,8 @@ const closePublishConfirm = () => {
 }
 
 .style-card-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: #1a1a1a;
   line-height: 1.35;
   word-break: break-all;
@@ -1240,8 +1375,8 @@ const closePublishConfirm = () => {
   flex-shrink: 0;
   font-size: 11px;
   font-weight: 500;
-  padding: 3px 8px;
-  border-radius: 12px;
+  padding: 2px 7px;
+  border-radius: 6px;
   white-space: nowrap;
 }
 
@@ -1255,25 +1390,39 @@ const closePublishConfirm = () => {
   color: #fa8c16;
 }
 
+.style-card-status.rejected {
+  background: #fff1f0;
+  color: #ff4d4f;
+}
+
 .style-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: #8c8c8c;
 }
 
+.style-card-meta-dot {
+  color: #d9d9d9;
+  font-weight: 700;
+}
+
 .style-card-remove {
   flex-shrink: 0;
-  padding: 4px 10px;
+  padding: 4px 8px;
+  background: transparent;
   border: none;
-  background: #fff1f0;
-  color: #ff4d4f;
-  border-radius: 12px;
+  border-radius: 6px;
   font-size: 12px;
+  color: #8c8c8c;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .style-card-remove:hover {
-  background: #ffccc7;
+  color: #ff4d4f;
+  background: #fff1f0;
 }
 
 .style-card-scope {
@@ -1281,94 +1430,95 @@ const closePublishConfirm = () => {
   align-items: center;
   gap: 4px;
   width: fit-content;
-  font-size: 13px;
-  color: #ff2442;
-  background: #fff0f2;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
   border: 1px solid #ffd1d9;
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 3px 10px;
+  border-radius: 6px;
 }
 
 .style-card-scope-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .style-card-scope::before {
   content: '#';
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .style-card-prompt {
   font-size: 14px;
-  color: #595959;
+  color: #262626;
   line-height: 1.7;
-  margin-bottom: 18px;
-  flex: 1;
+  margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1 0 auto;
 }
 
 .style-prompt-full {
   font-size: 14px;
-  color: #595959;
+  color: #262626;
   line-height: 1.7;
   background: #fafafa;
   border-radius: 12px;
   padding: 14px 16px;
-  margin-bottom: 18px;
+  margin-bottom: 16px;
   white-space: pre-line;
 }
 
 .style-card-footer {
-  margin-top: auto;
-  padding-top: 16px;
-  border-top: 1px solid #f5f5f5;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
 }
 
 .style-card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  margin-top: 0;
 }
 
 .style-action-btn {
-  padding: 8px 16px;
-  border: 1px solid #e8e8e8;
-  background: #fff;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #595959;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .style-action-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .style-action-btn.primary {
-  background: #ff2442;
-  color: #fff;
-  border-color: #ff2442;
-  min-width: 72px;
+  padding: 6px 12px;
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  font-weight: 600;
 }
 
 .style-action-btn.primary:hover {
-  background: #e61e3a;
+  background: var(--color-primary-bg);
 }
 
 .style-action-btn:disabled,
 .style-action-btn.primary:disabled {
-  background: #d9d9d9;
+  background: #f5f5f5;
   border-color: #d9d9d9;
-  color: #fff;
+  color: #bfbfbf;
   cursor: not-allowed;
 }
 
@@ -1381,7 +1531,7 @@ const closePublishConfirm = () => {
 .style-action-btn.success {
   background: #f6ffed;
   color: #52c41a;
-  border-color: #b7eb8f;
+  border: 1px solid #b7eb8f;
 }
 
 .style-action-btn.success:hover {
@@ -1465,6 +1615,127 @@ const closePublishConfirm = () => {
 
 .publish-confirm-submit:hover {
   background: #e61e3a;
+}
+
+.my-style-prompt-body {
+  padding: 8px 0 0;
+}
+
+.my-style-prompt-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 12px;
+}
+
+.my-style-prompt-meta-dot {
+  color: #d9d9d9;
+  font-weight: 700;
+}
+
+.my-style-prompt-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.my-style-prompt-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
+  padding: 3px 10px;
+  border-radius: 6px;
+}
+
+.my-style-prompt-scope::before {
+  content: '#';
+  opacity: 0.8;
+}
+
+.my-style-prompt-text {
+  font-size: 14px;
+  color: #262626;
+  line-height: 1.8;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  white-space: pre-line;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.my-style-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.my-style-prompt-use-btn {
+  padding: 8px 20px;
+  background: #ff2442;
+  border: 1px solid #ff2442;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-style-prompt-use-btn:hover {
+  background: #e61e3a;
+}
+
+.my-style-prompt-edit-btn,
+.my-style-prompt-publish-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-style-prompt-edit-btn:hover,
+.my-style-prompt-publish-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+  background: #fff0f2;
+}
+
+.my-style-prompt-publish-btn:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+  cursor: not-allowed;
+}
+
+.my-style-prompt-close-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.my-style-prompt-close-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+  background: #fff0f2;
 }
 
 .style-editor {
@@ -1792,10 +2063,14 @@ const closePublishConfirm = () => {
   padding: 40px 0;
 }
 
+.learned-progress :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
+
 .learned-progress-text {
   margin-top: 12px;
   font-size: 14px;
-  color: #595959;
+  color: var(--color-primary);
 }
 
 .learned-result-title {
@@ -1920,6 +2195,10 @@ body[data-theme="dark"] .style-add-card {
   border-color: #303030;
 }
 
+body[data-theme="dark"] .style-card:hover {
+  border-color: var(--color-primary);
+}
+
 body[data-theme="dark"] .style-card-title,
 body[data-theme="dark"] .modal-title {
   color: #f0f0f0;
@@ -1930,6 +2209,10 @@ body[data-theme="dark"] .style-card-prompt,
 body[data-theme="dark"] .style-card-meta,
 body[data-theme="dark"] .learned-hint {
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-card-meta-dot {
+  color: #595959;
 }
 
 body[data-theme="dark"] .learned-cancel-btn {
@@ -1961,28 +2244,26 @@ body[data-theme="dark"] .styles-empty .style-add-card {
 
 body[data-theme="dark"] .style-add-card:hover {
   border-color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .style-add-icon {
-  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-add-text {
   color: #d9d9d9;
 }
 
-body[data-theme="dark"] .style-card:hover {
-  border-color: var(--color-primary);
-}
-
 body[data-theme="dark"] .style-card-avatar {
-  background: #2a2a2a;
-  color: #f0f0f0;
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-card-avatar.learned {
-  background: rgba(255, 36, 66, 0.15);
-  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-card-status.approved {
@@ -1995,24 +2276,30 @@ body[data-theme="dark"] .style-card-status.pending {
   color: #ffa940;
 }
 
+body[data-theme="dark"] .style-card-status.rejected {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff7875;
+}
+
 body[data-theme="dark"] .style-card-remove {
+  background: transparent;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-card-remove:hover {
   background: rgba(255, 77, 79, 0.15);
   color: #ff4d4f;
 }
 
-body[data-theme="dark"] .style-card-remove:hover {
-  background: rgba(255, 77, 79, 0.25);
-  color: #ff7875;
-}
-
 body[data-theme="dark"] .style-card-scope {
-  background: #2a2a2a;
-  color: #d9d9d9;
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-card-prompt {
-  background: #1f1f1f;
-  color: #a6a6a6;
+  background: transparent;
+  color: #d9d9d9;
 }
 
 body[data-theme="dark"] .style-prompt-full {
@@ -2022,25 +2309,25 @@ body[data-theme="dark"] .style-prompt-full {
 }
 
 body[data-theme="dark"] .style-action-btn {
-  background: #2a2a2a;
-  border-color: #434343;
+  background: transparent;
+  border-color: transparent;
   color: #a6a6a6;
 }
 
 body[data-theme="dark"] .style-action-btn:hover {
+  border-color: transparent;
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .style-action-btn.primary {
+  background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-body[data-theme="dark"] .style-action-btn.primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
 body[data-theme="dark"] .style-action-btn.primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
+  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .style-action-btn.success {
@@ -2056,9 +2343,9 @@ body[data-theme="dark"] .style-action-btn.success:hover {
 
 body[data-theme="dark"] .style-action-btn:disabled,
 body[data-theme="dark"] .style-action-btn.primary:disabled {
-  background: #434343;
+  background: rgba(255, 255, 255, 0.04);
   border-color: #434343;
-  color: #737373;
+  color: #595959;
 }
 
 body[data-theme="dark"] .style-action-btn.success:disabled {
@@ -2275,7 +2562,7 @@ body[data-theme="dark"] .learned-submit-btn:disabled {
 }
 
 body[data-theme="dark"] .learned-progress-text {
-  color: #a6a6a6;
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .learned-result-title {
@@ -2333,6 +2620,72 @@ body[data-theme="dark"] .style-scope-hint {
 body[data-theme="dark"] .modal-title {
   color: #f0f0f0;
 }
+
+body[data-theme="dark"] .my-style-prompt-meta {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .my-style-prompt-meta-dot {
+  color: #595959;
+}
+
+body[data-theme="dark"] .my-style-prompt-scope {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .my-style-prompt-text {
+  background: #141414;
+  color: #d9d9d9;
+  border: 1px solid #303030;
+}
+
+body[data-theme="dark"] .my-style-prompt-actions {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .my-style-prompt-use-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .my-style-prompt-use-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+body[data-theme="dark"] .my-style-prompt-edit-btn,
+body[data-theme="dark"] .my-style-prompt-publish-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .my-style-prompt-edit-btn:hover,
+body[data-theme="dark"] .my-style-prompt-publish-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .my-style-prompt-publish-btn:disabled {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #434343;
+  color: #595959;
+}
+
+body[data-theme="dark"] .my-style-prompt-close-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .my-style-prompt-close-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
 </style>
 
 <style>
@@ -2353,6 +2706,26 @@ body[data-theme="dark"] .learned-import-modal .ant-modal-close-x {
 }
 
 body[data-theme="dark"] .learned-import-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+/* 我的风格提示词详情弹框外壳（teleport 到 body，需全局覆盖） */
+body[data-theme="dark"] .my-style-prompt-modal .ant-modal-content,
+body[data-theme="dark"] .my-style-prompt-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .my-style-prompt-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close:hover {
   background: #2a2a2a !important;
   color: #f0f0f0 !important;
 }

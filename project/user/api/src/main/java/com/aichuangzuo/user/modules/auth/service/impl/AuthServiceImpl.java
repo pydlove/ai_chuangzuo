@@ -13,12 +13,11 @@ import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.ResetPasswordRequest;
 import com.aichuangzuo.user.modules.auth.entity.IpRegisterLimit;
 import com.aichuangzuo.user.modules.auth.entity.User;
-import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.entity.UserLoginLog;
 import com.aichuangzuo.user.modules.auth.mapper.IpRegisterLimitMapper;
-import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserLoginLogMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
@@ -44,7 +43,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserMapper userMapper;
     private final UserLoginLogMapper userLoginLogMapper;
-    private final UserInviteRelationMapper userInviteRelationMapper;
+    private final InviteRewardService inviteRewardService;
     private final IpRegisterLimitMapper ipRegisterLimitMapper;
     private final EmailCodeService emailCodeService;
     private final JwtUtil jwtUtil;
@@ -126,6 +125,7 @@ public class AuthServiceImpl implements AuthService {
         user.setInviteCode(generateInviteCode());
         user.setUserStatus(1);
         user.setEmailVerified(1);
+        user.setNickname("用户" + user.getInviteCode());
 
         try {
             userMapper.insert(user);
@@ -159,20 +159,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void handleInviteRelation(User invitee, String inviteCode) {
-        User inviter = userMapper.selectByInviteCode(inviteCode);
-        if (inviter == null) {
-            throw new BusinessException(UserAuthErrorCode.INVITE_CODE_INVALID);
-        }
-        UserInviteRelation relation = new UserInviteRelation();
-        relation.setInviterId(inviter.getId());
-        relation.setInviteeId(invitee.getId());
-        relation.setInviteCode(inviteCode);
-        relation.setSourceType(2);
-        relation.setEffectiveStatus(0);
-        userInviteRelationMapper.insert(relation);
-
-        // 触发被邀请人 +5 创作币（钱包服务实现后替换为远程调用/事件）
-        log.info("新用户 {} 通过邀请码 {} 注册，待发放 5 创作币", invitee.getEmail(), inviteCode);
+        inviteRewardService.rewardAfterRegister(invitee, inviteCode);
     }
 
     private String generateInviteCode() {

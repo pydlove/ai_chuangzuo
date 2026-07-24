@@ -2,9 +2,12 @@ package com.aichuangzuo.admin.modules.user.service;
 
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
+import com.aichuangzuo.admin.modules.user.entity.UserInviteRelation;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
+import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.impl.AdminUserServiceImpl;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
@@ -21,10 +24,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -37,10 +42,19 @@ class AdminUserServiceTest {
     private PlatformUserLoginLogMapper platformUserLoginLogMapper;
 
     @Mock
+    private UserInviteRelationMapper userInviteRelationMapper;
+
+    @Mock
     private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        lenient().when(userInviteRelationMapper.countEffectiveByInviterId(any())).thenReturn(0);
+        lenient().when(userInviteRelationMapper.selectByInviteeId(any())).thenReturn(null);
+    }
 
     @Test
     void listUsers_shouldReturnPage() {
@@ -212,5 +226,64 @@ class AdminUserServiceTest {
         ArgumentCaptor<PlatformUser> captor = ArgumentCaptor.forClass(PlatformUser.class);
         verify(platformUserMapper).insert(captor.capture());
         assertEquals("customHash", captor.getValue().getPasswordHash());
+    }
+
+    @Test
+    void getUserInviteDetail_shouldReturnInviterAndInvitees() {
+        PlatformUser user = new PlatformUser();
+        user.setId(1L);
+        user.setEmail("user@example.com");
+        user.setInviteCode("ABC123");
+        user.setIsDeleted(0);
+
+        PlatformUser inviter = new PlatformUser();
+        inviter.setId(2L);
+        inviter.setEmail("inviter@example.com");
+        inviter.setNickname("邀请人");
+        inviter.setIsDeleted(0);
+
+        UserInviteRelation relation = new UserInviteRelation();
+        relation.setInviterId(2L);
+        relation.setInviteeId(1L);
+        relation.setCreatedAt(LocalDateTime.now());
+
+        PlatformUser invitee = new PlatformUser();
+        invitee.setId(3L);
+        invitee.setEmail("invitee@example.com");
+        invitee.setNickname("被邀请人");
+        invitee.setIsDeleted(0);
+
+        when(platformUserMapper.selectById(1L)).thenReturn(user);
+        when(userInviteRelationMapper.selectByInviteeId(1L)).thenReturn(relation);
+        when(platformUserMapper.selectById(2L)).thenReturn(inviter);
+        when(userInviteRelationMapper.selectInviteeIdsByInviterId(1L)).thenReturn(Arrays.asList(3L));
+        when(platformUserMapper.selectBatchIds(Arrays.asList(3L))).thenReturn(Arrays.asList(invitee));
+
+        AdminUserInviteDetailVO result = adminUserService.getUserInviteDetail(1L);
+
+        assertEquals("ABC123", result.getInviteCode());
+        assertNotNull(result.getInviter());
+        assertEquals("inviter@example.com", result.getInviter().getEmail());
+        assertEquals(1, result.getInvitees().size());
+        assertEquals("invitee@example.com", result.getInvitees().get(0).getEmail());
+    }
+
+    @Test
+    void getUserInviteDetail_shouldReturnEmptyWhenNoRelations() {
+        PlatformUser user = new PlatformUser();
+        user.setId(1L);
+        user.setEmail("user@example.com");
+        user.setInviteCode("ABC123");
+        user.setIsDeleted(0);
+
+        when(platformUserMapper.selectById(1L)).thenReturn(user);
+        when(userInviteRelationMapper.selectByInviteeId(1L)).thenReturn(null);
+        when(userInviteRelationMapper.selectInviteeIdsByInviterId(1L)).thenReturn(Collections.emptyList());
+
+        AdminUserInviteDetailVO result = adminUserService.getUserInviteDetail(1L);
+
+        assertEquals("ABC123", result.getInviteCode());
+        assertNull(result.getInviter());
+        assertTrue(result.getInvitees().isEmpty());
     }
 }

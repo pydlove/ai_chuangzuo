@@ -106,6 +106,7 @@ com/aichuangzuo/user/modules/style/market/service/StyleMarketQueryService.class
 com/aichuangzuo/user/modules/generation/service/GenerationBenefitResolver.class
 com/aichuangzuo/user/config/AuthProperties.class
 com/aichuangzuo/user/modules/article/service/ArticleService.class
+com/aichuangzuo/user/modules/user/service/impl/InviteRewardServiceImpl.class
 com/aichuangzuo/user/modules/article/dto/request/UpdateArticleRequest.class
 com/aichuangzuo/user/modules/article/vo/TitleOptimizeVO.class
 com/aichuangzuo/user/infrastructure/security/JwtUtil.class
@@ -140,6 +141,7 @@ com/aichuangzuo/user/modules/hotsearch/vo/HotSearchPlatformVO.class
 com/aichuangzuo/user/modules/homebanner/service/impl/HomeBannerServiceImpl.class
 com/aichuangzuo/user/modules/hotsearch/mapper/HotSearchPlatformMapper.class
 com/aichuangzuo/user/modules/style/service/impl/UserStyleServiceImpl.class
+com/aichuangzuo/user/modules/user/vo/InviteFriendVO.class
 com/aichuangzuo/user/modules/benefit/service/PlanCatalogService.class
 com/aichuangzuo/user/modules/style/service/impl/SystemStyleServiceImpl.class
 com/aichuangzuo/user/modules/topic/mapper/TopicTitleMapper.class
@@ -172,6 +174,7 @@ com/aichuangzuo/user/config/AuthProperties$Register.class
 com/aichuangzuo/user/modules/style/service/SystemStyleService.class
 com/aichuangzuo/user/modules/auth/vo/UserVO.class
 com/aichuangzuo/user/modules/article/entity/Article.class
+com/aichuangzuo/user/modules/user/vo/InviteStatsVO.class
 com/aichuangzuo/user/modules/homebanner/mapper/HomeBannerMapper.class
 com/aichuangzuo/user/modules/membership/vo/MembershipStatusVO.class
 com/aichuangzuo/user/modules/article/vo/DraftVO.class
@@ -255,6 +258,7 @@ com/aichuangzuo/user/config/CaffeineConfig.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordService.class
 com/aichuangzuo/user/modules/generation/service/GenerationTaskService.class
 com/aichuangzuo/user/modules/leaderboard/entity/SubmissionStatus.class
+com/aichuangzuo/user/modules/user/service/InviteRewardService.class
 com/aichuangzuo/user/modules/hotsearch/vo/HotSearchItemVO.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingService.class
 com/aichuangzuo/user/modules/article/service/impl/TitleOptimizeServiceImpl.class

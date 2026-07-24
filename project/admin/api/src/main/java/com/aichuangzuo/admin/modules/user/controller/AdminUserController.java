@@ -6,6 +6,7 @@ import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
@@ -53,6 +54,13 @@ public class AdminUserController {
     public Result<AdminUserVO> getUser(@PathVariable(name = "id") Long id) {
         checkSuperAdmin();
         return Result.success(adminUserService.getUser(id));
+    }
+
+    @Operation(summary = "查看用户邀请关系详情")
+    @GetMapping("/{id}/invites")
+    public Result<AdminUserInviteDetailVO> getUserInvites(@PathVariable(name = "id") Long id) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.getUserInviteDetail(id));
     }
 
     @Operation(summary = "修改用户状态")

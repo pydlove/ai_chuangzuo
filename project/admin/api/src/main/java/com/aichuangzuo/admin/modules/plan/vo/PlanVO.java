@@ -20,7 +20,6 @@ public class PlanVO {
     private String articlesQuarter;
     private String articlesYear;
     private java.math.BigDecimal savingsYear;
-    private java.math.BigDecimal inviterReward;
     private Integer status;
 
     public static PlanVO from(Plan p) {
@@ -40,7 +39,6 @@ public class PlanVO {
         vo.setArticlesQuarter(p.getArticlesQuarter());
         vo.setArticlesYear(p.getArticlesYear());
         vo.setSavingsYear(p.getSavingsYear());
-        vo.setInviterReward(p.getInviterReward());
         vo.setStatus(p.getStatus());
         return vo;
     }

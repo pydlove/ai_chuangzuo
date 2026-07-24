@@ -17,6 +17,7 @@
         LEFT JOIN u_user u ON u.id = s.user_id AND u.is_deleted = 0
         WHERE s.is_deleted = 0
           <if test="status != null">AND s.audit_status = #{status}</if>
+          <if test="reviewed != null and reviewed">AND s.audit_status IN (1, 2)</if>
           <if test="keyword != null and keyword != ''">
               AND (s.style_name LIKE CONCAT('%', #{keyword}, '%')
                 OR u.nickname    LIKE CONCAT('%', #{keyword}, '%'))
@@ -31,6 +32,7 @@
         LEFT JOIN u_user u ON u.id = s.user_id AND u.is_deleted = 0
         WHERE s.is_deleted = 0
           <if test="status != null">AND s.audit_status = #{status}</if>
+          <if test="reviewed != null and reviewed">AND s.audit_status IN (1, 2)</if>
           <if test="keyword != null and keyword != ''">
               AND (s.style_name LIKE CONCAT('%', #{keyword}, '%')
                 OR u.nickname    LIKE CONCAT('%', #{keyword}, '%'))

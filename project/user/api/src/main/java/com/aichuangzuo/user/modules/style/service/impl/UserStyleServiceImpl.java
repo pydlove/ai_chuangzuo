@@ -94,6 +94,9 @@ public class UserStyleServiceImpl implements UserStyleService {
         style.setStyleName(styleName);
         style.setPrompt(prompt);
         style.setScope(scope);
+        // 修改后重新进入待审核状态，并清空上一次的打回原因
+        style.setAuditStatus(0);
+        style.setRejectReason(null);
 
         userStyleMapper.updateById(style);
         log.info("更新风格成功 userId={}, bizNo={}, styleName={}", userId, bizNo, styleName);
@@ -232,7 +235,6 @@ public class UserStyleServiceImpl implements UserStyleService {
         vo.setCreatedAt(style.getCreatedAt());
         vo.setUpdatedAt(style.getUpdatedAt());
         vo.setAuditStatus(style.getAuditStatus());
-        vo.setRejectReason(style.getRejectReason());
         return vo;
     }
 }

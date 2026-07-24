@@ -10,8 +10,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-
 /**
  * 套餐元数据查询实现。DB 未命中时回退到枚举默认配置。
  */
@@ -29,16 +27,6 @@ public class PlanLookupServiceImpl implements PlanLookupService {
         return planMapper.selectOne(new LambdaQueryWrapper<Plan>()
                 .eq(Plan::getPlanKey, planKey)
                 .eq(Plan::getStatus, 1));
-    }
-
-    @Override
-    public BigDecimal getInviterReward(String planKey) {
-        Plan plan = findActive(planKey);
-        if (plan != null && plan.getInviterReward() != null) {
-            return plan.getInviterReward();
-        }
-        MembershipPlan fallback = MembershipPlan.of(planKey);
-        return fallback == null ? BigDecimal.ZERO : fallback.getInviterReward();
     }
 
     @Override

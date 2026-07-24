@@ -175,6 +175,10 @@
             <div class="earnings-item-title">{{ r.title }}</div>
             <div class="earnings-item-meta">
               {{ r.typeLabel }} · {{ r.statusLabel }} · {{ formatTime(r.createdAt) }}
+              <span v-if="r.sourceLabel" class="earnings-item-source"> · {{ r.sourceLabel }}</span>
+            </div>
+            <div v-if="isInviteReward(r)" class="earnings-item-commission">
+              {{ formatCommissionDetail(r) }}
             </div>
           </div>
           <div class="earnings-item-right">
@@ -250,6 +254,25 @@ const formatTime = (iso) => {
   const d = new Date(iso)
   const pad = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const isInviteReward = (record) => record.type === 'INVITE_REWARD' && record.orderAmount > 0
+
+const formatCommissionDetail = (record) => {
+  if (!record.orderAmount || record.orderAmount <= 0 || !record.commissionRate) {
+    return record.description || ''
+  }
+  const purchaseLabel = record.isFirstPurchase === 1 ? '首购返佣' : '续费返佣'
+  const ratePercent = (record.commissionRate * 100).toFixed(0)
+  const orderAmount = record.orderAmount.toFixed(2)
+  const amount = record.amount.toFixed(2)
+  const cycleLabel = {
+    month: '月卡',
+    quarter: '季卡',
+    year: '年卡'
+  }[record.cycle] || record.cycle
+  const planName = record.planName || record.planKey
+  return `${purchaseLabel}：${planName}${cycleLabel} ¥${orderAmount} × ${ratePercent}% = ${amount} 创作币`
 }
 
 onMounted(() => {
@@ -623,6 +646,17 @@ onMounted(() => {
   color: #8c8c8c;
 }
 
+.earnings-item-source {
+  color: #ff2442;
+}
+
+.earnings-item-commission {
+  margin-top: 6px;
+  font-size: 12px;
+  color: #595959;
+  line-height: 1.5;
+}
+
 .earnings-item-right {
   display: flex;
   align-items: center;
@@ -705,6 +739,14 @@ body[data-theme="dark"] .account-rules-footer,
 body[data-theme="dark"] .monthly-count,
 body[data-theme="dark"] .monthly-amount-label,
 body[data-theme="dark"] .earnings-item-meta {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .earnings-item-source {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .earnings-item-commission {
   color: #a6a6a6;
 }
 

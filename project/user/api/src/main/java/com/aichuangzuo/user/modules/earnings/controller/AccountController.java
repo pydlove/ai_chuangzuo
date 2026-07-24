@@ -8,6 +8,8 @@ import com.aichuangzuo.user.modules.earnings.vo.AccountSummaryVO;
 import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordPageVO;
 import com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO;
 import com.aichuangzuo.user.modules.earnings.vo.SettleLastMonthResultVO;
+import com.aichuangzuo.user.modules.user.service.InviteRewardService;
+import com.aichuangzuo.user.modules.user.vo.InviteStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -29,12 +31,25 @@ import java.util.List;
 public class AccountController {
 
     private final EarningsService earningsService;
+    private final InviteRewardService inviteRewardService;
 
     @Operation(summary = "账户收益汇总")
     @GetMapping("/summary")
     public Result<AccountSummaryVO> summary() {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(earningsService.getSummary(userId));
+    }
+
+    /**
+     * 邀请有礼统计。
+     *
+     * @return 邀请码、累计邀请人数、会员天数奖励、创作币返利、余额、好友列表
+     */
+    @Operation(summary = "邀请有礼统计")
+    @GetMapping("/invite-stats")
+    public Result<InviteStatsVO> inviteStats() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(inviteRewardService.getInviteStats(userId));
     }
 
     @Operation(summary = "按月结算列表")

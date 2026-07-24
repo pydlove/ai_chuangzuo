@@ -4,9 +4,13 @@ import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
+import com.aichuangzuo.admin.modules.user.entity.UserInviteRelation;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
+import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteeVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
@@ -22,7 +26,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -32,6 +39,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final PlatformUserMapper platformUserMapper;
     private final PlatformUserLoginLogMapper platformUserLoginLogMapper;
+    private final UserInviteRelationMapper userInviteRelationMapper;
     private final PasswordEncoder passwordEncoder;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
@@ -129,6 +137,51 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
+    public AdminUserInviteDetailVO getUserInviteDetail(Long id) {
+        PlatformUser user = platformUserMapper.selectById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+
+        AdminUserInviteDetailVO detail = new AdminUserInviteDetailVO();
+        detail.setUserId(user.getId());
+        detail.setInviteCode(user.getInviteCode());
+
+        UserInviteRelation inviterRelation = userInviteRelationMapper.selectByInviteeId(id);
+        if (inviterRelation != null) {
+            PlatformUser inviter = platformUserMapper.selectById(inviterRelation.getInviterId());
+            if (inviter != null && inviter.getIsDeleted() == 0) {
+                detail.setInviter(toAdminUserInviteeVO(inviter, inviterRelation.getCreatedAt()));
+            }
+        }
+
+        List<Long> inviteeIds = userInviteRelationMapper.selectInviteeIdsByInviterId(id);
+        if (!inviteeIds.isEmpty()) {
+            List<PlatformUser> invitees = platformUserMapper.selectBatchIds(inviteeIds);
+            Map<Long, PlatformUser> inviteeMap = invitees.stream()
+                    .filter(u -> u.getIsDeleted() == 0)
+                    .collect(Collectors.toMap(PlatformUser::getId, u -> u));
+            List<AdminUserInviteeVO> inviteeVOs = inviteeIds.stream()
+                    .map(inviteeMap::get)
+                    .filter(Objects::nonNull)
+                    .map(u -> toAdminUserInviteeVO(u, null))
+                    .collect(Collectors.toList());
+            detail.setInvitees(inviteeVOs);
+        }
+
+        return detail;
+    }
+
+    private AdminUserInviteeVO toAdminUserInviteeVO(PlatformUser user, LocalDateTime relationCreatedAt) {
+        AdminUserInviteeVO vo = new AdminUserInviteeVO();
+        vo.setId(user.getId());
+        vo.setEmail(user.getEmail());
+        vo.setNickname(user.getNickname());
+        vo.setCreatedAt(relationCreatedAt != null ? relationCreatedAt : user.getCreatedAt());
+        return vo;
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public void updateStatus(Long id, AdminUserStatusRequest request) {
         PlatformUser user = platformUserMapper.selectById(id);
@@ -221,6 +274,18 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setStatus(user.getUserStatus() == 1 ? "enabled" : "disabled");
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
         vo.setInviteCode(user.getInviteCode());
+        vo.setInvitedCount(userInviteRelationMapper.countEffectiveByInviterId(user.getId()));
+
+        UserInviteRelation inviterRelation = userInviteRelationMapper.selectByInviteeId(user.getId());
+        if (inviterRelation != null) {
+            PlatformUser inviter = platformUserMapper.selectById(inviterRelation.getInviterId());
+            if (inviter != null && inviter.getIsDeleted() == 0) {
+                vo.setInviterId(inviter.getId());
+                vo.setInviterEmail(inviter.getEmail());
+                vo.setInviterNickname(inviter.getNickname());
+            }
+        }
+
         vo.setMembershipExpireAt(user.getMembershipExpireAt());
         vo.setMembershipPlan(user.getMembershipPlan());
         vo.setCreatedAt(user.getCreatedAt());

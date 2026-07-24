@@ -21,6 +21,24 @@ public class EarningsRecordVO {
 
     private String description;
 
+    private String sourceType;
+
+    private String sourceId;
+
+    private String sourceLabel;
+
+    private String planKey;
+
+    private String planName;
+
+    private String cycle;
+
+    private BigDecimal orderAmount;
+
+    private BigDecimal commissionRate;
+
+    private Integer isFirstPurchase;
+
     private BigDecimal amount;
 
     private Integer status;

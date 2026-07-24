@@ -211,7 +211,7 @@ import NavBar from '@/components/layout/NavBar.vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
-import { getInviteCode, getRefFromUrl, getStoredRef, setStoredRef, awardNewUserCoins } from '@/composables/useInviteCode'
+import { getRefFromUrl } from '@/composables/useInviteCode'
 import { sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const router = useRouter()
@@ -411,16 +411,6 @@ const handleRegister = async () => {
 
   const inviteCode = registerForm.inviteCode.trim().toUpperCase()
 
-  // 1. 自邀请校验
-  const selfCode = getInviteCode()
-  if (inviteCode && inviteCode === selfCode) {
-    message.warning('不能填写自己的邀请码')
-    return
-  }
-
-  // 2. 输入框是唯一真值；空字符串显式清除残留 ref
-  setStoredRef(inviteCode)
-
   try {
     const res = await registerApi({
       email: registerForm.email,
@@ -430,14 +420,7 @@ const handleRegister = async () => {
       inviteCode: inviteCode || undefined
     })
     persistTokens(res.data)
-
-    // 3. 注册成功后发放创作币并提示
-    const coins = awardNewUserCoins()
-    if (coins > 0) {
-      message.success(`注册成功，邀请奖励 +${coins} 创作币`)
-    } else {
-      message.success('注册成功')
-    }
+    message.success('注册成功')
 
     router.push('/console')
   } catch (err) {
@@ -449,11 +432,7 @@ onMounted(() => {
   window.addEventListener('mousemove', onPageMouseMove)
   const ref = getRefFromUrl()
   if (ref) {
-    setStoredRef(ref)
     registerForm.inviteCode = ref
-    showInviteBanner.value = true
-    activeTab.value = 'register'
-  } else if (getStoredRef()) {
     showInviteBanner.value = true
     activeTab.value = 'register'
   }

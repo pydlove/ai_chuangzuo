@@ -25,4 +25,15 @@ public interface MembershipService {
      * @return 会员状态
      */
     MembershipStatusVO getMyMembership(Long userId);
+
+    /**
+     * 给指定用户延长会员天数。
+     *
+     * <p>若用户无会员或已过期，从今天起算；否则从当前到期日起算。
+     *
+     * @param userId 用户ID
+     * @param level  会员等级
+     * @param days   延长天数
+     */
+    void extendMembership(Long userId, String level, long days);
 }

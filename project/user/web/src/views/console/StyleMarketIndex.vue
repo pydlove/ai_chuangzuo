@@ -41,7 +41,11 @@
           <div class="style-market-card-avatar">{{ s.name.charAt(0) }}</div>
           <div class="style-market-card-title-wrap">
             <div class="style-market-card-title">{{ s.name }}</div>
-            <div class="style-market-card-creator">by {{ s.creatorName }}</div>
+            <div class="style-market-card-meta">
+              <span>by {{ s.creatorName || '匿名用户' }}</span>
+              <span class="style-market-card-meta-dot">·</span>
+              <span>上架于 {{ formatDate(s.createdAt) }}</span>
+            </div>
           </div>
         </div>
         <div v-if="s.scope" class="style-market-card-scope-list">
@@ -49,7 +53,7 @@
         </div>
         <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
         <div class="style-market-card-stats">
-          <span>🔥 本周 {{ s.weeklyUses }} 次</span>
+          <span>本周 {{ s.weeklyUses }} 次</span>
           <span>累计 {{ s.totalUses }} 次</span>
         </div>
         <div class="style-market-card-actions">
@@ -129,7 +133,7 @@
     centered
     @cancel="promptModalVisible = false"
   >
-    <div class="prompt-detail-creator">by {{ selectedStyle?.creatorName }}</div>
+    <div class="prompt-detail-creator">by {{ selectedStyle?.creatorName || '匿名用户' }}</div>
     <div v-if="selectedStyle?.scope" class="prompt-detail-scope-list">
       <span v-for="tag in parseScopeTags(selectedStyle.scope)" :key="tag" class="prompt-detail-scope">{{ tag }}</span>
     </div>
@@ -167,6 +171,13 @@ const favoriteHintTitle = ref('')
 const favoriteHintText = ref('')
 const promptModalVisible = ref(false)
 const selectedStyle = ref(null)
+
+const formatDate = (iso) => {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (isNaN(d)) return ''
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
 
 const parseScopeTags = (scopeStr) => {
   if (!scopeStr) return []
@@ -473,9 +484,9 @@ body[data-theme="dark"] .style-market-tab.active {
 .style-market-card {
   background: #fff;
   border: 1px solid #f0f0f0;
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   transition: transform 0.25s ease, box-shadow 0.25s ease;
   display: flex;
   flex-direction: column;
@@ -483,8 +494,8 @@ body[data-theme="dark"] .style-market-tab.active {
 }
 
 .style-market-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 16px 36px rgba(255, 36, 66, 0.13);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .style-market-card-head {
@@ -496,16 +507,16 @@ body[data-theme="dark"] .style-market-tab.active {
 
 .style-market-card-avatar {
   flex-shrink: 0;
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #ff2442, #ff8a9b);
-  color: #fff;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #fff0f2;
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .style-market-card-title-wrap {
@@ -514,17 +525,25 @@ body[data-theme="dark"] .style-market-tab.active {
 }
 
 .style-market-card-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 17px;
+  font-weight: 700;
   color: #1a1a1a;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
   line-height: 1.35;
   word-break: break-all;
 }
 
-.style-market-card-creator {
+.style-market-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: #8c8c8c;
+}
+
+.style-market-card-meta-dot {
+  color: #d9d9d9;
+  font-weight: 700;
 }
 
 .style-market-card-scope {
@@ -532,83 +551,86 @@ body[data-theme="dark"] .style-market-tab.active {
   align-items: center;
   gap: 4px;
   width: fit-content;
-  font-size: 13px;
-  color: #ff2442;
-  background: #fff0f2;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
   border: 1px solid #ffd1d9;
-  padding: 4px 12px;
-  border-radius: 20px;
+  padding: 3px 10px;
+  border-radius: 6px;
 }
 
 .style-market-card-scope-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 
 .style-market-card-scope::before {
   content: '#';
-  opacity: 0.7;
+  opacity: 0.8;
 }
 
 .style-market-card-prompt {
   font-size: 14px;
-  color: #595959;
+  color: #262626;
   line-height: 1.7;
   margin-bottom: 16px;
   display: -webkit-box;
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  flex: 1 0 auto;
 }
 
 .style-market-card-stats {
   display: flex;
   gap: 16px;
-  font-size: 13px;
-  color: #8c8c8c;
-  margin-bottom: 16px;
+  font-size: 12px;
+  color: #a6a6a6;
+  margin-bottom: 12px;
 }
 
 .style-market-card-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
+  margin-top: 0;
 }
 
 .style-market-use-btn {
-  flex: 1;
-  padding: 10px 18px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 10px;
-  font-size: 14px;
-  font-weight: 500;
+  padding: 6px 12px;
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
 .style-market-use-btn:hover {
-  background: #e61e3a;
+  background: var(--color-primary-bg);
 }
 
 .style-market-use-btn:disabled {
-  background: #d9d9d9;
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
   cursor: not-allowed;
 }
 
 .style-market-favorite-btn {
-  width: 44px;
-  height: 44px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #fff;
   border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  font-size: 20px;
+  border-radius: 6px;
+  font-size: 14px;
   color: #8c8c8c;
   cursor: pointer;
   transition: all 0.2s;
@@ -616,32 +638,31 @@ body[data-theme="dark"] .style-market-tab.active {
 }
 
 .style-market-favorite-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .style-market-favorite-btn.active {
-  background: #fff0f2;
-  color: #ff2442;
-  border-color: #ff2442;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .style-market-simulate-btn {
-  padding: 10px 16px;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  font-size: 14px;
-  color: #595959;
+  padding: 6px 10px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .style-market-simulate-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .favorite-hint-body {
@@ -796,31 +817,51 @@ body[data-theme="dark"] .style-market-card {
   box-shadow: none;
 }
 
+body[data-theme="dark"] .style-market-card-avatar {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
 body[data-theme="dark"] .style-market-card-title {
   color: #f0f0f0;
 }
 
-body[data-theme="dark"] .style-market-card-creator,
-body[data-theme="dark"] .style-market-card-prompt,
+body[data-theme="dark"] .style-market-card-meta,
 body[data-theme="dark"] .style-market-card-stats {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .style-market-card-meta-dot {
+  color: #595959;
+}
+
+body[data-theme="dark"] .style-market-card-prompt {
+  color: #d9d9d9;
+}
+
 body[data-theme="dark"] .style-market-card-scope {
   background: rgba(255, 36, 66, 0.12);
-  border-color: rgba(255, 36, 66, 0.35);
+  border-color: rgba(255, 36, 66, 0.25);
   color: #ff6b81;
 }
 
-body[data-theme="dark"] .style-market-favorite-btn,
-body[data-theme="dark"] .style-market-simulate-btn {
-  background: #2a2a2a;
+body[data-theme="dark"] .style-market-use-btn {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-market-use-btn:hover {
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .style-market-favorite-btn {
+  background: transparent;
   border-color: #434343;
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .style-market-favorite-btn:hover,
-body[data-theme="dark"] .style-market-simulate-btn:hover {
+body[data-theme="dark"] .style-market-favorite-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: rgba(255, 36, 66, 0.12);
@@ -830,6 +871,16 @@ body[data-theme="dark"] .style-market-favorite-btn.active {
   background: rgba(255, 36, 66, 0.15);
   border-color: var(--color-primary);
   color: #ff6b81;
+}
+
+body[data-theme="dark"] .style-market-simulate-btn {
+  color: #a6a6a6;
+  background: transparent;
+}
+
+body[data-theme="dark"] .style-market-simulate-btn:hover {
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
 }
 </style>
 

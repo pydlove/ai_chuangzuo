@@ -2,7 +2,6 @@ package com.aichuangzuo.user.modules.membership.enums;
 
 import lombok.Getter;
 
-import java.math.BigDecimal;
 import java.util.Arrays;
 
 /**
@@ -11,18 +10,16 @@ import java.util.Arrays;
 @Getter
 public enum MembershipPlan {
 
-    BASIC("basic", "基础版", new BigDecimal("3")),
-    PRO("pro", "专业版", new BigDecimal("5")),
-    FLAGSHIP("flagship", "旗舰版", new BigDecimal("10"));
+    BASIC("basic", "基础版"),
+    PRO("pro", "专业版"),
+    FLAGSHIP("flagship", "旗舰版");
 
     private final String key;
     private final String displayName;
-    private final BigDecimal inviterReward;
 
-    MembershipPlan(String key, String displayName, BigDecimal inviterReward) {
+    MembershipPlan(String key, String displayName) {
         this.key = key;
         this.displayName = displayName;
-        this.inviterReward = inviterReward;
     }
 
     /**

@@ -215,9 +215,10 @@
 import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useInviteStats } from '@/composables/useInviteStats'
 
-const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
-const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
+const { coinBalance, inviteStats, loadInviteStats } = useInviteStats()
+
 const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
 const REAL_NAME_KEY = 'aichuangzuo_real_name_info'
 const WITHDRAW_AGREEMENT_KEY = 'aichuangzuo_withdraw_agreement_accepted'
@@ -228,8 +229,6 @@ const route = useRoute()
 const realName = ref('')
 const idCard = ref('')
 const realNameVerified = ref(false)
-const coinBalance = ref(0)
-const totalEarned = ref(0)
 const withdrawRecords = ref([])
 const applyVisible = ref(false)
 const applyAmount = ref(null)
@@ -237,6 +236,8 @@ const applyAccount = ref('')
 const rulesVisible = ref(false)
 const agreementModalVisible = ref(false)
 const agreementAccepted = ref(false)
+
+const totalEarned = computed(() => inviteStats.value.coinEarned || 0)
 
 const maskedIdCard = computed(() => {
   const v = idCard.value || ''
@@ -329,23 +330,6 @@ const loadRealName = () => {
   }
 }
 
-const loadCoinBalance = () => {
-  const raw = localStorage.getItem(COIN_BALANCE_KEY)
-  coinBalance.value = raw ? parseInt(raw, 10) : 0
-}
-
-const loadInviteStats = () => {
-  const raw = localStorage.getItem(INVITE_STATS_KEY)
-  if (raw) {
-    try {
-      const stats = JSON.parse(raw)
-      totalEarned.value = stats.coinEarned || 0
-    } catch (e) {
-      totalEarned.value = 0
-    }
-  }
-}
-
 const loadWithdrawRecords = () => {
   const raw = localStorage.getItem(WITHDRAW_REQUESTS_KEY)
   if (raw) {
@@ -425,9 +409,7 @@ const submitApply = () => {
   localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(list))
   withdrawRecords.value = list
 
-  const newBalance = Math.max(0, coinBalance.value - amount)
-  localStorage.setItem(COIN_BALANCE_KEY, String(newBalance))
-  coinBalance.value = newBalance
+  coinBalance.value = Math.max(0, coinBalance.value - amount)
 
   applyVisible.value = false
   message.success('提现申请已提交，预计 7 天内到账')
@@ -447,7 +429,6 @@ const goBack = () => {
 
 onMounted(() => {
   loadRealName()
-  loadCoinBalance()
   loadInviteStats()
   loadWithdrawRecords()
   loadAgreement()

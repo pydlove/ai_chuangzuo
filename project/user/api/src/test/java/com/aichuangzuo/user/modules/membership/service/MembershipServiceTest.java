@@ -4,13 +4,19 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
+import com.aichuangzuo.user.modules.earnings.enums.EarningsStatus;
+import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
+import com.aichuangzuo.user.modules.membership.entity.Order;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
+import com.aichuangzuo.user.modules.message.entity.Message;
+import com.aichuangzuo.user.modules.message.mapper.MessageMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -19,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,6 +51,12 @@ class MembershipServiceTest {
 
     @Autowired
     private UserCoinRecordMapper userCoinRecordMapper;
+
+    @Autowired
+    private EarningsRecordMapper earningsRecordMapper;
+
+    @Autowired
+    private MessageMapper messageMapper;
 
     @Autowired
     private UserMapper userMapper;
@@ -113,7 +126,7 @@ class MembershipServiceTest {
         SubscribeResultVO result = membershipService.subscribe(invitee.getId(), request);
 
         assertTrue(result.isInviterRewarded());
-        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("5")));
+        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("50.32")));
 
         Long rewardCount = userCoinRecordMapper.selectCount(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord>()
@@ -121,6 +134,29 @@ class MembershipServiceTest {
                         .eq(com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord::getBizType, "invite_reward")
         );
         assertEquals(1L, rewardCount);
+
+        EarningsRecord earnings = earningsRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, inviter.getId())
+                        .eq(EarningsRecord::getType, "INVITE_REWARD")
+                        .eq(EarningsRecord::getSourceType, "invite")
+                        .eq(EarningsRecord::getSourceId, invitee.getId().toString())
+                        .eq(EarningsRecord::getStatus, EarningsStatus.SETTLED.getCode())
+        );
+        assertNotNull(earnings);
+        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("50.32")));
+        assertEquals(0, earnings.getCommissionRate().compareTo(new BigDecimal("0.10")));
+        assertEquals(Integer.valueOf(1), earnings.getIsFirstPurchase());
+        assertEquals("pro", earnings.getPlanKey());
+        assertEquals("year", earnings.getCycle());
+
+        Message message = messageMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Message>()
+                        .eq(Message::getTargetUserId, inviter.getId())
+                        .eq(Message::getMsgType, "reward"));
+        assertNotNull(message);
+        assertEquals("邀请奖励", message.getTitle());
+        assertTrue(message.getSummary().contains("50.32"));
     }
 
     @Test
@@ -169,6 +205,71 @@ class MembershipServiceTest {
         MembershipStatusVO vo = membershipService.getMyMembership(user.getId());
 
         assertFalse(vo.isHasMembership());
+    }
+
+    @Test
+    void extendMembership_withoutExistingMembership_startsFromToday() {
+        User user = createUser("extend-new@test.com");
+
+        membershipService.extendMembership(user.getId(), "pro", 7);
+
+        UserMembership membership = userMembershipMapper.selectByUserId(user.getId());
+        assertNotNull(membership);
+        assertEquals("pro", membership.getLevel());
+        assertEquals(LocalDate.now().plusDays(7), membership.getExpiresAt());
+    }
+
+    @Test
+    void extendMembership_withExistingMembership_extendsFromExpiry() {
+        User user = createUser("extend-existing@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        membershipService.extendMembership(user.getId(), "pro", 5);
+
+        UserMembership membership = userMembershipMapper.selectByUserId(user.getId());
+        assertEquals("pro", membership.getLevel());
+        assertEquals(LocalDate.now().plusDays(10).plusDays(5), membership.getExpiresAt());
+    }
+
+    @Test
+    void subscribe_withInviter_renewalUsesFivePercentCommission() {
+        User inviter = createUser("sub-inviter-renewal@test.com");
+        User invitee = createUser("sub-invitee-renewal@test.com");
+        createInviteRelation(inviter, invitee);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(invitee.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("month");
+        firstOrder.setAmount(new BigDecimal("29.90"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        SubscribeRequest request = buildRequest("pro", "year", "123456", new BigDecimal("503.2"));
+        SubscribeResultVO result = membershipService.subscribe(invitee.getId(), request);
+
+        assertTrue(result.isInviterRewarded());
+        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("25.16")));
+
+        EarningsRecord earnings = earningsRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, inviter.getId())
+                        .eq(EarningsRecord::getType, "INVITE_REWARD")
+                        .eq(EarningsRecord::getSourceId, invitee.getId().toString())
+        );
+        assertNotNull(earnings);
+        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("25.16")));
+        assertEquals(0, earnings.getCommissionRate().compareTo(new BigDecimal("0.05")));
+        assertEquals(Integer.valueOf(0), earnings.getIsFirstPurchase());
     }
 
     private User createUser(String email) {

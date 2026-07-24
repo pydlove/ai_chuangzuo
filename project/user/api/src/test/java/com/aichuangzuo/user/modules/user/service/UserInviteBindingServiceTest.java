@@ -8,6 +8,8 @@ import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.user.dto.request.BindInviteCodeRequest;
+import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +17,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -36,13 +39,19 @@ class UserInviteBindingServiceTest {
     @Autowired
     private UserInviteRelationMapper userInviteRelationMapper;
 
+    @Autowired
+    private UserCoinRecordMapper userCoinRecordMapper;
+
+    @Autowired
+    private UserMembershipMapper userMembershipMapper;
+
     @AfterEach
     void clear() {
         SecurityUserContext.clear();
     }
 
     @Test
-    void shouldBindInviteCodeSuccessfully() {
+    void shouldBindInviteCodeSuccessfullyAndGrantRewards() {
         User inviter = newUser("inviter-ok@test.com", "INVOK");
         User invitee = newUser("invitee-ok@test.com", "INVOE");
         userMapper.insert(inviter);
@@ -60,7 +69,15 @@ class UserInviteBindingServiceTest {
         assertEquals(invitee.getId(), relation.getInviteeId());
         assertEquals(inviter.getInviteCode(), relation.getInviteCode());
         assertEquals(2, relation.getSourceType());
-        assertEquals(0, relation.getEffectiveStatus());
+        assertEquals(1, relation.getEffectiveStatus());
+
+        User inviteeDb = userMapper.selectById(invitee.getId());
+        assertEquals(0, inviteeDb.getCoinBalance().compareTo(new BigDecimal("5")));
+
+        assertEquals(1L, userCoinRecordMapper.selectCount(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord>()
+                        .eq(com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord::getUserId, invitee.getId())
+                        .eq(com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord::getBizType, "invite_register_reward")));
     }
 
     @Test
@@ -164,6 +181,7 @@ class UserInviteBindingServiceTest {
         u.setInviteCode(inviteCode);
         u.setUserStatus(1);
         u.setEmailVerified(1);
+        u.setCoinBalance(BigDecimal.ZERO);
         u.setCreatedAt(LocalDateTime.now());
         return u;
     }

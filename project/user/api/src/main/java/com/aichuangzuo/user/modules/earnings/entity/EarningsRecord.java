@@ -26,6 +26,18 @@ public class EarningsRecord {
 
     private String sourceId;
 
+    private String planKey;
+
+    private String planName;
+
+    private String cycle;
+
+    private BigDecimal orderAmount;
+
+    private BigDecimal commissionRate;
+
+    private Integer isFirstPurchase;
+
     private String title;
 
     private String description;

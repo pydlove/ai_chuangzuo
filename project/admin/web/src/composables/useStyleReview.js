@@ -9,16 +9,18 @@ export function useStyleReview() {
   const page = ref(1)
   const pageSize = ref(20)
   const keyword = ref('')
-  const status = ref('')
+  const activeTab = ref('pending')
 
   const fetchStyles = async () => {
     loading.value = true
     try {
+      const isReviewed = activeTab.value === 'reviewed'
       const res = await listStyles({
         keyword: keyword.value,
         pageNum: page.value,
         pageSize: pageSize.value,
-        status: status.value === '' || status.value === null ? undefined : status.value
+        status: isReviewed ? undefined : 0,
+        reviewed: isReviewed ? true : undefined
       })
       styles.value = res.list
       total.value = res.total
@@ -43,6 +45,11 @@ export function useStyleReview() {
   const handlePageChange = (newPage, newPageSize) => {
     page.value = newPage
     pageSize.value = newPageSize
+    fetchStyles()
+  }
+
+  const handleTabChange = () => {
+    page.value = 1
     fetchStyles()
   }
 
@@ -89,11 +96,12 @@ export function useStyleReview() {
     page,
     pageSize,
     keyword,
-    status,
+    activeTab,
     fetchStyles,
     handleSearch,
     handleReset,
     handlePageChange,
+    handleTabChange,
     handleReject,
     handleApprove,
     handleApproveBatch

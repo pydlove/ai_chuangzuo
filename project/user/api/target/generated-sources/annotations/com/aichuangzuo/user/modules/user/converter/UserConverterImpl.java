@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-07-23T10:09:43+0800",
+    date = "2026-07-24T17:08:22+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
@@ -26,6 +26,7 @@ public class UserConverterImpl implements UserConverter {
         userProfileVO.setEmail( user.getEmail() );
         userProfileVO.setAvatarUrl( user.getAvatarUrl() );
         userProfileVO.setEmailVerified( user.getEmailVerified() );
+        userProfileVO.setInviteCode( user.getInviteCode() );
 
         return userProfileVO;
     }

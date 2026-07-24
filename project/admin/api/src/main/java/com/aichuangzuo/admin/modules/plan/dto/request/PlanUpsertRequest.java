@@ -39,9 +39,6 @@ public class PlanUpsertRequest {
 
     private BigDecimal savingsYear;
 
-    @NotNull(message = "邀请奖励不能为空")
-    private BigDecimal inviterReward;
-
     @NotNull(message = "状态不能为空")
     private Integer status;
 }

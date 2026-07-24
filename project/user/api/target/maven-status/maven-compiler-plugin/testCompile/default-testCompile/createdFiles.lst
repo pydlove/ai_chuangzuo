@@ -6,6 +6,7 @@ com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceNicknameTest.class
 com/aichuangzuo/user/modules/article/service/ArticleServiceTest.class
+com/aichuangzuo/user/modules/style/service/impl/UserStyleServiceImplTest.class
 com/aichuangzuo/user/modules/benefit/service/BenefitServiceTest.class
 com/aichuangzuo/user/modules/article/service/DraftServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.class
@@ -19,6 +20,7 @@ com/aichuangzuo/user/modules/message/service/MessageServiceTest.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceTest.class
 com/aichuangzuo/user/modules/article/service/ArticleServiceMonthlyCountTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceGetTest.class
+com/aichuangzuo/user/modules/user/service/InviteRewardServiceTest.class
 com/aichuangzuo/user/modules/auth/mail/EmailMessageFactoryTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceLoginTest.class
 com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.class

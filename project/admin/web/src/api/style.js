@@ -21,10 +21,13 @@ function normalize(row) {
 }
 
 export function listStyles(params = {}) {
-  const { keyword = '', pageNum = 1, pageSize = 20, status } = params
+  const { keyword = '', pageNum = 1, pageSize = 20, status, reviewed } = params
   const query = { keyword, pageNum, pageSize }
   if (status !== undefined && status !== null && status !== '') {
     query.status = status
+  }
+  if (reviewed !== undefined && reviewed !== null) {
+    query.reviewed = reviewed
   }
   return request.get('/api/v1/admin/style-reviews', { params: query }).then((body) => {
     const data = body.data || {}

@@ -54,7 +54,6 @@ public class PlanAdminServiceImpl implements PlanAdminService {
         entity.setArticlesQuarter(req.getArticlesQuarter());
         entity.setArticlesYear(req.getArticlesYear());
         entity.setSavingsYear(req.getSavingsYear());
-        entity.setInviterReward(req.getInviterReward());
         entity.setStatus(req.getStatus());
         entity.setTenantId(0L);
         entity.setUpdatedBy(adminUserId);

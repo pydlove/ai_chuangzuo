@@ -8,12 +8,14 @@
 
       <!-- 工具栏 -->
       <div class="style-review-toolbar">
-        <a-select
-          v-model:value="status"
-          style="width: 140px"
-          :options="statusOptions"
-          @change="handleSearch"
-        />
+        <a-tabs
+          v-model:activeKey="activeTab"
+          size="small"
+          @change="onTabChange"
+        >
+          <a-tab-pane key="pending" tab="待审核" />
+          <a-tab-pane key="reviewed" tab="已审核" />
+        </a-tabs>
         <a-input
           v-model:value="keyword"
           placeholder="风格名称或创作者"
@@ -28,6 +30,7 @@
           刷新
         </a-button>
         <a-button
+          v-if="activeTab === 'pending'"
           type="primary"
           :disabled="!canBatchApprove"
           @click="openBatchApproveModal"
@@ -44,7 +47,7 @@
         :pagination="false"
         row-key="id"
         size="middle"
-        :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
+        :row-selection="activeTab === 'pending' ? { selectedRowKeys, onChange: onSelectChange } : null"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'sourceType'">
@@ -88,7 +91,7 @@
               type="link"
               size="small"
               danger
-              :disabled="record.status === 'rejected'"
+              :disabled="record.status !== 'pending'"
               @click="openRejectModal(record)"
             >
               打回
@@ -209,7 +212,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { useStyleReview } from '@/composables/useStyleReview.js'
 
@@ -220,22 +223,16 @@ const {
   page,
   pageSize,
   keyword,
-  status,
+  activeTab,
   fetchStyles,
   handleSearch,
   handleReset,
   handlePageChange,
+  handleTabChange,
   handleReject,
   handleApprove,
   handleApproveBatch
 } = useStyleReview()
-
-const statusOptions = [
-  { label: '待审核', value: 0 },
-  { label: '已通过', value: 1 },
-  { label: '已拒绝', value: 2 },
-  { label: '全部', value: '' }
-]
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
@@ -256,11 +253,53 @@ const approveVisible = ref(false)
 const approveTarget = ref(null)
 const approveSubmitting = ref(false)
 
+const batchApproveVisible = ref(false)
+const batchApproveSubmitting = ref(false)
+
 const reasonVisible = ref(false)
 const reasonTarget = ref(null)
 
 const detailVisible = ref(false)
 const detailTarget = ref(null)
+
+const selectedRowKeys = ref([])
+
+const canBatchApprove = computed(() => {
+  return selectedRowKeys.value.length > 0
+    && styles.value
+      .filter(s => selectedRowKeys.value.includes(s.id) && s.status === 'pending')
+      .length > 0
+})
+
+const onSelectChange = (keys) => {
+  selectedRowKeys.value = keys
+}
+
+const onTabChange = () => {
+  selectedRowKeys.value = []
+  handleTabChange()
+}
+
+const openBatchApproveModal = () => {
+  batchApproveVisible.value = true
+}
+
+const confirmBatchApprove = async () => {
+  const pendingIds = styles.value
+    .filter(s => selectedRowKeys.value.includes(s.id) && s.status === 'pending')
+    .map(s => s.id)
+  if (pendingIds.length === 0) {
+    batchApproveVisible.value = false
+    return
+  }
+  batchApproveSubmitting.value = true
+  const ok = await handleApproveBatch(pendingIds)
+  batchApproveSubmitting.value = false
+  if (ok) {
+    selectedRowKeys.value = []
+    batchApproveVisible.value = false
+  }
+}
 
 const openApproveModal = (style) => {
   approveTarget.value = style
@@ -338,6 +377,15 @@ onMounted(() => {
   gap: 8px;
   margin-bottom: 16px;
   align-items: center;
+}
+
+.style-review-toolbar :deep(.ant-tabs) {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.style-review-toolbar :deep(.ant-tabs-nav) {
+  margin-bottom: 0;
 }
 
 .style-review-pagination {

@@ -14,11 +14,11 @@
     <!-- 统计卡片 -->
     <div class="invite-stats">
       <div class="invite-stat-item">
-        <div class="invite-stat-value">{{ stats.invitedCount }}</div>
+        <div class="invite-stat-value">{{ inviteStats.invitedCount }}</div>
         <div class="invite-stat-label">已邀请</div>
       </div>
       <div class="invite-stat-item">
-        <div class="invite-stat-value">{{ stats.membershipDaysEarned }}</div>
+        <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
         <div class="invite-stat-label">奖励会员天数</div>
       </div>
       <div class="invite-stat-item invite-stat-item-coin">
@@ -76,24 +76,24 @@
       <div class="invite-progress-title">阶梯奖励进度</div>
       <div class="invite-progress-item">
         <div class="invite-progress-bar">
-          <div class="invite-progress-fill" :style="{ width: Math.min(100, (stats.invitedCount / 3) * 100) + '%' }"></div>
+          <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
         </div>
         <div class="invite-progress-text">
-          {{ stats.invitedCount >= 3 ? '+3 天' : `${stats.invitedCount}/3` }}
+          {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
         </div>
       </div>
       <div class="invite-progress-item">
         <div class="invite-progress-bar">
-          <div class="invite-progress-fill" :style="{ width: Math.min(100, (stats.invitedCount / 5) * 100) + '%' }"></div>
+          <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
         </div>
         <div class="invite-progress-text">
-          {{ stats.invitedCount >= 5 ? '+5 天' : `${stats.invitedCount}/5` }}
+          {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
         </div>
       </div>
       <div class="invite-progress-item">
         <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
         <div class="invite-progress-text">
-          {{ stats.invitedCount > 5 ? `+${(stats.invitedCount - 5) * 2} 天` : '—' }}
+          {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
         </div>
       </div>
     </div>
@@ -104,10 +104,10 @@
         <span class="invite-friend-title">邀请记录</span>
       </div>
       <div class="invite-friend-list">
-        <div v-if="stats.friends.length === 0" class="invite-friend-empty">
+        <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">
           暂无邀请记录，快去分享邀请链接吧～
         </div>
-        <div v-for="f in stats.friends" :key="f.email" class="invite-friend-item">
+        <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
           <span class="invite-friend-email">{{ f.email }}</span>
           <span :class="['invite-friend-status', f.status]">
             {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
@@ -119,62 +119,20 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, inject } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import { useInviteStats } from '@/composables/useInviteStats'
+import { useUserProfile } from '@/composables/useUserProfile'
 
-const INVITE_CODE_KEY = 'aichuangzuo_invite_code'
-const INVITE_STATS_KEY = 'aichuangzuo_invite_stats'
-const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
+const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
+const { profile, loadProfile } = useUserProfile()
 
-const userId = ref(localStorage.getItem('aichuangzuo_user_id') || '88886666')
-const inviteCode = ref('')
-const coinBalance = ref(0)
-
-const stats = ref({
-  invitedCount: 0,
-  membershipDaysEarned: 0,
-  coinEarned: 0,
-  friends: []
-})
-
-const generateInviteCode = () => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
-  let code = ''
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  return code
-}
-
-const loadInviteCode = () => {
-  let code = localStorage.getItem(INVITE_CODE_KEY)
-  if (!code) {
-    code = generateInviteCode()
-    localStorage.setItem(INVITE_CODE_KEY, code)
-  }
-  inviteCode.value = code
-}
-
-const loadStats = () => {
-  const raw = localStorage.getItem(INVITE_STATS_KEY)
-  if (raw) {
-    try {
-      stats.value = JSON.parse(raw)
-    } catch {
-      // ignore parse error
-    }
-  }
-}
-
-const loadCoinBalance = () => {
-  const raw = localStorage.getItem(COIN_BALANCE_KEY)
-  coinBalance.value = raw ? parseInt(raw, 10) : 0
-}
+const userId = computed(() => profile.value?.userId || '')
+const inviteCode = computed(() => profile.value?.inviteCode || '')
 
 onMounted(() => {
-  loadInviteCode()
-  loadStats()
-  loadCoinBalance()
+  loadProfile()
+  loadInviteStats()
 })
 
 const inviteLink = computed(() => {

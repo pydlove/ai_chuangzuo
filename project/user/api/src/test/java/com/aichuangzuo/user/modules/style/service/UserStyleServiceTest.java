@@ -161,6 +161,38 @@ class UserStyleServiceTest {
     }
 
     @Test
+    void shouldResetAuditStatusToPendingWhenUpdatingRejectedStyle() {
+        User user = createUser("update-rejected@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateStyleRequest createRequest = new CreateStyleRequest();
+        createRequest.setStyleName("被打回的风格");
+        createRequest.setPrompt("原提示词");
+        UserStyleVO created = userStyleService.createStyle(createRequest);
+
+        // 模拟管理端打回
+        UserStyle rejected = userStyleMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserStyle>()
+                        .eq(UserStyle::getBizNo, created.getBizNo()));
+        rejected.setAuditStatus(2);
+        rejected.setRejectReason("过于宽泛");
+        userStyleMapper.updateById(rejected);
+
+        // 用户修改后重新提交
+        UpdateStyleRequest updateRequest = new UpdateStyleRequest();
+        updateRequest.setStyleName("被打回的风格-修订");
+        updateRequest.setPrompt("修订后的提示词");
+
+        UserStyleVO updated = userStyleService.updateStyle(created.getBizNo(), updateRequest);
+        assertEquals("被打回的风格-修订", updated.getStyleName());
+        assertEquals(Integer.valueOf(0), updated.getAuditStatus());
+
+        UserStyle afterUpdate = userStyleMapper.selectById(rejected.getId());
+        assertEquals(Integer.valueOf(0), afterUpdate.getAuditStatus());
+        assertEquals(null, afterUpdate.getRejectReason());
+    }
+
+    @Test
     void shouldRejectUpdateNonExistentStyle() {
         User user = createUser("update-none@test.com");
         SecurityUserContext.setCurrentUserId(user.getId());
