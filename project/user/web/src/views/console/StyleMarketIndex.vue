@@ -630,6 +630,50 @@ body[data-theme="dark"] .market-card-fav.active {
   border-color: var(--color-primary);
 }
 
+/* === 响应式 ≤768px === */
+@media (max-width: 768px) {
+  .market-page {
+    padding: var(--space-md);
+    gap: var(--space-lg);
+  }
+  .market-banner {
+    grid-template-columns: 1fr;
+    padding: var(--space-md);
+  }
+  .market-banner-stats {
+    display: flex;
+    overflow-x: auto;
+    gap: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
+            mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
+  }
+  .market-banner-stats::-webkit-scrollbar { display: none; }
+  .market-banner-stat {
+    flex: 0 0 120px;
+    min-width: 120px;
+  }
+  .market-upload-card {
+    grid-template-columns: auto 1fr;
+    padding: var(--space-md);
+  }
+  .market-upload-cta { grid-column: 1 / -1; width: 100%; margin-top: var(--space-sm); }
+  .market-featured-card { flex: 0 0 280px; height: 180px; }
+  .market-creator-card { flex: 0 0 160px; }
+  .market-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+  }
+  .market-tabs::-webkit-scrollbar { display: none; }
+  .market-tab { flex-shrink: 0; }
+  .market-grid { grid-template-columns: 1fr; }
+  .market-section-head { flex-wrap: wrap; gap: var(--space-sm); }
+  .market-search-input { min-width: 200px; }
+}
+
 /* === ④ 收益潜力榜 === */
 .market-section-sub {
   font-size: var(--font-body);
