@@ -23,6 +23,7 @@ export function getMarketStyles() {
       totalUses: s.totalUses,
       weeklyEarnings: s.weeklyEarnings,
       milestoneBonus: s.milestoneBonus,
+      featured: s.featured === true,
       lastSettlementAt: s.lastSettlementAt,
       createdAt: s.createdAt
     }))

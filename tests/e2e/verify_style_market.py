@@ -33,6 +33,7 @@ MOCK_STYLES = [
         'totalUses': 1560,
         'weeklyEarnings': 28.4,
         'milestoneBonus': 0,
+        'featured': True,
         'lastSettlementAt': '2026-07-20T00:00:00Z',
         'createdAt': '2026-07-10T08:30:00Z'
     },
@@ -52,6 +53,7 @@ MOCK_STYLES = [
         'totalUses': 420,
         'weeklyEarnings': 11.2,
         'milestoneBonus': 0,
+        'featured': True,
         'lastSettlementAt': '2026-07-20T00:00:00Z',
         'createdAt': '2026-07-05T08:30:00Z'
     },
@@ -71,6 +73,7 @@ MOCK_STYLES = [
         'totalUses': 88,
         'weeklyEarnings': 2.4,
         'milestoneBonus': 0,
+        'featured': True,
         'lastSettlementAt': '2026-07-20T00:00:00Z',
         'createdAt': '2026-07-12T08:30:00Z'
     },
@@ -185,7 +188,7 @@ def main():
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_v2_03_featured.png')
 
         # ───── 场景 5：④ 收益潜力榜 Top 5 渲染 ─────
-        assert page.locator('.market-creator-card').count() >= 1, '④ 无创作者卡'
+        assert page.locator('.market-creator-row').count() >= 1, '④ 无创作者行'
 
         # ───── 场景 6：⑤ 全部风格区 — 5 tab 切换 + 卡片渲染 ─────
         for tab in ['全部', '本周最热', '历史最热', '最新', '官方精选']:

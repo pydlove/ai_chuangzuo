@@ -52,14 +52,14 @@
           v-for="s in featuredStyles"
           :key="s.id"
           class="market-featured-card"
-          :style="{ background: featuredBackground(s) }"
           @click="handleUse(s)"
         >
-          <div class="market-featured-name">{{ s.name }}</div>
-          <div v-if="s.scope" class="market-featured-tag"># {{ firstScope(s.scope) }}</div>
-          <div class="market-featured-uses">🔥 本周使用 {{ s.weeklyUses }} 次</div>
-          <div class="market-featured-creator">
-            by {{ s.creatorName || '匿名用户' }} · 累计赚 {{ formatCoins(getMarketStyleEarnings(s.id)) }} 币
+          <div class="market-featured-head">
+            <div class="market-featured-name">{{ s.name }}</div>
+            <div class="market-featured-uses">🔥 {{ s.weeklyUses }}</div>
+          </div>
+          <div class="market-featured-meta">
+            <span v-if="s.scope"># {{ firstScope(s.scope) }} · </span>by {{ s.creatorName || '匿名用户' }}
           </div>
         </div>
       </div>
@@ -72,29 +72,40 @@
           <h2 class="market-section-title">收益潜力榜</h2>
           <span class="market-section-sub">看看谁在用风格赚到币</span>
         </div>
+        <button
+          v-if="hasMoreCreators"
+          class="market-section-link"
+          @click="creatorsExpanded = !creatorsExpanded"
+        >
+          {{ creatorsExpanded ? '收起 ↑' : '查看完整榜单 ↓' }}
+        </button>
       </div>
       <div v-if="topCreators.length === 0" class="market-creators-empty">
         暂无上榜创作者
       </div>
-      <div v-else class="market-creators-rail">
+      <div v-else class="market-creators-list">
         <div
-          v-for="c in topCreators"
+          v-for="(c, idx) in visibleCreators"
           :key="c.creatorId"
-          class="market-creator-card"
+          class="market-creator-row"
+          @click="handleUse(c.bestStyle)"
         >
-          <div class="market-creator-avatar">{{ (c.creatorName || '匿').charAt(0) }}</div>
-          <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
-          <div class="market-creator-weekly">本周 +{{ formatCoins(c.weeklyEarnings) }} 币</div>
-          <div v-if="c.bestStyle" class="market-creator-best">
-            代表风格 · {{ c.bestStyle.name }}
+          <div :class="['market-creator-rank', { top3: idx < 3 }]">
+            {{ String(idx + 1).padStart(2, '0') }}
           </div>
-          <button
-            v-if="c.bestStyle"
-            class="market-creator-use"
-            @click="handleUse(c.bestStyle)"
-          >
-            使用
-          </button>
+          <div class="market-creator-avatar">
+            {{ (c.creatorName || '匿').charAt(0) }}
+          </div>
+          <div class="market-creator-info">
+            <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
+            <div v-if="c.bestStyle" class="market-creator-best">
+              代表风格 · {{ c.bestStyle.name }}
+            </div>
+          </div>
+          <div class="market-creator-earning">
+            <div class="market-creator-amount">+{{ formatCoins(c.weeklyEarnings) }}</div>
+            <div class="market-creator-amount-label">本周币</div>
+          </div>
         </div>
       </div>
     </section>
@@ -136,15 +147,14 @@
           :key="s.id"
           class="market-card"
         >
-          <div class="market-card-cover" :style="{ background: featuredBackground(s) }">
-            <div class="market-card-cover-tags">
+          <div class="market-card-body">
+            <div v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
+                 class="market-card-tagrow">
               <span v-for="t in parseScopeTags(s.scope)" :key="t" class="market-card-tag">
                 # {{ t }}
               </span>
+              <span v-if="s.creatorId === currentUserId" class="market-card-mine">我的</span>
             </div>
-            <span v-if="s.creatorId === currentUserId" class="market-card-mine">我的</span>
-          </div>
-          <div class="market-card-body">
             <div class="market-card-title">{{ s.name }}</div>
             <div class="market-card-creator">
               <span class="market-card-creator-avatar">
@@ -153,6 +163,9 @@
               <span>by {{ s.creatorName || '匿名用户' }}</span>
             </div>
             <div class="market-card-prompt">{{ promptSummary(s.prompt) }}</div>
+            <div class="market-card-published" v-if="s.createdAt">
+              发布于 {{ formatTimeAgo(s.createdAt) }}
+            </div>
             <div class="market-card-stats">
               <span>🔥 本周 {{ s.weeklyUses }} 次</span>
               <span>累计 {{ s.totalUses }} 次</span>
@@ -230,18 +243,6 @@ const goUpload = () => {
 
 const firstScope = (scope) => (scope || '').split(/[,，]/)[0]?.trim() || ''
 
-const featuredBackground = (s) => {
-  const palette = [
-    'linear-gradient(135deg, #1a1a1a 0%, #2a1015 100%)',
-    'linear-gradient(135deg, #1f1f1f 0%, #2c1f0a 100%)',
-    'linear-gradient(135deg, #14142b 0%, #2a0a1f 100%)',
-    'linear-gradient(135deg, #0d1f1f 0%, #1f3a2a 100%)',
-    'linear-gradient(135deg, #2a1f1f 0%, #1a1010 100%)'
-  ]
-  const idx = (s.id || '').split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % palette.length
-  return palette[idx]
-}
-
 const handleUse = (s) => {
   try {
     useMarketStyle(s.id)
@@ -258,6 +259,13 @@ const scrollToGrid = () => {
 const searchQuery = ref('')
 const activeTab = ref('all')
 const gridSection = ref(null)
+
+// ④ 收益榜：默认前 5 行，「查看完整榜单」可展开到前 20
+const creatorsExpanded = ref(false)
+const visibleCreators = computed(() =>
+  creatorsExpanded.value ? topCreators.value : topCreators.value.slice(0, 5)
+)
+const hasMoreCreators = computed(() => topCreators.value.length > 5)
 
 const tabOptions = [
   { key: 'all', label: '全部' },
@@ -299,6 +307,22 @@ const parseScopeTags = (scopeStr) =>
 const promptSummary = (prompt) => {
   if (!prompt) return ''
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
+}
+
+const formatTimeAgo = (isoStr) => {
+  if (!isoStr) return ''
+  const diff = Date.now() - new Date(isoStr).getTime()
+  if (diff < 0) return '刚刚'
+  const minutes = Math.floor(diff / 60000)
+  if (minutes < 1) return '刚刚'
+  if (minutes < 60) return `${minutes} 分钟前`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours} 小时前`
+  const days = Math.floor(hours / 24)
+  if (days < 30) return `${days} 天前`
+  const months = Math.floor(days / 30)
+  if (months < 12) return `${months} 个月前`
+  return `${Math.floor(days / 365)} 年前`
 }
 
 const handleToggleFavorite = (id) => toggleFavorite(id)
@@ -462,18 +486,20 @@ onMounted(() => {
   box-shadow: var(--shadow-md);
 }
 
-.market-card-cover {
-  position: relative;
-  height: 80px;
-  padding: var(--space-sm) var(--space-md);
-}
 .market-card-cover-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
 }
+.market-card-tagrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+  margin-bottom: 2px;
+}
 .market-card-tag {
-  background: rgba(255, 255, 255, 0.85);
+  background: var(--color-primary-light);
   color: var(--color-primary);
   font-size: var(--font-caption);
   border-radius: var(--radius-md);
@@ -481,9 +507,6 @@ onMounted(() => {
   font-weight: 500;
 }
 .market-card-mine {
-  position: absolute;
-  top: var(--space-sm);
-  right: var(--space-sm);
   background: var(--color-info);
   color: #fff;
   font-size: var(--font-caption);
@@ -535,6 +558,10 @@ onMounted(() => {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+.market-card-published {
+  font-size: var(--font-caption);
+  color: var(--color-text-placeholder);
+}
 .market-card-stats {
   display: flex;
   gap: var(--space-md);
@@ -549,17 +576,21 @@ onMounted(() => {
   padding-top: var(--space-sm);
 }
 .market-card-use {
-  background: var(--color-primary);
-  color: #fff;
-  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
   border-radius: var(--radius-lg);
   height: 40px;
   padding: 0 var(--space-md);
   font-size: var(--font-body);
   font-weight: 600;
   cursor: pointer;
+  transition: background 0.2s, color 0.2s;
 }
-.market-card-use:hover { background: var(--color-primary-hover); }
+.market-card-use:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
 .market-card-fav {
   width: 36px;
   height: 36px;
@@ -615,9 +646,10 @@ body[data-theme="dark"] .market-card-creator-avatar {
   color: #ff6b81;
 }
 body[data-theme="dark"] .market-card-prompt { color: #d9d9d9; }
+body[data-theme="dark"] .market-card-published { color: #a6a6a6; }
 body[data-theme="dark"] .market-card-stats { color: #a6a6a6; }
 body[data-theme="dark"] .market-card-tag {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 36, 66, 0.12);
   color: #ff6b81;
 }
 body[data-theme="dark"] .market-card-fav {
@@ -628,6 +660,9 @@ body[data-theme="dark"] .market-card-fav.active {
   background: rgba(255, 36, 66, 0.15);
   color: #ff6b81;
   border-color: var(--color-primary);
+}
+body[data-theme="dark"] .market-featured-card {
+  border-color: #303030;
 }
 
 /* === 响应式 ≤768px === */
@@ -659,8 +694,20 @@ body[data-theme="dark"] .market-card-fav.active {
     padding: var(--space-md);
   }
   .market-upload-cta { grid-column: 1 / -1; width: 100%; margin-top: var(--space-sm); }
-  .market-featured-card { flex: 0 0 280px; height: 180px; }
-  .market-creator-card { flex: 0 0 160px; }
+  .market-featured-rail { grid-template-columns: 1fr; }
+  .market-creator-row {
+    grid-template-columns: auto auto 1fr;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+  }
+  .market-creator-earning {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-xs);
+    text-align: left;
+  }
+  .market-creator-amount-label { margin-top: 0; }
   .market-tabs {
     flex-wrap: nowrap;
     overflow-x: auto;
@@ -674,7 +721,7 @@ body[data-theme="dark"] .market-card-fav.active {
   .market-search-input { min-width: 200px; }
 }
 
-/* === ④ 收益潜力榜 === */
+/* === ④ 收益潜力榜（排行榜式列表） === */
 .market-section-sub {
   font-size: var(--font-body);
   color: var(--color-text-secondary);
@@ -690,88 +737,93 @@ body[data-theme="dark"] .market-card-fav.active {
   font-size: var(--font-body);
 }
 
-.market-creators-rail {
-  display: flex;
-  gap: var(--space-md);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding-bottom: var(--space-sm);
-  scrollbar-width: thin;
-}
-.market-creators-rail::-webkit-scrollbar { height: 6px; }
-.market-creators-rail::-webkit-scrollbar-thumb {
-  background: var(--color-bg-hover);
-  border-radius: 3px;
-}
-
-.market-creator-card {
-  flex: 0 0 200px;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm2);
-  padding: var(--space-md);
+.market-creators-list {
   display: flex;
   flex-direction: column;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm2);
+}
+
+.market-creator-row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
   align-items: center;
-  text-align: center;
-  scroll-snap-align: start;
-  transition: transform 0.2s, box-shadow 0.2s;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  cursor: pointer;
+  transition: background 0.2s;
+  border-bottom: 1px solid var(--color-border-light);
 }
-.market-creator-card:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.market-creator-row:last-child { border-bottom: 0; }
+.market-creator-row:hover { background: var(--color-primary-light); }
+
+.market-creator-rank {
+  font-size: var(--font-h3);
+  font-weight: 700;
+  color: var(--color-text-placeholder);
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
 }
+.market-creator-rank.top3 { color: var(--color-primary); }
+
 .market-creator-avatar {
-  width: 56px;
-  height: 56px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--color-primary);
-  color: #fff;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-h3);
+  font-size: var(--font-body);
   font-weight: 700;
-  margin-bottom: var(--space-sm);
 }
+
+.market-creator-info { min-width: 0; }
 .market-creator-name {
   font-size: var(--font-body);
   font-weight: 700;
   color: var(--color-text-primary);
-  margin-bottom: var(--space-xs);
-}
-.market-creator-weekly {
-  font-size: var(--font-h2);
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1.2;
-  margin-bottom: var(--space-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .market-creator-best {
   font-size: var(--font-small);
   color: var(--color-text-secondary);
-  margin-bottom: var(--space-md);
+  margin-top: 2px;
   white-space: nowrap;
-  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.market-creator-use {
-  background: var(--color-primary);
-  color: #fff;
-  border: 0;
-  border-radius: var(--radius-lg);
-  height: 36px;
-  width: 100%;
-  font-size: var(--font-body);
-  font-weight: 600;
-  cursor: pointer;
+
+.market-creator-earning {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
 }
-.market-creator-use:hover { background: var(--color-primary-hover); }
+.market-creator-amount {
+  font-size: var(--font-h3);
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+}
+.market-creator-amount-label {
+  font-size: var(--font-caption);
+  color: var(--color-text-secondary);
+  margin-top: 2px;
+}
 
 /* ④ 暗色 */
-body[data-theme="dark"] .market-creator-card { background: #1f1f1f; }
+body[data-theme="dark"] .market-creators-list { background: #1f1f1f; }
+body[data-theme="dark"] .market-creator-row { border-bottom-color: #303030; }
+body[data-theme="dark"] .market-creator-row:hover { background: rgba(255, 36, 66, 0.10); }
 body[data-theme="dark"] .market-creator-name { color: var(--color-text-primary); }
+body[data-theme="dark"] .market-creator-avatar {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
 body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary); }
 
 /* === ③ 官方精选 === */
@@ -811,7 +863,7 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
 .market-section-link:hover { color: var(--color-primary-hover); }
 
 .market-featured-empty {
-  height: 200px;
+  height: 96px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -821,62 +873,53 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   border-radius: var(--radius-xl);
 }
 .market-featured-rail {
-  display: flex;
-  gap: var(--space-md);
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
-  padding-bottom: var(--space-sm);
-  scrollbar-width: thin;
-}
-.market-featured-rail::-webkit-scrollbar { height: 6px; }
-.market-featured-rail::-webkit-scrollbar-thumb {
-  background: var(--color-bg-hover);
-  border-radius: 3px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-sm);
 }
 .market-featured-card {
-  scroll-snap-align: start;
-  flex: 0 0 320px;
-  height: 200px;
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-md) var(--space-lg);
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  color: #fff;
+  gap: var(--space-xs);
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition: border-color 0.2s, background 0.2s;
 }
 .market-featured-card:hover {
-  transform: translateY(-4px);
-  box-shadow: var(--shadow-md);
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+.market-featured-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
 }
 .market-featured-name {
-  font-size: var(--font-h3);
+  font-size: var(--font-body);
   font-weight: 700;
-  line-height: 1.3;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  color: var(--color-text-primary);
+  white-space: nowrap;
   overflow: hidden;
-}
-.market-featured-tag {
-  display: inline-flex;
-  width: fit-content;
-  background: rgba(255, 36, 66, 0.85);
-  color: #fff;
-  font-size: var(--font-caption);
-  border-radius: var(--radius-md);
-  padding: 2px 8px;
-  margin-top: var(--space-xs);
+  text-overflow: ellipsis;
+  flex: 1;
 }
 .market-featured-uses {
-  font-size: var(--font-h2);
+  font-size: var(--font-h3);
   font-weight: 700;
-  line-height: 1.2;
+  color: var(--color-primary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
-.market-featured-creator {
-  font-size: var(--font-caption);
-  color: rgba(255, 255, 255, 0.7);
+.market-featured-meta {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* === ② 上传激励卡 === */

@@ -157,6 +157,7 @@ export function shareStyleToMarket(style, sourceType) {
     excerpt1: style.excerpt1 || '',
     excerpt2: style.excerpt2 || '',
     status: 'pending',
+    featured: false,
     price: PRICE_PER_USE,
     weeklyUses: 0,
     totalUses: 0,
@@ -391,12 +392,13 @@ export const topCreators = computed(() => {
   return Array.from(map.values())
     .map((c) => ({ ...c, totalEarnings: tbm[c.creatorId] || 0 }))
     .sort((a, b) => b.weeklyEarnings - a.weeklyEarnings)
-    .slice(0, 5)
+    .slice(0, 20)
 })
 
 export const featuredStyles = computed(() =>
   marketStyles.value
-    .filter((s) => s.status === 'approved' && (s.totalUses || 0) >= 5)
+    // 官方精选由管理端管理员手动设置（风格上有 featured 字段），不再用 totalUses 自动算
+    .filter((s) => s.status === 'approved' && s.featured === true)
     .sort((a, b) => (b.totalUses || 0) - (a.totalUses || 0))
-    .slice(0, 8)
+    .slice(0, 6)
 )
