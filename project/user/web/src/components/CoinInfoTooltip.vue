@@ -8,7 +8,7 @@
       <div class="invite-coin-tooltip-content">
         <div class="invite-coin-tooltip-title">💰 创作币说明</div>
         <div class="invite-coin-tooltip-desc">
-          创作币是爱创作推出的虚拟货币，<b>1 创作币 = 1 元人民币</b>。
+          创作币是爱创作推出的虚拟货币，<b>10 创作币 = 1 元人民币</b>。
         </div>
 
         <div class="invite-coin-tooltip-section">
@@ -23,7 +23,7 @@
         <div class="invite-coin-tooltip-section">
           <div class="invite-coin-tooltip-section-title">可用于</div>
           <ul class="invite-coin-tooltip-list">
-            <li>满 100 创作币可申请<b>提现至支付宝</b></li>
+            <li>满 1000 创作币可申请<b>提现至支付宝</b></li>
             <li>后续可用于<b>抵扣会员订阅</b>费用</li>
           </ul>
         </div>

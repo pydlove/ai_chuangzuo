@@ -91,7 +91,7 @@
                     <span class="invite-rule-label">💰 创作币返利</span>
                     <span class="invite-rule-text">
                       <u class="invite-rule-underline">推荐新客下单即获得奖励，一次邀请终身享受订单返佣红利</u>。<br>
-                      好友首次购买返 10%，续费返 5%（1 创作币 = 1 元，满 100 可提现至支付宝）。
+                      好友首次购买返 10%，续费返 5%（10 创作币 = 1 元，满 1000 可提现至支付宝）。
                     </span>
                   </div>
                   <div class="invite-rule-item">
@@ -284,7 +284,7 @@
                   <h4 class="invite-rules-detail-heading">提现规则</h4>
                   <ul class="invite-rules-detail-list">
                     <li>仅付费邀请用户可申请提现，且需至少邀请 3 位付费好友。</li>
-                    <li>创作币余额满 100 即可提现，1 创作币 = 1 元人民币。</li>
+                    <li>创作币余额满 1000 即可提现，10 创作币 = 1 元人民币。</li>
                     <li>提现申请提交后约 1 个工作日审核，预计 7 个工作日内到账。</li>
                     <li>目前仅支持支付宝提现，请确保支付宝账号和真实姓名与本人一致。</li>
                     <li>因账号信息错误、账户异常等原因导致的提现失败，平台概不负责。</li>
@@ -319,8 +319,8 @@
               </div>
               <div class="withdraw-item">
                 <label class="withdraw-label">提现金额</label>
-                <input v-model.number="withdrawAmount" class="withdraw-input" type="number" min="100" :max="coinBalance" placeholder="最低 100" />
-                <div class="withdraw-hint">1 创作币 = 1 元，满 100 可提现</div>
+                <input v-model.number="withdrawAmount" class="withdraw-input" type="number" min="1000" :max="coinBalance" placeholder="最低 1000" />
+                <div class="withdraw-hint">10 创作币 = 1 元，满 1000 可提现</div>
               </div>
               <div class="withdraw-item">
                 <label class="withdraw-label">支付宝账号</label>
@@ -2521,8 +2521,8 @@ const submitWithdraw = () => {
   const amount = Number(withdrawAmount.value)
   const account = withdrawAccount.value.trim()
   const name = withdrawName.value.trim()
-  if (!amount || amount < 100) {
-    message.warning('提现金额最低 100 创作币')
+  if (!amount || amount < 1000) {
+    message.warning('提现金额最低 1000 创作币')
     return
   }
   if (amount > coinBalance.value) {

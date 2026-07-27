@@ -61,7 +61,7 @@
         <div class="coin-stat-card">
           <div class="coin-stat-label">可提现金额</div>
           <div class="coin-stat-value">{{ coinBalance }} <span class="coin-stat-unit">创作币</span></div>
-          <div class="coin-stat-hint">1 创作币 = 1 元，满 100 可提现</div>
+          <div class="coin-stat-hint">10 创作币 = 1 元，满 1000 可提现</div>
         </div>
         <div class="coin-stat-card">
           <div class="coin-stat-label">已提现金额</div>
@@ -139,11 +139,11 @@
             v-model.number="applyAmount"
             class="coin-apply-input"
             type="number"
-            min="100"
+            min="1000"
             :max="coinBalance"
-            placeholder="最低 100"
+            placeholder="最低 1000"
           />
-          <div class="coin-apply-hint">1 创作币 = 1 元，满 100 可提现</div>
+          <div class="coin-apply-hint">10 创作币 = 1 元，满 1000 可提现</div>
         </div>
         <div class="coin-apply-item">
           <label class="coin-apply-label">支付宝账号</label>
@@ -182,7 +182,7 @@
     >
       <ol class="coin-rules-list">
         <li>仅<span class="coin-rules-highlight">付费邀请用户</span>可申请提现，且需至少邀请 <span class="coin-rules-highlight">3</span> 位<span class="coin-rules-highlight">付费好友</span>。</li>
-        <li>创作币余额满 <span class="coin-rules-highlight">100</span> 即可提现，<span class="coin-rules-highlight">1 创作币 = 1 元</span>人民币。</li>
+        <li>创作币余额满 <span class="coin-rules-highlight">1000</span> 即可提现，<span class="coin-rules-highlight">10 创作币 = 1 元</span>人民币。</li>
         <li>提现申请提交后约 <span class="coin-rules-highlight">1 个工作日</span>审核，预计 <span class="coin-rules-highlight">7 个工作日内</span>到账。</li>
         <li>目前仅支持<span class="coin-rules-highlight">支付宝</span>提现，请确保<span class="coin-rules-highlight">支付宝账号</span>和<span class="coin-rules-highlight">真实姓名</span>与本人一致。</li>
         <li>因<span class="coin-rules-highlight">账号信息错误</span>、<span class="coin-rules-highlight">账户异常</span>等原因导致的提现失败，平台概不负责。</li>
@@ -257,7 +257,7 @@ const withdrawnTotal = computed(() => {
 
 const eligibilityLevel = computed(() => {
   if (!realNameVerified.value) return 'disabled'
-  if (coinBalance.value < 100) return 'low'
+  if (coinBalance.value < 1000) return 'low'
   if (withdrawRecords.value.some((r) => r.status === 'pending')) return 'pending'
   return 'ready'
 })
@@ -275,7 +275,7 @@ const eligibilityText = computed(() => {
 const eligibilityTip = computed(() => {
   switch (eligibilityLevel.value) {
     case 'disabled': return '请先完成实名认证，再申请提现。'
-    case 'low': return `当前余额 ${coinBalance.value} 创作币，满 100 才可提现。`
+    case 'low': return `当前余额 ${coinBalance.value} 创作币，满 1000 才可提现。`
     case 'pending': return '你有提现申请正在审核中，请耐心等待。'
     case 'ready': return '账户状态良好，可立即申请提现。'
     default: return ''
@@ -286,14 +286,14 @@ const canApplyWithdraw = computed(() => eligibilityLevel.value === 'ready')
 
 const applyButtonText = computed(() => {
   if (!realNameVerified.value) return '请先实名认证'
-  if (coinBalance.value < 100) return '余额不足 100'
+  if (coinBalance.value < 1000) return '余额不足 1000'
   if (withdrawRecords.value.some((r) => r.status === 'pending')) return '审核中'
   return '申请提现'
 })
 
 const canSubmitApply = computed(() => {
   const amount = Number(applyAmount.value)
-  if (!amount || amount < 100 || amount > coinBalance.value) return false
+  if (!amount || amount < 1000 || amount > coinBalance.value) return false
   if (!applyAccount.value.trim()) return false
   if (!realNameVerified.value) return false
   if (!agreementAccepted.value) return false
@@ -372,8 +372,8 @@ const openApplyModal = () => {
     message.warning('请先完成实名认证')
     return
   }
-  if (coinBalance.value < 100) {
-    message.warning('余额不足 100 创作币')
+  if (coinBalance.value < 1000) {
+    message.warning('余额不足 1000 创作币')
     return
   }
   if (withdrawRecords.value.some((r) => r.status === 'pending')) {

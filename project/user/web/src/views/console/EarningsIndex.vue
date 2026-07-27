@@ -104,7 +104,7 @@
       <ol class="account-rules-list">
         <li><span class="account-rules-highlight">实时到账</span>：风格市场使用费、投稿奖励、邀请好友订阅返佣 等收益即时到账至账户余额，无需手动操作。</li>
         <li><span class="account-rules-highlight">按月自动结算</span>：收益排行榜（月度 TOP 10）等活动奖励按自然月结算，每月 1 日由系统自动将上月奖励转入账户余额，无须用户操作。</li>
-        <li>账户余额满 <span class="account-rules-highlight">100 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">1 创作币 = 1 元</span>人民币；提现申请约 1 个工作日审核，7 个工作日内到账。</li>
+        <li>账户余额满 <span class="account-rules-highlight">1000 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">10 创作币 = 1 元</span>人民币；提现申请约 1 个工作日审核，7 个工作日内到账。</li>
         <li>账户余额即可提现金额，<span class="account-rules-highlight">不存在手动结算操作</span>；排行榜未到账的奖励不可单独提现，将随月结自动入账。</li>
       </ol>
       <div class="account-rules-footer">* 活动最终解释权归平台所有。</div>

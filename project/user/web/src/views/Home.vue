@@ -181,7 +181,7 @@
               </svg>
             </div>
             <div class="feature-name">创作币奖励</div>
-            <div class="feature-desc">完成任务、活动、上榜，1 元 = 1 创作币。抵扣会员购买、满 100 可提现到支付宝。</div>
+            <div class="feature-desc">完成任务、活动、上榜，1 元 = 10 创作币。抵扣会员购买、满 1000 可提现到支付宝。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="200">
             <div class="feature-icon">
