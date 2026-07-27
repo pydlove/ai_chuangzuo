@@ -13,19 +13,22 @@
       <nav class="console-sidebar-nav">
         <template v-for="item in navItems" :key="item.path || item.label">
           <div v-if="item.children" class="console-sidebar-group">
-            <div class="console-sidebar-group-title">
+            <div class="console-sidebar-group-title" @click="toggleMineGroup">
               <component :is="item.icon" class="nav-icon" />
               <span>{{ item.label }}</span>
+              <CaretRightOutlined class="group-chevron" :class="{ open: mineExpanded }" />
             </div>
-            <router-link
-              v-for="sub in item.children"
-              :key="sub.path"
-              :to="sub.path"
-              class="console-sidebar-item sub-item"
-              :class="{ active: isActive(sub.path) }"
-            >
-              <span class="nav-label">{{ sub.label }}</span>
-            </router-link>
+            <div v-show="mineExpanded">
+              <router-link
+                v-for="sub in item.children"
+                :key="sub.path"
+                :to="sub.path"
+                class="console-sidebar-item sub-item"
+                :class="{ active: isActive(sub.path) }"
+              >
+                <span class="nav-label">{{ sub.label }}</span>
+              </router-link>
+            </div>
           </div>
           <router-link
             v-else
@@ -1263,11 +1266,19 @@ import {
   DollarOutlined,
   TrophyOutlined,
   UserOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  CaretRightOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
+
+// 「我的」分组默认折叠，展开状态写入 localStorage 跨会话保留
+const mineExpanded = ref(localStorage.getItem('aichuangzuo_mine_nav_expanded') === '1')
+const toggleMineGroup = () => {
+  mineExpanded.value = !mineExpanded.value
+  localStorage.setItem('aichuangzuo_mine_nav_expanded', mineExpanded.value ? '1' : '0')
+}
 
 const userProfile = useUserProfile()
 const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
@@ -1426,13 +1437,19 @@ const goToNewcomerOffer = () => {
 
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
-  { path: '/console/works', label: '我的作品', icon: FolderOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
-  { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
   { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
-  { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
+  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
-  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined }
+  {
+    label: '我的',
+    icon: UserOutlined,
+    children: [
+      { path: '/console/works', label: '我的作品', icon: FolderOutlined },
+      { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
+      { path: '/console/earnings', label: '我的账户', icon: DollarOutlined }
+    ]
+  }
 ]
 
 // 手机端底部 TabBar：只保留 4 个高频入口，其余功能内聚到 "我的"
@@ -2745,6 +2762,22 @@ provide('consoleActions', {
   font-size: 14px;
   color: #595959;
   font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.console-sidebar-group-title:hover {
+  background: var(--color-primary-light);
+}
+.group-chevron {
+  margin-left: auto;
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  transition: transform 0.2s;
+}
+.group-chevron.open {
+  transform: rotate(90deg);
 }
 
 .console-sidebar-item.sub-item {
