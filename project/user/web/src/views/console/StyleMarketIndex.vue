@@ -52,7 +52,7 @@
           v-for="s in featuredStyles"
           :key="s.id"
           class="market-featured-card"
-          @click="handleUse(s)"
+          @click="openStyleDetail(s)"
         >
           <div class="market-featured-head">
             <div class="market-featured-name">{{ s.name }}</div>
@@ -146,6 +146,7 @@
           v-for="s in filteredStyles"
           :key="s.id"
           class="market-card"
+          @click="openStyleDetail(s)"
         >
           <div class="market-card-body">
             <div v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
@@ -171,18 +172,18 @@
               <span>累计 {{ s.totalUses }} 次</span>
             </div>
             <div class="market-card-actions">
-              <button class="market-card-use" @click="handleUse(s)">使用</button>
+              <button class="market-card-use" @click.stop="handleUse(s)">使用</button>
               <button
                 :class="['market-card-fav', { active: isFavorite(s.id) }]"
-                @click="handleToggleFavorite(s.id)"
+                @click.stop="handleToggleFavorite(s.id)"
               >
                 {{ isFavorite(s.id) ? '♥' : '♡' }}
               </button>
-              <button class="market-card-view" @click="handleUse(s)">查看</button>
+              <button class="market-card-view" @click.stop="openStyleDetail(s)">查看</button>
               <button
                 v-if="s.creatorId === currentUserId"
                 class="market-card-sim"
-                @click="handleSimulate(s)"
+                @click.stop="handleSimulate(s)"
               >
                 模拟
               </button>
@@ -275,6 +276,74 @@
       </div>
     </div>
   </a-modal>
+
+  <!-- 风格详情 modal — 展示风格内容（prompt、统计、适用范围等） -->
+  <a-modal
+    v-if="selectedStyle"
+    class="style-detail-modal"
+    :open="styleDetailVisible"
+    :footer="null"
+    :width="560"
+    centered
+    :destroy-on-close="true"
+    @cancel="closeStyleDetail"
+  >
+    <template #title>
+      <div class="style-detail-title">
+        <div class="style-detail-name">
+          {{ selectedStyle.name }}
+          <span v-if="selectedStyle.featured" class="style-detail-featured">官方精选</span>
+          <span v-if="selectedStyle.creatorId === currentUserId" class="style-detail-mine">我的</span>
+        </div>
+        <div class="style-detail-creator">
+          <span class="style-detail-creator-avatar">{{ (selectedStyle.creatorName || '匿').charAt(0) }}</span>
+          <span>by {{ selectedStyle.creatorName || '匿名用户' }}</span>
+        </div>
+      </div>
+    </template>
+
+    <div class="style-detail-stats">
+      <div class="style-detail-stat">
+        <div class="style-detail-stat-value">{{ selectedStyle.weeklyUses || 0 }}</div>
+        <div class="style-detail-stat-label">本周使用</div>
+      </div>
+      <div class="style-detail-stat">
+        <div class="style-detail-stat-value">{{ selectedStyle.totalUses || 0 }}</div>
+        <div class="style-detail-stat-label">累计使用</div>
+      </div>
+      <div class="style-detail-stat">
+        <div class="style-detail-stat-value">+{{ formatCoins(selectedStyle.weeklyEarnings) }}</div>
+        <div class="style-detail-stat-label">本周币</div>
+      </div>
+      <div class="style-detail-stat">
+        <div class="style-detail-stat-value">{{ formatCoins(styleDetailEarnings) }}</div>
+        <div class="style-detail-stat-label">累计币 (×0.2)</div>
+      </div>
+    </div>
+
+    <div class="style-detail-section" v-if="selectedStyle.scope">
+      <div class="style-detail-section-title">适用范围</div>
+      <div class="style-detail-scope-list">
+        <span v-for="tag in parseScopeTags(selectedStyle.scope)" :key="tag" class="style-detail-scope-tag"># {{ tag }}</span>
+      </div>
+    </div>
+
+    <div class="style-detail-section">
+      <div class="style-detail-section-title">风格提示词</div>
+      <div class="style-detail-prompt">{{ selectedStyle.prompt || '暂无提示词' }}</div>
+    </div>
+
+    <div class="style-detail-section" v-if="selectedStyle.excerpt1 || selectedStyle.excerpt2">
+      <div class="style-detail-section-title">示例片段</div>
+      <div v-if="selectedStyle.excerpt1" class="style-detail-excerpt">{{ selectedStyle.excerpt1 }}</div>
+      <div v-if="selectedStyle.excerpt2" class="style-detail-excerpt">{{ selectedStyle.excerpt2 }}</div>
+    </div>
+
+    <div class="style-detail-footer">
+      <span v-if="selectedStyle.createdAt">发布于 {{ formatTimeAgo(selectedStyle.createdAt) }}</span>
+      <span v-else>风格市场</span>
+    </div>
+  </a-modal>
 </template>
 
 <script setup>
@@ -341,6 +410,23 @@ const handleUse = (s) => {
     alert(err.message)
   }
 }
+
+// 风格详情 modal：点击卡片/查看按钮展示风格内容（prompt、统计等），不再直接跳转创作页
+const styleDetailVisible = ref(false)
+const selectedStyle = ref(null)
+const openStyleDetail = (s) => {
+  selectedStyle.value = s
+  styleDetailVisible.value = true
+}
+const closeStyleDetail = () => {
+  styleDetailVisible.value = false
+  selectedStyle.value = null
+}
+const styleDetailEarnings = computed(() => {
+  const s = selectedStyle.value
+  if (!s) return 0
+  return (s.totalUses || 0) * 0.2
+})
 
 const scrollToGrid = () => {
   document.querySelector('.market-grid-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -1126,6 +1212,131 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 }
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
+
+/* ===== 风格详情 modal ===== */
+.style-detail-modal { }
+.style-detail-title {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.style-detail-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.style-detail-featured {
+  font-size: 11px;
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.style-detail-mine {
+  font-size: 11px;
+  color: #07c160;
+  background: rgba(7, 193, 96, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.style-detail-creator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.style-detail-creator-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff5577 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.style-detail-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.style-detail-stat { text-align: center; }
+.style-detail-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.style-detail-stat-label {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: 2px;
+}
+
+.style-detail-section {
+  margin-bottom: 16px;
+}
+.style-detail-section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+.style-detail-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.style-detail-scope-tag {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-page);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.style-detail-prompt {
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.style-detail-excerpt {
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
+  margin-bottom: 8px;
+}
+.style-detail-excerpt:last-child { margin-bottom: 0; }
+
+.style-detail-footer {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  text-align: center;
+}
+
+@media (max-width: 640px) {
+  .style-detail-stats { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ===== 创作者详情 modal ===== */
 .creator-modal-title {

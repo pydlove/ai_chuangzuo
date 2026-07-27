@@ -271,6 +271,18 @@ def main():
         modal_use = page.locator('.creator-modal button:has-text("使用")').count()
         assert modal_use == 0, f'创作者 modal 里不应有"使用"按钮: {modal_use}'
 
+        # ───── 风格卡片点击查看 → 风格详情 modal ─────
+        page.goto(f'{URL}/console/style-market', wait_until='domcontentloaded')
+        page.wait_for_timeout(1200)
+        page.locator('.market-card').first.click()
+        page.wait_for_timeout(400)
+        assert page.locator('.style-detail-modal').is_visible(), '风格详情 modal 未打开'
+        assert page.locator('.style-detail-prompt').count() == 1
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_v2_12_style_detail.png')
+        # 风格详情 modal 里没有"使用"按钮
+        detail_use = page.locator('.style-detail-modal button:has-text("使用")').count()
+        assert detail_use == 0, f'风格详情 modal 里不应有"使用"按钮: {detail_use}'
+
         if errs:
             raise AssertionError('页面 JS 错误: ' + ' / '.join(errs))
 
