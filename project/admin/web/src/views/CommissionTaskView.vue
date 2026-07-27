@@ -62,7 +62,7 @@
       </a-form>
     </a-modal>
 
-    <a-drawer v-model:open="detailVisible" title="任务详情与稿件采纳" width="760">
+    <a-modal v-model:open="detailVisible" title="任务详情与稿件采纳" :width="900" centered :footer="null" :body-style="{ maxHeight: '70vh', overflow: 'auto' }">
       <template v-if="detail?.task">
         <a-descriptions bordered :column="2" size="small">
           <a-descriptions-item label="任务">{{ detail.task.title }}</a-descriptions-item>
@@ -77,20 +77,26 @@
 
         <div class="submission-heading">
           <h3>投稿稿件</h3>
-          <a-button type="primary" :disabled="!canAdopt" :loading="adopting" @click="adoptSelected">采纳所选并发奖</a-button>
+          <a-space>
+            <a-button type="primary" :disabled="!canAdopt" :loading="adopting" @click="adoptSelected">采纳所选并发奖</a-button>
+            <a-button @click="openAddSubmission">添加投稿人</a-button>
+          </a-space>
         </div>
         <a-alert v-if="detail.task.status === 1" type="info" show-icon :message="`还可采纳 ${remainingCount} 篇，最多选择对应数量`" />
         <a-alert v-else-if="detail.task.status === 2" type="success" show-icon message="任务已完成，不可再采纳" />
-        <a-table :columns="submissionColumns" :data-source="detail.submissions || []" row-key="id" :pagination="false" :row-selection="rowSelection">
+        <a-table :columns="submissionColumns" :data-source="visibleSubmissions" row-key="id" :pagination="false" :row-selection="rowSelection">
           <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'article'">
+            <template v-if="column.key === 'submitter'">
+              <span>{{ record.submitterNickname || record.submitterEmail || record.submitterId }}</span>
+            </template>
+            <template v-else-if="column.key === 'article'">
               <a-button type="link" @click="previewSubmission = record">《{{ record.articleTitle }}》</a-button>
             </template>
             <template v-else-if="column.key === 'status'"><a-tag>{{ submissionStatus(record.status) }}</a-tag></template>
           </template>
         </a-table>
       </template>
-    </a-drawer>
+    </a-modal>
 
     <a-modal :open="!!previewSubmission" title="稿件内容" :footer="null" width="760" @cancel="previewSubmission = null">
       <template v-if="previewSubmission">
@@ -98,6 +104,32 @@
         <p class="article-meta">{{ previewSubmission.wordCount }} 字</p>
         <div class="article-body">{{ previewSubmission.articleBody }}</div>
       </template>
+    </a-modal>
+
+    <a-modal v-model:open="addSubmissionVisible" title="添加投稿人" :confirm-loading="addingSubmission" @ok="submitAddSubmission">
+      <a-form layout="vertical" :model="submissionForm" :rules="submissionRules" ref="submissionFormRef">
+        <a-form-item label="选择用户" name="submitterIds" extra="可搜索注册用户（含机器人/运营号），已添加的不会出现在选项中">
+          <a-select
+            v-model:value="submissionForm.submitterIds"
+            mode="multiple"
+            show-search
+            :filter-option="false"
+            placeholder="输入用户名或邮箱搜索"
+            :options="userOptions"
+            @search="searchUsers"
+            @dropdown-visible-change="onUserDropdownOpen"
+          />
+        </a-form-item>
+        <a-form-item label="文章标题" name="articleTitle">
+          <a-input v-model:value="submissionForm.articleTitle" :maxlength="256" />
+        </a-form-item>
+        <a-form-item label="文章内容" name="articleBody">
+          <a-textarea v-model:value="submissionForm.articleBody" :rows="8" :maxlength="20000" />
+        </a-form-item>
+        <a-form-item label="字数" name="wordCount">
+          <a-input-number v-model:value="submissionForm.wordCount" :min="1" style="width:100%" />
+        </a-form-item>
+      </a-form>
     </a-modal>
   </div>
 </template>
@@ -107,10 +139,11 @@ import { computed, reactive, ref } from 'vue'
 import { Modal, message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  adoptCommissionSubmissions, closeCommissionTask,
+  adoptCommissionSubmissions, closeCommissionTask, createCommissionSubmissionBatch,
   createCommissionTask, fetchCommissionTask, fetchCommissionTasks,
   updateCommissionTask
 } from '@/api/commission.js'
+import { listUserOptions } from '@/api/userOptions.js'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -129,6 +162,14 @@ const detailVisible = ref(false)
 const detail = ref(null)
 const selectedRowKeys = ref([])
 const previewSubmission = ref(null)
+const addSubmissionVisible = ref(false)
+const addingSubmission = ref(false)
+const submissionFormRef = ref()
+const userOptions = ref([])
+const submissionForm = reactive({ submitterIds: [], articleTitle: '', articleBody: '', wordCount: undefined })
+const submissionRules = {
+  submitterIds: [{ required: true, message: '请至少选择一位投稿用户', type: 'array', min: 1 }]
+}
 const statusOptions = [0, 1, 2].map((value) => ({ value, label: taskStatus(value) }))
 const columns = [
   { title: '任务编号', dataIndex: 'taskNo', width: 180 }, { title: '标题', dataIndex: 'title' },
@@ -139,11 +180,15 @@ const columns = [
   { title: '操作', key: 'action', width: 240 }
 ]
 const submissionColumns = [
-  { title: '投稿用户', dataIndex: 'submitterId', width: 100 }, { title: '稿件', key: 'article' },
-  { title: '字数', dataIndex: 'wordCount', width: 90 }, { title: '状态', key: 'status', width: 110 }
+  { title: '投稿用户', key: 'submitter', dataIndex: 'submitterNickname', width: 140 },
+  { title: '用户邮箱', dataIndex: 'submitterEmail', width: 180 },
+  { title: '稿件', key: 'article' },
+  { title: '字数', dataIndex: 'wordCount', width: 90 },
+  { title: '状态', key: 'status', width: 110 }
 ]
 const pagination = computed(() => ({ current: page.value, pageSize: pageSize.value, total: total.value, showSizeChanger: true }))
 const remainingCount = computed(() => detail.value ? detail.value.task.neededCount - detail.value.task.adoptedCount : 0)
+const visibleSubmissions = computed(() => (detail.value?.submissions || []).filter(s => !s.articleBizNo?.startsWith('MANUAL:')))
 const canAdopt = computed(() => detail.value?.task.status === 1 && selectedRowKeys.value.length > 0 && selectedRowKeys.value.length <= remainingCount.value)
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
@@ -232,6 +277,53 @@ async function adoptSelected() {
     loadTasks()
   } catch (error) { message.error(error.message || '采纳发奖失败') }
   finally { adopting.value = false }
+}
+function openAddSubmission() {
+  Object.assign(submissionForm, { submitterIds: [], articleTitle: '', articleBody: '', wordCount: detail.value?.task?.minWordCount || 600 })
+  userOptions.value = []
+  addSubmissionVisible.value = true
+}
+const existingSubmitterIds = computed(() => new Set((detail.value?.submissions || []).map(s => s.submitterId)))
+
+async function searchUsers(keyword) {
+  try {
+    const users = await listUserOptions(keyword, 20)
+    userOptions.value = users
+      .filter(u => !existingSubmitterIds.value.has(u.id))
+      .map(u => ({ value: u.id, label: `${u.nickname || '-'}（${u.email || u.id}）` }))
+  } catch {
+    userOptions.value = []
+  }
+}
+async function onUserDropdownOpen(open) {
+  if (open && userOptions.value.length === 0) {
+    await searchUsers('')
+  }
+}
+async function submitAddSubmission() {
+  await submissionFormRef.value?.validate()
+  const task = detail.value?.task
+  if (!task) return
+  if (submissionForm.wordCount != null && (submissionForm.wordCount < task.minWordCount || submissionForm.wordCount > task.maxWordCount)) {
+    return message.warning(`字数需在 ${task.minWordCount}-${task.maxWordCount} 之间`)
+  }
+  addingSubmission.value = true
+  try {
+    const count = await createCommissionSubmissionBatch(task.id, {
+      submitterIds: submissionForm.submitterIds,
+      articleTitle: submissionForm.articleTitle,
+      articleBody: submissionForm.articleBody,
+      wordCount: submissionForm.wordCount
+    })
+    message.success(`已成功添加 ${count} 位投稿人`)
+    addSubmissionVisible.value = false
+    await openDetail(task.id)
+    loadTasks()
+  } catch (error) {
+    message.error(error.message || '添加失败')
+  } finally {
+    addingSubmission.value = false
+  }
 }
 function taskStatus(value) { return ['投递中', '评选中', '已完成'][value] || '未知' }
 function submissionStatus(value) { return ['待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知' }

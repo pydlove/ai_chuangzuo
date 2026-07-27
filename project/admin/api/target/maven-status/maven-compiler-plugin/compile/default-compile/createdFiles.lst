@@ -23,6 +23,7 @@ com/aichuangzuo/admin/modules/order/vo/OrderTrendVO.class
 com/aichuangzuo/admin/modules/generation/controller/PromptTemplateAdminController.class
 com/aichuangzuo/admin/modules/leaderboard/service/LeaderboardAwardService.class
 com/aichuangzuo/admin/config/CaffeineConfig$1.class
+com/aichuangzuo/admin/modules/commission/dto/request/CommissionSubmissionCreateRequest.class
 com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigService.class
 com/aichuangzuo/admin/modules/generation/dto/request/CloneTemplateRequest.class
 com/aichuangzuo/admin/modules/user/vo/AdminUserOptionVO.class
@@ -194,6 +195,7 @@ com/aichuangzuo/admin/modules/auth/dto/request/AdminRefreshTokenRequest.class
 com/aichuangzuo/admin/modules/generation/service/PromptTemplateRenderService.class
 com/aichuangzuo/admin/modules/earnings/dto/request/SettlementRequest.class
 com/aichuangzuo/admin/modules/message/mapper/MessageAggregateMapper.class
+com/aichuangzuo/admin/modules/commission/dto/request/CommissionSubmissionBatchCreateRequest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/MaterialListStep.class
 com/aichuangzuo/admin/modules/style/market/service/StyleMarketAdminService.class
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateStageVO$StagePlaceholderVO.class
@@ -295,6 +297,7 @@ com/aichuangzuo/admin/modules/earnings/vo/UserAccountDetailVO.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchDailyAdminService.class
 com/aichuangzuo/admin/modules/hotsearch/entity/HotSearchDaily.class
 com/aichuangzuo/admin/modules/modelconfig/vo/ModelConfigVO.class
+com/aichuangzuo/admin/modules/commission/vo/CommissionSubmissionVO.class
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchConfigMapper.class
 com/aichuangzuo/admin/infrastructure/ai/AiProvider.class
 com/aichuangzuo/admin/modules/message/entity/MessageAggregate.class

@@ -10,7 +10,9 @@ public enum AdminCommissionErrorCode implements ErrorCode {
     SUBMISSION_NOT_FOUND(119003, "投稿不存在"),
     SUBMISSION_STATUS_INVALID(119004, "投稿状态不允许此操作"),
     ADOPT_COUNT_EXCEEDED(119005, "采纳数量超过任务所需数量"),
-    PARAM_INVALID(119006, "约稿任务参数不合法");
+    PARAM_INVALID(119006, "约稿任务参数不合法"),
+    SUBMISSION_USER_NOT_FOUND(119007, "投稿用户不存在"),
+    SUBMISSION_ALREADY_EXISTS(119008, "该用户已投递此任务");
 
     private final int code;
     private final String message;

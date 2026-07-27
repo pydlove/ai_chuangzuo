@@ -2,6 +2,8 @@ package com.aichuangzuo.admin.modules.commission.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionAdoptRequest;
+import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmissionBatchCreateRequest;
+import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmissionCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskUpdateRequest;
 import com.aichuangzuo.admin.modules.commission.entity.CommissionTask;
@@ -64,5 +66,19 @@ public class AdminCommissionController {
                               @Valid @RequestBody CommissionAdoptRequest request) {
         commissionService.adopt(taskId, request.getSubmissionIds());
         return Result.success();
+    }
+
+    @Operation(summary = "手动为用户添加投稿（运营机器人/代投）")
+    @PostMapping("/{taskId}/submissions")
+    public Result<Long> createSubmission(@PathVariable Long taskId,
+                                         @Valid @RequestBody CommissionSubmissionCreateRequest request) {
+        return Result.success(commissionService.createSubmission(taskId, request, SecurityAdminContext.getCurrentAdminUserId()));
+    }
+
+    @Operation(summary = "批量手动添加投稿人")
+    @PostMapping("/{taskId}/submissions/batch")
+    public Result<Integer> createSubmissionBatch(@PathVariable Long taskId,
+                                                 @Valid @RequestBody CommissionSubmissionBatchCreateRequest request) {
+        return Result.success(commissionService.createSubmissionBatch(taskId, request, SecurityAdminContext.getCurrentAdminUserId()));
     }
 }

@@ -9,7 +9,9 @@ import com.aichuangzuo.user.modules.commission.enums.CommissionErrorCode;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionSubmissionMapper;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionTaskMapper;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
+import com.aichuangzuo.user.modules.commission.vo.CommissionSubmitterVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
+import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -19,6 +21,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -27,19 +33,31 @@ public class CommissionServiceImpl implements CommissionService {
     private static final int REVIEW = 1;
     private static final int SUBMISSION_STATUS_SUBMITTED = 0;
     private static final int SUBMISSION_STATUS_WITHDRAWN = 3;
+    private static final int DETAIL_SUBMITTER_LIMIT = 10;
 
     private final CommissionTaskMapper taskMapper;
     private final CommissionSubmissionMapper submissionMapper;
     private final ArticleMapper articleMapper;
 
     @Override
-    public IPage<CommissionTask> list(Integer status, int page, int pageSize) {
+    public IPage<CommissionTaskVO> list(Integer status, int page, int pageSize) {
         reconcilePhases();
-        return taskMapper.selectPage(new Page<>(page, pageSize),
+        IPage<CommissionTask> taskPage = taskMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<CommissionTask>()
                         .eq(CommissionTask::getIsDeleted, 0)
                         .eq(status != null, CommissionTask::getStatus, status)
                         .orderByDesc(CommissionTask::getCreatedAt));
+
+        List<CommissionTask> records = taskPage.getRecords();
+        Map<Long, Long> countMap = countSubmissionsByTaskIds(records);
+
+        List<CommissionTaskVO> voList = records.stream()
+                .map(task -> toTaskVO(task, countMap.getOrDefault(task.getId(), 0L)))
+                .collect(Collectors.toList());
+
+        IPage<CommissionTaskVO> result = new Page<>(taskPage.getCurrent(), taskPage.getSize(), taskPage.getTotal());
+        result.setRecords(voList);
+        return result;
     }
 
     @Override
@@ -54,7 +72,8 @@ public class CommissionServiceImpl implements CommissionService {
                 .eq(CommissionSubmission::getSubmitterId, userId)
                 .orderByDesc(CommissionSubmission::getCreatedAt)
                 .last("LIMIT 1"));
-        return new CommissionTaskDetailVO(task, submissionCount, mine);
+        List<CommissionSubmitterVO> submitters = submissionMapper.selectSubmittersByTaskId(taskId, DETAIL_SUBMITTER_LIMIT);
+        return new CommissionTaskDetailVO(task, submissionCount, mine, submitters);
     }
 
     @Override
@@ -124,6 +143,41 @@ public class CommissionServiceImpl implements CommissionService {
                 new LambdaQueryWrapper<CommissionSubmission>()
                         .eq(CommissionSubmission::getSubmitterId, userId)
                         .orderByDesc(CommissionSubmission::getCreatedAt));
+    }
+
+    private Map<Long, Long> countSubmissionsByTaskIds(List<CommissionTask> tasks) {
+        if (tasks == null || tasks.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        List<Long> taskIds = tasks.stream()
+                .map(CommissionTask::getId)
+                .distinct()
+                .collect(Collectors.toList());
+        return submissionMapper.selectCountGroupByTaskId(taskIds).stream()
+                .collect(Collectors.toMap(
+                        m -> Long.valueOf(m.get("taskId").toString()),
+                        m -> Long.valueOf(m.get("cnt").toString()),
+                        (a, b) -> a));
+    }
+
+    private CommissionTaskVO toTaskVO(CommissionTask task, long submissionCount) {
+        CommissionTaskVO vo = new CommissionTaskVO();
+        vo.setId(task.getId());
+        vo.setTaskNo(task.getTaskNo());
+        vo.setTitle(task.getTitle());
+        vo.setDescription(task.getDescription());
+        vo.setMinWordCount(task.getMinWordCount());
+        vo.setMaxWordCount(task.getMaxWordCount());
+        vo.setStyleHint(task.getStyleHint());
+        vo.setRewardCoin(task.getRewardCoin());
+        vo.setNeededCount(task.getNeededCount());
+        vo.setAdoptedCount(task.getAdoptedCount());
+        vo.setStatus(task.getStatus());
+        vo.setDeadlineAt(task.getDeadlineAt());
+        vo.setSelectionDeadlineAt(task.getSelectionDeadlineAt());
+        vo.setCreatedAt(task.getCreatedAt());
+        vo.setSubmissionCount(submissionCount);
+        return vo;
     }
 
     private void reconcilePhases() {

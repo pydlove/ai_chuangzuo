@@ -19,6 +19,21 @@
             <span>{{ deadlineText }}</span>
             <span v-if="task.selectionDeadlineAt">评选截止 {{ new Date(task.selectionDeadlineAt).toLocaleString() }}</span>
           </div>
+          <div v-if="submissionCount > 0" class="submitter-block">
+            <h3>投稿人</h3>
+            <div class="submitter-stack">
+              <div
+                v-for="(s, i) in visibleSubmitters"
+                :key="s.submitterId"
+                class="submitter-avatar"
+                :style="{ zIndex: visibleSubmitters.length - i }"
+                :title="s.nickname"
+              >
+                {{ firstChar(s.nickname) }}
+              </div>
+              <span class="submitter-count">已有{{ submissionCount }}人投稿</span>
+            </div>
+          </div>
           <div class="description-block">
             <h3>任务说明</h3>
             <div class="description">{{ task.description }}</div>
@@ -149,8 +164,13 @@ const pickerVisible = ref(false)
 const selectedBizNo = ref('')
 const submitting = ref(false)
 
+const MAX_VISIBLE_SUBMITTERS = 5
+
 const task = computed(() => taskDetail.value?.task || null)
 const mySubmission = computed(() => taskDetail.value?.mySubmission || null)
+const submitters = computed(() => taskDetail.value?.submitters || [])
+const submissionCount = computed(() => taskDetail.value?.submissionCount || 0)
+const visibleSubmitters = computed(() => submitters.value.slice(0, MAX_VISIBLE_SUBMITTERS))
 const canSubmit = computed(() => task.value?.status === 0 && !mySubmission.value)
 const canWithdraw = computed(() => task.value?.status === 0 && mySubmission.value?.status === 0)
 
@@ -209,6 +229,9 @@ function formatCompletedAt(value) {
   if (!value) return '未知'
   return new Date(value).toLocaleString()
 }
+function firstChar(name) {
+  return (name || '?').charAt(0)
+}
 function openPicker() {
   selectedBizNo.value = ''
   pickerVisible.value = true
@@ -230,6 +253,7 @@ function confirmWithdraw() {
     title: '确认撤回投稿？',
     content: '截止前撤回后，可以改投其他文章。',
     okText: '确认撤回',
+    okButtonProps: { style: { backgroundColor: '#ff2442', borderColor: '#ff2442' } },
     cancelText: '取消',
     centered: true,
     onOk: async () => {
@@ -303,6 +327,58 @@ function confirmWithdraw() {
   font-size: 13px;
 }
 .meta-row strong { color: #1f1f1f; font-weight: 600; margin-right: 2px; }
+
+.submitter-block { margin: 18px 0; }
+.submitter-block h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+.submitter-stack {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.submitter-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #ff2442 0%, #ff8c42 100%);
+  border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  margin-left: -10px;
+}
+.submitter-avatar:first-child { margin-left: 0; }
+.submitter-count {
+  margin-left: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #f5f5f5;
+  color: #595959;
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+body[data-theme="dark"] .submitter-block h3 { color: #f5f5f5; }
+body[data-theme="dark"] .submitter-avatar { border-color: #1f1f1f; }
+body[data-theme="dark"] .submitter-count { background: #262626; color: #bfbfbf; }
+
+@media (max-width: 768px) {
+  .submitter-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    margin-left: -8px;
+  }
+}
 
 .description-block,
 .style-hint-block { margin-top: 18px; }

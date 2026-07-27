@@ -710,12 +710,12 @@ async function handleSubmit() {
 }
 
 .reward-banner.is-current {
-  background: linear-gradient(135deg, #fff7e6 0%, #fff 100%);
-  border-color: #ffd591;
+  background: #fff5f7;
+  border-color: #ffd1d9;
 }
 
 .reward-banner.is-past {
-  background: #f5f5f5;
+  background: #fafafa;
   border-color: #e8e8e8;
 }
 
@@ -746,7 +746,7 @@ async function handleSubmit() {
   align-items: center;
   gap: 16px;
   padding: 16px 20px;
-  background: linear-gradient(135deg, #fff0f2 0%, #fff 100%);
+  background: #fff5f7;
   border: 1px solid #ffd1d9;
   border-radius: 12px;
 }
@@ -797,39 +797,29 @@ async function handleSubmit() {
   text-align: center;
 }
 
-.leaderboard-top-card.top-1 {
-  background: linear-gradient(180deg, #fff7e6 0%, #fff 100%);
-  border-color: #ffd591;
-}
-
-.leaderboard-top-card.top-2 {
-  background: linear-gradient(180deg, #f6ffed 0%, #fff 100%);
-  border-color: #b7eb8f;
-}
-
-.leaderboard-top-card.top-3 {
-  background: linear-gradient(180deg, #e6f7ff 0%, #fff 100%);
-  border-color: #91d5ff;
+.leaderboard-top-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
 }
 
 .top-rank {
   font-size: 28px;
   font-weight: 700;
-  color: #d48806;
-  margin-bottom: 8px;
-}
-
-.top-nickname {
-  font-size: 16px;
-  font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 8px;
 }
 
 .top-amount {
-  font-size: 18px;
+  font-size: 20px;
   font-weight: 700;
   color: #ff2442;
+}
+
+.top-nickname {
+  font-size: 15px;
+  font-weight: 500;
+  color: #595959;
+  margin-bottom: 8px;
 }
 
 .top-me-tag {
@@ -859,7 +849,7 @@ async function handleSubmit() {
 
 .leaderboard-reward.awarded,
 .top-reward.awarded {
-  background: #f6ffed;
+  background: #fff5f7;
   color: #389e0d;
 }
 
@@ -886,7 +876,7 @@ async function handleSubmit() {
 }
 
 .leaderboard-item.is-me {
-  background: #fff0f2;
+  background: #fff5f7;
   border-color: #ffd1d9;
 }
 
@@ -928,8 +918,8 @@ async function handleSubmit() {
 }
 
 .leaderboard-amount {
-  font-size: 15px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 700;
   color: #ff2442;
 }
 
@@ -984,7 +974,7 @@ async function handleSubmit() {
 
 .leaderboard-submission-item.approved {
   border-left-color: #389e0d;
-  background: #f6ffed;
+  background: #fff5f7;
 }
 
 .leaderboard-submission-item.rejected {
@@ -1368,24 +1358,20 @@ body[data-theme="dark"] .leaderboard-item.is-me {
   border-color: rgba(255, 36, 66, 0.25);
 }
 
-body[data-theme="dark"] .leaderboard-top-card.top-1 {
-  background: linear-gradient(180deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(255, 213, 145, 0.3);
-}
-
-body[data-theme="dark"] .leaderboard-top-card.top-2 {
-  background: linear-gradient(180deg, rgba(246, 255, 237, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(183, 235, 143, 0.3);
-}
-
+body[data-theme="dark"] .leaderboard-top-card.top-1,
+body[data-theme="dark"] .leaderboard-top-card.top-2,
 body[data-theme="dark"] .leaderboard-top-card.top-3 {
-  background: linear-gradient(180deg, rgba(230, 247, 255, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(145, 213, 255, 0.3);
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .leaderboard-top-card .top-rank {
+  color: #e0e0e0;
 }
 
 body[data-theme="dark"] .reward-banner.is-current {
-  background: linear-gradient(135deg, rgba(255, 247, 230, 0.1) 0%, #1f1f1f 100%);
-  border-color: rgba(255, 213, 145, 0.3);
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
 }
 
 body[data-theme="dark"] .reward-banner.is-past {
@@ -1421,6 +1407,16 @@ body[data-theme="dark"] .my-reward-desc {
 body[data-theme="dark"] .my-reward-card {
   background: rgba(255, 36, 66, 0.08);
   border-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .top-amount,
+body[data-theme="dark"] .leaderboard-amount {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .my-reward-rank,
+body[data-theme="dark"] .my-reward-amount {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .leaderboard-avatar {
@@ -1469,6 +1465,10 @@ body[data-theme="dark"] .leaderboard-rules-list {
   color: #b0b0b0;
 }
 
+body[data-theme="dark"] .leaderboard-rules-highlight {
+  color: #ff4d6f;
+}
+
 body[data-theme="dark"] .leaderboard-rules-footer {
   border-top-color: #2a2a2a;
   color: #8c8c8c;
@@ -1476,6 +1476,10 @@ body[data-theme="dark"] .leaderboard-rules-footer {
 
 body[data-theme="dark"] .leaderboard-rules-guide-link a {
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .leaderboard-rules-guide-link a:hover {
+  color: #ff9c9c;
 }
 
 body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-content,

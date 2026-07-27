@@ -18,9 +18,9 @@ import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
+import org.springframework.scheduling.support.SimpleTriggerContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.event.TransactionPhase;
@@ -94,9 +94,10 @@ public class HotSearchCrawlJob {
         if (cfg.getEnabled() != null && cfg.getEnabled() == 1) {
             try {
                 ZoneId zone = ZoneId.of("Asia/Shanghai");
-                new CronTrigger(cfg.getCron(), zone); // 校验
-                scheduledFuture = taskScheduler.schedule(this::crawl, new CronTrigger(cfg.getCron(), zone));
-                log.info("热搜定时抓取已注册，cron={}，时区={}", cfg.getCron(), zone);
+                CronTrigger trigger = new CronTrigger(cfg.getCron(), zone);
+                var nextTime = trigger.nextExecutionTime(new SimpleTriggerContext());
+                scheduledFuture = taskScheduler.schedule(this::crawl, trigger);
+                log.info("热搜定时抓取已注册，cron={}，时区={}，下次执行时间={}", cfg.getCron(), zone, nextTime);
             } catch (Exception e) {
                 log.warn("热搜 cron 表达式非法，注册失败: {}", cfg.getCron(), e);
             }

@@ -4,9 +4,9 @@ import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.commission.dto.request.CommissionSubmitRequest;
 import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
-import com.aichuangzuo.user.modules.commission.entity.CommissionTask;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
+import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -23,7 +23,7 @@ public class CommissionController {
 
     @Operation(summary = "约稿任务列表")
     @GetMapping("/tasks")
-    public Result<IPage<CommissionTask>> list(
+    public Result<IPage<CommissionTaskVO>> list(
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {

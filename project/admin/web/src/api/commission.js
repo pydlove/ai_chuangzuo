@@ -20,3 +20,9 @@ export function closeCommissionTask(id) {
 export function adoptCommissionSubmissions(id, submissionIds) {
   return request.post(`${BASE}/${id}/adopt`, { submissionIds }).then((res) => res.data)
 }
+export function createCommissionSubmission(id, data) {
+  return request.post(`${BASE}/${id}/submissions`, data).then((res) => res.data)
+}
+export function createCommissionSubmissionBatch(id, data) {
+  return request.post(`${BASE}/${id}/submissions/batch`, data).then((res) => res.data)
+}

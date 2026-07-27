@@ -19,6 +19,7 @@ com/aichuangzuo/user/modules/benefit/vo/BenefitCheckVO.class
 com/aichuangzuo/user/modules/style/dto/request/AnalyzeStyleRequest.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
 com/aichuangzuo/user/modules/auth/controller/AuthController.class
+com/aichuangzuo/user/modules/commission/vo/CommissionSubmitterVO.class
 com/aichuangzuo/user/modules/earnings/service/EarningsService.class
 com/aichuangzuo/user/modules/auth/mapper/UserLoginLogMapper.class
 com/aichuangzuo/user/modules/leaderboard/controller/LeaderboardController.class
@@ -233,6 +234,7 @@ com/aichuangzuo/user/modules/benefit/entity/PlanBenefit.class
 com/aichuangzuo/user/modules/commission/mapper/CommissionSubmissionMapper.class
 com/aichuangzuo/user/modules/membership/controller/MembershipController.class
 com/aichuangzuo/user/modules/feedback/entity/Feedback.class
+com/aichuangzuo/user/modules/commission/vo/CommissionTaskVO.class
 com/aichuangzuo/user/modules/leaderboard/vo/IncomeSubmissionVO.class
 com/aichuangzuo/user/modules/benefit/service/impl/PlanCatalogServiceImpl.class
 com/aichuangzuo/user/modules/leaderboard/vo/CoinLeaderboardVO.class

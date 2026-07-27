@@ -38,6 +38,7 @@
         <div class="task-facts">
           <span>{{ wordRangeText(item) }}</span>
           <span>采纳 {{ item.adoptedCount }}/{{ item.neededCount }} 篇</span>
+          <span>{{ item.submissionCount || 0 }} 人投稿</span>
         </div>
         <div class="task-card-bottom"><span>{{ deadlineText(item) }}</span><span class="detail-link">查看详情 <span>→</span></span></div>
       </article>

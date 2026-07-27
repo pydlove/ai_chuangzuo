@@ -1,6 +1,7 @@
 import subprocess
 import time
 import sys
+import json
 from pathlib import Path
 from playwright.sync_api import sync_playwright
 
@@ -28,15 +29,79 @@ def start_preview_server():
     raise RuntimeError("preview server did not start")
 
 
+MOCK_COIN = {
+    "code": 0,
+    "data": {
+        "topList": [
+            {"userId": "u1", "nickname": "创作达人", "amount": 12580.00, "rank": 1, "isMe": False},
+            {"userId": "u2", "nickname": "小李同学", "amount": 9860.50, "rank": 2, "isMe": False},
+            {"userId": "u3", "nickname": "张三", "amount": 7420.00, "rank": 3, "isMe": False},
+            {"userId": "u4", "nickname": "UserFour", "amount": 5120.00, "rank": 4, "isMe": False},
+            {"userId": "u5", "nickname": "UserFive", "amount": 4300.00, "rank": 5, "isMe": False},
+            {"userId": "u6", "nickname": "UserSix", "amount": 3600.00, "rank": 6, "isMe": False},
+            {"userId": "me", "nickname": "我", "amount": 2100.00, "rank": 8, "isMe": True}
+        ],
+        "me": {"userId": "me", "nickname": "我", "amount": 2100.00, "rank": 8, "isMe": True}
+    }
+}
+
+MOCK_INCOME = {
+    "code": 0,
+    "data": {
+        "topList": [
+            {"userId": "u1", "nickname": "创作达人", "amount": 25800.00, "rank": 1, "isMe": False},
+            {"userId": "u2", "nickname": "小李同学", "amount": 19600.00, "rank": 2, "isMe": False},
+            {"userId": "u3", "nickname": "张三", "amount": 14200.00, "rank": 3, "isMe": False},
+            {"userId": "u4", "nickname": "UserFour", "amount": 9800.00, "rank": 4, "isMe": False},
+            {"userId": "u5", "nickname": "UserFive", "amount": 7600.00, "rank": 5, "isMe": False},
+            {"userId": "me", "nickname": "我", "amount": 5200.00, "rank": 7, "isMe": True}
+        ],
+        "me": {"userId": "me", "nickname": "我", "amount": 5200.00, "rank": 7, "isMe": True}
+    }
+}
+
+MOCK_SUBMISSIONS = {
+    "code": 0,
+    "data": [
+        {"bizNo": "s1", "periodMonth": "2026-07", "amount": 5200.00, "platform": "wechat", "auditStatus": 1, "rejectReason": None},
+        {"bizNo": "s2", "periodMonth": "2026-06", "amount": 3100.00, "platform": "xiaohongshu", "auditStatus": 2, "rejectReason": "截图不清晰"}
+    ]
+}
+
+
 def main():
     server = start_preview_server()
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
-            page = browser.new_page(viewport={"width": 1280, "height": 900})
-            page.goto(f"{BASE_URL}/console/leaderboard")
+            context = browser.new_context(viewport={"width": 1280, "height": 900})
+            context.add_init_script("""
+                localStorage.setItem('aichuangzuo_access_token', 'mock-token');
+                localStorage.setItem('aichuangzuo_refresh_token', 'mock-token');
+            """)
+            page = context.new_page()
+
+            def handle_route(route, request):
+                url = request.url
+                if "/leaderboards/coin" in url:
+                    route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_COIN))
+                elif "/leaderboards/income" in url:
+                    route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_INCOME))
+                elif "/leaderboards/income-submissions/me" in url:
+                    route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_SUBMISSIONS))
+                else:
+                    route.continue_()
+
+            page.route("**/api/**", handle_route)
+            page.goto(f"{BASE_URL}/console/create")
             page.wait_for_load_state("networkidle")
-            time.sleep(0.5)
+            time.sleep(1)
+            page.evaluate("""
+                localStorage.setItem('aichuangzuo_access_token', 'mock-token');
+                localStorage.setItem('aichuangzuo_refresh_token', 'mock-token');
+            """)
+            page.locator('.console-sidebar-item:has-text("收益排行榜")').click()
+            time.sleep(1)
 
             # 验证页面标题与标签
             assert page.is_visible("text=收益排行榜"), "page title not found"

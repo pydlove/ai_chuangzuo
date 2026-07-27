@@ -56,7 +56,7 @@
         >
           <div class="market-featured-head">
             <div class="market-featured-name">{{ s.name }}</div>
-            <div class="market-featured-uses">🔥 {{ s.weeklyUses }}</div>
+            <div class="market-featured-uses">{{ s.weeklyUses }}</div>
           </div>
           <div class="market-featured-meta">
             <span v-if="s.scope"># {{ firstScope(s.scope) }} · </span>by {{ s.creatorName || '匿名用户' }}
@@ -149,13 +149,6 @@
           @click="openStyleDetail(s)"
         >
           <div class="market-card-body">
-            <div v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
-                 class="market-card-tagrow">
-              <span v-for="t in parseScopeTags(s.scope)" :key="t" class="market-card-tag">
-                # {{ t }}
-              </span>
-              <span v-if="s.creatorId === currentUserId" class="market-card-mine">我的</span>
-            </div>
             <div class="market-card-title">{{ s.name }}</div>
             <div class="market-card-creator">
               <span class="market-card-creator-avatar">
@@ -168,8 +161,15 @@
               发布于 {{ formatTimeAgo(s.createdAt) }}
             </div>
             <div class="market-card-stats">
-              <span>🔥 本周 {{ s.weeklyUses }} 次</span>
+              <span>本周 {{ s.weeklyUses }} 次</span>
               <span>累计 {{ s.totalUses }} 次</span>
+            </div>
+            <div v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
+                 class="market-card-tagrow">
+              <span v-for="t in parseScopeTags(s.scope)" :key="t" class="market-card-tag">
+                # {{ t }}
+              </span>
+              <span v-if="s.creatorId === currentUserId" class="market-card-mine">我的</span>
             </div>
             <div class="market-card-actions">
               <button class="market-card-use" @click.stop="handleUse(s)">使用</button>

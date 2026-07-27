@@ -4,8 +4,16 @@
       <a-col :xs="24" :lg="14">
         <a-card title="抓取配置">
           <a-form layout="vertical" :model="form" :rules="rules" ref="formRef">
-            <a-form-item label="cron 表达式（如 0 0 2 * * ?）" name="cron">
+            <a-form-item label="cron 表达式" name="cron" :extra="cronDescription">
               <a-input v-model:value="form.cron" placeholder="0 0 2 * * ?" />
+              <div style="margin-top: 8px">
+                <a-space wrap>
+                  <a-button size="small" @click="applyPreset('0 0 2 * * ?')">每天 02:00</a-button>
+                  <a-button size="small" @click="applyPreset('0 0 8 * * ?')">每天 08:00</a-button>
+                  <a-button size="small" @click="applyPreset('0 0 15 * * ?')">每天 15:00</a-button>
+                  <a-button size="small" @click="applyPreset('0 0 0 * * ?')">每天 00:00</a-button>
+                </a-space>
+              </div>
             </a-form-item>
             <a-form-item label="启用定时抓取" name="enabled">
               <a-switch v-model:checked="enabledBool" />
@@ -72,11 +80,70 @@ const form = reactive({ cron: '', enabled: 1, topN: 50, connectTimeoutMillis: 50
 const enabledBool = computed({ get: () => form.enabled === 1, set: (v) => (form.enabled = v ? 1 : 0) })
 const formRef = ref()
 const rules = {
-  cron: [{ required: true, message: '请输入 cron 表达式' }],
+  cron: [
+    { required: true, message: '请输入 cron 表达式' },
+    { validator: validateCron, trigger: 'blur' }
+  ],
   topN: [{ required: true, message: '请输入条数' }]
 }
 
 const formatTime = (s) => new Date(s).toLocaleString()
+
+function validateCron(_, value) {
+  if (!value) return Promise.resolve()
+  const parts = value.trim().split(/\s+/)
+  if (parts.length !== 6 && parts.length !== 7) {
+    return Promise.reject(new Error('Spring cron 需要 6 或 7 个字段：秒 分 时 日 月 周 [年]'))
+  }
+  return Promise.resolve()
+}
+
+function applyPreset(cron) {
+  form.cron = cron
+}
+
+const cronDescription = computed(() => {
+  const cron = form.cron?.trim()
+  if (!cron) return ''
+  const parts = cron.split(/\s+/)
+  if (parts.length !== 6 && parts.length !== 7) {
+    return '格式错误：需要 6 或 7 个字段（秒 分 时 日 月 周 [年]）'
+  }
+  const [sec, min, hour, day, month, week] = parts
+  try {
+    return describeCron(sec, min, hour, day, month, week)
+  } catch {
+    return ''
+  }
+})
+
+function describeCron(sec, min, hour, day, month, week) {
+  const simpleTime = (h, m, s) => `${pad(h)}:${pad(m)}${s === '0' ? '' : ':' + pad(s)}`
+  const pad = (n) => String(n).padStart(2, '0')
+
+  // 每天固定时间
+  if (sec === '0' && !min.includes('/') && !hour.includes('/') && day === '*' && month === '*' && week === '?') {
+    return `每天 ${simpleTime(hour, min, sec)} 执行`
+  }
+  // 每小时
+  if (sec === '0' && min === '0' && hour === '*' && day === '*' && month === '*' && week === '?') {
+    return '每小时执行一次（整点）'
+  }
+  // 每 N 分钟
+  if (sec === '0' && min.startsWith('0/') && hour === '*' && day === '*' && month === '*' && week === '?') {
+    const interval = min.split('/')[1]
+    return `每 ${interval} 分钟执行一次`
+  }
+  // 每月固定日
+  if (sec === '0' && !min.includes('/') && !hour.includes('/') && day !== '*' && day !== '?' && month === '*' && week === '?') {
+    return `每月 ${day} 日 ${simpleTime(hour, min, sec)} 执行`
+  }
+  // 每周固定星期几（day=? week=MON 等）
+  if (sec === '0' && !min.includes('/') && !hour.includes('/') && day === '?' && month === '*' && week !== '?' && week !== '*') {
+    return `每周 ${week} ${simpleTime(hour, min, sec)} 执行`
+  }
+  return '自定义周期'
+}
 
 const handleSave = async () => {
   await formRef.value?.validate()
