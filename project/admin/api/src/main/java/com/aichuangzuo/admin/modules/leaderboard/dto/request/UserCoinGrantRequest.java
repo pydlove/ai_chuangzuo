@@ -12,6 +12,7 @@ public class UserCoinGrantRequest {
 
     private Long userId;
     private BigDecimal amount;
+    private String bizType;
     private String refId;
     private String remark;
 }

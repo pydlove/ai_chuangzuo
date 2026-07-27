@@ -110,6 +110,12 @@
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
         </a-sub-menu>
+        <a-menu-item key="/console/commission-tasks">
+          <template #icon>
+            <FileTextOutlined />
+          </template>
+          约稿管理
+        </a-menu-item>
         <a-menu-item key="/console/messages">
           <template #icon>
             <MessageOutlined />
@@ -235,6 +241,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/earnings/settlements') return '结算中心'
   if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
   if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
+  if (route.path === '/console/commission-tasks') return '约稿管理'
   if (route.path === '/console/messages') return '消息管理'
   if (route.path === '/console/expire-reminder') return '到期提醒'
   if (route.path === '/console/creation-queue') return '创作队列'

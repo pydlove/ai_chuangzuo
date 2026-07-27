@@ -24,11 +24,3 @@ export function getMonthlySettlementList() {
 export function getEarningsRecords(params = {}) {
   return api.get('/account/earnings', { params }).then((res) => res.data || { list: [], total: 0 })
 }
-
-/**
- * 结算上月收益。
- * @returns {Promise<{month:string, settledCount:number, settledAmount:number}>}
- */
-export function settleLastMonth() {
-  return api.post('/account/settle-last-month').then((res) => res.data || {})
-}

@@ -114,6 +114,11 @@ const routes = [
         component: () => import('@/views/LeaderboardAwardView.vue')
       },
       {
+        path: 'commission-tasks',
+        name: 'AdminCommissionTask',
+        component: () => import('@/views/CommissionTaskView.vue')
+      },
+      {
         path: 'messages',
         name: 'AdminMessageManagement',
         component: () => import('@/views/MessageAdminView.vue')

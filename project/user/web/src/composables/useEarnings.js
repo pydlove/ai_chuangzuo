@@ -1,9 +1,8 @@
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import {
   getAccountSummary,
   getMonthlySettlementList,
-  getEarningsRecords,
-  settleLastMonth as settleLastMonthApi
+  getEarningsRecords
 } from '@/api/earnings.js'
 
 const summary = ref({
@@ -17,14 +16,6 @@ const monthlyList = ref([])
 const records = ref([])
 const recordsTotal = ref(0)
 const loading = ref(false)
-
-const previousMonth = computed(() => {
-  const now = new Date()
-  now.setMonth(now.getMonth() - 1)
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  return `${year}-${month}`
-})
 
 function toNumber(value) {
   const n = Number(value)
@@ -89,12 +80,6 @@ export function useEarnings() {
     recordsTotal.value = data.total || 0
   }
 
-  const settle = async () => {
-    const result = await settleLastMonthApi()
-    await Promise.all([loadSummary(), loadMonthlyList(), loadRecords()])
-    return result
-  }
-
   const refreshAll = async () => {
     loading.value = true
     try {
@@ -110,11 +95,9 @@ export function useEarnings() {
     records,
     recordsTotal,
     loading,
-    previousMonth,
     loadSummary,
     loadMonthlyList,
     loadRecords,
-    settle,
     refreshAll
   }
 }

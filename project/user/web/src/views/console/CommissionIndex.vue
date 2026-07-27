@@ -1,651 +1,467 @@
 <template>
   <div class="commission-page">
-    <div class="commission-header">
-      <h2 class="commission-title">约稿中心</h2>
-      <p class="commission-subtitle">
-        发布征集任务,平台抽成 10%。投稿人奖励以创作币结算,可提现。
-      </p>
-    </div>
-
-    <div class="commission-tabs">
-      <button
-        :class="['commission-tab', { active: tab === 'all' }]"
-        @click="tab = 'all'"
-      >
-        全部任务
-      </button>
-      <button
-        :class="['commission-tab', { active: tab === 'published' }]"
-        @click="tab = 'published'"
-      >
-        我发布的
-      </button>
-      <button
-        :class="['commission-tab', { active: tab === 'submitted' }]"
-        @click="tab = 'submitted'"
-      >
-        我投稿的
-      </button>
-    </div>
-
-    <div class="commission-filter">
-      <button
-        :class="['filter-btn', { active: filter === 'all' }]"
-        @click="filter = 'all'"
-      >全部</button>
-      <button
-        :class="['filter-btn', { active: filter === 'open' }]"
-        @click="filter = 'open'"
-      >进行中</button>
-      <button
-        :class="['filter-btn', { active: filter === 'closed' }]"
-        @click="filter = 'closed'"
-      >已结束</button>
-    </div>
-
-    <!-- 当前用户切换(演示用) -->
-    <div class="demo-user-switch">
-      <span class="demo-user-label">演示账号:</span>
-      <select v-model="currentUserId" class="demo-user-select">
-        <option v-for="(name, id) in demoUserOptions" :key="id" :value="id">
-          {{ name }} ({{ id }})
-        </option>
-      </select>
-    </div>
-
-    <div v-if="visibleTasks.length === 0" class="commission-empty">
-      <div class="commission-empty-icon">📝</div>
-      <p class="commission-empty-text">{{ emptyText }}</p>
-      <button v-if="tab !== 'submitted'" class="empty-btn" @click="goPublish">
-        去发布
-      </button>
-    </div>
-
-    <div v-else class="commission-list">
-      <div
-        v-for="t in visibleTasks"
-        :key="t.id"
-        class="task-card"
-        @click="goDetail(t)"
-      >
-        <div class="task-card-row1">
-          <span class="task-title">{{ t.title }}</span>
-          <span class="task-reward">{{ t.rewardCoin }} 创作币</span>
-        </div>
-        <div class="task-card-row2">
-          <span class="task-publisher">{{ t.publisherNickname }}</span>
-          <span class="task-dot">·</span>
-          <span class="task-words">{{ t.requirements.minWordCount }}-{{ t.requirements.maxWordCount }} 字</span>
-          <span v-if="t.requirements.styleHint" class="task-dot">·</span>
-          <span v-if="t.requirements.styleHint" class="task-style">{{ t.requirements.styleHint }}</span>
-        </div>
-        <div class="task-card-row3">
-          <span class="task-deadline" :class="{ 'deadline-danger': deadlineInfo(t).danger }">
-            {{ deadlineInfo(t).text }}
-          </span>
-          <span class="task-submissions">已有 {{ getSubmissionCount(t.id) }} 人投稿</span>
-          <span :class="['task-status', `status-${t.status.toLowerCase()}`]">{{ statusLabel(t.status) }}</span>
-        </div>
-        <div class="task-card-row4">
-          <span v-if="t.publisherId === currentUserId" class="task-badge mine-pub">我发布的</span>
-          <span v-else-if="mySubFor(t)" class="task-badge mine-sub">我投递的</span>
-          <button
-            class="task-action"
-            @click.stop="goDetail(t)"
-          >{{ actionLabel(t) }}</button>
-        </div>
+    <section class="commission-hero">
+      <div class="hero-copy">
+        <span class="eyebrow">OFFICIAL COMMISSION</span>
+        <h1>官方约稿任务</h1>
+        <p>挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
       </div>
+      <div class="hero-orbit" aria-hidden="true"><span></span><span></span></div>
+      <div class="hero-stats">
+        <div><strong>{{ activeTaskCount }}</strong><span>进行中的任务</span></div>
+        <div><strong>{{ mySubmissionCount }}</strong><span>我的投稿</span></div>
+        <div><strong>{{ earnedCoinTotal }}</strong><span>已获得创作币</span></div>
+      </div>
+    </section>
+
+    <div class="commission-switcher" role="tablist">
+      <button :class="{ active: tab === 'all' }" role="tab" @click="tab = 'all'">全部任务</button>
+      <button :class="{ active: tab === 'mine' }" role="tab" @click="tab = 'mine'">我投稿的</button>
     </div>
 
-    <button class="commission-fab" @click="goPublish">+ 发布约稿</button>
+    <div v-if="tab === 'all'" class="commission-filter">
+      <button v-for="item in filters" :key="String(item.value)" :class="['filter-chip', { active: status === item.value }]" @click="status = item.value">
+        {{ item.label }}
+      </button>
+    </div>
+
+    <div v-if="loading" class="empty-block">加载中...</div>
+    <div v-else-if="visibleItems.length === 0" class="empty-block">{{ tab === 'mine' ? '还没有投递过稿件' : '暂无约稿任务' }}</div>
+    <div v-else-if="tab === 'all'" class="task-grid">
+      <article v-for="item in visibleItems" :key="item.id" class="task-card" @click="goDetail(item.taskId || item.id)">
+        <div class="task-card-top">
+          <span :class="['status-tag', `status-${item.status}`]">{{ taskStatus(item.status) }}</span>
+          <strong class="task-reward">{{ item.rewardCoin }}<small> 创作币 / 篇</small></strong>
+        </div>
+        <h2>{{ item.title || `任务 #${item.taskId || item.id}` }}</h2>
+        <p class="task-desc">{{ item.description }}</p>
+        <div class="task-facts">
+          <span>{{ wordRangeText(item) }}</span>
+          <span>采纳 {{ item.adoptedCount }}/{{ item.neededCount }} 篇</span>
+        </div>
+        <div class="task-card-bottom"><span>{{ deadlineText(item) }}</span><span class="detail-link">查看详情 <span>→</span></span></div>
+      </article>
+    </div>
+    <div v-else class="task-grid submission-grid">
+      <article v-for="item in visibleItems" :key="item.id" class="submission-card" @click="goDetail(item.taskId || item.id)">
+        <div class="task-card-top">
+          <span :class="['status-tag', `submission-${item.status}`]">{{ submissionStatus(item.status) }}</span>
+          <strong v-if="item.rewardCoin != null" class="task-reward">{{ item.rewardCoin }}<small> 创作币</small></strong>
+        </div>
+        <h2 class="submission-task-title">{{ item.title || `任务 #${item.taskId || item.id}` }}</h2>
+        <p class="task-desc submission-article">《{{ item.articleTitle }}》 · {{ item.wordCount }} 字</p>
+        <div class="submission-meta">
+          <span>{{ submissionDeadlineText(item) }}</span>
+          <span v-if="item.status === 1" class="reward-collected">奖励已发放</span>
+        </div>
+        <div class="task-card-bottom"><span class="detail-link">查看投稿详情 <span>→</span></span></div>
+      </article>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
-import { DEMO_USER_NICKNAMES } from '@/data/commissionSeed'
 
 const router = useRouter()
-const {
-  tasks, submissions, currentUserId,
-  myPublishedTasks, mySubmissions,
-  getSubmissionsOfTask, startReconcile,
-  setCurrentUserId
-} = useCommission()
+const { tasks, mySubmissions, loading, loadTasks, loadMySubmissions } = useCommission()
+const tab = ref('all')
+const status = ref(null)
+const filters = [
+  { label: '全部', value: null },
+  { label: '招募中', value: 0 },
+  { label: '已截止待采纳', value: 1 },
+  { label: '已完成', value: 2 }
+]
 
-const tab = ref('all')              // all | published | submitted
-const filter = ref('all')           // all | open | closed
-const now = ref(Date.now())
+const visibleItems = computed(() => tab.value === 'mine' ? mySubmissions.value : tasks.value)
 
-const demoUserOptions = DEMO_USER_NICKNAMES
+const activeTaskCount = computed(() => tasks.value.filter(task => task.status === 0).length)
+const mySubmissionCount = computed(() => mySubmissions.value.length)
+const earnedCoinTotal = computed(() =>
+  mySubmissions.value
+    .filter(submission => submission.status === 1)
+    .reduce((total, submission) => total + (Number(submission.rewardCoin) || 0), 0)
+)
 
-let tick = null
-onMounted(() => {
-  startReconcile()
-  tick = setInterval(() => { now.value = Date.now() }, 60_000)
-})
-onUnmounted(() => { if (tick) clearInterval(tick) })
-
-const visibleTasks = computed(() => {
-  let list
-  if (tab.value === 'published') {
-    list = myPublishedTasks.value
-  } else if (tab.value === 'submitted') {
-    const ids = new Set(mySubmissions.value.map(s => s.taskId))
-    list = tasks.value.filter(t => ids.has(t.id))
-  } else {
-    list = tasks.value
+async function refresh() {
+  try {
+    if (tab.value === 'mine') await loadMySubmissions({ page: 1, pageSize: 50 })
+    else await loadTasks({ status: status.value, page: 1, pageSize: 50 })
+  } catch (error) {
+    message.error(error.message || '约稿任务加载失败')
   }
-  if (filter.value === 'open') list = list.filter(t => t.status === 'OPEN')
-  if (filter.value === 'closed') list = list.filter(t => t.status !== 'OPEN')
-  return [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-})
+}
 
-const emptyText = computed(() => {
-  if (tab.value === 'published') return '还没有发布过约稿任务,去发一个吧'
-  if (tab.value === 'submitted') return '还没有投递过任何任务'
-  return '暂无约稿任务'
-})
+onMounted(refresh)
+watch([tab, status], refresh)
 
-function deadlineInfo(t) {
-  const left = new Date(t.deadlineAt).getTime() - now.value
-  if (left <= 0) {
-    return t.status === 'OPEN'
-      ? { text: '宽限期中,请尽快选择', danger: true }
-      : { text: '已结束', danger: false }
+function taskStatus(value) {
+  return ['招募中', '已截止待采纳', '已完成'][value] || '未知状态'
+}
+function submissionStatus(value) {
+  return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
+}
+function deadlineText(task) {
+  const deadline = new Date(task.deadlineAt)
+  if (task.status !== 0 || deadline <= new Date()) return `截止于 ${deadline.toLocaleString()}`
+  const hours = Math.max(1, Math.ceil((deadline - Date.now()) / 3600000))
+  return hours > 24 ? `还剩 ${Math.ceil(hours / 24)} 天` : `还剩 ${hours} 小时`
+}
+function submissionDeadlineText(item) {
+  const submittedAt = item.createdAt
+  if (submittedAt) {
+    const date = new Date(submittedAt)
+    return `投稿于 ${date.toLocaleString()}`
   }
-  const days = Math.floor(left / 86400000)
-  const hours = Math.floor((left % 86400000) / 3600000)
-  const mins = Math.floor((left % 3600000) / 60000)
-  if (left < 2 * 3600000) return { text: `即将截止 (${hours}h ${mins}m)`, danger: true }
-  if (days > 0) return { text: `还剩 ${days} 天 ${hours} 小时`, danger: false }
-  return { text: `还剩 ${hours} 小时 ${mins} 分`, danger: false }
+  return '投稿时间未知'
 }
-
-function statusLabel(s) {
-  return { OPEN: '进行中', SETTLED: '已结算', EXPIRED: '已流局', CANCELLED: '已撤销' }[s] || s
+function wordRangeText(item) {
+  const min = item.minWordCount
+  const max = item.maxWordCount
+  if (min != null && max != null) return `${min}-${max} 字`
+  if (min != null) return `≥ ${min} 字`
+  if (max != null) return `≤ ${max} 字`
+  return '字数不限'
 }
-
-function actionLabel(t) {
-  if (t.publisherId === currentUserId.value) {
-    if (t.status === 'OPEN') return '查看投稿'
-    return '查看结果'
-  }
-  return '去投稿'
+function goDetail(id) {
+  router.push(`/console/commission/${id}`)
 }
-
-function mySubFor(t) {
-  return submissions.value.find(s =>
-    s.taskId === t.id && s.submitterId === currentUserId.value && !s.withdrawnAt
-  )
-}
-
-function getSubmissionCount(taskId) {
-  return submissions.value.filter(s => s.taskId === taskId && !s.withdrawnAt).length
-}
-
-function goDetail(t) { router.push(`/console/commission/${t.id}`) }
-function goPublish() { router.push('/console/commission/publish') }
-
-// 演示用:切换用户时联动 composable
-watch(currentUserId, (id) => setCurrentUserId(id))
 </script>
 
 <style scoped>
-.commission-page {
-  max-width: 960px;
-  margin: 0 auto;
-}
+.commission-page { max-width: 1120px; margin: 0 auto; }
 
-.commission-header {
-  margin-bottom: 16px;
+.commission-hero {
+  position: relative;
+  padding: 32px 36px;
+  margin-bottom: 24px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, #ffe7ec 0%, #f3e8ff 60%, #fde7f3 100%);
+  display: grid;
+  grid-template-columns: 1.4fr auto;
+  grid-template-areas: 'copy stats';
+  gap: 24px;
+  overflow: hidden;
+  box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
 }
-
-.commission-title {
-  font-size: 22px;
+.hero-copy { grid-area: copy; position: relative; z-index: 2; }
+.eyebrow {
+  display: inline-block;
+  font-size: 12px;
   font-weight: 700;
-  color: var(--color-text-primary, #1a1a1a);
-  margin: 0 0 6px;
+  letter-spacing: 2px;
+  color: var(--color-primary, #ff2442);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+.commission-hero h1 { margin: 12px 0 8px; font-size: 28px; font-weight: 700; color: #1f1f1f; }
+.commission-hero p { margin: 0; color: #595959; font-size: 14px; line-height: 1.7; max-width: 520px; }
+
+.hero-orbit {
+  position: absolute;
+  top: -40px;
+  right: 38%;
+  width: 220px;
+  height: 220px;
+  pointer-events: none;
+  opacity: 0.6;
+}
+.hero-orbit span {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 36, 66, 0.25);
+}
+.hero-orbit span:nth-child(1) {
+  width: 220px; height: 220px;
+  top: 0; left: 0;
+  border-style: dashed;
+  animation: orbit-spin 22s linear infinite;
+}
+.hero-orbit span:nth-child(2) {
+  width: 130px; height: 130px;
+  top: 45px; left: 45px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 36, 66, 0.18), transparent 70%);
 }
 
-.commission-subtitle {
-  font-size: 13px;
-  color: #8c8c8c;
-  margin: 0;
+@keyframes orbit-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.commission-tabs {
+.hero-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(120px, 1fr));
+  gap: 12px;
+  align-self: center;
+  position: relative;
+  z-index: 2;
+}
+.hero-stats > div {
+  background: rgba(255, 255, 255, 0.78);
+  backdrop-filter: blur(6px);
+  border-radius: 16px;
+  padding: 16px 18px;
   display: flex;
+  flex-direction: column;
   gap: 4px;
-  border-bottom: 1px solid #f0f0f0;
+  min-width: 120px;
+}
+.hero-stats strong {
+  font-size: 24px;
+  color: var(--color-primary, #ff2442);
+  font-weight: 700;
+}
+.hero-stats span {
+  font-size: 12px;
+  color: #595959;
+}
+
+.commission-switcher {
+  display: inline-flex;
+  padding: 4px;
+  background: #f5f5f5;
+  border-radius: 999px;
   margin-bottom: 16px;
 }
-
-.commission-tab {
-  padding: 10px 18px;
+.commission-switcher button {
+  padding: 8px 22px;
+  border: 0;
+  background: transparent;
   font-size: 14px;
   color: #595959;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: 999px;
   cursor: pointer;
-  transition: all 0.2s;
-  margin-bottom: -1px;
+  transition: all 0.2s ease;
 }
-
-.commission-tab:hover {
-  color: var(--color-primary, #FF2442);
-}
-
-.commission-tab.active {
-  color: var(--color-primary, #FF2442);
-  border-bottom-color: var(--color-primary, #FF2442);
+.commission-switcher button.active {
+  background: #fff;
+  color: var(--color-primary, #ff2442);
   font-weight: 600;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .commission-filter {
   display: flex;
-  gap: 8px;
-  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
 }
-
-.filter-btn {
-  padding: 4px 14px;
-  font-size: 13px;
+.filter-chip {
+  padding: 6px 16px;
+  border: 1px solid #e8e8e8;
+  border-radius: 999px;
+  background: #fff;
   color: #595959;
-  background: #fff;
-  border: 1px solid #e0e0e0;
-  border-radius: 16px;
+  font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
 }
-
-.filter-btn:hover {
-  border-color: var(--color-primary, #FF2442);
-  color: var(--color-primary, #FF2442);
-}
-
-.filter-btn.active {
-  background: var(--color-primary, #FF2442);
-  border-color: var(--color-primary, #FF2442);
+.filter-chip:hover { border-color: var(--color-primary, #ff2442); color: var(--color-primary, #ff2442); }
+.filter-chip.active {
+  background: var(--color-primary, #ff2442);
   color: #fff;
+  border-color: transparent;
 }
 
-.demo-user-switch {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: #fffbe6;
-  border: 1px dashed #ffe58f;
-  border-radius: 8px;
-  font-size: 12px;
-  color: #ad6800;
-  margin-bottom: 16px;
+.task-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
 }
+.submission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
-.demo-user-label {
-  font-weight: 500;
-}
-
-.demo-user-select {
-  padding: 2px 8px;
-  border: 1px solid #ffe58f;
-  border-radius: 6px;
+.task-card,
+.submission-card {
+  position: relative;
+  padding: 22px 22px 20px;
+  border-radius: 20px;
   background: #fff;
-  color: #ad6800;
-  font-size: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-}
-
-.commission-empty {
-  text-align: center;
-  padding: 80px 0;
-  background: #fff;
-  border-radius: 12px;
-}
-
-.commission-empty-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-}
-
-.commission-empty-text {
-  font-size: 14px;
-  color: #8c8c8c;
-  margin-bottom: 16px;
-}
-
-.empty-btn {
-  padding: 8px 20px;
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-  transition: opacity 0.2s;
-}
-
-.empty-btn:hover {
-  opacity: 0.85;
-}
-
-.commission-list {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+}
+.task-card:hover,
+.submission-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
 }
 
-.task-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 20px;
-  cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.15s;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.task-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  transform: translateY(-1px);
-}
-
-.task-card-row1 {
+.task-card-top {
   display: flex;
   justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 8px;
+  align-items: center;
   gap: 12px;
+  margin-bottom: 12px;
 }
-
-.task-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
 }
+.status-0 { color: #1677ff; background: #e6f4ff; }
+.status-1 { color: #fa8c16; background: #fff4e6; }
+.status-2 { color: #07c160; background: #e6f7ed; }
+.submission-0 { color: #1677ff; background: #e6f4ff; }
+.submission-1 { color: #07c160; background: #e6f7ed; }
+.submission-2 { color: #8c8c8c; background: #f5f5f5; }
+.submission-3 { color: #bfbfbf; background: #fafafa; }
 
 .task-reward {
-  flex-shrink: 0;
-  padding: 2px 12px;
-  background: #fff0f2;
-  color: var(--color-primary, #FF2442);
-  border-radius: 14px;
-  font-size: 13px;
+  font-size: 22px;
+  color: var(--color-primary, #ff2442);
   font-weight: 700;
+  white-space: nowrap;
 }
-
-.task-card-row2 {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+.task-reward small {
   font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 8px;
-}
-
-.task-publisher {
-  color: #595959;
-}
-
-.task-dot {
-  color: #d9d9d9;
-}
-
-.task-style {
-  color: #595959;
-  background: #fafafa;
-  padding: 1px 8px;
-  border-radius: 8px;
-  font-size: 11px;
-}
-
-.task-card-row3 {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  font-size: 12px;
-  color: #595959;
-  margin-bottom: 10px;
-}
-
-.task-deadline {
   font-weight: 500;
-}
-
-.task-deadline.deadline-danger {
-  color: #fa8c16;
-}
-
-.task-submissions {
   color: #8c8c8c;
+  margin-left: 2px;
 }
 
-.task-status {
-  margin-left: auto;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.task-status.status-open {
-  background: #e6f4ff;
-  color: #1677ff;
-}
-
-.task-status.status-settled {
-  background: #e6f7ed;
-  color: #07c160;
-}
-
-.task-status.status-expired {
-  background: #f5f5f5;
-  color: #8c8c8c;
-}
-
-.task-status.status-cancelled {
-  background: #fff7e6;
-  color: #fa8c16;
-}
-
-.task-card-row4 {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.task-badge {
-  padding: 2px 10px;
-  font-size: 11px;
-  border-radius: 10px;
-}
-
-.task-badge.mine-pub {
-  background: #fff7e6;
-  color: #fa8c16;
-}
-
-.task-badge.mine-sub {
-  background: #f0f5ff;
-  color: #1677ff;
-}
-
-.task-action {
-  margin-left: auto;
-  padding: 5px 14px;
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.task-action:hover {
-  background: #e0203b;
-}
-
-.commission-fab {
-  position: fixed;
-  right: 32px;
-  bottom: 96px;
-  padding: 12px 24px;
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-  border: none;
-  border-radius: 24px;
-  font-size: 14px;
+.task-card h2 {
+  margin: 0 0 8px;
+  font-size: 17px;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 6px 20px rgba(255, 36, 66, 0.3);
-  transition: all 0.2s;
-  z-index: 10;
+  color: #1f1f1f;
+  line-height: 1.4;
 }
-
-.commission-fab:hover {
-  background: #e0203b;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.4);
+.task-desc {
+  margin: 0 0 14px;
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* ========== 暗色主题 ========== */
-body[data-theme="dark"] .commission-title {
-  color: #e0e0e0;
+.task-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  color: #595959;
+  font-size: 12px;
+  margin-bottom: 14px;
 }
-
-body[data-theme="dark"] .commission-tabs {
-  border-bottom-color: #303030;
-}
-
-body[data-theme="dark"] .commission-tab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .filter-btn {
-  background: #262626;
-  border-color: #404040;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .commission-empty {
-  background: #1f1f1f;
-}
-
-body[data-theme="dark"] .demo-user-switch {
-  background: #2b2111;
-  border-color: #594214;
-  color: #ffa940;
-}
-
-body[data-theme="dark"] .demo-user-select {
-  background: #141414;
-  border-color: #594214;
-  color: #ffa940;
-}
-
-body[data-theme="dark"] .task-card {
-  background: #1f1f1f;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-body[data-theme="dark"] .task-card:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
-}
-
-body[data-theme="dark"] .task-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .task-reward {
-  background: rgba(255, 36, 66, 0.15);
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .task-publisher,
-body[data-theme="dark"] .task-style {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .task-style {
-  background: #262626;
-}
-
-body[data-theme="dark"] .task-deadline {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .task-deadline.deadline-danger {
-  color: #ffa940;
-}
-
-body[data-theme="dark"] .task-status.status-open {
-  background: rgba(22, 119, 255, 0.18);
-  color: #69b1ff;
-}
-
-body[data-theme="dark"] .task-status.status-settled {
-  background: rgba(7, 193, 96, 0.18);
-  color: #36cfc9;
-}
-
-body[data-theme="dark"] .task-status.status-expired {
-  background: #262626;
+.task-card-bottom {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px dashed #f0f0f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
   color: #8c8c8c;
 }
+.detail-link {
+  color: var(--color-primary, #ff2442);
+  font-weight: 500;
+}
+.detail-link span { margin-left: 4px; transition: transform 0.2s ease; display: inline-block; }
+.task-card:hover .detail-link span,
+.submission-card:hover .detail-link span { transform: translateX(3px); }
 
-body[data-theme="dark"] .task-badge.mine-pub {
-  background: rgba(250, 140, 22, 0.18);
-  color: #ffa940;
+.submission-task-title { font-size: 16px; }
+.submission-article { margin-bottom: 12px; }
+.submission-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #8c8c8c;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+.reward-collected { color: #07c160; font-weight: 500; }
+
+.empty-block {
+  padding: 72px 20px;
+  text-align: center;
+  color: #8c8c8c;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
-body[data-theme="dark"] .task-badge.mine-sub {
-  background: rgba(22, 119, 255, 0.18);
-  color: #69b1ff;
-}
+body[data-theme="dark"] .task-card,
+body[data-theme="dark"] .submission-card,
+body[data-theme="dark"] .empty-block { background: #1f1f1f; }
+body[data-theme="dark"] .commission-hero { background: linear-gradient(135deg, #3a1f2a 0%, #2a1f3d 60%, #3a1f30 100%); }
+body[data-theme="dark"] .hero-stats > div { background: rgba(0, 0, 0, 0.35); }
+body[data-theme="dark"] .hero-stats span { color: #bfbfbf; }
+body[data-theme="dark"] .commission-hero h1 { color: #f5f5f5; }
+body[data-theme="dark"] .commission-hero p { color: #d9d9d9; }
+body[data-theme="dark"] .commission-switcher { background: #262626; }
+body[data-theme="dark"] .commission-switcher button { color: #bfbfbf; }
+body[data-theme="dark"] .commission-switcher button.active { background: #1f1f1f; }
+body[data-theme="dark"] .filter-chip { background: #262626; border-color: #404040; color: #d9d9d9; }
+body[data-theme="dark"] .task-card h2,
+body[data-theme="dark"] .submission-task-title { color: #f5f5f5; }
+body[data-theme="dark"] .task-desc,
+body[data-theme="dark"] .task-facts,
+body[data-theme="dark"] .submission-meta,
+body[data-theme="dark"] .task-card-bottom { color: #bfbfbf; }
+body[data-theme="dark"] .task-card-bottom { border-top-color: #303030; }
+body[data-theme="dark"] .eyebrow { background: rgba(255, 255, 255, 0.08); }
 
-/* ========== 移动端 ========== */
+@media (max-width: 1024px) {
+  .task-grid, .submission-grid { grid-template-columns: 1fr; }
+  .commission-hero { grid-template-columns: 1fr; grid-template-areas: 'copy' 'stats'; }
+  .hero-orbit { display: none; }
+  .hero-stats { grid-template-columns: repeat(3, 1fr); }
+}
 @media (max-width: 768px) {
-  .commission-fab {
-    right: 16px;
-    bottom: 76px;
-    padding: 10px 18px;
-    font-size: 13px;
+  .commission-hero {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: 'copy' 'stats';
+    padding: 24px 20px;
+    border-radius: 20px;
   }
-
-  .task-card {
-    padding: 14px 16px;
-  }
-
-  .task-card-row3 {
-    flex-wrap: wrap;
-  }
-
-  .task-status {
-    margin-left: 0;
-  }
-
-  .commission-tabs {
+  .commission-hero h1 { font-size: 22px; }
+  .hero-orbit { display: none; }
+  .hero-stats {
+    display: flex;
+    grid-template-columns: none;
     overflow-x: auto;
+    padding-bottom: 4px;
     scrollbar-width: none;
   }
-
-  .commission-tabs::-webkit-scrollbar {
-    display: none;
+  .hero-stats::-webkit-scrollbar { display: none; }
+  .hero-stats > div {
+    flex: 0 0 132px;
+    min-width: 132px;
+    padding: 14px 16px;
   }
-
-  .demo-user-switch {
-    font-size: 11px;
+  .task-grid,
+  .submission-grid { grid-template-columns: minmax(0, 1fr); }
+  .task-card,
+  .submission-card { padding: 16px; }
+  .task-card-top {
+    min-height: 32px;
+    padding-right: 118px;
   }
+  .task-reward {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    max-width: 116px;
+    text-align: right;
+  }
+  .task-desc {
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+  .commission-switcher button { padding: 7px 16px; font-size: 13px; }
 }
 </style>

@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -36,6 +37,14 @@ public class CoinRecordServiceImpl implements CoinRecordService {
     public String grant(Long userId, String bizType, BigDecimal amount, String refId, String remark) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("入账金额必须大于 0");
+        }
+        if (refId != null && !refId.isBlank()) {
+            UserCoinRecord existing = coinRecordMapper.selectOne(new LambdaQueryWrapper<UserCoinRecord>()
+                    .eq(UserCoinRecord::getBizType, bizType)
+                    .eq(UserCoinRecord::getRefId, refId));
+            if (existing != null) {
+                return existing.getBizNo();
+            }
         }
 
         userMapper.update(null, new LambdaUpdateWrapper<User>()

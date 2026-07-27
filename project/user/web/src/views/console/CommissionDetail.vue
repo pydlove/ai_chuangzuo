@@ -1,1075 +1,575 @@
 <template>
-  <div class="detail-page" v-if="task">
-    <button class="back-btn" @click="goBack">← 返回列表</button>
+  <div class="detail-page">
+    <button class="back-btn" @click="router.push('/console/commission')">← 返回约稿大厅</button>
 
-    <!-- 任务信息卡 -->
-    <div class="task-info-card">
-      <div class="task-info-head">
-        <span :class="['task-status-tag', `status-${task.status.toLowerCase()}`]">
-          {{ statusLabel(task.status) }}
-        </span>
-        <h2 class="task-info-title">{{ task.title }}</h2>
-        <div class="task-info-meta">
-          <span class="meta-publisher">👤 {{ task.publisherNickname }}</span>
-          <span class="meta-dot">·</span>
-          <span class="meta-time">{{ formatTime(task.createdAt) }}发布</span>
-        </div>
-      </div>
+    <div v-if="loading" class="panel empty-block">加载中...</div>
 
-      <div class="task-info-grid">
-        <div class="info-cell">
-          <span class="info-label">奖励</span>
-          <span class="info-value reward">{{ task.rewardCoin }} 创作币</span>
-        </div>
-        <div class="info-cell">
-          <span class="info-label">字数范围</span>
-          <span class="info-value">{{ task.requirements.minWordCount }}~{{ task.requirements.maxWordCount }} 字</span>
-        </div>
-        <div class="info-cell">
-          <span class="info-label">风格</span>
-          <span class="info-value">{{ task.requirements.styleHint || '不限' }}</span>
-        </div>
-        <div class="info-cell">
-          <span class="info-label">{{ task.status === 'OPEN' ? '剩余时间' : '已截止' }}</span>
-          <span :class="['info-value', { 'deadline-danger': deadlineInfo.danger }]">
-            {{ deadlineInfo.text }}
-          </span>
-        </div>
-      </div>
-
-      <div class="task-info-desc">
-        <div class="desc-label">需求描述</div>
-        <p class="desc-content">{{ task.description }}</p>
-      </div>
-    </div>
-
-    <!-- ============ 发布者视角 ============ -->
-    <template v-if="isPublisher">
-      <div class="action-bar">
-        <h3 class="section-title">
-          投稿列表 ({{ taskSubmissions.length }}人)
-        </h3>
-        <div class="action-buttons">
-          <button v-if="canCancel" class="btn-secondary" @click="onCancelTask">撤回任务</button>
-        </div>
-      </div>
-
-      <div v-if="taskSubmissions.length === 0" class="empty-block">
-        <p>暂无投稿,耐心等待</p>
-        <p v-if="canCancel" class="empty-hint">没有投稿时可以撤回任务,奖励会全额退回</p>
-      </div>
-
-      <div v-else class="submission-list">
-        <div
-          v-for="s in taskSubmissions"
-          :key="s.id"
-          :class="['submission-row', { 'submission-row-winner': task.winnerSubmissionId === s.id }]"
-        >
-          <div class="avatar" :style="{ background: avatarColor(s.submitterNickname) }">
-            {{ s.submitterNickname.charAt(0) }}
+    <template v-else-if="task">
+      <div class="detail-grid">
+        <!-- 左侧：任务内容 -->
+        <section class="content-panel">
+          <div class="content-head">
+            <span :class="['status-tag', `status-${task.status}`]">{{ taskStatus(task.status) }}</span>
+            <h1>{{ task.title }}</h1>
+            <p class="source-line">来源：官方 / 管理员发布</p>
           </div>
-          <div class="submission-meta">
-            <div class="submission-line1">
-              <span class="submission-nick">{{ s.submitterNickname }}</span>
-              <span v-if="task.winnerSubmissionId === s.id" class="winner-tag">🏆 中标</span>
+          <div class="meta-row">
+            <span><strong>{{ wordRangeText(task) }}</strong></span>
+            <span>采纳 {{ task.adoptedCount }} / {{ task.neededCount }} 篇</span>
+            <span>{{ deadlineText }}</span>
+          </div>
+          <div class="description-block">
+            <h3>任务说明</h3>
+            <div class="description">{{ task.description }}</div>
+          </div>
+          <div v-if="task.styleHint" class="style-hint-block">
+            <h3>风格提示</h3>
+            <p>{{ task.styleHint }}</p>
+          </div>
+        </section>
+
+        <!-- 右侧：固定操作卡 -->
+        <aside class="action-panel">
+          <div class="reward-card">
+            <span class="reward-label">单篇奖励</span>
+            <strong class="reward-value">{{ task.rewardCoin }}<small> 创作币</small></strong>
+            <p class="reward-note">采纳后全额发放至创作币账户</p>
+          </div>
+
+          <div class="action-card">
+            <!-- 已投稿：显示我的投稿状态 -->
+            <template v-if="mySubmission">
+              <div class="action-head">
+                <span class="action-title">我的投稿</span>
+                <span :class="['status-tag', `submission-${mySubmission.status}`]">{{ submissionStatus(mySubmission.status) }}</span>
+              </div>
+              <div class="submission-info">
+                <h4>《{{ mySubmission.articleTitle }}》</h4>
+                <p>{{ mySubmission.wordCount }} 字</p>
+              </div>
+              <div v-if="mySubmission.status === 1" class="reward-result">
+                已获得 {{ mySubmission.rewardCoin }} 创作币
+              </div>
+              <button v-if="canWithdraw" class="secondary-btn" @click="confirmWithdraw">撤回投稿</button>
+            </template>
+
+            <!-- 招募中且未投稿：投稿操作 -->
+            <template v-else-if="task.status === 0">
+              <div class="action-head">
+                <span class="action-title">投递稿件</span>
+                <span class="status-tag status-0">{{ taskStatus(0) }}</span>
+              </div>
+              <p class="action-desc">只能选择你在爱创作中已经生成完成、且字数符合要求的文章。</p>
+              <button class="primary-btn" @click="openPicker">选择文章投稿</button>
+            </template>
+
+            <!-- 其它状态 -->
+            <template v-else>
+              <div class="action-head">
+                <span class="action-title">任务已停止投稿</span>
+              </div>
+              <p class="action-desc">当前任务状态：{{ taskStatus(task.status) }}。请关注大厅中的其它招募中任务。</p>
+            </template>
+          </div>
+
+          <div class="fact-card">
+            <div class="fact-row">
+              <span>计划采纳</span>
+              <strong>{{ task.neededCount }} 篇</strong>
             </div>
-            <div class="submission-line2">
-              <span class="submission-title">《{{ s.articleTitle }}》</span>
-              <span class="submission-wordcount">{{ s.wordCount }} 字</span>
+            <div class="fact-row">
+              <span>已采纳</span>
+              <strong>{{ task.adoptedCount }} 篇</strong>
             </div>
-            <div class="submission-line3">{{ formatTime(s.submittedAt) }}投递</div>
+            <div class="fact-row">
+              <span>截止时间</span>
+              <strong>{{ new Date(task.deadlineAt).toLocaleString() }}</strong>
+            </div>
           </div>
-          <div class="submission-actions">
-            <button v-if="task.status === 'OPEN'" class="btn-primary" @click="onPickWinner(s.id, s.submitterNickname)">
-              选用 TA
-            </button>
-            <span v-else-if="task.winnerSubmissionId === s.id" class="winner-text">
-              实得 {{ winnerPayout }} 币
-            </span>
-          </div>
-        </div>
+        </aside>
       </div>
+
+      <div v-if="canSubmit" class="mobile-submit-bar">
+        <span>仅支持平台生成文章</span>
+        <button class="primary-btn" @click="openPicker">选择文章投稿</button>
+      </div>
+
+      <a-modal v-model:open="pickerVisible" title="选择投稿文章" :footer="null" centered :width="560">
+        <div v-if="articles.length === 0" class="empty picker-empty">暂无已生成文章</div>
+        <div v-else class="article-list">
+          <button v-for="article in articles" :key="article.bizNo"
+                  :disabled="!inRange(article)"
+                  :class="['article-item', { selected: selectedBizNo === article.bizNo }]"
+                  @click="selectedBizNo = article.bizNo">
+            <div class="article-main">
+              <strong>{{ article.title }}</strong>
+              <span class="article-meta">{{ article.wordCount }} 字 · {{ article.platformName }} · 完成于 {{ formatCompletedAt(article.completedAt) }}</span>
+              <span v-if="!inRange(article)" class="article-warn">字数不符（要求 {{ wordRangeText(task) }}）</span>
+            </div>
+          </button>
+        </div>
+        <div class="modal-actions">
+          <button class="secondary-btn" @click="pickerVisible = false">取消</button>
+          <button class="primary-btn" :disabled="!selectedBizNo || submitting" @click="submit">确认投稿</button>
+        </div>
+      </a-modal>
     </template>
 
-    <!-- ============ 投稿人/旁观者视角 ============ -->
-    <template v-else>
-      <div v-if="mySub" class="my-sub-card">
-        <div class="my-sub-header">
-          <span class="my-sub-label">我的投递</span>
-          <span v-if="task.winnerSubmissionId === mySub.id" class="winner-tag large">🏆 已中标</span>
-        </div>
-        <div class="my-sub-title">《{{ mySub.articleTitle }}》</div>
-        <div class="my-sub-meta">{{ mySub.wordCount }} 字 · {{ formatTime(mySub.submittedAt) }}投递</div>
-
-        <div v-if="task.winnerSubmissionId === mySub.id" class="my-sub-reward">
-          实得 <b>{{ winnerPayout }}</b> 创作币(已扣除平台抽成 10%)
-        </div>
-
-        <div class="my-sub-actions">
-          <button v-if="canWithdraw" class="btn-secondary" @click="onWithdraw">撤回投递</button>
-          <button v-if="canSubmit" class="btn-primary" @click="openPicker">立即投稿</button>
-        </div>
-      </div>
-
-      <div v-else-if="canSubmit" class="empty-block">
-        <p>你还没有投递此任务</p>
-        <button class="btn-primary" @click="openPicker">立即投稿</button>
-      </div>
-
-      <div v-else-if="task.status !== 'OPEN'" class="empty-block">
-        <p>{{ task.status === 'SETTLED' ? '任务已结算' : '任务已结束' }}</p>
-      </div>
-
-      <div class="other-subs-card">
-        <div class="other-subs-header" @click="showOthers = !showOthers">
-          <span>查看其他 {{ taskSubmissions.length }} 位投稿人</span>
-          <span class="expand-arrow">{{ showOthers ? '▾' : '▸' }}</span>
-        </div>
-        <div v-if="showOthers" class="other-subs-list">
-          <div v-if="taskSubmissions.length === 0" class="empty-block mini">
-            <p>暂无其他投稿人</p>
-          </div>
-          <div
-            v-for="s in taskSubmissions"
-            :key="s.id"
-            class="other-sub-row"
-          >
-            <div class="avatar small" :style="{ background: avatarColor(s.submitterNickname) }">
-              {{ s.submitterNickname.charAt(0) }}
-            </div>
-            <span class="other-sub-nick">{{ s.submitterNickname }}</span>
-            <span class="other-sub-words">{{ s.wordCount }} 字</span>
-            <span v-if="task.winnerSubmissionId === s.id" class="winner-tag mini">🏆</span>
-          </div>
-        </div>
-      </div>
-    </template>
-
-    <!-- ============ 投稿选择器 ============ -->
-    <a-modal
-      v-model:open="pickerVisible"
-      :footer="null"
-      :width="560"
-      centered
-      class="picker-modal"
-      title="选择要投递的文章"
-    >
-      <div v-if="myArticles.length === 0" class="picker-empty">
-        <p>还没有已生成的文章</p>
-        <button class="btn-primary" @click="goCreate">去创作</button>
-      </div>
-
-      <div v-else class="picker-list">
-        <div
-          v-for="a in myArticles"
-          :key="a.bizNo"
-          :class="[
-            'picker-item',
-            {
-              active: selectedBizNo === a.bizNo,
-              disabled: !isArticleInRange(a)
-            }
-          ]"
-          @click="isArticleInRange(a) && (selectedBizNo = a.bizNo)"
-        >
-          <div class="picker-item-title">{{ a.title }}</div>
-          <div class="picker-item-meta">
-            <span class="picker-item-platform">{{ a.platformName }}</span>
-            <span class="picker-item-dot">·</span>
-            <span class="picker-item-words">{{ a.wordCount }} 字</span>
-            <span class="picker-item-dot">·</span>
-            <span class="picker-item-time">{{ formatTime(a.completedAt) }}</span>
-          </div>
-          <div v-if="!isArticleInRange(a)" class="picker-item-warn">
-            字数不符(要求 {{ task.requirements.minWordCount }}-{{ task.requirements.maxWordCount }})
-          </div>
-        </div>
-      </div>
-
-      <div v-if="myArticles.length > 0" class="picker-actions">
-        <button class="btn-secondary" @click="pickerVisible = false">取消</button>
-        <button class="btn-primary" :disabled="!canConfirmPicker" @click="confirmSubmit">
-          确认投递
-        </button>
-      </div>
-    </a-modal>
-  </div>
-
-  <div v-else class="detail-missing">
-    <p>任务不存在或已删除</p>
-    <button class="btn-primary" @click="goBack">返回列表</button>
+    <div v-else class="panel empty-block">任务不存在或已删除</div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
 import { useWorks } from '@/composables/useWorks'
-import { COMMISSION_CONFIG } from '@/api/commission'
 
 const route = useRoute()
 const router = useRouter()
-const {
-  currentUserId, coinBalance,
-  getTask, getSubmissionsOfTask, mySubmissionForTask,
-  startReconcile,
-  cancelTask, submitToTask, withdrawSubmission, pickWinner
-} = useCommission()
+const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission } = useCommission()
 const { articles, load: loadWorks } = useWorks()
+const pickerVisible = ref(false)
+const selectedBizNo = ref('')
+const submitting = ref(false)
 
-const taskId = computed(() => route.params.id)
-const now = ref(Date.now())
-let tick = null
+const task = computed(() => taskDetail.value?.task || null)
+const mySubmission = computed(() => taskDetail.value?.mySubmission || null)
+const canSubmit = computed(() => task.value?.status === 0 && !mySubmission.value)
+const canWithdraw = computed(() => task.value?.status === 0 && mySubmission.value?.status === 0)
+
+const deadlineText = computed(() => {
+  if (!task.value?.deadlineAt) return ''
+  const deadline = new Date(task.value.deadlineAt)
+  if (task.value.status !== 0 || deadline <= new Date()) return `截止于 ${deadline.toLocaleString()}`
+  const hours = Math.max(1, Math.ceil((deadline - Date.now()) / 3600000))
+  return hours > 24 ? `还剩 ${Math.ceil(hours / 24)} 天` : `还剩 ${hours} 小时`
+})
 
 onMounted(async () => {
-  startReconcile()
-  tick = setInterval(() => { now.value = Date.now() }, 60_000)
   try {
-    await loadWorks({ page: 1, pageSize: 50 })
-  } catch {
-    // 后端未实现时 useWorks 内部已处理,这里静默
+    await Promise.all([
+      loadTask(route.params.id),
+      loadWorks({ page: 1, pageSize: 50 })
+    ])
+  } catch (error) {
+    message.error(error.message || '约稿详情加载失败')
   }
 })
-onUnmounted(() => { if (tick) clearInterval(tick) })
 
-const task = computed(() => getTask(taskId.value))
-const taskSubmissions = computed(() => task.value ? getSubmissionsOfTask(task.value.id) : [])
-const mySub = computed(() => task.value ? mySubmissionForTask(task.value.id) : null)
-
-const isPublisher = computed(() => task.value?.publisherId === currentUserId.value)
-
-const canSubmit = computed(() => {
-  if (!task.value) return false
-  if (task.value.status !== 'OPEN') return false
-  if (isPublisher.value) return false
-  if (mySub.value) return false
+function taskStatus(value) {
+  return ['招募中', '已截止待采纳', '已完成'][value] || '未知状态'
+}
+function submissionStatus(value) {
+  return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
+}
+function inRange(article) {
+  const min = task.value?.minWordCount
+  const max = task.value?.maxWordCount
+  if (min != null && article.wordCount < min) return false
+  if (max != null && article.wordCount > max) return false
   return true
-})
-
-const canWithdraw = computed(() => {
-  if (!mySub.value) return false
-  if (task.value?.status !== 'OPEN') return false
-  return true
-})
-
-const canCancel = computed(() => {
-  if (!task.value || !isPublisher.value) return false
-  if (task.value.status !== 'OPEN') return false
-  if (taskSubmissions.value.length > 0) return false
-  return true
-})
-
-const winnerPayout = computed(() => {
-  if (!task.value) return 0
-  const fee = Math.floor(task.value.rewardCoin * task.value.platformFeeRate)
-  return task.value.rewardCoin - fee
-})
-
-const deadlineInfo = computed(() => {
-  const t = task.value
-  if (!t) return { text: '', danger: false }
-  const left = new Date(t.deadlineAt).getTime() - now.value
-  if (left <= 0) {
-    return t.status === 'OPEN'
-      ? { text: '宽限期中,请尽快选择', danger: true }
-      : { text: '已结束', danger: false }
-  }
-  const days = Math.floor(left / 86400000)
-  const hours = Math.floor((left % 86400000) / 3600000)
-  const mins = Math.floor((left % 3600000) / 60000)
-  if (left < 2 * 3600000) return { text: `即将截止 (${hours}h ${mins}m)`, danger: true }
-  if (days > 0) return { text: `还剩 ${days} 天 ${hours} 小时`, danger: false }
-  return { text: `还剩 ${hours} 小时 ${mins} 分`, danger: false }
-})
-
-function statusLabel(s) {
-  return { OPEN: '进行中', SETTLED: '已结算', EXPIRED: '已流局', CANCELLED: '已撤销' }[s] || s
 }
-
-function avatarColor(nick) {
-  // 简单 hash 选色
-  const colors = ['#FF6B8A', '#FFB86C', '#FFD93D', '#6BCB77', '#4D96FF', '#9D6BFF', '#FF8FB1']
-  let hash = 0
-  for (let i = 0; i < nick.length; i++) hash = (hash * 31 + nick.charCodeAt(i)) | 0
-  return colors[Math.abs(hash) % colors.length]
+function wordRangeText(item) {
+  if (!item) return ''
+  const min = item.minWordCount
+  const max = item.maxWordCount
+  if (min != null && max != null) return `${min}-${max} 字`
+  if (min != null) return `≥ ${min} 字`
+  if (max != null) return `≤ ${max} 字`
+  return '字数不限'
 }
-
-function formatTime(iso) {
-  if (!iso) return ''
-  const d = new Date(iso)
-  const nowD = new Date()
-  const diff = Math.floor((nowD - d) / 1000)
-  if (diff < 60) return '刚刚'
-  if (diff < 3600) return Math.floor(diff / 60) + ' 分钟前'
-  if (diff < 86400) return Math.floor(diff / 3600) + ' 小时前'
-  if (diff < 86400 * 7) return Math.floor(diff / 86400) + ' 天前'
-  return `${d.getMonth() + 1}/${d.getDate()}`
+function formatCompletedAt(value) {
+  if (!value) return '未知'
+  return new Date(value).toLocaleString()
 }
-
-// ========== 发布者操作 ==========
-function onCancelTask() {
-  if (!task.value) return
-  Modal.confirm({
-    title: '确认撤回任务?',
-    content: `撤回后将退还 ${task.value.rewardCoin} 创作币,任务变为"已撤销"。`,
-    okText: '确认撤回',
-    cancelText: '取消',
-    centered: true,
-    okType: 'danger',
-    onOk: () => {
-      const r = cancelTask(task.value.id)
-      if (!r.ok) return message.warning(r.error)
-      message.success(`已撤销,退还 ${task.value.rewardCoin} 创作币`)
-    }
-  })
-}
-
-function onPickWinner(submissionId, nick) {
-  if (!task.value) return
-  Modal.confirm({
-    title: '确认选用此稿件?',
-    content: `将结算给 ${nick},实得 ${winnerPayout.value} 创作币,平台抽成 ${Math.floor(task.value.rewardCoin * task.value.platformFeeRate)} 创作币。结算后不可撤销。`,
-    okText: '确认结算',
-    cancelText: '取消',
-    centered: true,
-    onOk: () => {
-      const r = pickWinner(task.value.id, submissionId)
-      if (!r.ok) return message.warning(r.error)
-      message.success(`已结算,${nick} 获得 ${r.payout} 创作币`)
-    }
-  })
-}
-
-// ========== 投稿人操作 ==========
-function onWithdraw() {
-  if (!mySub.value) return
-  Modal.confirm({
-    title: '确认撤回投递?',
-    content: '撤回后可以重新投递其他文章。',
-    okText: '确认撤回',
-    cancelText: '取消',
-    centered: true,
-    onOk: () => {
-      const r = withdrawSubmission(mySub.value.id)
-      if (!r.ok) return message.warning(r.error)
-      message.success('已撤回投递')
-    }
-  })
-}
-
-// ========== 投稿选择器 ==========
-const pickerVisible = ref(false)
-const selectedBizNo = ref(null)
-const showOthers = ref(false)
-
-const myArticles = computed(() => articles.value || [])
-
-function isArticleInRange(a) {
-  if (!task.value) return false
-  return a.wordCount >= task.value.requirements.minWordCount &&
-         a.wordCount <= task.value.requirements.maxWordCount
-}
-
-const canConfirmPicker = computed(() => {
-  if (!selectedBizNo.value) return false
-  const a = myArticles.value.find(x => x.bizNo === selectedBizNo.value)
-  return a && isArticleInRange(a)
-})
-
 function openPicker() {
-  selectedBizNo.value = null
+  selectedBizNo.value = ''
   pickerVisible.value = true
 }
-
-function confirmSubmit() {
-  if (!task.value || !selectedBizNo.value) return
-  const a = myArticles.value.find(x => x.bizNo === selectedBizNo.value)
-  if (!a) return
-  const r = submitToTask(task.value.id, {
-    bizNo: a.bizNo,
-    title: a.title,
-    wordCount: a.wordCount
-  })
-  if (!r.ok) {
-    message.warning(r.error)
-    return
+async function submit() {
+  submitting.value = true
+  try {
+    await submitArticle(task.value.id, selectedBizNo.value)
+    pickerVisible.value = false
+    message.success('投稿成功，等待管理员采纳')
+  } catch (error) {
+    message.error(error.message || '投稿失败')
+  } finally {
+    submitting.value = false
   }
-  message.success('投递成功,等待发布者选择')
-  pickerVisible.value = false
 }
-
-function goCreate() {
-  pickerVisible.value = false
-  router.push('/console/create')
-}
-
-function goBack() {
-  router.push('/console/commission')
+function confirmWithdraw() {
+  Modal.confirm({
+    title: '确认撤回投稿？',
+    content: '截止前撤回后，可以改投其他文章。',
+    okText: '确认撤回',
+    cancelText: '取消',
+    centered: true,
+    onOk: async () => {
+      try {
+        await withdrawSubmission(mySubmission.value.id, task.value.id)
+        message.success('投稿已撤回')
+      } catch (error) {
+        message.error(error.message || '撤回失败')
+      }
+    }
+  })
 }
 </script>
 
 <style scoped>
 .detail-page {
-  max-width: 880px;
+  max-width: 1120px;
   margin: 0 auto;
+  padding-bottom: 100px;
 }
-
 .back-btn {
-  display: inline-block;
   margin-bottom: 16px;
-  padding: 6px 12px;
+  border: 0;
   background: none;
-  border: none;
-  color: #595959;
-  font-size: 14px;
-  cursor: pointer;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-
-.back-btn:hover {
-  background: var(--color-primary-light, rgba(255, 36, 66, 0.08));
-  color: var(--color-primary, #FF2442);
-}
-
-.task-info-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 24px 28px;
-  margin-bottom: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.task-info-head {
-  margin-bottom: 16px;
-}
-
-.task-status-tag {
-  display: inline-block;
-  padding: 2px 10px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-  margin-bottom: 8px;
-}
-
-.task-status-tag.status-open {
-  background: #e6f4ff;
-  color: #1677ff;
-}
-
-.task-status-tag.status-settled {
-  background: #e6f7ed;
-  color: #07c160;
-}
-
-.task-status-tag.status-expired {
-  background: #f5f5f5;
-  color: #8c8c8c;
-}
-
-.task-status-tag.status-cancelled {
-  background: #fff7e6;
-  color: #fa8c16;
-}
-
-.task-info-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px;
-}
-
-.task-info-meta {
-  font-size: 12px;
-  color: #8c8c8c;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.task-info-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  margin-bottom: 20px;
-  padding: 16px;
-  background: #fafafa;
-  border-radius: 10px;
-}
-
-.info-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.info-label {
-  font-size: 11px;
-  color: #8c8c8c;
-}
-
-.info-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.info-value.reward {
-  color: var(--color-primary, #FF2442);
-  font-size: 16px;
-}
-
-.info-value.deadline-danger {
-  color: #fa8c16;
-}
-
-.task-info-desc {
-  border-top: 1px dashed #f0f0f0;
-  padding-top: 16px;
-}
-
-.desc-label {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 6px;
-}
-
-.desc-content {
-  font-size: 14px;
-  color: #262626;
-  line-height: 1.7;
-  margin: 0;
-  white-space: pre-wrap;
-}
-
-.action-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-secondary,
-.btn-primary {
-  padding: 8px 18px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: #595959;
-  border: 1px solid #d9d9d9;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  border-color: var(--color-primary, #FF2442);
-  color: var(--color-primary, #FF2442);
-}
-
-.btn-primary {
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #e0203b;
-}
-
-.btn-primary:disabled,
-.btn-secondary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.empty-block {
-  background: #fff;
-  border-radius: 12px;
-  padding: 40px 20px;
-  text-align: center;
-  color: #8c8c8c;
-  font-size: 14px;
-  margin-bottom: 20px;
-}
-
-.empty-block p {
-  margin: 0 0 12px;
-}
-
-.empty-hint {
-  font-size: 12px;
-  color: #bfbfbf;
-}
-
-.empty-block.mini {
-  padding: 20px;
-  font-size: 13px;
-}
-
-.submission-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.submission-row {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.submission-row-winner {
-  background: linear-gradient(135deg, #fff5f7, #fff0f2);
-  border: 1px solid rgba(255, 36, 66, 0.2);
-}
-
-.avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  flex-shrink: 0;
-}
-
-.avatar.small {
-  width: 28px;
-  height: 28px;
-  font-size: 13px;
-}
-
-.submission-meta {
-  flex: 1;
-  min-width: 0;
-}
-
-.submission-line1 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.submission-nick {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.winner-tag {
-  background: #fff7e6;
-  color: #fa8c16;
-  padding: 1px 8px;
-  border-radius: 10px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.winner-tag.large {
-  padding: 3px 12px;
-  font-size: 12px;
-}
-
-.winner-tag.mini {
-  padding: 1px 6px;
-}
-
-.submission-line2 {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-  font-size: 13px;
-  color: #262626;
-}
-
-.submission-title {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.submission-wordcount {
-  flex-shrink: 0;
-  color: #8c8c8c;
-  font-size: 12px;
-}
-
-.submission-line3 {
-  font-size: 11px;
-  color: #8c8c8c;
-}
-
-.submission-actions {
-  flex-shrink: 0;
-}
-
-.winner-text {
-  font-size: 13px;
-  color: var(--color-primary, #FF2442);
-  font-weight: 600;
-}
-
-.my-sub-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px 24px;
-  margin-bottom: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-}
-
-.my-sub-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.my-sub-label {
-  font-size: 13px;
-  color: #8c8c8c;
-  font-weight: 500;
-}
-
-.my-sub-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-}
-
-.my-sub-meta {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 12px;
-}
-
-.my-sub-reward {
-  background: linear-gradient(135deg, #e6f7ed, #d9f7be);
-  border-radius: 8px;
-  padding: 10px 14px;
-  font-size: 14px;
-  color: #07c160;
-  margin-bottom: 12px;
-}
-
-.my-sub-reward b {
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.my-sub-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.other-subs-card {
-  background: #fff;
-  border-radius: 12px;
-  margin-top: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  overflow: hidden;
-}
-
-.other-subs-header {
-  padding: 14px 20px;
-  font-size: 14px;
-  font-weight: 500;
   color: #595959;
   cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  transition: background 0.15s;
-}
-
-.other-subs-header:hover {
-  background: #fafafa;
-}
-
-.expand-arrow {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.other-subs-list {
-  border-top: 1px solid #f0f0f0;
+  font-size: 14px;
   padding: 4px 0;
 }
+.back-btn:hover { color: var(--color-primary, #ff2442); }
 
-.other-sub-row {
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+.content-panel,
+.action-panel > * {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+.content-panel { padding: 28px 32px; }
+
+.content-head { margin-bottom: 16px; }
+.content-head .status-tag { margin-bottom: 12px; }
+.content-head h1 {
+  margin: 0 0 8px;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1f1f1f;
+  line-height: 1.4;
+}
+.source-line {
+  margin: 0;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.meta-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 14px 0;
+  margin-bottom: 18px;
+  border-top: 1px dashed #f0f0f0;
+  border-bottom: 1px dashed #f0f0f0;
+  color: #595959;
   font-size: 13px;
 }
+.meta-row strong { color: #1f1f1f; font-weight: 600; margin-right: 2px; }
 
-.other-sub-nick {
-  flex: 1;
-  color: #262626;
-}
-
-.other-sub-words {
-  color: #8c8c8c;
-  font-size: 12px;
-}
-
-.detail-missing {
-  max-width: 480px;
-  margin: 80px auto;
-  text-align: center;
-  background: #fff;
-  border-radius: 12px;
-  padding: 60px 20px;
-}
-
-.detail-missing p {
-  font-size: 14px;
-  color: #8c8c8c;
-  margin-bottom: 16px;
-}
-
-/* ============ 投稿选择器 ============ */
-.picker-modal .ant-modal-body {
-  padding: 16px 24px 20px;
-}
-
-.picker-empty {
-  text-align: center;
-  padding: 40px 0;
-  color: #8c8c8c;
-}
-
-.picker-empty p {
-  margin-bottom: 16px;
-}
-
-.picker-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 50vh;
-  overflow-y: auto;
-}
-
-.picker-item {
-  padding: 12px 14px;
-  border: 1px solid #f0f0f0;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.15s;
-}
-
-.picker-item:hover:not(.disabled) {
-  border-color: var(--color-primary, #FF2442);
-  background: var(--color-primary-light, rgba(255, 36, 66, 0.04));
-}
-
-.picker-item.active {
-  border-color: var(--color-primary, #FF2442);
-  background: var(--color-primary-light, rgba(255, 36, 66, 0.08));
-}
-
-.picker-item.disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.picker-item-title {
+.description-block,
+.style-hint-block { margin-top: 18px; }
+.description-block h3,
+.style-hint-block h3 {
+  margin: 0 0 10px;
   font-size: 14px;
   font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 6px;
+  color: #1f1f1f;
+}
+.description {
+  white-space: pre-wrap;
+  line-height: 1.85;
+  color: #262626;
+  font-size: 14px;
+}
+.style-hint-block p {
+  margin: 0;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: #fff7ed;
+  color: #874800;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
-.picker-item-meta {
-  font-size: 12px;
-  color: #8c8c8c;
+.action-panel {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+  position: sticky;
+  top: 16px;
+}
+
+.reward-card {
+  padding: 22px 24px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #ffe7ec 0%, #fde7f3 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.reward-label {
+  font-size: 12px;
+  color: #874800;
+  letter-spacing: 1px;
+}
+.reward-value {
+  font-size: 32px;
+  color: var(--color-primary, #ff2442);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.reward-value small {
+  font-size: 14px;
+  font-weight: 500;
+  color: #595959;
+  margin-left: 4px;
+}
+.reward-note { margin: 4px 0 0; color: #874800; font-size: 12px; }
+
+.action-card { padding: 22px 24px; }
+.action-head {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 4px;
+  margin-bottom: 12px;
+}
+.action-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+.action-desc {
+  margin: 0 0 14px;
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.7;
 }
 
-.picker-item-dot {
-  color: #d9d9d9;
+.submission-info h4 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+.submission-info p { margin: 0; color: #595959; font-size: 12px; }
+
+.reward-result {
+  margin: 14px 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #e6f7ed;
+  color: #07c160;
+  font-size: 13px;
+  font-weight: 500;
 }
 
-.picker-item-warn {
-  font-size: 11px;
-  color: #fa8c16;
-  margin-top: 4px;
+.fact-card { padding: 18px 22px; }
+.fact-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #595959;
+}
+.fact-row strong { color: #1f1f1f; font-weight: 600; }
+
+.status-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+}
+.status-0 { color: #1677ff; background: #e6f4ff; }
+.status-1 { color: #fa8c16; background: #fff4e6; }
+.status-2 { color: #07c160; background: #e6f7ed; }
+.submission-0 { color: #1677ff; background: #e6f4ff; }
+.submission-1 { color: #07c160; background: #e6f7ed; }
+.submission-2 { color: #8c8c8c; background: #f5f5f5; }
+.submission-3 { color: #bfbfbf; background: #fafafa; }
+
+.primary-btn,
+.secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 20px;
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  min-height: 40px;
+  width: 100%;
+}
+.primary-btn { color: #fff; background: var(--color-primary, #ff2442); }
+.primary-btn:disabled { opacity: .45; cursor: not-allowed; }
+.secondary-btn { background: #f2f2f2; color: #555; }
+.secondary-btn:disabled { opacity: .55; cursor: not-allowed; }
+
+.empty-block {
+  padding: 72px 20px;
+  text-align: center;
+  color: #8c8c8c;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
-.picker-actions {
+.article-list {
+  max-height: 420px;
+  overflow: auto;
+  display: grid;
+  gap: 10px;
+  padding-right: 2px;
+}
+.article-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  border: 1px solid #eee;
+  border-radius: 12px;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.article-item strong { font-size: 14px; color: #1f1f1f; }
+.article-item .article-meta { font-size: 12px; color: #8c8c8c; }
+.article-item .article-warn { font-size: 12px; color: #fa8c16; }
+.article-item.selected {
+  border-color: var(--color-primary, #ff2442);
+  background: #fff5f7;
+}
+.article-item:disabled { opacity: .55; cursor: not-allowed; }
+.modal-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
+  margin-top: 18px;
+}
+.modal-actions .primary-btn,
+.modal-actions .secondary-btn { width: auto; min-width: 96px; }
+
+.mobile-submit-bar {
+  display: none;
 }
 
-/* ========== 暗色主题 ========== */
-body[data-theme="dark"] .task-info-card {
-  background: #1f1f1f;
-}
-
-body[data-theme="dark"] .task-info-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .task-info-grid {
-  background: #262626;
-}
-
-body[data-theme="dark"] .info-value {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .desc-content {
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .section-title {
-  color: #e0e0e0;
-}
-
+body[data-theme="dark"] .content-panel,
+body[data-theme="dark"] .action-panel > *,
 body[data-theme="dark"] .empty-block {
   background: #1f1f1f;
 }
-
-body[data-theme="dark"] .submission-row {
-  background: #1f1f1f;
+body[data-theme="dark"] .content-head h1,
+body[data-theme="dark"] .action-title,
+body[data-theme="dark"] .submission-info h4,
+body[data-theme="dark"] .fact-row strong { color: #f5f5f5; }
+body[data-theme="dark"] .description { color: #d9d9d9; }
+body[data-theme="dark"] .meta-row,
+body[data-theme="dark"] .fact-row,
+body[data-theme="dark"] .action-desc,
+body[data-theme="dark"] .source-line { color: #bfbfbf; }
+body[data-theme="dark"] .meta-row { border-color: #303030; }
+body[data-theme="dark"] .reward-card {
+  background: linear-gradient(135deg, #3a1f2a 0%, #3a1f30 100%);
 }
-
-body[data-theme="dark"] .submission-row-winner {
-  background: linear-gradient(135deg, #2a1015, #1f0d12);
-  border-color: rgba(255, 36, 66, 0.4);
+body[data-theme="dark"] .reward-label,
+body[data-theme="dark"] .reward-note { color: #f5d0d8; }
+body[data-theme="dark"] .reward-value small { color: #bfbfbf; }
+body[data-theme="dark"] .style-hint-block p {
+  background: #2a1f10;
+  color: #f5d0a8;
 }
-
-body[data-theme="dark"] .submission-nick,
-body[data-theme="dark"] .submission-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .my-sub-card,
-body[data-theme="dark"] .other-subs-card {
-  background: #1f1f1f;
-}
-
-body[data-theme="dark"] .my-sub-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .my-sub-reward {
-  background: linear-gradient(135deg, rgba(7, 193, 96, 0.18), rgba(7, 193, 96, 0.08));
-  color: #36cfc9;
-}
-
-body[data-theme="dark"] .other-subs-header:hover {
+body[data-theme="dark"] .article-item {
   background: #262626;
+  border-color: #303030;
+}
+body[data-theme="dark"] .article-item strong { color: #f5f5f5; }
+body[data-theme="dark"] .article-item.selected {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: var(--color-primary, #ff2442);
+}
+body[data-theme="dark"] .secondary-btn { background: #2a2a2a; color: #d9d9d9; }
+body[data-theme="dark"] .reward-result {
+  background: rgba(7, 193, 96, 0.15);
 }
 
-body[data-theme="dark"] .other-subs-list {
-  border-top-color: #303030;
+@media (max-width: 1024px) {
+  .detail-grid { grid-template-columns: 1fr; }
+  .action-panel { position: static; }
 }
-
-body[data-theme="dark"] .other-sub-nick {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .detail-missing {
-  background: #1f1f1f;
-}
-
-body[data-theme="dark"] .picker-item {
-  background: #262626;
-  border-color: #404040;
-}
-
-body[data-theme="dark"] .picker-item-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .picker-actions {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .btn-secondary {
-  background: #262626;
-  border-color: #404040;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .btn-secondary:hover:not(:disabled) {
-  border-color: #ff4d6f;
-  color: #ff4d6f;
-}
-
-/* ========== 移动端 ========== */
 @media (max-width: 768px) {
-  .task-info-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .detail-page { padding-bottom: 104px; }
+  .detail-grid { grid-template-columns: minmax(0, 1fr); }
+  .content-panel { padding: 20px 18px; }
+  .content-head h1 { font-size: 24px; }
+  .meta-row,
+  .action-head,
+  .fact-row { flex-wrap: wrap; }
+  .action-panel {
+    position: static;
+    top: auto;
   }
-
-  .task-info-card {
-    padding: 18px 16px;
+  .action-card,
+  .fact-card,
+  .reward-card { padding: 18px; }
+  .reward-card { border-radius: 20px; }
+  .reward-value { font-size: 28px; }
+  .action-panel .primary-btn,
+  .action-panel .secondary-btn {
+    width: min(100%, 320px);
   }
-
-  .submission-row {
-    flex-wrap: wrap;
+  :deep(.ant-modal) {
+    width: min(560px, calc(100vw - 24px)) !important;
+    max-width: none;
   }
-
-  .submission-actions {
-    width: 100%;
-    margin-top: 8px;
+  .mobile-submit-bar {
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    padding: 12px 14px;
+    border: 1px solid #f0f0f0;
+    border-radius: 14px;
+    background: #fff;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 50;
   }
-
-  .my-sub-actions {
-    flex-direction: column;
+  .mobile-submit-bar > span {
+    flex: 1;
+    color: #8c8c8c;
+    font-size: 12px;
+    line-height: 1.4;
   }
-
-  .btn-secondary,
-  .btn-primary {
-    width: 100%;
+  .mobile-submit-bar .primary-btn {
+    flex: 0 1 180px;
+    width: auto;
+    max-width: 100%;
+    min-height: 44px;
   }
-
-  .action-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
+  body[data-theme="dark"] .mobile-submit-bar {
+    background: #1f1f1f;
+    border-color: #303030;
   }
+  body[data-theme="dark"] .mobile-submit-bar > span { color: #bfbfbf; }
 }
 </style>

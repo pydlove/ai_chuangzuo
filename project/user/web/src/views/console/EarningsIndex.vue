@@ -58,14 +58,7 @@
 
       <div class="account-section">
         <div class="account-section-header">
-          <span class="account-section-title">按月结算</span>
-          <button
-            v-if="canSettleLastMonth"
-            class="account-settle-btn"
-            @click="handleMonthlySettle"
-          >
-            结算上月
-          </button>
+          <span class="account-section-title">排行榜月度奖励</span>
         </div>
         <div v-if="monthlyList.length === 0" class="account-empty">
           <div>还没有收益</div>
@@ -109,10 +102,10 @@
       class="account-rules-modal"
     >
       <ol class="account-rules-list">
-        <li>收益按<span class="account-rules-highlight">自然月</span>统计，每月<span class="account-rules-highlight">1 日</span>起可手动结算上月收益。</li>
-        <li>点击「<span class="account-rules-highlight">结算上月</span>」后，上月未结算收益将<span class="account-rules-highlight">立即</span>转入账户余额。</li>
-        <li>账户余额满 <span class="account-rules-highlight">100 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">1 创作币 = 1 元</span>人民币。</li>
-        <li><span class="account-rules-highlight">未结算收益不可提现</span>，结算前请确认收益明细无误。</li>
+        <li><span class="account-rules-highlight">实时到账</span>：风格市场使用费、投稿奖励、邀请好友订阅返佣 等收益即时到账至账户余额，无需手动操作。</li>
+        <li><span class="account-rules-highlight">按月自动结算</span>：收益排行榜（月度 TOP 10）等活动奖励按自然月结算，每月 1 日由系统自动将上月奖励转入账户余额，无须用户操作。</li>
+        <li>账户余额满 <span class="account-rules-highlight">100 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">1 创作币 = 1 元</span>人民币；提现申请约 1 个工作日审核，7 个工作日内到账。</li>
+        <li>账户余额即可提现金额，<span class="account-rules-highlight">不存在手动结算操作</span>；排行榜未到账的奖励不可单独提现，将随月结自动入账。</li>
       </ol>
       <div class="account-rules-footer">* 活动最终解释权归平台所有。</div>
     </a-modal>
@@ -133,7 +126,7 @@
           <span class="earnings-detail-amount-unit">创作币</span>
         </div>
         <div class="earnings-detail-status">
-          <span :class="['earnings-status', detailRecord.status]">{{ detailRecord.statusLabel }}</span>
+          <span class="earnings-status settled">实时到账</span>
         </div>
 
         <div class="earnings-detail-section">
@@ -171,10 +164,6 @@
             <span class="earnings-detail-label">到账时间</span>
             <span class="earnings-detail-value">{{ formatTime(detailRecord.createdAt) }}</span>
           </div>
-          <div class="earnings-detail-row">
-            <span class="earnings-detail-label">结算月份</span>
-            <span class="earnings-detail-value">{{ detailRecord.settlementMonth }}</span>
-          </div>
         </div>
       </div>
     </a-modal>
@@ -194,7 +183,7 @@
 
       <div v-if="activeFilter === 'monthly'" class="account-section">
         <div v-if="monthlyList.length === 0" class="account-empty">
-          暂无按月结算数据
+          暂无排行榜月度奖励
         </div>
         <div v-else class="monthly-list">
           <div
@@ -266,7 +255,6 @@
 
 <script setup>
 import { computed, ref, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import { useEarnings } from '@/composables/useEarnings.js'
@@ -276,9 +264,7 @@ const {
   summary,
   monthlyList,
   records,
-  previousMonth,
-  refreshAll,
-  settle
+  refreshAll
 } = useEarnings()
 
 const activeTab = ref('overview')
@@ -291,27 +277,8 @@ const filters = [
   { key: 'all', label: '全部' },
   { key: 'settled', label: '已结算' },
   { key: 'unsettled', label: '未结算' },
-  { key: 'monthly', label: '按月结算' }
+  { key: 'monthly', label: '排行榜奖励' }
 ]
-
-const canSettleLastMonth = computed(() => {
-  return monthlyList.value.some(
-    (item) => item.month === previousMonth.value && item.unsettled > 0
-  )
-})
-
-const handleMonthlySettle = async () => {
-  try {
-    const result = await settle()
-    if (result.settledCount > 0) {
-      message.success(`上月收益已结算：${Number(result.settledAmount).toFixed(2)} 创作币`)
-    } else {
-      message.info('上月没有可结算的收益')
-    }
-  } catch (e) {
-    message.error(e?.message || '结算失败')
-  }
-}
 
 const goToWithdraw = () => {
   router.push('/console/coin?from=account')
@@ -548,21 +515,6 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 600;
   color: #1a1a1a;
-}
-
-.account-settle-btn {
-  padding: 6px 14px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.account-settle-btn:hover {
-  background: #e61e3a;
 }
 
 .account-empty {
@@ -1013,14 +965,6 @@ body[data-theme="dark"] .account-stat-withdraw {
 }
 
 body[data-theme="dark"] .account-stat-withdraw:hover {
-  background: var(--color-primary-hover, #e61e3a);
-}
-
-body[data-theme="dark"] .account-settle-btn {
-  background: var(--color-primary, #ff2442);
-}
-
-body[data-theme="dark"] .account-settle-btn:hover {
   background: var(--color-primary-hover, #e61e3a);
 }
 

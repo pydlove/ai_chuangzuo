@@ -1293,7 +1293,6 @@ const pageTitleMap = {
   '/console/preview': '预览文章',
   '/console/coin': '创作币',
   '/console/commission': '约稿中心',
-  '/console/commission/publish': '发布约稿',
   '/console/commission/:id': '约稿详情'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')

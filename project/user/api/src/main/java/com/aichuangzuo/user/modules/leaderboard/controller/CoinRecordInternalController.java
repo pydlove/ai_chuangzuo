@@ -29,7 +29,7 @@ public class CoinRecordInternalController {
         }
         adminJwtUtil.parseAccessToken(authHeader.substring(7));
 
-        String bizNo = coinRecordService.grant(request.getUserId(), "leaderboard_reward",
+        String bizNo = coinRecordService.grant(request.getUserId(), request.getBizType(),
                 request.getAmount(), request.getRefId(), request.getRemark());
         return Result.success(bizNo);
     }

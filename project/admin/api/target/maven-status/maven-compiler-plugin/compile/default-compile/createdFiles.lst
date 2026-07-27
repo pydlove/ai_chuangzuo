@@ -5,6 +5,7 @@ com/aichuangzuo/admin/modules/auth/vo/AdminAuthTokenVO.class
 com/aichuangzuo/admin/modules/topictitle/controller/TopicTitleAdminController.class
 com/aichuangzuo/admin/modules/style/market/dto/StyleMarketRow.class
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchDailyMapper.class
+com/aichuangzuo/admin/modules/commission/entity/CommissionSubmission.class
 com/aichuangzuo/admin/modules/order/vo/PlanDistributionVO.class
 com/aichuangzuo/admin/modules/hotsearch/entity/HotSearchConfig.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnCategoryServiceImpl.class
@@ -30,6 +31,7 @@ com/aichuangzuo/admin/modules/style/review/dto/StyleReviewRow.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationContext$ExportResult.class
 com/aichuangzuo/admin/modules/generation/dto/request/GenerationConfigUpdateRequest.class
 com/aichuangzuo/admin/modules/order/service/AdminOrderService.class
+com/aichuangzuo/admin/modules/homebanner/entity/HomeBannerEntity.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField$Option.class
 com/aichuangzuo/admin/modules/order/controller/AdminOrderController.class
 com/aichuangzuo/admin/modules/learn/dto/request/LearnSortReq.class
@@ -59,17 +61,21 @@ com/aichuangzuo/admin/modules/modelconfig/dto/request/ModelConfigConnectionReque
 com/aichuangzuo/admin/modules/learn/dto/request/LearnSortReq$SortItem.class
 com/aichuangzuo/admin/modules/hotsearch/vo/PlatformCrawlResultVO.class
 com/aichuangzuo/admin/modules/style/review/dto/request/RejectStyleReviewRequest.class
+com/aichuangzuo/admin/modules/homebanner/dto/request/HomeBannerReq.class
 com/aichuangzuo/admin/modules/modelconfig/service/impl/ModelConfigServiceImpl$1.class
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateAdminPageVO.class
 com/aichuangzuo/admin/modules/generation/entity/GenerationCallLog.class
 com/aichuangzuo/admin/modules/order/enums/AdminOrderErrorCode.class
 com/aichuangzuo/admin/infrastructure/security/SecurityAdminContext.class
+com/aichuangzuo/admin/modules/learn/service/impl/LearnBannerServiceImpl.class
 com/aichuangzuo/admin/modules/user/mapper/PlatformUserLoginLogMapper.class
 com/aichuangzuo/admin/modules/style/preset/controller/GlobalStyleAdminController.class
 com/aichuangzuo/admin/modules/modelconfig/dto/request/ModelConfigChatTestRequest.class
 com/aichuangzuo/admin/modules/feedback/entity/AdminFeedbackView.class
 com/aichuangzuo/admin/modules/message/service/MessageAdminService.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationContext.class
+com/aichuangzuo/admin/modules/commission/controller/AdminCommissionController.class
+com/aichuangzuo/admin/modules/learn/vo/LearnBannerVO.class
 com/aichuangzuo/admin/modules/style/review/enums/AdminStyleReviewErrorCode.class
 com/aichuangzuo/admin/modules/reminder/service/ReminderConfigService.class
 com/aichuangzuo/admin/modules/generation/service/GenerationRetentionService.class
@@ -77,9 +83,11 @@ com/aichuangzuo/admin/modules/style/market/dto/request/CreateStyleMarketRequest.
 com/aichuangzuo/admin/modules/feedback/enums/AdminFeedbackErrorCode.class
 com/aichuangzuo/admin/modules/user/vo/AdminUserInviteDetailVO.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField.class
+com/aichuangzuo/admin/modules/commission/entity/CommissionTask.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipeline$1.class
 com/aichuangzuo/admin/modules/style/preset/service/GlobalStyleService.class
 com/aichuangzuo/admin/modules/order/mapper/AdminMembershipMapper.class
+com/aichuangzuo/admin/modules/learn/dto/request/LearnBannerReq.class
 com/aichuangzuo/admin/modules/style/market/service/impl/StyleMarketAdminServiceImpl.class
 com/aichuangzuo/admin/modules/earnings/dto/request/AccountQueryRequest.class
 com/aichuangzuo/admin/modules/generation/dto/request/PromptTemplateSaveRequest.class
@@ -87,8 +95,10 @@ com/aichuangzuo/admin/modules/style/review/mapper/StyleReviewAggregateMapper.cla
 com/aichuangzuo/admin/modules/earnings/service/impl/AccountAdminServiceImpl.class
 com/aichuangzuo/admin/modules/generation/pipeline/DefaultAiGateway.class
 com/aichuangzuo/admin/config/MybatisPlusConfig.class
+com/aichuangzuo/admin/modules/homebanner/exception/HomeBannerErrorCode.class
 com/aichuangzuo/admin/modules/leaderboard/dto/request/UserCoinGrantRequest.class
 com/aichuangzuo/admin/modules/user/entity/PlatformUser.class
+com/aichuangzuo/admin/modules/homebanner/mapper/HomeBannerMapper.class
 com/aichuangzuo/admin/modules/plan/service/PlanAdminService.class
 com/aichuangzuo/admin/modules/style/market/controller/StyleMarketAdminController.class
 com/aichuangzuo/admin/modules/generation/service/GenerationCallLogService.class
@@ -97,6 +107,7 @@ com/aichuangzuo/admin/modules/generation/pipeline/GenerationStep.class
 com/aichuangzuo/admin/modules/auth/vo/AdminUserVO.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField$ConfigFieldBuilder.class
 com/aichuangzuo/admin/modules/leaderboard/vo/RewardRecordAdminVO.class
+com/aichuangzuo/admin/modules/homebanner/service/HomeBannerService.class
 com/aichuangzuo/admin/modules/generation/pipeline/AiGateway$AiBudgetExhaustedException.class
 com/aichuangzuo/admin/modules/leaderboard/dto/request/LeaderboardRejectRequest.class
 com/aichuangzuo/admin/modules/message/vo/MessageAudienceVO.class
@@ -105,6 +116,7 @@ com/aichuangzuo/admin/modules/earnings/service/AccountAdminService.class
 com/aichuangzuo/admin/config/CaffeineConfig.class
 com/aichuangzuo/admin/config/AuthProperties$Jwt.class
 com/aichuangzuo/admin/modules/order/entity/AdminMembership.class
+com/aichuangzuo/admin/modules/homebanner/vo/HomeBannerVO.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchDailyAdminService$PageResult.class
 com/aichuangzuo/admin/modules/generation/dto/request/PromptTemplateStageSaveItem.class
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateStageVO$StageConfigFieldVO.class
@@ -123,7 +135,9 @@ com/aichuangzuo/admin/modules/generation/pipeline/GenerationPipeline$2.class
 com/aichuangzuo/admin/infrastructure/persistence/handler/MybatisPlusMetaObjectHandler.class
 com/aichuangzuo/admin/modules/leaderboard/enums/AdminLeaderboardErrorCode.class
 com/aichuangzuo/admin/modules/benefit/service/BenefitAdminService.class
+com/aichuangzuo/admin/modules/commission/enums/AdminCommissionErrorCode.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchConfigService.class
+com/aichuangzuo/admin/modules/commission/mapper/CommissionTaskMapper.class
 com/aichuangzuo/admin/modules/plan/entity/Plan.class
 com/aichuangzuo/admin/modules/generation/controller/GenerationConfigAdminController.class
 com/aichuangzuo/admin/modules/topictitle/vo/TopicTitlePageVO.class
@@ -136,6 +150,7 @@ com/aichuangzuo/admin/modules/generation/pipeline/steps/RhythmPolishStep.class
 com/aichuangzuo/admin/modules/benefit/controller/BenefitAdminController.class
 com/aichuangzuo/admin/modules/generation/vo/GenerationTaskAdminVO.class
 com/aichuangzuo/admin/modules/topictitle/dto/request/TopicTitleGenerateRequest.class
+com/aichuangzuo/admin/modules/commission/mapper/CommissionSubmissionMapper.class
 com/aichuangzuo/admin/modules/style/market/dto/request/UpdateStyleMarketRequest.class
 com/aichuangzuo/admin/modules/generation/entity/PromptTemplateStage.class
 com/aichuangzuo/admin/modules/exporttemplate/vo/ExportTemplateVO.class
@@ -143,6 +158,7 @@ com/aichuangzuo/admin/modules/reminder/dto/request/ExpiringUserPageQuery.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/RhythmDetectStep.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/IntentAnchorStep.class
 com/aichuangzuo/admin/modules/hotsearch/crawler/HotSearchItem.class
+com/aichuangzuo/admin/modules/commission/vo/CommissionTaskDetailVO.class
 com/aichuangzuo/admin/modules/reminder/job/ExpireReminderJob.class
 com/aichuangzuo/admin/modules/feedback/controller/AdminFeedbackController.class
 com/aichuangzuo/admin/modules/auth/service/AdminAuthService.class
@@ -153,6 +169,7 @@ com/aichuangzuo/admin/modules/earnings/controller/AccountAdminController.class
 com/aichuangzuo/admin/modules/feedback/service/AdminFeedbackService.class
 com/aichuangzuo/admin/modules/hotsearch/enums/AdminHotSearchErrorCode.class
 com/aichuangzuo/admin/modules/generation/pipeline/PromptTemplateStageValidator$1.class
+com/aichuangzuo/admin/modules/generation/vo/GenerationCallLogGroupedVO.class
 com/aichuangzuo/admin/modules/generation/job/GenerationRetentionJob.class
 com/aichuangzuo/admin/modules/user/dto/request/AdminUserUpdateRequest.class
 com/aichuangzuo/admin/modules/auth/mapper/AdminUserMapper.class
@@ -199,8 +216,10 @@ com/aichuangzuo/admin/modules/generation/pipeline/steps/WordAdjustStep.class
 com/aichuangzuo/admin/infrastructure/security/JwtUtil.class
 com/aichuangzuo/admin/modules/style/preset/dto/SystemStyleRow.class
 com/aichuangzuo/admin/modules/feedback/dto/request/AdminReplyFeedbackRequest.class
+com/aichuangzuo/admin/modules/commission/service/impl/AdminCommissionServiceImpl.class
 com/aichuangzuo/admin/modules/message/service/impl/MessageAdminServiceImpl.class
 com/aichuangzuo/admin/modules/planbenefit/service/PlanBenefitAdminService.class
+com/aichuangzuo/admin/modules/homebanner/service/impl/HomeBannerServiceImpl.class
 com/aichuangzuo/admin/modules/reminder/entity/ReminderConfig.class
 com/aichuangzuo/admin/modules/generation/pipeline/PipelineUtils.class
 com/aichuangzuo/admin/modules/hotsearch/vo/LastRunVO.class
@@ -212,6 +231,7 @@ com/aichuangzuo/admin/modules/message/dto/request/MessageUpdateRequest.class
 com/aichuangzuo/admin/modules/message/dto/request/MessageQueryRequest.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnArticleServiceImpl.class
 com/aichuangzuo/admin/modules/leaderboard/service/impl/LeaderboardReviewServiceImpl.class
+com/aichuangzuo/admin/modules/commission/service/AdminCommissionService.class
 com/aichuangzuo/admin/modules/hotsearch/controller/HotSearchAdminController.class
 com/aichuangzuo/admin/common/interceptor/RateLimitInterceptor.class
 com/aichuangzuo/admin/modules/auth/entity/AdminLoginLog.class
@@ -232,6 +252,7 @@ com/aichuangzuo/admin/modules/generation/vo/GenerationTaskAdminPageVO.class
 com/aichuangzuo/admin/modules/earnings/vo/RewardRecordVO.class
 com/aichuangzuo/admin/modules/style/review/controller/StyleReviewAdminController.class
 com/aichuangzuo/admin/modules/order/vo/PlanDistributionVO$CycleItem.class
+com/aichuangzuo/admin/modules/homebanner/controller/HomeBannerAdminController.class
 com/aichuangzuo/admin/modules/auth/mapper/AdminUserRoleRelMapper.class
 com/aichuangzuo/admin/modules/hotsearch/crawler/CdpSession.class
 com/aichuangzuo/admin/modules/leaderboard/vo/IncomeSubmissionAdminVO.class
@@ -277,9 +298,11 @@ com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchConfigMapper.class
 com/aichuangzuo/admin/infrastructure/ai/AiProvider.class
 com/aichuangzuo/admin/modules/message/entity/MessageAggregate.class
 com/aichuangzuo/admin/modules/learn/service/LearnCategoryService.class
+com/aichuangzuo/admin/modules/commission/dto/request/CommissionAdoptRequest.class
 com/aichuangzuo/admin/modules/style/preset/dto/request/GlobalStylePageRequest.class
 com/aichuangzuo/admin/modules/user/vo/AdminUserResetPasswordVO.class
 com/aichuangzuo/admin/modules/reminder/mapper/MessageMapper.class
+com/aichuangzuo/admin/modules/learn/service/LearnBannerService.class
 com/aichuangzuo/admin/modules/style/review/service/impl/StyleReviewServiceImpl.class
 com/aichuangzuo/admin/config/AuthProperties.class
 com/aichuangzuo/admin/modules/topictitle/service/TopicTitleService.class
@@ -357,11 +380,13 @@ com/aichuangzuo/admin/modules/hotsearch/dto/request/HotSearchConfigRequest.class
 com/aichuangzuo/admin/modules/generation/dto/request/PublishTemplateRequest.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/WordCountStep.class
 com/aichuangzuo/admin/modules/learn/entity/LearnArticleEntity.class
+com/aichuangzuo/admin/modules/commission/dto/request/CommissionTaskCreateRequest.class
 com/aichuangzuo/admin/modules/hotsearch/dto/request/HotSearchPlatformRequest.class
 com/aichuangzuo/admin/modules/generation/dto/TaskTokenSum.class
 com/aichuangzuo/admin/modules/modelconfig/vo/ModelOptionVO.class
 com/aichuangzuo/admin/modules/leaderboard/vo/LeaderboardTop10VO.class
 com/aichuangzuo/admin/modules/auth/service/impl/AdminAuthServiceImpl.class
+com/aichuangzuo/admin/modules/learn/mapper/LearnBannerMapper.class
 com/aichuangzuo/admin/modules/auth/mapper/RoleMapper.class
 com/aichuangzuo/admin/modules/exporttemplate/service/impl/ExportTemplateServiceImpl.class
 com/aichuangzuo/admin/modules/user/dto/request/AdminUserStatusRequest.class
@@ -381,6 +406,7 @@ com/aichuangzuo/admin/modules/hotsearch/properties/HotSearchProperties.class
 com/aichuangzuo/admin/modules/feedback/service/impl/AdminFeedbackServiceImpl.class
 com/aichuangzuo/admin/common/exception/handler/GlobalExceptionHandler.class
 com/aichuangzuo/admin/infrastructure/security/JwtAuthenticationFilter.class
+com/aichuangzuo/admin/modules/learn/entity/LearnBannerEntity.class
 com/aichuangzuo/admin/modules/reminder/config/ReminderSchedulerConfig.class
 com/aichuangzuo/admin/modules/leaderboard/entity/IncomeSubmission.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/ExportRenderStep.class

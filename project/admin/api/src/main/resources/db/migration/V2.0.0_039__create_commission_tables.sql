@@ -1,0 +1,57 @@
+-- 约稿中心：管理端发布任务，用户端投稿，管理端采纳并发放创作币
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_commission_task (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    task_no VARCHAR(64) NOT NULL COMMENT '任务唯一编号',
+    title VARCHAR(128) NOT NULL COMMENT '任务标题',
+    description TEXT NOT NULL COMMENT '稿件需求描述',
+    min_word_count INT UNSIGNED NOT NULL COMMENT '最小字数',
+    max_word_count INT UNSIGNED NOT NULL COMMENT '最大字数',
+    style_hint VARCHAR(128) DEFAULT NULL COMMENT '风格提示',
+    reward_coin DECIMAL(19,4) NOT NULL COMMENT '每篇采纳稿件奖励创作币',
+    needed_count INT UNSIGNED NOT NULL COMMENT '计划采纳稿件数量',
+    adopted_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '已采纳稿件数量',
+    status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '状态：0-招募中，1-已截止待采纳，2-已完成，3-已流局',
+    deadline_at DATETIME(3) NOT NULL COMMENT '投稿截止时间',
+    published_by BIGINT UNSIGNED NOT NULL COMMENT '发布管理员ID',
+    completed_at DATETIME(3) DEFAULT NULL COMMENT '完成或流局时间',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID（=0）',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
+    deleted_at DATETIME(3) DEFAULT NULL COMMENT '删除时间',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_commission_task_no (task_no),
+    KEY idx_u_commission_task_status_deadline (status, deadline_at),
+    KEY idx_u_commission_task_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='约稿任务表';
+
+CREATE TABLE IF NOT EXISTS u_commission_submission (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键',
+    task_id BIGINT UNSIGNED NOT NULL COMMENT '约稿任务ID',
+    submitter_id BIGINT UNSIGNED NOT NULL COMMENT '投稿用户ID',
+    article_biz_no VARCHAR(64) NOT NULL COMMENT '平台生成文章业务编号',
+    article_title VARCHAR(256) NOT NULL COMMENT '投稿时文章标题快照',
+    article_body MEDIUMTEXT NOT NULL COMMENT '投稿时文章正文快照',
+    word_count INT UNSIGNED NOT NULL COMMENT '投稿时文章字数快照',
+    status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '状态：0-投稿中，1-已采纳，2-未采纳，3-已撤回',
+    reward_coin DECIMAL(19,4) DEFAULT NULL COMMENT '实际发放创作币',
+    coin_record_biz_no VARCHAR(64) DEFAULT NULL COMMENT '创作币流水业务编号',
+    adopted_at DATETIME(3) DEFAULT NULL COMMENT '采纳时间',
+    withdrawn_at DATETIME(3) DEFAULT NULL COMMENT '撤回时间',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID（=0）',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
+    deleted_at DATETIME(3) DEFAULT NULL COMMENT '删除时间',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_commission_submission_article (task_id, article_biz_no),
+    UNIQUE KEY uk_u_commission_submission_coin_biz (coin_record_biz_no),
+    KEY idx_u_commission_submission_task_status (task_id, status),
+    KEY idx_u_commission_submission_user_created (submitter_id, created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='约稿投稿表';

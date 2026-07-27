@@ -38,6 +38,7 @@ public class UserApiClient {
         UserCoinGrantRequest request = new UserCoinGrantRequest();
         request.setUserId(userId);
         request.setAmount(amount);
+        request.setBizType(bizType);
         request.setRefId(refId);
         request.setRemark(remark);
 
