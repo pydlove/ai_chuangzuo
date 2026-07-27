@@ -341,3 +341,62 @@ export function getPreviousWeek() {
   now.setDate(now.getDate() - 7)
   return getWeekFromDate(now)
 }
+
+// ===== 风格市场视觉升级 v2 — 聚合 computed =====
+// 数据来源原则：weeklyUses / totalUses / weeklyEarnings 取 marketStyles 单条；
+// totalEarnings（创作者总收益）取 earningsRecords，按 styleId → creatorId 关联。
+
+const totalEarningsByCreator = computed(() => {
+  const map = {}
+  earningsRecords.value.forEach((r) => {
+    if (!(r.amount > 0)) return
+    const s = marketStyles.value.find((m) => m.id === r.styleId)
+    if (!s) return
+    map[s.creatorId] = (map[s.creatorId] || 0) + r.amount
+  })
+  return map
+})
+
+export const marketStats = computed(() => {
+  const approved = marketStyles.value.filter((s) => s.status === 'approved')
+  return {
+    approvedCount: approved.length,
+    totalUses: approved.reduce((sum, s) => sum + (s.totalUses || 0), 0),
+    totalEarnings: Object.values(totalEarningsByCreator.value).reduce(
+      (sum, v) => sum + v, 0
+    )
+  }
+})
+
+export const topCreators = computed(() => {
+  const map = new Map()
+  marketStyles.value
+    .filter((s) => s.status === 'approved')
+    .forEach((s) => {
+      const cur = map.get(s.creatorId) || {
+        creatorId: s.creatorId,
+        creatorName: s.creatorName || '匿名用户',
+        weeklyEarnings: 0,
+        weeklyUses: 0,
+        bestStyle: null
+      }
+      cur.weeklyEarnings += s.weeklyEarnings || 0
+      cur.weeklyUses += s.weeklyUses || 0
+      if (!cur.bestStyle || (s.totalUses || 0) > (cur.bestStyle.totalUses || 0)) {
+        cur.bestStyle = s
+      }
+      map.set(s.creatorId, cur)
+    })
+  const tbm = totalEarningsByCreator.value
+  return Array.from(map.values())
+    .map((c) => ({ ...c, totalEarnings: tbm[c.creatorId] || 0 }))
+    .sort((a, b) => b.weeklyEarnings - a.weeklyEarnings)
+    .slice(0, 5)
+})
+
+export const featuredStyles = computed(() =>
+  marketStyles.value
+    .filter((s) => s.status === 'approved' && (s.totalUses || 0) >= 5)
+    .sort((a, b) => (b.totalUses || 0) - (a.totalUses || 0))
+    .slice(0, 8)
+)
