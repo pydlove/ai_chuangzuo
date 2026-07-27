@@ -35,8 +35,37 @@
       <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
     </section>
 
-    <!-- ③④⑤ placeholder — 后续 Task 填充 -->
-    <section class="market-featured" data-tbd="task-4"></section>
+    <!-- ③ 官方精选大卡 -->
+    <section class="market-featured">
+      <div class="market-section-head">
+        <div class="market-section-title-wrap">
+          <h2 class="market-section-title">官方精选</h2>
+          <span class="market-official-badge">官方</span>
+        </div>
+        <button class="market-section-link" @click="scrollToGrid">查看全部 →</button>
+      </div>
+      <div v-if="featuredStyles.length === 0" class="market-featured-empty">
+        官方精选即将上线
+      </div>
+      <div v-else class="market-featured-rail">
+        <div
+          v-for="s in featuredStyles"
+          :key="s.id"
+          class="market-featured-card"
+          :style="{ background: featuredBackground(s) }"
+          @click="handleUse(s)"
+        >
+          <div class="market-featured-name">{{ s.name }}</div>
+          <div v-if="s.scope" class="market-featured-tag"># {{ firstScope(s.scope) }}</div>
+          <div class="market-featured-uses">🔥 本周使用 {{ s.weeklyUses }} 次</div>
+          <div class="market-featured-creator">
+            by {{ s.creatorName || '匿名用户' }} · 累计赚 {{ formatCoins(getMarketStyleEarnings(s.id)) }} 币
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ④⑤ placeholder -->
     <section class="market-creators" data-tbd="task-5"></section>
     <section class="market-grid-section" data-tbd="task-6"></section>
   </div>
@@ -87,6 +116,33 @@ const formatUses = (n) => Number(n || 0).toLocaleString()
 
 const goUpload = () => {
   router.push('/console/styles')
+}
+
+const firstScope = (scope) => (scope || '').split(/[,，]/)[0]?.trim() || ''
+
+const featuredBackground = (s) => {
+  const palette = [
+    'linear-gradient(135deg, #1a1a1a 0%, #2a1015 100%)',
+    'linear-gradient(135deg, #1f1f1f 0%, #2c1f0a 100%)',
+    'linear-gradient(135deg, #14142b 0%, #2a0a1f 100%)',
+    'linear-gradient(135deg, #0d1f1f 0%, #1f3a2a 100%)',
+    'linear-gradient(135deg, #2a1f1f 0%, #1a1010 100%)'
+  ]
+  const idx = (s.id || '').split('').reduce((sum, c) => sum + c.charCodeAt(0), 0) % palette.length
+  return palette[idx]
+}
+
+const handleUse = (s) => {
+  try {
+    useMarketStyle(s.id)
+    router.push(`/console/create?marketStyleId=${s.id}`)
+  } catch (err) {
+    alert(err.message)
+  }
+}
+
+const scrollToGrid = () => {
+  document.querySelector('.market-grid-section')?.scrollIntoView({ behavior: 'smooth' })
 }
 
 onMounted(() => {
@@ -165,10 +221,114 @@ onMounted(() => {
   margin-top: var(--space-xs);
 }
 
-/* ②③④⑤ 占位防 build break（Task 4-6 填充实际样式） */
-.market-featured,
+/* ④⑤ 占位防 build break（后续 Task 填充） */
 .market-creators,
 .market-grid-section { min-height: 1px; }
+
+/* === ③ 官方精选 === */
+.market-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+.market-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.market-section-title {
+  font-size: var(--font-h2);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+.market-official-badge {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-caption);
+  border-radius: var(--radius-md);
+  padding: 2px 8px;
+  font-weight: 600;
+}
+.market-section-link {
+  background: transparent;
+  border: 0;
+  color: var(--color-primary);
+  cursor: pointer;
+  font-size: var(--font-body);
+  font-weight: 500;
+}
+.market-section-link:hover { color: var(--color-primary-hover); }
+
+.market-featured-empty {
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-placeholder);
+  font-size: var(--font-body);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+}
+.market-featured-rail {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--space-sm);
+  scrollbar-width: thin;
+}
+.market-featured-rail::-webkit-scrollbar { height: 6px; }
+.market-featured-rail::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: 3px;
+}
+.market-featured-card {
+  scroll-snap-align: start;
+  flex: 0 0 320px;
+  height: 200px;
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.market-featured-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+.market-featured-name {
+  font-size: var(--font-h3);
+  font-weight: 700;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.market-featured-tag {
+  display: inline-flex;
+  width: fit-content;
+  background: rgba(255, 36, 66, 0.85);
+  color: #fff;
+  font-size: var(--font-caption);
+  border-radius: var(--radius-md);
+  padding: 2px 8px;
+  margin-top: var(--space-xs);
+}
+.market-featured-uses {
+  font-size: var(--font-h2);
+  font-weight: 700;
+  line-height: 1.2;
+}
+.market-featured-creator {
+  font-size: var(--font-caption);
+  color: rgba(255, 255, 255, 0.7);
+}
 
 /* === ② 上传激励卡 === */
 .market-upload-card {
