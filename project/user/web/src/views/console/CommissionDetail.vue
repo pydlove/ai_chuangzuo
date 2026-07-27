@@ -17,6 +17,7 @@
             <span><strong>{{ wordRangeText(task) }}</strong></span>
             <span>采纳 {{ task.adoptedCount }} / {{ task.neededCount }} 篇</span>
             <span>{{ deadlineText }}</span>
+            <span v-if="task.selectionDeadlineAt">评选截止 {{ new Date(task.selectionDeadlineAt).toLocaleString() }}</span>
           </div>
           <div class="description-block">
             <h3>任务说明</h3>
@@ -53,22 +54,41 @@
               <button v-if="canWithdraw" class="secondary-btn" @click="confirmWithdraw">撤回投稿</button>
             </template>
 
-            <!-- 招募中且未投稿：投稿操作 -->
+            <!-- 投递中且未投稿：投稿操作 -->
             <template v-else-if="task.status === 0">
               <div class="action-head">
                 <span class="action-title">投递稿件</span>
                 <span class="status-tag status-0">{{ taskStatus(0) }}</span>
               </div>
-              <p class="action-desc">只能选择你在爱创作中已经生成完成、且字数符合要求的文章。</p>
+              <p class="action-desc">只能选择你在爱创作中已经生成完成、且字数符合要求的文章。投递期内可随时撤回并改投其它文章。</p>
               <button class="primary-btn" @click="openPicker">选择文章投稿</button>
             </template>
 
-            <!-- 其它状态 -->
+            <!-- 评选中且未投稿 -->
+            <template v-else-if="task.status === 1">
+              <div class="action-head">
+                <span class="action-title">任务已进入评选期</span>
+                <span class="status-tag status-1">{{ taskStatus(1) }}</span>
+              </div>
+              <p class="action-desc">投递已截止，管理员正在评选稿件。请关注大厅中的其它投递中任务。</p>
+            </template>
+
+            <!-- 公示中且未投稿 -->
+            <template v-else-if="task.status === 2">
+              <div class="action-head">
+                <span class="action-title">评选结果已公示</span>
+                <span class="status-tag status-2">{{ taskStatus(2) }}</span>
+              </div>
+              <p class="action-desc">本任务评选结果已公示。</p>
+            </template>
+
+            <!-- 已完成且未投稿 -->
             <template v-else>
               <div class="action-head">
-                <span class="action-title">任务已停止投稿</span>
+                <span class="action-title">任务已完成</span>
+                <span class="status-tag status-3">{{ taskStatus(3) }}</span>
               </div>
-              <p class="action-desc">当前任务状态：{{ taskStatus(task.status) }}。请关注大厅中的其它招募中任务。</p>
+              <p class="action-desc">本任务已结束。</p>
             </template>
           </div>
 
@@ -82,8 +102,12 @@
               <strong>{{ task.adoptedCount }} 篇</strong>
             </div>
             <div class="fact-row">
-              <span>截止时间</span>
+              <span>投递截止</span>
               <strong>{{ new Date(task.deadlineAt).toLocaleString() }}</strong>
+            </div>
+            <div v-if="task.selectionDeadlineAt" class="fact-row">
+              <span>评选截止</span>
+              <strong>{{ new Date(task.selectionDeadlineAt).toLocaleString() }}</strong>
             </div>
           </div>
         </aside>
@@ -140,11 +164,21 @@ const canSubmit = computed(() => task.value?.status === 0 && !mySubmission.value
 const canWithdraw = computed(() => task.value?.status === 0 && mySubmission.value?.status === 0)
 
 const deadlineText = computed(() => {
+  const now = new Date()
   if (!task.value?.deadlineAt) return ''
-  const deadline = new Date(task.value.deadlineAt)
-  if (task.value.status !== 0 || deadline <= new Date()) return `截止于 ${deadline.toLocaleString()}`
-  const hours = Math.max(1, Math.ceil((deadline - Date.now()) / 3600000))
-  return hours > 24 ? `还剩 ${Math.ceil(hours / 24)} 天` : `还剩 ${hours} 小时`
+  if (task.value.status === 0) {
+    const deadline = new Date(task.value.deadlineAt)
+    if (deadline <= now) return `投递截止已过 ${deadline.toLocaleString()}`
+    const hours = Math.max(1, Math.ceil((deadline - now) / 3600000))
+    return hours > 24 ? `投递还剩 ${Math.ceil(hours / 24)} 天` : `投递还剩 ${hours} 小时`
+  }
+  if (task.value.status === 1 && task.value.selectionDeadlineAt) {
+    const deadline = new Date(task.value.selectionDeadlineAt)
+    if (deadline <= now) return `评选截止已过 ${deadline.toLocaleString()}`
+    const hours = Math.max(1, Math.ceil((deadline - now) / 3600000))
+    return hours > 24 ? `评选还剩 ${Math.ceil(hours / 24)} 天` : `评选还剩 ${hours} 小时`
+  }
+  return `投递截止于 ${new Date(task.value.deadlineAt).toLocaleString()}`
 })
 
 onMounted(async () => {
@@ -159,7 +193,7 @@ onMounted(async () => {
 })
 
 function taskStatus(value) {
-  return ['招募中', '已截止待采纳', '已完成'][value] || '未知状态'
+  return ['投递中', '评选中', '公示中', '已完成'][value] || '未知状态'
 }
 function submissionStatus(value) {
   return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
@@ -396,7 +430,8 @@ function confirmWithdraw() {
 }
 .status-0 { color: #1677ff; background: #e6f4ff; }
 .status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #07c160; background: #e6f7ed; }
+.status-2 { color: #13c2c2; background: #e6fffb; }
+.status-3 { color: #07c160; background: #e6f7ed; }
 .submission-0 { color: #1677ff; background: #e6f4ff; }
 .submission-1 { color: #07c160; background: #e6f7ed; }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }

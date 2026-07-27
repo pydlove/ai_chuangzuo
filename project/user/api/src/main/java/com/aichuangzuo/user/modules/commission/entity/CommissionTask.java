@@ -23,6 +23,7 @@ public class CommissionTask {
     private Integer adoptedCount;
     private Integer status;
     private LocalDateTime deadlineAt;
+    private LocalDateTime selectionDeadlineAt;
     private Long publishedBy;
     private LocalDateTime completedAt;
     private Long tenantId;

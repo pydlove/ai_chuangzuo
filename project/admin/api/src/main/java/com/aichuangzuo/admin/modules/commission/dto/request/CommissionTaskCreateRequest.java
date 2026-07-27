@@ -30,4 +30,6 @@ public class CommissionTaskCreateRequest {
     @NotNull
     @Future
     private LocalDateTime deadlineAt;
+    @NotNull
+    private LocalDateTime selectionDeadlineAt;
 }

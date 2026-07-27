@@ -23,10 +23,10 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 public class CommissionServiceImpl implements CommissionService {
-    private static final int RECRUITING = 0;
-    private static final int PENDING_ADOPTION = 1;
-    private static final int SUBMITTED = 0;
-    private static final int WITHDRAWN = 3;
+    private static final int SUBMISSION = 0;
+    private static final int REVIEW = 1;
+    private static final int SUBMISSION_STATUS_SUBMITTED = 0;
+    private static final int SUBMISSION_STATUS_WITHDRAWN = 3;
 
     private final CommissionTaskMapper taskMapper;
     private final CommissionSubmissionMapper submissionMapper;
@@ -34,7 +34,7 @@ public class CommissionServiceImpl implements CommissionService {
 
     @Override
     public IPage<CommissionTask> list(Integer status, int page, int pageSize) {
-        reconcileDeadlines();
+        reconcilePhases();
         return taskMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<CommissionTask>()
                         .eq(CommissionTask::getIsDeleted, 0)
@@ -44,11 +44,11 @@ public class CommissionServiceImpl implements CommissionService {
 
     @Override
     public CommissionTaskDetailVO detail(Long userId, Long taskId) {
-        reconcileDeadline(taskId);
+        reconcilePhase(taskId);
         CommissionTask task = findTask(taskId);
         long submissionCount = submissionMapper.selectCount(new LambdaQueryWrapper<CommissionSubmission>()
                 .eq(CommissionSubmission::getTaskId, taskId)
-                .ne(CommissionSubmission::getStatus, WITHDRAWN));
+                .ne(CommissionSubmission::getStatus, SUBMISSION_STATUS_WITHDRAWN));
         CommissionSubmission mine = submissionMapper.selectOne(new LambdaQueryWrapper<CommissionSubmission>()
                 .eq(CommissionSubmission::getTaskId, taskId)
                 .eq(CommissionSubmission::getSubmitterId, userId)
@@ -60,15 +60,15 @@ public class CommissionServiceImpl implements CommissionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long submit(Long userId, Long taskId, String articleBizNo) {
-        reconcileDeadline(taskId);
+        reconcilePhase(taskId);
         CommissionTask task = findTask(taskId);
-        if (task.getStatus() != RECRUITING || !LocalDateTime.now().isBefore(task.getDeadlineAt())) {
+        if (task.getStatus() != SUBMISSION || !LocalDateTime.now().isBefore(task.getDeadlineAt())) {
             throw new BusinessException(CommissionErrorCode.TASK_NOT_RECRUITING);
         }
         Long active = submissionMapper.selectCount(new LambdaQueryWrapper<CommissionSubmission>()
                 .eq(CommissionSubmission::getTaskId, taskId)
                 .eq(CommissionSubmission::getSubmitterId, userId)
-                .eq(CommissionSubmission::getStatus, SUBMITTED));
+                .eq(CommissionSubmission::getStatus, SUBMISSION_STATUS_SUBMITTED));
         if (active > 0) {
             throw new BusinessException(CommissionErrorCode.ACTIVE_SUBMISSION_EXISTS);
         }
@@ -93,7 +93,7 @@ public class CommissionServiceImpl implements CommissionService {
         submission.setArticleTitle(article.getTitle());
         submission.setArticleBody(article.getBody());
         submission.setWordCount(article.getWordCount());
-        submission.setStatus(SUBMITTED);
+        submission.setStatus(SUBMISSION_STATUS_SUBMITTED);
         submission.setTenantId(0L);
         submissionMapper.insert(submission);
         return submission.getId();
@@ -109,11 +109,11 @@ public class CommissionServiceImpl implements CommissionService {
             throw new BusinessException(CommissionErrorCode.SUBMISSION_NOT_FOUND);
         }
         CommissionTask task = findTask(submission.getTaskId());
-        if (submission.getStatus() != SUBMITTED || task.getStatus() != RECRUITING
+        if (submission.getStatus() != SUBMISSION_STATUS_SUBMITTED || task.getStatus() != SUBMISSION
                 || !LocalDateTime.now().isBefore(task.getDeadlineAt())) {
             throw new BusinessException(CommissionErrorCode.SUBMISSION_NOT_WITHDRAWABLE);
         }
-        submission.setStatus(WITHDRAWN);
+        submission.setStatus(SUBMISSION_STATUS_WITHDRAWN);
         submission.setWithdrawnAt(LocalDateTime.now());
         submissionMapper.updateById(submission);
     }
@@ -126,19 +126,30 @@ public class CommissionServiceImpl implements CommissionService {
                         .orderByDesc(CommissionSubmission::getCreatedAt));
     }
 
-    private void reconcileDeadlines() {
+    private void reconcilePhases() {
+        LocalDateTime now = LocalDateTime.now();
         taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PENDING_ADOPTION)
-                .eq(CommissionTask::getStatus, RECRUITING)
-                .le(CommissionTask::getDeadlineAt, LocalDateTime.now()));
+                .set(CommissionTask::getStatus, REVIEW)
+                .eq(CommissionTask::getStatus, SUBMISSION)
+                .le(CommissionTask::getDeadlineAt, now));
+        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
+                .set(CommissionTask::getStatus, 2)
+                .eq(CommissionTask::getStatus, REVIEW)
+                .le(CommissionTask::getSelectionDeadlineAt, now));
     }
 
-    private void reconcileDeadline(Long taskId) {
+    private void reconcilePhase(Long taskId) {
+        LocalDateTime now = LocalDateTime.now();
         taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PENDING_ADOPTION)
+                .set(CommissionTask::getStatus, REVIEW)
                 .eq(CommissionTask::getId, taskId)
-                .eq(CommissionTask::getStatus, RECRUITING)
-                .le(CommissionTask::getDeadlineAt, LocalDateTime.now()));
+                .eq(CommissionTask::getStatus, SUBMISSION)
+                .le(CommissionTask::getDeadlineAt, now));
+        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
+                .set(CommissionTask::getStatus, 2)
+                .eq(CommissionTask::getId, taskId)
+                .eq(CommissionTask::getStatus, REVIEW)
+                .le(CommissionTask::getSelectionDeadlineAt, now));
     }
 
     private CommissionTask findTask(Long taskId) {

@@ -11,8 +11,14 @@ export function fetchCommissionTask(id) {
 export function createCommissionTask(data) {
   return request.post(BASE, data).then((res) => res.data)
 }
+export function updateCommissionTask(id, data) {
+  return request.put(`${BASE}/${id}`, data).then((res) => res.data)
+}
 export function closeCommissionTask(id) {
   return request.post(`${BASE}/${id}/close`).then((res) => res.data)
+}
+export function announceCommissionTask(id) {
+  return request.post(`${BASE}/${id}/announce`).then((res) => res.data)
 }
 export function adoptCommissionSubmissions(id, submissionIds) {
   return request.post(`${BASE}/${id}/adopt`, { submissionIds }).then((res) => res.data)

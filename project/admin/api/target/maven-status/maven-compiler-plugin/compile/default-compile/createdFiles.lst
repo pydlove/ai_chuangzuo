@@ -178,6 +178,7 @@ com/aichuangzuo/admin/modules/hotsearch/crawler/ChromeDevToolsFetcher.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchPlatformAdminService.class
 com/aichuangzuo/admin/modules/earnings/vo/UserAccountPageVO.class
 com/aichuangzuo/admin/modules/generation/mapper/PromptTemplateVersionMapper.class
+com/aichuangzuo/admin/modules/commission/dto/request/CommissionTaskUpdateRequest.class
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchPlatformMapper.class
 com/aichuangzuo/admin/modules/generation/service/PromptTemplateService.class
 com/aichuangzuo/admin/modules/topictitle/vo/TopicTitleAdminVO.class

@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.commission.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionAdoptRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskCreateRequest;
+import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskUpdateRequest;
 import com.aichuangzuo.admin.modules.commission.entity.CommissionTask;
 import com.aichuangzuo.admin.modules.commission.service.AdminCommissionService;
 import com.aichuangzuo.admin.modules.commission.vo.CommissionTaskDetailVO;
@@ -43,10 +44,24 @@ public class AdminCommissionController {
         return Result.success(commissionService.create(request, SecurityAdminContext.getCurrentAdminUserId()));
     }
 
-    @Operation(summary = "截止约稿任务")
+    @Operation(summary = "编辑约稿任务（仅招募中可编辑）")
+    @PutMapping("/{taskId}")
+    public Result<Void> update(@PathVariable Long taskId, @Valid @RequestBody CommissionTaskUpdateRequest request) {
+        commissionService.update(taskId, request);
+        return Result.success();
+    }
+
+    @Operation(summary = "结束投递（投递期 → 评选期）")
     @PostMapping("/{taskId}/close")
     public Result<Void> close(@PathVariable Long taskId) {
         commissionService.close(taskId);
+        return Result.success();
+    }
+
+    @Operation(summary = "提前公示（评选期 → 公示期）")
+    @PostMapping("/{taskId}/announce")
+    public Result<Void> announce(@PathVariable Long taskId) {
+        commissionService.announce(taskId);
         return Result.success();
     }
 

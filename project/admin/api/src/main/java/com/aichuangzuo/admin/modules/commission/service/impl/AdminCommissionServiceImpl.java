@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.commission.service.impl;
 
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskCreateRequest;
+import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskUpdateRequest;
 import com.aichuangzuo.admin.modules.commission.entity.CommissionSubmission;
 import com.aichuangzuo.admin.modules.commission.entity.CommissionTask;
 import com.aichuangzuo.admin.modules.commission.enums.AdminCommissionErrorCode;
@@ -26,12 +27,13 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class AdminCommissionServiceImpl implements AdminCommissionService {
-    private static final int RECRUITING = 0;
-    private static final int PENDING_ADOPTION = 1;
-    private static final int COMPLETED = 2;
-    private static final int SUBMITTED = 0;
-    private static final int ADOPTED = 1;
-    private static final int NOT_ADOPTED = 2;
+    private static final int SUBMISSION = 0;
+    private static final int REVIEW = 1;
+    private static final int PUBLIC = 2;
+    private static final int COMPLETED = 3;
+    private static final int SUBMISSION_STATUS_SUBMITTED = 0;
+    private static final int SUBMISSION_STATUS_ADOPTED = 1;
+    private static final int SUBMISSION_STATUS_NOT_ADOPTED = 2;
 
     private final CommissionTaskMapper taskMapper;
     private final CommissionSubmissionMapper submissionMapper;
@@ -39,7 +41,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
 
     @Override
     public IPage<CommissionTask> list(String keyword, Integer status, int page, int pageSize) {
-        reconcileDeadlines();
+        reconcilePhases();
         LambdaQueryWrapper<CommissionTask> query = new LambdaQueryWrapper<CommissionTask>()
                 .eq(CommissionTask::getIsDeleted, 0)
                 .eq(status != null, CommissionTask::getStatus, status)
@@ -51,7 +53,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
 
     @Override
     public CommissionTaskDetailVO detail(Long taskId) {
-        reconcileDeadline(taskId);
+        reconcilePhase(taskId);
         CommissionTask task = findTask(taskId);
         List<CommissionSubmission> submissions = submissionMapper.selectList(
                 new LambdaQueryWrapper<CommissionSubmission>()
@@ -64,9 +66,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long create(CommissionTaskCreateRequest request, Long adminId) {
-        if (request.getMinWordCount() > request.getMaxWordCount()) {
-            throw new BusinessException(AdminCommissionErrorCode.PARAM_INVALID);
-        }
+        validateDeadlines(request.getDeadlineAt(), request.getSelectionDeadlineAt(), request.getMinWordCount(), request.getMaxWordCount());
         CommissionTask task = new CommissionTask();
         task.setTaskNo("CT" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
         task.setTitle(request.getTitle().trim());
@@ -77,8 +77,9 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
         task.setRewardCoin(request.getRewardCoin());
         task.setNeededCount(request.getNeededCount());
         task.setAdoptedCount(0);
-        task.setStatus(RECRUITING);
+        task.setStatus(SUBMISSION);
         task.setDeadlineAt(request.getDeadlineAt());
+        task.setSelectionDeadlineAt(request.getSelectionDeadlineAt());
         task.setPublishedBy(adminId);
         task.setTenantId(0L);
         taskMapper.insert(task);
@@ -87,16 +88,46 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public void update(Long taskId, CommissionTaskUpdateRequest request) {
+        CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
+        ensureTask(task);
+        if (task.getStatus() != SUBMISSION) {
+            throw new BusinessException(AdminCommissionErrorCode.TASK_STATUS_INVALID);
+        }
+        validateDeadlines(request.getDeadlineAt(), request.getSelectionDeadlineAt(), request.getMinWordCount(), request.getMaxWordCount());
+        task.setTitle(request.getTitle().trim());
+        task.setDescription(request.getDescription().trim());
+        task.setMinWordCount(request.getMinWordCount());
+        task.setMaxWordCount(request.getMaxWordCount());
+        task.setStyleHint(request.getStyleHint());
+        task.setRewardCoin(request.getRewardCoin());
+        task.setNeededCount(request.getNeededCount());
+        task.setDeadlineAt(request.getDeadlineAt());
+        task.setSelectionDeadlineAt(request.getSelectionDeadlineAt());
+        taskMapper.updateById(task);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public void close(Long taskId) {
         CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
         ensureTask(task);
-        if (task.getStatus() != RECRUITING) {
+        if (task.getStatus() != SUBMISSION) {
             throw new BusinessException(AdminCommissionErrorCode.TASK_STATUS_INVALID);
         }
-        if (LocalDateTime.now().isBefore(task.getDeadlineAt())) {
-            throw new BusinessException(AdminCommissionErrorCode.DEADLINE_NOT_REACHED);
+        task.setStatus(REVIEW);
+        taskMapper.updateById(task);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void announce(Long taskId) {
+        CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
+        ensureTask(task);
+        if (task.getStatus() != REVIEW) {
+            throw new BusinessException(AdminCommissionErrorCode.TASK_STATUS_INVALID);
         }
-        task.setStatus(PENDING_ADOPTION);
+        task.setStatus(PUBLIC);
         taskMapper.updateById(task);
     }
 
@@ -105,10 +136,10 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
     public void adopt(Long taskId, List<Long> submissionIds) {
         CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
         ensureTask(task);
-        if (task.getStatus() == RECRUITING && !LocalDateTime.now().isBefore(task.getDeadlineAt())) {
-            task.setStatus(PENDING_ADOPTION);
+        if (task.getStatus() == SUBMISSION && !LocalDateTime.now().isBefore(task.getDeadlineAt())) {
+            task.setStatus(REVIEW);
         }
-        if (task.getStatus() != PENDING_ADOPTION) {
+        if (task.getStatus() != REVIEW) {
             throw new BusinessException(AdminCommissionErrorCode.TASK_STATUS_INVALID);
         }
         List<Long> ids = List.copyOf(new LinkedHashSet<>(submissionIds));
@@ -120,7 +151,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
                 new LambdaQueryWrapper<CommissionSubmission>()
                         .eq(CommissionSubmission::getTaskId, taskId)
                         .in(CommissionSubmission::getId, ids)
-                        .eq(CommissionSubmission::getStatus, SUBMITTED));
+                        .eq(CommissionSubmission::getStatus, SUBMISSION_STATUS_SUBMITTED));
         if (submissions.size() != ids.size()) {
             throw new BusinessException(AdminCommissionErrorCode.SUBMISSION_STATUS_INVALID);
         }
@@ -129,7 +160,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
             String refId = "commission:" + submission.getId();
             String coinBizNo = userApiClient.grantCoin(submission.getSubmitterId(), "commission_reward",
                     task.getRewardCoin(), refId, "约稿采纳奖励：" + task.getTitle());
-            submission.setStatus(ADOPTED);
+            submission.setStatus(SUBMISSION_STATUS_ADOPTED);
             submission.setRewardCoin(task.getRewardCoin());
             submission.setCoinRecordBizNo(coinBizNo);
             submission.setAdoptedAt(now);
@@ -140,26 +171,46 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
             task.setStatus(COMPLETED);
             task.setCompletedAt(now);
             submissionMapper.update(null, new LambdaUpdateWrapper<CommissionSubmission>()
-                    .set(CommissionSubmission::getStatus, NOT_ADOPTED)
+                    .set(CommissionSubmission::getStatus, SUBMISSION_STATUS_NOT_ADOPTED)
                     .eq(CommissionSubmission::getTaskId, taskId)
-                    .eq(CommissionSubmission::getStatus, SUBMITTED));
+                    .eq(CommissionSubmission::getStatus, SUBMISSION_STATUS_SUBMITTED));
         }
         taskMapper.updateById(task);
     }
 
-    private void reconcileDeadlines() {
-        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PENDING_ADOPTION)
-                .eq(CommissionTask::getStatus, RECRUITING)
-                .le(CommissionTask::getDeadlineAt, LocalDateTime.now()));
+    private void validateDeadlines(LocalDateTime deadlineAt, LocalDateTime selectionDeadlineAt, Integer minWordCount, Integer maxWordCount) {
+        if (minWordCount > maxWordCount) {
+            throw new BusinessException(AdminCommissionErrorCode.PARAM_INVALID);
+        }
+        if (!selectionDeadlineAt.isAfter(deadlineAt)) {
+            throw new BusinessException(AdminCommissionErrorCode.PARAM_INVALID);
+        }
     }
 
-    private void reconcileDeadline(Long taskId) {
+    private void reconcilePhases() {
+        LocalDateTime now = LocalDateTime.now();
         taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PENDING_ADOPTION)
+                .set(CommissionTask::getStatus, REVIEW)
+                .eq(CommissionTask::getStatus, SUBMISSION)
+                .le(CommissionTask::getDeadlineAt, now));
+        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
+                .set(CommissionTask::getStatus, PUBLIC)
+                .eq(CommissionTask::getStatus, REVIEW)
+                .le(CommissionTask::getSelectionDeadlineAt, now));
+    }
+
+    private void reconcilePhase(Long taskId) {
+        LocalDateTime now = LocalDateTime.now();
+        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
+                .set(CommissionTask::getStatus, REVIEW)
                 .eq(CommissionTask::getId, taskId)
-                .eq(CommissionTask::getStatus, RECRUITING)
-                .le(CommissionTask::getDeadlineAt, LocalDateTime.now()));
+                .eq(CommissionTask::getStatus, SUBMISSION)
+                .le(CommissionTask::getDeadlineAt, now));
+        taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
+                .set(CommissionTask::getStatus, PUBLIC)
+                .eq(CommissionTask::getId, taskId)
+                .eq(CommissionTask::getStatus, REVIEW)
+                .le(CommissionTask::getSelectionDeadlineAt, now));
     }
 
     private CommissionTask findTask(Long taskId) {

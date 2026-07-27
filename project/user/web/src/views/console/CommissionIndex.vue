@@ -72,9 +72,10 @@ const tab = ref('all')
 const status = ref(null)
 const filters = [
   { label: '全部', value: null },
-  { label: '招募中', value: 0 },
-  { label: '已截止待采纳', value: 1 },
-  { label: '已完成', value: 2 }
+  { label: '投递中', value: 0 },
+  { label: '评选中', value: 1 },
+  { label: '公示中', value: 2 },
+  { label: '已完成', value: 3 }
 ]
 
 const visibleItems = computed(() => tab.value === 'mine' ? mySubmissions.value : tasks.value)
@@ -100,16 +101,26 @@ onMounted(refresh)
 watch([tab, status], refresh)
 
 function taskStatus(value) {
-  return ['招募中', '已截止待采纳', '已完成'][value] || '未知状态'
+  return ['投递中', '评选中', '公示中', '已完成'][value] || '未知状态'
 }
 function submissionStatus(value) {
   return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
 }
 function deadlineText(task) {
-  const deadline = new Date(task.deadlineAt)
-  if (task.status !== 0 || deadline <= new Date()) return `截止于 ${deadline.toLocaleString()}`
-  const hours = Math.max(1, Math.ceil((deadline - Date.now()) / 3600000))
-  return hours > 24 ? `还剩 ${Math.ceil(hours / 24)} 天` : `还剩 ${hours} 小时`
+  const now = new Date()
+  if (task.status === 0) {
+    const deadline = new Date(task.deadlineAt)
+    if (deadline <= now) return `截止于 ${deadline.toLocaleString()}`
+    const hours = Math.max(1, Math.ceil((deadline - now) / 3600000))
+    return hours > 24 ? `投递还剩 ${Math.ceil(hours / 24)} 天` : `投递还剩 ${hours} 小时`
+  }
+  if (task.status === 1 && task.selectionDeadlineAt) {
+    const deadline = new Date(task.selectionDeadlineAt)
+    if (deadline <= now) return `评选截止已过 ${deadline.toLocaleString()}`
+    const hours = Math.max(1, Math.ceil((deadline - now) / 3600000))
+    return hours > 24 ? `评选还剩 ${Math.ceil(hours / 24)} 天` : `评选还剩 ${hours} 小时`
+  }
+  return `截止于 ${new Date(task.deadlineAt).toLocaleString()}`
 }
 function submissionDeadlineText(item) {
   const submittedAt = item.createdAt
@@ -310,7 +321,8 @@ function goDetail(id) {
 }
 .status-0 { color: #1677ff; background: #e6f4ff; }
 .status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #07c160; background: #e6f7ed; }
+.status-2 { color: #13c2c2; background: #e6fffb; }
+.status-3 { color: #07c160; background: #e6f7ed; }
 .submission-0 { color: #1677ff; background: #e6f4ff; }
 .submission-1 { color: #07c160; background: #e6f7ed; }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }
