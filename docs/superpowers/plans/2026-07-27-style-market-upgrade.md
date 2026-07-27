@@ -345,37 +345,24 @@ body[data-theme="dark"] .market-banner-stat-label { color: var(--color-text-seco
 .market-grid-section { min-height: 1px; }
 ```
 
-- [ ] **Step 4: 在 `<style>` 全局段追加暗色 ant-modal 适配**
+- [ ] **Step 4: 在文件末尾的全局 `<style>` 段中追加 ① rules-modal 暗色**
 
-把 `<style>` 段（不带 scoped 的）整段替换为：
+找到原始文件末尾已有的"全局 `<style>`"段（即不带 `scoped`、处理 ant-modal 暗色的那段，**不要碰里面已有内容**），在最后一条规则之后追加：
 
 ```css
-<style>
-/* ① 区收益规则弹层暗色（全局） */
-body[data-theme="dark"] .rules-modal .ant-modal-content {
-  background: #141414;
-  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
-}
-body[data-theme="dark"] .rules-modal .ant-modal-header {
-  background: #141414;
-  border-bottom-color: #303030;
-}
-body[data-theme="dark"] .rules-modal .ant-modal-title { color: #e0e0e0; }
-body[data-theme="dark"] .rules-modal .ant-modal-close { color: #a6a6a6; }
-body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
-  color: #fff;
-  background: rgba(255, 255, 255, 0.08);
-}
+/* 风格市场 v2 — ① 区收益规则弹层暗色补齐 */
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
 body[data-theme="dark"] .style-market-rules-footer {
   border-top-color: #303030;
   color: #a6a6a6;
 }
 body[data-theme="dark"] .style-market-rule-highlight { color: #ff6b81; }
-</style>
 ```
 
-**注意**：上面这段是在已有 `<style>` 全局段**追加**而不是覆盖。如果文件里没有 `<style>` 段，就用 Edit 加。
+注意：
+
+- 全局段里已有的 `.rules-modal .ant-modal-*`、`.favorite-hint-modal .ant-modal-*`、`.prompt-detail-modal .ant-modal-*` 规则**全部保留**（这些仍服务于老弹框外壳）。
+- `.favorite-hint-*`、`.prompt-detail-*`、`.style-market-*` 等已被新类替代的旧类样式属于 `<style scoped>` 块里要清的内容（清理由 Task 9 负责），**不是这一步**。
 
 - [ ] **Step 5: dev server 验证 ① 区渲染**
 
@@ -538,7 +525,7 @@ git commit -m "feat(style-market): ② 上传激励卡"
           :key="s.id"
           class="market-featured-card"
           :style="{ background: featuredBackground(s) }"
-          @click="openPrompt(s)"
+          @click="handleUse(s)"
         >
           <div class="market-featured-name">{{ s.name }}</div>
           <div v-if="s.scope" class="market-featured-tag"># {{ firstScope(s.scope) }}</div>
@@ -553,15 +540,30 @@ git commit -m "feat(style-market): ② 上传激励卡"
 
 - [ ] **Step 2: 在 `<script setup>` 加 featured helpers**
 
-在 `goUpload` 函数之后插入：
+**先把 Task 2 那个 import 块更新一遍** — 在已有 `import { ..., loadMarketStyles } from '@/composables/useStyleMarket.js'` 行末尾追加两个 export，得到：
 
 ```js
-import { getMarketStyleEarnings } from '@/composables/useStyleMarket.js'
+import {
+  marketStyles,
+  marketStats,
+  topCreators,
+  featuredStyles,
+  useMarketStyle,
+  simulateExternalUse,
+  toggleFavorite,
+  isFavorite,
+  getMarketStyleEarnings,
+  loadMarketStyles
+} from '@/composables/useStyleMarket.js'
+```
 
+然后在 `goUpload` 函数之后插入：
+
+```js
 const firstScope = (scope) => (scope || '').split(/[,，]/)[0]?.trim() || ''
 
 const featuredBackground = (s) => {
-  // 简单 hash → 在三个深色渐变中选一个，保证视觉差异
+  // 简单 hash → 在深色渐变数组中选一个，保证视觉差异
   const palette = [
     'linear-gradient(135deg, #1a1a1a 0%, #2a1015 100%)',
     'linear-gradient(135deg, #1f1f1f 0%, #2c1f0a 100%)',
@@ -573,10 +575,13 @@ const featuredBackground = (s) => {
   return palette[idx]
 }
 
-const openPrompt = (s) => {
-  // v1 已有 promptModal；本期先在 console 暴露给作者，后续 task 实现 modal 内容
-  console.log('[featured] open', s.id, s.name)
-  router.push(`/console/create?marketStyleId=${s.id}`)
+const handleUse = (s) => {
+  try {
+    useMarketStyle(s.id)
+    router.push(`/console/create?marketStyleId=${s.id}`)
+  } catch (err) {
+    alert(err.message)
+  }
 }
 
 const scrollToGrid = () => {
@@ -752,20 +757,9 @@ git commit -m "feat(style-market): ③ 官方精选大卡（横滑）"
     </section>
 ```
 
-- [ ] **Step 2: 在 `<script setup>` 加 `handleUse`**
+- [ ] **Step 2: 确认 `handleUse` 已存在（Task 4 已加，跳过）**
 
-在 `openPrompt` 函数之后插入：
-
-```js
-const handleUse = (s) => {
-  try {
-    useMarketStyle(s.id)
-    router.push(`/console/create?marketStyleId=${s.id}`)
-  } catch (err) {
-    alert(err.message)
-  }
-}
-```
+Task 4 已经在 `<script setup>` 末尾追加了 `handleUse`。请打开文件确认它存在，否则从 Task 4 复制过来。**不要重复定义同名函数。**
 
 - [ ] **Step 3: 在 `<style scoped>` 加 ④ 区样式 + 暗色**
 
@@ -961,7 +955,7 @@ git commit -m "feat(style-market): ④ 收益潜力榜 Top 5"
               >
                 {{ isFavorite(s.id) ? '♥' : '♡' }}
               </button>
-              <button class="market-card-view" @click="openPrompt(s)">查看</button>
+              <button class="market-card-view" @click="handleUse(s)">查看</button>
               <button
                 v-if="s.creatorId === currentUserId"
                 class="market-card-sim"
