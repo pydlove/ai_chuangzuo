@@ -65,8 +65,41 @@
       </div>
     </section>
 
-    <!-- ④⑤ placeholder -->
-    <section class="market-creators" data-tbd="task-5"></section>
+    <!-- ④ 收益潜力榜 -->
+    <section class="market-creators">
+      <div class="market-section-head">
+        <div class="market-section-title-wrap">
+          <h2 class="market-section-title">收益潜力榜</h2>
+          <span class="market-section-sub">看看谁在用风格赚到币</span>
+        </div>
+      </div>
+      <div v-if="topCreators.length === 0" class="market-creators-empty">
+        暂无上榜创作者
+      </div>
+      <div v-else class="market-creators-rail">
+        <div
+          v-for="c in topCreators"
+          :key="c.creatorId"
+          class="market-creator-card"
+        >
+          <div class="market-creator-avatar">{{ (c.creatorName || '匿').charAt(0) }}</div>
+          <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
+          <div class="market-creator-weekly">本周 +{{ formatCoins(c.weeklyEarnings) }} 币</div>
+          <div v-if="c.bestStyle" class="market-creator-best">
+            代表风格 · {{ c.bestStyle.name }}
+          </div>
+          <button
+            v-if="c.bestStyle"
+            class="market-creator-use"
+            @click="handleUse(c.bestStyle)"
+          >
+            使用
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ⑤ placeholder -->
     <section class="market-grid-section" data-tbd="task-6"></section>
   </div>
 
@@ -221,9 +254,108 @@ onMounted(() => {
   margin-top: var(--space-xs);
 }
 
-/* ④⑤ 占位防 build break（后续 Task 填充） */
-.market-creators,
+/* ⑤ 占位防 build break */
 .market-grid-section { min-height: 1px; }
+
+/* === ④ 收益潜力榜 === */
+.market-section-sub {
+  font-size: var(--font-body);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.market-creators-empty {
+  padding: var(--space-xl);
+  text-align: center;
+  color: var(--color-text-placeholder);
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  font-size: var(--font-body);
+}
+
+.market-creators-rail {
+  display: flex;
+  gap: var(--space-md);
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  padding-bottom: var(--space-sm);
+  scrollbar-width: thin;
+}
+.market-creators-rail::-webkit-scrollbar { height: 6px; }
+.market-creators-rail::-webkit-scrollbar-thumb {
+  background: var(--color-bg-hover);
+  border-radius: 3px;
+}
+
+.market-creator-card {
+  flex: 0 0 200px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm2);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  scroll-snap-align: start;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+.market-creator-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.market-creator-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-h3);
+  font-weight: 700;
+  margin-bottom: var(--space-sm);
+}
+.market-creator-name {
+  font-size: var(--font-body);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+.market-creator-weekly {
+  font-size: var(--font-h2);
+  font-weight: 700;
+  color: var(--color-primary);
+  line-height: 1.2;
+  margin-bottom: var(--space-sm);
+}
+.market-creator-best {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.market-creator-use {
+  background: var(--color-primary);
+  color: #fff;
+  border: 0;
+  border-radius: var(--radius-lg);
+  height: 36px;
+  width: 100%;
+  font-size: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+}
+.market-creator-use:hover { background: var(--color-primary-hover); }
+
+/* ④ 暗色 */
+body[data-theme="dark"] .market-creator-card { background: #1f1f1f; }
+body[data-theme="dark"] .market-creator-name { color: var(--color-text-primary); }
+body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary); }
 
 /* === ③ 官方精选 === */
 .market-section-head {
