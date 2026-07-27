@@ -88,7 +88,7 @@
           v-for="(c, idx) in visibleCreators"
           :key="c.creatorId"
           class="market-creator-row"
-          @click="handleUse(c.bestStyle)"
+          @click="openCreator(c)"
         >
           <div :class="['market-creator-rank', { top3: idx < 3 }]">
             {{ String(idx + 1).padStart(2, '0') }}
@@ -195,13 +195,12 @@
 
   <!-- 收益规则弹框 — 保留 v1 写法 -->
   <a-modal
+    v-model:open="rulesVisible"
     class="rules-modal"
-    :open="rulesVisible"
     title="风格市场收益规则"
     :footer="null"
     :width="560"
     centered
-    @cancel="rulesVisible = false"
   >
     <ol class="style-market-rules-list">
       <li>他人每使用一次你分享的风格，你将获得 <span class="style-market-rule-highlight">0.2 创作币</span> 奖励。</li>
@@ -211,6 +210,70 @@
       <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架风格</span>。</li>
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
+  </a-modal>
+
+  <!-- 创作者详情 modal — 显示 ta 对外公布的风格 -->
+  <a-modal
+    v-if="selectedCreator"
+    class="creator-modal"
+    :open="creatorModalVisible"
+    :footer="null"
+    :width="640"
+    centered
+    :destroy-on-close="true"
+    @cancel="closeCreatorModal"
+  >
+    <template #title>
+      <div class="creator-modal-title">
+        <div class="creator-modal-avatar">{{ (selectedCreator.creatorName || '匿').charAt(0) }}</div>
+        <div class="creator-modal-title-text">
+          <div class="creator-modal-name">{{ selectedCreator.creatorName || '匿名用户' }}</div>
+          <div class="creator-modal-sub">TA 的风格市场主页</div>
+        </div>
+      </div>
+    </template>
+
+    <div class="creator-modal-stats">
+      <div class="creator-modal-stat">
+        <div class="creator-modal-stat-value">{{ creatorStyles.length }}</div>
+        <div class="creator-modal-stat-label">对外公布风格</div>
+      </div>
+      <div class="creator-modal-stat">
+        <div class="creator-modal-stat-value">+{{ formatCoins(selectedCreator.weeklyEarnings) }}</div>
+        <div class="creator-modal-stat-label">本周币</div>
+      </div>
+      <div class="creator-modal-stat">
+        <div class="creator-modal-stat-value">{{ formatUses(creatorTotalEarnings) }}</div>
+        <div class="creator-modal-stat-label">累计币 (按使用×0.2)</div>
+      </div>
+      <div v-if="creatorFeaturedCount > 0" class="creator-modal-stat highlight">
+        <div class="creator-modal-stat-value">{{ creatorFeaturedCount }}</div>
+        <div class="creator-modal-stat-label">官方精选</div>
+      </div>
+    </div>
+
+    <div v-if="creatorStyles.length === 0" class="creator-modal-empty">
+      该创作者暂未对外公布风格。
+    </div>
+    <div v-else class="creator-modal-list">
+      <div
+        v-for="s in creatorStyles"
+        :key="s.id"
+        class="creator-modal-style-row"
+      >
+        <div class="creator-modal-style-main">
+          <div class="creator-modal-style-name">
+            {{ s.name }}
+            <span v-if="s.featured" class="creator-modal-style-featured">官方精选</span>
+          </div>
+          <div v-if="s.scope" class="creator-modal-style-scope"># {{ firstScope(s.scope) }}</div>
+        </div>
+        <div class="creator-modal-style-meta">
+          <span class="creator-modal-style-uses">{{ formatUses(s.totalUses) }} 次使用</span>
+          <span class="creator-modal-style-earning">+{{ formatCoins(s.weeklyEarnings) }} 币/周</span>
+        </div>
+      </div>
+    </div>
   </a-modal>
 </template>
 
@@ -240,6 +303,33 @@ const formatUses = (n) => Number(n || 0).toLocaleString()
 const goUpload = () => {
   router.push('/console/styles')
 }
+
+// ④ 排行榜点击 → 打开创作者详情 modal（只查看 ta 对外公布的风格，不直接使用）
+const creatorModalVisible = ref(false)
+const selectedCreator = ref(null)
+const openCreator = (c) => {
+  selectedCreator.value = c
+  creatorModalVisible.value = true
+}
+const closeCreatorModal = () => {
+  creatorModalVisible.value = false
+  selectedCreator.value = null
+}
+const creatorStyles = computed(() => {
+  const c = selectedCreator.value
+  if (!c) return []
+  return marketStyles.value
+    .filter((s) => s.creatorId === c.creatorId && s.status === 'approved')
+    .sort((a, b) => (b.totalUses || 0) - (a.totalUses || 0))
+})
+const creatorTotalEarnings = computed(() => {
+  const c = selectedCreator.value
+  if (!c) return 0
+  return creatorStyles.value.reduce((sum, s) => sum + (s.totalUses || 0), 0) * 0.2
+})
+const creatorFeaturedCount = computed(() =>
+  creatorStyles.value.filter((s) => s.featured === true).length
+)
 
 const firstScope = (scope) => (scope || '').split(/[,，]/)[0]?.trim() || ''
 
@@ -341,12 +431,14 @@ onMounted(() => {
 
 <style scoped>
 .market-page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
   padding: var(--space-lg) var(--space-xl);
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
-  max-width: 1280px;
-  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .market-banner {
@@ -1034,6 +1126,119 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 }
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
+
+/* ===== 创作者详情 modal ===== */
+.creator-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.creator-modal-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff5577 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+}
+.creator-modal-title-text { display: flex; flex-direction: column; gap: 2px; }
+.creator-modal-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.creator-modal-sub {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+}
+
+.creator-modal-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 14px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+.creator-modal-stat { text-align: center; }
+.creator-modal-stat.highlight .creator-modal-stat-value { color: var(--color-primary); }
+.creator-modal-stat-value {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.creator-modal-stat-label {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: 2px;
+}
+
+.creator-modal-empty {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--color-text-placeholder);
+  font-size: 13px;
+}
+
+.creator-modal-list {
+  display: flex;
+  flex-direction: column;
+  border-top: 1px solid var(--color-border-light);
+}
+.creator-modal-style-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 4px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+.creator-modal-style-main { min-width: 0; flex: 1; }
+.creator-modal-style-name {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.creator-modal-style-featured {
+  font-size: 11px;
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 500;
+}
+.creator-modal-style-scope {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  margin-top: 2px;
+}
+.creator-modal-style-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  white-space: nowrap;
+}
+.creator-modal-style-earning {
+  color: var(--color-primary);
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .creator-modal-stats { grid-template-columns: repeat(2, 1fr); }
+}
 body[data-theme="dark"] .style-market-rules-footer {
   border-top-color: #303030;
   color: #a6a6a6;

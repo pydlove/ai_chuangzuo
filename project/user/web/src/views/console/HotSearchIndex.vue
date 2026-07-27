@@ -125,8 +125,11 @@ onMounted(async () => {
 
 <style scoped>
 .hot-search-page {
-  padding: 24px 32px;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
+  padding: 24px 32px;
+  box-sizing: border-box;
 }
 
 .date-bar {

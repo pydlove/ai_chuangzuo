@@ -20,7 +20,6 @@
             <a-button type="link" size="small" @click="openDetail(record.id)">详情/采纳</a-button>
             <a-button v-if="record.status === 0" type="link" size="small" @click="openEdit(record)">编辑</a-button>
             <a-button v-if="record.status === 0" type="link" size="small" @click="endSubmission(record)">结束投递</a-button>
-            <a-button v-if="record.status === 1" type="link" size="small" @click="announceTask(record)">提前公示</a-button>
           </a-space>
         </template>
       </template>
@@ -81,7 +80,7 @@
           <a-button type="primary" :disabled="!canAdopt" :loading="adopting" @click="adoptSelected">采纳所选并发奖</a-button>
         </div>
         <a-alert v-if="detail.task.status === 1" type="info" show-icon :message="`还可采纳 ${remainingCount} 篇，最多选择对应数量`" />
-        <a-alert v-else-if="detail.task.status === 2 || detail.task.status === 3" type="success" show-icon message="公示/已完成阶段不可再采纳" />
+        <a-alert v-else-if="detail.task.status === 2" type="success" show-icon message="任务已完成，不可再采纳" />
         <a-table :columns="submissionColumns" :data-source="detail.submissions || []" row-key="id" :pagination="false" :row-selection="rowSelection">
           <template #bodyCell="{ column, record }">
             <template v-if="column.key === 'article'">
@@ -108,7 +107,7 @@ import { computed, reactive, ref } from 'vue'
 import { Modal, message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  adoptCommissionSubmissions, announceCommissionTask, closeCommissionTask,
+  adoptCommissionSubmissions, closeCommissionTask,
   createCommissionTask, fetchCommissionTask, fetchCommissionTasks,
   updateCommissionTask
 } from '@/api/commission.js'
@@ -130,7 +129,7 @@ const detailVisible = ref(false)
 const detail = ref(null)
 const selectedRowKeys = ref([])
 const previewSubmission = ref(null)
-const statusOptions = [0, 1, 2, 3].map((value) => ({ value, label: taskStatus(value) }))
+const statusOptions = [0, 1, 2].map((value) => ({ value, label: taskStatus(value) }))
 const columns = [
   { title: '任务编号', dataIndex: 'taskNo', width: 180 }, { title: '标题', dataIndex: 'title' },
   { title: '奖励', key: 'reward', width: 130 }, { title: '采纳进度', key: 'progress', width: 100 },
@@ -224,9 +223,6 @@ async function openDetail(id) {
 function endSubmission(record) {
   Modal.confirm({ title: '确认结束投递？', content: '结束后将进入评选期，不可再撤回或重新投递。', okType: 'danger', onOk: async () => { try { await closeCommissionTask(record.id); message.success('已进入评选期'); loadTasks() } catch (e) { message.error(e.message || '操作失败') } } })
 }
-function announceTask(record) {
-  Modal.confirm({ title: '确认提前公示？', content: '提前进入公示期后将不可再采纳稿件。', okType: 'danger', onOk: async () => { try { await announceCommissionTask(record.id); message.success('已进入公示期'); loadTasks() } catch (e) { message.error(e.message || '操作失败') } } })
-}
 async function adoptSelected() {
   adopting.value = true
   try {
@@ -237,9 +233,9 @@ async function adoptSelected() {
   } catch (error) { message.error(error.message || '采纳发奖失败') }
   finally { adopting.value = false }
 }
-function taskStatus(value) { return ['投递中', '评选中', '公示中', '已完成'][value] || '未知' }
+function taskStatus(value) { return ['投递中', '评选中', '已完成'][value] || '未知' }
 function submissionStatus(value) { return ['待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知' }
-function statusColor(value) { return ['blue', 'orange', 'cyan', 'green'][value] || 'default' }
+function statusColor(value) { return ['blue', 'orange', 'green'][value] || 'default' }
 function formatTime(value) { return value ? new Date(value).toLocaleString('zh-CN') : '-' }
 loadTasks()
 </script>

@@ -350,9 +350,13 @@ const editWork = (bizNo) => {
 
 <style scoped>
 .works-index {
+  width: 100%;
   height: 100%;
-  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 32px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .works-header {

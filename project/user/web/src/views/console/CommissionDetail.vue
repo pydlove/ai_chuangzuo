@@ -73,20 +73,11 @@
               <p class="action-desc">投递已截止，管理员正在评选稿件。请关注大厅中的其它投递中任务。</p>
             </template>
 
-            <!-- 公示中且未投稿 -->
-            <template v-else-if="task.status === 2">
-              <div class="action-head">
-                <span class="action-title">评选结果已公示</span>
-                <span class="status-tag status-2">{{ taskStatus(2) }}</span>
-              </div>
-              <p class="action-desc">本任务评选结果已公示。</p>
-            </template>
-
             <!-- 已完成且未投稿 -->
             <template v-else>
               <div class="action-head">
                 <span class="action-title">任务已完成</span>
-                <span class="status-tag status-3">{{ taskStatus(3) }}</span>
+                <span class="status-tag status-2">{{ taskStatus(2) }}</span>
               </div>
               <p class="action-desc">本任务已结束。</p>
             </template>
@@ -193,7 +184,7 @@ onMounted(async () => {
 })
 
 function taskStatus(value) {
-  return ['投递中', '评选中', '公示中', '已完成'][value] || '未知状态'
+  return ['投递中', '评选中', '已完成'][value] || '未知状态'
 }
 function submissionStatus(value) {
   return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
@@ -430,8 +421,7 @@ function confirmWithdraw() {
 }
 .status-0 { color: #1677ff; background: #e6f4ff; }
 .status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #13c2c2; background: #e6fffb; }
-.status-3 { color: #07c160; background: #e6f7ed; }
+.status-2 { color: #07c160; background: #e6f7ed; }
 .submission-0 { color: #1677ff; background: #e6f4ff; }
 .submission-1 { color: #07c160; background: #e6f7ed; }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }

@@ -254,8 +254,22 @@ def main():
         page.wait_for_timeout(400)
         assert page.locator('.ant-modal-content').is_visible(), '收益规则弹框未打开'
         page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_v2_10_rules.png')
-        page.locator('.ant-modal-close').click()
-        page.wait_for_timeout(300)
+        page.keyboard.press('Escape')
+        page.wait_for_timeout(500)
+
+        # ───── 排行榜点击 → 创作者详情 modal ─────
+        # 先确保上一个 modal 已经不在屏幕中央干扰，避免同时存在两个 close 选择器
+        page.goto(f'{URL}/console/style-market', wait_until='domcontentloaded')
+        page.wait_for_timeout(1200)
+        page.locator('.market-creator-row').first.click()
+        page.wait_for_timeout(400)
+        assert page.locator('.creator-modal').is_visible(), '创作者 modal 未打开'
+        assert page.locator('.creator-modal-name').count() == 1
+        assert page.locator('.creator-modal-stat').count() >= 3
+        page.screenshot(path=f'{SCREENSHOT_DIR}/style_market_v2_11_creator.png')
+        # modal 里不应有"使用"按钮（只看不能点击）
+        modal_use = page.locator('.creator-modal button:has-text("使用")').count()
+        assert modal_use == 0, f'创作者 modal 里不应有"使用"按钮: {modal_use}'
 
         if errs:
             raise AssertionError('页面 JS 错误: ' + ' / '.join(errs))

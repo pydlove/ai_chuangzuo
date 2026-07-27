@@ -58,13 +58,6 @@ public class AdminCommissionController {
         return Result.success();
     }
 
-    @Operation(summary = "提前公示（评选期 → 公示期）")
-    @PostMapping("/{taskId}/announce")
-    public Result<Void> announce(@PathVariable Long taskId) {
-        commissionService.announce(taskId);
-        return Result.success();
-    }
-
     @Operation(summary = "批量采纳投稿并发放奖励")
     @PostMapping("/{taskId}/adopt")
     public Result<Void> adopt(@PathVariable Long taskId,

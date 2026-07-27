@@ -14,6 +14,5 @@ public interface AdminCommissionService {
     Long create(CommissionTaskCreateRequest request, Long adminId);
     void update(Long taskId, CommissionTaskUpdateRequest request);
     void close(Long taskId);
-    void announce(Long taskId);
     void adopt(Long taskId, List<Long> submissionIds);
 }

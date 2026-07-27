@@ -17,9 +17,6 @@ export function updateCommissionTask(id, data) {
 export function closeCommissionTask(id) {
   return request.post(`${BASE}/${id}/close`).then((res) => res.data)
 }
-export function announceCommissionTask(id) {
-  return request.post(`${BASE}/${id}/announce`).then((res) => res.data)
-}
 export function adoptCommissionSubmissions(id, submissionIds) {
   return request.post(`${BASE}/${id}/adopt`, { submissionIds }).then((res) => res.data)
 }

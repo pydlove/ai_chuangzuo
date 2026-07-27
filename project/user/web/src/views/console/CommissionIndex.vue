@@ -74,8 +74,7 @@ const filters = [
   { label: '全部', value: null },
   { label: '投递中', value: 0 },
   { label: '评选中', value: 1 },
-  { label: '公示中', value: 2 },
-  { label: '已完成', value: 3 }
+  { label: '已完成', value: 2 }
 ]
 
 const visibleItems = computed(() => tab.value === 'mine' ? mySubmissions.value : tasks.value)
@@ -101,7 +100,7 @@ onMounted(refresh)
 watch([tab, status], refresh)
 
 function taskStatus(value) {
-  return ['投递中', '评选中', '公示中', '已完成'][value] || '未知状态'
+  return ['投递中', '评选中', '已完成'][value] || '未知状态'
 }
 function submissionStatus(value) {
   return ['等待采纳', '已采纳', '未采纳', '已撤回'][value] || '未知状态'
@@ -144,7 +143,13 @@ function goDetail(id) {
 </script>
 
 <style scoped>
-.commission-page { max-width: 1120px; margin: 0 auto; }
+.commission-page {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 32px;
+  box-sizing: border-box;
+}
 
 .commission-hero {
   position: relative;
@@ -321,8 +326,7 @@ function goDetail(id) {
 }
 .status-0 { color: #1677ff; background: #e6f4ff; }
 .status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #13c2c2; background: #e6fffb; }
-.status-3 { color: #07c160; background: #e6f7ed; }
+.status-2 { color: #07c160; background: #e6f7ed; }
 .submission-0 { color: #1677ff; background: #e6f4ff; }
 .submission-1 { color: #07c160; background: #e6f7ed; }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }

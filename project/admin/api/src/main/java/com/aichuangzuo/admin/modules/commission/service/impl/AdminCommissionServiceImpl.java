@@ -29,8 +29,7 @@ import java.util.UUID;
 public class AdminCommissionServiceImpl implements AdminCommissionService {
     private static final int SUBMISSION = 0;
     private static final int REVIEW = 1;
-    private static final int PUBLIC = 2;
-    private static final int COMPLETED = 3;
+    private static final int COMPLETED = 2;
     private static final int SUBMISSION_STATUS_SUBMITTED = 0;
     private static final int SUBMISSION_STATUS_ADOPTED = 1;
     private static final int SUBMISSION_STATUS_NOT_ADOPTED = 2;
@@ -121,18 +120,6 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void announce(Long taskId) {
-        CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
-        ensureTask(task);
-        if (task.getStatus() != REVIEW) {
-            throw new BusinessException(AdminCommissionErrorCode.TASK_STATUS_INVALID);
-        }
-        task.setStatus(PUBLIC);
-        taskMapper.updateById(task);
-    }
-
-    @Override
-    @Transactional(rollbackFor = Exception.class)
     public void adopt(Long taskId, List<Long> submissionIds) {
         CommissionTask task = taskMapper.selectByIdForUpdate(taskId);
         ensureTask(task);
@@ -194,7 +181,8 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
                 .eq(CommissionTask::getStatus, SUBMISSION)
                 .le(CommissionTask::getDeadlineAt, now));
         taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PUBLIC)
+                .set(CommissionTask::getStatus, COMPLETED)
+                .set(CommissionTask::getCompletedAt, now)
                 .eq(CommissionTask::getStatus, REVIEW)
                 .le(CommissionTask::getSelectionDeadlineAt, now));
     }
@@ -207,7 +195,8 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
                 .eq(CommissionTask::getStatus, SUBMISSION)
                 .le(CommissionTask::getDeadlineAt, now));
         taskMapper.update(null, new LambdaUpdateWrapper<CommissionTask>()
-                .set(CommissionTask::getStatus, PUBLIC)
+                .set(CommissionTask::getStatus, COMPLETED)
+                .set(CommissionTask::getCompletedAt, now)
                 .eq(CommissionTask::getId, taskId)
                 .eq(CommissionTask::getStatus, REVIEW)
                 .le(CommissionTask::getSelectionDeadlineAt, now));
