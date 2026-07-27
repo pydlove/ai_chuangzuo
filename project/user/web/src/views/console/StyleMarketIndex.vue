@@ -1,93 +1,38 @@
 <template>
-  <div class="style-market-index">
-    <div class="style-market-header">
-      <h2 class="style-market-title">风格市场</h2>
-      <p class="style-market-subtitle">
-        发现优质写作风格，支持原创创作者
-        <span class="style-market-rules-link" @click="rulesVisible = true">收益规则</span>
-      </p>
-    </div>
-
-    <div class="style-market-search-bar">
-      <input
-        v-model="searchQuery"
-        type="text"
-        class="style-market-search-input"
-        placeholder="搜索风格名或适用范围"
-      />
-    </div>
-
-    <div class="style-market-tabs">
-      <button
-        v-for="tab in tabOptions"
-        :key="tab.key"
-        :class="['style-market-tab', { active: activeTab === tab.key }]"
-        @click="activeTab = tab.key"
-      >
-        {{ tab.label }}
-      </button>
-    </div>
-
-    <div v-if="filteredStyles.length === 0" class="style-market-empty">
-      暂无已上架风格
-    </div>
-    <div v-else class="style-market-grid">
-      <div
-        v-for="s in filteredStyles"
-        :key="s.id"
-        class="style-market-card"
-      >
-        <div class="style-market-card-head">
-          <div class="style-market-card-avatar">{{ s.name.charAt(0) }}</div>
-          <div class="style-market-card-title-wrap">
-            <div class="style-market-card-title">{{ s.name }}</div>
-            <div class="style-market-card-meta">
-              <span>by {{ s.creatorName || '匿名用户' }}</span>
-              <span class="style-market-card-meta-dot">·</span>
-              <span>上架于 {{ formatDate(s.createdAt) }}</span>
-            </div>
-          </div>
+  <div class="market-page">
+    <!-- ① 平台 Banner 区 -->
+    <section class="market-banner">
+      <div class="market-banner-text">
+        <h1 class="market-banner-title">爱创作 · 风格市场</h1>
+        <p class="market-banner-sub">
+          官方运营 · 精选创作者风格 · 使用即获收益分成
+          <span class="market-banner-rules-link" @click="rulesVisible = true">收益规则</span>
+        </p>
+      </div>
+      <div class="market-banner-stats">
+        <div class="market-banner-stat">
+          <div class="market-banner-stat-num">{{ marketStats.approvedCount }}</div>
+          <div class="market-banner-stat-label">已上架款</div>
         </div>
-        <div v-if="s.scope" class="style-market-card-scope-list">
-          <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-market-card-scope">{{ tag }}</span>
+        <div class="market-banner-stat">
+          <div class="market-banner-stat-num">{{ formatUses(marketStats.totalUses) }}</div>
+          <div class="market-banner-stat-label">累计使用次</div>
         </div>
-        <div class="style-market-card-prompt">{{ promptSummary(s.prompt) }}</div>
-        <div class="style-market-card-stats">
-          <span>本周 {{ s.weeklyUses }} 次</span>
-          <span>累计 {{ s.totalUses }} 次</span>
-        </div>
-        <div class="style-market-card-actions">
-          <button
-            class="style-market-use-btn"
-            @click="handleUse(s)"
-          >
-            使用
-          </button>
-          <button
-            :class="['style-market-favorite-btn', { active: isFavorite(s.id) }]"
-            :title="isFavorite(s.id) ? '已收藏' : '收藏'"
-            @click="handleToggleFavorite(s.id)"
-          >
-            {{ isFavorite(s.id) ? '♥' : '♡' }}
-          </button>
-          <button
-            class="style-market-simulate-btn"
-            @click="openPromptModal(s)"
-          >
-            查看
-          </button>
-          <button
-            v-if="s.creatorId === currentUserId"
-            class="style-market-simulate-btn"
-            @click="handleSimulate(s)"
-          >
-            模拟
-          </button>
+        <div class="market-banner-stat">
+          <div class="market-banner-stat-num">{{ formatCoins(marketStats.totalEarnings) }}</div>
+          <div class="market-banner-stat-label">累计发放币</div>
         </div>
       </div>
-    </div>
+    </section>
+
+    <!-- ②③④⑤ placeholder — 后续 Task 填充 -->
+    <section class="market-upload-card" data-tbd="task-3"></section>
+    <section class="market-featured" data-tbd="task-4"></section>
+    <section class="market-creators" data-tbd="task-5"></section>
+    <section class="market-grid-section" data-tbd="task-6"></section>
   </div>
 
+  <!-- 收益规则弹框 — 保留 v1 写法 -->
   <a-modal
     class="rules-modal"
     :open="rulesVisible"
@@ -106,47 +51,6 @@
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
-
-  <a-modal
-    class="favorite-hint-modal"
-    :open="favoriteHintVisible"
-    :title="favoriteHintTitle"
-    :footer="null"
-    :width="400"
-    centered
-    @cancel="favoriteHintVisible = false"
-  >
-    <div class="favorite-hint-body">
-      <p>{{ favoriteHintText }}</p>
-    </div>
-    <div class="favorite-hint-actions">
-      <button class="favorite-hint-btn primary" @click="favoriteHintVisible = false">我知道了</button>
-    </div>
-  </a-modal>
-
-  <a-modal
-    class="prompt-detail-modal"
-    :open="promptModalVisible"
-    :title="selectedStyle?.name"
-    :footer="null"
-    :width="560"
-    centered
-    @cancel="promptModalVisible = false"
-  >
-    <div class="prompt-detail-creator">by {{ selectedStyle?.creatorName || '匿名用户' }}</div>
-    <div v-if="selectedStyle?.scope" class="prompt-detail-scope-list">
-      <span v-for="tag in parseScopeTags(selectedStyle.scope)" :key="tag" class="prompt-detail-scope">{{ tag }}</span>
-    </div>
-    <div class="prompt-detail-prompt">{{ selectedStyle?.prompt }}</div>
-    <div class="prompt-detail-stats">
-      <span>🔥 本周 {{ selectedStyle?.weeklyUses }} 次</span>
-      <span>累计 {{ selectedStyle?.totalUses }} 次</span>
-    </div>
-    <div class="prompt-detail-actions">
-      <button class="prompt-detail-use-btn" @click="handleUse(selectedStyle); promptModalVisible = false">使用</button>
-      <button class="prompt-detail-close-btn" @click="promptModalVisible = false">关闭</button>
-    </div>
-  </a-modal>
 </template>
 
 <script setup>
@@ -154,111 +58,23 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   marketStyles,
+  marketStats,
+  topCreators,
+  featuredStyles,
   useMarketStyle,
   simulateExternalUse,
   toggleFavorite,
   isFavorite,
+  getMarketStyleEarnings,
   loadMarketStyles
 } from '@/composables/useStyleMarket.js'
 
 const router = useRouter()
-const searchQuery = ref('')
-const activeTab = ref('all')
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
 const rulesVisible = ref(false)
-const favoriteHintVisible = ref(false)
-const favoriteHintTitle = ref('')
-const favoriteHintText = ref('')
-const promptModalVisible = ref(false)
-const selectedStyle = ref(null)
 
-const formatDate = (iso) => {
-  if (!iso) return ''
-  const d = new Date(iso)
-  if (isNaN(d)) return ''
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-const parseScopeTags = (scopeStr) => {
-  if (!scopeStr) return []
-  return scopeStr.split(/[,，]/).map(t => t.trim()).filter(Boolean)
-}
-
-const tabOptions = [
-  { key: 'all', label: '全部' },
-  { key: 'week-hot', label: '本周最热' },
-  { key: 'all-hot', label: '历史最热' },
-  { key: 'new', label: '最新' },
-  { key: 'featured', label: '精选' }
-]
-
-const FEATURED_USES_THRESHOLD = 5
-
-const approvedStyles = computed(() =>
-  marketStyles.value.filter(s => s.status === 'approved')
-)
-
-const filteredStyles = computed(() => {
-  let list = approvedStyles.value
-  if (activeTab.value === 'week-hot') {
-    list = [...list].sort((a, b) => b.weeklyUses - a.weeklyUses)
-  } else if (activeTab.value === 'all-hot') {
-    list = [...list].sort((a, b) => b.totalUses - a.totalUses)
-  } else if (activeTab.value === 'new') {
-    list = [...list].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-  } else if (activeTab.value === 'featured') {
-    list = list.filter(s => s.totalUses >= FEATURED_USES_THRESHOLD)
-      .sort((a, b) => b.totalUses - a.totalUses)
-  }
-
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return list
-  return list.filter(
-    s =>
-      s.name.toLowerCase().includes(q) ||
-      (s.scope && s.scope.toLowerCase().includes(q))
-  )
-})
-
-const promptSummary = (prompt) => {
-  if (!prompt) return ''
-  return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
-}
-
-const openPromptModal = (style) => {
-  selectedStyle.value = style
-  promptModalVisible.value = true
-}
-
-const handleUse = (s) => {
-  try {
-    useMarketStyle(s.id)
-    router.push(`/console/create?marketStyleId=${s.id}`)
-  } catch (err) {
-    alert(err.message)
-  }
-}
-
-const handleSimulate = (s) => {
-  try {
-    simulateExternalUse(s.id)
-  } catch (err) {
-    alert(err.message)
-  }
-}
-
-const handleToggleFavorite = (id) => {
-  const wasFavorite = isFavorite(id)
-  toggleFavorite(id)
-  if (wasFavorite) {
-    favoriteHintTitle.value = '已取消收藏'
-    favoriteHintText.value = '已从收藏列表中移除该风格。'
-  } else {
-    favoriteHintTitle.value = '收藏成功'
-    favoriteHintText.value = '可在「我的风格 → 收藏的风格」中查看和使用该风格。'
-  }
-  favoriteHintVisible.value = true
-}
+const formatCoins = (n) => Number(n || 0).toFixed(2)
+const formatUses = (n) => Number(n || 0).toLocaleString()
 
 onMounted(() => {
   loadMarketStyles()
@@ -266,728 +82,133 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.style-market-index {
-  height: 100%;
-  padding: 24px;
-  overflow-y: auto;
-}
-
-.style-market-header {
-  margin-bottom: 20px;
-}
-
-.style-market-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.style-market-subtitle {
-  font-size: 13px;
-  color: #8c8c8c;
-  margin: 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.style-market-rules-link {
-  color: #ff2442;
-  cursor: pointer;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.style-market-rules-link:hover {
-  color: #e61e3a;
-}
-
-.style-market-rules-list {
-  margin: 0;
-  padding-left: 20px;
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.8;
-}
-
-.style-market-rules-list li {
-  margin-bottom: 10px;
-}
-
-.style-market-rule-highlight {
-  color: #ff2442;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.style-market-rules-footer {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #f0f0f0;
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .style-market-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-market-subtitle {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-rules-list {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-rules-footer {
-  border-top-color: #303030;
-  color: #8c8c8c;
-}
-
-.style-market-search-bar {
-  margin-bottom: 12px;
-}
-
-.style-market-tabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-  height: 44px;
-  width: fit-content;
-  margin-bottom: 20px;
-}
-
-.style-market-tab {
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-market-tab.active {
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-body[data-theme="dark"] .style-market-tabs {
-  background: #141414;
-}
-
-body[data-theme="dark"] .style-market-tab {
-  background-color: transparent !important;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-tab:hover {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-market-tab.active {
-  background-color: #2a2a2a !important;
-  color: #f0f0f0;
-  box-shadow: none;
-}
-
-.style-market-search {
-  display: flex;
-  align-items: center;
-}
-
-.style-market-search-input {
-  width: 100%;
-  min-width: 320px;
-  max-width: 520px;
-  height: 44px;
-  padding: 0 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  box-sizing: border-box;
-}
-
-.style-market-search-input:focus {
-  outline: none;
-  border-color: #ff2442;
-}
-
-.style-market-empty {
-  padding: 60px 0;
-  text-align: center;
-  color: #8c8c8c;
-}
-
-.style-market-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 24px;
-}
-
-@media (max-width: 768px) {
-  .style-market-index {
-    padding: 16px 12px;
-  }
-
-  /* Tabs：横滑 + 隐藏滚动条 */
-  .style-market-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    scrollbar-width: none;
-    max-width: 100%;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
-    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
-  }
-  .style-market-tabs::-webkit-scrollbar { display: none; }
-  .style-market-tab { flex-shrink: 0; padding: 8px 14px; font-size: 13px; }
-
-  /* 搜索框：单独一行 */
-  .style-market-search {
-    flex: 1;
-    min-width: 0;
-    width: 100%;
-  }
-  .style-market-search-input {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  /* 卡片网格：单列 */
-  .style-market-grid {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 16px;
-  }
-  .style-market-card {
-    padding: 18px 16px;
-    border-radius: 14px;
-  }
-
-  /* 卡片底部按钮：移动到自动换行 + 适应宽度 */
-  .style-market-card-actions {
-    flex-wrap: wrap;
-  }
-}
-
-.style-market-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
+.market-page {
+  padding: var(--space-lg) var(--space-xl);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  gap: var(--space-xl);
+  max-width: 1280px;
+  margin: 0 auto;
 }
 
-.style-market-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-}
-
-.style-market-card-head {
-  display: flex;
+.market-banner {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--space-xl);
   align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
+  background: var(--color-bg-card);
+  border-radius: var(--radius-xl);
+  padding: var(--space-xl);
+  box-shadow: var(--shadow-sm2);
 }
 
-.style-market-card-avatar {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #fff0f2;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+.market-banner-title {
+  font-size: var(--font-h1);
   font-weight: 700;
+  color: var(--color-primary);
+  margin: 0 0 var(--space-sm) 0;
+  letter-spacing: -0.5px;
 }
 
-.style-market-card-title-wrap {
-  flex: 1;
-  min-width: 0;
+.market-banner-sub {
+  font-size: var(--font-body);
+  color: var(--color-text-secondary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
-.style-market-card-title {
-  font-size: 17px;
+.market-banner-rules-link {
+  color: var(--color-primary);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  font-weight: 500;
+}
+.market-banner-rules-link:hover { color: var(--color-primary-hover); }
+
+.market-banner-stats {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.market-banner-stat {
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md) var(--space-lg);
+  min-width: 120px;
+}
+.market-banner-stat-num {
+  font-size: var(--font-h2);
   font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 6px;
-  line-height: 1.35;
-  word-break: break-all;
+  color: var(--color-text-primary);
+  line-height: 1.2;
+}
+.market-banner-stat-label {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  margin-top: var(--space-xs);
 }
 
-.style-market-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
+/* ②③④⑤ 占位防 build break（Task 3-6 填充实际样式） */
+.market-upload-card,
+.market-featured,
+.market-creators,
+.market-grid-section { min-height: 1px; }
 
-.style-market-card-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-
-.style-market-card-scope {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  font-size: 12px;
-  color: var(--color-primary);
-  background: #fff5f7;
-  border: 1px solid #ffd1d9;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
-
-.style-market-card-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.style-market-card-scope::before {
-  content: '#';
-  opacity: 0.8;
-}
-
-.style-market-card-prompt {
-  font-size: 14px;
-  color: #262626;
-  line-height: 1.7;
-  margin-bottom: 16px;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1 0 auto;
-}
-
-.style-market-card-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 12px;
-  color: #a6a6a6;
-  margin-bottom: 12px;
-}
-
-.style-market-card-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 0;
-}
-
-.style-market-use-btn {
-  padding: 6px 12px;
-  background: #fff;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-market-use-btn:hover {
-  background: var(--color-primary-bg);
-}
-
-.style-market-use-btn:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-  cursor: not-allowed;
-}
-
-.style-market-favorite-btn {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #8c8c8c;
-  cursor: pointer;
-  transition: all 0.2s;
-  flex-shrink: 0;
-}
-
-.style-market-favorite-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.style-market-favorite-btn.active {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.style-market-simulate-btn {
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-market-simulate-btn:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.favorite-hint-body {
-  text-align: center;
-  padding: 8px 0 16px;
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.7;
-}
-
-.favorite-hint-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.favorite-hint-btn {
-  padding: 8px 20px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.favorite-hint-btn.primary {
-  background: #ff2442;
-  border-color: #ff2442;
-  color: #fff;
-}
-
-.favorite-hint-btn.primary:hover {
-  background: #e61e3a;
-}
-
-.prompt-detail-creator {
-  font-size: 13px;
-  color: #8c8c8c;
-  margin-bottom: 12px;
-}
-
-.prompt-detail-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.prompt-detail-scope {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 13px;
-  color: #ff2442;
-  background: #fff0f2;
-  border: 1px solid #ffd1d9;
-  padding: 4px 12px;
-  border-radius: 20px;
-}
-
-.prompt-detail-scope::before {
-  content: '#';
-  opacity: 0.7;
-}
-
-.prompt-detail-prompt {
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.8;
-  background: #fafafa;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 16px;
-  white-space: pre-line;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.prompt-detail-stats {
-  display: flex;
-  gap: 16px;
-  font-size: 13px;
-  color: #8c8c8c;
-  margin-bottom: 20px;
-}
-
-.prompt-detail-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.prompt-detail-use-btn {
-  padding: 8px 20px;
-  background: #ff2442;
-  border: 1px solid #ff2442;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.prompt-detail-use-btn:hover {
-  background: #e61e3a;
-}
-
-.prompt-detail-close-btn {
-  padding: 8px 20px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.prompt-detail-close-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
-}
-
-/* 暗色主题 */
-body[data-theme="dark"] .style-market-search-input {
-  background: #1f1f1f;
-  border-color: #303030;
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-market-search-input::placeholder {
-  color: #737373;
-}
-
-body[data-theme="dark"] .style-market-search-input:focus {
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-market-empty {
-  background-color: transparent !important;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-card {
-  box-shadow: none;
-}
-
-body[data-theme="dark"] .style-market-card-avatar {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-market-card-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-market-card-meta,
-body[data-theme="dark"] .style-market-card-stats {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-card-meta-dot {
-  color: #595959;
-}
-
-body[data-theme="dark"] .style-market-card-prompt {
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .style-market-card-scope {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: rgba(255, 36, 66, 0.25);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-market-use-btn {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-market-use-btn:hover {
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .style-market-favorite-btn {
-  background: transparent;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-market-favorite-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .style-market-favorite-btn.active {
-  background: rgba(255, 36, 66, 0.15);
-  border-color: var(--color-primary);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-market-simulate-btn {
-  color: #a6a6a6;
-  background: transparent;
-}
-
-body[data-theme="dark"] .style-market-simulate-btn:hover {
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
+/* ① 暗色 */
+body[data-theme="dark"] .market-banner { background: #1f1f1f; }
+body[data-theme="dark"] .market-banner-title { color: #ff6b81; }
+body[data-theme="dark"] .market-banner-sub { color: var(--color-text-secondary); }
+body[data-theme="dark"] .market-banner-stat { background: #141414; }
+body[data-theme="dark"] .market-banner-stat-num { color: var(--color-text-primary); }
+body[data-theme="dark"] .market-banner-stat-label { color: var(--color-text-secondary); }
 </style>
 
 <style>
-/* 暗色主题 - 收益规则弹层外壳适配（全局，非 scoped） */
+/* ① 收益规则弹层外壳（全局）—— 沿用 v1 弹框壳，v2 内层由 scoped 提供类 */
 body[data-theme="dark"] .rules-modal .ant-modal-content {
   background: #141414;
   box-shadow: 0 12px 48px rgba(0, 0, 0, 0.6);
 }
-
 body[data-theme="dark"] .rules-modal .ant-modal-header {
   background: #141414;
   border-bottom-color: #303030;
 }
-
-body[data-theme="dark"] .rules-modal .ant-modal-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .rules-modal .ant-modal-close {
-  color: #a6a6a6;
-}
-
+body[data-theme="dark"] .rules-modal .ant-modal-title { color: #e0e0e0; }
+body[data-theme="dark"] .rules-modal .ant-modal-close { color: #a6a6a6; }
 body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
   color: #fff;
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 暗色主题 - 收藏提示弹层外壳适配（全局，非 scoped） */
-body[data-theme="dark"] .favorite-hint-modal .ant-modal-content,
-body[data-theme="dark"] .favorite-hint-modal .ant-modal-header {
-  background: #1f1f1f;
-  border-color: #303030;
+/* ① 收益规则内层（scoped 也能写，但段落含 nth-of-type 选择器，全局更稳） */
+.style-market-rules-list {
+  margin: 0;
+  padding-left: 20px;
+  font-size: var(--font-body);
+  color: var(--color-text-regular);
+  line-height: 1.8;
 }
-
-body[data-theme="dark"] .favorite-hint-modal .ant-modal-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .favorite-hint-modal .ant-modal-close {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .favorite-hint-modal .ant-modal-close:hover {
-  color: #f0f0f0;
-  background: #2a2a2a;
-}
-
-/* 暗色主题 - 提示词详情弹层外壳适配（全局，非 scoped） */
-body[data-theme="dark"] .prompt-detail-modal .ant-modal-content,
-body[data-theme="dark"] .prompt-detail-modal .ant-modal-header {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .prompt-detail-modal .ant-modal-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .prompt-detail-modal .ant-modal-close {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .prompt-detail-modal .ant-modal-close:hover {
-  color: #f0f0f0;
-  background: #2a2a2a;
-}
-
-body[data-theme="dark"] .prompt-detail-creator,
-body[data-theme="dark"] .prompt-detail-stats {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .prompt-detail-scope {
-  background: rgba(255, 36, 66, 0.15);
-  border-color: rgba(255, 36, 66, 0.4);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .prompt-detail-prompt {
-  background: #141414;
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .prompt-detail-actions {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .prompt-detail-use-btn {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .prompt-detail-use-btn:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-body[data-theme="dark"] .prompt-detail-close-btn {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .prompt-detail-close-btn:hover {
-  border-color: var(--color-primary);
+.style-market-rules-list li { margin-bottom: var(--space-sm); }
+.style-market-rule-highlight {
   color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
+  font-weight: 500;
 }
+.style-market-rules-footer {
+  margin-top: var(--space-md);
+  padding-top: var(--space-md);
+  border-top: 1px solid var(--color-border-light);
+  font-size: var(--font-small);
+  color: var(--color-text-placeholder);
+}
+
+body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
+body[data-theme="dark"] .style-market-rules-footer {
+  border-top-color: #303030;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .style-market-rule-highlight { color: #ff6b81; }
 </style>
