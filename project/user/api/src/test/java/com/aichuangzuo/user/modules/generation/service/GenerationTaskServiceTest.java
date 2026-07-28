@@ -26,6 +26,7 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +113,26 @@ class GenerationTaskServiceTest {
         verify(taskMapper).insert(captor.capture());
         Map<String, Object> parsed = objectMapper.readValue(captor.getValue().getInputParam(), Map.class);
         assertEquals("", parsed.get("userSkillPrompt"));
+    }
+
+    @Test
+    void submit_shouldSnapshotSystemPresetSkillWhenUserSkillMissing() throws Exception {
+        Long userId = 11L;
+        UserSkill systemSkill = new UserSkill();
+        systemSkill.setSkillName("正式");
+        systemSkill.setPrompt("请用正式严谨的语气");
+
+        stubCommonFlow(userId);
+        // 第一次查用户自定义风格返回空，第二次查系统预设风格命中
+        when(userSkillMapper.selectOne(any())).thenReturn(null, systemSkill);
+
+        service.submit(sampleRequest("正式"), userId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).insert(captor.capture());
+        Map<String, Object> parsed = objectMapper.readValue(captor.getValue().getInputParam(), Map.class);
+        assertEquals("请用正式严谨的语气", parsed.get("userSkillPrompt"));
+        verify(userSkillMapper, times(2)).selectOne(any());
     }
 
     @Test

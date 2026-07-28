@@ -401,6 +401,7 @@ project/admin/api/src/main/resources/db/migration/
 - 新建表脚本必须包含 `IF NOT EXISTS`。
 - 修改表脚本必须包含 `IF EXISTS` 判断（ Flyway 不支持原生 `IF EXISTS` 时，通过存储过程或拆分脚本处理）。
 - 禁止直接修改已发布表中的字段含义或删除已有字段；如需变更，使用新增字段 + 数据迁移 + 废弃旧字段的方式。
+- **禁止修改已应用的 Flyway 迁移文件**：任何已经提交或被任意环境（含本地开发库）执行过的 `V{版本}__*.sql`，都不得在后续提交中修改其内容；需要调整时，新增更高版本的迁移文件。误改导致 checksum mismatch 时，应通过 `flyway repair` 修复 schema history，而不是反复修改原文件。
 - 每个脚本末尾可加入权限/初始化数据插入。
 
 ### 8.4 示例
