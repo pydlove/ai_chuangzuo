@@ -80,7 +80,7 @@ class GenerationPipelineTest {
         task.setTargetUserId(10L);
         task.setModelConfigId(20L);
         task.setWordLimitTarget(1500);
-        task.setInputParam("{\"title\":\"T\",\"description\":\"D\",\"platform\":\"wechat\",\"userStylePrompt\":\"S\",\"wordCount\":1500}");
+        task.setInputParam("{\"title\":\"T\",\"description\":\"D\",\"platform\":\"wechat\",\"userSkillPrompt\":\"S\",\"wordCount\":1500}");
 
         GenerationContext ctx = pipeline.run(task);
 
@@ -137,7 +137,7 @@ class GenerationPipelineTest {
         task.setTargetUserId(10L);
         task.setModelConfigId(20L);
         task.setWordLimitTarget(1500);
-        task.setInputParam("{\"title\":\"T\",\"description\":\"D\",\"platform\":\"wechat\",\"userStylePrompt\":\"S\",\"wordCount\":1500}");
+        task.setInputParam("{\"title\":\"T\",\"description\":\"D\",\"platform\":\"wechat\",\"userSkillPrompt\":\"S\",\"wordCount\":1500}");
 
         java.util.concurrent.atomic.AtomicInteger callbackCount = new java.util.concurrent.atomic.AtomicInteger(0);
         java.util.concurrent.atomic.AtomicInteger lastPct = new java.util.concurrent.atomic.AtomicInteger(0);

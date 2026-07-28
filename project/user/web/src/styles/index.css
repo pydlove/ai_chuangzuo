@@ -291,7 +291,7 @@ body[data-theme="dark"] .console-content [class$="-list"] {
   color: #a6a6a6;
 }
 
-/* ===== 创作页配置弹框共用标题（PlatformModal/WordCountModal/StyleModal/TemplateModal） ===== */
+/* ===== 创作页配置弹框共用标题（PlatformModal/WordCountModal/SkillModal/TemplateModal） ===== */
 .modal-title-wrap {
   padding-right: 28px;
 }

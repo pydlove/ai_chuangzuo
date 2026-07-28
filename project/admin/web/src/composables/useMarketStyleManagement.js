@@ -1,11 +1,11 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
-  listMarketStyles,
-  createMarketStyle,
-  updateMarketStyle,
-  deleteMarketStyle
-} from '@/api/marketStyle.js'
+  listMarketSkills,
+  createMarketSkill,
+  updateMarketSkill,
+  deleteMarketSkill
+} from '@/api/marketSkill.js'
 
 export function useMarketStyleManagement() {
   const list = ref([])
@@ -20,7 +20,7 @@ export function useMarketStyleManagement() {
   const fetch = async () => {
     loading.value = true
     try {
-      const res = await listMarketStyles({
+      const res = await listMarketSkills({
         keyword: keyword.value,
         pageNum: page.value,
         pageSize: pageSize.value,
@@ -56,7 +56,7 @@ export function useMarketStyleManagement() {
   const handleCreate = async (payload) => {
     submitting.value = true
     try {
-      await createMarketStyle(payload)
+      await createMarketSkill(payload)
       message.success('风格市场条目已创建')
       await fetch()
       return true
@@ -71,7 +71,7 @@ export function useMarketStyleManagement() {
   const handleUpdate = async (bizNo, payload) => {
     submitting.value = true
     try {
-      await updateMarketStyle(bizNo, payload)
+      await updateMarketSkill(bizNo, payload)
       message.success('风格市场条目已更新')
       await fetch()
       return true
@@ -85,7 +85,7 @@ export function useMarketStyleManagement() {
 
   const handleDelete = async (bizNo) => {
     try {
-      await deleteMarketStyle(bizNo)
+      await deleteMarketSkill(bizNo)
       message.success('已删除')
       await fetch()
       return true

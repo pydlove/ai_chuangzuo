@@ -17,12 +17,12 @@ export const MEMBERSHIP_QUEUE_LIMITS = {
 
 /**
  * 会员等级 → 「发布到风格市场」月度额度
- * 与后端 u_plan_benefit 中 style_market_publish 的值保持一致。
+ * 与后端 u_plan_benefit 中 skill_market_publish 的值保持一致。
  *   - basic 基础版:           0 (禁止发布)
  *   - pro 专业版:             1
  *   - flagship 旗舰版:        2
  */
-export const MEMBERSHIP_STYLE_PUBLISH_QUOTA = {
+export const MEMBERSHIP_SKILL_PUBLISH_QUOTA = {
   free: 0,
   basic: 0,
   pro: 1,
@@ -31,12 +31,12 @@ export const MEMBERSHIP_STYLE_PUBLISH_QUOTA = {
 
 /**
  * 会员等级 → 「学习我的风格」月度次数
- * 与后端 u_plan_benefit 中 style_learn_analyze 的值保持一致。
+ * 与后端 u_plan_benefit 中 skill_learn_analyze 的值保持一致。
  *   - basic 基础版:           0 (禁止使用)
  *   - pro 专业版:             1
  *   - flagship 旗舰版:        2
  */
-export const MEMBERSHIP_STYLE_LEARN_QUOTA = {
+export const MEMBERSHIP_SKILL_LEARN_QUOTA = {
   free: 0,
   basic: 0,
   pro: 1,
@@ -45,7 +45,7 @@ export const MEMBERSHIP_STYLE_LEARN_QUOTA = {
 
 /**
  * 会员等级 → 「我的风格」保存数量上限
- * 与后端 u_plan_benefit 中 style_custom 的值保持一致。
+ * 与后端 u_plan_benefit 中 skill_custom 的值保持一致。
  *   - basic 基础版:           1
  *   - pro 专业版:             2
  *   - flagship 旗舰版:        4
@@ -137,13 +137,13 @@ export function getCurrentPlanName() {
 /**
  * 当前档位「发布到风格市场」月度额度。0 = 禁止发布。
  */
-export function getStylePublishQuota() {
-  return MEMBERSHIP_STYLE_PUBLISH_QUOTA[getCurrentPlanKey()] ?? 0
+export function getSkillPublishQuota() {
+  return MEMBERSHIP_SKILL_PUBLISH_QUOTA[getCurrentPlanKey()] ?? 0
 }
 
 /**
  * 当前档位「学习我的风格」月度次数。0 = 禁止使用。
  */
-export function getStyleLearnQuota() {
-  return MEMBERSHIP_STYLE_LEARN_QUOTA[getCurrentPlanKey()] ?? 0
+export function getSkillLearnQuota() {
+  return MEMBERSHIP_SKILL_LEARN_QUOTA[getCurrentPlanKey()] ?? 0
 }

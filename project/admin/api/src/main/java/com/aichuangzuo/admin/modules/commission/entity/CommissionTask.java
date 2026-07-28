@@ -18,7 +18,7 @@ public class CommissionTask {
     private String description;
     private Integer minWordCount;
     private Integer maxWordCount;
-    private String styleHint;
+    private String skillHint;
     private BigDecimal rewardCoin;
     private Integer neededCount;
     private Integer adoptedCount;

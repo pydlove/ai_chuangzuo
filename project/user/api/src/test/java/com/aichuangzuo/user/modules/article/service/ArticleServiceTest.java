@@ -45,7 +45,7 @@ class ArticleServiceTest {
         request.setTitle("  我的第一篇作品  ");
         request.setBody("正文内容");
         request.setPlatform("xiaohongshu");
-        request.setStyle("warm");
+        request.setSkill("warm");
         request.setTemplate("card-01");
         request.setWordCount(120);
 
@@ -253,7 +253,7 @@ class ArticleServiceTest {
         request.setTitle(title);
         request.setBody(body);
         request.setPlatform("xiaohongshu");
-        request.setStyle("warm");
+        request.setSkill("warm");
         request.setTemplate("card-01");
         request.setWordCount(100);
         request.setCompletedAt(java.time.LocalDateTime.parse(completedAt));

@@ -21,6 +21,11 @@ public interface ArticleService {
     ArticleVO get(Long userId, String bizNo);
 
     /**
+     * 内部查询：管理端通过 articleBizNo 读取作品内容（不校验用户归属）。
+     */
+    ArticleVO getInternal(String bizNo);
+
+    /**
      * 创建作品（生成完成时调用）。
      *
      * @return 新作品的 bizNo

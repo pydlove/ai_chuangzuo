@@ -60,7 +60,7 @@ public final class PipelineUtils {
         vars.put("targetReader", in.getOrDefault("targetReader", "通用读者"));
         vars.put("platform", in.get("platform"));
         vars.put("wordCount", in.get("wordCount"));
-        vars.put("userStylePrompt", in.get("userStylePrompt"));
+        vars.put("userSkillPrompt", in.get("userSkillPrompt"));
         vars.put("toneTags", in.get("toneTags"));
         // 阶段产出
         vars.put("userContextBlock", ctx.getUserContextBlock());

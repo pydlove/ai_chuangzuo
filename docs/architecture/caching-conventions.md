@@ -43,7 +43,7 @@
 
 ```text
 user:config:templates
-user:config:styles
+user:config:skills
 user:user:info:10001
 user:credit:summary:10001
 admin:config:system

@@ -92,10 +92,10 @@ class PlanCatalogServiceImplTest {
         assertFeature(basic, "queue_max_tasks", "队列最多 1 个任务", true);
         // ai_title_optimize: boolean=false → 显示名称，灰显
         assertFeature(basic, "ai_title_optimize", "AI 标题优化", false);
-        // style_market_publish: 0 → 显示 label，不包含
-        assertFeature(basic, "style_market_publish", "发布到风格市场", false);
-        // style_learn_analyze: 0 → 显示 label，不包含
-        assertFeature(basic, "style_learn_analyze", "学习我的风格", false);
+        // skill_market_publish: 0 → 显示 label，不包含
+        assertFeature(basic, "skill_market_publish", "发布到风格市场", false);
+        // skill_learn_analyze: 0 → 显示 label，不包含
+        assertFeature(basic, "skill_learn_analyze", "学习我的风格", false);
     }
 
     @Test
@@ -109,10 +109,10 @@ class PlanCatalogServiceImplTest {
         PlanCatalogVO.PlanVO pro = vo.getPlans().get(1);
         PlanCatalogVO.PlanVO flagship = vo.getPlans().get(2);
 
-        // style_custom 已改为 quota：1 / 2 / 4 个
-        assertFeature(basic, "style_custom", "1 个", true);
-        assertFeature(pro, "style_custom", "2 个", true);
-        assertFeature(flagship, "style_custom", "4 个", true);
+        // skill_custom 已改为 quota：1 / 2 / 4 个
+        assertFeature(basic, "skill_custom", "1 个", true);
+        assertFeature(pro, "skill_custom", "2 个", true);
+        assertFeature(flagship, "skill_custom", "4 个", true);
 
         // history_days pro=-1 → "永久"
         assertFeature(pro, "history_days", "永久", true);
@@ -142,14 +142,14 @@ class PlanCatalogServiceImplTest {
         assertEquals(Boolean.TRUE, title.getPro().getValue());
         assertEquals(Boolean.TRUE, title.getFlagship().getValue());
 
-        // style_market_publish：basic=0 → false（quota=0 视为不包含）；pro/flagship → 字符串 + 名词“风格”
-        PlanCatalogVO.CompareRowVO publish = findRow(rows, "style_market_publish");
+        // skill_market_publish：basic=0 → false（quota=0 视为不包含）；pro/flagship → 字符串 + 名词“风格”
+        PlanCatalogVO.CompareRowVO publish = findRow(rows, "skill_market_publish");
         assertEquals(Boolean.FALSE, publish.getBasic().getValue());
         assertEquals("每月可发布 1 个风格", publish.getPro().getValue());
         assertEquals("每月可发布 2 个风格", publish.getFlagship().getValue());
 
-        // style_learn_analyze：basic=0 → false；pro/flagship → 字符串 + "AI 风格分析"
-        PlanCatalogVO.CompareRowVO learn = findRow(rows, "style_learn_analyze");
+        // skill_learn_analyze：basic=0 → false；pro/flagship → 字符串 + "AI 风格分析"
+        PlanCatalogVO.CompareRowVO learn = findRow(rows, "skill_learn_analyze");
         assertEquals(Boolean.FALSE, learn.getBasic().getValue());
         assertEquals("每月可学习 1 次 AI 风格分析", learn.getPro().getValue());
         assertEquals("每月可学习 2 次 AI 风格分析", learn.getFlagship().getValue());
@@ -298,7 +298,7 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("ai_topic", "AI 选题灵感", "boolean", "AI 选题灵感", null, null, 4));
         list.add(benefit("ai_title_optimize", "AI 标题优化", "boolean", "AI 标题优化", null, null, 5));
         list.add(benefit("online_edit", "在线编辑", "boolean", "在线编辑", null, null, 6));
-        list.add(benefit("style_custom", "我的风格数量", "quota", "我的风格", "{value} 个", null, 7));
+        list.add(benefit("skill_custom", "我的风格数量", "quota", "我的风格", "{value} 个", null, 7));
         list.add(benefit("seo_keywords", "SEO 关键词建议", "boolean", "SEO 关键词建议", null, null, 8));
         list.add(benefit("template_access", "文章模板", "tier", "文章模板", null,
                 "{\"basic_8\":\"8 款基础\",\"all_20\":\"全部 20+\",\"all_custom\":\"全部 + 自定义\"}", 9));
@@ -310,8 +310,8 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("queue_priority", "生成队列优先级", "tier", "生成队列优先级", null,
                 "{\"standard\":\"标准\",\"priority\":\"优先\",\"express\":\"极速\"}", 14));
         list.add(benefit("queue_max_tasks", "队列任务数", "quota", "队列任务数", "队列最多 {value} 个任务", null, 15));
-        list.add(benefit("style_market_publish", "发布到风格市场", "quota", "发布到风格市场", "每月可发布 {value} 个风格", null, 16));
-        list.add(benefit("style_learn_analyze", "学习我的风格", "quota", "学习我的风格", "每月可学习 {value} 次 AI 风格分析", null, 17));
+        list.add(benefit("skill_market_publish", "发布到风格市场", "quota", "发布到风格市场", "每月可发布 {value} 个风格", null, 16));
+        list.add(benefit("skill_learn_analyze", "学习我的风格", "quota", "学习我的风格", "每月可学习 {value} 次 AI 风格分析", null, 17));
         return list;
     }
 
@@ -349,9 +349,9 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "online_edit", "false"));
         list.add(pb("pro", "online_edit", "true"));
         list.add(pb("flagship", "online_edit", "true"));
-        list.add(pb("basic", "style_custom", "1"));
-        list.add(pb("pro", "style_custom", "2"));
-        list.add(pb("flagship", "style_custom", "4"));
+        list.add(pb("basic", "skill_custom", "1"));
+        list.add(pb("pro", "skill_custom", "2"));
+        list.add(pb("flagship", "skill_custom", "4"));
         list.add(pb("basic", "seo_keywords", "false"));
         list.add(pb("pro", "seo_keywords", "false"));
         list.add(pb("flagship", "seo_keywords", "true"));
@@ -376,12 +376,12 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "queue_max_tasks", "1"));
         list.add(pb("pro", "queue_max_tasks", "5"));
         list.add(pb("flagship", "queue_max_tasks", "10"));
-        list.add(pb("basic", "style_market_publish", "0"));
-        list.add(pb("pro", "style_market_publish", "1"));
-        list.add(pb("flagship", "style_market_publish", "2"));
-        list.add(pb("basic", "style_learn_analyze", "0"));
-        list.add(pb("pro", "style_learn_analyze", "1"));
-        list.add(pb("flagship", "style_learn_analyze", "2"));
+        list.add(pb("basic", "skill_market_publish", "0"));
+        list.add(pb("pro", "skill_market_publish", "1"));
+        list.add(pb("flagship", "skill_market_publish", "2"));
+        list.add(pb("basic", "skill_learn_analyze", "0"));
+        list.add(pb("pro", "skill_learn_analyze", "1"));
+        list.add(pb("flagship", "skill_learn_analyze", "2"));
         return list;
     }
 

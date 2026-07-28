@@ -60,6 +60,7 @@ public class GenerationRetentionService {
         h.setPromptTemplateId(task.getPromptTemplateId());
         h.setCreatedAt(task.getCreatedAt());
         h.setCompletedAt(task.getCompletedAt());
+        h.setArticleBizNo(task.getArticleBizNo());
         h.setDurationMs(calcDurationMs(task));
         h.setArchivedAt(archivedAt);
         return h;

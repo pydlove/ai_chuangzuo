@@ -20,7 +20,7 @@ public class CommissionTaskUpdateRequest {
     @Min(1)
     private Integer maxWordCount;
     @Size(max = 128)
-    private String styleHint;
+    private String skillHint;
     @NotNull
     @DecimalMin("5")
     private BigDecimal rewardCoin;

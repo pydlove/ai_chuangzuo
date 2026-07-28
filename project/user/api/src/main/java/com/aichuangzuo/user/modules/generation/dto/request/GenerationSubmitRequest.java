@@ -10,7 +10,7 @@ import lombok.Data;
  * 用户提交创作任务请求。
  *
  * <p>{@link #modelConfigId} 可空；空时由后端从 a_model_config.is_active=1 选一条。
- * 风格 {@link #styleRef} 是用户的写作风格名（U 用户风格表中的标识），可不传。
+ * 风格 {@link #skillRef} 是用户的写作风格名（U 用户风格表中的标识），可不传。
  */
 @Data
 public class GenerationSubmitRequest {
@@ -26,9 +26,9 @@ public class GenerationSubmitRequest {
     @Size(max = 32)
     private String platform;
 
-    /** 写作风格引用名（u_style 表标识）。 */
+    /** 写作风格引用名（u_user_skill 表标识）。 */
     @Size(max = 64)
-    private String styleRef;
+    private String skillRef;
 
     @Min(value = 100, message = "字数至少 100")
     @Max(value = 3000, message = "字数不能超过 3000")

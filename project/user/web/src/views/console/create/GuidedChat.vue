@@ -83,7 +83,7 @@
             <div class="confirm-title">{{ customTitle }}</div>
             <div v-if="customRequirement" class="confirm-requirement">{{ customRequirement }}</div>
             <div class="confirm-meta">
-              {{ currentPlatform?.name || '未选' }} · {{ currentStyle?.name || '默认风格' }} · {{ currentTemplate?.name || '默认模板' }}
+              {{ currentPlatform?.name || '未选' }} · {{ currentSkill?.name || '默认风格' }} · {{ currentTemplate?.name || '默认模板' }}
             </div>
             <div class="confirm-meta">字数：{{ currentWordCount?.count || 800 }} 字</div>
             <div class="confirm-quota">本次消耗 1 次 · 剩余 {{ quotaRemaining }} 次</div>
@@ -142,8 +142,8 @@ import QuickReplies from './QuickReplies.vue'
 import GuidedHero from './GuidedHero.vue'
 import { platforms, wordCountPresets, useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
-import { systemStyles, myStyles, learnedStyles, currentStyle, applyStyle } from '@/composables/useStyles.js'
-import { favoriteStyles } from '@/composables/useStyleMarket.js'
+import { systemSkills, mySkills, learnedSkills, currentSkill, applySkill } from '@/composables/useSkills.js'
+import { favoriteSkills } from '@/composables/useSkillMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration, getGenerationTask, retryGenerationTask } from '@/api/generation.js'
@@ -163,8 +163,8 @@ const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.val
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
 
-const styleCustomLimit = computed(() => Number(benefits.value['style_custom']?.value) || 0)
-const canCreateCustomStyle = computed(() => styleCustomLimit.value > 0 && myStyles.value.length < styleCustomLimit.value)
+const styleCustomLimit = computed(() => Number(benefits.value['skill_custom']?.value) || 0)
+const canCreateCustomStyle = computed(() => styleCustomLimit.value > 0 && mySkills.value.length < styleCustomLimit.value)
 
 let seq = 0
 const messages = ref([])
@@ -271,10 +271,10 @@ const collectStyleOptions = () => {
     seen.add(s.name)
     options.push({ key: s.name, label: s.name, raw: { ...s, sourceType, tag: tagFor(sourceType) } })
   }
-  myStyles.value.forEach(s => push1(s, 'my'))
-  learnedStyles.value.forEach(s => push1(s, 'learned'))
-  favoriteStyles.value.forEach(s => push1(s, 'favorite'))
-  systemStyles.value.forEach(s => push1(s, 'system'))
+  mySkills.value.forEach(s => push1(s, 'my'))
+  learnedSkills.value.forEach(s => push1(s, 'learned'))
+  favoriteSkills.value.forEach(s => push1(s, 'favorite'))
+  systemSkills.value.forEach(s => push1(s, 'system'))
   return options
 }
 
@@ -326,7 +326,7 @@ const onQuickConfirm = (m, opt) => {
     if (m.editingMode) { push({ role: 'ai', kind: 'confirm' }); return }
     askStyle()
   } else if (m.optionsType === 'style') {
-    applyStyle(opt.raw)
+    applySkill(opt.raw)
     push({ role: 'user', kind: 'text', text: opt.label })
     if (m.editingMode) { push({ role: 'ai', kind: 'confirm' }); return }
     askTemplate()
@@ -366,7 +366,7 @@ const openCreateStyle = (m) => {
   const stop = watch(styleVisible, (open) => {
     if (open) return  // 只关心关闭事件
     stop()
-    // 复用当前消息：m.done 复位 + 用最新的 myStyles 重算 options（保留位置，不新增气泡）
+    // 复用当前消息：m.done 复位 + 用最新的 mySkills 重算 options（保留位置，不新增气泡）
     m.options = collectStyleOptions()
     m.done = false
     scrollToBottom()
@@ -419,7 +419,7 @@ const handleSaveDraft = async () => {
       customRequirement: customRequirement.value,
       platform: currentPlatform.value?.name,
       wordCount: currentWordCount.value?.count,
-      style: currentStyle.value?.name,
+      style: currentSkill.value?.name,
       template: currentTemplate.value?.name,
       createMode: createMode.value
     })
@@ -461,7 +461,7 @@ const handleConfirmGenerate = async (confirmMsg) => {
       title: customTitle.value,
       description: customRequirement.value,
       platform: currentPlatform.value?.key || '',
-      styleRef: currentStyle.value?.id || currentStyle.value?.name || '',
+      skillRef: currentSkill.value?.id || currentSkill.value?.name || '',
       wordCount: currentWordCount.value?.count || 800,
       template: currentTemplate.value?.key || 'wechat'
     })

@@ -67,12 +67,12 @@
     <section class="mine-block">
       <h3 class="mine-section-title">我的创作</h3>
       <ul class="mine-list">
-        <li class="mine-list-item" @click="$router.push('/console/styles')">
+        <li class="mine-list-item" @click="$router.push('/console/skills')">
           <SmileOutlined class="mine-list-icon" />
           <span class="mine-list-label">我的风格</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
-        <li class="mine-list-item" @click="$router.push('/console/style-market')">
+        <li class="mine-list-item" @click="$router.push('/console/skill-market')">
           <ShopOutlined class="mine-list-icon" />
           <span class="mine-list-label">风格市场</span>
           <RightOutlined class="mine-list-arrow" />

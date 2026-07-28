@@ -9,6 +9,7 @@ import com.aichuangzuo.user.modules.commission.enums.CommissionErrorCode;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionSubmissionMapper;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionTaskMapper;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
+import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionSubmitterVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
@@ -73,7 +74,8 @@ public class CommissionServiceImpl implements CommissionService {
                 .orderByDesc(CommissionSubmission::getCreatedAt)
                 .last("LIMIT 1"));
         List<CommissionSubmitterVO> submitters = submissionMapper.selectSubmittersByTaskId(taskId, DETAIL_SUBMITTER_LIMIT);
-        return new CommissionTaskDetailVO(task, submissionCount, mine, submitters);
+        List<CommissionSubmitterVO> adopters = submissionMapper.selectAdoptersByTaskId(taskId);
+        return new CommissionTaskDetailVO(task, submissionCount, mine, submitters, adopters);
     }
 
     @Override
@@ -90,6 +92,13 @@ public class CommissionServiceImpl implements CommissionService {
                 .eq(CommissionSubmission::getStatus, SUBMISSION_STATUS_SUBMITTED));
         if (active > 0) {
             throw new BusinessException(CommissionErrorCode.ACTIVE_SUBMISSION_EXISTS);
+        }
+        Long articleSubmitted = submissionMapper.selectCount(new LambdaQueryWrapper<CommissionSubmission>()
+                .eq(CommissionSubmission::getSubmitterId, userId)
+                .eq(CommissionSubmission::getArticleBizNo, articleBizNo)
+                .ne(CommissionSubmission::getStatus, SUBMISSION_STATUS_WITHDRAWN));
+        if (articleSubmitted > 0) {
+            throw new BusinessException(CommissionErrorCode.ARTICLE_ALREADY_SUBMITTED);
         }
         Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                 .eq(Article::getUserId, userId)
@@ -138,11 +147,43 @@ public class CommissionServiceImpl implements CommissionService {
     }
 
     @Override
-    public IPage<CommissionSubmission> mySubmissions(Long userId, int page, int pageSize) {
-        return submissionMapper.selectPage(new Page<>(page, pageSize),
+    public IPage<CommissionSubmissionMineVO> mySubmissions(Long userId, int page, int pageSize) {
+        IPage<CommissionSubmission> submissionPage = submissionMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<CommissionSubmission>()
                         .eq(CommissionSubmission::getSubmitterId, userId)
                         .orderByDesc(CommissionSubmission::getCreatedAt));
+
+        List<CommissionSubmission> records = submissionPage.getRecords();
+        if (records.isEmpty()) {
+            return new Page<>(submissionPage.getCurrent(), submissionPage.getSize(), submissionPage.getTotal());
+        }
+
+        List<Long> taskIds = records.stream()
+                .map(CommissionSubmission::getTaskId)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, String> titleMap = taskMapper.selectBatchIds(taskIds).stream()
+                .collect(Collectors.toMap(CommissionTask::getId, CommissionTask::getTitle));
+
+        List<CommissionSubmissionMineVO> voList = records.stream()
+                .map(s -> {
+                    CommissionSubmissionMineVO vo = new CommissionSubmissionMineVO();
+                    vo.setId(s.getId());
+                    vo.setTaskId(s.getTaskId());
+                    vo.setTitle(titleMap.get(s.getTaskId()));
+                    vo.setArticleTitle(s.getArticleTitle());
+                    vo.setArticleBizNo(s.getArticleBizNo());
+                    vo.setWordCount(s.getWordCount());
+                    vo.setStatus(s.getStatus());
+                    vo.setRewardCoin(s.getRewardCoin());
+                    vo.setCreatedAt(s.getCreatedAt());
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        IPage<CommissionSubmissionMineVO> result = new Page<>(submissionPage.getCurrent(), submissionPage.getSize(), submissionPage.getTotal());
+        result.setRecords(voList);
+        return result;
     }
 
     private Map<Long, Long> countSubmissionsByTaskIds(List<CommissionTask> tasks) {
@@ -168,7 +209,7 @@ public class CommissionServiceImpl implements CommissionService {
         vo.setDescription(task.getDescription());
         vo.setMinWordCount(task.getMinWordCount());
         vo.setMaxWordCount(task.getMaxWordCount());
-        vo.setStyleHint(task.getStyleHint());
+        vo.setSkillHint(task.getSkillHint());
         vo.setRewardCoin(task.getRewardCoin());
         vo.setNeededCount(task.getNeededCount());
         vo.setAdoptedCount(task.getAdoptedCount());

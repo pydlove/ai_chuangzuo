@@ -363,7 +363,7 @@ CREATE TABLE u_article (
     word_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '字数',
     article_status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '状态：0-草稿，1-已发布',
     template_code VARCHAR(64) DEFAULT NULL COMMENT '使用模板编码',
-    style_code VARCHAR(64) DEFAULT NULL COMMENT '使用风格编码',
+    skill_code VARCHAR(64) DEFAULT NULL COMMENT '使用风格编码',
     is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
@@ -444,7 +444,7 @@ CREATE TABLE IF NOT EXISTS u_user (
 | `u_article` | 生成完成的文章 |
 | `u_article_version` | 文章版本历史 |
 | `u_template_usage` | 用户模板使用记录 |
-| `u_style_preset` | 用户自定义风格 |
+| `u_user_skill` | 用户自定义风格 |
 | `u_credit_account` | 用户额度账户 |
 | `u_credit_transaction` | 额度流水 |
 | `u_order` | 充值/购买订单 |
@@ -464,7 +464,7 @@ CREATE TABLE IF NOT EXISTS u_user (
 | `a_system_config` | 系统配置 |
 | `a_operation_log` | 管理操作日志 |
 | `a_global_template` | 全局文章模板 |
-| `a_global_style` | 全局写作风格 |
+| `a_global_skill` | 全局写作风格 |
 | `a_model_config` | AI 模型配置 |
 | `a_price_package` | 定价套餐 |
 

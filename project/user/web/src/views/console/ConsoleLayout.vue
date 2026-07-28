@@ -96,7 +96,7 @@
                   </div>
                   <div class="invite-rule-item">
                     <span class="invite-rule-label">🌱 新用户福利</span>
-                    <span class="invite-rule-text">新用户通过你的邀请码注册，立刻获得 5 创作币。</span>
+                    <span class="invite-rule-text">新用户通过你的邀请码注册，立刻获得 50 创作币。</span>
                   </div>
                   <button class="invite-rules-detail-btn" @click="openInviteRulesDrawer">
                     <span>查看完整活动规则</span>
@@ -1294,8 +1294,8 @@ const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
 const pageTitleMap = {
   '/console/create': '创作',
   '/console/works': '我的作品',
-  '/console/styles': '我的风格',
-  '/console/style-market': '风格市场',
+  '/console/skills': '我的风格',
+  '/console/skill-market': '风格市场',
   '/console/earnings': '我的账户',
   '/console/hot-search': '热搜榜',
   '/console/leaderboard': '收益排行榜',
@@ -1438,7 +1438,7 @@ const goToNewcomerOffer = () => {
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
-  { path: '/console/style-market', label: '风格市场', icon: ShopOutlined },
+  { path: '/console/skill-market', label: '风格市场', icon: ShopOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   {
@@ -1446,7 +1446,7 @@ const navItems = [
     icon: UserOutlined,
     children: [
       { path: '/console/works', label: '我的作品', icon: FolderOutlined },
-      { path: '/console/styles', label: '我的风格', icon: SmileOutlined },
+      { path: '/console/skills', label: '我的风格', icon: SmileOutlined },
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined }
     ]
   }

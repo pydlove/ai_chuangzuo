@@ -1,0 +1,115 @@
+package com.aichuangzuo.user.modules.skill.controller;
+
+import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.skill.dto.request.AnalyzeSkillRequest;
+import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
+import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
+import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeService;
+import com.aichuangzuo.user.modules.skill.service.SystemSkillService;
+import com.aichuangzuo.user.modules.skill.service.UserSkillService;
+import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;
+import com.aichuangzuo.user.modules.skill.vo.SystemSkillVO;
+import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+/**
+ * 用户风格 REST 接口。
+ *
+ * <p>路径前缀：/api/v1/user/skills，鉴权由 SecurityConfig 统一拦截。
+ */
+@Tag(name = "用户风格")
+@RestController
+@RequestMapping("/api/v1/user/skills")
+@RequiredArgsConstructor
+public class UserSkillController {
+
+    private final UserSkillService userSkillService;
+    private final SystemSkillService systemSkillService;
+    private final SkillAnalyzeService skillAnalyzeService;
+
+    /**
+     * 获取当前登录用户的风格列表。
+     *
+     * @param sourceType 来源类型：1-自定义（默认），2-学习
+     * @return 风格列表
+     */
+    @Operation(summary = "获取我的风格列表")
+    @GetMapping
+    public Result<List<UserSkillVO>> listMySkills(
+            @RequestParam(name = "sourceType", required = false, defaultValue = "1") Integer sourceType) {
+        return Result.success(userSkillService.listMySkills(sourceType));
+    }
+
+    /**
+     * 创建自定义风格。
+     *
+     * @param request 创建请求
+     * @return 创建后的风格
+     */
+    @Operation(summary = "创建风格")
+    @PostMapping
+    public Result<UserSkillVO> createSkill(@Valid @RequestBody CreateSkillRequest request) {
+        return Result.success(userSkillService.createSkill(request));
+    }
+
+    /**
+     * 修改当前用户的风格。
+     *
+     * @param bizNo   风格业务编号
+     * @param request 修改请求
+     * @return 更新后的风格
+     */
+    @Operation(summary = "修改风格")
+    @PutMapping("/{bizNo}")
+    public Result<UserSkillVO> updateSkill(
+            @PathVariable String bizNo,
+            @Valid @RequestBody UpdateSkillRequest request) {
+        return Result.success(userSkillService.updateSkill(bizNo, request));
+    }
+
+    /**
+     * 删除当前用户的风格。
+     *
+     * @param bizNo 风格业务编号
+     * @return 成功响应
+     */
+    @Operation(summary = "删除风格")
+    @DeleteMapping("/{bizNo}")
+    public Result<Void> deleteSkill(@PathVariable String bizNo) {
+        userSkillService.deleteSkill(bizNo);
+        return Result.success();
+    }
+
+    /**
+     * 获取当前启用的系统预设风格。
+     */
+    @Operation(summary = "获取系统预设风格")
+    @GetMapping("/system-skills")
+    public Result<List<SystemSkillVO>> listSystemSkills(
+            @RequestParam(name = "keyword", required = false) String keyword) {
+        return Result.success(systemSkillService.listEnabled(keyword));
+    }
+
+    /**
+     * AI 分析参考文章写作风格，返回风格提示词与 2 段原文摘录。
+     *
+     * <p>会消费本月 skill_learn_analyze 额度（basic=0/pro=1/flagship=2），
+     * 额度不足返回 118003 {@code QUOTA_EXHAUSTED}。
+     *
+     * @param request 含参考文章正文（200-3000 字）
+     * @return 分析结果（excerpt 仅供展示，不入库）
+     */
+    @Operation(summary = "AI 分析参考文章写作风格并提取风格")
+    @PostMapping("/analyze")
+    public Result<SkillAnalyzeVO> analyzeSkill(@Valid @RequestBody AnalyzeSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(skillAnalyzeService.analyze(userId, request.getText().trim()));
+    }
+}

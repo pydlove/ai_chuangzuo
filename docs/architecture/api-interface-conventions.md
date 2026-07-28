@@ -439,10 +439,12 @@ Idempotency-Key: 550e8400-e29b-41d4-a716-446655440000
 {
   "topic": "夏季防晒产品推广",
   "wordCount": 1500,
-  "styleCode": "xiaohongshu",
+  "skillCode": "xiaohongshu",
   "templateCode": "wechat-standard"
 }
 ```
+
+> 注：随着用户端写作预设相关代码 / 数据库统一为 skills / skill，中文显示保持「风格」，生成任务中用于选择风格的字段已由 `styleCode` 演进为 `skillCode`，新接口请使用 `skillCode`。
 
 响应：
 

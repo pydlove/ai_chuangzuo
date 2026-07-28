@@ -6,16 +6,19 @@ import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmission
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmissionCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskUpdateRequest;
-import com.aichuangzuo.admin.modules.commission.entity.CommissionTask;
 import com.aichuangzuo.admin.modules.commission.service.AdminCommissionService;
 import com.aichuangzuo.admin.modules.commission.vo.CommissionTaskDetailVO;
+import com.aichuangzuo.admin.modules.commission.vo.CommissionTaskImportResultVO;
+import com.aichuangzuo.admin.modules.commission.vo.CommissionTaskListVO;
 import com.aichuangzuo.shared.result.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "管理端约稿中心")
 @RestController
@@ -26,7 +29,7 @@ public class AdminCommissionController {
 
     @Operation(summary = "约稿任务列表")
     @GetMapping
-    public Result<IPage<CommissionTask>> list(
+    public Result<IPage<CommissionTaskListVO>> list(
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false) Integer status,
             @RequestParam(defaultValue = "1") int page,
@@ -68,6 +71,12 @@ public class AdminCommissionController {
         return Result.success();
     }
 
+    @Operation(summary = "手动校正约稿任务状态（返回变更条数）")
+    @PostMapping("/reconcile")
+    public Result<Integer> reconcile() {
+        return Result.success(commissionService.reconcileTaskStatus());
+    }
+
     @Operation(summary = "手动为用户添加投稿（运营机器人/代投）")
     @PostMapping("/{taskId}/submissions")
     public Result<Long> createSubmission(@PathVariable Long taskId,
@@ -80,5 +89,11 @@ public class AdminCommissionController {
     public Result<Integer> createSubmissionBatch(@PathVariable Long taskId,
                                                  @Valid @RequestBody CommissionSubmissionBatchCreateRequest request) {
         return Result.success(commissionService.createSubmissionBatch(taskId, request, SecurityAdminContext.getCurrentAdminUserId()));
+    }
+
+    @Operation(summary = "从Excel批量导入约稿任务")
+    @PostMapping(value = "/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<CommissionTaskImportResultVO> importExcel(@RequestParam("file") MultipartFile file) {
+        return Result.success(commissionService.importExcel(file, SecurityAdminContext.getCurrentAdminUserId()));
     }
 }

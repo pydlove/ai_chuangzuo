@@ -5,7 +5,7 @@
         <h3 class="page-title">创作提示词</h3>
         <p class="page-desc">
           多模板共存，runtime 仅 1 个已发布。worker 会读取最新已发布版本（latestPublishedVersion）去生成用户内容。
-          状态机：草稿 → 发布 → 下线 → 重新发布。占位符：<code>{{title}}</code> <code>{{description}}</code> <code>{{platform}}</code> <code>{{wordCount}}</code> <code>{{userStylePrompt}}</code>（用户风格在提交时由系统自动快照）
+          状态机：草稿 → 发布 → 下线 → 重新发布。占位符：<code>{{title}}</code> <code>{{description}}</code> <code>{{platform}}</code> <code>{{wordCount}}</code> <code>{{userSkillPrompt}}</code>（用户风格在提交时由系统自动快照）
         </p>
       </div>
 

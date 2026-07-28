@@ -36,7 +36,7 @@
           <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="styleVisible = true">
-          <span>{{ currentStyle?.name || '选择风格' }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentSkill?.name || '选择风格' }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="templateVisible = true">
           <span>{{ currentTemplate?.name }}</span><span class="chip-caret">▾</span>
@@ -69,7 +69,7 @@ import { useRouter } from 'vue-router'
 import TopicCapsules from './TopicCapsules.vue'
 import { useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
-import { currentStyle } from '@/composables/useStyles.js'
+import { currentSkill } from '@/composables/useSkills.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration } from '@/api/generation.js'
@@ -107,7 +107,7 @@ const handleSaveDraft = async () => {
       customRequirement: customRequirement.value,
       platform: currentPlatform.value?.name,
       wordCount: currentWordCount.value?.count,
-      style: currentStyle.value?.name,
+      style: currentSkill.value?.name,
       template: currentTemplate.value?.name,
       createMode: createMode.value
     })
@@ -154,7 +154,7 @@ const handleGenerate = async () => {
       title: customTitle.value,
       description: customRequirement.value,
       platform: currentPlatform.value?.key || '',
-      styleRef: currentStyle.value?.id || currentStyle.value?.name || '',
+      skillRef: currentSkill.value?.id || currentSkill.value?.name || '',
       wordCount: currentWordCount.value?.count || 800,
       template: currentTemplate.value?.key || 'wechat'
     })

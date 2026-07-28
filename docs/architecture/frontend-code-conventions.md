@@ -244,16 +244,16 @@ export const useUserStore = defineStore('user', {
 **反例**：
 ```javascript
 // 只在内存里创建市场记录，刷新即丢失
-export function shareStyleToMarket(style) {
-  marketStyles.value.unshift({ id: 'market-' + Date.now(), ...style })
+export function shareSkillToMarket(skill) {
+  marketSkills.value.unshift({ id: 'market-' + Date.now(), ...skill })
 }
 ```
 
 **正例**：
 ```javascript
 // 调用后端接口，由后端生成 ID 并持久化
-export async function publishStyle(bizNo) {
-  return api.post(`/styles/${bizNo}/actions/publish`)
+export async function publishSkill(bizNo) {
+  return api.post(`/skills/${bizNo}/actions/publish`)
 }
 ```
 

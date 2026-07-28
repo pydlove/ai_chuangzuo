@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS a_generation_task (
     status TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '状态：0-queued，1-processing，2-completed，3-failed',
     model_config_id BIGINT UNSIGNED NOT NULL COMMENT '使用的AI模型配置ID',
     prompt_template_id BIGINT UNSIGNED NOT NULL COMMENT '使用的提示词模板ID（提交时快照）',
-    input_param JSON NOT NULL COMMENT '输入参数：title/description/platform/wordCount/styleRef/toneTags',
+    input_param JSON NOT NULL COMMENT '输入参数：title/description/platform/wordCount/skillRef/toneTags',
     word_limit_target INT UNSIGNED NOT NULL DEFAULT 3000 COMMENT '用户要求字数（≤3000）',
     retry_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '已重试次数',
     max_retry INT UNSIGNED NOT NULL DEFAULT 3 COMMENT '最大重试次数，默认3',

@@ -7,6 +7,7 @@ import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
+import com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
@@ -34,6 +35,7 @@ public class GenerationTaskAdminService {
     private final GenerationTaskMapper taskMapper;
     private final GenerationCallLogMapper callLogMapper;
     private final QuotaRefundInternalClient refundClient;
+    private final ArticleReadInternalClient articleReadClient;
 
     public GenerationTaskAdminPageVO list(GenerationTaskQueryRequest req) {
         long page = Math.max(1, req.getPage());
@@ -94,6 +96,50 @@ public class GenerationTaskAdminService {
         } catch (Exception e) {
             log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", taskId, e.getMessage());
         }
+    }
+
+    /**
+     * 在线预览已完成任务的最终文章。
+     *
+     * @return 文章内容（标题、正文、描述、标签等）
+     */
+    public GeneratedArticleVO previewArticle(Long taskId) {
+        GenerationTask task = requireCompletedTaskWithArticle(taskId);
+        return articleReadClient.getArticle(task.getArticleBizNo());
+    }
+
+    /**
+     * 下载已完成任务的最终文章（markdown 格式）。
+     *
+     * @return 文件名 + 文件字节数组
+     */
+    public ArticleDownload downloadArticle(Long taskId) {
+        GenerationTask task = requireCompletedTaskWithArticle(taskId);
+        GeneratedArticleVO article = articleReadClient.getArticle(task.getArticleBizNo());
+
+        StringBuilder sb = new StringBuilder();
+        if (article.getTitle() != null && !article.getTitle().isBlank()) {
+            sb.append("# ").append(article.getTitle()).append("\n\n");
+        }
+        if (article.getDescription() != null && !article.getDescription().isBlank()) {
+            sb.append("> ").append(article.getDescription().replace("\n", "\n> ")).append("\n\n");
+        }
+        if (article.getBody() != null) {
+            sb.append(article.getBody());
+        }
+        String filename = (task.getBizNo() == null ? "article" : task.getBizNo()) + ".md";
+        return new ArticleDownload(filename, sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));
+    }
+
+    private GenerationTask requireCompletedTaskWithArticle(Long taskId) {
+        GenerationTask task = requireById(taskId);
+        if (task.getStatus() != GenerationTaskStatus.COMPLETED) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
+        if (task.getArticleBizNo() == null || task.getArticleBizNo().isBlank()) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_ARTICLE_NOT_FOUND);
+        }
+        return task;
     }
 
     private GenerationTask requireById(Long id) {

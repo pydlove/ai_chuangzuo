@@ -17,7 +17,7 @@
     <QueueDrawer v-model:open="queueOpen" />
     <PlatformModal />
     <WordCountModal />
-    <StyleModal />
+    <SkillModal />
     <TemplateModal />
   </div>
 </template>
@@ -27,13 +27,13 @@ import { computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
-  currentStyle,
-  applyStyle as applyStyleShared,
-  loadSystemStyles,
-  loadMyStyles,
-  loadLearnedStyles
-} from '@/composables/useStyles.js'
-import { marketStyles, favoriteStyles, loadMarketStyles } from '@/composables/useStyleMarket.js'
+  currentSkill,
+  applySkill as applySkillShared,
+  loadSystemSkills,
+  loadMySkills,
+  loadLearnedSkills
+} from '@/composables/useSkills.js'
+import { marketSkills, favoriteSkills, loadMarketSkills } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
@@ -43,7 +43,7 @@ import GuidedChat from './create/GuidedChat.vue'
 import QueueDrawer from './create/QueueDrawer.vue'
 import PlatformModal from './create/modals/PlatformModal.vue'
 import WordCountModal from './create/modals/WordCountModal.vue'
-import StyleModal from './create/modals/StyleModal.vue'
+import SkillModal from './create/modals/SkillModal.vue'
 import TemplateModal from './create/modals/TemplateModal.vue'
 
 const router = useRouter()
@@ -69,14 +69,14 @@ const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remain
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
-  await loadSystemStyles()
+  await loadSystemSkills()
   await loadExportTemplates()
   loadBenefits()
   // 加载我的/学习/收藏风格（引导模式"想要什么风格？"步骤可选到）
   Promise.all([
-    loadMyStyles().catch(() => {}),
-    loadLearnedStyles().catch(() => {}),
-    loadMarketStyles().catch(() => {})
+    loadMySkills().catch(() => {}),
+    loadLearnedSkills().catch(() => {}),
+    loadMarketSkills().catch(() => {})
   ])
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
@@ -98,11 +98,11 @@ onMounted(async () => {
   }
 
   // 从风格市场跳转过来时自动应用风格
-  const marketStyleId = route.query.marketStyleId
-  if (marketStyleId) {
-    const s = marketStyles.value.find(x => x.id === marketStyleId)
+  const marketSkillId = route.query.marketSkillId
+  if (marketSkillId) {
+    const s = marketSkills.value.find(x => x.id === marketSkillId)
     if (s) {
-      applyStyleShared({
+      applySkillShared({
         name: s.name,
         prompt: s.prompt,
         scope: s.scope
@@ -135,7 +135,7 @@ const restoreDraft = (draft) => {
     currentWordCount.value = wc
   }
   if (draft.style) {
-    currentStyle.value = typeof draft.style === 'object' ? draft.style : { name: draft.style }
+    currentSkill.value = typeof draft.style === 'object' ? draft.style : { name: draft.style }
   }
   if (draft.template) {
     if (typeof draft.template === 'object') {

@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listGlobalStyles, createGlobalStyle, updateGlobalStyle, deleteGlobalStyle } from '@/api/globalStyle.js'
+import { listGlobalSkills, createGlobalSkill, updateGlobalSkill, deleteGlobalSkill } from '@/api/globalSkill.js'
 
 export function useGlobalStyleManagement() {
   const list = ref([])
@@ -15,7 +15,7 @@ export function useGlobalStyleManagement() {
   const fetch = async () => {
     loading.value = true
     try {
-      const res = await listGlobalStyles({
+      const res = await listGlobalSkills({
         keyword: keyword.value,
         pageNum: page.value,
         pageSize: pageSize.value,
@@ -51,7 +51,7 @@ export function useGlobalStyleManagement() {
   const handleCreate = async (payload) => {
     submitting.value = true
     try {
-      await createGlobalStyle(payload)
+      await createGlobalSkill(payload)
       message.success('预设风格已创建')
       await fetch()
       return true
@@ -66,7 +66,7 @@ export function useGlobalStyleManagement() {
   const handleUpdate = async (bizNo, payload) => {
     submitting.value = true
     try {
-      await updateGlobalStyle(bizNo, payload)
+      await updateGlobalSkill(bizNo, payload)
       message.success('预设风格已更新')
       await fetch()
       return true
@@ -80,7 +80,7 @@ export function useGlobalStyleManagement() {
 
   const handleDelete = async (bizNo) => {
     try {
-      await deleteGlobalStyle(bizNo)
+      await deleteGlobalSkill(bizNo)
       message.success('已删除')
       await fetch()
       return true

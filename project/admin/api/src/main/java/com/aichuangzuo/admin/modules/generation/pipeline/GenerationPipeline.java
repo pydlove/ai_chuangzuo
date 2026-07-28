@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
+import com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -85,6 +86,10 @@ public class GenerationPipeline {
                 .sorted(Comparator.comparingInt(GenerationStep::stageIndex))
                 .toList();
         for (GenerationStep step : sorted) {
+            if (!isStageEnabledByTemplate(ctx, step)) {
+                log.debug("stage {} ({}) disabled by template, skip", step.stageIndex(), step.name());
+                continue;
+            }
             if (!step.enabled(ctx)) {
                 log.debug("stage {} ({}) disabled, skip", step.stageIndex(), step.name());
                 continue;
@@ -134,6 +139,23 @@ public class GenerationPipeline {
      */
     public static class TaskAbortedException extends RuntimeException {
         public TaskAbortedException(String msg) { super(msg); }
+    }
+
+    /**
+     * 按模板 t_prompt_template_stage.enabled 判断是否启用该 step。
+     * <p>PersistArticleStep 等 index > 13 的收尾步骤不在 stage 表中，始终放行。
+     * <p>stage 表未命中（老模板/默认兜底）按启用处理，保持向后兼容。
+     */
+    private boolean isStageEnabledByTemplate(GenerationContext ctx, GenerationStep step) {
+        int idx = step.stageIndex();
+        if (idx > 13) {
+            return true;
+        }
+        PromptTemplateStage stage = ctx.getStages().get(idx);
+        if (stage == null || stage.getEnabled() == null) {
+            return true;
+        }
+        return stage.getEnabled() == 1;
     }
 
     private Map<String, Object> parseInput(String json) {

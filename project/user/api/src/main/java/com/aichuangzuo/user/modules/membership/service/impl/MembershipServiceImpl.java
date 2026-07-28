@@ -53,6 +53,7 @@ public class MembershipServiceImpl implements MembershipService {
 
     private static final BigDecimal FIRST_PURCHASE_RATE = new BigDecimal("0.10");
     private static final BigDecimal RENEWAL_RATE = new BigDecimal("0.05");
+    private static final BigDecimal COIN_TO_YUAN_RATIO = new BigDecimal("10");
 
     private static final String NEWCOMER_PLAN_KEY = "flagship";
     private static final String NEWCOMER_CYCLE = "year";
@@ -282,7 +283,7 @@ public class MembershipServiceImpl implements MembershipService {
 
         boolean firstPurchase = isFirstPurchase(userId, order.getId());
         BigDecimal rate = firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE;
-        BigDecimal reward = order.getAmount().multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal reward = order.getAmount().multiply(rate).multiply(COIN_TO_YUAN_RATIO).setScale(2, RoundingMode.HALF_UP);
 
         User invitee = userMapper.selectById(userId);
         String inviteeName = invitee == null ? "好友" : (invitee.getNickname() == null ? "好友" : invitee.getNickname());
@@ -310,7 +311,7 @@ public class MembershipServiceImpl implements MembershipService {
 
     private BigDecimal calculateInviteReward(BigDecimal orderAmount, boolean firstPurchase) {
         BigDecimal rate = firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE;
-        return orderAmount.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        return orderAmount.multiply(rate).multiply(COIN_TO_YUAN_RATIO).setScale(2, RoundingMode.HALF_UP);
     }
 
     private boolean alreadyRewarded(Long orderId) {

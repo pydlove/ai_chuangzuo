@@ -72,7 +72,7 @@ com.aichuangzuo.user/
 │   ├── article/
 │   ├── generation/
 │   ├── template/
-│   ├── style/
+│   ├── skill/
 │   ├── credit/
 │   └── billing/                  # 订单 + 支付合并模块
 └── job/                          # 定时任务
@@ -90,7 +90,7 @@ com.aichuangzuo.user/
 | `article` | 文章 CRUD、版本、预览、导出 |
 | `generation` | 生成任务提交、取消、状态轮询 |
 | `template` | 用户模板收藏/使用记录 |
-| `style` | 用户自定义风格预设 |
+| `skill` | 用户自定义风格预设 |
 | `credit` | 额度账户、额度流水、月度重置 |
 | `billing` | 订单 + 支付（含回调） |
 
@@ -255,8 +255,8 @@ shared / infrastructure
 当某个业务领域由多个强内聚的子领域组成，且它们共用同一张聚合根表或同一组上下游概念时，允许在该领域目录下再按子领域分包。例如：
 
 ```text
-com.aichuangzuo.admin.modules.style/
-├── entity/UserStyleAggregate.java        # 聚合根实体（表 u_user_style）
+com.aichuangzuo.admin.modules.skill/
+├── entity/UserSkillAggregate.java        # 聚合根实体（表 u_user_skill）
 ├── preset/                               # 平台预设风格
 │   ├── controller/、service/、mapper/、dto/、vo/、enums/
 ├── market/                               # 风格广场
@@ -267,7 +267,7 @@ com.aichuangzuo.admin.modules.style/
 
 规则：
 
-- 仅当父目录名 + 子目录名组合仍是清晰的领域命名空间（如 `style.preset` / `style.market` / `style.review`）时才允许嵌套。
+- 仅当父目录名 + 子目录名组合仍是清晰的领域命名空间（如 `skill.preset` / `skill.market` / `skill.review`）时才允许嵌套。
 - 嵌套层级最多两级：`modules/<领域>/<子领域>/<技术层>/`。
 - 同一聚合根的 Entity 放在领域根下的 `entity/`，子领域不重复声明。
 - 不得用嵌套逃避 §9 的「禁止纯技术层平铺」——子领域内部仍必须按 §6 分技术层。

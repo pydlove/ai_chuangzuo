@@ -8,8 +8,8 @@ import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
-import com.aichuangzuo.user.modules.style.market.entity.StyleMarket;
-import com.aichuangzuo.user.modules.style.market.mapper.StyleMarketMapper;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -41,7 +41,7 @@ public class ArticleServiceImpl implements ArticleService {
 
     private final ArticleMapper articleMapper;
     private final ObjectMapper objectMapper;
-    private final StyleMarketMapper styleMarketMapper;
+    private final SkillMarketMapper skillMarketMapper;
 
     @Override
     public ArticlePageVO list(Long userId, String keyword, long page, long pageSize) {
@@ -69,6 +69,17 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    public ArticleVO getInternal(String bizNo) {
+        Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
+                .eq(Article::getBizNo, bizNo)
+                .eq(Article::getIsDeleted, 0));
+        if (article == null) {
+            throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
+        }
+        return toVo(article);
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String save(Long userId, SaveArticleRequest request) {
         if (!StringUtils.hasText(request.getTitle())) {
@@ -84,7 +95,7 @@ public class ArticleServiceImpl implements ArticleService {
         article.setBody(request.getBody());
         article.setStyleOverrides(normalizeStyleOverrides(request.getStyleOverrides()));
         article.setPlatform(request.getPlatform());
-        article.setStyle(request.getStyle());
+        article.setSkill(request.getSkill());
         article.setTemplate(request.getTemplate());
         article.setDescription(StringUtils.hasText(request.getDescription()) ? request.getDescription().trim() : null);
         article.setTagsJson(toTagsJson(request.getTags()));
@@ -151,8 +162,8 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setBody(article.getBody());
         vo.setStyleOverrides(parseStyleOverrides(article.getStyleOverrides()));
         vo.setPlatform(article.getPlatform());
-        vo.setStyle(article.getStyle());
-        vo.setStyleName(resolveStyleName(article.getStyle()));
+        vo.setSkill(article.getSkill());
+        vo.setSkillName(resolveSkillName(article.getSkill()));
         vo.setTemplate(article.getTemplate());
         vo.setDescription(article.getDescription());
         vo.setTags(parseTags(article.getTagsJson()));
@@ -165,24 +176,24 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 解析风格可读名称。
-     * <p>市场风格以 SM 开头，需查 u_style_market.biz_no 获取 style_name；
-     * 其余情况 style 字段本身即为名称（用户自定义/学习/系统预设风格名）。
+     * <p>市场风格以 SM 开头，需查 u_skill_market.biz_no 获取 skill_name；
+     * 其余情况 skill 字段本身即为名称（用户自定义/学习/系统预设风格名）。
      */
-    private String resolveStyleName(String style) {
-        if (!StringUtils.hasText(style)) {
+    private String resolveSkillName(String skill) {
+        if (!StringUtils.hasText(skill)) {
             return null;
         }
-        if (style.startsWith("SM")) {
-            StyleMarket market = styleMarketMapper.selectOne(
-                    new LambdaQueryWrapper<StyleMarket>()
-                            .eq(StyleMarket::getBizNo, style)
-                            .eq(StyleMarket::getIsDeleted, 0)
+        if (skill.startsWith("SM")) {
+            SkillMarket market = skillMarketMapper.selectOne(
+                    new LambdaQueryWrapper<SkillMarket>()
+                            .eq(SkillMarket::getBizNo, skill)
+                            .eq(SkillMarket::getIsDeleted, 0)
                             .last("LIMIT 1"));
-            return market != null && StringUtils.hasText(market.getStyleName())
-                    ? market.getStyleName()
-                    : style;
+            return market != null && StringUtils.hasText(market.getSkillName())
+                    ? market.getSkillName()
+                    : skill;
         }
-        return style;
+        return skill;
     }
 
     private String normalizeStyleOverrides(String raw) {

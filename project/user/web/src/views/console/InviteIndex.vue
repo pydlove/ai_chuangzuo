@@ -45,7 +45,7 @@
       </div>
       <div class="invite-rule-item">
         <span class="invite-rule-label">🌱 新用户福利</span>
-        <span class="invite-rule-text">新用户通过你的邀请码注册，立刻获得 5 创作币。</span>
+        <span class="invite-rule-text">新用户通过你的邀请码注册，立刻获得 50 创作币。</span>
       </div>
       <button class="invite-rules-detail-btn" @click="$router.push('/console/invite-rules')">
         <span>查看完整活动规则</span>

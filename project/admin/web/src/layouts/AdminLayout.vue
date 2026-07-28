@@ -59,18 +59,24 @@
           <a-menu-item key="/console/users">注册用户</a-menu-item>
           <a-menu-item key="/console/expire-reminder">到期提醒</a-menu-item>
         </a-sub-menu>
-        <a-sub-menu key="/console/style-management">
+        <a-menu-item key="/console/commission-tasks">
+          <template #icon>
+            <FileTextOutlined />
+          </template>
+          约稿管理
+        </a-menu-item>
+        <a-sub-menu key="/console/skill-management">
           <template #icon>
             <BookOutlined />
           </template>
           <template #title>风格管理</template>
-          <a-menu-item key="/console/styles">
+          <a-menu-item key="/console/skills">
             风格审核
           </a-menu-item>
-          <a-menu-item key="/console/global-styles">
+          <a-menu-item key="/console/global-skills">
             预设风格
           </a-menu-item>
-          <a-menu-item key="/console/market-styles">
+          <a-menu-item key="/console/market-skills">
             风格市场
           </a-menu-item>
         </a-sub-menu>
@@ -110,24 +116,6 @@
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
         </a-sub-menu>
-        <a-menu-item key="/console/commission-tasks">
-          <template #icon>
-            <FileTextOutlined />
-          </template>
-          约稿管理
-        </a-menu-item>
-        <a-menu-item key="/console/messages">
-          <template #icon>
-            <MessageOutlined />
-          </template>
-          消息管理
-        </a-menu-item>
-        <a-menu-item key="/console/feedbacks">
-          <template #icon>
-            <CommentOutlined />
-          </template>
-          用户反馈
-        </a-menu-item>
         <a-sub-menu key="/console/orders">
           <template #icon>
             <ShoppingCartOutlined />
@@ -158,6 +146,18 @@
               <PictureOutlined />
             </template>
             首页 Banner
+          </a-menu-item>
+          <a-menu-item key="/console/messages">
+            <template #icon>
+              <MessageOutlined />
+            </template>
+            消息管理
+          </a-menu-item>
+          <a-menu-item key="/console/feedbacks">
+            <template #icon>
+              <CommentOutlined />
+            </template>
+            用户反馈
           </a-menu-item>
         </a-sub-menu>
       </a-menu>
@@ -206,13 +206,13 @@ const parentMenuKey = computed(() => {
   const p = route.path
   if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates')) return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
-  if (p === '/console/styles' || p === '/console/global-styles' || p === '/console/market-styles') return '/console/style-management'
+  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans') return '/console/settings'
+  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks') return '/console/settings'
   return null
 })
 
@@ -229,7 +229,7 @@ const onOpenChange = (keys) => {
 }
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
-  if (route.path === '/console/styles' || route.path === '/console/global-styles' || route.path === '/console/market-styles') return '风格管理'
+  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills') return '风格管理'
   if (route.path === '/console/model-configs') return '模型配置'
   if (route.path === '/console/prompt-templates' || route.path.startsWith('/console/prompt-templates/')) return '创作提示词'
   if (route.path === '/console/hot-search/platforms') return '平台管理'
@@ -243,6 +243,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
   if (route.path === '/console/commission-tasks') return '约稿管理'
   if (route.path === '/console/messages') return '消息管理'
+  if (route.path === '/console/feedbacks') return '用户反馈'
   if (route.path === '/console/expire-reminder') return '到期提醒'
   if (route.path === '/console/creation-queue') return '创作队列'
   if (route.path === '/console/topic-titles') return '标题管理'

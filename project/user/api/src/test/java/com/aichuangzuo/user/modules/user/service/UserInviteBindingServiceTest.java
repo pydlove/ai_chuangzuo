@@ -72,7 +72,7 @@ class UserInviteBindingServiceTest {
         assertEquals(1, relation.getEffectiveStatus());
 
         User inviteeDb = userMapper.selectById(invitee.getId());
-        assertEquals(0, inviteeDb.getCoinBalance().compareTo(new BigDecimal("5")));
+        assertEquals(0, inviteeDb.getCoinBalance().compareTo(new BigDecimal("50")));
 
         assertEquals(1L, userCoinRecordMapper.selectCount(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord>()

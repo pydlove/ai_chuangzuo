@@ -34,7 +34,7 @@ public class Draft {
 
     private Integer wordCount;
 
-    private String style;
+    private String skill;
 
     private String template;
 

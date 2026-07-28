@@ -57,6 +57,7 @@ class GenerationTaskServiceTest {
         assertEquals(GenerationTaskStatus.COMPLETED, task.getStatus());
         assertNull(task.getFailedReason());
         assertNotNull(task.getCompletedAt());
+        assertEquals("ART123", task.getArticleBizNo());
         verify(taskMapper).updateById(task);
     }
 

@@ -12,7 +12,8 @@ public enum CommissionErrorCode implements ErrorCode {
     ARTICLE_WORD_COUNT_INVALID(119105, "文章字数不符合任务要求"),
     ACTIVE_SUBMISSION_EXISTS(119106, "该任务已有进行中的投稿"),
     SUBMISSION_NOT_FOUND(119107, "投稿不存在或无权访问"),
-    SUBMISSION_NOT_WITHDRAWABLE(119108, "当前投稿无法撤回");
+    SUBMISSION_NOT_WITHDRAWABLE(119108, "当前投稿无法撤回"),
+    ARTICLE_ALREADY_SUBMITTED(119109, "该文章已投递其他任务");
 
     private final int code;
     private final String message;

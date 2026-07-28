@@ -66,12 +66,30 @@
             <span v-else>-</span>
           </template>
           <template v-else-if="column.key === 'actions'">
-            <a-space v-if="activeTabKey !== 'completed'">
+            <a-space>
               <a-button
                 type="link"
                 size="small"
                 @click="openCallLogs(record)"
               >执行过程</a-button>
+              <template v-if="record.status === 2 && record.articleBizNo">
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="openArticlePreview(record)"
+                >
+                  <template #icon><EyeOutlined /></template>
+                  预览
+                </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  @click="downloadArticle(record)"
+                >
+                  <template #icon><DownloadOutlined /></template>
+                  下载
+                </a-button>
+              </template>
               <a-popconfirm
                 v-if="record.status === 0 || record.status === 1"
                 title="确定停止该任务？worker 将在当前 stage 结束后中止，已消耗的文章额度将退回用户"
@@ -86,7 +104,6 @@
                 >停止</a-button>
               </a-popconfirm>
             </a-space>
-            <span v-else>-</span>
           </template>
         </template>
       </a-table>
@@ -193,6 +210,27 @@
         </a-spin>
       </a-drawer>
 
+      <!-- 在线预览弹窗：展示已完成任务的最终文章 -->
+      <a-modal
+        v-model:open="previewModal.open"
+        :title="previewModal.article?.title || '文章预览'"
+        width="800"
+        :footer="null"
+        @cancel="onPreviewClose"
+      >
+        <a-spin :spinning="previewModal.loading">
+          <div v-if="previewModal.article" class="article-preview">
+            <div v-if="previewModal.article.tags?.length" class="preview-tags">
+              <a-tag v-for="tag in previewModal.article.tags" :key="tag" color="blue">{{ tag }}</a-tag>
+            </div>
+            <div v-if="previewModal.article.description" class="preview-desc">
+              {{ previewModal.article.description }}
+            </div>
+            <pre class="preview-body">{{ previewModal.article.body }}</pre>
+          </div>
+        </a-spin>
+      </a-modal>
+
       <div class="pagination">
         <a-pagination
           :current="page"
@@ -212,9 +250,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive } from 'vue'
 import { message } from 'ant-design-vue'
-import { ReloadOutlined } from '@ant-design/icons-vue'
+import { ReloadOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useCreationQueue } from '@/composables/useCreationQueue.js'
-import { getGenerationCallLogsGrouped } from '@/api/creationQueue.js'
+import { getGenerationCallLogsGrouped, previewGenerationTaskArticle, downloadGenerationTaskArticle } from '@/api/creationQueue.js'
 
 const {
   list,
@@ -262,6 +300,14 @@ const callLogDrawer = reactive({
   grouped: {}, // { "2": [log,...], ... }
   taskStatus: null,
   pollTimer: null
+})
+
+// ===== 文章预览弹窗 =====
+const previewModal = reactive({
+  open: false,
+  loading: false,
+  task: null,
+  article: null
 })
 
 const fetchCallLogs = async () => {
@@ -325,6 +371,42 @@ const openCallLogs = async (record) => {
     }
   } finally {
     callLogDrawer.loading = false
+  }
+}
+
+const openArticlePreview = async (record) => {
+  previewModal.task = record
+  previewModal.article = null
+  previewModal.open = true
+  previewModal.loading = true
+  try {
+    previewModal.article = await previewGenerationTaskArticle(record.id)
+  } catch (e) {
+    message.error(e.message || '加载文章失败')
+  } finally {
+    previewModal.loading = false
+  }
+}
+
+const onPreviewClose = () => {
+  previewModal.task = null
+  previewModal.article = null
+}
+
+const downloadArticle = async (record) => {
+  try {
+    const res = await downloadGenerationTaskArticle(record.id)
+    const blob = new Blob([res], { type: 'text/markdown;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${record.bizNo || record.id}.md`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    message.error(e.message || '下载文章失败')
   }
 }
 
@@ -401,6 +483,7 @@ const formatTime = (t) => {
 const activeTabKey = computed(() => {
   if (activeStatus.value === 0) return 'queued'
   if (activeStatus.value === 1) return 'processing'
+  if (activeStatus.value === 2) return 'completed'
   if (activeStatus.value === 3) return 'failed'
   return 'processing'
 })
@@ -418,7 +501,7 @@ const columns = computed(() => {
     { title: 'tokens', key: 'tokens', width: 110 },
     { title: '失败原因', key: 'failedReason', width: 200 },
     { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: '操作', key: 'actions', fixed: 'right', width: 300 }
+    { title: '操作', key: 'actions', fixed: 'right', width: 360 }
   ]
   return base
 })
@@ -623,6 +706,39 @@ onBeforeUnmount(() => {
   margin: 0;
   white-space: pre-wrap;
   word-break: break-all;
+  max-height: 600px;
+  overflow-y: auto;
+}
+
+/* ===== 文章预览弹窗 ===== */
+.article-preview {
+  padding: 8px 4px;
+}
+.preview-tags {
+  margin-bottom: 12px;
+}
+.preview-desc {
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.6;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+}
+.preview-body {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #262626;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  padding: 16px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
   max-height: 600px;
   overflow-y: auto;
 }

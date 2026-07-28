@@ -47,7 +47,7 @@ public class Article {
 
     private String platform;
 
-    private String style;
+    private String skill;
 
     private String template;
 

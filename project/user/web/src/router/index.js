@@ -60,14 +60,14 @@ const routes = [
         component: () => import('@/views/console/WorksIndex.vue')
       },
       {
-        path: 'styles',
-        name: 'ConsoleStyles',
-        component: () => import('@/views/console/StylesIndex.vue')
+        path: 'skills',
+        name: 'ConsoleSkills',
+        component: () => import('@/views/console/SkillsIndex.vue')
       },
       {
-        path: 'style-market',
-        name: 'ConsoleStyleMarket',
-        component: () => import('@/views/console/StyleMarketIndex.vue')
+        path: 'skill-market',
+        name: 'ConsoleSkillMarket',
+        component: () => import('@/views/console/SkillMarketIndex.vue')
       },
       {
         path: 'earnings',

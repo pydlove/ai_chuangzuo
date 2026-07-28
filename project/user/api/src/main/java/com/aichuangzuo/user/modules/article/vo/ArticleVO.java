@@ -26,13 +26,13 @@ public class ArticleVO {
 
     private String platform;
 
-    private String style;
+    private String skill;
 
     /**
-     * 风格可读名称；市场风格（SM 开头）会解析为 u_style_market.style_name，
-     * 用户/系统预设风格直接回显 style 字段本身。
+     * 风格可读名称；市场风格（SM 开头）会解析为 u_skill_market.skill_name，
+     * 用户/系统预设风格直接回显 skill 字段本身。
      */
-    private String styleName;
+    private String skillName;
 
     private String template;
 

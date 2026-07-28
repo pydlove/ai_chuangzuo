@@ -22,7 +22,7 @@ public class UpdateDraftRequest {
     private Integer wordCount;
 
     @Size(max = 64)
-    private String style;
+    private String skill;
 
     @Size(max = 64)
     private String template;

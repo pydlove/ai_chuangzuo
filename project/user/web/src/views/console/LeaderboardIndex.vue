@@ -45,7 +45,7 @@
           <div class="my-reward-label">{{ myCoinStatus.label }}</div>
           <div class="my-reward-desc">{{ myCoinStatus.desc }}</div>
         </div>
-        <div class="my-reward-amount">+100 创作币</div>
+        <div class="my-reward-amount">+1000 创作币</div>
       </div>
 
       <div class="leaderboard-top3">
@@ -124,7 +124,7 @@
           <div class="my-reward-label">{{ myIncomeStatus.label }}</div>
           <div class="my-reward-desc">{{ myIncomeStatus.desc }}</div>
         </div>
-        <div class="my-reward-amount">+100 创作币</div>
+        <div class="my-reward-amount">+1000 创作币</div>
       </div>
 
       <div class="leaderboard-top3">
@@ -204,7 +204,7 @@
       <ol class="leaderboard-rules-list">
         <li><span class="leaderboard-rules-highlight">创作币榜</span>按自然月统计平台创作币收益，数据自动汇总，无需手动申报。</li>
         <li><span class="leaderboard-rules-highlight">自媒体收入榜</span>分为月度榜和年度榜，需填写收入金额并上传平台收益截图，审核通过后计入榜单。</li>
-        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 10</span> 与 <span class="leaderboard-rules-highlight">自媒体收入榜月度 TOP 10</span> 均可获得 <span class="leaderboard-rules-highlight">100 创作币</span>奖励。</li>
+        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 10</span> 与 <span class="leaderboard-rules-highlight">自媒体收入榜月度 TOP 10</span> 均可获得 <span class="leaderboard-rules-highlight">1000 创作币</span>奖励。</li>
         <li>奖励在榜单结算后自动发放至账户余额，同一人同一榜单同一周期只发放一次。</li>
         <li>严禁提交虚假收入截图，一经查实将取消当月排名与奖励资格。</li>
       </ol>
@@ -399,7 +399,7 @@ const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
 
 const coinRewardBanner = computed(() => ({
   class: 'is-current',
-  title: '本月 TOP 10 当月可获 100 创作币奖励',
+  title: '本月 TOP 10 当月可获 1000 创作币奖励',
   desc: '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
 }))
 
@@ -407,7 +407,7 @@ const incomeRewardBanner = computed(() => {
   const isCurrent = incomePeriodValue.value === currentIncomeMonth
   return {
     class: isCurrent ? 'is-current' : 'is-past',
-    title: isCurrent ? '本月度 TOP 10 当月可获 100 创作币奖励' : '历史月榜单已结算',
+    title: isCurrent ? '本月度 TOP 10 当月可获 1000 创作币奖励' : '历史月榜单已结算',
     desc: isCurrent
       ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
       : '该月榜单已结算，TOP 10 奖励已发放'
@@ -446,7 +446,7 @@ const myIncomeStatus = computed(() => {
 function coinRewardLabel(item) {
   if (item.rank > 10) return null
   const record = getRewardRecord('coin', currentCoinMonth, item.userId)
-  if (record) return { text: '已获 100 创作币', type: 'awarded' }
+  if (record) return { text: '已获 1000 创作币', type: 'awarded' }
   return { text: '本月榜单进行中，待结算', type: 'pending' }
 }
 
@@ -456,7 +456,7 @@ function incomeRewardLabel(item) {
     (incomePeriodType.value === 'year' && incomePeriodValue.value === currentIncomeYear)
   if (item.rank > 10) return null
   const record = getRewardRecord('income', incomePeriodValue.value, item.userId)
-  if (record) return { text: '已获 100 创作币', type: 'awarded' }
+  if (record) return { text: '已获 1000 创作币', type: 'awarded' }
   if (isCurrent) return { text: '榜单进行中，待结算', type: 'pending' }
   return null
 }

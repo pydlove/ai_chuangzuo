@@ -5,6 +5,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
+import com.aichuangzuo.user.modules.article.vo.ArticleVO;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -49,7 +50,7 @@ public class GenerationTaskInternalController {
         req.setTitle(title);
         req.setBody(body);
         req.setPlatform(asString(payload.get("platform")));
-        req.setStyle(asString(payload.get("style")));
+        req.setSkill(asString(payload.get("skill")));
         req.setTemplate(asString(payload.get("template")));
         String description = asString(payload.get("description"));
         req.setDescription(description.isEmpty() ? null : description);
@@ -60,6 +61,14 @@ public class GenerationTaskInternalController {
         String bizNo = articleService.save(userId, req);
         log.info("task={} user={} article 保存成功 bizNo={}", taskId, userId, bizNo);
         return Result.success(bizNo);
+    }
+
+    /**
+     * admin 调入，按 articleBizNo 读取已生成文章内容（管理端预览/下载用）。
+     */
+    @GetMapping("/article/{articleBizNo}")
+    public Result<ArticleVO> getArticle(@PathVariable String articleBizNo) {
+        return Result.success(articleService.getInternal(articleBizNo));
     }
 
     /**

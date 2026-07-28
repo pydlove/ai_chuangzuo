@@ -273,8 +273,8 @@ const wrapCardText = (ctx, text, x, y, maxWidth, lineHeight, maxLines) => {
   return yy
 }
 
-const drawCard = (canvas, data, styleName) => {
-  const style = cardStyles[styleName] || cardStyles.xiaohongshu
+const drawCard = (canvas, data, skillName) => {
+  const style = cardStyles[skillName] || cardStyles.xiaohongshu
   const ctx = canvas.getContext('2d')
   const w = canvas.width
   const h = canvas.height

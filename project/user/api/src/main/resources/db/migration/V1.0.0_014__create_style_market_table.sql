@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS u_style_market (
     prompt TEXT NOT NULL COMMENT '完整风格提示词',
     scope VARCHAR(256) DEFAULT NULL COMMENT '适用范围标签，逗号分隔',
     publisher_user_id BIGINT UNSIGNED NOT NULL COMMENT '发布者用户ID（u_user.id）',
-    price DECIMAL(10,2) NOT NULL DEFAULT 0.20 COMMENT '单次使用价格（创作币），本期固定 0.2',
+    price DECIMAL(10,2) NOT NULL DEFAULT 2.00 COMMENT '单次使用价格（创作币），本期固定 2',
     total_uses INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '累计使用次数（管理端可维护）',
     weekly_uses INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '本周使用次数（结算用，本期只读）',
     weekly_earnings DECIMAL(10,2) NOT NULL DEFAULT 0.00 COMMENT '本周基础收益（本期只读）',

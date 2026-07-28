@@ -29,7 +29,7 @@ public class SaveArticleRequest {
     private String platform;
 
     @Size(max = 64)
-    private String style;
+    private String skill;
 
     @Size(max = 64)
     private String template;

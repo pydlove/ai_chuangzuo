@@ -1,6 +1,6 @@
 package com.aichuangzuo.user.modules.commission.service;
 
-import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
+import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -10,5 +10,5 @@ public interface CommissionService {
     CommissionTaskDetailVO detail(Long userId, Long taskId);
     Long submit(Long userId, Long taskId, String articleBizNo);
     void withdraw(Long userId, Long submissionId);
-    IPage<CommissionSubmission> mySubmissions(Long userId, int page, int pageSize);
+    IPage<CommissionSubmissionMineVO> mySubmissions(Long userId, int page, int pageSize);
 }

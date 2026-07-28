@@ -22,6 +22,8 @@ public class GenerationTaskAdminVO {
     private String failedReason;
     private LocalDateTime completedAt;
     private LocalDateTime createdAt;
+    /** 已完成任务关联的 u_article.biz_no；未完成时为空。 */
+    private String articleBizNo;
     /** 排队/执行已等待秒数（便于「执行中」「排对中」tab 看积压）。 */
     private Long waitingSeconds;
     /** 失败秒数（failed tab 距 now 秒数）。 */

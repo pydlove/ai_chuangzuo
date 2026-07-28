@@ -23,9 +23,9 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/message/service/MessageServiceTest.java
-/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/StyleAnalyzeServiceImplTest.java
-/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/UserStyleServiceTest.java
-/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/style/service/impl/UserStyleServiceImplTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/service/SkillAnalyzeServiceImplTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/service/UserSkillServiceTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/service/impl/UserSkillServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/topic/service/TopicTitleServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/dto/request/UpdateNicknameRequestValidationTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/user/mapper/UserMapperExistsByEmailTest.java

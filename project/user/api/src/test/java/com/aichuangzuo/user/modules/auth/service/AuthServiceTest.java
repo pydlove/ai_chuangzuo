@@ -131,7 +131,7 @@ class AuthServiceTest {
 
         User invitee = userMapper.selectByEmail(email);
         assertNotNull(invitee);
-        assertEquals(0, invitee.getCoinBalance().compareTo(new BigDecimal("5")));
+        assertEquals(0, invitee.getCoinBalance().compareTo(new BigDecimal("50")));
 
         UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(invitee.getId());
         assertNotNull(relation);

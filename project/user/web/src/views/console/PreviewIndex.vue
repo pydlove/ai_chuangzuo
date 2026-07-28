@@ -32,7 +32,7 @@
           <span>·</span>
           <span>约 {{ article.wordCount }} 字</span>
           <span class="article-style-badge">
-            风格:{{ article.styleName || article.style || '专业严谨' }}
+            风格:{{ article.skillName || article.style || '专业严谨' }}
           </span>
           <span v-if="templateMeta" class="article-template-badge">
             模板:{{ templateMeta.name }}
@@ -226,7 +226,7 @@ import { message } from 'ant-design-vue'
 const router = useRouter()
 const route = useRoute()
 import { CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
-import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applyStyleOverrides } from '@/utils/articleBlocks.js'
+import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
 import CardsModal from '@/components/CardsModal.vue'
@@ -601,7 +601,7 @@ const formattedBody = computed(() => {
 
   // 应用编辑页保存的样式覆盖（加粗/颜色/对齐/字号等）；顶层元素按 \n\n 逐段生成，与保存时的块索引一致
   const overrides = parseStyleOverrides(article.value?.styleOverrides)
-  const renderedWithOverrides = overrides ? applyStyleOverrides(rendered, overrides) : rendered
+  const renderedWithOverrides = overrides ? applySkillOverrides(rendered, overrides) : rendered
 
   // 追加模板对应平台的签名
   const sig = getSignature(article.value?.template)

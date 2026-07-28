@@ -126,7 +126,7 @@ class MembershipServiceTest {
         SubscribeResultVO result = membershipService.subscribe(invitee.getId(), request);
 
         assertTrue(result.isInviterRewarded());
-        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("50.32")));
+        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("503.20")));
 
         Long rewardCount = userCoinRecordMapper.selectCount(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord>()
@@ -144,7 +144,7 @@ class MembershipServiceTest {
                         .eq(EarningsRecord::getStatus, EarningsStatus.SETTLED.getCode())
         );
         assertNotNull(earnings);
-        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("50.32")));
+        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("503.20")));
         assertEquals(0, earnings.getCommissionRate().compareTo(new BigDecimal("0.10")));
         assertEquals(Integer.valueOf(1), earnings.getIsFirstPurchase());
         assertEquals("pro", earnings.getPlanKey());
@@ -156,7 +156,7 @@ class MembershipServiceTest {
                         .eq(Message::getMsgType, "reward"));
         assertNotNull(message);
         assertEquals("邀请奖励", message.getTitle());
-        assertTrue(message.getSummary().contains("50.32"));
+        assertTrue(message.getSummary().contains("503.20"));
     }
 
     @Test
@@ -258,7 +258,7 @@ class MembershipServiceTest {
         SubscribeResultVO result = membershipService.subscribe(invitee.getId(), request);
 
         assertTrue(result.isInviterRewarded());
-        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("25.16")));
+        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("251.60")));
 
         EarningsRecord earnings = earningsRecordMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
@@ -267,7 +267,7 @@ class MembershipServiceTest {
                         .eq(EarningsRecord::getSourceId, invitee.getId().toString())
         );
         assertNotNull(earnings);
-        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("25.16")));
+        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("251.60")));
         assertEquals(0, earnings.getCommissionRate().compareTo(new BigDecimal("0.05")));
         assertEquals(Integer.valueOf(0), earnings.getIsFirstPurchase());
     }

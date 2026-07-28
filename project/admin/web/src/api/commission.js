@@ -14,6 +14,9 @@ export function createCommissionTask(data) {
 export function updateCommissionTask(id, data) {
   return request.put(`${BASE}/${id}`, data).then((res) => res.data)
 }
+export function reconcileCommissionTasks() {
+  return request.post(`${BASE}/reconcile`).then((res) => res.data)
+}
 export function closeCommissionTask(id) {
   return request.post(`${BASE}/${id}/close`).then((res) => res.data)
 }
@@ -25,4 +28,11 @@ export function createCommissionSubmission(id, data) {
 }
 export function createCommissionSubmissionBatch(id, data) {
   return request.post(`${BASE}/${id}/submissions/batch`, data).then((res) => res.data)
+}
+export function importCommissionTasks(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request
+    .post(`${BASE}/import-excel`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((res) => res.data)
 }

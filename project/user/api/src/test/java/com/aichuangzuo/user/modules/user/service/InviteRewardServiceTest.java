@@ -63,7 +63,7 @@ class InviteRewardServiceTest {
         inviteRewardService.rewardAfterRegister(invitee, inviter.getInviteCode());
 
         User inviteeDb = userMapper.selectById(invitee.getId());
-        assertEquals(0, inviteeDb.getCoinBalance().compareTo(new BigDecimal("5")));
+        assertEquals(0, inviteeDb.getCoinBalance().compareTo(new BigDecimal("50")));
 
         UserCoinRecord record = userCoinRecordMapper.selectOne(
                 new LambdaQueryWrapper<UserCoinRecord>()
@@ -71,7 +71,7 @@ class InviteRewardServiceTest {
                         .eq(UserCoinRecord::getBizType, "invite_register_reward"));
         assertNotNull(record);
         assertEquals(CoinDirection.INCOME.getCode(), record.getDirection());
-        assertEquals(0, record.getAmount().compareTo(new BigDecimal("5")));
+        assertEquals(0, record.getAmount().compareTo(new BigDecimal("50")));
 
         List<UserInviteRelation> relations = userInviteRelationMapper.selectList(
                 new LambdaQueryWrapper<UserInviteRelation>()

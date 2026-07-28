@@ -164,7 +164,7 @@ export function bodyToHtmlWithStyles(body, styleOverrides) {
   if (!styleOverrides || (!styleOverrides.blocks && !styleOverrides.inlines)) {
     return baseHtml
   }
-  return applyStyleOverrides(baseHtml, styleOverrides)
+  return applySkillOverrides(baseHtml, styleOverrides)
 }
 
 export function htmlToBodyWithStyles(html) {
@@ -326,7 +326,7 @@ function pxToFontSize(px) {
   return 'xl'
 }
 
-export function applyStyleOverrides(html, styleOverrides) {
+export function applySkillOverrides(html, styleOverrides) {
   if (!html || !styleOverrides) return html || ''
   const wrap = document.createElement('div')
   wrap.innerHTML = html

@@ -70,7 +70,7 @@ public class DraftServiceImpl implements DraftService {
         draft.setCustomRequirement(request.getCustomRequirement());
         draft.setPlatform(request.getPlatform());
         draft.setWordCount(request.getWordCount() == null ? 0 : Math.max(0, request.getWordCount()));
-        draft.setStyle(request.getStyle());
+        draft.setSkill(request.getSkill());
         draft.setTemplate(request.getTemplate());
         draft.setCreateMode(request.getCreateMode());
         draft.setSavedAt(LocalDateTime.now());
@@ -104,8 +104,8 @@ public class DraftServiceImpl implements DraftService {
             wrapper.set(Draft::getWordCount, Math.max(0, request.getWordCount()));
             touched = true;
         }
-        if (request.getStyle() != null) {
-            wrapper.set(Draft::getStyle, request.getStyle());
+        if (request.getSkill() != null) {
+            wrapper.set(Draft::getSkill, request.getSkill());
             touched = true;
         }
         if (request.getTemplate() != null) {
@@ -154,7 +154,7 @@ public class DraftServiceImpl implements DraftService {
         vo.setCustomRequirement(draft.getCustomRequirement());
         vo.setPlatform(draft.getPlatform());
         vo.setWordCount(draft.getWordCount());
-        vo.setStyle(draft.getStyle());
+        vo.setSkill(draft.getSkill());
         vo.setTemplate(draft.getTemplate());
         vo.setCreateMode(draft.getCreateMode());
         vo.setSavedAt(draft.getSavedAt());

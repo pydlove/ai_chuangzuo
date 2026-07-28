@@ -202,7 +202,7 @@
               </svg>
             </div>
             <div class="feature-name">排行榜奖金</div>
-            <div class="feature-desc">创作币榜、自媒体收入榜，月榜 TOP10 各奖 100 创作币 —— 写得好就上榜。</div>
+            <div class="feature-desc">创作币榜、自媒体收入榜，月榜 TOP10 各奖 1000 创作币 —— 写得好就上榜。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="400">
             <div class="feature-icon">

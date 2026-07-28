@@ -130,7 +130,7 @@
             你收到了好友的邀请，注册并完成邮箱验证后可获得
             <CoinInfoTooltip>
               <span class="invite-coin-trigger">
-                <b>5 个创作币</b>
+                <b>50 个创作币</b>
                 <svg class="invite-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                   <circle cx="12" cy="12" r="10"/>
                   <line x1="12" y1="16" x2="12" y2="12"/>

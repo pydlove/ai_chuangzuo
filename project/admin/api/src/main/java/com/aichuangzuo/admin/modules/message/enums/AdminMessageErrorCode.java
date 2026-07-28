@@ -5,7 +5,7 @@ import com.aichuangzuo.shared.result.ErrorCode;
 /**
  * 管理端-消息管理模块业务错误码。
  *
- * <p>前缀 306：紧接 style.market 304 系列；用户端 message 115xxx 互不冲突。
+ * <p>前缀 306：紧接 skill.market 304 系列；用户端 message 115xxx 互不冲突。
  */
 public enum AdminMessageErrorCode implements ErrorCode {
 

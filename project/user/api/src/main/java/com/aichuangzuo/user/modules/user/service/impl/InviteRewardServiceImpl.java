@@ -43,7 +43,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
     private static final String COIN_BIZ_TYPE_REGISTER_REWARD = "invite_register_reward";
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
     private static final String MEMBERSHIP_LEVEL_PRO = "pro";
-    private static final BigDecimal NEW_USER_COIN_BONUS = new BigDecimal("5");
+    private static final BigDecimal NEW_USER_COIN_BONUS = new BigDecimal("50");
     private static final int EFFECTIVE_STATUS = 1;
 
     private final UserMapper userMapper;

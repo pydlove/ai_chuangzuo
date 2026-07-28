@@ -44,7 +44,7 @@ class DraftServiceTest {
         request.setCustomRequirement("草稿需求描述");
         request.setPlatform("wechat");
         request.setWordCount(500);
-        request.setStyle("warm");
+        request.setSkill("warm");
         request.setTemplate("card-02");
 
         String bizNo = draftService.save(user.getId(), request);
@@ -152,7 +152,7 @@ class DraftServiceTest {
         request.setCustomTitle("新");
         request.setCustomRequirement("新需求");
         request.setWordCount(800);
-        request.setStyle("calm");
+        request.setSkill("calm");
 
         // 故意睡眠一下确保 savedAt 变化
         try {
@@ -167,7 +167,7 @@ class DraftServiceTest {
         assertEquals("新", stored.getCustomTitle());
         assertEquals("新需求", stored.getCustomRequirement());
         assertEquals(Integer.valueOf(800), stored.getWordCount());
-        assertEquals("calm", stored.getStyle());
+        assertEquals("calm", stored.getSkill());
         assertTrue(stored.getSavedAt().isAfter(originalSavedAt));
     }
 
@@ -225,7 +225,7 @@ class DraftServiceTest {
         request.setCustomRequirement(requirement);
         request.setPlatform("wechat");
         request.setWordCount(100);
-        request.setStyle("warm");
+        request.setSkill("warm");
         request.setTemplate("card-01");
         return draftService.save(userId, request);
     }

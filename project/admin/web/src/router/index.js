@@ -19,19 +19,19 @@ const routes = [
         component: () => import('@/views/UserListView.vue')
       },
       {
-        path: 'styles',
-        name: 'AdminStyleReview',
-        component: () => import('@/views/StyleReviewView.vue')
+        path: 'skills',
+        name: 'AdminSkillReview',
+        component: () => import('@/views/SkillReviewView.vue')
       },
       {
-        path: 'global-styles',
-        name: 'AdminGlobalStyleList',
-        component: () => import('@/views/GlobalStyleListView.vue')
+        path: 'global-skills',
+        name: 'AdminGlobalSkillList',
+        component: () => import('@/views/GlobalSkillListView.vue')
       },
       {
-        path: 'market-styles',
-        name: 'AdminMarketStyleList',
-        component: () => import('@/views/MarketStyleListView.vue')
+        path: 'market-skills',
+        name: 'AdminMarketSkillList',
+        component: () => import('@/views/MarketSkillListView.vue')
       },
       {
         path: 'model-configs',

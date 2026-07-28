@@ -2,7 +2,6 @@ package com.aichuangzuo.user.modules.commission.vo;
 
 import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
 import com.aichuangzuo.user.modules.commission.entity.CommissionTask;
-import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.util.List;
@@ -11,7 +10,6 @@ import java.util.List;
  * 约稿任务详情 VO。
  */
 @Data
-@AllArgsConstructor
 public class CommissionTaskDetailVO {
 
     private CommissionTask task;
@@ -21,4 +19,17 @@ public class CommissionTaskDetailVO {
     private CommissionSubmission mySubmission;
 
     private List<CommissionSubmitterVO> submitters;
+
+    private List<CommissionSubmitterVO> adopters;
+
+    public CommissionTaskDetailVO(CommissionTask task, long submissionCount,
+                                  CommissionSubmission mySubmission,
+                                  List<CommissionSubmitterVO> submitters,
+                                  List<CommissionSubmitterVO> adopters) {
+        this.task = task;
+        this.submissionCount = submissionCount;
+        this.mySubmission = mySubmission;
+        this.submitters = submitters;
+        this.adopters = adopters;
+    }
 }

@@ -39,8 +39,8 @@
 
 | 表 | 用途 |
 | --- | --- |
-| `u_user_style` | 用户写作风格（自建 + 预设），含审核字段 |
-| `u_style_market` | 风格市场，用户间风格分享/交易 |
+| `u_user_skill` | 用户写作风格（自建 + 预设），含审核字段 |
+| `u_skill_market` | 风格市场，用户间风格分享/交易 |
 | `hot_search_platform` | 热搜平台配置（微博、抖音、知乎等） |
 | `hot_search_daily` | 每日热搜榜单数据 |
 | `hot_search_config` | 热搜抓取任务配置 |

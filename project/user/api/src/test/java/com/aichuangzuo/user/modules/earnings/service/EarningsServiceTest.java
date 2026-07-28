@@ -157,7 +157,7 @@ class EarningsServiceTest {
 
         earningsService.recordInviteRewardEarnings(inviter.getId(), invitee.getId(), "pro", "专业版",
                 "year", new BigDecimal("503.20"), true,
-                new BigDecimal("0.10"), new BigDecimal("50.32"), month);
+                new BigDecimal("0.10"), new BigDecimal("503.20"), month);
 
         ListEarningsRequest request = new ListEarningsRequest();
         request.setPage(1);
@@ -175,7 +175,7 @@ class EarningsServiceTest {
         assertEquals(0, record.getOrderAmount().compareTo(new BigDecimal("503.20")));
         assertEquals(0, record.getCommissionRate().compareTo(new BigDecimal("0.10")));
         assertEquals(Integer.valueOf(1), record.getIsFirstPurchase());
-        assertEquals(0, record.getAmount().compareTo(new BigDecimal("50.32")));
+        assertEquals(0, record.getAmount().compareTo(new BigDecimal("503.20")));
     }
 
     @Test

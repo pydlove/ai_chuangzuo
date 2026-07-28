@@ -3,8 +3,8 @@ package com.aichuangzuo.user.modules.commission.controller;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.commission.dto.request.CommissionSubmitRequest;
-import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
+import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -53,7 +53,7 @@ public class CommissionController {
 
     @Operation(summary = "我的投稿")
     @GetMapping("/submissions/mine")
-    public Result<IPage<CommissionSubmission>> mine(
+    public Result<IPage<CommissionSubmissionMineVO>> mine(
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
         return Result.success(commissionService.mySubmissions(SecurityUserContext.getCurrentUserId(), page, pageSize));

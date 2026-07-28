@@ -56,7 +56,7 @@ public class PersistArticleStep implements GenerationStep {
         payload.put("summary", in.get("description"));
         payload.put("wordCount", ctx.getWordStats() == null ? 0 : ctx.getWordStats().getActual());
         payload.put("platform", in.get("platform"));
-        payload.put("style", in.get("styleRef"));
+        payload.put("skill", in.get("skillRef"));
         payload.put("template", in.get("template"));
         payload.put("description", PipelineUtils.normalizeQuotes(ctx.getPublishDescription()));
         payload.put("tags", ctx.getPublishTags());

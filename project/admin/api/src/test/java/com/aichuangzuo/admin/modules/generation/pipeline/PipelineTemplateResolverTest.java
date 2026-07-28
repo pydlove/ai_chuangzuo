@@ -56,7 +56,7 @@ class PipelineTemplateResolverTest {
 
         assertSame(template, ctx.getTemplate());
         assertEquals("{\"version\":3}", ctx.getConfigJsonSnapshot());
-        assertEquals(12, ctx.getStages().size());
+        assertEquals(13, ctx.getStages().size());
         verify(templateMapper).selectById(5L);
         verify(versionMapper).selectByTemplateId(5L);
         verifyNoInteractions(templateService);
@@ -76,7 +76,7 @@ class PipelineTemplateResolverTest {
 
         assertSame(enabled, ctx.getTemplate());
         assertNull(ctx.getConfigJsonSnapshot());
-        assertEquals(12, ctx.getStages().size());
+        assertEquals(13, ctx.getStages().size());
         verify(templateService).findPublished();
         verifyNoInteractions(templateMapper);
         verifyNoInteractions(versionMapper);
@@ -103,7 +103,7 @@ class PipelineTemplateResolverTest {
         resolver.resolveInto(ctx, 2L, 1);
 
         Map<Integer, PromptTemplateStage> stages = ctx.getStages();
-        assertEquals(12, stages.size());
+        assertEquals(13, stages.size());
         assertEquals("自定义大纲 prompt", stages.get(2).getAiPrompt());
 
         // 缺失的 stage 用默认值补齐

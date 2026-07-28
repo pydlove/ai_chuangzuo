@@ -54,7 +54,7 @@ public class GenerationTask extends BaseEntity {
      * 输入参数 JSON，包含：
      * <pre>
      *   { "title": "...", "description": "...", "platform": "wechat",
-     *     "styleRef": "uuid", "wordCount": 1500, "toneTags": [...] }
+     *     "skillRef": "uuid", "wordCount": 1500, "toneTags": [...] }
      * </pre>
      */
     private String inputParam;
@@ -85,6 +85,9 @@ public class GenerationTask extends BaseEntity {
 
     /** 完成时间（成功 / 最终失败）。 */
     private LocalDateTime completedAt;
+
+    /** 任务成功完成后关联的 u_article.biz_no，用于管理端预览 / 下载。 */
+    private String articleBizNo;
 
     /** 保留天数（null = 永久）。 */
     private Integer retentionDays;

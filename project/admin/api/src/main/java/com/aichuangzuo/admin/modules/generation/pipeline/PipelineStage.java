@@ -28,7 +28,7 @@ public enum PipelineStage {
                     new Placeholder("title", "用户标题"),
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
-                    new Placeholder("userStylePrompt", "用户写作风格")
+                    new Placeholder("userSkillPrompt", "用户写作风格")
             ),
             List.of(),
             3
@@ -67,7 +67,7 @@ public enum PipelineStage {
                     new Placeholder("title", "用户标题"),
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
-                    new Placeholder("userStylePrompt", "用户写作风格")
+                    new Placeholder("userSkillPrompt", "用户写作风格")
             ),
             List.of(),
             8
@@ -120,7 +120,7 @@ public enum PipelineStage {
                     new Placeholder("title", "用户标题"),
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
-                    new Placeholder("userStylePrompt", "用户写作风格"),
+                    new Placeholder("userSkillPrompt", "用户写作风格"),
                     new Placeholder("outline", "结构骨架（来自第 2 阶段）")
             ),
             List.of(),
@@ -132,7 +132,7 @@ public enum PipelineStage {
             4, "draft", "分块初稿", StageType.AI_PROMPT,
             "风格主战场：按结构分块写初稿，强制注入用户风格。",
             """
-            用以下风格写：{{userStylePrompt}}
+            用以下风格写：{{userSkillPrompt}}
 
             文章意图：
             - 标题：{{title}}
@@ -172,7 +172,7 @@ public enum PipelineStage {
                     new Placeholder("title", "用户标题"),
                     new Placeholder("coreViewpoint", "核心观点"),
                     new Placeholder("targetReader", "目标读者"),
-                    new Placeholder("userStylePrompt", "用户写作风格"),
+                    new Placeholder("userSkillPrompt", "用户写作风格"),
                     new Placeholder("outline", "结构骨架"),
                     new Placeholder("materials", "素材清单")
             ),
@@ -335,7 +335,7 @@ public enum PipelineStage {
             {{draft}}
 
             风格约束：
-            {{userStylePrompt}}
+            {{userSkillPrompt}}
 
             打磨目标：
             1. 句子长短变化更明显
@@ -365,7 +365,7 @@ public enum PipelineStage {
             null,
             List.of(
                     new Placeholder("draft", "定向改写后的初稿"),
-                    new Placeholder("userStylePrompt", "用户写作风格")
+                    new Placeholder("userSkillPrompt", "用户写作风格")
             ),
             List.of(),
             11

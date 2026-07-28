@@ -9,8 +9,8 @@ import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
-import com.aichuangzuo.user.modules.style.entity.UserStyle;
-import com.aichuangzuo.user.modules.style.mapper.UserStyleMapper;
+import com.aichuangzuo.user.modules.skill.entity.UserSkill;
+import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,7 +51,7 @@ class GenerationTaskServiceTest {
     private BenefitService benefitService;
 
     @Mock
-    private UserStyleMapper userStyleMapper;
+    private UserSkillMapper userSkillMapper;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -59,12 +59,12 @@ class GenerationTaskServiceTest {
     @InjectMocks
     private GenerationTaskService service;
 
-    private GenerationSubmitRequest sampleRequest(String styleRef) {
+    private GenerationSubmitRequest sampleRequest(String skillRef) {
         GenerationSubmitRequest req = new GenerationSubmitRequest();
         req.setTitle("t");
         req.setDescription("d");
         req.setPlatform("wechat");
-        req.setStyleRef(styleRef);
+        req.setSkillRef(skillRef);
         req.setWordCount(1500);
         return req;
     }
@@ -82,40 +82,40 @@ class GenerationTaskServiceTest {
     }
 
     @Test
-    void submit_shouldSnapshotUserStylePromptWhenStyleExists() throws Exception {
+    void submit_shouldSnapshotUserSkillPromptWhenSkillExists() throws Exception {
         Long userId = 1L;
-        UserStyle style = new UserStyle();
-        style.setStyleName("轻松");
-        style.setPrompt("请用轻松活泼的语气");
+        UserSkill skill = new UserSkill();
+        skill.setSkillName("轻松");
+        skill.setPrompt("请用轻松活泼的语气");
 
         stubCommonFlow(userId);
-        when(userStyleMapper.selectOne(any())).thenReturn(style);
+        when(userSkillMapper.selectOne(any())).thenReturn(skill);
 
         service.submit(sampleRequest("轻松"), userId);
 
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).insert(captor.capture());
         Map<String, Object> parsed = objectMapper.readValue(captor.getValue().getInputParam(), Map.class);
-        assertEquals("请用轻松活泼的语气", parsed.get("userStylePrompt"));
+        assertEquals("请用轻松活泼的语气", parsed.get("userSkillPrompt"));
     }
 
     @Test
-    void submit_shouldSnapshotEmptyStringWhenStyleNotFound() throws Exception {
+    void submit_shouldSnapshotEmptyStringWhenSkillNotFound() throws Exception {
         Long userId = 2L;
 
         stubCommonFlow(userId);
-        when(userStyleMapper.selectOne(any())).thenReturn(null);
+        when(userSkillMapper.selectOne(any())).thenReturn(null);
 
         service.submit(sampleRequest("不存在的风格"), userId);
 
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).insert(captor.capture());
         Map<String, Object> parsed = objectMapper.readValue(captor.getValue().getInputParam(), Map.class);
-        assertEquals("", parsed.get("userStylePrompt"));
+        assertEquals("", parsed.get("userSkillPrompt"));
     }
 
     @Test
-    void submit_shouldSnapshotEmptyStringWhenStyleRefIsBlank() throws Exception {
+    void submit_shouldSnapshotEmptyStringWhenSkillRefIsBlank() throws Exception {
         Long userId = 3L;
 
         stubCommonFlow(userId);
@@ -125,9 +125,9 @@ class GenerationTaskServiceTest {
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).insert(captor.capture());
         Map<String, Object> parsed = objectMapper.readValue(captor.getValue().getInputParam(), Map.class);
-        assertEquals("", parsed.get("userStylePrompt"));
-        // styleRef 为空时根本不应查 DB
-        verify(userStyleMapper, never()).selectOne(any());
+        assertEquals("", parsed.get("userSkillPrompt"));
+        // skillRef 为空时根本不应查 DB
+        verify(userSkillMapper, never()).selectOne(any());
     }
 
     @Test

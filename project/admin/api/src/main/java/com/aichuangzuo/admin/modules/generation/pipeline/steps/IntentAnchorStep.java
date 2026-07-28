@@ -29,13 +29,13 @@ public class IntentAnchorStep implements GenerationStep {
         String coreViewpoint = str(in.get("description"));
         String targetReader = str(in.getOrDefault("targetReader", "通用读者"));
         if (targetReader.isBlank()) targetReader = "通用读者";
-        String style = str(in.get("userStylePrompt"));
+        String skill = str(in.get("userSkillPrompt"));
 
         StringBuilder sb = new StringBuilder();
         sb.append("标题：").append(title).append("\n");
         sb.append("核心观点：").append(coreViewpoint).append("\n");
         sb.append("目标读者：").append(targetReader).append("\n");
-        sb.append("风格：").append(style);
+        sb.append("风格：").append(skill);
         ctx.setUserContextBlock(sb.toString());
         return StepResult.CONTINUE;
     }

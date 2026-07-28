@@ -22,5 +22,6 @@ public class GenerationTaskListRow {
     private LocalDateTime leaseUntil;
     private String failedReason;
     private LocalDateTime completedAt;
+    private String articleBizNo;
     private LocalDateTime createdAt;
 }

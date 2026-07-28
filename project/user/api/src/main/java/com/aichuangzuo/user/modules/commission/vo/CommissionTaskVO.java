@@ -25,7 +25,7 @@ public class CommissionTaskVO {
 
     private Integer maxWordCount;
 
-    private String styleHint;
+    private String skillHint;
 
     private BigDecimal rewardCoin;
 

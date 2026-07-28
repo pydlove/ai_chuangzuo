@@ -64,6 +64,9 @@ public class GenerationHistory {
     /** 完成时间。 */
     private LocalDateTime completedAt;
 
+    /** 任务成功完成后关联的 u_article.biz_no（与 a_generation_task.article_biz_no 一致）。 */
+    private String articleBizNo;
+
     /** 处理耗时（毫秒）。 */
     private Long durationMs;
 

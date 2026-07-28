@@ -18,7 +18,7 @@ class IntentAnchorStepTest {
         Map<String, Object> input = new HashMap<>();
         input.put("title", "AI 写作入门");
         input.put("description", "从零开始学 AI 创作");
-        input.put("userStylePrompt", "轻松活泼");
+        input.put("userSkillPrompt", "轻松活泼");
 
         GenerationContext ctx = new GenerationContext();
         ctx.setInput(input);
@@ -40,7 +40,7 @@ class IntentAnchorStepTest {
         input.put("title", "T");
         input.put("description", "D");
         input.put("targetReader", "宝妈");
-        input.put("userStylePrompt", "S");
+        input.put("userSkillPrompt", "S");
 
         GenerationContext ctx = new GenerationContext();
         ctx.setInput(input);

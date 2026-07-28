@@ -14,8 +14,8 @@ import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskPageVO;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
-import com.aichuangzuo.user.modules.style.entity.UserStyle;
-import com.aichuangzuo.user.modules.style.mapper.UserStyleMapper;
+import com.aichuangzuo.user.modules.skill.entity.UserSkill;
+import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,7 +50,7 @@ public class GenerationTaskService {
     private final GenerationBenefitResolver benefitResolver;
     private final GenerationRateLimiter rateLimiter;
     private final BenefitService benefitService;
-    private final UserStyleMapper userStyleMapper;
+    private final UserSkillMapper userSkillMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -187,12 +187,12 @@ public class GenerationTaskService {
         map.put("title", req.getTitle());
         map.put("description", req.getDescription());
         map.put("platform", req.getPlatform());
-        map.put("styleRef", req.getStyleRef());
+        map.put("skillRef", req.getSkillRef());
         map.put("wordCount", req.getWordCount());
         map.put("template", req.getTemplate());
         map.put("toneTags", defaultToneTags(req.getPlatform()));
-        // 快照用户风格 prompt：worker 端无需跨表查 u_user_style
-        map.put("userStylePrompt", resolveUserStylePrompt(userId, req.getStyleRef()));
+        // 快照用户风格 prompt：worker 端无需跨表查 u_user_skill
+        map.put("userSkillPrompt", resolveUserSkillPrompt(userId, req.getSkillRef()));
         try {
             return objectMapper.writeValueAsString(map);
         } catch (Exception e) {
@@ -201,19 +201,38 @@ public class GenerationTaskService {
     }
 
     /**
-     * 按 (userId, styleName) 查 u_user_style.prompt。
+     * 按 skillRef 解析用户风格 prompt。
      *
-     * <p>找不到（用户填了不存在的风格名、风格被逻辑删除、styleRef 为空）时返回 ""，
-     * 不影响任务继续。
+     * <p>匹配顺序：
+     * <ol>
+     *   <li>当前用户的自定义/学习风格（skillName 匹配）</li>
+     *   <li>系统预设风格（source_type=3、enable_status=1、skillName 匹配）</li>
+     * </ol>
+     * 都找不到（或 skillRef 为空）时返回 ""，不影响任务继续。
      */
-    private String resolveUserStylePrompt(Long userId, String styleRef) {
-        if (styleRef == null || styleRef.isBlank()) return "";
-        LambdaQueryWrapper<UserStyle> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserStyle::getUserId, userId)
-                .eq(UserStyle::getStyleName, styleRef)
+    private String resolveUserSkillPrompt(Long userId, String skillRef) {
+        if (skillRef == null || skillRef.isBlank()) return "";
+
+        // 1. 优先匹配用户自己的风格
+        LambdaQueryWrapper<UserSkill> userWrapper = new LambdaQueryWrapper<>();
+        userWrapper.eq(UserSkill::getUserId, userId)
+                .eq(UserSkill::getSkillName, skillRef)
+                .eq(UserSkill::getIsDeleted, 0)
                 .last("LIMIT 1");
-        UserStyle style = userStyleMapper.selectOne(wrapper);
-        return style == null ? "" : nullToEmpty(style.getPrompt());
+        UserSkill userSkill = userSkillMapper.selectOne(userWrapper);
+        if (userSkill != null) {
+            return nullToEmpty(userSkill.getPrompt());
+        }
+
+        // 2. 再匹配系统预设风格（source_type=3，启用中）
+        LambdaQueryWrapper<UserSkill> systemWrapper = new LambdaQueryWrapper<>();
+        systemWrapper.eq(UserSkill::getSourceType, 3)
+                .eq(UserSkill::getEnableStatus, 1)
+                .eq(UserSkill::getIsDeleted, 0)
+                .eq(UserSkill::getSkillName, skillRef)
+                .last("LIMIT 1");
+        UserSkill systemSkill = userSkillMapper.selectOne(systemWrapper);
+        return systemSkill == null ? "" : nullToEmpty(systemSkill.getPrompt());
     }
 
     private static String nullToEmpty(String s) {

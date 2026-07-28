@@ -19,6 +19,23 @@
             <span>{{ deadlineText }}</span>
             <span v-if="task.selectionDeadlineAt">评选截止 {{ new Date(task.selectionDeadlineAt).toLocaleString() }}</span>
           </div>
+          <div v-if="adopters.length > 0" class="submitter-block adopter-block">
+            <h3>中稿人</h3>
+            <div class="submitter-stack">
+              <div
+                v-for="(s, i) in adopters"
+                :key="s.submitterId"
+                class="submitter-avatar"
+                :style="{ zIndex: adopters.length - i }"
+                :title="s.nickname"
+              >
+                <img v-if="s.avatarUrl" :src="s.avatarUrl" :alt="s.nickname" />
+                <template v-else>{{ firstChar(s.nickname) }}</template>
+              </div>
+              <span class="submitter-count">{{ adopters.length }} 人中稿</span>
+            </div>
+          </div>
+
           <div v-if="submissionCount > 0" class="submitter-block">
             <h3>投稿人</h3>
             <div class="submitter-stack">
@@ -29,7 +46,8 @@
                 :style="{ zIndex: visibleSubmitters.length - i }"
                 :title="s.nickname"
               >
-                {{ firstChar(s.nickname) }}
+                <img v-if="s.avatarUrl" :src="s.avatarUrl" :alt="s.nickname" />
+                <template v-else>{{ firstChar(s.nickname) }}</template>
               </div>
               <span class="submitter-count">已有{{ submissionCount }}人投稿</span>
             </div>
@@ -38,9 +56,9 @@
             <h3>任务说明</h3>
             <div class="description">{{ task.description }}</div>
           </div>
-          <div v-if="task.styleHint" class="style-hint-block">
+          <div v-if="task.skillHint" class="style-hint-block">
             <h3>风格提示</h3>
-            <p>{{ task.styleHint }}</p>
+            <p>{{ task.skillHint }}</p>
           </div>
         </section>
 
@@ -124,23 +142,49 @@
         <button class="primary-btn" @click="openPicker">选择文章投稿</button>
       </div>
 
-      <a-modal v-model:open="pickerVisible" title="选择投稿文章" :footer="null" centered :width="560">
-        <div v-if="articles.length === 0" class="empty picker-empty">暂无已生成文章</div>
-        <div v-else class="article-list">
-          <button v-for="article in articles" :key="article.bizNo"
-                  :disabled="!inRange(article)"
-                  :class="['article-item', { selected: selectedBizNo === article.bizNo }]"
-                  @click="selectedBizNo = article.bizNo">
-            <div class="article-main">
-              <strong>{{ article.title }}</strong>
-              <span class="article-meta">{{ article.wordCount }} 字 · {{ article.platformName }} · 完成于 {{ formatCompletedAt(article.completedAt) }}</span>
-              <span v-if="!inRange(article)" class="article-warn">字数不符（要求 {{ wordRangeText(task) }}）</span>
+      <a-modal v-model:open="pickerVisible" title="选择投稿文章" :footer="null" centered :width="560" class="article-picker-modal">
+        <div class="picker-body">
+          <div v-if="articles.length === 0" class="empty picker-empty">暂无已生成文章</div>
+          <template v-else>
+            <a-input-search
+              v-model:value="searchKeyword"
+              placeholder="搜索文章标题"
+              allow-clear
+              class="picker-search"
+            />
+            <div v-if="pagedArticles.length === 0" class="empty picker-empty">未找到匹配的文章</div>
+            <div v-else class="article-list">
+              <button v-for="article in pagedArticles" :key="article.bizNo"
+                      :disabled="isArticleDisabled(article)"
+                      :class="['article-item', { selected: isArticleSelected(article), disabled: isArticleDisabled(article) }]"
+                      @click="selectArticle(article)">
+                <div class="article-icon">{{ articleIcon(article) }}</div>
+                <div class="article-main">
+                  <strong>{{ article.title }}</strong>
+                  <span class="article-meta">{{ article.wordCount }} 字 · {{ article.platformName }} · 完成于 {{ formatCompletedAt(article.completedAt) }}</span>
+                  <span v-if="!inRange(article)" class="article-warn">字数不符（要求 {{ wordRangeText(task) }}）</span>
+                  <span v-else-if="submittedBizNos.has(article.bizNo)" class="article-warn">已投递其他任务</span>
+                </div>
+                <div class="article-check">
+                  <span v-if="isArticleSelected(article)">✓</span>
+                  <span v-else-if="isArticleDisabled(article)" class="article-check-disabled">−</span>
+                </div>
+              </button>
             </div>
-          </button>
-        </div>
-        <div class="modal-actions">
-          <button class="secondary-btn" @click="pickerVisible = false">取消</button>
-          <button class="primary-btn" :disabled="!selectedBizNo || submitting" @click="submit">确认投稿</button>
+            <a-pagination
+              v-if="filteredArticles.length > PICKER_PAGE_SIZE"
+              :current="pickerPage"
+              :page-size="PICKER_PAGE_SIZE"
+              :total="filteredArticles.length"
+              simple
+              class="picker-pagination"
+              @change="pickerPage = $event"
+            />
+          </template>
+          <div class="modal-actions">
+            <button class="secondary-btn" @click="pickerVisible = false">取消</button>
+            <button class="primary-btn" :disabled="!selectedBizNo || submitting" @click="submit">确认投稿</button>
+          </div>
         </div>
       </a-modal>
     </template>
@@ -150,7 +194,7 @@
 </template>
 
 <script setup>
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
@@ -158,19 +202,37 @@ import { useWorks } from '@/composables/useWorks'
 
 const route = useRoute()
 const router = useRouter()
-const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission } = useCommission()
+const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission, mySubmissions, loadMySubmissions } = useCommission()
 const { articles, load: loadWorks } = useWorks()
 const pickerVisible = ref(false)
 const selectedBizNo = ref('')
 const submitting = ref(false)
+const searchKeyword = ref('')
+const pickerPage = ref(1)
 
+const PICKER_PAGE_SIZE = 5
 const MAX_VISIBLE_SUBMITTERS = 5
 
 const task = computed(() => taskDetail.value?.task || null)
 const mySubmission = computed(() => taskDetail.value?.mySubmission || null)
 const submitters = computed(() => taskDetail.value?.submitters || [])
+const adopters = computed(() => taskDetail.value?.adopters || [])
 const submissionCount = computed(() => taskDetail.value?.submissionCount || 0)
 const visibleSubmitters = computed(() => submitters.value.slice(0, MAX_VISIBLE_SUBMITTERS))
+const submittedBizNos = computed(() => new Set(
+  mySubmissions.value
+    .filter(s => s.status !== 3)
+    .map(s => s.articleBizNo)
+))
+const filteredArticles = computed(() => {
+  const kw = searchKeyword.value.trim()
+  if (!kw) return articles.value
+  return articles.value.filter(a => (a.title || '').toLowerCase().includes(kw.toLowerCase()))
+})
+const pagedArticles = computed(() => {
+  const start = (pickerPage.value - 1) * PICKER_PAGE_SIZE
+  return filteredArticles.value.slice(start, start + PICKER_PAGE_SIZE)
+})
 const canSubmit = computed(() => task.value?.status === 0 && !mySubmission.value)
 const canWithdraw = computed(() => task.value?.status === 0 && mySubmission.value?.status === 0)
 
@@ -192,11 +254,16 @@ const deadlineText = computed(() => {
   return `投递截止于 ${new Date(task.value.deadlineAt).toLocaleString()}`
 })
 
+watch(searchKeyword, () => {
+  pickerPage.value = 1
+})
+
 onMounted(async () => {
   try {
     await Promise.all([
       loadTask(route.params.id),
-      loadWorks({ page: 1, pageSize: 50 })
+      loadWorks({ page: 1, pageSize: 50 }),
+      loadMySubmissions()
     ])
   } catch (error) {
     message.error(error.message || '约稿详情加载失败')
@@ -216,6 +283,16 @@ function inRange(article) {
   if (max != null && article.wordCount > max) return false
   return true
 }
+function isArticleDisabled(article) {
+  return !inRange(article) || submittedBizNos.value.has(article.bizNo)
+}
+function isArticleSelected(article) {
+  return selectedBizNo.value === article.bizNo && !isArticleDisabled(article)
+}
+function selectArticle(article) {
+  if (isArticleDisabled(article)) return
+  selectedBizNo.value = article.bizNo
+}
 function wordRangeText(item) {
   if (!item) return ''
   const min = item.minWordCount
@@ -234,9 +311,20 @@ function firstChar(name) {
 }
 function openPicker() {
   selectedBizNo.value = ''
+  searchKeyword.value = ''
+  pickerPage.value = 1
   pickerVisible.value = true
 }
+function articleIcon(article) {
+  if (article.platformName) return firstChar(article.platformName)
+  return firstChar(article.title)
+}
 async function submit() {
+  const selectedArticle = pagedArticles.value.find(a => a.bizNo === selectedBizNo.value)
+  if (!selectedArticle || isArticleDisabled(selectedArticle)) {
+    message.warning('该文章不可投稿，请选择其他文章')
+    return
+  }
   submitting.value = true
   try {
     await submitArticle(task.value.id, selectedBizNo.value)
@@ -354,6 +442,13 @@ function confirmWithdraw() {
   border: 2px solid #fff;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
   margin-left: -10px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.submitter-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .submitter-avatar:first-child { margin-left: 0; }
 .submitter-count {
@@ -366,10 +461,18 @@ function confirmWithdraw() {
   font-weight: 500;
   white-space: nowrap;
 }
+.adopter-block .submitter-avatar {
+  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+}
+.adopter-block .submitter-count {
+  background: #fff7e6;
+  color: #d48806;
+}
 
 body[data-theme="dark"] .submitter-block h3 { color: #f5f5f5; }
 body[data-theme="dark"] .submitter-avatar { border-color: #1f1f1f; }
 body[data-theme="dark"] .submitter-count { background: #262626; color: #bfbfbf; }
+body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; color: #ffac33; }
 
 @media (max-width: 768px) {
   .submitter-avatar {
@@ -532,37 +635,141 @@ body[data-theme="dark"] .submitter-count { background: #262626; color: #bfbfbf; 
 }
 
 .article-list {
-  max-height: 420px;
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
   padding-right: 2px;
 }
-.article-item {
+.picker-body {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  height: 100%;
+}
+.picker-search {
+  margin-bottom: 14px;
+}
+.picker-pagination {
+  margin-top: 14px;
+  text-align: center;
+}
+.picker-empty {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 16px;
+}
+.article-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   padding: 14px 16px;
   border: 1px solid #eee;
   border-radius: 12px;
   background: #fff;
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s ease, background 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
-.article-item strong { font-size: 14px; color: #1f1f1f; }
-.article-item .article-meta { font-size: 12px; color: #8c8c8c; }
-.article-item .article-warn { font-size: 12px; color: #fa8c16; }
+.article-item:hover {
+  border-color: var(--color-primary, #ff2442);
+  background: #fff8f9;
+}
 .article-item.selected {
   border-color: var(--color-primary, #ff2442);
   background: #fff5f7;
+  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
 }
-.article-item:disabled { opacity: .55; cursor: not-allowed; }
-.modal-actions {
+.article-item.disabled,
+.article-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #eee;
+}
+.article-item.disabled:hover,
+.article-item:disabled:hover {
+  border-color: #eee;
+  background: #f5f5f5;
+  box-shadow: none;
+}
+.article-icon {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--color-primary-light, #fff0f2);
+  color: var(--color-primary, #ff2442);
   display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 18px;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
+}
+.article-item.selected .article-icon {
+  background: var(--color-primary, #ff2442);
+  color: #fff;
+}
+.article-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.article-main strong {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1f1f;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.article-main .article-meta {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.article-main .article-warn {
+  display: inline-flex;
+  align-self: flex-start;
+  font-size: 12px;
+  color: #fa8c16;
+  background: #fff7e6;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.article-check {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid #d9d9d9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: transparent;
+  transition: all 0.2s ease;
+}
+.article-check .article-check-disabled {
+  color: #bfbfbf;
+  font-size: 16px;
+  font-weight: 600;
+}
+.article-item.selected .article-check {
+  border-color: var(--color-primary, #ff2442);
+  background: var(--color-primary, #ff2442);
+  color: #fff;
 }
 .modal-actions .primary-btn,
 .modal-actions .secondary-btn { width: auto; min-width: 96px; }
@@ -600,10 +807,33 @@ body[data-theme="dark"] .article-item {
   background: #262626;
   border-color: #303030;
 }
-body[data-theme="dark"] .article-item strong { color: #f5f5f5; }
+body[data-theme="dark"] .article-item:hover {
+  background: #2a1f21;
+  border-color: var(--color-primary, #ff2442);
+}
 body[data-theme="dark"] .article-item.selected {
   background: rgba(255, 36, 66, 0.12);
   border-color: var(--color-primary, #ff2442);
+}
+body[data-theme="dark"] .article-item.disabled,
+body[data-theme="dark"] .article-item:disabled {
+  background: #1f1f1f;
+  border-color: #303030;
+  opacity: 0.5;
+}
+body[data-theme="dark"] .article-main strong { color: #f5f5f5; }
+body[data-theme="dark"] .article-main .article-warn {
+  background: #2b2115;
+  color: #ffac33;
+}
+body[data-theme="dark"] .article-check { border-color: #595959; }
+body[data-theme="dark"] .article-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+body[data-theme="dark"] .article-item.selected .article-icon {
+  background: var(--color-primary, #ff2442);
+  color: #fff;
 }
 body[data-theme="dark"] .secondary-btn { background: #2a2a2a; color: #d9d9d9; }
 body[data-theme="dark"] .reward-result {
@@ -672,5 +902,12 @@ body[data-theme="dark"] .reward-result {
     border-color: #303030;
   }
   body[data-theme="dark"] .mobile-submit-bar > span { color: #bfbfbf; }
+}
+</style>
+
+<style>
+.article-picker-modal .ant-modal-body {
+  height: 520px;
+  padding: 20px 24px 24px;
 }
 </style>

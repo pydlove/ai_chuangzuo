@@ -67,6 +67,7 @@ public class GenerationTaskService {
         task.setStatus(GenerationTaskStatus.COMPLETED);
         task.setCompletedAt(LocalDateTime.now());
         task.setFailedReason(null);
+        task.setArticleBizNo(articleBizNo);
         mapper.updateById(task);
         log.info("task={} completed, articleBizNo={}", taskId, articleBizNo);
     }

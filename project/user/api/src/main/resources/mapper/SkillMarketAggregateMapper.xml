@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketAggregateMapper">
+
+    <select id="selectEnabledMarketSkills" resultType="com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow">
+        SELECT s.biz_no          AS bizNo,
+               s.skill_name      AS skillName,
+               s.description     AS description,
+               s.prompt_summary  AS promptSummary,
+               s.prompt          AS prompt,
+               s.scope           AS scope,
+               s.publisher_user_id AS publisherUserId,
+               COALESCE(u.nickname, CONCAT('用户', u.biz_no)) AS publisherName,
+               s.price           AS price,
+               s.total_uses      AS totalUses,
+               s.weekly_uses     AS weeklyUses,
+               s.weekly_earnings AS weeklyEarnings,
+               s.milestone_bonus AS milestoneBonus,
+               s.last_settlement_at AS lastSettlementAt,
+               s.created_at      AS createdAt
+        FROM u_skill_market s
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND s.enable_status = 1
+          AND s.audit_status = 1
+          <if test="keyword != null and keyword != ''">
+              AND (
+                  s.skill_name LIKE CONCAT('%', #{keyword}, '%')
+                  OR s.scope LIKE CONCAT('%', #{keyword}, '%')
+              )
+          </if>
+        ORDER BY
+        <choose>
+            <when test="sortType == 'week-hot'">
+                s.weekly_uses DESC, s.id DESC
+            </when>
+            <when test="sortType == 'all-hot'">
+                s.total_uses DESC, s.id DESC
+            </when>
+            <when test="sortType == 'new'">
+                s.created_at DESC, s.id DESC
+            </when>
+            <when test="sortType == 'featured'">
+                s.total_uses DESC, s.id DESC
+            </when>
+            <otherwise>
+                s.id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+</mapper>

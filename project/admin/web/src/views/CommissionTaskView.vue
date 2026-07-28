@@ -6,6 +6,16 @@
         <a-select-option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
       <a-button type="primary" @click="openPublish">发布约稿任务</a-button>
+      <a-upload
+        accept=".xlsx"
+        :show-upload-list="false"
+        :before-upload="beforeImport"
+        :custom-request="handleImport"
+      >
+        <a-button :loading="importing">导入任务</a-button>
+      </a-upload>
+      <a-button @click="downloadTemplate">下载模板</a-button>
+      <a-button :loading="reconciling" @click="reconcileStatus">校正任务状态</a-button>
     </div>
 
     <a-table :columns="columns" :data-source="records" :loading="loading" row-key="id" :pagination="pagination" @change="onTableChange">
@@ -33,7 +43,7 @@
           <a-col :span="12"><a-form-item label="最小字数" required><a-input-number v-model:value="form.minWordCount" :min="1" style="width:100%" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="最大字数" required><a-input-number v-model:value="form.maxWordCount" :min="1" style="width:100%" /></a-form-item></a-col>
         </a-row>
-        <a-form-item label="风格提示"><a-input v-model:value="form.styleHint" :maxlength="128" /></a-form-item>
+        <a-form-item label="风格提示"><a-input v-model:value="form.skillHint" :maxlength="128" /></a-form-item>
         <a-row :gutter="12">
           <a-col :span="12"><a-form-item label="每篇奖励" required><a-input-number v-model:value="form.rewardCoin" :min="5" style="width:100%" addon-after="创作币" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="需采纳数量" required><a-input-number v-model:value="form.neededCount" :min="1" style="width:100%" addon-after="篇" /></a-form-item></a-col>
@@ -52,7 +62,7 @@
           <a-col :span="12"><a-form-item label="最小字数" required><a-input-number v-model:value="form.minWordCount" :min="1" style="width:100%" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="最大字数" required><a-input-number v-model:value="form.maxWordCount" :min="1" style="width:100%" /></a-form-item></a-col>
         </a-row>
-        <a-form-item label="风格提示"><a-input v-model:value="form.styleHint" :maxlength="128" /></a-form-item>
+        <a-form-item label="风格提示"><a-input v-model:value="form.skillHint" :maxlength="128" /></a-form-item>
         <a-row :gutter="12">
           <a-col :span="12"><a-form-item label="每篇奖励" required><a-input-number v-model:value="form.rewardCoin" :min="5" style="width:100%" addon-after="创作币" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="需采纳数量" required><a-input-number v-model:value="form.neededCount" :min="1" style="width:100%" addon-after="篇" /></a-form-item></a-col>
@@ -78,27 +88,49 @@
         <div class="submission-heading">
           <h3>投稿稿件</h3>
           <a-space>
-            <a-button type="primary" :disabled="!canAdopt" :loading="adopting" @click="adoptSelected">采纳所选并发奖</a-button>
+            <a-button type="primary" :disabled="!canAdopt" :loading="adopting" @click="confirmAdopt">采纳所选并发奖</a-button>
             <a-button @click="openAddSubmission">添加投稿人</a-button>
           </a-space>
         </div>
         <a-alert v-if="detail.task.status === 1" type="info" show-icon :message="`还可采纳 ${remainingCount} 篇，最多选择对应数量`" />
         <a-alert v-else-if="detail.task.status === 2" type="success" show-icon message="任务已完成，不可再采纳" />
-        <a-table :columns="submissionColumns" :data-source="visibleSubmissions" row-key="id" :pagination="false" :row-selection="rowSelection">
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'submitter'">
-              <span>{{ record.submitterNickname || record.submitterEmail || record.submitterId }}</span>
-            </template>
-            <template v-else-if="column.key === 'article'">
-              <a-button type="link" @click="previewSubmission = record">《{{ record.articleTitle }}》</a-button>
-            </template>
-            <template v-else-if="column.key === 'status'"><a-tag>{{ submissionStatus(record.status) }}</a-tag></template>
-          </template>
-        </a-table>
+        <a-tabs v-model:activeKey="activeTab" @change="selectedRowKeys = []">
+          <a-tab-pane key="real" :tab="`真实用户 (${realSubmissions.length})`">
+            <a-table :columns="submissionColumns" :data-source="realSubmissions" row-key="id" :pagination="false" :row-selection="rowSelection" table-layout="fixed">
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'submitter'">
+                  <span>{{ record.submitterNickname || record.submitterEmail || record.submitterId }}</span>
+                </template>
+                <template v-else-if="column.key === 'article'">
+                  <a-tooltip :title="record.articleTitle">
+                    <span class="article-title" @click="previewSubmission = record">《{{ record.articleTitle }}》</span>
+                  </a-tooltip>
+                </template>
+                <template v-else-if="column.key === 'status'"><a-tag>{{ submissionStatus(record.status) }}</a-tag></template>
+              </template>
+            </a-table>
+          </a-tab-pane>
+          <a-tab-pane key="bot" :tab="`机器人 (${botSubmissions.length})`">
+            <a-table :columns="submissionColumns" :data-source="botSubmissions" row-key="id" :pagination="false" :row-selection="rowSelection" table-layout="fixed">
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'submitter'">
+                  <span>{{ record.submitterNickname || record.submitterEmail || record.submitterId }}</span>
+                  <a-tag color="orange" style="margin-left: 6px">机器人</a-tag>
+                </template>
+                <template v-else-if="column.key === 'article'">
+                  <a-tooltip :title="record.articleTitle">
+                    <span class="article-title" @click="previewSubmission = record">《{{ record.articleTitle }}》</span>
+                  </a-tooltip>
+                </template>
+                <template v-else-if="column.key === 'status'"><a-tag>{{ submissionStatus(record.status) }}</a-tag></template>
+              </template>
+            </a-table>
+          </a-tab-pane>
+        </a-tabs>
       </template>
     </a-modal>
 
-    <a-modal :open="!!previewSubmission" title="稿件内容" :footer="null" width="760" @cancel="previewSubmission = null">
+    <a-modal :open="!!previewSubmission" title="稿件内容" :footer="null" :width="1280" @cancel="previewSubmission = null">
       <template v-if="previewSubmission">
         <h2>{{ previewSubmission.articleTitle }}</h2>
         <p class="article-meta">{{ previewSubmission.wordCount }} 字</p>
@@ -131,6 +163,39 @@
         </a-form-item>
       </a-form>
     </a-modal>
+    <a-modal v-model:open="importResultVisible" title="导入结果" :footer="null" width="640">
+      <template v-if="importResult">
+        <a-alert
+          v-if="importResult.success"
+          type="success"
+          show-icon
+          :message="`成功导入 ${importResult.importedCount} 条约稿任务`"
+        />
+        <a-alert
+          v-else
+          type="error"
+          show-icon
+          :message="`导入失败，共 ${importResult.totalRows} 行，请修正以下错误后重新上传`"
+          style="margin-bottom: 16px"
+        />
+        <a-table
+          v-if="!importResult.success && importResult.errors?.length"
+          :columns="importErrorColumns"
+          :data-source="importResult.errors"
+          :pagination="false"
+          size="small"
+          row-key="rowIndex"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'errors'">
+              <ul class="import-error-list">
+                <li v-for="(err, idx) in record.errors" :key="idx">{{ err }}</li>
+              </ul>
+            </template>
+          </template>
+        </a-table>
+      </template>
+    </a-modal>
   </div>
 </template>
 
@@ -141,13 +206,17 @@ import dayjs from 'dayjs'
 import {
   adoptCommissionSubmissions, closeCommissionTask, createCommissionSubmissionBatch,
   createCommissionTask, fetchCommissionTask, fetchCommissionTasks,
-  updateCommissionTask
+  importCommissionTasks, reconcileCommissionTasks, updateCommissionTask
 } from '@/api/commission.js'
 import { listUserOptions } from '@/api/userOptions.js'
 
 const loading = ref(false)
 const saving = ref(false)
 const adopting = ref(false)
+const reconciling = ref(false)
+const importing = ref(false)
+const importResult = ref(null)
+const importResultVisible = ref(false)
 const records = ref([])
 const keyword = ref('')
 const status = ref(undefined)
@@ -160,6 +229,7 @@ const editingTaskId = ref(null)
 const updating = ref(false)
 const detailVisible = ref(false)
 const detail = ref(null)
+const activeTab = ref('real')
 const selectedRowKeys = ref([])
 const previewSubmission = ref(null)
 const addSubmissionVisible = ref(false)
@@ -174,28 +244,36 @@ const statusOptions = [0, 1, 2].map((value) => ({ value, label: taskStatus(value
 const columns = [
   { title: '任务编号', dataIndex: 'taskNo', width: 180 }, { title: '标题', dataIndex: 'title' },
   { title: '奖励', key: 'reward', width: 130 }, { title: '采纳进度', key: 'progress', width: 100 },
+  { title: '投稿数', dataIndex: 'submissionCount', width: 90 },
+  { title: '机器人', dataIndex: 'manualCount', width: 90 },
   { title: '投递截止', key: 'deadline', width: 160 },
   { title: '评选截止', key: 'selectionDeadline', width: 160 },
   { title: '状态', key: 'status', width: 110 },
   { title: '操作', key: 'action', width: 240 }
 ]
+const importErrorColumns = [
+  { title: 'Excel 行号', dataIndex: 'rowIndex', width: 100 },
+  { title: '任务标题', dataIndex: 'title', width: 160 },
+  { title: '错误信息', key: 'errors' }
+]
 const submissionColumns = [
   { title: '投稿用户', key: 'submitter', dataIndex: 'submitterNickname', width: 140 },
   { title: '用户邮箱', dataIndex: 'submitterEmail', width: 180 },
-  { title: '稿件', key: 'article' },
+  { title: '稿件', key: 'article', width: 200 },
   { title: '字数', dataIndex: 'wordCount', width: 90 },
   { title: '状态', key: 'status', width: 110 }
 ]
 const pagination = computed(() => ({ current: page.value, pageSize: pageSize.value, total: total.value, showSizeChanger: true }))
 const remainingCount = computed(() => detail.value ? detail.value.task.neededCount - detail.value.task.adoptedCount : 0)
-const visibleSubmissions = computed(() => (detail.value?.submissions || []).filter(s => !s.articleBizNo?.startsWith('MANUAL:')))
+const realSubmissions = computed(() => (detail.value?.submissions || []).filter(s => !s.articleBizNo?.startsWith('MANUAL:')))
+const botSubmissions = computed(() => (detail.value?.submissions || []).filter(s => s.articleBizNo?.startsWith('MANUAL:')))
 const canAdopt = computed(() => detail.value?.task.status === 1 && selectedRowKeys.value.length > 0 && selectedRowKeys.value.length <= remainingCount.value)
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
   onChange: (keys) => { selectedRowKeys.value = keys },
   getCheckboxProps: (record) => ({ disabled: record.status !== 0 })
 }))
-const emptyForm = () => ({ title: '', description: '', minWordCount: 600, maxWordCount: 1200, styleHint: '', rewardCoin: 30, neededCount: 1, deadlineAt: null, selectionDeadlineAt: null })
+const emptyForm = () => ({ title: '', description: '', minWordCount: 600, maxWordCount: 1200, skillHint: '', rewardCoin: 30, neededCount: 1, deadlineAt: null, selectionDeadlineAt: null })
 const form = reactive(emptyForm())
 
 async function loadTasks() {
@@ -208,6 +286,46 @@ async function loadTasks() {
   finally { loading.value = false }
 }
 function onTableChange(p) { page.value = p.current; pageSize.value = p.pageSize; loadTasks() }
+async function reconcileStatus() {
+  reconciling.value = true
+  try {
+    const changed = await reconcileCommissionTasks()
+    message.success(changed > 0 ? `已校正 ${changed} 个任务状态` : '所有任务状态已是最新')
+    if (changed > 0) loadTasks()
+  } catch (error) { message.error(error.message || '校正失败') }
+  finally { reconciling.value = false }
+}
+function beforeImport(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    message.error('请上传 .xlsx 格式的 Excel 文件')
+    return false
+  }
+  return true
+}
+async function handleImport({ file }) {
+  importing.value = true
+  try {
+    const result = await importCommissionTasks(file)
+    importResult.value = result
+    importResultVisible.value = true
+    if (result.success) {
+      message.success(`成功导入 ${result.importedCount} 条约稿任务`)
+      loadTasks()
+    }
+  } catch (error) {
+    message.error(error.message || '导入失败')
+  } finally {
+    importing.value = false
+  }
+}
+function downloadTemplate() {
+  const link = document.createElement('a')
+  link.href = '/commission-task-template.xlsx'
+  link.download = '约稿任务导入模板.xlsx'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 function validateForm() {
   if (!form.title.trim() || !form.description.trim() || !form.deadlineAt || !form.selectionDeadlineAt) return '请完整填写任务信息'
   if (form.minWordCount > form.maxWordCount) return '最小字数不能大于最大字数'
@@ -240,7 +358,7 @@ function openEdit(record) {
     description: record.description || '',
     minWordCount: record.minWordCount || 600,
     maxWordCount: record.maxWordCount || 1200,
-    styleHint: record.styleHint || '',
+    skillHint: record.skillHint || '',
     rewardCoin: record.rewardCoin,
     neededCount: record.neededCount,
     deadlineAt: dayjs(record.deadlineAt),
@@ -262,7 +380,7 @@ async function submitEdit() {
 }
 const editingDeadlinePassed = computed(() => form.deadlineAt && form.deadlineAt.isBefore(dayjs()))
 async function openDetail(id) {
-  try { detail.value = await fetchCommissionTask(id); selectedRowKeys.value = []; detailVisible.value = true }
+  try { detail.value = await fetchCommissionTask(id); activeTab.value = 'real'; selectedRowKeys.value = []; detailVisible.value = true }
   catch (error) { message.error(error.message || '详情加载失败') }
 }
 function endSubmission(record) {
@@ -277,6 +395,15 @@ async function adoptSelected() {
     loadTasks()
   } catch (error) { message.error(error.message || '采纳发奖失败') }
   finally { adopting.value = false }
+}
+function confirmAdopt() {
+  const count = selectedRowKeys.value.length
+  Modal.confirm({
+    title: '确认采纳所选稿件？',
+    content: `本次将采纳 ${count} 篇稿件并发放奖励，操作后不可撤销。`,
+    okType: 'primary',
+    onOk: adoptSelected
+  })
 }
 function openAddSubmission() {
   Object.assign(submissionForm, { submitterIds: [], articleTitle: '', articleBody: '', wordCount: detail.value?.task?.minWordCount || 600 })
@@ -338,4 +465,9 @@ loadTasks()
 .submission-heading h3 { margin: 0; }
 .article-meta { color: #999; }
 .article-body { max-height: 60vh; overflow: auto; white-space: pre-wrap; line-height: 1.8; }
+.article-title { color: #1890ff; cursor: pointer; display: block; width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.article-title:hover { color: #40a9ff; }
+.import-error-list { margin: 0; padding-left: 16px; color: #cf1322; }
+.import-error-list li { margin-bottom: 4px; }
+.import-error-list li:last-child { margin-bottom: 0; }
 </style>

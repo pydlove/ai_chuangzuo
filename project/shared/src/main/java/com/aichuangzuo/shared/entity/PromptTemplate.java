@@ -16,7 +16,7 @@ import lombok.Setter;
  *
  * <p>系统提示词（规定 AI 返回 JSON schema）由 {@code PromptConstants} 维护，
  * 不再存表；用户写作风格由 {@code u_user_style.prompt} 在用户提交任务时
- * 快照到 {@code a_generation_task.input_param.userStylePrompt}，executor 拼装
+ * 快照到 {@code a_generation_task.input_param.userSkillPrompt}，executor 拼装
  * 时直接读取。
  *
  * <p>运行时约束：全表最多 1 条 template_status=PUBLISHED，由发布事务保证。
@@ -32,7 +32,7 @@ public class PromptTemplate extends BaseEntity {
     /** 模板名称（管理后台显示）。 */
     private String name;
 
-    /** 基础内容（去 AI 味），支持 {{title}} {{description}} {{platform}} {{wordCount}} {{userStylePrompt}} 占位符。 */
+    /** 基础内容（去 AI 味），支持 {{title}} {{description}} {{platform}} {{wordCount}} {{userSkillPrompt}} 占位符。 */
     private String baseContent;
 
     /** 模板状态：0-草稿，1-已发布，2-已下线。详见 {@code TemplateStatus}。 */

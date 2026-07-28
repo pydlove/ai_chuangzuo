@@ -38,11 +38,15 @@ public class ExportRenderStep implements GenerationStep {
 
     @Override
     public StepResult process(GenerationContext ctx) {
-        if (ctx.getFinalDraftJson() == null) {
+        String finalDraft = ctx.getFinalDraftJson();
+        if (finalDraft == null || finalDraft.isBlank()) {
+            finalDraft = ctx.getDraftJson();
+        }
+        if (finalDraft == null || finalDraft.isBlank()) {
             throw new RuntimeException("finalDraftJson 为空，无法渲染导出模板");
         }
 
-        String body = renderDraft(ctx);
+        String body = renderDraft(finalDraft);
         String templateKey = resolveTemplateKey(ctx);
         String rendered = applySignature(templateKey, body);
 
@@ -50,7 +54,7 @@ public class ExportRenderStep implements GenerationStep {
         result.setFormat("markdown");
         result.setPlatform(resolvePlatform(ctx, templateKey));
         result.setRenderedDocument(rendered);
-        result.setSourceDraftJson(ctx.getFinalDraftJson());
+        result.setSourceDraftJson(finalDraft);
         ctx.setExportResult(result);
         log.info("导出模板渲染完成 platform={} format=markdown templateKey={}",
                 result.getPlatform(), templateKey);
@@ -65,9 +69,9 @@ public class ExportRenderStep implements GenerationStep {
      *   <li>每段 content 拼成段落，按 paragraph_index 顺序，段间空一行</li>
      * </ul>
      */
-    private String renderDraft(GenerationContext ctx) {
+    private String renderDraft(String finalDraftJson) {
         try {
-            JsonNode root = MAPPER.readTree(ctx.getFinalDraftJson());
+            JsonNode root = MAPPER.readTree(finalDraftJson);
             StringBuilder sb = new StringBuilder();
             boolean first = true;
             for (JsonNode para : root.path("draft")) {
@@ -82,7 +86,7 @@ public class ExportRenderStep implements GenerationStep {
             return sb.toString();
         } catch (Exception e) {
             log.warn("finalDraft 解析失败，返回原文", e);
-            return ctx.getFinalDraftJson();
+            return finalDraftJson;
         }
     }
 

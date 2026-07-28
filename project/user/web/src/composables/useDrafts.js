@@ -20,7 +20,7 @@ function normalizeDraft(raw) {
     platform: raw.platform || '',
     platformName: raw.platform || '未选择平台',
     style: raw.style || '',
-    styleName: raw.style || '未选择',
+    skillName: raw.style || '未选择',
     template: raw.template || '',
     wordCount: raw.wordCount || 0,
     savedAt: raw.savedAt,

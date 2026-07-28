@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 
-// 模块级单例：引导模式与极简模式共享同一份创作配置（同 useStyles 模式）
+// 模块级单例：引导模式与极简模式共享同一份创作配置（同 useSkills 模式）
 const MODE_KEY = 'aichuangzuo_create_mode'
 
 export const platforms = [

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS u_leaderboard_reward_record (
     period_month CHAR(7) NOT NULL COMMENT '榜单所属月份',
     rank_no INT UNSIGNED NOT NULL COMMENT '排名 1-10',
     user_id BIGINT UNSIGNED NOT NULL COMMENT '获奖用户ID',
-    amount DECIMAL(19,4) NOT NULL DEFAULT 100.0000 COMMENT '奖励金额（创作币）',
+    amount DECIMAL(19,4) NOT NULL DEFAULT 1000.0000 COMMENT '奖励金额（创作币）',
     coin_record_biz_no VARCHAR(64) DEFAULT NULL COMMENT '对应 u_user_coin_record.biz_no',
     granted_by BIGINT UNSIGNED NOT NULL COMMENT '发放管理员ID',
     granted_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '发放时间',

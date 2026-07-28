@@ -177,7 +177,7 @@ const normalizeItems = (items, type) => {
         id: item.bizNo,
         title: item.title,
         platformName: item.platformName,
-        styleName: item.styleName,
+        skillName: item.skillName,
         wordCount: item.wordCount,
         savedAt: item.savedAt,
         date: item.savedAt ? new Date(item.savedAt) : null,
@@ -188,7 +188,7 @@ const normalizeItems = (items, type) => {
       id: item.bizNo,
       title: item.title,
       platformName: item.platformName,
-      styleName: item.styleName,
+      skillName: item.skillName,
       wordCount: item.wordCount,
       completedAt: item.completedAt,
       date: item.completedAt ? new Date(item.completedAt) : null,
@@ -241,7 +241,7 @@ const matchesFilters = (item) => {
   }
 
   if (selectedStyles.value.length > 0) {
-    if (!selectedStyles.value.includes(item.styleName)) {
+    if (!selectedStyles.value.includes(item.skillName)) {
       return false
     }
   }

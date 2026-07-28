@@ -15,3 +15,16 @@ export const stopGenerationTask = (id) =>
  */
 export const getGenerationCallLogsGrouped = (taskId) =>
   request.get(`/api/v1/admin/generation/call-logs/by-task/${taskId}/grouped`).then((res) => res.data)
+
+/** 在线预览已完成任务的最终文章。 */
+export const previewGenerationTaskArticle = (id) =>
+  request.get(`/api/v1/admin/generation/tasks/${id}/article`).then((res) => res.data)
+
+/**
+ * 下载已完成任务的最终文章（markdown 文件）。
+ * 返回 Blob，调用方自行触发下载。
+ */
+export const downloadGenerationTaskArticle = (id) =>
+  request.get(`/api/v1/admin/generation/tasks/${id}/article/download`, {
+    responseType: 'blob'
+  })

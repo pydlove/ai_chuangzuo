@@ -41,6 +41,9 @@ class GenerationTaskAdminServiceTest {
     @Mock
     private QuotaRefundInternalClient refundClient;
 
+    @Mock
+    private ArticleReadInternalClient articleReadClient;
+
     @InjectMocks
     private GenerationTaskAdminService service;
 
@@ -176,5 +179,72 @@ class GenerationTaskAdminServiceTest {
         ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
         verify(taskMapper).updateById(captor.capture());
         assertEquals(GenerationTaskStatus.FAILED, captor.getValue().getStatus());
+    }
+
+    @Test
+    void previewArticle_shouldReturnArticleWhenTaskCompleted() {
+        GenerationTask task = new GenerationTask();
+        task.setId(30L);
+        task.setStatus(GenerationTaskStatus.COMPLETED);
+        task.setArticleBizNo("A123");
+        when(taskMapper.selectById(30L)).thenReturn(task);
+
+        com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO article =
+                new com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO();
+        article.setBizNo("A123");
+        article.setTitle("测试标题");
+        article.setBody("正文内容");
+        when(articleReadClient.getArticle("A123")).thenReturn(article);
+
+        com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO result = service.previewArticle(30L);
+
+        assertEquals("测试标题", result.getTitle());
+        assertEquals("正文内容", result.getBody());
+    }
+
+    @Test
+    void previewArticle_shouldThrowWhenTaskNotCompleted() {
+        GenerationTask task = new GenerationTask();
+        task.setId(31L);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        when(taskMapper.selectById(31L)).thenReturn(task);
+
+        assertThrows(BusinessException.class, () -> service.previewArticle(31L));
+        verify(articleReadClient, never()).getArticle(any());
+    }
+
+    @Test
+    void previewArticle_shouldThrowWhenArticleBizNoMissing() {
+        GenerationTask task = new GenerationTask();
+        task.setId(32L);
+        task.setStatus(GenerationTaskStatus.COMPLETED);
+        when(taskMapper.selectById(32L)).thenReturn(task);
+
+        assertThrows(BusinessException.class, () -> service.previewArticle(32L));
+        verify(articleReadClient, never()).getArticle(any());
+    }
+
+    @Test
+    void downloadArticle_shouldReturnMarkdownBytes() {
+        GenerationTask task = new GenerationTask();
+        task.setId(40L);
+        task.setBizNo("GA20260701");
+        task.setStatus(GenerationTaskStatus.COMPLETED);
+        task.setArticleBizNo("A456");
+        when(taskMapper.selectById(40L)).thenReturn(task);
+
+        com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO article =
+                new com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO();
+        article.setTitle("标题");
+        article.setBody("正文");
+        article.setDescription("描述");
+        when(articleReadClient.getArticle("A456")).thenReturn(article);
+
+        ArticleDownload download = service.downloadArticle(40L);
+
+        assertEquals("GA20260701.md", download.getFilename());
+        String content = new String(download.getContent(), java.nio.charset.StandardCharsets.UTF_8);
+        assertNotNull(content);
+        assertEquals("# 标题\n\n\u003e 描述\n\n正文", content);
     }
 }

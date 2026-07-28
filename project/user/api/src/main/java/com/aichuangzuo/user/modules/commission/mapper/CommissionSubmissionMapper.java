@@ -51,4 +51,22 @@ public interface CommissionSubmissionMapper extends BaseMapper<CommissionSubmiss
             "LIMIT #{limit}"
     })
     List<CommissionSubmitterVO> selectSubmittersByTaskId(@Param("taskId") Long taskId, @Param("limit") int limit);
+
+    /**
+     * 查询任务已被采纳的投稿人（中稿人）。
+     *
+     * @param taskId 任务ID
+     * @return 中稿人摘要列表
+     */
+    @Select({
+            "SELECT s.submitter_id AS submitterId, u.nickname, u.avatar_url AS avatarUrl",
+            "FROM u_commission_submission s",
+            "JOIN u_user u ON s.submitter_id = u.id",
+            "WHERE s.task_id = #{taskId}",
+            "AND s.status = 1",
+            "AND s.is_deleted = 0",
+            "AND u.is_deleted = 0",
+            "ORDER BY s.adopted_at DESC"
+    })
+    List<CommissionSubmitterVO> selectAdoptersByTaskId(@Param("taskId") Long taskId);
 }

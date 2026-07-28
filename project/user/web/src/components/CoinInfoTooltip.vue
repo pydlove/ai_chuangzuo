@@ -14,7 +14,7 @@
         <div class="invite-coin-tooltip-section">
           <div class="invite-coin-tooltip-section-title">如何获得</div>
           <ul class="invite-coin-tooltip-list">
-            <li>通过邀请链接注册，立刻获得 <b>5 创作币</b>（仅限新用户）</li>
+            <li>通过邀请链接注册，立刻获得 <b>50 创作币</b>（仅限新用户）</li>
             <li>邀请好友<b>首次购买</b>会员返佣 <b>10%</b></li>
             <li>邀请好友<b>续费</b>会员返佣 <b>5%</b></li>
           </ul>
