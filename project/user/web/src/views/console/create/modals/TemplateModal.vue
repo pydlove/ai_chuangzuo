@@ -72,7 +72,7 @@ const templatePlatformTabs = [
   { key: 'baijiahao', label: '百家号' },
   { key: 'zhihu', label: '知乎' },
   { key: 'douyin', label: '抖音图文' },
-  { key: 'general', label: '通用风格' }
+  { key: 'general', label: '通用 skills' }
 ]
 const templatePlatformTab = ref('all')
 

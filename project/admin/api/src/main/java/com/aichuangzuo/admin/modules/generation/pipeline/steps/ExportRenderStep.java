@@ -46,9 +46,12 @@ public class ExportRenderStep implements GenerationStep {
             throw new RuntimeException("finalDraftJson 为空，无法渲染导出模板");
         }
 
-        String body = renderDraft(finalDraft);
-        String templateKey = resolveTemplateKey(ctx);
-        String rendered = applySignature(templateKey, body);
+        ExportTemplate template = resolveTemplate(ctx);
+        String templateKey = template != null ? template.getTemplateKey() : "wechat";
+        boolean numbered = isNumbered(template);
+
+        String body = renderDraft(finalDraft, numbered);
+        String rendered = applySignature(template, body);
 
         GenerationContext.ExportResult result = new GenerationContext.ExportResult();
         result.setFormat("markdown");
@@ -56,8 +59,8 @@ public class ExportRenderStep implements GenerationStep {
         result.setRenderedDocument(rendered);
         result.setSourceDraftJson(finalDraft);
         ctx.setExportResult(result);
-        log.info("导出模板渲染完成 platform={} format=markdown templateKey={}",
-                result.getPlatform(), templateKey);
+        log.info("导出模板渲染完成 platform={} format=markdown templateKey={} numbered={}",
+                result.getPlatform(), templateKey, numbered);
         return StepResult.CONTINUE;
     }
 
@@ -65,11 +68,12 @@ public class ExportRenderStep implements GenerationStep {
      * 把 finalDraft JSON 展开成平台无关 markdown：
      * <ul>
      *   <li>body 不含 title——preview/编辑/卡片页都单独读 article.title，塞进来会双标题</li>
-     *   <li>responsibility 作为二级小标题（`## (N) resp`），是文章结构的一部分，前端按 markdown H2 渲染</li>
+     *   <li>responsibility 作为二级小标题（`## resp`），是文章结构的一部分，前端按 markdown H2 渲染</li>
+     *   <li>仅当模板 visual_style_json 中 numbered=1 时，才追加 `(N)` 序号</li>
      *   <li>每段 content 拼成段落，按 paragraph_index 顺序，段间空一行</li>
      * </ul>
      */
-    private String renderDraft(String finalDraftJson) {
+    private String renderDraft(String finalDraftJson, boolean numbered) {
         try {
             JsonNode root = MAPPER.readTree(finalDraftJson);
             StringBuilder sb = new StringBuilder();
@@ -79,7 +83,11 @@ public class ExportRenderStep implements GenerationStep {
                 String resp = para.path("responsibility").asText("");
                 String content = para.path("content").asText("");
                 if (!first) sb.append("\n\n");
-                if (!resp.isBlank()) sb.append("## (").append(idx).append(") ").append(resp).append("\n\n");
+                if (!resp.isBlank()) {
+                    sb.append("## ");
+                    if (numbered) sb.append("(").append(idx).append(") ");
+                    sb.append(resp).append("\n\n");
+                }
                 sb.append(content);
                 first = false;
             }
@@ -91,19 +99,33 @@ public class ExportRenderStep implements GenerationStep {
     }
 
     /** 从 task input 读 template key，缺省 "wechat"。 */
-    private String resolveTemplateKey(GenerationContext ctx) {
+    private ExportTemplate resolveTemplate(GenerationContext ctx) {
+        String templateKey = "wechat";
         if (ctx.getInput() != null) {
             Object t = ctx.getInput().get("template");
             if (t != null && !t.toString().isBlank()) {
-                return t.toString();
+                templateKey = t.toString();
             }
         }
-        return "wechat";
+        return exportTemplateMapper.selectByKey(templateKey);
+    }
+
+    /** 判断模板是否开启 responsibility 序号前缀，缺省关闭。 */
+    private boolean isNumbered(ExportTemplate template) {
+        if (template == null || template.getVisualStyleJson() == null || template.getVisualStyleJson().isBlank()) {
+            return false;
+        }
+        try {
+            JsonNode style = MAPPER.readTree(template.getVisualStyleJson());
+            return "1".equals(style.path("numbered").asText("0"));
+        } catch (Exception e) {
+            log.warn("解析 visualStyleJson 失败，默认不编号", e);
+            return false;
+        }
     }
 
     /** 从 a_export_template 查签名，追加到 body。 */
-    private String applySignature(String templateKey, String body) {
-        ExportTemplate tpl = exportTemplateMapper.selectByKey(templateKey);
+    private String applySignature(ExportTemplate tpl, String body) {
         if (tpl == null || tpl.getSignatureText() == null || tpl.getSignatureText().isBlank()) {
             return body;
         }

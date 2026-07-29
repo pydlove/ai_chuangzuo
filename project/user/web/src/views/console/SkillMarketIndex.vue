@@ -3,9 +3,9 @@
     <!-- ① 平台 Banner 区 -->
     <section class="market-banner">
       <div class="market-banner-text">
-        <h1 class="market-banner-title">爱创作 · 风格市场</h1>
+        <h1 class="market-banner-title">爱创作 · skills 市场</h1>
         <p class="market-banner-sub">
-          官方运营 · 精选创作者风格 · 使用即获收益分成
+          官方运营 · 精选创作者 skills · 使用即获收益分成
           <span class="market-banner-rules-link" @click="rulesVisible = true">收益规则</span>
         </p>
       </div>
@@ -29,7 +29,7 @@
     <section class="market-upload-card" @click="goUpload">
       <div class="market-upload-icon">＋</div>
       <div class="market-upload-body">
-        <div class="market-upload-title">上传你的风格，开始赚创作币</div>
+        <div class="market-upload-title">上传你的 skills，开始赚创作币</div>
         <div class="market-upload-sub">每被他人使用 1 次即得 2 币；周里程碑最高额外 +600</div>
       </div>
       <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
@@ -70,7 +70,7 @@
       <div class="market-section-head">
         <div class="market-section-title-wrap">
           <h2 class="market-section-title">收益潜力榜</h2>
-          <span class="market-section-sub">看看谁在用风格赚到币</span>
+          <span class="market-section-sub">看看谁在用 skills 赚到币</span>
         </div>
         <button
           v-if="hasMoreCreators"
@@ -99,7 +99,7 @@
           <div class="market-creator-info">
             <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
             <div v-if="c.bestSkill" class="market-creator-best">
-              代表风格 · {{ c.bestSkill.name }}
+              代表 skills · {{ c.bestSkill.name }}
             </div>
           </div>
           <div class="market-creator-earning">
@@ -110,11 +110,11 @@
       </div>
     </section>
 
-    <!-- ⑤ 全部风格区 -->
+    <!-- ⑤ 全部 skills区 -->
     <section class="market-grid-section" ref="gridSection">
       <div class="market-section-head">
         <div class="market-section-title-wrap">
-          <h2 class="market-section-title">全部风格</h2>
+          <h2 class="market-section-title">全部 skills</h2>
           <span class="market-section-sub">共 {{ total }} 款</span>
         </div>
         <div class="market-search">
@@ -122,7 +122,7 @@
             v-model="searchQuery"
             type="text"
             class="market-search-input"
-            placeholder="搜索风格名或适用范围"
+            placeholder="搜索 skill 名或适用范围"
             @keyup.enter="onSearch"
           />
           <button class="market-search-btn" @click="onSearch">搜索</button>
@@ -142,7 +142,7 @@
 
       <div v-if="loading" class="market-empty">加载中...</div>
       <div v-else-if="pagedStyles.length === 0" class="market-empty">
-        暂无已上架风格
+        暂无已上架 skills
       </div>
       <div v-else class="market-grid">
         <div
@@ -212,22 +212,22 @@
   <a-modal
     v-model:open="rulesVisible"
     class="rules-modal"
-    title="风格市场收益规则"
+    title="skills 市场收益规则"
     :footer="null"
     :width="560"
     centered
   >
     <ol class="style-market-rules-list">
-      <li>他人每使用一次你分享的风格，你将获得 <span class="style-market-rule-highlight">2 创作币</span> 奖励。</li>
-      <li>每周根据风格被使用次数发放里程碑奖励：<span class="style-market-rule-highlight">50 次 50 币</span>、<span class="style-market-rule-highlight">200 次 150 币</span>、<span class="style-market-rule-highlight">500 次 300 币</span>、<span class="style-market-rule-highlight">1000 次 600 币</span>。</li>
+      <li>他人每使用一次你分享的 skills，你将获得 <span class="style-market-rule-highlight">2 创作币</span> 奖励。</li>
+      <li>每周根据skills 被使用次数发放里程碑奖励：<span class="style-market-rule-highlight">50 次 50 币</span>、<span class="style-market-rule-highlight">200 次 150 币</span>、<span class="style-market-rule-highlight">500 次 300 币</span>、<span class="style-market-rule-highlight">1000 次 600 币</span>。</li>
       <li>里程碑奖励 <span class="style-market-rule-highlight">每周结算一次</span>，结算后当周使用次数清零并重新累计。</li>
-      <li>使用他人分享的风格 <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
-      <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架风格</span>。</li>
+      <li>使用他人分享的 skills <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
+      <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架 skills</span>。</li>
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
 
-  <!-- 创作者详情 modal — 显示 ta 对外公布的风格 -->
+  <!-- 创作者详情 modal — 显示 ta 对外公布的 skills -->
   <a-modal
     v-if="selectedCreator"
     class="creator-modal"
@@ -243,7 +243,7 @@
         <div class="creator-modal-avatar">{{ (selectedCreator.creatorName || '匿').charAt(0) }}</div>
         <div class="creator-modal-title-text">
           <div class="creator-modal-name">{{ selectedCreator.creatorName || '匿名用户' }}</div>
-          <div class="creator-modal-sub">TA 的风格市场主页</div>
+          <div class="creator-modal-sub">TA 的skills 市场主页</div>
         </div>
       </div>
     </template>
@@ -252,7 +252,7 @@
       <div class="creator-modal-stats">
         <div class="creator-modal-stat">
           <div class="creator-modal-stat-value">{{ creatorStyles.length }}</div>
-          <div class="creator-modal-stat-label">对外公布风格</div>
+          <div class="creator-modal-stat-label">对外公布 skills</div>
         </div>
         <div class="creator-modal-stat">
           <div class="creator-modal-stat-value">+{{ formatCoins(selectedCreator.weeklyEarnings) }}</div>
@@ -269,7 +269,7 @@
       </div>
 
       <div v-if="creatorStyles.length === 0" class="creator-modal-empty">
-        该创作者暂未对外公布风格。
+        该创作者暂未对外公布 skills。
       </div>
       <div v-else class="creator-modal-list">
         <div
@@ -293,7 +293,7 @@
     </div>
   </a-modal>
 
-  <!-- 风格详情 modal — 展示风格内容（prompt、统计、适用范围等） -->
+  <!-- skills 详情 modal — 展示 skills 内容（prompt、统计、适用范围等） -->
   <a-modal
     v-if="selectedStyle"
     class="style-detail-modal"
@@ -345,7 +345,7 @@
     </div>
 
     <div class="style-detail-section">
-      <div class="style-detail-section-title">风格提示词</div>
+      <div class="style-detail-section-title">skill 提示词</div>
       <div class="style-detail-prompt">{{ selectedStyle.prompt || '暂无提示词' }}</div>
     </div>
 
@@ -357,7 +357,7 @@
 
     <div class="style-detail-footer">
       <span v-if="selectedStyle.createdAt">发布于 {{ formatTimeAgo(selectedStyle.createdAt) }}</span>
-      <span v-else>风格市场</span>
+      <span v-else>skills 市场</span>
     </div>
   </a-modal>
 </template>
@@ -391,7 +391,7 @@ const goUpload = () => {
   router.push('/console/skills')
 }
 
-// ④ 排行榜点击 → 打开创作者详情 modal（只查看 ta 对外公布的风格，不直接使用）
+// ④ 排行榜点击 → 打开创作者详情 modal（只查看 ta 对外公布的 skills，不直接使用）
 const creatorModalVisible = ref(false)
 const selectedCreator = ref(null)
 const openCreator = (c) => {
@@ -429,7 +429,7 @@ const handleUse = (s) => {
   }
 }
 
-// 风格详情 modal：点击卡片/查看按钮展示风格内容（prompt、统计等），不再直接跳转创作页
+// skills 详情 modal：点击卡片/查看按钮展示 skills 内容（prompt、统计等），不再直接跳转创作页
 const styleDetailVisible = ref(false)
 const selectedStyle = ref(null)
 const openStyleDetail = (s) => {
@@ -469,7 +469,7 @@ const tabOptions = [
   { key: 'featured', label: '官方精选' }
 ]
 
-// ⑤ 全部风格：后端分页
+// ⑤ 全部 skills：后端分页
 const PAGE_SIZE = 15
 const page = ref(1)
 const pageSize = ref(PAGE_SIZE)
@@ -614,7 +614,7 @@ onMounted(() => {
 /* ⑤ 占位防 build break（实样式在本区块内） */
 .market-grid-section { scroll-margin-top: var(--space-xl); }
 
-/* === ⑤ 全部风格 === */
+/* === ⑤ 全部 skills === */
 .market-search { display: flex; align-items: center; gap: var(--space-sm); }
 .market-search-input {
   width: 100%;
@@ -1255,7 +1255,7 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
 
-/* ===== 风格详情 modal ===== */
+/* ===== skills 详情 modal ===== */
 .style-detail-modal { }
 .style-detail-title {
   display: flex;

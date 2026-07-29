@@ -31,7 +31,8 @@ import {
   applySkill as applySkillShared,
   loadSystemSkills,
   loadMySkills,
-  loadLearnedSkills
+  loadLearnedSkills,
+  applyDefaultSkill
 } from '@/composables/useSkills.js'
 import { marketSkills, favoriteSkills, loadMarketSkills } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
@@ -72,12 +73,15 @@ onMounted(async () => {
   await loadSystemSkills()
   await loadExportTemplates()
   loadBenefits()
-  // 加载我的/学习/收藏风格（引导模式"想要什么风格？"步骤可选到）
-  Promise.all([
+  // 加载我的/学习/收藏 skills（引导模式"想要什么 skills？"步骤可选到）
+  await Promise.all([
     loadMySkills().catch(() => {}),
     loadLearnedSkills().catch(() => {}),
     loadMarketSkills().catch(() => {})
   ])
+
+  // 所有 skills 加载完成后，应用默认 skill（未设置则回退到第一个系统预设）
+  applyDefaultSkill()
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
@@ -97,7 +101,7 @@ onMounted(async () => {
     }
   }
 
-  // 从风格市场跳转过来时自动应用风格
+  // 从 skills 市场跳转过来时自动应用 skill
   const marketSkillId = route.query.marketSkillId
   if (marketSkillId) {
     const s = marketSkills.value.find(x => x.id === marketSkillId)

@@ -6,7 +6,7 @@ const MODE_KEY = 'aichuangzuo_create_mode'
 export const platforms = [
   { key: 'wechat', name: '公众号', desc: '深度长文，适合专业内容输出', recommendWords: 1500, trait: '长文深度阅读，段落完整，适合观点输出' },
   { key: 'xiaohongshu', name: '小红书', desc: '轻松图文，种草安利效果好', recommendWords: 800, trait: '短段落多 emoji，自动带话题标签' },
-  { key: 'toutiao', name: '今日头条', desc: '算法分发，热点资讯类内容', recommendWords: 800, trait: '算法友好，热点资讯风格' },
+  { key: 'toutiao', name: '今日头条', desc: '算法分发，热点资讯类内容', recommendWords: 800, trait: '算法友好，热点资讯 skills' },
   { key: 'baijiahao', name: '百家号', desc: '多平台分发，SEO友好', recommendWords: 1500, trait: 'SEO 友好，知识科普调性' },
   { key: 'douyin', name: '抖音图文', desc: '短视频+图文，流量大', recommendWords: 300, trait: '图配文短文案，金句为主' },
   { key: 'zhihu', name: '知乎', desc: '深度问答，专业知识分享', recommendWords: 1500, trait: '专业问答体，逻辑严谨' },

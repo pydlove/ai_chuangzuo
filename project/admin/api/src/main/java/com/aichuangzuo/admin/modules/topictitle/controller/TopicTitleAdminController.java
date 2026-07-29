@@ -2,9 +2,10 @@ package com.aichuangzuo.admin.modules.topictitle.controller;
 
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleGenerateRequest;
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleQueryRequest;
+import com.aichuangzuo.admin.modules.topictitle.entity.TopicTitleTask;
 import com.aichuangzuo.admin.modules.topictitle.service.TopicTitleService;
-import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitleGenerateVO;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitlePageVO;
+import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitleTaskVO;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -38,12 +39,22 @@ public class TopicTitleAdminController {
     }
 
     /**
-     * AI 批量生成标题入库（同步调用），返回实际入库条数。
+     * AI 批量生成标题（异步）：立刻入队并返回 taskId，不等 AI 返回。
+     * 前端按 taskId 轮询 {@code /tasks/{taskId}} 获取进度和最终状态。
      */
     @PostMapping("/generate")
-    public Result<TopicTitleGenerateVO> generate(@Valid @RequestBody TopicTitleGenerateRequest request) {
-        int generated = topicTitleService.generate(request.getCount(), request.getDirection());
-        return Result.success(new TopicTitleGenerateVO(generated));
+    public Result<Long> generate(@Valid @RequestBody TopicTitleGenerateRequest request) {
+        Long taskId = topicTitleService.submitTask(request.getCount(), request.getDirection());
+        return Result.success(taskId);
+    }
+
+    /**
+     * 查询任务状态：status / generatedCount / failedReason 等。
+     */
+    @GetMapping("/tasks/{taskId}")
+    public Result<TopicTitleTaskVO> getTask(@PathVariable Long taskId) {
+        TopicTitleTask task = topicTitleService.getTask(taskId);
+        return Result.success(TopicTitleTaskVO.from(task));
     }
 
     /**

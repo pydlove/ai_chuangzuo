@@ -36,7 +36,7 @@
           <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="styleVisible = true">
-          <span>{{ currentSkill?.name || '选择风格' }}</span><span class="chip-caret">▾</span>
+          <span>{{ currentSkill?.name || '选择 skills' }}</span><span class="chip-caret">▾</span>
         </button>
         <button class="settings-chip" @click="templateVisible = true">
           <span>{{ currentTemplate?.name }}</span><span class="chip-caret">▾</span>

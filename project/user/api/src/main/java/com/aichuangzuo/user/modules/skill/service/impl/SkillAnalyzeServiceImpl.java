@@ -26,7 +26,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
 
-    private static final int PROMPT_MAX_LENGTH = 1000;
+    private static final int PROMPT_MAX_LENGTH = 1200;
     private static final int EXCERPT1_MAX = 120;
     private static final int EXCERPT2_MAX = 80;
     private static final List<String> REQUIRED_MARKERS = List.of("【语气】", "【词汇】", "【句式】", "【结构】");
@@ -46,7 +46,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             2. 从原文中逐字摘录 2 个最能代表该风格的片段。
 
             【输出 JSON 结构】
-            {"excerpt1":"原文中最能代表风格的连续片段，不超过120字，必须逐字摘自原文","excerpt2":"另一个代表性片段，不超过80字，必须逐字摘自原文，且不与excerpt1重复","prompt":"不超过800字的风格提示词"}
+            {"excerpt1":"原文中最能代表风格的连续片段，不超过120字，必须逐字摘自原文","excerpt2":"另一个代表性片段，不超过80字，必须逐字摘自原文，且不与excerpt1重复","prompt":"不超过1200字的风格提示词"}
 
             其中 prompt 字段严格使用以下模板：
             你是一位中文写手，请模仿以下参考文章的写作风格：
@@ -105,7 +105,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
         }
     }
 
-    /** prompt 非空、≤1000 字、含四个维度标记，缺一不可。 */
+    /** prompt 非空、≤1200 字、含四个维度标记，缺一不可。 */
     private void validatePrompt(String prompt) {
         boolean valid = !prompt.isEmpty()
                 && prompt.length() <= PROMPT_MAX_LENGTH

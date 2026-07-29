@@ -150,14 +150,16 @@ public class GenerationTaskAdminService {
         return t;
     }
 
-    private GenerationTaskAdminVO toVo(GenerationTaskListRow r, LocalDateTime now, Long totalTokens) {
+    GenerationTaskAdminVO toVo(GenerationTaskListRow r, LocalDateTime now, Long totalTokens) {
         GenerationTaskAdminVO vo = new GenerationTaskAdminVO();
         BeanUtils.copyProperties(r, vo);
         vo.setStatus(r.getStatus());
         vo.setStatusLabel(statusLabel(r.getStatus()));
-        // waitingSeconds: queued / processing 都算「从 created_at 起等了多久」
+        // waitingSeconds: queued / processing 算「从 created_at 起到现在等了多久」；
+        // completed / failed 任务已结束，按 completed_at - created_at 算实际耗时，避免已完成任务耗时继续增长。
         if (r.getCreatedAt() != null) {
-            vo.setWaitingSeconds(Math.max(0, Duration.between(r.getCreatedAt(), now).getSeconds()));
+            LocalDateTime end = r.getCompletedAt() != null ? r.getCompletedAt() : now;
+            vo.setWaitingSeconds(Math.max(0, Duration.between(r.getCreatedAt(), end).getSeconds()));
         }
         if (r.getStatus() != null && r.getStatus() == 3 && r.getCompletedAt() != null) {
             vo.setFailedSecondsAgo(Math.max(0, Duration.between(r.getCompletedAt(), now).getSeconds()));

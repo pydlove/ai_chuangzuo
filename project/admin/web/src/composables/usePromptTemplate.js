@@ -65,6 +65,8 @@ export function usePromptTemplate() {
     baseContent: form.baseContent || '',
     stages: (form.stages || []).map((s) => ({
       stageIndex: s.stageIndex,
+      stageType: s.stageType,
+      stageKey: s.stageKey,
       enabled: s.enabled ?? 1,
       aiPrompt: s.aiPrompt ?? '',
       ruleConfig: s.ruleConfig ?? '{}'

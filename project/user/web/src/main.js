@@ -15,5 +15,5 @@ app.use(Antd)
 
 app.mount('#app')
 
-// 启动时预热系统预设风格
+// 启动时预热系统预设 skills
 loadSystemSkills()

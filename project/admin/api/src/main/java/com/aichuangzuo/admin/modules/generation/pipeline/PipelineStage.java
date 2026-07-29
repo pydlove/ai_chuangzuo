@@ -209,6 +209,28 @@ public enum PipelineStage {
             3
     ),
 
+    // ===== 5.1 内容后处理（规则，极速 3 阶段专用）=====
+    // 注意：该 stage 与 RHYTHM_DETECT 共用 index=5，但不在 ALL 数组里，
+    // 因此不影响进度权重与默认模板；仅在 stage_key=content_post_process 时
+    // 由 PromptTemplateService.toStageVo 读取其元数据。
+    CONTENT_POST_PROCESS(
+            5, "content_post_process", "内容后处理", StageType.RULE_CONFIG,
+            "对第 4 阶段生成的初稿做规则化后处理；当前支持将成对单引号替换为中文双引号。",
+            null,
+            "{\"singleQuoteToChineseQuotes\": true}",
+            List.of(
+                    new Placeholder("draft", "分块初稿 JSON")
+            ),
+            List.of(
+                    ConfigField.builder()
+                            .key("singleQuoteToChineseQuotes").label("单引号转中文双引号")
+                            .type("boolean").defaultValue(true)
+                            .description("将 content / description 中的成对单引号 '...' 替换为 “...”")
+                            .build()
+            ),
+            0
+    ),
+
     // ===== 6. 韵律改写（AI）=====
     RHYTHM_REWRITE(
             6, "rhythm_rewrite", "韵律改写", StageType.AI_PROMPT,
@@ -590,5 +612,21 @@ public enum PipelineStage {
             if (s.index == index) return s;
         }
         throw new IllegalArgumentException("unknown stage index: " + index);
+    }
+
+    /**
+     * 按 stage_key 查找元数据（用于同一段位不同模板显示不同名称/配置）。
+     * 找不到返回 null，调用方应回落到 {@link #byIndex(int)}。
+     */
+    public static PipelineStage byKey(String key) {
+        if (key == null || key.isBlank()) {
+            return null;
+        }
+        for (PipelineStage s : values()) {
+            if (s.key.equals(key)) {
+                return s;
+            }
+        }
+        return null;
     }
 }

@@ -417,8 +417,10 @@ public class PromptTemplateService {
             PromptTemplateStage s = new PromptTemplateStage();
             s.setTemplateId(templateId);
             s.setStageIndex(def.index);
-            s.setStageType(def.type.code);
-            s.setStageKey(def.key);
+            s.setStageType(item != null && item.getStageType() != null && !item.getStageType().isBlank()
+                    ? item.getStageType() : def.type.code);
+            s.setStageKey(item != null && item.getStageKey() != null && !item.getStageKey().isBlank()
+                    ? item.getStageKey() : def.key);
             s.setEnabled(item != null && item.getEnabled() != null ? item.getEnabled() : 1);
 
             // AI 阶段：校验 + 序列化 modelParams（PASSTHROUGH / RULE_CONFIG 不接受）
@@ -520,20 +522,30 @@ public class PromptTemplateService {
     }
 
     private PromptTemplateStageVO toStageVo(PipelineStage def, PromptTemplateStage row) {
+        // 同一段位可能被不同模板用作不同用途（如 index=5 默认是韵律检测，
+        // 极速 3 阶段模板是内容后处理），按 stage_key 取对应元数据。
+        String rowKey = row.getStageKey();
+        PipelineStage meta = (rowKey != null && !rowKey.equals(def.key))
+                ? PipelineStage.byKey(rowKey)
+                : def;
+        if (meta == null) {
+            meta = def;
+        }
+
         PromptTemplateStageVO vo = new PromptTemplateStageVO();
         vo.setStageIndex(row.getStageIndex());
-        vo.setStageType(row.getStageType() == null ? def.type.code : row.getStageType());
-        vo.setStageKey(row.getStageKey() == null ? def.key : row.getStageKey());
-        vo.setDisplayName(def.displayName);
-        vo.setTypeLabel(def.type.label);
-        vo.setDescription(def.description);
+        vo.setStageType(row.getStageType() == null ? meta.type.code : row.getStageType());
+        vo.setStageKey(row.getStageKey() == null ? meta.key : row.getStageKey());
+        vo.setDisplayName(meta.displayName);
+        vo.setTypeLabel(meta.type.label);
+        vo.setDescription(meta.description);
         vo.setEnabled(row.getEnabled() == null ? 1 : row.getEnabled());
-        vo.setAiPrompt(row.getAiPrompt() != null ? row.getAiPrompt() : def.defaultAiPrompt);
-        vo.setRuleConfig(row.getRuleConfig() != null ? row.getRuleConfig() : def.defaultRuleConfigJson);
+        vo.setAiPrompt(row.getAiPrompt() != null ? row.getAiPrompt() : meta.defaultAiPrompt);
+        vo.setRuleConfig(row.getRuleConfig() != null ? row.getRuleConfig() : meta.defaultRuleConfigJson);
         vo.setModelParams(parseModelParamsJson(row.getModelParams()));
         // 占位符
         List<PromptTemplateStageVO.StagePlaceholderVO> phs = new ArrayList<>();
-        for (Placeholder p : def.placeholders) {
+        for (Placeholder p : meta.placeholders) {
             PromptTemplateStageVO.StagePlaceholderVO ph = new PromptTemplateStageVO.StagePlaceholderVO();
             ph.setName(p.getName());
             ph.setDesc(p.getDesc());
@@ -541,9 +553,9 @@ public class PromptTemplateService {
         }
         vo.setPlaceholders(phs);
         // 规则阶段表单字段
-        if (def.type == StageType.RULE_CONFIG) {
+        if (meta.type == StageType.RULE_CONFIG) {
             List<PromptTemplateStageVO.StageConfigFieldVO> cfs = new ArrayList<>();
-            for (ConfigField cf : def.configFields) {
+            for (ConfigField cf : meta.configFields) {
                 PromptTemplateStageVO.StageConfigFieldVO f = new PromptTemplateStageVO.StageConfigFieldVO();
                 f.setKey(cf.getKey());
                 f.setLabel(cf.getLabel());

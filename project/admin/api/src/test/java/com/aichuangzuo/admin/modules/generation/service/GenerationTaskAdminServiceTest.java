@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryR
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
+import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -15,12 +16,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -222,6 +225,84 @@ class GenerationTaskAdminServiceTest {
 
         assertThrows(BusinessException.class, () -> service.previewArticle(32L));
         verify(articleReadClient, never()).getArticle(any());
+    }
+
+    @Test
+    void toVo_completedTask_shouldUseCompletedAtAsEndTime() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
+        LocalDateTime createdAt = now.minusHours(2);
+        LocalDateTime completedAt = createdAt.plusMinutes(30);
+
+        GenerationTaskListRow r = sampleRow();
+        r.setStatus(2);
+        r.setCreatedAt(createdAt);
+        r.setCompletedAt(completedAt);
+
+        GenerationTaskAdminVO vo = service.toVo(r, now, 0L);
+
+        assertEquals(30 * 60, vo.getWaitingSeconds());
+    }
+
+    @Test
+    void toVo_failedTask_shouldUseCompletedAtAsEndTime() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
+        LocalDateTime createdAt = now.minusHours(2);
+        LocalDateTime completedAt = createdAt.plusMinutes(15);
+
+        GenerationTaskListRow r = sampleRow();
+        r.setStatus(3);
+        r.setCreatedAt(createdAt);
+        r.setCompletedAt(completedAt);
+
+        GenerationTaskAdminVO vo = service.toVo(r, now, 0L);
+
+        assertEquals(15 * 60, vo.getWaitingSeconds());
+        assertTrue(vo.getFailedSecondsAgo() > 0);
+    }
+
+    @Test
+    void toVo_processingTask_shouldUseNowAsEndTime() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
+        LocalDateTime createdAt = now.minusMinutes(5);
+
+        GenerationTaskListRow r = sampleRow();
+        r.setStatus(1);
+        r.setCreatedAt(createdAt);
+        r.setCompletedAt(null);
+
+        GenerationTaskAdminVO vo = service.toVo(r, now, 0L);
+
+        assertEquals(5 * 60, vo.getWaitingSeconds());
+    }
+
+    @Test
+    void toVo_queuedTask_shouldUseNowAsEndTime() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
+        LocalDateTime createdAt = now.minusSeconds(45);
+
+        GenerationTaskListRow r = sampleRow();
+        r.setStatus(0);
+        r.setCreatedAt(createdAt);
+        r.setCompletedAt(null);
+
+        GenerationTaskAdminVO vo = service.toVo(r, now, 0L);
+
+        assertEquals(45, vo.getWaitingSeconds());
+    }
+
+    @Test
+    void toVo_completedTaskWithoutCompletedAt_shouldFallbackToNow() {
+        LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
+        LocalDateTime createdAt = now.minusMinutes(10);
+
+        GenerationTaskListRow r = sampleRow();
+        r.setStatus(2);
+        r.setCreatedAt(createdAt);
+        r.setCompletedAt(null);
+
+        GenerationTaskAdminVO vo = service.toVo(r, now, 0L);
+
+        assertEquals(10 * 60, vo.getWaitingSeconds());
     }
 
     @Test

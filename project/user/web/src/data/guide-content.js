@@ -56,7 +56,7 @@ export const guideSections = [
         content: `
           <p>在爱创作，你可以通过以下方式获得创作币：</p>
           <ul>
-            <li><strong>风格市场</strong>：发布自己的写作风格，被其他用户使用时获得收益。</li>
+            <li><strong>skills 市场</strong>：发布自己的写作 skills，被其他用户使用时获得收益。</li>
             <li><strong>里程碑奖励</strong>：完成创作任务获得一次性奖励。</li>
             <li><strong>收益排行榜</strong>：每月创作币榜或自媒体收入榜进入前 10，获得 1000 创作币奖励。</li>
             <li><strong>邀请返利</strong>：邀请好友注册并订阅，获得返利。</li>
@@ -138,7 +138,7 @@ export const guideSections = [
         title: '创作币是什么',
         content: `
           <p>创作币是爱创作平台的虚拟货币。</p>
-          <p>你可以通过风格市场、排行榜、邀请返利等方式获得创作币，也可以在平台内消费（如订阅会员、购买生成额度）。</p>
+          <p>你可以通过 skills 市场、排行榜、邀请返利等方式获得创作币，也可以在平台内消费（如订阅会员、购买生成额度）。</p>
           <p>10 创作币 = 1 元人民币。</p>
         `
       },

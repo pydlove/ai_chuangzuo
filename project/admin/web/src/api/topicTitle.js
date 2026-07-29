@@ -4,9 +4,13 @@ import request from '@/utils/request.js'
 export const listTopicTitles = (params) =>
   request.get('/api/v1/admin/topic-titles', { params }).then((res) => res.data)
 
-/** AI 批量生成标题入库：{count, direction} → {generated}。同步调 AI，放宽超时到 5 分钟。 */
-export const generateTopicTitles = (data) =>
-  request.post('/api/v1/admin/topic-titles/generate', data, { timeout: 300000 }).then((res) => res.data)
+/** 提交 AI 批量生成标题任务，立即返回 taskId（异步，后台 worker 执行）。 */
+export const submitTopicTitleTask = (data) =>
+  request.post('/api/v1/admin/topic-titles/generate', data).then((res) => res.data)
+
+/** 查询任务状态：status(0/1/2/3) / generatedCount / failedReason。 */
+export const getTopicTitleTask = (taskId) =>
+  request.get(`/api/v1/admin/topic-titles/tasks/${taskId}`).then((res) => res.data)
 
 /** 逻辑删除标题。 */
 export const deleteTopicTitle = (id) =>

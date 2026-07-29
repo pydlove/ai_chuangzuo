@@ -69,6 +69,11 @@ const routes = [
         component: () => import('@/views/CreationSettingsView.vue')
       },
       {
+        path: 'export-templates',
+        name: 'AdminExportTemplateEdit',
+        component: () => import('@/views/ExportTemplateEditView.vue')
+      },
+      {
         path: 'hot-search/platforms',
         name: 'AdminHotSearchPlatforms',
         component: () => import('@/views/HotSearchPlatformView.vue')

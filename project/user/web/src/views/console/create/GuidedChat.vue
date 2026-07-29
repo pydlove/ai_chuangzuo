@@ -34,13 +34,13 @@
           <div class="topic-requirement-hint">{{ (requirementInput || '').length }} / 500</div>
         </template>
 
-        <!-- 平台/风格快捷回复（两段式：点选 → 效果卡 → 确认；确认后收起） -->
+        <!-- 平台/skills 快捷回复（两段式：点选 → 效果卡 → 确认；确认后收起） -->
         <template v-else-if="m.kind === 'quick'">
           <div class="chat-question">{{ m.text }}</div>
           <QuickReplies v-if="!m.done" :options="m.options" :selected-key="chipSelectedKey(m)" @select="(opt) => onChipSelect(m, opt)" @confirm="(opt) => onQuickConfirm(m, opt)">
-            <!-- 风格步骤额外提供"新建我的风格"入口 -->
+            <!-- skills 步骤额外提供"新建我的 skills"入口 -->
             <template v-if="m.optionsType === 'style'" #footer>
-              <button v-if="canCreateCustomStyle" class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的风格</button>
+              <button v-if="canCreateCustomStyle" class="quick-create-style" @click="openCreateStyle(m)">＋ 新建我的 skills</button>
             </template>
             <template #preview="{ option }">
               <!-- 平台效果卡 -->
@@ -49,13 +49,13 @@
                 <div class="effect-line">· 推荐 {{ option.raw.recommendWords }} 字，{{ platformTraitWordLabel(option.raw) }}</div>
                 <div class="effect-line">· 平台特性：{{ option.raw.trait }}</div>
               </div>
-              <!-- 风格效果卡：显示来源标签 + 完整 prompt 预览 -->
+              <!-- skills 效果卡：显示来源标签 + 完整 prompt 预览 -->
               <div v-else-if="m.optionsType === 'style'" class="effect-card effect-card-style">
                 <div class="effect-title-row">
                   <span class="effect-title">{{ option.label }}</span>
                   <span class="style-tag" :class="`tag-${option.raw.sourceType}`">{{ option.raw.tag }}</span>
                 </div>
-                <div class="effect-line">· {{ option.raw.desc || '自定义风格' }}</div>
+                <div class="effect-line">· {{ option.raw.desc || '自定义 skills' }}</div>
                 <div v-if="option.raw.scope" class="effect-line">· 适用：{{ option.raw.scope }}</div>
                 <div class="effect-prompt-block">
                   <div class="effect-prompt-label">提示词预览：</div>
@@ -83,7 +83,7 @@
             <div class="confirm-title">{{ customTitle }}</div>
             <div v-if="customRequirement" class="confirm-requirement">{{ customRequirement }}</div>
             <div class="confirm-meta">
-              {{ currentPlatform?.name || '未选' }} · {{ currentSkill?.name || '默认风格' }} · {{ currentTemplate?.name || '默认模板' }}
+              {{ currentPlatform?.name || '未选' }} · {{ currentSkill?.name || '默认 skills' }} · {{ currentTemplate?.name || '默认模板' }}
             </div>
             <div class="confirm-meta">字数：{{ currentWordCount?.count || 800 }} 字</div>
             <div class="confirm-quota">本次消耗 1 次 · 剩余 {{ quotaRemaining }} 次</div>
@@ -91,7 +91,7 @@
               <button class="confirm-generate" @click="handleConfirmGenerate(m)">⚡ 开始生成</button>
               <button class="confirm-edit" @click="editTopic">改主题</button>
               <button class="confirm-edit" @click="editPlatform">改平台</button>
-              <button class="confirm-edit" @click="editStyle">改风格</button>
+              <button class="confirm-edit" @click="editStyle">改 skills</button>
               <button class="confirm-edit" @click="editTemplate">改模板</button>
               <button class="confirm-edit" @click="handleSaveDraft">保存草稿</button>
             </div>
@@ -222,7 +222,7 @@ const onHeroSubmit = (text) => {
   push({ role: 'ai', kind: 'topic' })
 }
 
-// 改主题模式：答完直接回确认卡（平台/风格已答保留）
+// 改主题模式：答完直接回确认卡（平台/skills 已答保留）
 const editingTopic = ref(false)
 
 const submitTopic = (text) => {
@@ -282,7 +282,7 @@ const askStyle = () => {
   push({
     role: 'ai',
     kind: 'quick',
-    text: '想要什么风格？',
+    text: '想要什么 skills？',
     optionsType: 'style',
     options: collectStyleOptions()
   })
@@ -360,7 +360,7 @@ const editTopic = () => {
   push({ role: 'ai', kind: 'topic' })
 }
 
-// 风格步骤：从 chip 列表里的「＋ 新建我的风格」打开弹框；关闭后用最新数据原地刷新当前问题
+// skills 步骤：从 chip 列表里的「＋ 新建我的 skills」打开弹框；关闭后用最新数据原地刷新当前问题
 const openCreateStyle = (m) => {
   m.done = true  // 弹框期间禁用选项，避免用户乱点
   const stop = watch(styleVisible, (open) => {
@@ -386,7 +386,7 @@ const editPlatform = () => push({
 const editStyle = () => push({
   role: 'ai',
   kind: 'quick',
-  text: '想要什么风格？',
+  text: '想要什么 skills？',
   optionsType: 'style',
   options: collectStyleOptions(),
   editingMode: true
@@ -632,7 +632,7 @@ const restart = () => {
   overflow: hidden;
 }
 
-/* 风格效果卡：标题 + 来源标签 */
+/* skills 效果卡：标题 + 来源标签 */
 .effect-title-row {
   display: flex;
   align-items: center;
@@ -710,7 +710,7 @@ const restart = () => {
   color: #fff;
 }
 
-/* 风格步骤底部"＋ 新建我的风格"入口 */
+/* skills 步骤底部"＋ 新建我的 skills"入口 */
 .quick-create-style {
   margin-top: 10px;
   border: 1px dashed var(--color-primary);

@@ -44,6 +44,12 @@
             </template>
             创作设置
           </a-menu-item>
+          <a-menu-item key="/console/export-templates">
+            <template #icon>
+              <ProfileOutlined />
+            </template>
+            导出模板
+          </a-menu-item>
           <a-menu-item key="/console/prompt-templates">
             <template #icon>
               <FileTextOutlined />
@@ -182,17 +188,21 @@
         <router-view />
       </a-layout-content>
     </a-layout>
+
+    <!-- 全局异步任务进度条（页脚右下角） -->
+    <AsyncTaskProgressBar />
   </a-layout>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
 import { adminAuthLogout } from '@/api/auth.js'
+import AsyncTaskProgressBar from '@/views/AsyncTaskProgressBar.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -204,7 +214,7 @@ const userInitial = computed(() => userName.value.charAt(0))
 // 当前路由所在的一级菜单 key（手风琴模式只展开这一个）
 const parentMenuKey = computed(() => {
   const p = route.path
-  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates')) return '/console/creation'
+  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
   if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
@@ -248,6 +258,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/creation-queue') return '创作队列'
   if (route.path === '/console/topic-titles') return '标题管理'
   if (route.path === '/console/creation-settings') return '创作设置'
+  if (route.path === '/console/export-templates') return '导出模板'
   if (route.path === '/console/learn/category') return '分类管理'
   if (route.path === '/console/learn/article') return '文章管理'
   if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'

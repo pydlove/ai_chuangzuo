@@ -1,7 +1,7 @@
 import { api } from '@/api/auth'
 
 /**
- * 获取当前登录用户的风格列表。
+ * 获取当前登录用户的 skills 列表。
  * @param {number} sourceType 来源类型：1-自定义（默认），2-学习
  * @returns {Promise<{code:number, data:Array<{bizNo:string, skillName:string, prompt:string, scope:string, sourceType:number, useCount:number, createdAt:string, updatedAt:string}>}>}
  */
@@ -10,7 +10,7 @@ export function getMySkills(sourceType = 1) {
 }
 
 /**
- * 创建自定义风格。
+ * 创建自定义 skills。
  * @param {{skillName:string, prompt:string, scope:string}} data
  */
 export function createSkill(data) {
@@ -18,7 +18,7 @@ export function createSkill(data) {
 }
 
 /**
- * 修改风格。
+ * 修改 skills。
  * @param {string} bizNo
  * @param {{skillName:string, prompt:string, scope:string}} data
  */
@@ -27,7 +27,7 @@ export function updateSkill(bizNo, data) {
 }
 
 /**
- * 删除风格。
+ * 删除 skills。
  * @param {string} bizNo
  */
 export function deleteSkill(bizNo) {
@@ -35,7 +35,7 @@ export function deleteSkill(bizNo) {
 }
 
 /**
- * 获取系统预设风格（启用中的 source_type=3）。
+ * 获取系统预设 skills（启用中的 source_type=3）。
  * @param {string} [keyword]
  */
 export function getSystemSkills(keyword = '') {
@@ -44,7 +44,7 @@ export function getSystemSkills(keyword = '') {
 }
 
 /**
- * AI 分析参考文章风格。
+ * AI 分析参考文章 skills。
  * 注意：AI 分析约 10-30 秒，axios 实例默认 timeout 10s 必然超时，必须单独传 90s。
  * @param {string} text 参考文章正文（200-3000 字）
  * @returns {Promise<{code:number, data:{excerpt1:string, excerpt2:string, prompt:string}}>}

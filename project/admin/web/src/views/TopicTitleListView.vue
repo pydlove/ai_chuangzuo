@@ -24,7 +24,7 @@
             @change="onSearch"
           />
         </div>
-        <a-button type="primary" @click="openGenerateModal">
+        <a-button type="primary" :disabled="submitting" @click="openGenerateModal">
           <template #icon><ThunderboltOutlined /></template>
           AI 生成标题
         </a-button>
@@ -41,10 +41,16 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'title'">
-            <span class="cell-ellipsis" :class="{ 'used-strike': record.useCount > 0 }" :title="record.title">{{ record.title }}</span>
+            <div class="copy-cell">
+              <span class="cell-ellipsis" :class="{ 'used-strike': record.useCount > 0 }" :title="record.title">{{ record.title }}</span>
+              <CopyOutlined class="copy-icon" @click.stop="copyText(record.title, '标题')" />
+            </div>
           </template>
           <template v-else-if="column.key === 'summary'">
-            <span class="cell-ellipsis" :title="record.summary">{{ record.summary }}</span>
+            <div class="copy-cell">
+              <span class="cell-ellipsis" :title="record.summary">{{ record.summary }}</span>
+              <CopyOutlined class="copy-icon" @click.stop="copyText(record.summary, '描述')" />
+            </div>
           </template>
           <template v-else-if="column.key === 'direction'">
             <span class="cell-ellipsis" :title="record.direction">{{ record.direction || '—' }}</span>
@@ -74,9 +80,9 @@
     <a-modal
       v-model:open="generateModalOpen"
       title="AI 生成标题"
-      :confirm-loading="generating"
-      :mask-closable="false"
-      ok-text="生成"
+      :confirm-loading="submitting"
+      :mask-closable="!submitting"
+      ok-text="提交生成"
       cancel-text="取消"
       @ok="onGenerate"
     >
@@ -92,10 +98,11 @@
             v-model:value="generateDirection"
             :rows="4"
             show-count
+            :disabled="submitting"
             placeholder="职场效率类，面向 25-35 岁打工人"
           />
         </div>
-        <p class="generate-tip">生成过程同步调用 AI，可能需要等待数十秒，请勿重复点击。</p>
+        <p class="generate-tip">提交后任务在后台异步执行（数十秒），不阻塞页面，可在右下角查看进度。</p>
       </div>
     </a-modal>
   </div>
@@ -104,8 +111,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { ThunderboltOutlined } from '@ant-design/icons-vue'
-import { listTopicTitles, generateTopicTitles, deleteTopicTitle } from '@/api/topicTitle.js'
+import { ThunderboltOutlined, CopyOutlined } from '@ant-design/icons-vue'
+import { listTopicTitles, submitTopicTitleTask, getTopicTitleTask, deleteTopicTitle } from '@/api/topicTitle.js'
+import { useAsyncTasksStore } from '@/stores/asyncTasks.js'
+import { useTaskPolling, notifyTaskResult } from '@/composables/useTaskPolling.js'
+
+const TASK_TYPE = 'topic-title-generate'
 
 const list = ref([])
 const loading = ref(false)
@@ -120,14 +131,16 @@ const usedStatusOptions = [
 ]
 
 const generateModalOpen = ref(false)
-const generating = ref(false)
+const submitting = ref(false)
 const generateCount = ref(10)
 const generateDirection = ref('')
 
+const asyncTasksStore = useAsyncTasksStore()
+
 const columns = [
   { title: '标题', key: 'title', ellipsis: true },
-  { title: '概要', key: 'summary', ellipsis: true },
-  { title: '方向提示词', key: 'direction', width: 200, ellipsis: true },
+  { title: '描述', key: 'summary', ellipsis: true },
+  { title: '方向提示词', dataIndex: 'direction', width: 200, ellipsis: true },
   { title: '使用次数', dataIndex: 'useCount', width: 90 },
   { title: '是否使用', key: 'used', width: 90 },
   { title: '生成时间', key: 'createdAt', width: 170 },
@@ -176,27 +189,63 @@ const onTableChange = (p) => {
 }
 
 const openGenerateModal = () => {
+  if (submitting.value) return
   generateCount.value = 10
   generateDirection.value = ''
   generateModalOpen.value = true
 }
 
 const onGenerate = async () => {
-  generating.value = true
+  submitting.value = true
+  let taskId
   try {
-    const res = await generateTopicTitles({
+    taskId = await submitTopicTitleTask({
       count: generateCount.value,
       direction: generateDirection.value.trim() || undefined
     })
-    message.success(`已生成 ${res.generated} 条入库`)
-    generateModalOpen.value = false
-    page.value = 1
-    await reload()
   } catch (e) {
-    message.error(e?.message || 'AI 生成失败，请重试')
-  } finally {
-    generating.value = false
+    message.error(e?.message || '提交失败，请重试')
+    submitting.value = false
+    return
   }
+
+  // 入队成功：弹框立刻关，恢复按钮，列表回到第一页
+  generateModalOpen.value = false
+  submitting.value = false
+  page.value = 1
+  message.success(`已提交后台生成（#${taskId}）`)
+
+  // 加到全局 store + 启动轮询
+  asyncTasksStore.add(
+    TASK_TYPE,
+    taskId,
+    `AI 生成标题 ${generateCount.value} 条`,
+    (snapshot) => {
+      notifyTaskResult('AI 生成标题', snapshot)
+      // 完成后刷新列表
+      reload()
+    }
+  )
+
+  const { start } = useTaskPolling({
+    fetcher: (id) => getTopicTitleTask(id),
+    onUpdate: (snapshot) => {
+      asyncTasksStore.update(TASK_TYPE, taskId, {
+        status: snapshot.status,
+        generatedCount: snapshot.generatedCount,
+        failedReason: snapshot.failedReason
+      })
+    },
+    onComplete: (snapshot) => {
+      asyncTasksStore.update(TASK_TYPE, taskId, {
+        status: snapshot.status,
+        generatedCount: snapshot.generatedCount,
+        failedReason: snapshot.failedReason
+      })
+      asyncTasksStore.remove(TASK_TYPE, taskId)
+    }
+  })
+  start(taskId)
 }
 
 const onDelete = async (record) => {
@@ -206,6 +255,16 @@ const onDelete = async (record) => {
     await reload()
   } catch (e) {
     message.error(e?.message || '删除失败')
+  }
+}
+
+const copyText = async (text, label) => {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    message.success(`${label}已复制`)
+  } catch (e) {
+    message.error('复制失败')
   }
 }
 
@@ -239,6 +298,28 @@ onMounted(reload)
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+}
+.copy-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.copy-cell .cell-ellipsis {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.copy-icon {
+  color: #8c8c8c;
+  cursor: pointer;
+  flex-shrink: 0;
+  font-size: 14px;
+  opacity: 0.6;
+  transition: opacity 0.2s, color 0.2s;
+}
+.copy-icon:hover {
+  color: #07c160;
+  opacity: 1;
 }
 .danger-link { color: #ff4d4f; }
 

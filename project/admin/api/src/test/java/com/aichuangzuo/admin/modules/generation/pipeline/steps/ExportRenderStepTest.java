@@ -21,7 +21,8 @@ import static org.mockito.Mockito.*;
  *   <li>签名在尾部（end）或头部（start）</li>
  *   <li>模板无签名 → body 不追加</li>
  *   <li>body 不含 title</li>
- *   <li>responsibility 渲染为 ## (N) resp 小标题</li>
+ *   <li>responsibility 渲染为 `## resp` 小标题，默认不带 `(N)` 序号</li>
+ *   <li>模板 visual_style_json 中 numbered=1 时渲染 `## (N) resp`</li>
  *   <li>fallbackToPlainText：draft JSON 不合法时返回原文</li>
  * </ul>
  */
@@ -48,10 +49,15 @@ class ExportRenderStepTest {
     }
 
     private ExportTemplate tpl(String key, String sigText, String sigPos) {
+        return tpl(key, sigText, sigPos, null);
+    }
+
+    private ExportTemplate tpl(String key, String sigText, String sigPos, String visualStyleJson) {
         ExportTemplate t = new ExportTemplate();
         t.setTemplateKey(key);
         t.setSignatureText(sigText);
         t.setSignaturePosition(sigPos);
+        t.setVisualStyleJson(visualStyleJson);
         return t;
     }
 
@@ -120,7 +126,7 @@ class ExportRenderStepTest {
     }
 
     @Test
-    void process_shouldRenderResponsibilityAsH2() {
+    void process_shouldRenderResponsibilityAsH2WithoutNumber() {
         when(templateMapper.selectByKey(anyString())).thenReturn(tpl("wechat", null, "end"));
         String draft = "{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"建立好奇\",\"content\":\"内容\"}]}";
         GenerationContext ctx = ctx("wechat", draft);
@@ -128,8 +134,22 @@ class ExportRenderStepTest {
         step.process(ctx);
 
         String doc = ctx.getExportResult().getRenderedDocument();
-        assertTrue(doc.contains("## (1) 建立好奇"), "body 应含 `## (N) responsibility` 小标题");
+        assertTrue(doc.contains("## 建立好奇"), "body 应含 `## responsibility` 小标题");
+        assertFalse(doc.contains("## (1)"), "默认不应带序号");
         assertTrue(doc.contains("内容"), "body 应含段落正文");
+    }
+
+    @Test
+    void process_shouldRenderResponsibilityAsH2WithNumberWhenEnabled() {
+        when(templateMapper.selectByKey(anyString()))
+                .thenReturn(tpl("wechat", null, "end", "{\"numbered\":\"1\"}"));
+        String draft = "{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"建立好奇\",\"content\":\"内容\"}]}";
+        GenerationContext ctx = ctx("wechat", draft);
+
+        step.process(ctx);
+
+        String doc = ctx.getExportResult().getRenderedDocument();
+        assertTrue(doc.contains("## (1) 建立好奇"), "numbered=1 时应带序号");
     }
 
     @Test

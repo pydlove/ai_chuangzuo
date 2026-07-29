@@ -23,7 +23,7 @@
           v-model:value="selectedStyles"
           mode="multiple"
           class="works-filter-select"
-          placeholder="风格"
+          placeholder="skills"
           :max-tag-count="1"
           :options="styleOptions.map(s => ({ value: s.key, label: s.label }))"
           allow-clear
@@ -704,7 +704,7 @@ body[data-theme="dark"] .primary-btn:hover {
    桌面端保持单行布局；≤768px 时：
    - header 改为纵向排列，标题 / 筛选 / tabs 各自一行
    - 筛选栏允许换行，搜索框占满宽度
-   - 平台 / 风格 两个下拉各占 50%（间距减半）
+   - 平台 / skills 两个下拉各占 50%（间距减半）
    - 时间范围单选独占一行，按钮平均分布
 */
 @media (max-width: 768px) {

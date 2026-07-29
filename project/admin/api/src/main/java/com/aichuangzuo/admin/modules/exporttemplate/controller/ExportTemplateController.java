@@ -2,8 +2,10 @@ package com.aichuangzuo.admin.modules.exporttemplate.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
+import com.aichuangzuo.admin.modules.exporttemplate.dto.request.ExportTemplateParamSaveRequest;
 import com.aichuangzuo.admin.modules.exporttemplate.dto.request.ExportTemplateSaveRequest;
 import com.aichuangzuo.admin.modules.exporttemplate.service.ExportTemplateService;
+import com.aichuangzuo.admin.modules.exporttemplate.vo.ExportTemplateParamVO;
 import com.aichuangzuo.admin.modules.exporttemplate.vo.ExportTemplateVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -24,6 +26,8 @@ public class ExportTemplateController {
 
     private final ExportTemplateService exportTemplateService;
     private final AdminUserPermissionService adminUserPermissionService;
+
+    // ===== 模板 CRUD =====
 
     @Operation(summary = "查询模板列表")
     @GetMapping
@@ -61,6 +65,40 @@ public class ExportTemplateController {
     public Result<Void> delete(@PathVariable Long id) {
         checkSuperAdmin();
         exportTemplateService.delete(id);
+        return Result.success();
+    }
+
+    // ===== 参数定义 CRUD =====
+
+    @Operation(summary = "查询参数定义列表")
+    @GetMapping("/params")
+    public Result<List<ExportTemplateParamVO>> listParams() {
+        checkSuperAdmin();
+        return Result.success(exportTemplateService.listParams());
+    }
+
+    @Operation(summary = "新增参数定义")
+    @PostMapping("/params")
+    public Result<Void> saveParam(@Valid @RequestBody ExportTemplateParamSaveRequest request) {
+        checkSuperAdmin();
+        exportTemplateService.saveParam(request);
+        return Result.success();
+    }
+
+    @Operation(summary = "更新参数定义")
+    @PutMapping("/params/{id}")
+    public Result<Void> updateParam(@PathVariable Long id,
+                                    @Valid @RequestBody ExportTemplateParamSaveRequest request) {
+        checkSuperAdmin();
+        exportTemplateService.updateParam(id, request);
+        return Result.success();
+    }
+
+    @Operation(summary = "删除参数定义")
+    @DeleteMapping("/params/{id}")
+    public Result<Void> deleteParam(@PathVariable Long id) {
+        checkSuperAdmin();
+        exportTemplateService.deleteParam(id);
         return Result.success();
     }
 

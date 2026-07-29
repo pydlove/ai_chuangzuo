@@ -99,11 +99,44 @@
         />
       </div>
     </a-card>
+
+    <a-modal
+      v-model:open="cloneModalOpen"
+      title="克隆模板"
+      :confirm-loading="cloneSubmitting"
+      :mask-closable="false"
+      :destroy-on-close="true"
+      ok-text="克隆"
+      cancel-text="取消"
+      @ok="handleCloneOk"
+    >
+      <div class="clone-form">
+        <div class="form-row">
+          <span class="form-label required">新模板名称</span>
+          <a-input
+            v-model:value="cloneForm.name"
+            placeholder="请输入新模板名称"
+            :max-length="100"
+            show-count
+          />
+        </div>
+        <div class="form-row form-row-top">
+          <span class="form-label">备注</span>
+          <a-textarea
+            v-model:value="cloneForm.remark"
+            :rows="3"
+            placeholder="可选，备注信息会复制到副本"
+            :max-length="200"
+            show-count
+          />
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
@@ -126,6 +159,11 @@ const {
   handleClone,
   handleDelete
 } = usePromptTemplate()
+
+const cloneModalOpen = ref(false)
+const cloneSubmitting = ref(false)
+const cloneSource = ref(null)
+const cloneForm = reactive({ name: '', remark: '' })
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
@@ -171,15 +209,27 @@ const onOffline = (record) => {
   })
 }
 
-const onClone = async (record) => {
-  // 简单策略：用 prompt 让用户输入新名；取消则不克隆
-  const defaultName = `${record.name}-副本`
-  const newName = window.prompt(`输入新模板名称（将作为草稿保存）：`, defaultName)
-  if (!newName || !newName.trim()) return
+const onClone = (record) => {
+  cloneSource.value = record
+  cloneForm.name = `${record.name}-副本`
+  cloneForm.remark = ''
+  cloneModalOpen.value = true
+}
+
+const handleCloneOk = async () => {
+  const name = cloneForm.name?.trim()
+  if (!name) {
+    message.warning('请输入新模板名称')
+    return
+  }
+  cloneSubmitting.value = true
   try {
-    await handleClone(record.id, newName.trim())
+    await handleClone(cloneSource.value.id, name, cloneForm.remark?.trim())
+    cloneModalOpen.value = false
   } catch (e) {
     message.error(e.message || '克隆失败')
+  } finally {
+    cloneSubmitting.value = false
   }
 }
 
@@ -225,5 +275,32 @@ onMounted(() => fetch())
   margin-left: 6px;
   color: #8c8c8c;
   font-size: 12px;
+}
+.clone-form {
+  padding: 8px 0 0;
+}
+.form-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.form-row-top {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+.form-label {
+  flex-shrink: 0;
+  width: 90px;
+  color: #595959;
+  font-size: 13px;
+}
+.form-row-top .form-label {
+  padding-top: 5px;
+}
+.form-label.required::before {
+  content: '*';
+  margin-right: 4px;
+  color: #ff4d4f;
 }
 </style>

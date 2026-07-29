@@ -209,6 +209,61 @@ class PromptTemplateServiceStageTest {
     }
 
     @Test
+    void create_shouldPreserveCustomStageKeyAndType() {
+        PromptTemplateSaveRequest req = new PromptTemplateSaveRequest();
+        req.setName("新模板");
+        List<PromptTemplateStageSaveItem> items = new ArrayList<>();
+        PromptTemplateStageSaveItem it = new PromptTemplateStageSaveItem();
+        it.setStageIndex(5);
+        it.setStageType("rule_config");
+        it.setStageKey("content_post_process");
+        it.setRuleConfig("{\"singleQuoteToChineseQuotes\": true}");
+        it.setEnabled(1);
+        items.add(it);
+        req.setStages(items);
+
+        org.mockito.Mockito.doAnswer((inv) -> {
+            PromptTemplate t = inv.getArgument(0);
+            t.setId(30L);
+            return 1;
+        }).when(templateMapper).insert(any(PromptTemplate.class));
+
+        service.create(req, 1L);
+
+        ArgumentCaptor<PromptTemplateStage> captor = ArgumentCaptor.forClass(PromptTemplateStage.class);
+        verify(stageMapper, times(13)).insert(captor.capture());
+        PromptTemplateStage stage5 = captor.getAllValues().get(4);
+        assertEquals("content_post_process", stage5.getStageKey());
+        assertEquals("rule_config", stage5.getStageType());
+        assertTrue(stage5.getRuleConfig().contains("singleQuoteToChineseQuotes"));
+    }
+
+    @Test
+    void detail_shouldUseStageKeyMetadataForContentPostProcess() {
+        PromptTemplate exist = sampleTemplate(9L);
+        when(templateMapper.selectById(9L)).thenReturn(exist);
+
+        List<PromptTemplateStage> rows = new ArrayList<>();
+        PromptTemplateStage row5 = new PromptTemplateStage();
+        row5.setTemplateId(9L);
+        row5.setStageIndex(5);
+        row5.setStageKey("content_post_process");
+        row5.setStageType("rule_config");
+        row5.setRuleConfig("{\"singleQuoteToChineseQuotes\": true}");
+        row5.setEnabled(1);
+        rows.add(row5);
+        when(stageMapper.selectByTemplateId(9L)).thenReturn(rows);
+
+        PromptTemplateAdminVO vo = service.detail(9L);
+
+        PromptTemplateStageVO stage5 = vo.getStages().get(4);
+        assertEquals("内容后处理", stage5.getDisplayName());
+        assertEquals("content_post_process", stage5.getStageKey());
+        assertNotNull(stage5.getConfigFields());
+        assertEquals("singleQuoteToChineseQuotes", stage5.getConfigFields().get(0).getKey());
+    }
+
+    @Test
     void detail_shouldReturnStagesWithMetadata() {
         PromptTemplate exist = sampleTemplate(8L);
         when(templateMapper.selectById(8L)).thenReturn(exist);

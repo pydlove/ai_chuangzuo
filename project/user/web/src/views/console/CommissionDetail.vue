@@ -57,7 +57,7 @@
             <div class="description">{{ task.description }}</div>
           </div>
           <div v-if="task.skillHint" class="style-hint-block">
-            <h3>风格提示</h3>
+            <h3>skills 提示</h3>
             <p>{{ task.skillHint }}</p>
           </div>
         </section>

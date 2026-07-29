@@ -16,6 +16,12 @@ public class PromptTemplateStageSaveItem {
     @NotNull
     private Integer stageIndex;
 
+    /** 阶段类型：ai_prompt / rule_config / passthrough；不填则按 stageIndex 取默认值。 */
+    private String stageType;
+
+    /** 阶段稳定标识符；不填则按 stageIndex 取默认值。 */
+    private String stageKey;
+
     /** 0=禁用，1=启用。 */
     private Integer enabled;
 

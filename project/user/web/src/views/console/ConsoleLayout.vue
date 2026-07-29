@@ -1294,8 +1294,8 @@ const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
 const pageTitleMap = {
   '/console/create': '创作',
   '/console/works': '我的作品',
-  '/console/skills': '我的风格',
-  '/console/skill-market': '风格市场',
+  '/console/skills': '我的 skills',
+  '/console/skill-market': 'skills 市场',
   '/console/earnings': '我的账户',
   '/console/hot-search': '热搜榜',
   '/console/leaderboard': '收益排行榜',
@@ -1438,7 +1438,7 @@ const goToNewcomerOffer = () => {
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
-  { path: '/console/skill-market', label: '风格市场', icon: ShopOutlined },
+  { path: '/console/skill-market', label: 'skills 市场', icon: ShopOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   {
@@ -1446,7 +1446,7 @@ const navItems = [
     icon: UserOutlined,
     children: [
       { path: '/console/works', label: '我的作品', icon: FolderOutlined },
-      { path: '/console/skills', label: '我的风格', icon: SmileOutlined },
+      { path: '/console/skills', label: '我的 skills', icon: SmileOutlined },
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined }
     ]
   }
@@ -1979,7 +1979,7 @@ const handleMembershipClick = () => {
 // ---------- header 会员徽章 hover 权益卡 ----------
 // tier 类权益值 → 中文展示
 const TIER_LABELS = {
-  none: '不可用', preset: '预设风格', custom: '自定义',
+  none: '不可用', preset: '预设 skills', custom: '自定义',
   basic_8: '基础 8 款', all_20: '全部 20 款', all_custom: '全部 + 自定义',
   standard: '标准', priority: '优先', express: '极速'
 }
@@ -2545,7 +2545,7 @@ const notifTabs = [
   { type: 'announcement', label: '公告' },
   { type: 'station', label: '站内消息' },
   { type: 'generation', label: '生成完成' },
-  { type: 'style', label: '风格审核' },
+  { type: 'style', label: 'skills 审核' },
   { type: 'feature', label: '新功能' },
   { type: 'promotion', label: '优惠活动' }
 ]

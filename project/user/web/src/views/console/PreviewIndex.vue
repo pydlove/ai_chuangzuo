@@ -32,7 +32,7 @@
           <span>·</span>
           <span>约 {{ article.wordCount }} 字</span>
           <span class="article-style-badge">
-            风格:{{ article.skillName || article.style || '专业严谨' }}
+             skills:{{ article.skillName || article.style || '专业严谨' }}
           </span>
           <span v-if="templateMeta" class="article-template-badge">
             模板:{{ templateMeta.name }}

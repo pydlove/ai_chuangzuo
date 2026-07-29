@@ -140,7 +140,7 @@ function getCurrentMonth() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
 }
 
-/** 当前用户本月已发布到市场的风格数（按 marketSkills 实时统计）。 */
+/** 当前用户本月已发布到市场的 skills 数量（按 marketSkills 实时统计）。 */
 export function countMyPublishesThisMonth() {
   const uid = getUserId()
   const month = getCurrentMonth()
@@ -161,7 +161,7 @@ export function shareSkillToMarket(style, sourceType) {
   if (remaining <= 0) {
     const quota = parseInt(benefitValue('skill_market_publish') || '0', 10)
     if (quota <= 0) {
-      throw new Error('当前套餐不支持发布风格到市场，请升级会员')
+      throw new Error('当前套餐不支持发布 skills 到 skills 市场，请升级会员')
     }
     throw new Error(`本月发布额度已用完（${quota} 次），下月 1 日重置`)
   }
@@ -170,7 +170,7 @@ export function shareSkillToMarket(style, sourceType) {
     s => s.originalName === style.name && s.creatorId === getUserId() && s.sourceType === sourceType
   )
   if (existing) {
-    throw new Error('该风格已经分享过')
+    throw new Error('该 skill 已经分享过')
   }
   const id = 'market-' + Date.now().toString(36)
   marketSkills.value.unshift({
@@ -199,10 +199,10 @@ export function shareSkillToMarket(style, sourceType) {
 
 export function useMarketSkill(marketId) {
   const s = marketSkills.value.find(x => x.id === marketId)
-  if (!s) throw new Error('风格不存在')
-  if (s.status !== 'approved') throw new Error('风格未上架')
+  if (!s) throw new Error('skill 不存在')
+  if (s.status !== 'approved') throw new Error('skill 未上架')
 
-  // 前端 mock：使用他人分享的风格不扣创作币，创作者仍获得收益
+  // 前端 mock：使用他人分享的 skill 不扣创作币，创作者仍获得收益
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
 
@@ -269,8 +269,8 @@ export function settleWeeklyMilestone() {
 
 export function simulateExternalUse(marketId) {
   const s = marketSkills.value.find(x => x.id === marketId)
-  if (!s) throw new Error('风格不存在')
-  if (s.status !== 'approved') throw new Error('风格未上架')
+  if (!s) throw new Error('skill 不存在')
+  if (s.status !== 'approved') throw new Error('skill 未上架')
 
   // 前端 mock：外部用户使用免费，创作者获得收益
   const creatorBalance = getCoinBalance()
@@ -371,7 +371,7 @@ export function getPreviousWeek() {
   return getWeekFromDate(now)
 }
 
-// ===== 风格市场视觉升级 v2 — 聚合 computed =====
+// ===== skills 市场视觉升级 v2 — 聚合 computed =====
 // 数据来源原则：统计/榜单/精选从 marketOverview 读取；
 // weeklyUses / totalUses / weeklyEarnings 取 marketSkills 单条；
 // totalEarnings（创作者总收益）取 earningsRecords，按 skillId → creatorId 关联。

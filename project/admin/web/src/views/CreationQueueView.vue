@@ -214,7 +214,7 @@
       <a-modal
         v-model:open="previewModal.open"
         :title="previewModal.article?.title || '文章预览'"
-        width="800"
+        :width="1280"
         :footer="null"
         @cancel="onPreviewClose"
       >

@@ -23,7 +23,7 @@
           </div>
 
           <div class="cards-modal-sub">
-            共 {{ cardsData.length }} 张 · {{ cardStyles[cardsStyle].label }}风格 · 点击单张可下载
+            共 {{ cardsData.length }} 张 · {{ cardStyles[cardsStyle].label }} skills · 点击单张可下载
           </div>
 
           <div class="cards-modal-grid">

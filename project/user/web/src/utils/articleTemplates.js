@@ -37,7 +37,7 @@ export function buildLargePreview(t) {
 
   return '<div style="background: ' + s.bg + '; padding: 24px; height: 100%; box-sizing: border-box; font-family: ' + s.font + '; overflow-y: auto; color: ' + s.bodyColor + ';">' +
     '<h1 style="font-size: ' + s.titleSize + '; font-weight: 700; color: ' + s.titleColor + '; margin: 0 0 12px; line-height: 1.4; text-align: ' + titleAlign + ';">如何高效管理时间</h1>' +
-    '<div style="color: ' + s.metaColor + '; font-size: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid ' + s.metaBorder + '; text-align: ' + metaAlign + ';">2026-06-22 · 约 1500 字 · 风格:专业严谨</div>' +
+    '<div style="color: ' + s.metaColor + '; font-size: 12px; margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid ' + s.metaBorder + '; text-align: ' + metaAlign + ';">2026-06-22 · 约 1500 字 · skills:专业严谨</div>' +
     '<p style="font-size: ' + s.bodySize + '; line-height: ' + s.bodyLine + '; color: ' + s.bodyColor + '; margin: 0 0 12px; text-align: ' + bodyAlign + ';">时间对每个人来说都是公平的，但为什么有人能在 24 小时内完成更多事情？关键不在于你有多忙，而在于你如何管理注意力。</p>' +
     '<h3 style="font-size: ' + s.headingSize + '; font-weight: 600; color: ' + s.headingColor + '; border-left: ' + headingBorder + '; padding-left: ' + headingPl + '; border-bottom: ' + headingBorderBottom + '; ' + headingStyleExtra + 'margin: 18px 0 8px; text-align: ' + headingAlign + ';">' + headingText + '</h3>' +
     '<p style="font-size: ' + s.bodySize + '; line-height: ' + s.bodyLine + '; color: ' + s.bodyColor + '; margin: 0 0 12px; text-align: ' + bodyAlign + ';">很多人一早打开手机就被消息牵着走。高效的人会在每天开始前列出 3 件最重要的事，并优先完成它们。</p>' +

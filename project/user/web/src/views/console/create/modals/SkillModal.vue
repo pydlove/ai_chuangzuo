@@ -8,216 +8,204 @@
   >
     <template #title>
       <div class="modal-title-wrap">
-        <div class="modal-title">风格库</div>
-        <div class="modal-subtitle">选择一套预设风格，让 AI 写出你想要的调性</div>
+        <div class="modal-title">skills</div>
+        <div class="modal-subtitle">选择一套 skill，让 AI 写出你想要的调性</div>
       </div>
     </template>
 
-    <!-- 创建/编辑风格 -->
-    <div v-if="createSkillMode" class="style-editor">
-      <div class="style-editor-header">
-        <button class="style-editor-back" @click="goBackToList">← 返回</button>
-        <div class="style-editor-title">{{ editingStyle.name ? '编辑提示词' : '新建我的风格' }}</div>
-      </div>
-      <div class="style-editor-form">
-        <div class="style-editor-field">
-          <label class="style-editor-label">风格名称 <span class="required">*</span></label>
-          <input
-            v-model="editingStyle.name"
-            type="text"
-            class="style-editor-input"
-            placeholder="例如：我的小红书风"
-            maxlength="20"
-          />
-        </div>
-        <div class="style-editor-field">
-          <label class="style-editor-label">风格提示词 <span class="required">*</span></label>
-          <textarea
-            v-model="editingStyle.prompt"
-            class="style-editor-textarea"
-            placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
-            rows="5"
-          ></textarea>
-          <div class="style-editor-hint">提示词会作为系统提示的一部分影响生成结果。</div>
-        </div>
-        <div class="style-editor-field">
-          <label class="style-editor-label">适用范围 <span class="required">*</span></label>
-          <input
-            v-model="editingStyle.scope"
-            type="text"
-            class="style-editor-input"
-            placeholder="例：公众号情感文 / 产品评测 / 小红书种草"
-            maxlength="50"
-          />
-        </div>
-        <div class="style-editor-presets">
-          <div class="style-editor-preset-label">快速填充模板：</div>
-          <div class="style-editor-preset-list">
-            <div
-              v-for="preset in stylePresets"
-              :key="preset.name"
-              class="style-preset-card"
-              @click="editingStyle.prompt = preset.prompt"
-            >
-              <div class="style-preset-title">{{ preset.name }}</div>
-              <div class="style-preset-desc">{{ preset.desc }}</div>
+    <div class="style-tabs">
+      <button
+        :class="['style-tab', { active: styleTab === 'my' }]"
+        @click="styleTab = 'my'"
+      >
+        我的 skills
+      </button>
+      <button
+        :class="['style-tab', { active: styleTab === 'learned' }]"
+        @click="styleTab = 'learned'; loadLearnedSkills()"
+      >
+        学习的 skills
+      </button>
+      <button
+        :class="['style-tab', { active: styleTab === 'system' }]"
+        @click="styleTab = 'system'"
+      >
+        系统预设 skills
+      </button>
+    </div>
+
+    <div class="style-content">
+      <!-- 系统预设 -->
+      <div v-show="styleTab === 'system'" class="style-grid">
+        <div
+          v-for="s in systemSkills"
+          :key="s.name"
+          :class="['style-card', { selected: selectedStyleName === s.name }]"
+          @click="selectStyle(s)"
+        >
+          <div class="style-card-head">
+            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ s.name }}</div>
+              </div>
+              <div class="style-card-meta">{{ s.desc }}</div>
             </div>
           </div>
+          <div class="style-card-prompt">{{ s.promptSummary }}</div>
+          <div class="style-card-footer">
+            <button class="style-action-btn" @click.stop="openPromptModal(s)">
+              查看完整提示词
+            </button>
+          </div>
         </div>
-        <button class="save-style-btn" @click="saveStyle">保存</button>
+      </div>
+
+      <!-- 我的 skills -->
+      <div v-show="styleTab === 'my'" class="style-grid">
+        <div class="style-add-card" @click="goToSkillsPage">
+          <div class="style-add-icon">+</div>
+          <div class="style-add-text">新建我的 skills</div>
+        </div>
+        <div
+          v-for="m in mySkills"
+          :key="m.name"
+          :class="['style-card', { selected: selectedStyleName === m.name }]"
+          @click="selectStyle(m)"
+        >
+          <div class="style-card-head">
+            <div class="style-card-avatar">{{ m.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ m.name }}</div>
+              </div>
+              <div class="style-card-meta">
+                <span>自定义 skills</span>
+                <span class="style-card-meta-dot">·</span>
+                <span>已用 {{ m.count }} 次</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="m.scope" class="style-card-scope-list">
+            <span v-for="tag in parseScopeTags(m.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+          </div>
+          <div class="style-card-prompt">{{ promptSummary(m.prompt) }}</div>
+          <div class="style-card-footer">
+            <button class="style-action-btn" @click.stop="openPromptModal(m)">
+              查看完整提示词
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 学习的 skills -->
+      <div v-show="styleTab === 'learned'" class="style-grid">
+        <div
+          v-if="learnedSkills.length === 0"
+          class="style-empty style-empty-text"
+        >
+          还没有学习过的 skills，请前往「我的 skills」页面学习。
+        </div>
+        <div
+          v-for="l in learnedSkills"
+          v-else
+          :key="l.name"
+          :class="['style-card', { selected: selectedStyleName === l.name }]"
+          @click="selectStyle(l)"
+        >
+          <div class="style-card-head">
+            <div class="style-card-avatar learned">{{ l.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ l.name }}</div>
+              </div>
+              <div class="style-card-meta">
+                <span>学习 · {{ (l.createdAt || '').slice(0, 10) }}</span>
+              </div>
+            </div>
+          </div>
+          <div v-if="l.scope" class="style-card-scope-list">
+            <span v-for="tag in parseScopeTags(l.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+          </div>
+          <div class="style-card-prompt">{{ promptSummary(l.prompt) }}</div>
+          <div class="style-card-footer">
+            <button class="style-action-btn" @click.stop="openPromptModal(l)">
+              查看完整提示词
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 
-    <!-- 风格列表 -->
-    <template v-else>
-      <div class="style-tabs">
-        <button
-          :class="['style-tab', { active: styleTab === 'my' }]"
-          @click="styleTab = 'my'; createSkillMode = false"
-        >
-          我的风格
-        </button>
-        <button
-          :class="['style-tab', { active: styleTab === 'learned' }]"
-          @click="styleTab = 'learned'; createSkillMode = false; loadLearnedSkills()"
-        >
-          学习的风格
-        </button>
-        <button
-          :class="['style-tab', { active: styleTab === 'system' }]"
-          @click="styleTab = 'system'; createSkillMode = false"
-        >
-          系统预设风格
-        </button>
-      </div>
+    <div class="style-footer">
+      <button
+        class="style-apply-btn"
+        :disabled="!selectedStyleName"
+        @click="applySkillLocal"
+      >
+        应用
+      </button>
+    </div>
 
-      <div class="style-content">
-        <!-- 系统预设 -->
-        <div v-show="styleTab === 'system'" class="style-grid">
-          <div
-            v-for="s in systemSkills"
-            :key="s.name"
-            :class="['style-card', { selected: selectedStyleName === s.name }]"
-            @click="selectStyle(s)"
-          >
-            <div class="style-card-title">{{ s.name }}</div>
-            <div class="style-card-desc">{{ s.desc }}</div>
-            <div class="style-card-prompt">{{ s.promptSummary }}</div>
-          </div>
+    <!-- 提示词详情弹框 -->
+    <a-modal
+      class="skill-prompt-modal"
+      :open="promptModalVisible"
+      :title="viewingSkill?.name"
+      :footer="null"
+      :width="560"
+      centered
+      @cancel="closePromptModal"
+    >
+      <div v-if="viewingSkill" class="skill-prompt-body">
+        <div class="skill-prompt-meta">
+          <span v-if="viewingSkill.desc">{{ viewingSkill.desc }}</span>
+          <span v-else-if="typeof viewingSkill.count === 'number'">自定义 skills · 已用 {{ viewingSkill.count }} 次</span>
+          <span v-else-if="viewingSkill.createdAt">学习 · {{ viewingSkill.createdAt.slice(0, 10) }}</span>
         </div>
-
-        <!-- 我的风格 -->
-        <div v-show="styleTab === 'my'" class="style-grid">
-          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreateStyle">
-            <div class="style-add-icon">+</div>
-            <div class="style-add-text">新建我的风格</div>
-          </div>
-          <div v-else-if="styleCustomLimit > 0" class="style-quota-card">
-            <div class="style-quota-text">已达上限 {{ customQuotaText }}</div>
-          </div>
-          <div
-            v-for="(m, idx) in mySkills"
-            :key="m.name"
-            :class="['style-card', { selected: selectedStyleName === m.name }]"
-            @click="selectStyle(m)"
-          >
-            <div class="style-card-title">{{ m.name }}</div>
-            <div class="style-card-desc">{{ m.desc }} · 已用 {{ m.count }} 次</div>
-            <div v-if="m.scope" class="style-card-scope">适用：{{ m.scope }}</div>
-            <div class="style-prompt-toggle" @click.stop="togglePrompt(idx)">
-              {{ expandedPromptIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
-            </div>
-            <div v-show="expandedPromptIdx === idx" class="style-prompt-full">
-              {{ m.prompt }}
-            </div>
-            <div v-show="expandedPromptIdx === idx" class="style-prompt-actions">
-              <button class="style-action-btn" @click.stop="goToEditStyle(m)">编辑提示词</button>
-              <button class="style-action-btn style-del-btn" @click.stop="deleteSkill(m.name)">删除</button>
-            </div>
-          </div>
+        <div v-if="viewingSkill.scope" class="skill-prompt-scope-list">
+          <span v-for="tag in parseScopeTags(viewingSkill.scope)" :key="tag" class="skill-prompt-scope">{{ tag }}</span>
         </div>
-
-        <!-- 学习的风格 -->
-        <div v-show="styleTab === 'learned'" class="style-grid">
-          <div
-            v-if="learnedSkills.length === 0"
-            class="style-empty style-empty-text"
-          >
-            还没有学习过的风格，请前往「我的风格」页面学习。
-          </div>
-          <div
-            v-for="(l, idx) in learnedSkills"
-            v-else
-            :key="l.name"
-            :class="['style-card', { selected: selectedStyleName === l.name }]"
-            @click="selectStyle(l)"
-          >
-            <div class="style-card-title">{{ l.name }}</div>
-            <div v-if="l.scope" class="style-card-scope">适用：{{ l.scope }}</div>
-            <div class="style-prompt-toggle" @click.stop="toggleLearnedPrompt(idx)">
-              {{ expandedLearnedIdx === idx ? '收起 ▴' : '查看完整提示词 ▾' }}
-            </div>
-            <div v-show="expandedLearnedIdx === idx" class="style-prompt-full">
-              {{ l.prompt }}
-            </div>
-          </div>
+        <div class="skill-prompt-text">{{ viewingSkill.prompt }}</div>
+        <div class="skill-prompt-actions">
+          <button class="skill-prompt-use-btn" @click="useFromPromptModal">应用</button>
+          <button class="skill-prompt-close-btn" @click="closePromptModal">关闭</button>
         </div>
       </div>
-
-      <div class="style-footer">
-        <button
-          class="style-apply-btn"
-          :disabled="!selectedStyleName"
-          @click="applySkillLocal"
-        >
-          应用
-        </button>
-      </div>
-    </template>
+    </a-modal>
   </a-modal>
 </template>
 
 <script setup>
-import { ref, reactive, watch, computed } from 'vue'
-import { Modal } from 'ant-design-vue'
+import { ref, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   systemSkills,
   mySkills,
   applySkill,
-  addCustomSkill,
-  updateCustomSkill,
-  removeCustomSkill,
   learnedSkills,
   loadMySkills,
   loadLearnedSkills
 } from '@/composables/useSkills.js'
 import { useCreateForm } from '../useCreateForm.js'
-import { useBenefits } from '@/composables/useBenefits.js'
 
 const { styleVisible } = useCreateForm()
-const { benefitValue, loadBenefits } = useBenefits()
+const router = useRouter()
 
 const styleTab = ref('my')
 const selectedStyleName = ref(null)
-const expandedPromptIdx = ref(null)
-const expandedLearnedIdx = ref(null)
-const createSkillMode = ref(false)
-const editingStyle = reactive({ originalName: '', name: '', prompt: '', scope: '', isEdit: false })
+const promptModalVisible = ref(false)
+const viewingSkill = ref(null)
 
-// 弹框打开时重置到列表态并加载我的风格（原 openSkillModal 逻辑）
+// 弹框打开时重置并加载我的 skills
 watch(styleVisible, async (open) => {
   if (!open) return
   styleTab.value = 'my'
   selectedStyleName.value = null
-  expandedPromptIdx.value = null
-  createSkillMode.value = false
-  await loadBenefits()
+  viewingSkill.value = null
+  promptModalVisible.value = false
   await loadMySkills()
 })
-
-const styleCustomLimit = computed(() => parseInt(benefitValue('skill_custom') || '0', 10))
-const canCreateCustom = computed(() => styleCustomLimit.value > 0 && mySkills.value.length < styleCustomLimit.value)
-const customQuotaText = computed(() => `${mySkills.value.length} / ${styleCustomLimit.value}`)
 
 const selectStyle = (s) => {
   selectedStyleName.value = s.name
@@ -234,83 +222,42 @@ const applySkillLocal = () => {
   }
 }
 
-const goToCreateStyle = () => {
-  createSkillMode.value = true
-  editingStyle.isEdit = false
-  editingStyle.originalName = ''
-  editingStyle.name = ''
-  editingStyle.prompt = ''
-  editingStyle.scope = ''
+const useFromPromptModal = () => {
+  if (!viewingSkill.value) return
+  selectedStyleName.value = viewingSkill.value.name
+  applySkill(viewingSkill.value)
+  promptModalVisible.value = false
+  styleVisible.value = false
 }
 
-const goToEditStyle = (style) => {
-  createSkillMode.value = true
-  editingStyle.isEdit = true
-  editingStyle.originalName = style.name
-  editingStyle.name = style.name
-  editingStyle.prompt = style.prompt
-  editingStyle.scope = style.scope || ''
+const goToSkillsPage = () => {
+  styleVisible.value = false
+  router.push('/console/skills')
 }
 
-const goBackToList = () => {
-  createSkillMode.value = false
+const openPromptModal = (s) => {
+  viewingSkill.value = s
+  promptModalVisible.value = true
 }
 
-const saveStyle = async () => {
-  const name = editingStyle.name.trim()
-  const prompt = editingStyle.prompt.trim()
-  const scope = editingStyle.scope.trim()
-  if (!name || !prompt || !scope) return
-  if (name.length > 20 || prompt.length > 1000 || scope.length > 50) return
-  try {
-    if (editingStyle.isEdit) {
-      await updateCustomSkill(editingStyle.originalName, { name, prompt, scope })
-    } else {
-      await addCustomSkill({ name, prompt, scope })
-    }
-    createSkillMode.value = false
-  } catch {
-    // composable 已 message.error
-  }
+const closePromptModal = () => {
+  promptModalVisible.value = false
+  viewingSkill.value = null
 }
 
-const deleteSkill = (name) => {
-  Modal.confirm({
-    title: '删除风格',
-    content: `确定要删除风格「${name}」吗？删除后不可恢复。`,
-    okText: '删除',
-    cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
-    onOk: async () => {
-      try {
-        await removeCustomSkill(name)
-        if (selectedStyleName.value === name) selectedStyleName.value = null
-      } catch {
-        // composable 已 message.error
-      }
-    }
-  })
+const parseScopeTags = (scopeStr) => {
+  if (!scopeStr) return []
+  return scopeStr.split(/[,，]/).map(t => t.trim()).filter(Boolean)
 }
 
-const togglePrompt = (idx) => {
-  expandedPromptIdx.value = expandedPromptIdx.value === idx ? null : idx
+const promptSummary = (prompt) => {
+  if (!prompt) return ''
+  return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
 }
-
-const toggleLearnedPrompt = (idx) => {
-  expandedLearnedIdx.value = expandedLearnedIdx.value === idx ? null : idx
-}
-
-const stylePresets = [
-  { name: '产品评测', desc: '客观中立、参数对比', prompt: '你是客观的产品评测人：\n- 语气客观中立、有理有据\n- 结构：外观设计 → 核心性能 → 实际体验 → 优缺点总结\n- 必带参数对比表\n- 给出明确购买建议' },
-  { name: '情感散文', desc: '细腻温暖、意象留白', prompt: '你是细腻的散文家：\n- 语气细腻、温暖，共情\n- 大量使用比喻、意象、留白\n- 第一人称叙述\n- 段落短而精，不要说教' },
-  { name: '职场干货', desc: '专业务实、可执行', prompt: '你是资深职场导师：\n- 语气专业务实\n- 结构：行业痛点 → 核心方案 → 具体步骤\n- 必带可执行的 checklist\n- 避免假大空、避免鸡汤' },
-  { name: '营销文案', desc: '紧迫感 + 利益点', prompt: '你是营销高手：\n- 开头制造紧迫感 / 共鸣痛点\n- 突出 3 个核心利益点\n- 必带强 CTA\n- 语气坚定、有说服力' }
-]
 </script>
 
 <style scoped>
-/* 风格选择 */
+/* skills 选择 */
 .style-tabs {
   display: flex;
   gap: 24px;
@@ -339,70 +286,164 @@ const stylePresets = [
 .style-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 
 .style-content {
   height: 60vh;
   overflow-y: auto;
-}
-
-.style-editor {
-  height: 60vh;
-  overflow-y: auto;
+  padding: 8px 0;
 }
 
 .style-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 16px;
   padding: 16px;
-  border: 2px solid #e8e8e8;
-  border-radius: 10px;
+  min-height: 200px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   cursor: pointer;
-  transition: all 0.2s;
 }
 
 .style-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
   border-color: var(--color-primary);
-  background: #fff0f2;
 }
 
 .style-card.selected {
   border-color: var(--color-primary);
-  background: #fff0f2;
+  background: var(--color-primary-bg);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
-.style-card-title {
-  font-weight: 600;
-  color: #1a1a1a;
-  font-size: 15px;
+.style-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.style-card-avatar {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff0f2;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.style-card-avatar.learned {
+  background: #fff5f7;
+  color: var(--color-primary);
+}
+
+.style-card-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.style-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 4px;
 }
 
-.style-card-desc {
+.style-card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.35;
+  word-break: break-all;
+}
+
+.style-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   color: #8c8c8c;
-  margin-bottom: 8px;
+}
+
+.style-card-meta-dot {
+  color: #d9d9d9;
+  font-weight: 700;
+}
+
+.style-card-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 .style-card-scope {
-  font-size: 12px;
-  color: #1890ff;
-  background: #e6f7ff;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  width: fit-content;
+  font-size: 11px;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
   padding: 2px 8px;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  border-radius: 6px;
+}
+
+.style-card-scope::before {
+  content: '#';
+  opacity: 0.8;
 }
 
 .style-card-prompt {
-  font-size: 12px;
-  color: #595959;
-  line-height: 1.6;
+  font-size: 13px;
+  color: #262626;
+  line-height: 1.7;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1 0 auto;
   white-space: pre-line;
 }
 
-.style-card-count {
+.style-card-footer {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.style-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.style-action-btn {
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   font-size: 12px;
+  color: #8c8c8c;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.style-action-btn:hover {
   color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .style-add-card {
@@ -410,44 +451,41 @@ const stylePresets = [
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px;
-  border: 2px dashed #d9d9d9;
-  border-radius: 10px;
+  padding: 20px;
+  border: 2px dashed #e8e8e8;
+  border-radius: 16px;
   cursor: pointer;
-  transition: all 0.2s;
-  min-height: 100px;
+  transition: all 0.25s ease;
+  min-height: 200px;
+  box-sizing: border-box;
+  background: #fff;
+  gap: 8px;
 }
 
 .style-add-card:hover {
   border-color: var(--color-primary);
-  background: #fff0f2;
-}
-
-.style-quota-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  border: 2px dashed #e8e8e8;
-  border-radius: 10px;
-  min-height: 100px;
-}
-
-.style-quota-text {
-  font-size: 13px;
-  color: #8c8c8c;
+  background: var(--color-primary-bg);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
 }
 
 .style-add-icon {
-  font-size: 24px;
-  color: #8c8c8c;
-  margin-bottom: 4px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff0f2;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 700;
 }
 
 .style-add-text {
   font-size: 13px;
-  color: #8c8c8c;
+  color: #595959;
+  font-weight: 500;
 }
 
 .style-empty {
@@ -489,239 +527,95 @@ const stylePresets = [
   background: var(--color-primary-hover);
 }
 
-.style-prompt-toggle {
-  font-size: 12px;
-  color: var(--color-primary);
-  cursor: pointer;
-  margin-top: 8px;
+.skill-prompt-body {
+  padding: 8px 0 0;
 }
 
-.style-prompt-full {
-  font-size: 12px;
-  color: #595959;
-  line-height: 1.6;
-  margin-top: 8px;
-  padding: 8px;
-  background: #fafafa;
-  border-radius: 6px;
-  white-space: pre-wrap;
-}
-
-.style-prompt-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.style-action-btn {
-  font-size: 12px;
-  color: var(--color-primary);
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 0;
-}
-
-.style-action-btn:hover {
-  text-decoration: underline;
-}
-
-.style-del-btn {
-  color: #ff4d4f;
-}
-
-.style-editor-header {
+.skill-prompt-meta {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.style-editor-back {
-  background: none;
-  border: none;
-  color: var(--color-primary);
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.style-editor-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.style-editor-form {
-  padding: 0;
-}
-
-.style-editor-field {
-  margin-bottom: 16px;
-}
-
-.style-editor-label {
-  display: block;
+  gap: 6px;
   font-size: 13px;
-  color: #595959;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.style-editor-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #1a1a1a;
-  box-sizing: border-box;
-}
-
-.style-editor-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.style-editor-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #1a1a1a;
-  resize: vertical;
-  box-sizing: border-box;
-  font-family: inherit;
-}
-
-.style-editor-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-}
-
-.style-editor-hint {
-  font-size: 12px;
   color: #8c8c8c;
-  margin-top: 6px;
+  margin-bottom: 12px;
 }
 
-.style-editor-presets {
-  margin-bottom: 16px;
-}
-
-.style-editor-preset-label {
-  font-size: 13px;
-  color: #595959;
-  margin-bottom: 8px;
-}
-
-.style-editor-preset-list {
+.skill-prompt-scope-list {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+  margin-bottom: 12px;
 }
 
-.style-preset-card {
-  padding: 8px 12px;
-  border: 1px solid #e8e8e8;
+.skill-prompt-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
+  padding: 3px 10px;
   border-radius: 6px;
+}
+
+.skill-prompt-scope::before {
+  content: '#';
+  opacity: 0.8;
+}
+
+.skill-prompt-text {
+  font-size: 14px;
+  color: #262626;
+  line-height: 1.8;
+  background: #fafafa;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  white-space: pre-line;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.skill-prompt-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.skill-prompt-use-btn {
+  padding: 8px 20px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.style-preset-card:hover {
-  border-color: var(--color-primary);
-  background: #fff0f2;
+.skill-prompt-use-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
-.style-preset-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.style-preset-desc {
-  font-size: 11px;
-  color: #8c8c8c;
-}
-
-.save-style-btn {
-  width: 100%;
-  padding: 10px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
+.skill-prompt-close-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
   border-radius: 8px;
   font-size: 14px;
-  font-weight: 600;
+  color: #595959;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: all 0.2s;
 }
 
-.save-style-btn:hover {
-  background: var(--color-primary-hover);
-}
-
-
-/* 风格编辑内联表单 */
-body[data-theme="dark"] .style-editor-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-editor-label {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-editor-hint {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-editor-input,
-body[data-theme="dark"] .style-editor-textarea {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-editor-input::placeholder,
-body[data-theme="dark"] .style-editor-textarea::placeholder {
-  color: #737373;
-}
-
-body[data-theme="dark"] .style-editor-input:focus,
-body[data-theme="dark"] .style-editor-textarea:focus {
-  border-color: var(--color-primary);
-  outline: none;
-}
-
-body[data-theme="dark"] .style-editor-preset {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .style-editor-preset:hover {
-  background: rgba(255, 36, 66, 0.15);
+.skill-prompt-close-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-preset-card {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .style-preset-card:hover {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-preset-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-preset-desc {
-  color: #a6a6a6;
+  background: var(--color-primary-bg);
 }
 
 body[data-theme="dark"] .style-tabs {
@@ -746,27 +640,58 @@ body[data-theme="dark"] .style-card {
   border-color: #303030;
 }
 
-body[data-theme="dark"] .style-card:hover,
+body[data-theme="dark"] .style-card:hover {
+  border-color: var(--color-primary);
+}
+
 body[data-theme="dark"] .style-card.selected {
   background: rgba(255, 36, 66, 0.12);
   border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-card-avatar {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .style-card-avatar.learned {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-card-title {
   color: #f0f0f0;
 }
 
-body[data-theme="dark"] .style-card-desc {
+body[data-theme="dark"] .style-card-meta {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .style-card-meta-dot {
+  color: #595959;
+}
+
 body[data-theme="dark"] .style-card-scope {
-  color: #4dabf7;
-  background: rgba(24, 144, 255, 0.15);
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .style-card-prompt {
+  background: transparent;
   color: #d9d9d9;
+}
+
+body[data-theme="dark"] .style-action-btn {
+  background: transparent;
+  border-color: transparent;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-action-btn:hover {
+  border-color: transparent;
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .style-add-card {
@@ -776,12 +701,16 @@ body[data-theme="dark"] .style-add-card {
 
 body[data-theme="dark"] .style-add-card:hover {
   border-color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.08);
+  background: rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .style-add-icon,
+body[data-theme="dark"] .style-add-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
 body[data-theme="dark"] .style-add-text {
-  color: #a6a6a6;
+  color: #d9d9d9;
 }
 
 body[data-theme="dark"] .style-empty-text {
@@ -806,7 +735,72 @@ body[data-theme="dark"] .style-apply-btn:not(:disabled):hover {
   background: var(--color-primary-hover);
 }
 
-body[data-theme="dark"] .style-prompt-toggle {
+body[data-theme="dark"] .skill-prompt-meta {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .skill-prompt-scope {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .skill-prompt-text {
+  background: #141414;
+  color: #d9d9d9;
+  border: 1px solid #303030;
+}
+
+body[data-theme="dark"] .skill-prompt-actions {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .skill-prompt-use-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .skill-prompt-use-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+body[data-theme="dark"] .skill-prompt-close-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .skill-prompt-close-btn:hover {
+  border-color: var(--color-primary);
   color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+</style>
+
+<style>
+/* 提示词详情弹框 teleport 到 body，需非 scoped 全局覆盖 */
+.skill-prompt-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-content,
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
 }
 </style>

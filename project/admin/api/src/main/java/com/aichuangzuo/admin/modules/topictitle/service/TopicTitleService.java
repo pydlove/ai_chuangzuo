@@ -5,7 +5,9 @@ import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
 import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleQueryRequest;
+import com.aichuangzuo.admin.modules.topictitle.entity.TopicTitleTask;
 import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleMapper;
+import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleTaskMapper;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitleAdminVO;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitlePageVO;
 import com.aichuangzuo.shared.entity.TopicTitle;
@@ -20,6 +22,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +31,10 @@ import java.util.List;
  *
  * <p>生成流程：取当前 active 模型 → 拼装 prompt（方向 + 数量 + JSON 结构 + 强约束）→
  * 同步调 AI → 清洗杂质 → Jackson 解析 → 校验/截断 → 批量入库。
- * 解析失败抛 {@link AdminGenerationErrorCode#TOPIC_TITLE_GENERATE_FAILED}，不入库，管理员可重试。
+ *
+ * <p>异步化：前端调用 {@link #submitTask} 仅入队 t_topic_title_task，
+ * {@code TopicTitleTaskWorker} @Scheduled 每 1s 抢一条 QUEUED，
+ * 调 {@link #executeTask(Long)} 真正跑 AI；前端按 taskId 轮询状态。
  */
 @Slf4j
 @Service
@@ -51,6 +57,7 @@ public class TopicTitleService {
     private static final int MAX_DIRECTION_LEN = 1024;
 
     private final TopicTitleMapper topicTitleMapper;
+    private final TopicTitleTaskMapper topicTitleTaskMapper;
     private final ModelConfigMapper modelConfigMapper;
     private final GenerationAiService generationAiService;
     private final ObjectMapper objectMapper;
@@ -80,11 +87,97 @@ public class TopicTitleService {
     }
 
     /**
-     * AI 生成标题并入库，返回实际入库条数。
+     * 入队一个新任务，立刻返回 taskId。
      *
-     * @throws BusinessException 无 active 模型（GENERATION_MODEL_UNAVAILABLE）/ 解析失败（TOPIC_TITLE_GENERATE_FAILED）
+     * @throws BusinessException 无 active 模型
      */
-    public int generate(int count, String direction) {
+    public Long submitTask(int count, String direction) {
+        ModelConfig cfg = modelConfigMapper.selectOne(new LambdaQueryWrapper<ModelConfig>()
+                .eq(ModelConfig::getIsActive, 1)
+                .orderByAsc(ModelConfig::getId)
+                .last("LIMIT 1"));
+        if (cfg == null) {
+            log.warn("AI 生成标题入队失败：无 active 模型配置 count={} direction={}", count, direction);
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE);
+        }
+
+        TopicTitleTask task = new TopicTitleTask();
+        task.setStatus(0);
+        task.setCount(count);
+        task.setDirection(truncate(direction == null ? "" : direction.trim(), MAX_DIRECTION_LEN));
+        task.setGeneratedCount(0);
+        topicTitleTaskMapper.insert(task);
+        log.info("AI 生成标题入队 taskId={} count={} direction={}",
+                task.getId(), count, task.getDirection());
+        return task.getId();
+    }
+
+    /**
+     * Worker 调：执行一个任务。失败抛异常，由 caller 标记 FAILED。
+     */
+    public void executeTask(Long taskId) {
+        TopicTitleTask task = topicTitleTaskMapper.selectById(taskId);
+        if (task == null) {
+            log.warn("executeTask: task 不存在 id={}", taskId);
+            return;
+        }
+        if (task.getStatus() == null || task.getStatus() != 0) {
+            log.warn("executeTask: task 状态非 QUEUED，跳过 id={} status={}", taskId, task.getStatus());
+            return;
+        }
+
+        task.setStatus(1);
+        task.setStartedAt(LocalDateTime.now());
+        topicTitleTaskMapper.updateById(task);
+
+        try {
+            int generated = runGeneration(task.getCount(), task.getDirection());
+            task.setGeneratedCount(generated);
+            task.setStatus(2);
+            task.setCompletedAt(LocalDateTime.now());
+            topicTitleTaskMapper.updateById(task);
+            log.info("AI 生成标题完成 taskId={} generated={}", taskId, generated);
+        } catch (Exception e) {
+            log.error("AI 生成标题失败 taskId={}: {}", taskId, e.getMessage(), e);
+            task.setStatus(3);
+            task.setFailedReason(truncate(e.getMessage(), 500));
+            task.setCompletedAt(LocalDateTime.now());
+            topicTitleTaskMapper.updateById(task);
+        }
+    }
+
+    /**
+     * 取任务状态（前端轮询用）。任务不存在抛 NotFoundException。
+     */
+    public TopicTitleTask getTask(Long taskId) {
+        TopicTitleTask t = topicTitleTaskMapper.selectById(taskId);
+        if (t == null) {
+            throw new NotFoundException("任务不存在 id=" + taskId);
+        }
+        return t;
+    }
+
+    /**
+     * 逻辑删除：已被使用记录引用的标题不能物理删除（破坏「我的已用」排除逻辑）。
+     *
+     * <p>先加载再删：deleteById(id) 会用空实体把 updated_by 更新为 null，
+     * 触发 NOT NULL 约束；传完整实体则沿用库内值。
+     */
+    public void delete(Long id) {
+        TopicTitle title = topicTitleMapper.selectById(id);
+        if (title == null) {
+            throw new NotFoundException("标题不存在");
+        }
+        topicTitleMapper.deleteById(title);
+    }
+
+    /**
+     * 实际调 AI + 解析 + 入库。复用原 generate() 的核心逻辑。
+     *
+     * @return 实际入库条数
+     * @throws BusinessException 无 active 模型 / 解析失败
+     */
+    private int runGeneration(int count, String direction) {
         ModelConfig cfg = modelConfigMapper.selectOne(new LambdaQueryWrapper<ModelConfig>()
                 .eq(ModelConfig::getIsActive, 1)
                 .orderByAsc(ModelConfig::getId)
@@ -110,28 +203,34 @@ public class TopicTitleService {
         return titles.size();
     }
 
-    /**
-     * 逻辑删除：已被使用记录引用的标题不能物理删除（破坏「我的已用」排除逻辑）。
-     *
-     * <p>先加载再删：deleteById(id) 会用空实体把 updated_by 更新为 null，
-     * 触发 NOT NULL 约束；传完整实体则沿用库内值。
-     */
-    public void delete(Long id) {
-        TopicTitle title = topicTitleMapper.selectById(id);
-        if (title == null) {
-            throw new NotFoundException("标题不存在");
-        }
-        topicTitleMapper.deleteById(title);
-    }
-
     private String buildUserMessage(int count, String direction) {
         String dir = (direction == null || direction.isBlank())
                 ? "不限，覆盖职场、情感、生活、AI 等热门自媒体赛道" : direction.trim();
-        return "请生成 " + count + " 条自媒体爆款标题，每条包含标题和概要（写作方向）。\n\n"
+        return "请生成 " + count + " 条自媒体选题标题，每条包含标题和描述（写作指引）。\n\n"
                 + "生成方向：" + dir + "\n\n"
-                + "格式要求：标题和概要中如需引用词语，一律使用中文双引号“”，不要使用单引号。\n\n"
+                + "支持平台及规则约束（标题与描述必须同时满足）：\n"
+                + "- 微信公众号：禁止诱导分享/关注/转发、低俗、谣言、侵权、虚假宣传、标题党。\n"
+                + "- 小红书：禁止夸张营销、诱导点赞收藏、虚假体验、违禁词、过度美化/对比。\n"
+                + "- 今日头条：禁止标题党、低俗、谣言、侵权、广告法违禁词、无资质医疗/财经建议。\n"
+                + "- 知乎：禁止诱导关注、编故事、不友善、低质营销、无来源事实断言。\n"
+                + "- 百家号：禁止标题党、低俗、抄袭、广告法违禁词、虚假权威背书。\n"
+                + "- 抖音图文：禁止诱导互动（如“双击 666”）、低俗、虚假内容、侵权、未成年人不良引导。\n"
+                + "通用禁区：严禁使用“最”“第一”“绝对”“国家级”等无法证实的极限词；严禁制造焦虑、歧视、攻击、泄露隐私；严禁承诺收益、疗效等无法验证的结果。\n\n"
+                + "标题多样性要求（避免同质化）：\n"
+                + "- 每条标题必须从不同角度切入，避免同义反复或只换关键词。\n"
+                + "- 句式要交错使用：问题型、反差型、场景型、观点型、方法型、故事型、数据型等。\n"
+                + "- 情绪表达要有差异，避免连续使用“震惊”“绝了”“后悔没早点”等同一套爆款模板。\n"
+                + "- 同一生成批次中，任意两条标题的开头 5 个字不能完全相同。\n\n"
+                + "描述要求（必须是写作指引，不是简单总结）：\n"
+                + "- 说明这篇文章大致怎么写，给出 2-5 个核心观点或写作要点。\n"
+                + "- 格式示例：围绕以下观点创作，1、xxx；2、xxxxx；3、xxxx。\n"
+                + "- 每个要点要指出：本部分论证什么、从什么角度展开、给读者带来什么价值。\n"
+                + "- 不要只写“介绍方法”“分析原因”这类空泛说明。\n\n"
+                + "格式要求：\n"
+                + "- 标题 ≤30 字，描述 ≤300 字。\n"
+                + "- 标题和描述中如需引用词语，一律使用中文双引号“”，不要使用单引号。\n\n"
                 + "输出 JSON 结构：\n"
-                + "{\"titles\": [{\"title\": \"标题文字\", \"summary\": \"这篇文章的核心观点和写作方向\"}]}\n\n"
+                + "{\"titles\": [{\"title\": \"标题文字\", \"summary\": \"围绕以下观点创作，1、...；2、...；3、...\"}]}\n\n"
                 + STRICT_OUTPUT_RULES;
     }
 
@@ -193,11 +292,58 @@ public class TopicTitleService {
         if (start < 0 || end <= start) {
             throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
         }
-        return content.substring(start, end + 1);
+        return sanitizeJsonStringQuotes(content.substring(start, end + 1));
+    }
+
+    /**
+     * 修复 AI 在 JSON 字符串值内部使用未转义英文双引号的常见问题。
+     *
+     * <p>遍历 JSON 时维护字符串状态：当处于字符串内且遇到未转义的 " 时，
+     * 如果下一个非空白字符不是结构分隔符（,:}])），则判定为字符串内容里的引号，
+     * 前置反斜杠转义，使 Jackson 能正常解析。
+     */
+    private String sanitizeJsonStringQuotes(String json) {
+        StringBuilder sb = new StringBuilder(json.length() + 16);
+        boolean inString = false;
+        boolean escape = false;
+        for (int i = 0; i < json.length(); i++) {
+            char c = json.charAt(i);
+            if (escape) {
+                sb.append(c);
+                escape = false;
+                continue;
+            }
+            if (c == '\\') {
+                sb.append(c);
+                escape = true;
+                continue;
+            }
+            if (c == '"') {
+                if (!inString) {
+                    inString = true;
+                    sb.append(c);
+                } else {
+                    int j = i + 1;
+                    while (j < json.length() && Character.isWhitespace(json.charAt(j))) {
+                        j++;
+                    }
+                    char next = j < json.length() ? json.charAt(j) : '\0';
+                    if (next == ',' || next == ':' || next == '}' || next == ']') {
+                        inString = false;
+                        sb.append(c);
+                    } else {
+                        sb.append('\\').append(c);
+                    }
+                }
+                continue;
+            }
+            sb.append(c);
+        }
+        return sb.toString();
     }
 
     private static String truncate(String s, int max) {
-        return s.length() > max ? s.substring(0, max) : s;
+        return s == null ? null : (s.length() > max ? s.substring(0, max) : s);
     }
 
     /** 日志用截断：AI 原始返回可能很长，最多打 500 字符。 */

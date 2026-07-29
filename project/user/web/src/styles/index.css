@@ -317,7 +317,7 @@ body[data-theme="dark"] .modal-subtitle {
   color: #a6a6a6;
 }
 
-/* 创作页发布平台 / 字数 / 风格 / 模板弹框：暗色全局覆盖 */
+/* 创作页发布平台 / 字数 / skills / 模板弹框：暗色全局覆盖 */
 body[data-theme="dark"] .platform-modal .ant-modal-content,
 body[data-theme="dark"] .platform-modal .ant-modal-header,
 body[data-theme="dark"] .word-count-modal .ant-modal-content,

@@ -43,7 +43,7 @@ function normalizeOverview(data) {
 }
 
 /**
- * 获取全部已上架风格市场列表（兼容旧逻辑）。
+ * 获取全部已上架 skills 市场列表（兼容旧逻辑）。
  * @returns {Promise<Array>}
  */
 export function getMarketSkills() {
@@ -54,7 +54,7 @@ export function getMarketSkills() {
 }
 
 /**
- * 获取风格市场概览（统计、官方精选、收益潜力榜）。
+ * 获取 skills 市场概览（统计、官方精选、收益潜力榜）。
  * @returns {Promise<Object>}
  */
 export function getMarketSkillOverview() {
@@ -65,7 +65,7 @@ export function getMarketSkillOverview() {
 }
 
 /**
- * 分页查询已上架风格市场列表。
+ * 分页查询已上架 skills 市场列表。
  * @param {Object} params
  * @param {number} [params.page=1]
  * @param {number} [params.pageSize=15]

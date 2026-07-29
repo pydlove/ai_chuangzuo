@@ -177,6 +177,30 @@
                     message="此阶段为程序化处理（无 AI 调用、无可配置项）"
                     description="由后端流水线自动完成；管理员无需也不能修改。"
                   />
+
+                  <div class="passthrough-panel">
+                    <div class="pt-section">
+                      <div class="pt-section-title">输入变量</div>
+                      <div class="pt-vars">
+                        <div
+                          v-for="p in currentStage.placeholders"
+                          :key="p.name"
+                          class="pt-var"
+                        >
+                          <code class="pt-var-name">{{ p.name }}</code>
+                          <span class="pt-var-desc">{{ p.desc }}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="pt-section">
+                      <div class="pt-section-title">输出格式</div>
+                      <p class="pt-hint">
+                        输出变量名：<code>{{ passthroughOutputName(currentStage) }}</code>
+                      </p>
+                      <pre class="pt-code">{{ passthroughOutputSample(currentStage) }}</pre>
+                    </div>
+                  </div>
                 </template>
               </div>
             </a-col>
@@ -251,6 +275,23 @@ const keyToName = (k) => {
     .split('_')
     .map((seg) => seg.charAt(0).toUpperCase() + seg.slice(1))
     .join(' ')
+}
+
+const passthroughOutputName = (stage) => {
+  if (stage.stageKey === 'intent_anchor') return 'user_context_block'
+  return 'output'
+}
+
+const passthroughOutputSample = (stage) => {
+  if (stage.stageKey === 'intent_anchor') {
+    return [
+      '标题：{{title}}',
+      '核心观点：{{coreViewpoint}}',
+      '目标读者：{{targetReader}}',
+      '风格：{{userSkillPrompt}}'
+    ].join('\n')
+  }
+  return '由后端按阶段逻辑生成，具体格式见实现代码。'
 }
 
 // 解析/写回 ruleConfig JSON
@@ -500,5 +541,60 @@ onMounted(() => loadEditing())
 .field-desc {
   color: #8c8c8c;
   font-size: 12px;
+}
+
+/* passthrough 阶段信息面板 */
+.passthrough-panel {
+  margin-top: 16px;
+}
+.pt-section {
+  margin-bottom: 20px;
+}
+.pt-section-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 10px;
+}
+.pt-vars {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.pt-var {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 4px;
+  font-size: 13px;
+}
+.pt-var-name {
+  color: #389e0d;
+  background: transparent;
+  padding: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.pt-var-desc {
+  color: #595959;
+}
+.pt-hint {
+  margin: 0 0 10px;
+  color: #595959;
+  font-size: 13px;
+}
+.pt-code {
+  margin: 0;
+  padding: 12px 16px;
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  border-radius: 6px;
+  color: #262626;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.8;
+  white-space: pre-wrap;
 }
 </style>
