@@ -64,8 +64,19 @@
       </div>
 
       <div class="skill-detail-footer">
-        <span v-if="skill.createdAt">发布于 {{ formatTimeAgo(skill.createdAt) }}</span>
-        <span v-else>提示词市场</span>
+        <div class="skill-detail-footer-meta">
+          <span v-if="skill.createdAt">发布于 {{ formatTimeAgo(skill.createdAt) }}</span>
+          <span v-else>提示词市场</span>
+        </div>
+        <div class="skill-detail-footer-actions">
+          <button
+            :class="['skill-detail-btn-fav', { active: isFavorite }]"
+            @click.stop="$emit('toggle-favorite')"
+          >
+            {{ isFavorite ? '♥ 已收藏' : '♡ 收藏' }}
+          </button>
+          <button class="skill-detail-btn-use" @click.stop="$emit('use')">使用</button>
+        </div>
       </div>
     </div>
   </a-modal>
@@ -77,10 +88,11 @@ import { computed } from 'vue'
 const props = defineProps({
   skill: { type: Object, default: null },
   visible: { type: Boolean, default: false },
-  currentUserId: { type: String, default: '' }
+  currentUserId: { type: String, default: '' },
+  isFavorite: { type: Boolean, default: false }
 })
 
-defineEmits(['update:visible'])
+defineEmits(['update:visible', 'use', 'toggle-favorite'])
 
 const isMine = computed(() =>
   props.skill && String(props.skill.creatorId) === String(props.currentUserId)
@@ -239,13 +251,87 @@ const formatTimeAgo = (value) => {
   flex-shrink: 0;
   padding-top: 12px;
   border-top: 1px solid var(--color-border-light);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+.skill-detail-footer-meta {
   font-size: 12px;
   color: var(--color-text-placeholder);
-  text-align: center;
+}
+.skill-detail-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.skill-detail-btn-use {
+  height: 32px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.skill-detail-btn-use:hover {
+  background: var(--color-primary-hover);
+}
+.skill-detail-btn-fav {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border-default);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.skill-detail-btn-fav:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.skill-detail-btn-fav.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+body[data-theme="dark"] .skill-detail-footer {
+  border-top-color: #303030;
+}
+body[data-theme="dark"] .skill-detail-footer-meta {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .skill-detail-btn-use {
+  background: var(--color-primary);
+}
+body[data-theme="dark"] .skill-detail-btn-fav {
+  border-color: #303030;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .skill-detail-btn-fav:hover,
+body[data-theme="dark"] .skill-detail-btn-fav.active {
+  border-color: var(--color-primary);
+  color: #ff6b81;
+  background: rgba(255, 36, 66, 0.12);
 }
 
 @media (max-width: 640px) {
   .skill-detail-stats { grid-template-columns: repeat(2, 1fr); }
+  .skill-detail-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-md);
+  }
+  .skill-detail-footer-actions {
+    justify-content: flex-end;
+  }
 }
 </style>
 

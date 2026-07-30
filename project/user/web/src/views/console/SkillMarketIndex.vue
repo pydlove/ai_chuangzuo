@@ -325,7 +325,10 @@
     :skill="selectedStyle"
     :visible="styleDetailVisible"
     :current-user-id="currentUserId"
+    :is-favorite="isFavorite(selectedStyle.id)"
     @update:visible="onStyleDetailVisibleChange"
+    @use="handleUse(selectedStyle)"
+    @toggle-favorite="handleToggleFavorite(selectedStyle.id)"
   />
 </template>
 
