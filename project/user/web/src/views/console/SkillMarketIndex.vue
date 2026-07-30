@@ -223,6 +223,9 @@
       <li>里程碑奖励 <span class="style-market-rule-highlight">每周结算一次</span>，结算后当周使用次数清零并重新累计。</li>
       <li>使用他人分享的提示词 <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
       <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架提示词</span>。</li>
+      <li>使用提示词市场上的提示词生成文章并成功后，该提示词的累计使用次数与本月使用次数会增加，创作者可获得对应创作币收益。</li>
+      <li>使用自己创建或学习获得的提示词生成文章并成功后，仅累计该提示词的使用次数，不产生收益。</li>
+      <li>生成失败或手动停止的任务不计入使用次数与收益。</li>
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
