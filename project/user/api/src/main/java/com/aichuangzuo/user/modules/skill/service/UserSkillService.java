@@ -42,4 +42,12 @@ public interface UserSkillService {
      * @param bizNo 风格业务编号
      */
     void deleteSkill(String bizNo);
+
+    /**
+     * 增加指定用户指定名称风格的累计使用次数。
+     *
+     * @param userId    用户ID
+     * @param skillName 风格名称
+     */
+    void incrementUseCount(Long userId, String skillName);
 }

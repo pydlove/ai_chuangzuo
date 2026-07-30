@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
@@ -18,7 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -81,5 +85,40 @@ class UserSkillServiceImplTest {
         UserSkill saved = captor.getValue();
         assertEquals(Integer.valueOf(0), saved.getAuditStatus());
         assertNull(saved.getRejectReason());
+    }
+
+    @Test
+    void incrementUseCount_shouldIncreaseUseCount() {
+        Long userId = 1L;
+        String skillName = "轻松";
+        UserSkill skill = new UserSkill();
+        skill.setId(10L);
+        skill.setUserId(userId);
+        skill.setSkillName(skillName);
+        skill.setUseCount(5);
+
+        when(userSkillMapper.selectOne(any())).thenReturn(skill);
+
+        userSkillService.incrementUseCount(userId, skillName);
+
+        ArgumentCaptor<UpdateWrapper<UserSkill>> captor = ArgumentCaptor.forClass(UpdateWrapper.class);
+        verify(userSkillMapper).update(isNull(), captor.capture());
+        String sql = captor.getValue().getSqlSet();
+        assertTrue(sql.contains("use_count = use_count + 1"));
+    }
+
+    @Test
+    void incrementUseCount_shouldNoopWhenSkillNotFound() {
+        when(userSkillMapper.selectOne(any())).thenReturn(null);
+
+        userSkillService.incrementUseCount(1L, "不存在");
+
+        verify(userSkillMapper, never()).update(isNull(), any(UpdateWrapper.class));
+    }
+
+    @Test
+    void incrementUseCount_shouldNoopWhenSkillNameBlank() {
+        userSkillService.incrementUseCount(1L, "");
+        verify(userSkillMapper, never()).selectOne(any());
     }
 }

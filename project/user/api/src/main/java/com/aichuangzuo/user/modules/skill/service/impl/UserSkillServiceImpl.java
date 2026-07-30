@@ -14,11 +14,13 @@ import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.aichuangzuo.user.modules.skill.service.UserSkillService;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +61,7 @@ public class UserSkillServiceImpl implements UserSkillService {
         String skillName = request.getSkillName().trim();
         String prompt = request.getPrompt().trim();
         String scope = normalizeScope(request.getScope());
+        String description = request.getDescription() == null ? null : request.getDescription().trim();
 
         validateScope(scope);
         ensureNameNotExists(userId, skillName, null);
@@ -69,6 +72,7 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setUserId(userId);
         skill.setSkillName(skillName);
         skill.setPrompt(prompt);
+        skill.setDescription(description);
         skill.setScope(scope);
         skill.setSourceType(request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType());
         skill.setAuditStatus(0);
@@ -87,12 +91,14 @@ public class UserSkillServiceImpl implements UserSkillService {
         String skillName = request.getSkillName().trim();
         String prompt = request.getPrompt().trim();
         String scope = normalizeScope(request.getScope());
+        String description = request.getDescription() == null ? null : request.getDescription().trim();
 
         validateScope(scope);
         ensureNameNotExists(userId, skillName, skill.getId());
 
         skill.setSkillName(skillName);
         skill.setPrompt(prompt);
+        skill.setDescription(description);
         skill.setScope(scope);
         // 修改后重新进入待审核状态，并清空上一次的打回原因
         skill.setAuditStatus(0);
@@ -109,6 +115,28 @@ public class UserSkillServiceImpl implements UserSkillService {
         UserSkill skill = getOwnedSkill(bizNo, userId);
         userSkillMapper.deleteById(skill.getId());
         log.info("删除风格成功 userId={}, bizNo={}", userId, bizNo);
+    }
+
+    @Override
+    public void incrementUseCount(Long userId, String skillName) {
+        if (userId == null || skillName == null || skillName.isBlank()) {
+            return;
+        }
+        UserSkill skill = userSkillMapper.selectOne(
+                new LambdaQueryWrapper<UserSkill>()
+                        .eq(UserSkill::getUserId, userId)
+                        .eq(UserSkill::getSkillName, skillName)
+                        .eq(UserSkill::getIsDeleted, 0)
+                        .last("LIMIT 1"));
+        if (skill == null) {
+            log.warn("增加风格使用次数失败，风格不存在 userId={} skillName={}", userId, skillName);
+            return;
+        }
+        userSkillMapper.update(null, new UpdateWrapper<UserSkill>()
+                .eq("id", skill.getId())
+                .setSql("use_count = use_count + 1")
+                .set("updated_at", LocalDateTime.now()));
+        log.info("增加风格使用次数 userId={} skillName={}", userId, skillName);
     }
 
     /**
