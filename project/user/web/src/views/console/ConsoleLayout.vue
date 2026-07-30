@@ -1294,8 +1294,8 @@ const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
 const pageTitleMap = {
   '/console/create': '创作',
   '/console/works': '我的作品',
-  '/console/skills': '我的 skills',
-  '/console/skill-market': 'skills 市场',
+  '/console/skills': '我的提示词',
+  '/console/skill-market': '提示词市场',
   '/console/earnings': '我的账户',
   '/console/hot-search': '热搜榜',
   '/console/leaderboard': '收益排行榜',
@@ -1438,7 +1438,7 @@ const goToNewcomerOffer = () => {
 const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
-  { path: '/console/skill-market', label: 'skills 市场', icon: ShopOutlined },
+  { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   {
@@ -1446,7 +1446,7 @@ const navItems = [
     icon: UserOutlined,
     children: [
       { path: '/console/works', label: '我的作品', icon: FolderOutlined },
-      { path: '/console/skills', label: '我的 skills', icon: SmileOutlined },
+      { path: '/console/skills', label: '我的提示词', icon: SmileOutlined },
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined }
     ]
   }
@@ -1980,11 +1980,20 @@ const handleMembershipClick = () => {
 // tier 类权益值 → 中文展示
 const TIER_LABELS = {
   none: '不可用', preset: '预设 skills', custom: '自定义',
-  basic_8: '基础 8 款', all_20: '全部 20 款', all_custom: '全部 + 自定义',
   standard: '标准', priority: '优先', express: '极速'
 }
 
+/** 统计 template_access 逗号分隔键列表的数量。 */
+function countTemplateKeys(value) {
+  if (!value) return 0
+  return value.split(',').filter((s) => s.trim()).length
+}
+
 const formatBenefitDisplay = (item) => {
+  if (item.code === 'template_access') {
+    const n = countTemplateKeys(item.value)
+    return n > 0 ? `共 ${n} 个` : '—'
+  }
   if (item.type === 'boolean') return item.value === 'true' ? '✓' : '—'
   if (item.type === 'tier') return TIER_LABELS[item.value] || item.value
   // quota

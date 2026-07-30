@@ -18,10 +18,12 @@ com/aichuangzuo/user/modules/hotsearch/service/impl/HotSearchServiceImpl.class
 com/aichuangzuo/user/modules/benefit/vo/BenefitCheckVO.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
 com/aichuangzuo/user/modules/auth/controller/AuthController.class
+com/aichuangzuo/user/modules/skill/market/entity/UserMarketFavorite.class
 com/aichuangzuo/user/modules/commission/vo/CommissionSubmitterVO.class
 com/aichuangzuo/user/modules/skill/dto/request/UpdateSkillRequest.class
 com/aichuangzuo/user/modules/earnings/service/EarningsService.class
 com/aichuangzuo/user/modules/auth/mapper/UserLoginLogMapper.class
+com/aichuangzuo/user/modules/generation/service/GenerationRateLimiter$Counter.class
 com/aichuangzuo/user/modules/leaderboard/controller/LeaderboardController.class
 com/aichuangzuo/user/modules/benefit/mapper/PlanBenefitMapper.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardService.class
@@ -134,6 +136,7 @@ com/aichuangzuo/user/modules/leaderboard/mapper/LeaderboardAggregateMapper.class
 com/aichuangzuo/user/modules/user/service/impl/UserProfileServiceImpl.class
 com/aichuangzuo/user/modules/hotsearch/enums/HotSearchErrorCode.class
 com/aichuangzuo/user/modules/commission/mapper/CommissionTaskMapper.class
+com/aichuangzuo/user/modules/skill/market/service/impl/UserMarketFavoriteServiceImpl.class
 com/aichuangzuo/user/modules/article/mapper/ArticleMapper.class
 com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO$FeatureVO.class
 com/aichuangzuo/user/modules/auth/service/EmailCodeService.class
@@ -168,6 +171,8 @@ com/aichuangzuo/user/modules/skill/vo/SystemSkillVO.class
 com/aichuangzuo/user/modules/message/entity/MessageScope.class
 com/aichuangzuo/user/modules/article/vo/ArticlePageVO.class
 com/aichuangzuo/user/modules/message/enums/MessageErrorCode.class
+com/aichuangzuo/user/modules/skill/market/service/UserMarketFavoriteService.class
+com/aichuangzuo/user/modules/skill/market/mapper/UserMarketFavoriteMapper.class
 com/aichuangzuo/user/modules/learn/vo/LearnArticleVO.class
 com/aichuangzuo/user/modules/user/vo/UserProfileVO.class
 com/aichuangzuo/user/modules/skill/dto/request/CreateSkillRequest.class

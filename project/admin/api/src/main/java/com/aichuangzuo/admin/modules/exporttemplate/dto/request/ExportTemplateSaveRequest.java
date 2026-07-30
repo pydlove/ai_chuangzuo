@@ -38,4 +38,8 @@ public class ExportTemplateSaveRequest {
 
     private Integer sortOrder;
     private Integer status;
+
+    /** 所需套餐：basic / pro / flagship。 */
+    @Size(max = 16)
+    private String tier;
 }

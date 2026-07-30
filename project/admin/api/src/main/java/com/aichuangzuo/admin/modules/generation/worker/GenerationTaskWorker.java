@@ -10,13 +10,17 @@ import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -50,6 +54,7 @@ public class GenerationTaskWorker {
     private final GenerationConfigService configService;
     private final QuotaRefundInternalClient refundClient;
     private final com.aichuangzuo.admin.modules.generation.service.GenerationCallLogService callLogService;
+    private final ObjectMapper objectMapper;
 
     private volatile int currentPoolSize = -1;
     private ExecutorService pool;
@@ -192,17 +197,21 @@ public class GenerationTaskWorker {
             // 强制写 100%：避免最后一步（PersistArticleStep weight=2）累加后 ctx.progressPct=100
             // 但回调可能没有恰好触发到 100 的情况（理论上会，这里兜底保证一致性）
             taskService.updateProgress(taskId, 100);
-            taskService.markCompleted(taskId, ctx.getArticleBizNo(), owner);
+            Map<String, Object> completedPayload = buildCompletedPayload(taskId, task.getTargetUserId(),
+                    ctx.getArticleBizNo(), extractOriginalTitle(task.getInputParam()));
+            taskService.markCompleted(taskId, ctx.getArticleBizNo(), owner, completedPayload);
             log.info("task={} 完成 articleBizNo={} aiCalls={} aiFailed={} totalMs={}",
                     taskId, ctx.getArticleBizNo(),
                     ctx.getAiCallUsed(), ctx.getAiCallFailed(), ctx.getAiCallTotalMs());
         } catch (GenerationPipeline.TaskAbortedException e) {
             // 任务被 admin 停止：stopTask 已置 FAILED、清 lockedBy，并已退文章额度。
             // 这里不再 markFailed（避免覆盖 stopTask 的 failedReason），也不再退（避免重复退）。
+            // 同样不通知消息中心（用户/管理员主动行为，不需要再推送）。
             log.info("task={} 被外部停止，pipeline 协作式中止（不再 markFailed / 退款）", taskId);
         } catch (Exception e) {
             log.warn("task={} pipeline 失败: {}", taskId, e.getMessage());
-            var after = taskService.markFailed(taskId, e.getMessage(), false, owner);
+            Map<String, Object> failedPayload = buildFailedPayload(taskId, task.getTargetUserId(), e.getMessage());
+            var after = taskService.markFailed(taskId, e.getMessage(), false, owner, failedPayload);
             if (after.getStatus() == GenerationTaskStatus.FAILED) {
                 try {
                     refundClient.refund(taskId, after.getTargetUserId());
@@ -227,6 +236,48 @@ public class GenerationTaskWorker {
             Thread.sleep(ms);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * 构造 generation_completed 的 outbox payload。
+     */
+    private static Map<String, Object> buildCompletedPayload(Long taskId, Long userId,
+                                                             String articleBizNo, String articleTitle) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("taskId", taskId);
+        payload.put("userId", userId);
+        payload.put("status", "completed");
+        payload.put("articleBizNo", articleBizNo);
+        payload.put("articleTitle", articleTitle);
+        return payload;
+    }
+
+    /**
+     * 构造 generation_failed 的 outbox payload。
+     */
+    private static Map<String, Object> buildFailedPayload(Long taskId, Long userId, String failReason) {
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("taskId", taskId);
+        payload.put("userId", userId);
+        payload.put("status", "failed");
+        payload.put("failReason", failReason);
+        return payload;
+    }
+
+    /**
+     * 从用户提交时锁定的 inputParam JSON 中取出原始 title（仅作摘要展示用）。
+     * 解析失败返回 null，调用方按"无标题"分支处理（不影响消息推送）。
+     */
+    private String extractOriginalTitle(String inputParam) {
+        if (inputParam == null || inputParam.isBlank()) return null;
+        try {
+            Map<String, Object> map = objectMapper.readValue(inputParam, new TypeReference<>() {});
+            Object title = map == null ? null : map.get("title");
+            return title == null ? null : title.toString();
+        } catch (Exception e) {
+            log.warn("解析 inputParam 取 title 失败: {}", e.getMessage());
+            return null;
         }
     }
 }

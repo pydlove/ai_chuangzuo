@@ -2,14 +2,16 @@ import { ref, computed } from 'vue'
 import {
   getMarketSkills,
   getMarketSkillOverview,
-  getMarketSkillsPage
+  getMarketSkillsPage,
+  getFavoriteIds,
+  addFavorite,
+  removeFavorite
 } from '@/api/marketSkill.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const USER_ID_KEY = 'aichuangzuo_user_id'
-const FAVORITES_KEY = 'aichuangzuo_favorite_skills'
 
 const PRICE_PER_USE = 2
 
@@ -44,19 +46,6 @@ function getUserId() {
   return id
 }
 
-function loadFavoriteIds() {
-  try {
-    const raw = localStorage.getItem(FAVORITES_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
-}
-
-function saveFavoriteIds() {
-  localStorage.setItem(FAVORITES_KEY, JSON.stringify(favoriteIds.value))
-}
-
 export function getCoinBalance() {
   const raw = localStorage.getItem(COIN_BALANCE_KEY)
   return raw ? parseFloat(raw) : 0
@@ -75,13 +64,22 @@ export const marketOverview = ref({
   topCreators: []
 })
 export const earningsRecords = ref(loadEarningsRecords())
-export const favoriteIds = ref(loadFavoriteIds())
+export const favoriteIds = ref([])
 
 export async function loadMarketSkills() {
   try {
     marketSkills.value = await getMarketSkills()
   } catch (e) {
     console.warn('[loadMarketSkills]', e?.message || '加载失败')
+  }
+}
+
+export async function loadFavoriteIds() {
+  try {
+    favoriteIds.value = await getFavoriteIds()
+  } catch (e) {
+    console.warn('[loadFavoriteIds]', e?.message || '加载失败')
+    favoriteIds.value = []
   }
 }
 
@@ -106,15 +104,21 @@ export const favoriteSkills = computed(() =>
   marketSkills.value.filter(s => s.status === 'approved' && favoriteIds.value.includes(s.id))
 )
 
-export function toggleFavorite(marketId) {
-  const set = new Set(favoriteIds.value)
-  if (set.has(marketId)) {
-    set.delete(marketId)
-  } else {
-    set.add(marketId)
+export async function toggleFavorite(marketId) {
+  const currentlyFavorite = favoriteIds.value.includes(marketId)
+  try {
+    if (currentlyFavorite) {
+      await removeFavorite(marketId)
+      favoriteIds.value = favoriteIds.value.filter((id) => id !== marketId)
+    } else {
+      await addFavorite(marketId)
+      if (!favoriteIds.value.includes(marketId)) {
+        favoriteIds.value = [...favoriteIds.value, marketId]
+      }
+    }
+  } catch (e) {
+    console.warn('[toggleFavorite]', e?.message || '操作失败')
   }
-  favoriteIds.value = Array.from(set)
-  saveFavoriteIds()
 }
 
 export function isFavorite(marketId) {
@@ -161,7 +165,7 @@ export function shareSkillToMarket(style, sourceType) {
   if (remaining <= 0) {
     const quota = parseInt(benefitValue('skill_market_publish') || '0', 10)
     if (quota <= 0) {
-      throw new Error('当前套餐不支持发布 skills 到 skills 市场，请升级会员')
+      throw new Error('当前套餐不支持发布 skills 到 提示词市场，请升级会员')
     }
     throw new Error(`本月发布额度已用完（${quota} 次），下月 1 日重置`)
   }
@@ -371,7 +375,7 @@ export function getPreviousWeek() {
   return getWeekFromDate(now)
 }
 
-// ===== skills 市场视觉升级 v2 — 聚合 computed =====
+// ===== 提示词市场视觉升级 v2 — 聚合 computed =====
 // 数据来源原则：统计/榜单/精选从 marketOverview 读取；
 // weeklyUses / totalUses / weeklyEarnings 取 marketSkills 单条；
 // totalEarnings（创作者总收益）取 earningsRecords，按 skillId → creatorId 关联。

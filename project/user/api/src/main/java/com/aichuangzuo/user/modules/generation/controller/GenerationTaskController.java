@@ -45,6 +45,14 @@ public class GenerationTaskController {
         return Result.success(service.retry(id, req, userId));
     }
 
+    /** 手动停止（取消）排队中 / 生成中的任务。 */
+    @PostMapping("/{id}/stop")
+    public Result<Void> stop(@PathVariable Long id) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        service.stop(id, userId);
+        return Result.success();
+    }
+
     /** 我的任务列表。 */
     @GetMapping
     public Result<GenerationTaskPageVO> listMine(@RequestParam(defaultValue = "1") long page,

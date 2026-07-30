@@ -22,7 +22,13 @@ public enum MessageSubType {
     EXPIRING("expiring", "到期提醒"),
 
     /** 邀请奖励会员天数到账(membership 类下)。 */
-    INVITE_REWARD("invite_reward", "邀请会员奖励到账");
+    INVITE_REWARD("invite_reward", "邀请会员奖励到账"),
+
+    /** 文章生成完成(generation 类下)。 */
+    GENERATION_COMPLETED("completed", "创作完成"),
+
+    /** 文章生成失败(generation 类下，已退还次数)。 */
+    GENERATION_FAILED("failed", "创作失败");
 
     private final String code;
     private final String description;

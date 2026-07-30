@@ -228,10 +228,14 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/controller/SkillMarketController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/dto/MarketSkillRow.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/entity/SkillMarket.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/entity/UserMarketFavorite.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketAggregateMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/mapper/UserMarketFavoriteMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/service/SkillMarketQueryService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/service/UserMarketFavoriteService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketQueryServiceImpl.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/service/impl/UserMarketFavoriteServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/vo/MarketSkillOverviewVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/vo/MarketSkillVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/vo/TopCreatorVO.java

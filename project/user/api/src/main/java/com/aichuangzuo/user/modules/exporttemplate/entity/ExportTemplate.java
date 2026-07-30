@@ -27,6 +27,9 @@ public class ExportTemplate {
     private Integer sortOrder;
     private Integer status;
 
+    /** 所需套餐：basic / pro / flagship。 */
+    private String tier;
+
     @TableLogic
     private Integer isDeleted;
 }

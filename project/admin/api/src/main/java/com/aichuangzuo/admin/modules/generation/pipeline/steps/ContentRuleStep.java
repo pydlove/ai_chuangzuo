@@ -56,8 +56,9 @@ public class ContentRuleStep implements GenerationStep {
 
     private StepResult postProcess(GenerationContext ctx) {
         String cfg = ctx.stageRuleConfig(5);
-        boolean replaceQuotes = readBool(cfg, "singleQuoteToChineseQuotes", false);
-        if (!replaceQuotes) {
+        boolean replaceSingleQuotes = readBool(cfg, "singleQuoteToChineseQuotes", false);
+        boolean replaceCornerBrackets = readBool(cfg, "cornerBracketToChineseQuotes", false);
+        if (!replaceSingleQuotes && !replaceCornerBrackets) {
             log.info("stage 5 content_post_process 未启用任何规则，跳过");
             return StepResult.CONTINUE;
         }
@@ -81,12 +82,14 @@ public class ContentRuleStep implements GenerationStep {
             if (obj.has("draft") && obj.get("draft").isArray()) {
                 for (JsonNode para : obj.get("draft")) {
                     if (para instanceof ObjectNode p && p.has("content")) {
-                        p.put("content", replaceSingleQuotes(p.path("content").asText("")));
+                        p.put("content", applyPostProcessRules(p.path("content").asText(""),
+                                replaceSingleQuotes, replaceCornerBrackets));
                     }
                 }
             }
             if (obj.has("description") && obj.get("description").isTextual()) {
-                String desc = replaceSingleQuotes(obj.get("description").asText(""));
+                String desc = applyPostProcessRules(obj.get("description").asText(""),
+                        replaceSingleQuotes, replaceCornerBrackets);
                 obj.put("description", desc);
                 // DraftStep 可能已经把 description 提到 ctx.publishDescription，这里同步刷新
                 ctx.setPublishDescription(desc);
@@ -97,11 +100,26 @@ public class ContentRuleStep implements GenerationStep {
             if (ctx.getDraftJson() != null && !ctx.getDraftJson().isBlank()) {
                 ctx.setDraftJson(processed);
             }
-            log.info("stage 5 content_post_process 完成（singleQuoteToChineseQuotes）");
+            log.info("stage 5 content_post_process 完成（singleQuoteToChineseQuotes={}, cornerBracketToChineseQuotes={}）",
+                    replaceSingleQuotes, replaceCornerBrackets);
         } catch (Exception e) {
             log.warn("stage 5 content_post_process 处理失败，保持原文", e);
         }
         return StepResult.CONTINUE;
+    }
+
+    private String applyPostProcessRules(String text, boolean replaceSingleQuotes, boolean replaceCornerBrackets) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        String result = text;
+        if (replaceSingleQuotes) {
+            result = replaceSingleQuotes(result);
+        }
+        if (replaceCornerBrackets) {
+            result = replaceCornerBrackets(result);
+        }
+        return result;
     }
 
     /**
@@ -119,6 +137,28 @@ public class ContentRuleStep implements GenerationStep {
             if (c == '\'') {
                 sb.append(open ? '“' : '”');
                 open = !open;
+            } else {
+                sb.append(c);
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * 将日文角引号 {@code 「} / {@code 」} 替换为中文双引号 {@code “} / {@code ”}。
+     * <p>例如：{@code 他说「你好」。} → {@code 他说“你好”。}
+     */
+    private String replaceCornerBrackets(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        StringBuilder sb = new StringBuilder(text.length());
+        for (int i = 0; i < text.length(); i++) {
+            char c = text.charAt(i);
+            if (c == '「') {
+                sb.append('“');
+            } else if (c == '」') {
+                sb.append('”');
             } else {
                 sb.append(c);
             }

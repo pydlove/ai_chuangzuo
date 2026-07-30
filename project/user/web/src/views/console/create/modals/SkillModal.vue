@@ -8,8 +8,8 @@
   >
     <template #title>
       <div class="modal-title-wrap">
-        <div class="modal-title">skills</div>
-        <div class="modal-subtitle">选择一套 skill，让 AI 写出你想要的调性</div>
+        <div class="modal-title">提示词</div>
+        <div class="modal-subtitle">选择一套提示词，让 AI 写出你想要的调性</div>
       </div>
     </template>
 
@@ -18,19 +18,25 @@
         :class="['style-tab', { active: styleTab === 'my' }]"
         @click="styleTab = 'my'"
       >
-        我的 skills
+        我的提示词
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'learned' }]"
         @click="styleTab = 'learned'; loadLearnedSkills()"
       >
-        学习的 skills
+        学习的提示词
+      </button>
+      <button
+        :class="['style-tab', { active: styleTab === 'favorites' }]"
+        @click="styleTab = 'favorites'; loadFavoriteIds()"
+      >
+        收藏的提示词
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'system' }]"
         @click="styleTab = 'system'"
       >
-        系统预设 skills
+        系统预设提示词
       </button>
     </div>
 
@@ -61,11 +67,11 @@
         </div>
       </div>
 
-      <!-- 我的 skills -->
+      <!-- 我的提示词 -->
       <div v-show="styleTab === 'my'" class="style-grid">
         <div class="style-add-card" @click="goToSkillsPage">
           <div class="style-add-icon">+</div>
-          <div class="style-add-text">新建我的 skills</div>
+          <div class="style-add-text">新建我的提示词</div>
         </div>
         <div
           v-for="m in mySkills"
@@ -80,7 +86,7 @@
                 <div class="style-card-title">{{ m.name }}</div>
               </div>
               <div class="style-card-meta">
-                <span>自定义 skills</span>
+                <span>自定义提示词</span>
                 <span class="style-card-meta-dot">·</span>
                 <span>已用 {{ m.count }} 次</span>
               </div>
@@ -98,13 +104,13 @@
         </div>
       </div>
 
-      <!-- 学习的 skills -->
+      <!-- 学习的提示词 -->
       <div v-show="styleTab === 'learned'" class="style-grid">
         <div
           v-if="learnedSkills.length === 0"
           class="style-empty style-empty-text"
         >
-          还没有学习过的 skills，请前往「我的 skills」页面学习。
+          还没有学习过的提示词，请前往「我的提示词」页面学习。
         </div>
         <div
           v-for="l in learnedSkills"
@@ -135,6 +141,44 @@
           </div>
         </div>
       </div>
+
+      <!-- 收藏的提示词 -->
+      <div v-show="styleTab === 'favorites'" class="style-grid">
+        <div
+          v-if="favoriteSkills.length === 0"
+          class="style-empty style-empty-text"
+        >
+          还没有收藏的提示词，去
+          <button class="style-empty-link" @click="goToSkillMarket">提示词市场</button>
+          收藏喜欢的提示词吧。
+        </div>
+        <div
+          v-for="f in favoriteSkills"
+          v-else
+          :key="f.id"
+          :class="['style-card', { selected: selectedStyleName === f.name }]"
+          @click="selectStyle(f)"
+        >
+          <div class="style-card-head">
+            <div class="style-card-avatar">{{ f.name.charAt(0) }}</div>
+            <div class="style-card-title-wrap">
+              <div class="style-card-title-row">
+                <div class="style-card-title">{{ f.name }}</div>
+              </div>
+              <div class="style-card-meta">by {{ f.creatorName }}</div>
+            </div>
+          </div>
+          <div v-if="f.scope" class="style-card-scope-list">
+            <span v-for="tag in parseScopeTags(f.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
+          </div>
+          <div class="style-card-prompt">{{ promptSummary(f.prompt) }}</div>
+          <div class="style-card-footer">
+            <button class="style-action-btn" @click.stop="openPromptModal(f)">
+              查看完整提示词
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <div class="style-footer">
@@ -160,8 +204,9 @@
       <div v-if="viewingSkill" class="skill-prompt-body">
         <div class="skill-prompt-meta">
           <span v-if="viewingSkill.desc">{{ viewingSkill.desc }}</span>
-          <span v-else-if="typeof viewingSkill.count === 'number'">自定义 skills · 已用 {{ viewingSkill.count }} 次</span>
+          <span v-else-if="typeof viewingSkill.count === 'number'">自定义提示词 · 已用 {{ viewingSkill.count }} 次</span>
           <span v-else-if="viewingSkill.createdAt">学习 · {{ viewingSkill.createdAt.slice(0, 10) }}</span>
+          <span v-else-if="viewingSkill.creatorName">by {{ viewingSkill.creatorName }}</span>
         </div>
         <div v-if="viewingSkill.scope" class="skill-prompt-scope-list">
           <span v-for="tag in parseScopeTags(viewingSkill.scope)" :key="tag" class="skill-prompt-scope">{{ tag }}</span>
@@ -187,6 +232,11 @@ import {
   loadMySkills,
   loadLearnedSkills
 } from '@/composables/useSkills.js'
+import {
+  favoriteSkills,
+  loadFavoriteIds,
+  useMarketSkill
+} from '@/composables/useSkillMarket.js'
 import { useCreateForm } from '../useCreateForm.js'
 
 const { styleVisible } = useCreateForm()
@@ -197,34 +247,50 @@ const selectedStyleName = ref(null)
 const promptModalVisible = ref(false)
 const viewingSkill = ref(null)
 
-// 弹框打开时重置并加载我的 skills
+// 弹框打开时重置并加载我的提示词
 watch(styleVisible, async (open) => {
   if (!open) return
   styleTab.value = 'my'
   selectedStyleName.value = null
   viewingSkill.value = null
   promptModalVisible.value = false
-  await loadMySkills()
+  await Promise.all([
+    loadMySkills(),
+    loadFavoriteIds()
+  ])
 })
 
 const selectStyle = (s) => {
   selectedStyleName.value = s.name
 }
 
+const findSelectedSkill = () => {
+  const name = selectedStyleName.value
+  if (!name) return null
+  return systemSkills.value.find(x => x.name === name)
+    || mySkills.value.find(x => x.name === name)
+    || learnedSkills.value.find(x => x.name === name)
+    || favoriteSkills.value.find(x => x.name === name)
+    || null
+}
+
 const applySkillLocal = () => {
-  if (!selectedStyleName.value) return
-  const s = systemSkills.value.find(x => x.name === selectedStyleName.value) ||
-            mySkills.value.find(x => x.name === selectedStyleName.value) ||
-            learnedSkills.value.find(x => x.name === selectedStyleName.value)
-  if (s) {
-    applySkill(s)
-    styleVisible.value = false
+  const s = findSelectedSkill()
+  if (!s) return
+  if (s.id && favoriteSkills.value.some(x => x.id === s.id)) {
+    // 收藏的市场提示词：先记录使用 + 创作者收益，再应用到当前任务
+    try { useMarketSkill(s.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
   }
+  applySkill(s)
+  styleVisible.value = false
 }
 
 const useFromPromptModal = () => {
   if (!viewingSkill.value) return
   selectedStyleName.value = viewingSkill.value.name
+  if (viewingSkill.value.id) {
+    try { useMarketSkill(viewingSkill.value.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
+  }
   applySkill(viewingSkill.value)
   promptModalVisible.value = false
   styleVisible.value = false
@@ -233,6 +299,11 @@ const useFromPromptModal = () => {
 const goToSkillsPage = () => {
   styleVisible.value = false
   router.push('/console/skills')
+}
+
+const goToSkillMarket = () => {
+  styleVisible.value = false
+  router.push('/console/skill-market')
 }
 
 const openPromptModal = (s) => {
@@ -499,6 +570,22 @@ const promptSummary = (prompt) => {
   font-size: 14px;
 }
 
+.style-empty-link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--color-primary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.style-empty-link:hover {
+  color: var(--color-primary-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
 .style-footer {
   padding: 12px 0 0;
   border-top: 1px solid #f0f0f0;
@@ -715,6 +802,10 @@ body[data-theme="dark"] .style-add-text {
 
 body[data-theme="dark"] .style-empty-text {
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-empty-link {
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .style-footer {

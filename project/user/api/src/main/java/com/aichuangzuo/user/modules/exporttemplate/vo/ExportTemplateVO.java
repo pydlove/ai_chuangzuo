@@ -18,4 +18,13 @@ public class ExportTemplateVO {
     private String signatureText;
     private String signaturePosition;
     private Integer sortOrder;
+
+    /** 所需套餐：basic / pro / flagship。 */
+    private String tier;
+
+    /**
+     * 当前用户是否可访问；根据登录用户所在套餐的 template_access 权益动态计算。
+     * 未登录 / 套餐内无可访问模板时为 false。
+     */
+    private Boolean accessible;
 }

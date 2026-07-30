@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.message.mapper.NotifyOutboxMapper">
+
+    <!-- 取一批到点的待派发记录；FOR UPDATE SKIP LOCKED 支持多实例并发时互不阻塞 -->
+    <select id="selectPending" resultType="com.aichuangzuo.admin.modules.message.entity.NotifyOutbox">
+        SELECT id, biz_type, biz_id, target_user_id, payload, status, retry_count,
+               next_retry_at, last_error, tenant_id, is_deleted, created_at, updated_at,
+               sent_at, created_by, updated_by
+        FROM a_message_notify_outbox
+        WHERE status = 0
+          AND next_retry_at &lt;= #{now}
+          AND is_deleted = 0
+        ORDER BY next_retry_at ASC, id ASC
+        LIMIT #{limit}
+        FOR UPDATE SKIP LOCKED
+    </select>
+
+    <!-- 标记已派发：status=1，写 sent_at，并触发 updated_at 更新 -->
+    <update id="markSent">
+        UPDATE a_message_notify_outbox
+        SET status = 1,
+            sent_at = #{sentAt},
+            updated_at = NOW(3)
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+
+    <!-- 标记最终失败：status=2，写 last_error -->
+    <update id="markFailed">
+        UPDATE a_message_notify_outbox
+        SET status = 2,
+            last_error = #{lastError},
+            updated_at = NOW(3)
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+
+    <!-- 安排重试：retry_count +1，更新 next_retry_at 和 last_error -->
+    <update id="scheduleRetry">
+        UPDATE a_message_notify_outbox
+        SET retry_count = retry_count + 1,
+            next_retry_at = #{nextRetryAt},
+            last_error = #{lastError},
+            updated_at = NOW(3)
+        WHERE id = #{id}
+          AND status = 0
+    </update>
+
+</mapper>

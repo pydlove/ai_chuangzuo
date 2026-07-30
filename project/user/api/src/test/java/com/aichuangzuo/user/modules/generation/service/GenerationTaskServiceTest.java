@@ -20,6 +20,7 @@ import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -61,12 +62,16 @@ class GenerationTaskServiceTest {
     private GenerationTaskService service;
 
     private GenerationSubmitRequest sampleRequest(String skillRef) {
+        return sampleRequestWithWordCount(skillRef, 1500);
+    }
+
+    private GenerationSubmitRequest sampleRequestWithWordCount(String skillRef, int wordCount) {
         GenerationSubmitRequest req = new GenerationSubmitRequest();
         req.setTitle("t");
         req.setDescription("d");
         req.setPlatform("wechat");
         req.setSkillRef(skillRef);
-        req.setWordCount(1500);
+        req.setWordCount(wordCount);
         return req;
     }
 
@@ -74,6 +79,7 @@ class GenerationTaskServiceTest {
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(benefitResolver.retentionDays(userId)).thenReturn(30);
+        when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
         // 唯一已发布模板 id=1，latestPublishedVersion=1（submit 路径需要）
         PromptTemplate tpl = new PromptTemplate();
         tpl.setId(com.aichuangzuo.shared.creative.CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
@@ -173,6 +179,7 @@ class GenerationTaskServiceTest {
     void submit_shouldFailWhenNoPublishedTemplate() {
         Long userId = 10L;
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
+        when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(promptTemplateMapper.selectPublished()).thenReturn(List.of());
 
@@ -184,6 +191,51 @@ class GenerationTaskServiceTest {
                 com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
                         .GENERATION_TEMPLATE_DISABLED.getCode(),
                 e.getCode());
+    }
+
+    @Test
+    void submit_shouldRejectWhenWordCountExceedsPlanLimit() {
+        Long userId = 12L;
+        when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
+        when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequestWithWordCount("", 2000), userId));
+        assertEquals(
+                com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                        .GENERATION_WORD_LIMIT_EXCEEDS_PLAN.getCode(),
+                e.getCode());
+        verify(benefitService, never()).consume(any(), any());
+        verify(taskMapper, never()).insert(any(GenerationTask.class));
+    }
+
+    @Test
+    void submit_shouldRejectWhenBasicPlanWordCountExceeds500() {
+        Long userId = 14L;
+        when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
+        when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("500");
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequestWithWordCount("", 800), userId));
+        assertEquals(
+                com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                        .GENERATION_WORD_LIMIT_EXCEEDS_PLAN.getCode(),
+                e.getCode());
+    }
+
+    @Test
+    void submit_shouldAllowWordCountEqualToPlanLimit() {
+        Long userId = 13L;
+        stubCommonFlow(userId);
+
+        service.submit(sampleRequestWithWordCount("", 1500), userId);
+
+        verify(benefitService).consume(userId, "ai_article_quota");
+        verify(taskMapper).insert(any(GenerationTask.class));
     }
 
     @Test
@@ -219,5 +271,82 @@ class GenerationTaskServiceTest {
         GenerationTaskVO vo = service.getProgress(100L, userId);
 
         assertEquals(null, vo.getProgressPct());
+    }
+
+    @Test
+    void stop_shouldCancelQueuedTaskAndRefundQuota() {
+        Long userId = 6L;
+        GenerationTask task = new GenerationTask();
+        task.setId(200L);
+        task.setTargetUserId(userId);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        when(taskMapper.selectById(200L)).thenReturn(task);
+
+        service.stop(200L, userId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(GenerationTaskStatus.FAILED, captor.getValue().getStatus());
+        assertEquals("用户手动停止", captor.getValue().getFailedReason());
+        assertEquals(null, captor.getValue().getLockedBy());
+        verify(benefitService).refund(userId, "ai_article_quota");
+    }
+
+    @Test
+    void stop_shouldCancelProcessingTaskAndRefundQuota() {
+        Long userId = 7L;
+        GenerationTask task = new GenerationTask();
+        task.setId(201L);
+        task.setTargetUserId(userId);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        task.setLockedBy("worker-1");
+        task.setLeaseUntil(LocalDateTime.now().plusMinutes(5));
+        when(taskMapper.selectById(201L)).thenReturn(task);
+
+        service.stop(201L, userId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(GenerationTaskStatus.FAILED, captor.getValue().getStatus());
+        assertEquals("用户手动停止", captor.getValue().getFailedReason());
+        assertEquals(null, captor.getValue().getLockedBy());
+        assertEquals(null, captor.getValue().getLeaseUntil());
+        verify(benefitService).refund(userId, "ai_article_quota");
+    }
+
+    @Test
+    void stop_shouldRejectWhenTaskNotOwned() {
+        Long userId = 8L;
+        GenerationTask task = new GenerationTask();
+        task.setId(202L);
+        task.setTargetUserId(999L);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        when(taskMapper.selectById(202L)).thenReturn(task);
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.stop(202L, userId));
+        assertEquals(com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                .GENERATION_TASK_NOT_FOUND.getCode(), e.getCode());
+        verify(benefitService, never()).refund(any(), any());
+    }
+
+    @Test
+    void stop_shouldRejectWhenTaskAlreadyCompleted() {
+        Long userId = 9L;
+        GenerationTask task = new GenerationTask();
+        task.setId(203L);
+        task.setTargetUserId(userId);
+        task.setStatus(GenerationTaskStatus.COMPLETED);
+        when(taskMapper.selectById(203L)).thenReturn(task);
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.stop(203L, userId));
+        assertEquals(com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                .GENERATION_TASK_INVALID_STATUS.getCode(), e.getCode());
+        verify(benefitService, never()).refund(any(), any());
     }
 }

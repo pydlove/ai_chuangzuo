@@ -5,14 +5,9 @@
       <button class="topbar-btn" @click="queueOpen = true">
         队列<template v-if="activeCount > 0">（{{ activeCount }}）</template>
       </button>
-      <div class="mode-switch">
-        <button :class="['mode-tab', { active: createMode === 'guided' }]" @click="setCreateMode('guided')">引导模式</button>
-        <button :class="['mode-tab', { active: createMode === 'minimal' }]" @click="setCreateMode('minimal')">熟手模式</button>
-      </div>
     </div>
 
-    <GuidedChat v-if="createMode === 'guided'" />
-    <MinimalPanel v-else />
+    <MinimalPanel />
 
     <QueueDrawer v-model:open="queueOpen" />
     <PlatformModal />
@@ -32,15 +27,14 @@ import {
   loadSystemSkills,
   loadMySkills,
   loadLearnedSkills,
-  applyDefaultSkill
+  restoreLastSkill
 } from '@/composables/useSkills.js'
-import { marketSkills, favoriteSkills, loadMarketSkills } from '@/composables/useSkillMarket.js'
+import { marketSkills, loadMarketSkills, loadFavoriteIds } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
 import { useGenerationQueue } from './create/useGenerationQueue.js'
 import MinimalPanel from './create/MinimalPanel.vue'
-import GuidedChat from './create/GuidedChat.vue'
 import QueueDrawer from './create/QueueDrawer.vue'
 import PlatformModal from './create/modals/PlatformModal.vue'
 import WordCountModal from './create/modals/WordCountModal.vue'
@@ -56,32 +50,35 @@ const allTemplates = computed(() => apiTemplates.value)
 
 // 创作表单共享状态（composable 单例）
 const {
-  createMode, setCreateMode, customTitle, customRequirement,
+  customTitle, customRequirement,
   currentPlatform, currentWordCount, selectedTemplateKey
 } = useCreateForm()
 
 // 生成队列（composable 单例：抽屉 + 轮询）
 const { queueOpen, activeCount, startPolling, stopPolling } = useGenerationQueue()
 
-// 额度（顶部统一显示：两种模式都能看到）
+// 额度（顶部统一显示）
 const { benefits, loadBenefits } = useBenefits()
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
+
+// 记住最近一次选择的 skill（watch + 持久化逻辑已下沉到 useSkills.js 模块层）
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
   await loadSystemSkills()
   await loadExportTemplates()
   loadBenefits()
-  // 加载我的/学习/收藏 skills（引导模式"想要什么 skills？"步骤可选到）
+  // 加载我的/学习/收藏 skills（熟手模式也会用到）
   await Promise.all([
     loadMySkills().catch(() => {}),
     loadLearnedSkills().catch(() => {}),
-    loadMarketSkills().catch(() => {})
+    loadMarketSkills().catch(() => {}),
+    loadFavoriteIds().catch(() => {})
   ])
 
-  // 所有 skills 加载完成后，应用默认 skill（未设置则回退到第一个系统预设）
-  applyDefaultSkill()
+  // 所有 skills 加载完成后，恢复上次本地记住的 skill
+  restoreLastSkill(marketSkills.value)
 
   const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
@@ -101,7 +98,7 @@ onMounted(async () => {
     }
   }
 
-  // 从 skills 市场跳转过来时自动应用 skill
+  // 从提示词市场跳转过来时自动应用 skill
   const marketSkillId = route.query.marketSkillId
   if (marketSkillId) {
     const s = marketSkills.value.find(x => x.id === marketSkillId)
@@ -123,8 +120,7 @@ onUnmounted(stopPolling)
 const restoreDraft = (draft) => {
   customTitle.value = draft.customTitle || ''
   customRequirement.value = draft.customRequirement || ''
-  // 草稿从哪儿保存的，恢复到对应模式；默认走引导模式
-  createMode.value = draft.createMode === 'minimal' ? 'minimal' : 'guided'
+  // 当前仅保留熟手模式，不再恢复引导模式
   if (draft.platform) {
     const platformKey = typeof draft.platform === 'object' ? draft.platform.key : draft.platform
     const p = platforms.find(x => x.key === platformKey)
@@ -168,7 +164,7 @@ body[data-theme="dark"] .create-index {
     radial-gradient(600px 300px at 50% -80px, rgba(255, 36, 66, 0.08), transparent 70%);
 }
 
-/* 内容区右上角控件组：额度 + 队列 + 模式切换（两模式统一可见） */
+/* 内容区右上角控件组：额度 + 队列 */
 .topbar-right {
   position: absolute;
   top: 0;
@@ -211,36 +207,6 @@ body[data-theme="dark"] .create-index {
   background: var(--color-primary-light);
 }
 
-/* 模式切换 tab（互斥） */
-.mode-switch {
-  display: inline-flex;
-  gap: 4px;
-  background: var(--color-bg-card);
-  border-radius: 22px;
-  padding: 4px;
-  pointer-events: auto;
-}
-
-.mode-tab {
-  border: none;
-  background: transparent;
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  padding: 6px 14px;
-  border-radius: 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.mode-tab:hover {
-  color: var(--color-primary);
-}
-
-.mode-tab.active {
-  background: var(--color-primary);
-  color: #fff;
-}
-
 @media (max-width: 768px) {
   .topbar-right {
     top: 4px;
@@ -249,6 +215,5 @@ body[data-theme="dark"] .create-index {
   }
   .topbar-right .quota-text { font-size: 11px; }
   .topbar-right .topbar-btn { padding: 4px 10px; font-size: 12px; }
-  .mode-tab { padding: 4px 10px; font-size: 12px; }
 }
 </style>

@@ -69,12 +69,12 @@
       <ul class="mine-list">
         <li class="mine-list-item" @click="$router.push('/console/skills')">
           <SmileOutlined class="mine-list-icon" />
-          <span class="mine-list-label">我的 skills</span>
+          <span class="mine-list-label">我的提示词</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
         <li class="mine-list-item" @click="$router.push('/console/skill-market')">
           <ShopOutlined class="mine-list-icon" />
-          <span class="mine-list-label">skills 市场</span>
+          <span class="mine-list-label">提示词市场</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
         <li class="mine-list-item" @click="$router.push('/console/hot-search')">

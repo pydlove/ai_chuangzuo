@@ -12,6 +12,10 @@ export function retryGenerationTask(id) {
   return request.post(`/generation-tasks/${id}/retry`).then((res) => res.data)
 }
 
+export function stopGenerationTask(id) {
+  return request.post(`/generation-tasks/${id}/stop`).then((res) => res.data)
+}
+
 export function listGenerationTasks(params = {}) {
   return request.get('/generation-tasks', { params }).then((res) => res.data)
 }

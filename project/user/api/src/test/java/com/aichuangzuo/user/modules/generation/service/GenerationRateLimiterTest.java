@@ -26,6 +26,7 @@ class GenerationRateLimiterTest {
         BusinessException ex = assertThrows(BusinessException.class,
                 () -> limiter.check(2L, 3));
         assertEquals(UserGenerationErrorCode.GENERATION_RATE_LIMIT.getCode(), ex.getCode());
+        assertTrue(ex.getMessage().contains("秒后再试"), "限流提示应包含剩余等待秒数");
     }
 
     @Test

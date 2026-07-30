@@ -215,6 +215,14 @@
                   </div>
                 </template>
 
+                <template v-else-if="benefit.code === 'template_access'">
+                  <TemplateAccessEditor
+                    :value="benefitValues[benefit.code]"
+                    :templates="exportTemplates"
+                    @change="(v) => setBenefitValue(benefit.code, v)"
+                  />
+                </template>
+
                 <template v-else-if="benefit.type === 'tier'">
                   <a-select
                     v-if="parseBenefitOptions(benefit).length"
@@ -248,14 +256,17 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, h } from 'vue'
+import { ref, reactive, onMounted, h, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { fetchPlans, upsertPlan } from '@/api/plan.js'
 import { fetchBenefits } from '@/api/benefit.js'
 import { fetchPlanBenefits, upsertPlanBenefit } from '@/api/planBenefit.js'
+import { listExportTemplates } from '@/api/exportTemplate.js'
+import TemplateAccessEditor from './plan/TemplateAccessEditor.vue'
 
 const plans = ref([])
 const benefits = ref([])
+const exportTemplates = ref([])
 const planBenefitValueMap = reactive({})
 const benefitValues = reactive({})
 const originalBenefitValues = reactive({})
@@ -402,6 +413,18 @@ async function load() {
     planBenefitList.forEach((item) => {
       planBenefitValueMap[`${item.planKey}:${item.benefitCode}`] = String(item.benefitValue)
     })
+    // 模板列表只用于 template_access 多选，没有权限时容错。
+    try {
+      const templateList = await listExportTemplates()
+      exportTemplates.value = (templateList || []).map((t) => ({
+        templateKey: t.templateKey,
+        name: t.name,
+        platform: t.platform || 'general',
+        tier: t.tier || 'basic'
+      }))
+    } catch (e) {
+      exportTemplates.value = []
+    }
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {

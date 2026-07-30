@@ -43,7 +43,7 @@ function normalizeOverview(data) {
 }
 
 /**
- * 获取全部已上架 skills 市场列表（兼容旧逻辑）。
+ * 获取全部已上架提示词市场列表（兼容旧逻辑）。
  * @returns {Promise<Array>}
  */
 export function getMarketSkills() {
@@ -54,7 +54,7 @@ export function getMarketSkills() {
 }
 
 /**
- * 获取 skills 市场概览（统计、官方精选、收益潜力榜）。
+ * 获取提示词市场概览（统计、官方精选、收益潜力榜）。
  * @returns {Promise<Object>}
  */
 export function getMarketSkillOverview() {
@@ -65,7 +65,34 @@ export function getMarketSkillOverview() {
 }
 
 /**
- * 分页查询已上架 skills 市场列表。
+ * 获取当前用户收藏的市场 skill id 列表。
+ * @returns {Promise<Array<string>>}
+ */
+export function getFavoriteIds() {
+  return api.get('/market-skills/favorites').then((res) => {
+    const data = res.data || res || []
+    return Array.isArray(data) ? data : []
+  })
+}
+
+/**
+ * 收藏市场 skill。
+ * @param {string} marketSkillId
+ */
+export function addFavorite(marketSkillId) {
+  return api.post(`/market-skills/favorites/${marketSkillId}`)
+}
+
+/**
+ * 取消收藏市场 skill。
+ * @param {string} marketSkillId
+ */
+export function removeFavorite(marketSkillId) {
+  return api.delete(`/market-skills/favorites/${marketSkillId}`)
+}
+
+/**
+ * 分页查询已上架提示词市场列表。
  * @param {Object} params
  * @param {number} [params.page=1]
  * @param {number} [params.pageSize=15]

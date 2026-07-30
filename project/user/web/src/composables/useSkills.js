@@ -1,6 +1,5 @@
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { getMySkills, createSkill, updateSkill, deleteSkill, getSystemSkills, analyzeSkill } from '@/api/skill'
-import { marketSkills } from '@/composables/useSkillMarket.js'
 import { message } from 'ant-design-vue'
 
 export const systemSkills = ref([])
@@ -9,84 +8,19 @@ export const mySkills = ref([])
 export const learnedSkills = ref([])
 export const currentSkill = ref(null)
 
-const DEFAULT_SKILL_KEY = 'aichuangzuo_default_skill'
+// 记住最近一次选择的 skill key：模块级 watch，不依赖组件挂载顺序，
+// 避免 main.js 提前 auto-pick 时覆盖掉用户上次保存的选择。
+const LAST_SKILL_KEY = 'aichuangzuo_create_last_skill'
 
-export const defaultSkill = ref(null)
-
-export function loadDefaultSkill() {
+function saveLastSkill(s) {
   try {
-    const raw = localStorage.getItem(DEFAULT_SKILL_KEY)
-    defaultSkill.value = raw ? JSON.parse(raw) : null
+    if (s) localStorage.setItem(LAST_SKILL_KEY, JSON.stringify(s))
   } catch {
-    defaultSkill.value = null
+    // 隐私模式忽略
   }
 }
 
-export function saveDefaultSkill(skill) {
-  defaultSkill.value = skill
-  try {
-    if (skill) {
-      localStorage.setItem(DEFAULT_SKILL_KEY, JSON.stringify(skill))
-    } else {
-      localStorage.removeItem(DEFAULT_SKILL_KEY)
-    }
-  } catch {
-    // ignore
-  }
-}
-
-/** 生成默认 skill 的标识对象。 */
-export function makeDefaultSkillRef(source, skill) {
-  if (!skill) return null
-  if (source === 'favorite') {
-    return { source, id: skill.id, name: skill.name, prompt: skill.prompt, scope: skill.scope }
-  }
-  return {
-    source,
-    bizNo: skill.bizNo,
-    name: skill.name,
-    prompt: skill.prompt,
-    scope: skill.scope
-  }
-}
-
-/** 判断指定 skill 是否为当前默认 skill。 */
-export function isDefaultSkill(source, skill) {
-  if (!defaultSkill.value || !skill) return false
-  const d = defaultSkill.value
-  if (d.source !== source) return false
-  if (source === 'favorite') return d.id === skill.id
-  return d.bizNo === skill.bizNo
-}
-
-/** 尝试应用默认 skill；若未设置或找不到，回退到第一个系统预设。 */
-export function applyDefaultSkill() {
-  loadDefaultSkill()
-  const d = defaultSkill.value
-  if (!d) {
-    if (systemSkills.value.length > 0 && !currentSkill.value) {
-      currentSkill.value = systemSkills.value[0]
-    }
-    return
-  }
-
-  let target = null
-  if (d.source === 'system') {
-    target = systemSkills.value.find(s => s.bizNo === d.bizNo)
-  } else if (d.source === 'my') {
-    target = mySkills.value.find(s => s.bizNo === d.bizNo)
-  } else if (d.source === 'learned') {
-    target = learnedSkills.value.find(s => s.bizNo === d.bizNo)
-  } else if (d.source === 'favorite') {
-    target = marketSkills.value.find(s => s.id === d.id)
-  }
-
-  if (target) {
-    currentSkill.value = target
-  } else if (systemSkills.value.length > 0 && !currentSkill.value) {
-    currentSkill.value = systemSkills.value[0]
-  }
-}
+watch(currentSkill, saveLastSkill, { deep: true })
 
 function errMsg(e) {
   if (!e) return '请求失败'
@@ -96,6 +30,8 @@ function errMsg(e) {
 
 /**
  * 加载系统预设 skills。应用启动时调用一次。
+ * 仅负责拉取列表，不再自动选中 —— 选中态由 restoreLastSkill 统一恢复，
+ * 避免 main.js 抢先 auto-pick 覆盖掉 localStorage 中用户上次的选择。
  * @returns {Promise<void>}
  */
 export async function loadSystemSkills() {
@@ -110,11 +46,42 @@ export async function loadSystemSkills() {
       prompt: s.prompt,
       scope: s.scope
     }))
-    if (systemSkills.value.length > 0 && !currentSkill.value) {
-      currentSkill.value = systemSkills.value[0]
-    }
   } catch (e) {
     console.warn('[loadSystemSkills]', errMsg(e))
+  }
+}
+
+/**
+ * 恢复上次本地记住的 skill。需要在所有 skill 列表（系统/我的/学习/市场）加载完之后调用。
+ * - 命中缓存且当前列表里仍存在 → 还原为缓存的那条
+ * - 没缓存 / 缓存的 skill 已下架 → 回退到第一个系统提示词
+ * - 系统提示词也为空 → 置空，让上层 UI 提示用户去选
+ * @param {Array} marketSkillsList 已加载的市场提示词列表（从 useSkillMarket 传入，避免循环依赖）
+ */
+export function restoreLastSkill(marketSkillsList = []) {
+  let saved = null
+  try {
+    const raw = localStorage.getItem(LAST_SKILL_KEY)
+    if (raw) saved = JSON.parse(raw)
+  } catch {
+    // ignore
+  }
+
+  const found = saved && (
+    systemSkills.value.find(s => s.bizNo === saved.bizNo)
+    || mySkills.value.find(s => s.bizNo === saved.bizNo)
+    || learnedSkills.value.find(s => s.bizNo === saved.bizNo)
+    || (saved.id && marketSkillsList.find(s => s.id === saved.id))
+  )
+  if (found) {
+    currentSkill.value = found
+    return
+  }
+
+  if (systemSkills.value.length > 0) {
+    currentSkill.value = systemSkills.value[0]
+  } else {
+    currentSkill.value = null
   }
 }
 
@@ -129,7 +96,7 @@ export async function loadMySkills() {
     mySkills.value = list.map(s => ({
       bizNo: s.bizNo,
       name: s.skillName,
-      desc: '自定义 skills',
+      desc: '自定义提示词',
       prompt: s.prompt,
       scope: s.scope,
       count: s.useCount || 0,
@@ -154,7 +121,7 @@ export const addCustomSkill = async (style) => {
   try {
     await createSkill(trimmed)
     await loadMySkills()
-    message.success('skills 已保存')
+    message.success('提示词已保存')
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -176,7 +143,7 @@ export const updateCustomSkill = async (oldName, style) => {
       const updated = mySkills.value.find(s => s.name === trimmed.skillName)
       if (updated) currentSkill.value = updated
     }
-    message.success('skills 已更新')
+    message.success('提示词已更新')
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -192,10 +159,7 @@ export const removeCustomSkill = async (name) => {
     if (currentSkill.value && currentSkill.value.name === name) {
       currentSkill.value = systemSkills.value[0] || null
     }
-    if (isDefaultSkill('my', target)) {
-      saveDefaultSkill(null)
-    }
-    message.success('skills 已删除')
+    message.success('提示词已删除')
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -287,7 +251,7 @@ export async function addLearnedSkill(style) {
       sourceType: 2
     })
     await loadLearnedSkills()
-    message.success('skills 已保存')
+    message.success('提示词已保存')
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -302,7 +266,7 @@ export async function updateLearnedSkill(bizNo, style) {
       scope: (style.scope || '').trim()
     })
     await loadLearnedSkills()
-    message.success('skills 已更新')
+    message.success('提示词已更新')
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -314,10 +278,7 @@ export async function removeLearnedSkill(bizNo) {
   try {
     await deleteSkill(bizNo)
     await loadLearnedSkills()
-    if (target && isDefaultSkill('learned', target)) {
-      saveDefaultSkill(null)
-    }
-    message.success('skills 已删除')
+    message.success('提示词已删除')
   } catch (e) {
     message.error(errMsg(e))
     throw e

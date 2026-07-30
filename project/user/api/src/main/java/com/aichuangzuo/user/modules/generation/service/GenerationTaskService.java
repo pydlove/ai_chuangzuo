@@ -44,6 +44,9 @@ public class GenerationTaskService {
     /** 文章生成对应的权益编码。 */
     private static final String ARTICLE_QUOTA_BENEFIT = "ai_article_quota";
 
+    /** 用户手动停止时的失败原因（前端据此显示「已停止」）。 */
+    private static final String USER_STOP_REASON = "用户手动停止";
+
     private final GenerationTaskMapper taskMapper;
     private final GenerationActiveModelConfigMapper activeModelConfigMapper;
     private final UserPromptTemplateMapper promptTemplateMapper;
@@ -61,7 +64,13 @@ public class GenerationTaskService {
         // 1. 限流
         rateLimiter.check(userId, benefitResolver.ratePerMinute(userId));
 
-        // 2. 选模型
+        // 2. 校验当前套餐字数上限
+        int wordLimit = parseInt(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500"), 500);
+        if (req.getWordCount() != null && req.getWordCount() > wordLimit) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_WORD_LIMIT_EXCEEDS_PLAN);
+        }
+
+        // 3. 选模型
         Long modelConfigId = req.getModelConfigId();
         if (modelConfigId == null) {
             modelConfigId = activeModelConfigMapper.selectActiveId();
@@ -70,7 +79,7 @@ public class GenerationTaskService {
             }
         }
 
-        // 3. 锁定唯一已发布模板（task 锁定版本）
+        // 4. 锁定唯一已发布模板（task 锁定版本）
         List<PromptTemplate> published = promptTemplateMapper.selectPublished();
         if (published.isEmpty()) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
@@ -81,7 +90,7 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
         }
 
-        // 4. 扣 1 次文章额度 + 入队
+        // 5. 扣 1 次文章额度 + 入队
         Integer retentionDays = benefitResolver.retentionDays(userId);
         String inputParam = buildInputParam(userId, req);
         String bizNo = generateBizNo();
@@ -157,6 +166,34 @@ public class GenerationTaskService {
         taskMapper.insert(task);
         log.info("user={} 重新生成 srcTask={} newTask={}", userId, sourceTaskId, task.getId());
         return GenerationTaskVO.from(task, objectMapper);
+    }
+
+    /** 用户手动停止任务：QUEUED / PROCESSING → FAILED，退回 1 次文章额度。
+     *
+     * <p>PROCESSING 任务会被 worker 在下一 stage 前协作式中止（已置 FAILED + 清 lease）。
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void stop(Long taskId, Long userId) {
+        GenerationTask task = requireOwnedTask(taskId, userId);
+        if (task.getStatus() != GenerationTaskStatus.QUEUED
+                && task.getStatus() != GenerationTaskStatus.PROCESSING) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
+
+        task.setStatus(GenerationTaskStatus.FAILED);
+        task.setFailedReason(USER_STOP_REASON);
+        task.setCompletedAt(LocalDateTime.now());
+        task.setLockedAt(null);
+        task.setLockedBy(null);
+        task.setLeaseUntil(null);
+        taskMapper.updateById(task);
+        log.info("user={} 手动停止任务 task={}", userId, taskId);
+
+        try {
+            benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
+        } catch (Exception e) {
+            log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", taskId, e.getMessage());
+        }
     }
 
     /** 我提交过的任务列表（FIFO 反序：最新在前）。 */
@@ -260,5 +297,13 @@ public class GenerationTaskService {
     private String generateBizNo() {
         return "GA" + LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMddHHmmss"))
                 + UUID.randomUUID().toString().replace("-", "").substring(0, 4).toUpperCase();
+    }
+
+    private static int parseInt(String value, int fallback) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
     }
 }

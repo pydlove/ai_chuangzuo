@@ -9,24 +9,29 @@ import com.aichuangzuo.admin.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.admin.modules.generation.service.QuotaRefundInternalClient;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Method;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -50,6 +55,9 @@ class GenerationTaskWorkerTest {
     private QuotaRefundInternalClient refundClient;
     @Mock
     private GenerationCallLogService callLogService;
+
+    @Spy
+    private ObjectMapper objectMapper = new ObjectMapper();
 
     @InjectMocks
     private GenerationTaskWorker worker;
@@ -85,7 +93,6 @@ class GenerationTaskWorkerTest {
     void processOne_shouldPersistCallLogsAfterEachStageAndFinally() throws Exception {
         GenerationTask task = makeTask(100L);
 
-        // 模拟 pipeline 跑 3 个 stage，每个 stage 完成后触发回调
         doAnswer(inv -> {
             GenerationContext ctx = inv.getArgument(0);
             GenerationTask t = inv.getArgument(1);
@@ -101,10 +108,9 @@ class GenerationTaskWorkerTest {
 
         invokeProcessOne(task);
 
-        // 3 次 stage 回调 + 1 次 finally 兜底
         verify(callLogService, times(4)).persistAll(any(GenerationContext.class));
-        verify(taskService).markCompleted(100L, "ART-100", "worker-1");
-        verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString());
+        verify(taskService).markCompleted(eq(100L), eq("ART-100"), eq("worker-1"), anyMap());
+        verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString(), anyMap());
     }
 
     @Test
@@ -122,14 +128,13 @@ class GenerationTaskWorkerTest {
             return ctx;
         }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
 
-        // 第一次增量 persist 抛异常，主流程应继续
         doThrow(new RuntimeException("db timeout"))
                 .doReturn(0)
                 .when(callLogService).persistAll(any(GenerationContext.class));
 
         invokeProcessOne(task);
 
-        verify(taskService).markCompleted(101L, "ART-101", "worker-1");
+        verify(taskService).markCompleted(eq(101L), eq("ART-101"), eq("worker-1"), anyMap());
         verify(callLogService, times(2)).persistAll(any(GenerationContext.class));
     }
 
@@ -143,14 +148,86 @@ class GenerationTaskWorkerTest {
 
         when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class)))
                 .thenThrow(new RuntimeException("stage 2 failed"));
-        when(taskService.markFailed(eq(102L), anyString(), eq(false), anyString())).thenReturn(failedTask);
+        when(taskService.markFailed(eq(102L), anyString(), eq(false), anyString(), anyMap()))
+                .thenReturn(failedTask);
 
         invokeProcessOne(task);
 
-        // 回调未触发，finally 兜底一次
         verify(callLogService, times(1)).persistAll(any(GenerationContext.class));
-        verify(taskService).markFailed(102L, "stage 2 failed", false, "worker-1");
+        verify(taskService).markFailed(eq(102L), eq("stage 2 failed"), eq(false), eq("worker-1"), anyMap());
         verify(refundClient).refund(102L, 10L);
+    }
+
+    @Test
+    void processOne_completed_payloadContainsArticleTitleAndBizNo() throws Exception {
+        GenerationTask task = makeTask(200L);
+        task.setInputParam("{\"title\":\"我的爆款标题\"}");
+
+        doAnswer(inv -> {
+            GenerationContext ctx = inv.getArgument(0);
+            GenerationTask t = inv.getArgument(1);
+            ctx.setTask(t);
+            ctx.setArticleBizNo("ART-200");
+            return ctx;
+        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
+
+        invokeProcessOne(task);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(taskService).markCompleted(eq(200L), eq("ART-200"), eq("worker-1"), payloadCaptor.capture());
+        Map<String, Object> payload = payloadCaptor.getValue();
+        assertEquals(200L, payload.get("taskId"));
+        assertEquals(10L, payload.get("userId"));
+        assertEquals("completed", payload.get("status"));
+        assertEquals("ART-200", payload.get("articleBizNo"));
+        assertEquals("我的爆款标题", payload.get("articleTitle"));
+    }
+
+    @Test
+    void processOne_completed_omitsTitleWhenInputParamMalformed() throws Exception {
+        GenerationTask task = makeTask(201L);
+        task.setInputParam("{malformed");
+
+        doAnswer(inv -> {
+            GenerationContext ctx = inv.getArgument(0);
+            GenerationTask t = inv.getArgument(1);
+            ctx.setTask(t);
+            ctx.setArticleBizNo("ART-201");
+            return ctx;
+        }).when(pipeline).runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class));
+
+        invokeProcessOne(task);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(taskService).markCompleted(eq(201L), eq("ART-201"), eq("worker-1"), payloadCaptor.capture());
+        assertNull(payloadCaptor.getValue().get("articleTitle"));
+    }
+
+    @Test
+    void processOne_failed_payloadContainsFailReason() throws Exception {
+        GenerationTask task = makeTask(203L);
+        GenerationTask failedTask = new GenerationTask();
+        failedTask.setId(203L);
+        failedTask.setStatus(GenerationTaskStatus.FAILED);
+        failedTask.setTargetUserId(10L);
+
+        when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class)))
+                .thenThrow(new RuntimeException("stage failed"));
+        when(taskService.markFailed(eq(203L), anyString(), eq(false), anyString(), anyMap()))
+                .thenReturn(failedTask);
+
+        invokeProcessOne(task);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> payloadCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(taskService).markFailed(eq(203L), eq("stage failed"), eq(false), eq("worker-1"), payloadCaptor.capture());
+        Map<String, Object> payload = payloadCaptor.getValue();
+        assertEquals(203L, payload.get("taskId"));
+        assertEquals(10L, payload.get("userId"));
+        assertEquals("failed", payload.get("status"));
+        assertEquals("stage failed", payload.get("failReason"));
     }
 
     @Test
@@ -177,17 +254,14 @@ class GenerationTaskWorkerTest {
     void processOne_shouldNotMarkFailedWhenPipelineAborted() throws Exception {
         GenerationTask task = makeTask(104L);
 
-        // pipeline 检测到 admin 停止信号，抛 TaskAbortedException
         when(pipeline.runInto(any(GenerationContext.class), eq(task), any(BiConsumer.class), any(BooleanSupplier.class)))
                 .thenThrow(new GenerationPipeline.TaskAbortedException("task=104 已被外部停止"));
 
         invokeProcessOne(task);
 
-        // 中止语义：不再 markFailed（stopTask 已置 FAILED），不退币（admin 主动行为）
-        verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString());
-        verify(taskService, never()).markCompleted(anyLong(), anyString(), anyString());
+        verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString(), anyMap());
+        verify(taskService, never()).markCompleted(anyLong(), anyString(), anyString(), anyMap());
         verify(refundClient, never()).refund(anyLong(), anyLong());
-        // finally 兜底：call log 仍然落库（保留已产生的 AI 调用留痕，便于排查）
         verify(callLogService, times(1)).persistAll(any(GenerationContext.class));
     }
 }

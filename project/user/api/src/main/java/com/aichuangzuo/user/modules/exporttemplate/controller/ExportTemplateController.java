@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.exporttemplate.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.exporttemplate.service.ExportTemplateService;
 import com.aichuangzuo.user.modules.exporttemplate.vo.ExportTemplateVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +17,8 @@ import java.util.List;
  * 用户端导出模板查询接口。
  *
  * <p>创作页弹框和预览页共用，返回启用中的模板列表。
+ * 每个模板附带 accessible 字段，标识当前用户（按其套餐 template_access 权益）是否可访问。
+ * 未登录用户所有模板均不可访问。
  */
 @Tag(name = "用户端导出模板")
 @RestController
@@ -28,6 +31,7 @@ public class ExportTemplateController {
     @Operation(summary = "查询启用的导出模板列表")
     @GetMapping
     public Result<List<ExportTemplateVO>> list() {
-        return Result.success(exportTemplateService.listEnabled());
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(exportTemplateService.listEnabled(userId));
     }
 }

@@ -74,8 +74,8 @@ class BenefitServiceTest {
         assertEquals("pro", vo.getPlanKey());
         assertEquals("专业版", vo.getPlanName());
         assertEquals(LocalDate.now().plusDays(30).toString(), vo.getExpiresAt());
-        // 15 历史权益 + skill_market_publish / skill_learn_analyze (V1.0.0_029)
-        assertEquals(17, vo.getBenefits().size());
+        // 16 历史权益 + skill_market_publish / skill_learn_analyze (V1.0.0_029) + generation_word_limit (V1.0.0_044)
+        assertEquals(18, vo.getBenefits().size());
 
         UserBenefitVO.BenefitItem quota = vo.getBenefits().stream()
                 .filter(b -> "ai_article_quota".equals(b.getCode()))
@@ -162,6 +162,37 @@ class BenefitServiceTest {
         assertTrue(vo.getAllowed());
         assertEquals("tier", vo.getType());
         assertEquals("express", vo.getValue());
+    }
+
+    // ── getPlanBenefitValue ──
+
+    @Test
+    void getPlanBenefitValue_proUser_returnsConfiguredValue() {
+        User user = createUser("benefit-value-pro@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+
+        String value = benefitService.getPlanBenefitValue(user.getId(), "generation_word_limit", "500");
+
+        assertEquals("1500", value);
+    }
+
+    @Test
+    void getPlanBenefitValue_freeUser_returnsDefaultValue() {
+        User user = createUser("benefit-value-free@test.com");
+
+        String value = benefitService.getPlanBenefitValue(user.getId(), "generation_word_limit", "500");
+
+        assertEquals("500", value);
+    }
+
+    @Test
+    void getPlanBenefitValue_missingBenefit_returnsDefaultValue() {
+        User user = createUser("benefit-value-missing@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+
+        String value = benefitService.getPlanBenefitValue(user.getId(), "not_configured_code", "fallback");
+
+        assertEquals("fallback", value);
     }
 
     // ── consume ──

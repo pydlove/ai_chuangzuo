@@ -1,7 +1,18 @@
 <template>
-  <div v-if="topics.length > 0" class="topic-capsules">
+  <div v-if="topics.length > 0 || refreshing" class="topic-capsules">
     <span class="topic-capsules-label">没灵感？点一个快速开始：</span>
-    <div class="topic-capsules-grid">
+    <div v-if="refreshing" class="topic-capsules-loading">
+      <span class="topic-loading-text">
+        <span
+          v-for="(ch, i) in loadingChars"
+          :key="i"
+          class="topic-loading-char"
+          :style="{ animationDelay: (i * 0.08) + 's' }"
+        >{{ ch }}</span>
+      </span>
+      <span class="topic-dots"><span></span><span></span><span></span></span>
+    </div>
+    <div v-else class="topic-capsules-grid">
       <a-tooltip
         v-for="topic in topics"
         :key="topic.id"
@@ -17,7 +28,9 @@
         </button>
       </a-tooltip>
     </div>
-    <button class="refresh-capsule" @click="refreshTopics">换一批</button>
+    <button class="refresh-capsule" :disabled="refreshing" @click="refreshTopics">
+      {{ refreshing ? '思考中…' : '换一批' }}
+    </button>
   </div>
 </template>
 
@@ -30,6 +43,13 @@ const emit = defineEmits(['apply'])
 const { customTitle, customRequirement } = useCreateForm()
 
 const topics = ref([])
+const refreshing = ref(false)
+// 至少给用户一段"思考"时间，模拟大模型流式感，同时防止疯狂点击打后端
+const MIN_THINK_MS = 3000
+
+// 拆成单字，每个字独立律动形成"波浪"
+const loadingText = '灵犀同学正在帮你想新灵感'
+const loadingChars = loadingText.split('')
 
 const loadTopics = async () => {
   try {
@@ -51,7 +71,15 @@ const applyTopic = (topic) => {
 }
 
 const refreshTopics = () => {
-  loadTopics()
+  if (refreshing.value) return // 已经在思考中，忽略重复点击
+  refreshing.value = true
+  // 取 fetch 与最少思考时长的较长者，确保动效稳定出现
+  Promise.all([
+    loadTopics(),
+    new Promise(resolve => setTimeout(resolve, MIN_THINK_MS))
+  ]).finally(() => {
+    refreshing.value = false
+  })
 }
 
 defineExpose({ loadTopics })
@@ -133,6 +161,64 @@ defineExpose({ loadTopics })
   color: var(--color-primary);
 }
 
+.refresh-capsule:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  border-color: var(--color-border-light);
+  color: var(--color-text-secondary);
+}
+
+.topic-capsules-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  padding: 14px 18px;
+  min-height: 76px; /* 与两行 capsule 网格等高，避免布局跳动 */
+  box-sizing: border-box;
+}
+
+.topic-loading-text {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  display: inline-block;
+}
+
+.topic-loading-char {
+  display: inline-block;
+  animation: topic-char-wave 1.4s infinite ease-in-out;
+}
+
+@keyframes topic-char-wave {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+.topic-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.topic-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: topic-dot-bounce 1.2s infinite ease-in-out;
+}
+
+.topic-dots span:nth-child(2) { animation-delay: 0.15s; }
+.topic-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes topic-dot-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-3px); opacity: 1; }
+}
+
 @media (max-width: 768px) {
   .refresh-capsule {
     align-self: center;
@@ -149,5 +235,10 @@ body[data-theme="dark"] .topic-capsule:hover {
   background: #333;
   border-color: var(--color-primary);
   color: var(--color-primary);
+}
+
+body[data-theme="dark"] .topic-capsules-loading {
+  background: #1f1f1f;
+  border-color: #2e2e2e;
 }
 </style>

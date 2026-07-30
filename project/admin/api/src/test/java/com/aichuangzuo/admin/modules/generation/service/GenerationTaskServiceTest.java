@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
+import com.aichuangzuo.admin.modules.message.service.NotifyOutboxService;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,8 @@ class GenerationTaskServiceTest {
 
     @Mock
     private GenerationTaskMapper taskMapper;
+    @Mock
+    private NotifyOutboxService notifyOutboxService;
 
     @InjectMocks
     private GenerationTaskService taskService;

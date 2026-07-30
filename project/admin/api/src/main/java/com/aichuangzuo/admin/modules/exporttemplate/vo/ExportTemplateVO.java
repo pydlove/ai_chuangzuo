@@ -19,6 +19,9 @@ public class ExportTemplateVO {
     private String signaturePosition;
     private Integer sortOrder;
     private Integer status;
+
+    /** 所需套餐：basic / pro / flagship。 */
+    private String tier;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -215,9 +215,9 @@ public enum PipelineStage {
     // 由 PromptTemplateService.toStageVo 读取其元数据。
     CONTENT_POST_PROCESS(
             5, "content_post_process", "内容后处理", StageType.RULE_CONFIG,
-            "对第 4 阶段生成的初稿做规则化后处理；当前支持将成对单引号替换为中文双引号。",
+            "对第 4 阶段生成的初稿做规则化后处理；当前支持将成对单引号替换为中文双引号，以及将日文角引号替换为中文双引号。",
             null,
-            "{\"singleQuoteToChineseQuotes\": true}",
+            "{\"singleQuoteToChineseQuotes\": true, \"cornerBracketToChineseQuotes\": true}",
             List.of(
                     new Placeholder("draft", "分块初稿 JSON")
             ),
@@ -226,6 +226,11 @@ public enum PipelineStage {
                             .key("singleQuoteToChineseQuotes").label("单引号转中文双引号")
                             .type("boolean").defaultValue(true)
                             .description("将 content / description 中的成对单引号 '...' 替换为 “...”")
+                            .build(),
+                    ConfigField.builder()
+                            .key("cornerBracketToChineseQuotes").label("角引号转中文双引号")
+                            .type("boolean").defaultValue(true)
+                            .description("将 content / description 中的日文角引号 「...」 替换为 “...”")
                             .build()
             ),
             0

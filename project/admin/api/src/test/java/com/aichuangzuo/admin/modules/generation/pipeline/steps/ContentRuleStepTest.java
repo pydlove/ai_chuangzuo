@@ -35,6 +35,36 @@ class ContentRuleStepTest {
     }
 
     @Test
+    void postProcess_shouldReplaceCornerBracketsWithChineseDoubleQuotes() {
+        GenerationContext ctx = makeCtx();
+        ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",
+                "{\"cornerBracketToChineseQuotes\": true}"));
+        ctx.setDraftJson("{\"draft\":[{\"paragraph_index\":1,\"content\":\"他说「你好」，我说「再见」。\"}]}");
+        ctx.setFinalDraftJson(ctx.getDraftJson());
+
+        step.process(ctx);
+
+        assertTrue(ctx.getFinalDraftJson().contains("他说“你好”，我说“再见”。"),
+                "角引号应被替换为中文双引号");
+        assertTrue(ctx.getDraftJson().contains("他说“你好”，我说“再见”。"),
+                "draftJson 也应同步更新");
+    }
+
+    @Test
+    void postProcess_shouldApplyBothQuoteRulesTogether() {
+        GenerationContext ctx = makeCtx();
+        ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",
+                "{\"singleQuoteToChineseQuotes\": true, \"cornerBracketToChineseQuotes\": true}"));
+        ctx.setDraftJson("{\"draft\":[{\"paragraph_index\":1,\"content\":\"他说'你好'，又说「再见」。\"}]}");
+        ctx.setFinalDraftJson(ctx.getDraftJson());
+
+        step.process(ctx);
+
+        assertTrue(ctx.getFinalDraftJson().contains("他说“你好”，又说“再见”。"),
+                "单引号和角引号应同时被替换为中文双引号");
+    }
+
+    @Test
     void postProcess_shouldReplaceQuotesInDescription() {
         GenerationContext ctx = makeCtx();
         ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",

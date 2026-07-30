@@ -59,7 +59,7 @@ class PlanCatalogServiceImplTest {
         PlanCatalogVO vo = service.getCatalog();
 
         assertEquals(3, vo.getPlans().size());
-        assertEquals(17, vo.getCompareRows().size());
+        assertEquals(18, vo.getCompareRows().size());
 
         // pro 推荐位
         PlanCatalogVO.PlanVO pro = vo.getPlans().get(1);
@@ -90,6 +90,8 @@ class PlanCatalogServiceImplTest {
         assertFeature(basic, "sticker_quota", "5 张/月", true);
         // queue_max_tasks: 队列最多 {value} 个任务 → "队列最多 1 个任务"
         assertFeature(basic, "queue_max_tasks", "队列最多 1 个任务", true);
+        // generation_word_limit: 最多 {value} 字 → "最多 500 字"
+        assertFeature(basic, "generation_word_limit", "最多 500 字", true);
         // ai_title_optimize: boolean=false → 显示名称，灰显
         assertFeature(basic, "ai_title_optimize", "AI 标题优化", false);
         // skill_market_publish: 0 → 显示 label，不包含
@@ -118,8 +120,53 @@ class PlanCatalogServiceImplTest {
         assertFeature(pro, "history_days", "永久", true);
         // queue_priority pro=priority → "优先"
         assertFeature(pro, "queue_priority", "优先", true);
-        // template_access pro=all_20 → "全部 20+"
-        assertFeature(pro, "template_access", "全部 20+", true);
+        // template_access pro=20 个模板键 → "导出模板 共 20 个"
+        assertFeature(pro, "template_access", "导出模板 共 20 个", true);
+    }
+
+    @Test
+    void getCatalog_templateAccessRendersCountFromCommaList() {
+        when(planMapper.selectList(any())).thenReturn(plans());
+        when(benefitMapper.selectList(any())).thenReturn(benefits());
+        when(planBenefitMapper.selectList(any())).thenReturn(planBenefits());
+
+        PlanCatalogVO vo = service.getCatalog();
+        PlanCatalogVO.PlanVO basic = vo.getPlans().get(0);
+        PlanCatalogVO.PlanVO pro = vo.getPlans().get(1);
+        PlanCatalogVO.PlanVO flagship = vo.getPlans().get(2);
+
+        // 卡片：basic=8 / pro=20 / flagship=30
+        assertFeature(basic, "template_access", "导出模板 共 8 个", true);
+        assertFeature(pro, "template_access", "导出模板 共 20 个", true);
+        assertFeature(flagship, "template_access", "导出模板 共 30 个", true);
+
+        // 对比表：basic=8 个 / pro=20 个 / flagship=30 个
+        PlanCatalogVO.CompareRowVO row = findRow(vo.getCompareRows(), "template_access");
+        assertEquals("8 个", row.getBasic().getValue());
+        assertEquals("20 个", row.getPro().getValue());
+        assertEquals("30 个", row.getFlagship().getValue());
+    }
+
+    @Test
+    void getCatalog_templateAccessEmptyValueShowsDisabled() {
+        // template_access 值为空 → 卡片显示 label（不包含），对比表单元格 false
+        List<PlanBenefit> pbs = planBenefits();
+        pbs.removeIf(pb -> "template_access".equals(pb.getBenefitCode()));
+        pbs.add(pb("basic", "template_access", ""));
+        pbs.add(pb("pro", "template_access", ""));
+        pbs.add(pb("flagship", "template_access", ""));
+        when(planMapper.selectList(any())).thenReturn(plans());
+        when(benefitMapper.selectList(any())).thenReturn(benefits());
+        when(planBenefitMapper.selectList(any())).thenReturn(pbs);
+
+        PlanCatalogVO vo = service.getCatalog();
+        PlanCatalogVO.PlanVO basic = vo.getPlans().get(0);
+        assertFeature(basic, "template_access", "文章模板", false);
+
+        PlanCatalogVO.CompareRowVO row = findRow(vo.getCompareRows(), "template_access");
+        assertEquals(Boolean.FALSE, row.getBasic().getValue());
+        assertEquals(Boolean.FALSE, row.getPro().getValue());
+        assertEquals(Boolean.FALSE, row.getFlagship().getValue());
     }
 
     @Test
@@ -300,8 +347,7 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("online_edit", "在线编辑", "boolean", "在线编辑", null, null, 6));
         list.add(benefit("skill_custom", "我的风格数量", "quota", "我的风格", "{value} 个", null, 7));
         list.add(benefit("seo_keywords", "SEO 关键词建议", "boolean", "SEO 关键词建议", null, null, 8));
-        list.add(benefit("template_access", "文章模板", "tier", "文章模板", null,
-                "{\"basic_8\":\"8 款基础\",\"all_20\":\"全部 20+\",\"all_custom\":\"全部 + 自定义\"}", 9));
+        list.add(benefit("template_access", "文章模板", "tier", "文章模板", null, null, 9));
         list.add(benefit("sticker_quota", "贴图生成", "quota", "贴图生成", "{value} 张/月", null, 10));
         list.add(benefit("batch_generate", "批量生成/改写", "boolean", "批量生成/改写", null, null, 11));
         list.add(benefit("batch_export", "批量导出", "boolean", "批量导出", null, null, 12));
@@ -312,6 +358,7 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("queue_max_tasks", "队列任务数", "quota", "队列任务数", "队列最多 {value} 个任务", null, 15));
         list.add(benefit("skill_market_publish", "发布到风格市场", "quota", "发布到风格市场", "每月可发布 {value} 个风格", null, 16));
         list.add(benefit("skill_learn_analyze", "学习我的风格", "quota", "学习我的风格", "每月可学习 {value} 次 AI 风格分析", null, 17));
+        list.add(benefit("generation_word_limit", "单次生成字数上限", "quota", "单次生成字数", "最多 {value} 字", null, 18));
         return list;
     }
 
@@ -355,9 +402,9 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "seo_keywords", "false"));
         list.add(pb("pro", "seo_keywords", "false"));
         list.add(pb("flagship", "seo_keywords", "true"));
-        list.add(pb("basic", "template_access", "basic_8"));
-        list.add(pb("pro", "template_access", "all_20"));
-        list.add(pb("flagship", "template_access", "all_custom"));
+        list.add(pb("basic", "template_access", "wechat,business,marketing,academic,toutiao,xiaohongshu,baijiahao,story"));
+        list.add(pb("pro", "template_access", "wechat,business,marketing,academic,toutiao,xiaohongshu,baijiahao,story,magazine,card,checklist,dark,wechat-minimal,wechat-dialogue,wechat-brand,wechat-infographic,xiaohongshu-list,xiaohongshu-review,xiaohongshu-tutorial,toutiao-news"));
+        list.add(pb("flagship", "template_access", "wechat,business,marketing,academic,toutiao,xiaohongshu,baijiahao,story,magazine,card,checklist,dark,wechat-minimal,wechat-dialogue,wechat-brand,wechat-infographic,xiaohongshu-list,xiaohongshu-review,xiaohongshu-tutorial,toutiao-news,xiaohongshu-emotion,toutiao-depth,toutiao-hot,toutiao-qa,baijiahao-science,baijiahao-history,baijiahao-guide,douyin-graphic,douyin-quote,zhihu-answer"));
         list.add(pb("basic", "sticker_quota", "5"));
         list.add(pb("pro", "sticker_quota", "30"));
         list.add(pb("flagship", "sticker_quota", "100"));
@@ -382,6 +429,9 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "skill_learn_analyze", "0"));
         list.add(pb("pro", "skill_learn_analyze", "1"));
         list.add(pb("flagship", "skill_learn_analyze", "2"));
+        list.add(pb("basic", "generation_word_limit", "500"));
+        list.add(pb("pro", "generation_word_limit", "1500"));
+        list.add(pb("flagship", "generation_word_limit", "3000"));
         return list;
     }
 

@@ -48,6 +48,9 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private static final String TYPE_TIER = "tier";
     private static final String TIER_NONE = "none";
 
+    /** 通过模板可见范围表达的权益：值是逗号分隔的 template_key 列表。 */
+    private static final String BENEFIT_TEMPLATE_ACCESS = "template_access";
+
     private final PlanMapper planMapper;
     private final BenefitMapper benefitMapper;
     private final PlanBenefitMapper planBenefitMapper;
@@ -174,7 +177,12 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
             String value = values.get(benefit.getCode());
             String text;
             boolean included;
-            if (TYPE_BOOLEAN.equals(benefit.getType())) {
+            if (BENEFIT_TEMPLATE_ACCESS.equals(benefit.getCode())) {
+                // template_access 值是逗号分隔的 template_key 列表，渲染为 "导出模板 共 X 个"
+                int count = countTemplateKeys(value);
+                included = count > 0;
+                text = included ? "导出模板 共 " + count + " 个" : label;
+            } else if (TYPE_BOOLEAN.equals(benefit.getType())) {
                 text = label;
                 included = "true".equalsIgnoreCase(value);
             } else if (TYPE_QUOTA.equals(benefit.getType())) {
@@ -226,6 +234,13 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     }
 
     private PlanCatalogVO.CompareCell renderCell(Benefit benefit, String value) {
+        if (BENEFIT_TEMPLATE_ACCESS.equals(benefit.getCode())) {
+            int count = countTemplateKeys(value);
+            if (count <= 0) {
+                return new PlanCatalogVO.CompareCell(Boolean.FALSE);
+            }
+            return new PlanCatalogVO.CompareCell(count + " 个");
+        }
         if (TYPE_BOOLEAN.equals(benefit.getType())) {
             return new PlanCatalogVO.CompareCell(Boolean.parseBoolean(value));
         }
@@ -319,5 +334,21 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private int parseInt(String value, int fallback) {
         if (value == null) return fallback;
         try { return Integer.parseInt(value); } catch (NumberFormatException e) { return fallback; }
+    }
+
+    /**
+     * 统计 template_access 逗号分隔键列表的非空个数。
+     */
+    private int countTemplateKeys(String value) {
+        if (!StringUtils.hasText(value)) {
+            return 0;
+        }
+        int count = 0;
+        for (String part : value.split(",")) {
+            if (!part.trim().isEmpty()) {
+                count++;
+            }
+        }
+        return count;
     }
 }

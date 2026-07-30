@@ -6,11 +6,13 @@ const queueList = ref([])
 const queueOpen = ref(false)
 let timer = null
 
-export const mapStatus = (code) =>
-  code === 0 ? 'queued' : code === 1 ? 'generating' : code === 2 ? 'completed' : code === 3 ? 'failed' : 'queued'
+export const mapStatus = (code, failedReason) => {
+  if (code === 3 && failedReason === '用户手动停止') return 'cancelled'
+  return code === 0 ? 'queued' : code === 1 ? 'generating' : code === 2 ? 'completed' : code === 3 ? 'failed' : 'queued'
+}
 
 export const statusText = (status) =>
-  ({ generating: '生成中', queued: '排队中', completed: '已完成', failed: '失败' }[status] || status)
+  ({ generating: '生成中', queued: '排队中', completed: '已完成', failed: '失败', cancelled: '已停止' }[status] || status)
 
 export function useGenerationQueue() {
   const activeCount = computed(
@@ -25,7 +27,7 @@ export function useGenerationQueue() {
         title: t.title || t.inputParam?.title || '未命名',
         platform: t.inputParam?.platform || '未选择',
         wordCount: t.wordLimitTarget || 0,
-        status: mapStatus(t.status),
+        status: mapStatus(t.status, t.failedReason),
         progress: t.progressPct || 0,
         createdAt: t.createdAt,
         completedAt: t.completedAt

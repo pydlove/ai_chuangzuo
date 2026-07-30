@@ -79,7 +79,7 @@
               class="primary-btn"
               @click="openArticle(work.id)"
             >
-              导出&生成贴图
+              导出
             </a-button>
             <button class="work-action-btn" @click="editWork(work.id)">编辑内容</button>
             <button class="work-action-btn danger" @click="deleteWork(work)">删除</button>

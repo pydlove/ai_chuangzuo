@@ -42,6 +42,22 @@
               <span class="queue-item-status-badge" :class="item.status">
                 {{ item.status === 'generating' ? `生成中 ${Math.min(100, Math.round(item.progress))}%` : statusText(item.status) }}
               </span>
+              <button
+                v-if="item.status === 'queued' || item.status === 'generating'"
+                class="queue-item-stop-btn"
+                :disabled="stoppingIds.has(item.id)"
+                @click.stop="stopItem(item, $event)"
+              >
+                {{ stoppingIds.has(item.id) ? '停止中...' : '停止' }}
+              </button>
+              <button
+                v-if="item.status === 'failed' || item.status === 'cancelled'"
+                class="queue-item-retry-btn"
+                :disabled="retryingIds.has(item.id)"
+                @click.stop="retryItem(item, $event)"
+              >
+                {{ retryingIds.has(item.id) ? '重试中...' : '重新生成' }}
+              </button>
             </div>
           </div>
         </div>
@@ -57,12 +73,14 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
 import { InboxOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useGenerationQueue, statusText } from './useGenerationQueue.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { stopGenerationTask, retryGenerationTask } from '@/api/generation.js'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['update:open'])
@@ -73,14 +91,59 @@ const open = computed({
 
 const router = useRouter()
 const isMobile = useIsMobile()
-const { queueList } = useGenerationQueue()
+const { queueList, loadQueue } = useGenerationQueue()
 const { benefits } = useBenefits()
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
+const stoppingIds = ref(new Set())
+const retryingIds = ref(new Set())
+
 const goWorks = () => {
   open.value = false
   router.push('/console/works')
+}
+
+const stopItem = (item, event) => {
+  event.stopPropagation()
+  if (stoppingIds.value.has(item.id)) return
+  Modal.confirm({
+    title: '停止生成任务',
+    content: '确定停止该任务？已扣除的创作额度将退回账户。',
+    okText: '停止',
+    cancelText: '取消',
+    centered: true,
+    okButtonProps: { disabled: stoppingIds.value.has(item.id) },
+    onOk: async () => {
+      stoppingIds.value.add(item.id)
+      try {
+        await stopGenerationTask(item.id)
+        message.success('任务已停止，额度已退回')
+        await loadQueue()
+      } catch (e) {
+        message.error(e?.message || '停止失败，请稍后重试')
+      } finally {
+        stoppingIds.value.delete(item.id)
+      }
+    }
+  })
+}
+
+const retryItem = (item, event) => {
+  event.stopPropagation()
+  if (retryingIds.value.has(item.id)) return
+  retryingIds.value.add(item.id)
+  retryGenerationTask(item.id)
+    .then(() => {
+      message.success('已重新生成')
+      return loadQueue()
+    })
+    .catch((e) => {
+      message.error(e?.message || '重新生成失败，请稍后重试')
+    })
+    .finally(() => {
+      retryingIds.value.delete(item.id)
+    })
 }
 </script>
 
@@ -116,6 +179,50 @@ const goWorks = () => {
 .queue-more-btn:hover {
   color: var(--color-primary);
   background: #fff0f2;
+}
+
+.queue-item-stop-btn {
+  margin-left: auto;
+  border: none;
+  background: #fff0f0;
+  color: #ff4d4f;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.queue-item-stop-btn:hover:not(:disabled) {
+  background: #ff4d4f;
+  color: #fff;
+}
+
+.queue-item-stop-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.queue-item-retry-btn {
+  margin-left: auto;
+  border: none;
+  background: #f0fff2;
+  color: #07c160;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.queue-item-retry-btn:hover:not(:disabled) {
+  background: #07c160;
+  color: #fff;
+}
+
+.queue-item-retry-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .queue-panel-empty {
@@ -193,6 +300,11 @@ const goWorks = () => {
   border-color: #ffccc7;
 }
 
+.queue-panel-item.cancelled {
+  background: #fff;
+  border-color: #f0f0f0;
+}
+
 .queue-item-top {
   display: flex;
   align-items: flex-start;
@@ -227,6 +339,11 @@ const goWorks = () => {
 .queue-panel-item.failed .queue-item-icon {
   background: #fff0f0;
   color: #ff4d4f;
+}
+
+.queue-panel-item.cancelled .queue-item-icon {
+  background: #f5f5f5;
+  color: #8c8c8c;
 }
 
 .queue-item-info {
@@ -276,6 +393,11 @@ const goWorks = () => {
 .queue-item-status-badge.failed {
   background: #fff0f0;
   color: #ff4d4f;
+}
+
+.queue-item-status-badge.cancelled {
+  background: #f5f5f5;
+  color: #595959;
 }
 
 .queue-item-progress {
@@ -330,6 +452,10 @@ body[data-theme="dark"] .queue-panel-item.failed {
   border-color: rgba(255, 77, 79, 0.35);
 }
 
+body[data-theme="dark"] .queue-panel-item.cancelled {
+  border-color: #303030;
+}
+
 body[data-theme="dark"] .queue-panel-item.generating .queue-item-icon {
   background: rgba(255, 36, 66, 0.15);
   color: #ff4d6a;
@@ -348,6 +474,11 @@ body[data-theme="dark"] .queue-panel-item.queued .queue-item-icon {
 body[data-theme="dark"] .queue-panel-item.failed .queue-item-icon {
   background: rgba(255, 77, 79, 0.15);
   color: #ff7875;
+}
+
+body[data-theme="dark"] .queue-panel-item.cancelled .queue-item-icon {
+  background: #2a2a2a;
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .queue-item-title {
@@ -372,6 +503,21 @@ body[data-theme="dark"] .queue-item-status-badge.queued {
 body[data-theme="dark"] .queue-item-status-badge.failed {
   background: rgba(255, 77, 79, 0.15);
   color: #ff7875;
+}
+
+body[data-theme="dark"] .queue-item-status-badge.cancelled {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .queue-item-retry-btn {
+  background: rgba(7, 193, 96, 0.15);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .queue-item-retry-btn:hover:not(:disabled) {
+  background: #07c160;
+  color: #fff;
 }
 
 body[data-theme="dark"] .queue-item-progress .progress-hint {

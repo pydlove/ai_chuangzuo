@@ -30,9 +30,10 @@
         <div
           v-for="wc in platformWordCounts"
           :key="wc.count"
-          :class="['wc-item', { selected: currentWordCount.count === wc.count }]"
+          :class="['wc-item', { selected: currentWordCount.count === wc.count, disabled: isLocked(wc.count) }]"
           @click="selectWordCount(wc)"
         >
+          <div v-if="getWordCountBadge(wc.count)" :class="['wc-badge', getWordCountBadge(wc.count).tier]">{{ getWordCountBadge(wc.count).text }}</div>
           <div class="wc-count">{{ wc.count }} 字</div>
           <div class="wc-label">{{ wc.label }}</div>
         </div>
@@ -43,9 +44,10 @@
         <div
           v-for="s in wordCountPresets.scenario"
           :key="s.count"
-          :class="['wc-item-wide', { selected: currentWordCount.count === s.count }]"
+          :class="['wc-item-wide', { selected: currentWordCount.count === s.count, disabled: isLocked(s.count) }]"
           @click="selectWordCount(s)"
         >
+          <div v-if="getWordCountBadge(s.count)" :class="['wc-badge', getWordCountBadge(s.count).tier]">{{ getWordCountBadge(s.count).text }}</div>
           <div class="wc-item-left">
             <div class="wc-count">{{ s.count }} 字</div>
             <div class="wc-label">{{ s.label }}</div>
@@ -59,9 +61,10 @@
         <div
           v-for="t in wordCountPresets.tier"
           :key="t.count"
-          :class="['wc-item-wide', { selected: currentWordCount.count === t.count }]"
+          :class="['wc-item-wide', { selected: currentWordCount.count === t.count, disabled: isLocked(t.count) }]"
           @click="selectWordCount(t)"
         >
+          <div v-if="getWordCountBadge(t.count)" :class="['wc-badge', getWordCountBadge(t.count).tier]">{{ getWordCountBadge(t.count).text }}</div>
           <div class="wc-item-left">
             <div class="wc-count">{{ t.count }} 字</div>
             <div class="wc-label">{{ t.label }}</div>
@@ -72,31 +75,40 @@
 
       <!-- 自定义 -->
       <div v-else class="wc-custom">
-        <div class="wc-custom-display">{{ customWordCount }} 字</div>
+        <div class="wc-custom-display">{{ localCustomWordCount }} 字</div>
         <input
-          v-model="customWordCount"
+          v-model="localCustomWordCount"
           type="number"
           class="wc-custom-input"
           min="1"
-          max="3000"
-          placeholder="输入 1-3000 字"
+          :max="wordCountLimit"
+          :placeholder="`输入 1-${wordCountLimit} 字`"
         />
         <input
-          v-model="customWordCount"
+          v-model="localCustomWordCount"
           type="range"
           class="wc-slider"
           min="1"
-          max="3000"
+          :max="wordCountLimit"
         />
-        <div class="wc-custom-hint">AI 将生成约 {{ customWordCount }} 字的文章</div>
+        <div class="wc-custom-hint">AI 将生成约 {{ localCustomWordCount }} 字的文章（当前套餐上限 {{ wordCountLimit }} 字）</div>
+
+        <div class="wc-footer">
+          <button class="wc-footer-btn ghost" @click="cancelCustom">取消</button>
+          <button class="wc-footer-btn primary" @click="confirmCustom" :disabled="!isCustomValid">
+            确定
+          </button>
+        </div>
       </div>
     </div>
   </a-modal>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { message } from 'ant-design-vue'
 import { wordCountPresets, useCreateForm } from '../useCreateForm.js'
+import { getWordCountLimit, getWordCountBadge } from '@/utils/membershipLimits.js'
 
 const { wordCountVisible, currentPlatform, currentWordCount, customWordCount } = useCreateForm()
 
@@ -108,13 +120,50 @@ const wordCountTabs = [
   { key: 'custom', label: '自定义字数' }
 ]
 
+const wordCountLimit = computed(() => getWordCountLimit())
+
+// 自定义字数的本地临时态：弹框打开时从 customWordCount 初始化，
+// 只在点"确定"时才写回 customWordCount / currentWordCount。
+const localCustomWordCount = ref(customWordCount.value)
+const isCustomValid = computed(() => {
+  const n = Number(localCustomWordCount.value)
+  return Number.isFinite(n) && n >= 1 && n <= wordCountLimit.value
+})
+
+watch(wordCountVisible, (visible) => {
+  if (visible) {
+    // 打开时校正：超过上限就夹到上限
+    const init = Math.max(1, Math.min(wordCountLimit.value, Number(customWordCount.value) || 1500))
+    localCustomWordCount.value = init
+  }
+})
+
 const platformWordCounts = computed(() => {
   const platform = currentPlatform.value?.key || 'wechat'
   return wordCountPresets.platform[platform] || wordCountPresets.platform.general
 })
 
+const isLocked = (count) => count > wordCountLimit.value
+
 const selectWordCount = (wc) => {
+  if (isLocked(wc.count)) {
+    const badge = getWordCountBadge(wc.count)
+    message.info(`该字数需要 ${badge?.text || '更高套餐'}，请升级套餐后使用`)
+    return
+  }
   currentWordCount.value = wc
+  wordCountVisible.value = false
+}
+
+const confirmCustom = () => {
+  if (!isCustomValid.value) return
+  const count = Math.round(Number(localCustomWordCount.value))
+  customWordCount.value = count
+  currentWordCount.value = { count, label: '自定义', desc: '' }
+  wordCountVisible.value = false
+}
+
+const cancelCustom = () => {
   wordCountVisible.value = false
 }
 </script>
@@ -177,11 +226,53 @@ const selectWordCount = (wc) => {
   background: #fff0f2;
 }
 
+.wc-item,
+.wc-item-wide {
+  position: relative;
+}
+
+.wc-badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.wc-badge.pro {
+  color: #874d00;
+  background: linear-gradient(135deg, #fff1b8, #ffd666);
+}
+
+.wc-badge.flagship {
+  color: #fff;
+  background: linear-gradient(135deg, #ffd591, #ff7a45);
+}
+
+.wc-item.disabled,
+.wc-item-wide.disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #e8e8e8;
+}
+
+.wc-item.disabled:hover,
+.wc-item-wide.disabled:hover {
+  border-color: #e8e8e8;
+  background: #f5f5f5;
+}
+
 .wc-count {
   font-size: 15px;
   font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 4px;
+  margin-top: 4px;
 }
 
 .wc-label {
@@ -283,6 +374,48 @@ const selectWordCount = (wc) => {
   text-align: center;
 }
 
+/* 底部操作按钮（自定义字数 tab 才需要确认，其它 tab 直接点选项即生效） */
+.wc-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.wc-footer-btn {
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  padding: 8px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.wc-footer-btn.ghost {
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  color: #595959;
+}
+
+.wc-footer-btn.ghost:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.wc-footer-btn.primary {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.wc-footer-btn.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.wc-footer-btn.primary:disabled {
+  background: #ffadd2;
+  cursor: not-allowed;
+}
+
 
 body[data-theme="dark"] .wc-tabs {
   border-bottom-color: #303030;
@@ -306,12 +439,25 @@ body[data-theme="dark"] .wc-item-wide {
   border-color: #303030;
 }
 
+body[data-theme="dark"] .wc-item.disabled,
+body[data-theme="dark"] .wc-item-wide.disabled {
+  background: #2a2a2a;
+  border-color: #303030;
+  opacity: 0.45;
+}
+
 body[data-theme="dark"] .wc-item:hover,
 body[data-theme="dark"] .wc-item-wide:hover,
 body[data-theme="dark"] .wc-item.selected,
 body[data-theme="dark"] .wc-item-wide.selected {
   background: rgba(255, 36, 66, 0.15);
   border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .wc-item.disabled:hover,
+body[data-theme="dark"] .wc-item-wide.disabled:hover {
+  background: #2a2a2a;
+  border-color: #303030;
 }
 
 body[data-theme="dark"] .wc-count {
@@ -332,5 +478,15 @@ body[data-theme="dark"] .wc-custom-input {
 body[data-theme="dark"] .wc-custom-input:focus {
   border-color: var(--color-primary);
   outline: none;
+}
+
+body[data-theme="dark"] .wc-footer-btn.ghost {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .wc-footer-btn.primary:disabled {
+  background: #5a2030;
 }
 </style>

@@ -15,6 +15,12 @@
       </div>
     </template>
 
+    <!-- 顶部声明：目前不支持自定义导出模板 -->
+    <div class="template-notice">
+      <span class="template-notice-icon">i</span>
+      当前仅提供系统预设模板，暂不支持自定义导出模板。可访问范围由所购套餐决定。
+    </div>
+
     <!-- 平台标签 -->
     <div class="template-tabs">
       <button
@@ -37,9 +43,10 @@
         <div
           v-for="t in filteredTemplates"
           :key="t.key"
-          :class="['template-row', { selected: selectedTemplateKey === t.key }]"
+          :class="['template-row', { selected: selectedTemplateKey === t.key, locked: !t.accessible }]"
           @click="selectTemplate(t)"
         >
+          <div v-if="!t.accessible" class="template-row-badge locked">需升级</div>
           <div class="template-row-info">
             <div class="template-row-name">{{ t.name }}</div>
             <div class="template-row-desc">{{ t.desc }}</div>
@@ -56,6 +63,7 @@
 
 <script setup>
 import { ref, computed, watch } from 'vue'
+import { message } from 'ant-design-vue'
 import { buildLargePreview } from '@/utils/articleTemplates.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useCreateForm } from '../useCreateForm.js'
@@ -72,7 +80,7 @@ const templatePlatformTabs = [
   { key: 'baijiahao', label: '百家号' },
   { key: 'zhihu', label: '知乎' },
   { key: 'douyin', label: '抖音图文' },
-  { key: 'general', label: '通用 skills' }
+  { key: 'general', label: '通用提示词' }
 ]
 const templatePlatformTab = ref('all')
 
@@ -85,12 +93,23 @@ const filteredTemplates = computed(() => {
 const currentTemplate = computed(() => allTemplates.value.find(t => t.key === selectedTemplateKey.value) || allTemplates.value[0])
 const currentTemplatePreview = computed(() => buildLargePreview(currentTemplate.value))
 
-// 弹框打开时同步当前选中模板（原 openTemplateModal 逻辑）
+// 弹框打开时：若当前选中模板被锁定，回退到第一个可访问的模板
 watch(templateVisible, (open) => {
-  if (open && currentTemplate.value) selectedTemplateKey.value = currentTemplate.value.key
+  if (!open) return
+  const cur = currentTemplate.value
+  if (cur && cur.accessible) {
+    selectedTemplateKey.value = cur.key
+    return
+  }
+  const firstAccessible = allTemplates.value.find(t => t.accessible)
+  if (firstAccessible) selectedTemplateKey.value = firstAccessible.key
 })
 
 const selectTemplate = (t) => {
+  if (!t.accessible) {
+    message.info('该模板当前套餐不可用，请升级套餐后使用')
+    return
+  }
   selectedTemplateKey.value = t.key
 }
 
@@ -103,6 +122,45 @@ const applyTemplate = () => {
 /* 模板选择 */
 :deep(.template-lib-modal .ant-modal-content) {
   width: 960px;
+}
+
+.template-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #fff8e6;
+  border: 1px solid #ffe58f;
+  color: #874d00;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.template-notice-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #faad14;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+body[data-theme="dark"] .template-notice {
+  background: rgba(250, 173, 20, 0.12);
+  border-color: rgba(250, 173, 20, 0.35);
+  color: #ffd666;
+}
+
+body[data-theme="dark"] .template-notice-icon {
+  background: #faad14;
 }
 
 .template-tabs {
@@ -157,6 +215,7 @@ const applyTemplate = () => {
 }
 
 .template-row {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -177,6 +236,34 @@ const applyTemplate = () => {
   border-color: #ff2442;
   background: #fff0f2;
   box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.25);
+}
+
+.template-row.locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.template-row.locked:hover {
+  border-color: #e8e8e8;
+  background: #f5f5f5;
+}
+
+.template-row-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+}
+
+.template-row-badge.locked {
+  color: #fff;
+  background: linear-gradient(135deg, #ff9a4d, #ff2442);
 }
 
 .template-row-name {
@@ -253,6 +340,17 @@ body[data-theme="dark"] .template-row.selected {
   background: rgba(255, 36, 66, 0.15);
   border-color: var(--color-primary);
   box-shadow: none;
+}
+
+body[data-theme="dark"] .template-row.locked {
+  background: #2a2a2a;
+  border-color: #303030;
+  opacity: 0.45;
+}
+
+body[data-theme="dark"] .template-row.locked:hover {
+  background: #2a2a2a;
+  border-color: #303030;
 }
 
 body[data-theme="dark"] .template-row-name {

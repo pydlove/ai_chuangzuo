@@ -41,4 +41,15 @@ public interface BenefitService {
      * @param code 权益编码
      */
     void refund(Long userId, String code);
+
+    /**
+     * 读取当前用户某套餐权益的配置值（只读，不扣额度）。
+     * 无会员、会员已过期或权益未配置时返回 defaultValue。
+     *
+     * @param userId 用户ID
+     * @param code 权益编码
+     * @param defaultValue 默认值
+     * @return 权益配置值
+     */
+    String getPlanBenefitValue(Long userId, String code, String defaultValue);
 }

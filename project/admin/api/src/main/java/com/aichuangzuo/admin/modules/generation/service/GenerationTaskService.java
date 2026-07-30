@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.generation.service;
 
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
+import com.aichuangzuo.admin.modules.message.service.NotifyOutboxService;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Admin 端-生成任务服务：worker 抢占 / 标记状态 / 释放 lease。
@@ -25,6 +27,7 @@ public class GenerationTaskService {
     private static final int MAX_FAILED_REASON_LEN = 512;
 
     private final GenerationTaskMapper mapper;
+    private final NotifyOutboxService notifyOutboxService;
 
     /**
      * 抢占一批任务（FOR UPDATE SKIP LOCKED）。
@@ -57,9 +60,12 @@ public class GenerationTaskService {
      *
      * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 带 WHERE locked_by 守卫，
      *                         0 行受影响说明任务已被回收/易主，抛出异常避免覆盖新 worker 的写入。
+     * @param notifyPayload    通知 outbox 负载；非空时在同事务中写入 a_message_notify_outbox，
+     *                         由 NotifyOutboxDispatcherJob 异步推送到 user-api 消息中心。
      */
     @Transactional
-    public void markCompleted(Long taskId, String articleBizNo, String expectedLockedBy) {
+    public void markCompleted(Long taskId, String articleBizNo, String expectedLockedBy,
+                              Map<String, Object> notifyPayload) {
         GenerationTask task = requireById(taskId);
         if (expectedLockedBy != null && !expectedLockedBy.equals(task.getLockedBy())) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
@@ -70,14 +76,18 @@ public class GenerationTaskService {
         task.setArticleBizNo(articleBizNo);
         mapper.updateById(task);
         log.info("task={} completed, articleBizNo={}", taskId, articleBizNo);
+
+        if (notifyPayload != null) {
+            notifyOutboxService.insertPending("generation_completed", taskId, task.getTargetUserId(), notifyPayload);
+        }
     }
 
     /**
-     * 标记任务完成（向后兼容：不校验 ownership）。
+     * 标记任务完成（向后兼容：不校验 ownership，不触发消息通知）。
      */
     @Transactional
     public void markCompleted(Long taskId, String articleBizNo) {
-        markCompleted(taskId, articleBizNo, null);
+        markCompleted(taskId, articleBizNo, null, null);
     }
 
     /**
@@ -91,9 +101,11 @@ public class GenerationTaskService {
      * @param refundRequired   是否需要退额度（completed-or-failed 时由调用方决定）
      * @param expectedLockedBy 预期持有该任务的 workerId；非空时 update 前校验，
      *                         不匹配说明任务已被回收/易主，抛出异常避免覆盖新 worker 的写入。
+     * @param notifyPayload    通知 outbox 负载；非空时在同事务中写入 a_message_notify_outbox。
      */
     @Transactional
-    public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired, String expectedLockedBy) {
+    public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired,
+                                     String expectedLockedBy, Map<String, Object> notifyPayload) {
         GenerationTask task = requireById(taskId);
         if (expectedLockedBy != null && !expectedLockedBy.equals(task.getLockedBy())) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
@@ -107,15 +119,19 @@ public class GenerationTaskService {
         task.setCompletedAt(LocalDateTime.now());
         mapper.updateById(task);
         log.warn("task={} 失败（主任务不重试）retry_count={} reason={}", taskId, nextRetry, reason);
+
+        if (notifyPayload != null) {
+            notifyOutboxService.insertPending("generation_failed", taskId, task.getTargetUserId(), notifyPayload);
+        }
         return task;
     }
 
     /**
-     * 标记任务失败（向后兼容：不校验 ownership）。
+     * 标记任务失败（向后兼容：不校验 ownership，不触发消息通知）。
      */
     @Transactional
     public GenerationTask markFailed(Long taskId, String reason, boolean refundRequired) {
-        return markFailed(taskId, reason, refundRequired, null);
+        return markFailed(taskId, reason, refundRequired, null, null);
     }
 
     /**

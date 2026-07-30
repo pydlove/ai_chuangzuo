@@ -106,6 +106,10 @@
               </tr>
             </tbody>
           </table>
+          <div class="compare-footer">
+            <span class="compare-footer-icon">i</span>
+            导出模板暂仅提供系统预设，不支持自定义；可访问范围由所购套餐决定。
+          </div>
         </div>
       </div>
     </div>
@@ -188,8 +192,15 @@ onMounted(async () => {
   catalogLoading.value = true
   try {
     const res = await getPlanCatalog()
-    plans.value = res.data.plans || []
-    compareRows.value = res.data.compareRows || []
+    const rawPlans = res.data.plans || []
+    const rawRows = res.data.compareRows || []
+    // 生成贴图功能已下线，过滤掉对应权益
+    const CARD_BENEFIT_CODE = 'sticker_quota'
+    plans.value = rawPlans.map(plan => ({
+      ...plan,
+      features: (plan.features || []).filter(f => f.code !== CARD_BENEFIT_CODE)
+    }))
+    compareRows.value = rawRows.filter(row => row.code !== CARD_BENEFIT_CODE)
   } catch (err) {
     message.error(err.message || '定价加载失败')
   } finally {
@@ -719,6 +730,35 @@ const scrollToCompare = () => {
   font-weight: 500;
 }
 
+.compare-footer {
+  margin-top: 18px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #fff8e6;
+  border: 1px solid #ffe58f;
+  color: #874d00;
+  font-size: 13px;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.compare-footer-icon {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #faad14;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  font-style: italic;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* 底部 */
 .pricing-footer {
   padding: 16px 24px;
@@ -979,6 +1019,16 @@ body[data-theme="dark"] .compare-table td {
 body[data-theme="dark"] .compare-table td.recommended-col {
   background: rgba(255, 36, 66, 0.1);
   color: #e0e0e0;
+}
+
+body[data-theme="dark"] .compare-footer {
+  background: rgba(250, 173, 20, 0.12);
+  border-color: rgba(250, 173, 20, 0.35);
+  color: #ffd666;
+}
+
+body[data-theme="dark"] .compare-footer-icon {
+  background: #faad14;
 }
 
 body[data-theme="dark"] .pricing-footer {

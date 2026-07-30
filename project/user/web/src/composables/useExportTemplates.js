@@ -6,7 +6,10 @@ import { listExportTemplates } from '@/api/exportTemplate.js'
  * 首次调用时从 API 拉取，后续用缓存。
  *
  * 每个模板对象规范化为：
- * { key, name, desc, platform, bgColor, textColor, visualStyle, signatureText, signaturePosition, sortOrder }
+ * { key, name, desc, platform, bgColor, textColor, visualStyle, signatureText,
+ *   signaturePosition, sortOrder, tier, accessible }
+ *
+ * accessible：当前用户是否可访问，由后端按套餐 template_access 权益动态计算。
  */
 const templates = ref([])
 const loaded = ref(false)
@@ -47,7 +50,9 @@ export function useExportTemplates() {
         visualStyle: parseVisualStyle(t.visualStyle),
         signatureText: t.signatureText,
         signaturePosition: t.signaturePosition,
-        sortOrder: t.sortOrder
+        sortOrder: t.sortOrder,
+        tier: t.tier || 'basic',
+        accessible: t.accessible !== false
       }))
       loaded.value = true
     } catch (e) {

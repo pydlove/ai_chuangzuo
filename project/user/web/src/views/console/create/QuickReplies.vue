@@ -33,7 +33,7 @@ const props = defineProps({
 const emit = defineEmits(['confirm', 'update:selectedKey'])
 const selected = ref(null)
 
-const SOURCE_LABEL = { my: '我的 skills', learned: '学习 skills', favorite: '收藏的 skills', system: '系统预设' }
+const SOURCE_LABEL = { my: '我的提示词', learned: '学习提示词', favorite: '收藏的提示词', system: '系统预设' }
 const sourceLabel = (t) => SOURCE_LABEL[t] || ''
 
 // 外部传入 selectedKey（弹框应用后等场景）→ 同步内部选中态

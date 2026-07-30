@@ -30,6 +30,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/user/learn/**").permitAll()
                 .requestMatchers("/api/v1/user/plans").permitAll()
                 .requestMatchers("/api/v1/user/plans/newcomer-offer").authenticated()
+                .requestMatchers("/api/v1/user/export-templates").permitAll()
                 .requestMatchers("/api/v1/user/home/**").permitAll()
                 .requestMatchers("/api/v1/user/internal/**").permitAll()
                 .requestMatchers("/__test/**").permitAll()

@@ -7,6 +7,8 @@ import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.message.enums.MessageSubType;
+import com.aichuangzuo.user.modules.message.service.MessageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -31,6 +33,7 @@ public class GenerationTaskInternalController {
 
     private final ArticleService articleService;
     private final BenefitService benefitService;
+    private final MessageService messageService;
 
     /**
      * admin worker 调入，保存生成的文章并返回 article.biz_no。
@@ -83,6 +86,70 @@ public class GenerationTaskInternalController {
         }
         benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
         log.info("task={} user={} 退文章额度成功", taskId, userId);
+        return Result.success();
+    }
+
+    /**
+     * admin worker 调入，通知用户任务完成/失败，推送一条 generation 类消息到消息中心。
+     *
+     * <p>payload 字段：
+     * <ul>
+     *   <li>taskId        必填</li>
+     *   <li>userId        必填</li>
+     *   <li>status        必填，取值 {@code completed} / {@code failed}</li>
+     *   <li>articleBizNo  completed 时必填，写入 linkUrl（/console/preview/{bizNo}）</li>
+     *   <li>articleTitle  completed 时选填，写入摘要</li>
+     *   <li>failReason    failed 时选填，写入摘要</li>
+     * </ul>
+     *
+     * <p>校验失败/状态未知时不抛异常（不阻塞 admin worker），仅记录 warn 日志。
+     * 被外部停止（TaskAbortedException）的任务 admin 不会调本接口，因此不重复通知。</p>
+     */
+    @PostMapping("/notify-completion")
+    public Result<Void> notifyCompletion(@RequestBody Map<String, Object> payload) {
+        Long taskId = asLong(payload.get("taskId"));
+        Long userId = asLong(payload.get("userId"));
+        String status = asString(payload.get("status"));
+        if (taskId == null || userId == null || status.isEmpty()) {
+            log.warn("notifyCompletion 入参缺失 taskId={} userId={} status={}", taskId, userId, status);
+            return Result.success();
+        }
+
+        if ("completed".equals(status)) {
+            String articleBizNo = asString(payload.get("articleBizNo"));
+            if (articleBizNo.isEmpty()) {
+                log.warn("notifyCompletion completed 缺 articleBizNo taskId={} userId={}", taskId, userId);
+                return Result.success();
+            }
+            String articleTitle = asString(payload.get("articleTitle"));
+            String summary = articleTitle.isEmpty()
+                    ? "您的文章已生成完毕，点击查看"
+                    : "「" + articleTitle + "」已生成完毕，点击查看";
+            String content = articleTitle.isEmpty()
+                    ? "您的创作已完成，点击查看详情。"
+                    : "您的创作「" + articleTitle + "」已完成，点击查看详情。";
+            String linkUrl = "/console/preview/" + articleBizNo;
+
+            messageService.pushPersonal(userId, "generation",
+                    "您的文章已生成", summary, linkUrl, content,
+                    MessageSubType.GENERATION_COMPLETED.getCode());
+            log.info("task={} user={} 推送生成完成消息 articleBizNo={}", taskId, userId, articleBizNo);
+        } else if ("failed".equals(status)) {
+            String failReason = asString(payload.get("failReason"));
+            String summary = failReason.isEmpty()
+                    ? "本次创作失败，已退还次数"
+                    : "创作失败：" + failReason + "，次数已退还";
+            String content = failReason.isEmpty()
+                    ? "本次创作未能完成，文章生成次数已退还，请稍后重试。"
+                    : "本次创作未能完成（" + failReason + "），文章生成次数已退还，请稍后重试。";
+
+            messageService.pushPersonal(userId, "generation",
+                    "本次创作失败", summary, null, content,
+                    MessageSubType.GENERATION_FAILED.getCode());
+            log.info("task={} user={} 推送生成失败消息 reason={}", taskId, userId, failReason);
+        } else {
+            log.warn("notifyCompletion 未知 status={} taskId={} userId={}", status, taskId, userId);
+        }
         return Result.success();
     }
 

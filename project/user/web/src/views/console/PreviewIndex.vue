@@ -138,9 +138,6 @@
       <button class="float-btn outline" @click="copyText">
         复制正文
       </button>
-      <button class="float-btn danger" @click="generateCards">
-        生成贴图
-      </button>
     </div>
 
     <!-- 编辑态保存条 -->
@@ -200,8 +197,6 @@
       </Transition>
     </Teleport>
 
-    <CardsModal v-model:visible="cardsModalVisible" :article="article" />
-
     <!-- 标签示意图放大查看 -->
     <Teleport to="body">
       <Transition name="tag-img-fade">
@@ -229,7 +224,6 @@ import { CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
-import CardsModal from '@/components/CardsModal.vue'
 
 const article = ref(null)
 const publishDesc = ref('')
@@ -358,9 +352,6 @@ const currentPlatform = ref('wechat')
 const selectedTitle = ref('')
 const titleOptLoading = ref(false)
 const optimizedTitles = ref({})
-
-// 贴图生成弹窗（复用 CardsModal 组件）
-const cardsModalVisible = ref(false)
 
 // 编辑态
 const isEditing = ref(false)
@@ -720,11 +711,6 @@ const confirmTitle = async () => {
   article.value.title = newTitle
   message.success('标题已替换')
   closeTitleOpt()
-}
-
-// 生成贴图（打开复用弹框）
-const generateCards = () => {
-  cardsModalVisible.value = true
 }
 
 

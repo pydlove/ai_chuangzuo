@@ -2,8 +2,8 @@
   <div ref="stylesIndexRef" class="styles-index">
     <div class="styles-header">
       <div>
-        <h2 class="styles-title">我的 skills</h2>
-        <p class="styles-subtitle">管理你的专属 skills，创作时一键选用</p>
+        <h2 class="styles-title">我的提示词</h2>
+        <p class="styles-subtitle">管理你的专属提示词，创作时一键选用</p>
       </div>
     </div>
 
@@ -13,25 +13,25 @@
           :class="['styles-tab', { active: activeTab === 'my' }]"
           @click="activeTab = 'my'; editorMode = false"
         >
-          我的 skills
+          我的提示词
         </button>
         <button
           :class="['styles-tab', { active: activeTab === 'learned' }]"
           @click="activeTab = 'learned'; editorMode = false"
         >
-          学习的 skills
+          学习的提示词
         </button>
         <button
           :class="['styles-tab', { active: activeTab === 'favorites' }]"
           @click="activeTab = 'favorites'; editorMode = false"
         >
-          收藏的 skills
+          收藏的提示词
         </button>
         <button
           :class="['styles-tab', { active: activeTab === 'system' }]"
           @click="activeTab = 'system'; editorMode = false"
         >
-          系统预设 skills
+          系统预设提示词
         </button>
       </div>
 
@@ -40,21 +40,21 @@
           v-model="searchQuery"
           type="text"
           class="styles-search-input"
-          placeholder="搜索 skill 名或适用范围"
+          placeholder="搜索提示词名或适用范围"
         />
       </div>
     </div>
 
-    <!-- 我的 skills -->
+    <!-- 我的提示词 -->
     <div v-show="activeTab === 'my'" class="styles-content">
       <div v-if="editorMode" class="style-editor">
         <div class="style-editor-header">
           <button class="style-editor-back" @click="goBack">← 返回</button>
-          <div class="style-editor-title">{{ editingStyle.originalName ? '编辑提示词' : '新建我的 skills' }}</div>
+          <div class="style-editor-title">{{ editingStyle.originalName ? '编辑提示词' : '新建我的提示词' }}</div>
         </div>
         <div class="style-editor-form">
           <div class="style-editor-field">
-            <label class="style-editor-label">skill 名称 <span class="required">*</span></label>
+            <label class="style-editor-label">提示词名称 <span class="required">*</span></label>
             <input
               v-model="editingStyle.name"
               type="text"
@@ -68,7 +68,7 @@
             <div v-if="errors.name" class="style-editor-error">{{ errors.name }}</div>
           </div>
           <div class="style-editor-field">
-            <label class="style-editor-label">skill 提示词 <span class="required">*</span></label>
+            <label class="style-editor-label">提示词 <span class="required">*</span></label>
             <textarea
               v-model="editingStyle.prompt"
               class="style-editor-textarea"
@@ -117,24 +117,24 @@
 
       <div v-else>
         <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
-          当前套餐不支持自定义 skills，升级基础版及以上套餐后即可创建
+          当前套餐不支持自定义提示词，升级基础版及以上套餐后即可创建
         </div>
         <div v-else-if="isCustomQuotaFull" class="styles-upgrade-banner">
-          我的 skills 数量已达上限（{{ customStyleQuotaText }}），删除旧 skills 后可继续创建，或升级套餐保存更多
+          我的提示词 数量已达上限（{{ customStyleQuotaText }}），删除旧提示词后可继续创建，或升级套餐保存更多
         </div>
         <div v-if="canUseCustomStyles" class="styles-quota-hint">
-          已创建 {{ customStyleQuotaText }} 个我的 skills
+          已创建 {{ customStyleQuotaText }} 个我的提示词
         </div>
         <div v-if="filteredMyStyles.length === 0" class="styles-empty">
           <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
             <div class="style-add-icon">+</div>
-            <div class="style-add-text">新建我的 skills</div>
+            <div class="style-add-text">新建我的提示词</div>
           </div>
         </div>
         <div v-else class="styles-grid">
           <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
             <div class="style-add-icon">+</div>
-            <div class="style-add-text">新建我的 skills</div>
+            <div class="style-add-text">新建我的提示词</div>
           </div>
           <div
             v-for="s in filteredMyStyles"
@@ -146,12 +146,6 @@
               <div class="style-card-title-wrap">
                 <div class="style-card-title-row">
                   <div class="style-card-title">{{ s.name }}</div>
-                  <div
-                    v-if="isDefaultSkill('my', s)"
-                    class="style-card-status default"
-                  >
-                    默认
-                  </div>
                   <div
                     v-if="auditStatusText(s.auditStatus)"
                     class="style-card-status"
@@ -168,12 +162,11 @@
                   </div>
                 </div>
                 <div class="style-card-meta">
-                  <span>自定义 skills</span>
+                  <span>自定义提示词</span>
                   <span class="style-card-meta-dot">·</span>
                   <span>已用 {{ s.count }} 次</span>
                 </div>
               </div>
-              <button class="style-card-remove" @click.stop="deleteSkill(s.name)">删除</button>
             </div>
             <div v-if="s.scope" class="style-card-scope-list">
               <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
@@ -182,13 +175,6 @@
             <div class="style-card-footer">
               <div class="style-card-actions">
                 <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-                <button
-                  class="style-action-btn"
-                  :class="{ primary: !isDefaultSkill('my', s) }"
-                  @click.stop="isDefaultSkill('my', s) ? clearDefault() : setAsDefault('my', s)"
-                >
-                  {{ isDefaultSkill('my', s) ? '取消默认' : '设为默认' }}
-                </button>
                 <button class="style-action-btn" @click.stop="openMyStylePromptModal(s)">查看</button>
                 <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
                 <button
@@ -198,6 +184,7 @@
                   :title="publishQuotaHint"
                   @click.stop="openPublishConfirm(s, 'my')"
                 >发布</button>
+                <button class="style-action-btn danger" @click.stop="deleteSkill(s.name)">删除</button>
               </div>
             </div>
           </div>
@@ -208,10 +195,10 @@
     <!-- 系统预设 -->
     <div v-show="activeTab === 'system'" class="styles-content">
       <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
-        当前套餐不支持系统预设 skills，开通会员后即可解锁
+        当前套餐不支持系统预设提示词，开通会员后即可解锁
       </div>
       <div v-else-if="filteredSystemStyles.length === 0" class="styles-empty">
-        没有找到匹配的系统预设 skills
+        没有找到匹配的系统预设提示词
       </div>
       <div v-else class="styles-grid">
         <div
@@ -224,12 +211,6 @@
             <div class="style-card-title-wrap">
               <div class="style-card-title-row">
                 <div class="style-card-title">{{ s.name }}</div>
-                <div
-                  v-if="isDefaultSkill('system', s)"
-                  class="style-card-status default"
-                >
-                  默认
-                </div>
               </div>
               <div class="style-card-meta">{{ s.desc }}</div>
             </div>
@@ -241,13 +222,6 @@
           <div class="style-card-footer">
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-              <button
-                class="style-action-btn"
-                :class="{ primary: !isDefaultSkill('system', s) }"
-                @click.stop="isDefaultSkill('system', s) ? clearDefault() : setAsDefault('system', s)"
-              >
-                {{ isDefaultSkill('system', s) ? '取消默认' : '设为默认' }}
-              </button>
               <button class="style-action-btn" @click.stop="openMyStylePromptModal(s, 'system')">
                 查看完整提示词
               </button>
@@ -257,7 +231,7 @@
       </div>
     </div>
 
-    <!-- 学习的 skills -->
+    <!-- 学习的提示词 -->
     <div v-show="activeTab === 'learned'" class="styles-content">
       <div class="learned-banner">
         {{ learnBannerText }}
@@ -265,13 +239,13 @@
       <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
         <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
-          <div class="style-add-text">学习新 skills</div>
+          <div class="style-add-text">学习新提示词</div>
         </div>
       </div>
       <div v-else class="styles-grid">
         <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
-          <div class="style-add-text">学习新 skills</div>
+          <div class="style-add-text">学习新提示词</div>
         </div>
         <div
           v-for="s in filteredLearnedStyles"
@@ -283,12 +257,6 @@
             <div class="style-card-title-wrap">
               <div class="style-card-title-row">
                 <div class="style-card-title">{{ s.name }}</div>
-                <div
-                  v-if="isDefaultSkill('learned', s)"
-                  class="style-card-status default"
-                >
-                  默认
-                </div>
                 <div
                   v-if="auditStatusText(s.auditStatus)"
                   class="style-card-status"
@@ -308,7 +276,6 @@
                 学习 · {{ (s.createdAt || '').slice(0, 10) }}
               </div>
             </div>
-            <button class="style-card-remove" @click.stop="deleteLearnedStyle(s)">删除</button>
           </div>
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
@@ -318,13 +285,6 @@
           <div class="style-card-footer">
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-              <button
-                class="style-action-btn"
-                :class="{ primary: !isDefaultSkill('learned', s) }"
-                @click.stop="isDefaultSkill('learned', s) ? clearDefault() : setAsDefault('learned', s)"
-              >
-                {{ isDefaultSkill('learned', s) ? '取消默认' : '设为默认' }}
-              </button>
               <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
                 {{ expandedNames.has(s.name) ? '收起' : '查看' }}
               </button>
@@ -336,16 +296,21 @@
                 :title="publishQuotaHint"
                 @click.stop="openPublishConfirm(s, 'learned')"
               >发布</button>
+              <button class="style-action-btn danger" @click.stop="deleteLearnedStyle(s)">删除</button>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 收藏的 skills -->
+    <!-- 收藏的提示词 -->
     <div v-show="activeTab === 'favorites'" class="styles-content">
       <div v-if="favoriteSkills.length === 0" class="styles-empty">
-        <span class="styles-empty-tip">还没有收藏的 skills，去 skills 市场看看吧</span>
+        <a-empty description="还没有收藏的提示词">
+          <button class="style-action-btn primary" @click="router.push('/console/skill-market')">
+            去收藏
+          </button>
+        </a-empty>
       </div>
       <div v-else class="styles-grid">
         <div
@@ -358,16 +323,9 @@
             <div class="style-card-title-wrap">
               <div class="style-card-title-row">
                 <div class="style-card-title">{{ s.name }}</div>
-                <div
-                  v-if="isDefaultSkill('favorite', s)"
-                  class="style-card-status default"
-                >
-                  默认
-                </div>
               </div>
               <div class="style-card-meta">by {{ s.creatorName }}</div>
             </div>
-            <button class="style-card-remove" @click.stop="confirmUnfavorite(s)">取消收藏</button>
           </div>
           <div v-if="s.scope" class="style-card-scope-list">
             <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
@@ -377,16 +335,10 @@
           <div class="style-card-footer">
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useFavoriteStyle(s)">使用</button>
-              <button
-                class="style-action-btn"
-                :class="{ primary: !isDefaultSkill('favorite', s) }"
-                @click.stop="isDefaultSkill('favorite', s) ? clearDefault() : setAsDefault('favorite', s)"
-              >
-                {{ isDefaultSkill('favorite', s) ? '取消默认' : '设为默认' }}
-              </button>
               <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
                 {{ expandedNames.has(s.name) ? '收起' : '查看' }}
               </button>
+              <button class="style-action-btn danger" @click.stop="confirmUnfavorite(s)">取消收藏</button>
             </div>
           </div>
         </div>
@@ -394,7 +346,7 @@
     </div>
   </div>
 
-  <!-- 学习 skills 导入对话框 -->
+  <!-- 学习提示词导入对话框 -->
   <a-modal
     :open="importDialogVisible"
     :footer="null"
@@ -404,7 +356,7 @@
     @cancel="closeImportDialog"
   >
     <template #title>
-      <div class="modal-title">{{ isEditingLearned ? '编辑学习的 skills' : '学习写作 skills' }}</div>
+      <div class="modal-title">{{ isEditingLearned ? '编辑学习的提示词' : '学习写作提示词' }}</div>
     </template>
 
     <!-- 进度态 -->
@@ -471,7 +423,7 @@
 
     <!-- 结果页 -->
     <div v-else>
-      <div class="learned-result-title">{{ isEditingLearned ? '编辑 skills' : '学习结果 ✓ 已从参考文章中提取 skills' }}</div>
+      <div class="learned-result-title">{{ isEditingLearned ? '编辑提示词' : '学习结果 ✓ 已从参考文章中提取提示词' }}</div>
       <div class="learned-result-field">
         <label class="learned-result-label">学到的提示词（可编辑）</label>
         <textarea
@@ -484,7 +436,7 @@
         </div>
       </div>
       <div class="learned-result-field">
-        <label class="learned-result-label">原文 skills 示例</label>
+        <label class="learned-result-label">原文提示词示例</label>
         <div class="learned-excerpt">① {{ learnedResult.excerpt1 }}</div>
         <div class="learned-excerpt">② {{ learnedResult.excerpt2 }}</div>
       </div>
@@ -524,8 +476,8 @@
         <div class="style-editor-counter" :class="{ over: (learnedResult.name || '').length > 20 }">
           {{ (learnedResult.name || '').length }} / 20
         </div>
-        <div v-if="learnedNameConflict" class="learned-error">该 skill 名称已存在</div>
-        <div v-else-if="learnedResult.name.trim().length > 20" class="learned-error">skill 名称最多 20 字</div>
+        <div v-if="learnedNameConflict" class="learned-error">该提示词名称已存在</div>
+        <div v-else-if="learnedResult.name.trim().length > 20" class="learned-error">提示词名称最多 20 字</div>
         <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
       </div>
       <div class="learned-result-actions">
@@ -534,14 +486,14 @@
           class="learned-submit-btn"
           :disabled="!canSaveLearnedResult"
           @click="saveLearnedResult"
-        >保存到 skills</button>
+        >保存到提示词</button>
       </div>
     </div>
   </a-modal>
 
   <a-modal
     :open="publishConfirmVisible"
-    title="发布 skills 到市场"
+    title="发布提示词到市场"
     :footer="null"
     :width="480"
     centered
@@ -551,11 +503,11 @@
       <p class="publish-confirm-title">确认发布「{{ pendingPublish.style?.name }}」？</p>
       <div class="publish-confirm-quota">{{ publishQuotaHint }}</div>
       <ol class="publish-confirm-list">
-        <li>发布后将进入<span class="publish-confirm-highlight">平台审核流程</span>，审核通过后即可在 skills 市场中发现并使用该 skill。</li>
-        <li>审核期间该 skill 会显示<span class="publish-confirm-highlight">「审核中」</span>状态，你可以随时查看进度。</li>
-        <li>skills 被他人使用后，你将按照<span class="publish-confirm-highlight">收益规则</span>获得<span class="publish-confirm-highlight">创作币奖励</span>。</li>
+        <li>发布后将进入<span class="publish-confirm-highlight">平台审核流程</span>，审核通过后即可在 提示词市场中发现并使用该提示词。</li>
+        <li>审核期间该提示词会显示<span class="publish-confirm-highlight">「审核中」</span>状态，你可以随时查看进度。</li>
+        <li>提示词被他人使用后，你将按照<span class="publish-confirm-highlight">收益规则</span>获得<span class="publish-confirm-highlight">创作币奖励</span>。</li>
       </ol>
-      <p class="publish-confirm-tip">请确保 skill 提示词符合<span class="publish-confirm-highlight">平台规范</span>，避免违规内容。</p>
+      <p class="publish-confirm-tip">请确保提示词符合<span class="publish-confirm-highlight">平台规范</span>，避免违规内容。</p>
     </div>
     <div class="publish-confirm-actions">
       <button class="publish-confirm-cancel" @click="closePublishConfirm">取消</button>
@@ -563,7 +515,7 @@
     </div>
   </a-modal>
 
-  <!-- 我的 skills 提示词详情弹框 -->
+  <!-- 我的提示词详情弹框 -->
   <a-modal
     class="my-style-prompt-modal"
     :open="myStylePromptVisible"
@@ -577,7 +529,7 @@
       <div class="my-style-prompt-meta">
         <span v-if="selectedMyStyleSource === 'system'">{{ selectedMyStyle.desc }}</span>
         <template v-else-if="selectedMyStyleSource === 'my'">
-          <span>自定义 skills</span>
+          <span>自定义提示词</span>
           <span class="my-style-prompt-meta-dot">·</span>
           <span>已用 {{ selectedMyStyle.count || 0 }} 次</span>
         </template>
@@ -630,19 +582,16 @@ import {
   readDocxAsText,
   updateLearnedSkill,
   loadMySkills,
-  loadLearnedSkills,
-  loadDefaultSkill,
-  defaultSkill,
-  saveDefaultSkill,
-  makeDefaultSkillRef,
-  isDefaultSkill
+  loadLearnedSkills
 } from '@/composables/useSkills.js'
 import {
   marketSkills,
   shareSkillToMarket,
   favoriteSkills,
   toggleFavorite,
-  useMarketSkill
+  useMarketSkill,
+  loadMarketSkills,
+  loadFavoriteIds
 } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { getCustomStyleLimit } from '@/utils/membershipLimits.js'
@@ -670,10 +619,10 @@ const learnTotal = computed(() => parseInt(benefitValue('skill_learn_analyze') |
 const canLearn = computed(() => learnRemaining.value > 0)
 const learnBannerText = computed(() => {
   if (!canLearn.value) {
-    if (learnTotal.value <= 0) return '当前套餐不支持 AI skills 学习，升级专业版/旗舰版后解锁'
+    if (learnTotal.value <= 0) return '当前套餐不支持 AI 提示词学习，升级专业版/旗舰版后解锁'
     return `本月学习额度已用完（${learnTotal.value} 次），下月 1 日重置`
   }
-  return `本月还可学习 ${learnRemaining.value} / ${learnTotal.value} 次 AI skills 分析`
+  return `本月还可学习 ${learnRemaining.value} / ${learnTotal.value} 次 AI 提示词分析`
 })
 
 const publishRemaining = computed(() => benefitRemaining('skill_market_publish'))
@@ -681,9 +630,12 @@ const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish'
 
 onMounted(async () => {
   await loadBenefits()
-  await loadMySkills()
-  await loadLearnedSkills()
-  loadDefaultSkill()
+  await Promise.all([
+    loadMySkills(),
+    loadLearnedSkills(),
+    loadMarketSkills(),
+    loadFavoriteIds()
+  ])
 })
 
 const MAX_SCOPE_TAGS = 3
@@ -831,21 +783,21 @@ const validate = () => {
   let valid = true
 
   if (!name) {
-    errors.name = '请输入 skill 名称'
+    errors.name = '请输入提示词名称'
     valid = false
   } else if (name.length > 20) {
-    errors.name = 'skill 名称最多 20 字'
+    errors.name = '提示词名称最多 20 字'
     valid = false
   } else if (isSkillNameExists(name, editingStyle.originalName)) {
-    errors.name = '该 skill 名称已存在'
+    errors.name = '该提示词名称已存在'
     valid = false
   }
 
   if (!prompt) {
-    errors.prompt = '请输入 skill 提示词'
+    errors.prompt = '请输入提示词'
     valid = false
   } else if (prompt.length > 1200) {
-    errors.prompt = 'skill 提示词最多 1200 字'
+    errors.prompt = '提示词最多 1200 字'
     valid = false
   }
 
@@ -930,21 +882,10 @@ const useFavoriteStyle = (style) => {
   }
 }
 
-const setAsDefault = (source, skill) => {
-  saveDefaultSkill(makeDefaultSkillRef(source, skill))
-  applySkill(skill)
-  message.success(`「${skill.name}」已设为默认 skill`)
-}
-
-const clearDefault = () => {
-  saveDefaultSkill(null)
-  message.success('已取消默认 skill')
-}
-
 const deleteSkill = (name) => {
   Modal.confirm({
-    title: '删除 skills',
-    content: `确定要删除 skills「${name}」吗？删除后不可恢复。`,
+    title: '删除提示词',
+    content: `确定要删除提示词「${name}」吗？删除后不可恢复。`,
     okText: '删除',
     cancelText: '取消',
     okButtonProps: { danger: true },
@@ -1082,11 +1023,11 @@ const saveLearnedResult = async () => {
   const name = learnedResult.value.name.trim()
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
   if (isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)) {
-    learnedResultError.value = '该 skill 名称已存在'
+    learnedResultError.value = '该提示词名称已存在'
     return
   }
   if (name.length > 20) {
-    learnedResultError.value = 'skill 名称最多 20 字'
+    learnedResultError.value = '提示词名称最多 20 字'
     return
   }
   if (learnedResult.value.prompt.length > 1200) {
@@ -1116,7 +1057,7 @@ const saveLearnedResult = async () => {
 
 const deleteLearnedStyle = (s) => {
   Modal.confirm({
-    title: '删除 skills',
+    title: '删除提示词',
     content: `确定要删除「${s.name}」吗？删除后不可恢复。`,
     okText: '删除',
     cancelText: '取消',
@@ -1136,9 +1077,6 @@ const confirmUnfavorite = (s) => {
     centered: true,
     onOk: () => {
       toggleFavorite(s.id)
-      if (isDefaultSkill('favorite', s)) {
-        clearDefault()
-      }
     }
   })
 }
@@ -1186,7 +1124,7 @@ const shareStyle = (style, sourceType) => {
 const publishBlocked = computed(() => publishRemaining.value <= 0)
 const publishQuotaHint = computed(() => {
   if (publishTotal.value <= 0) {
-    return '当前套餐不支持发布到 skills 市场，请升级专业版/旗舰版会员'
+    return '当前套餐不支持发布到 提示词市场，请升级专业版/旗舰版会员'
   }
   if (publishRemaining.value <= 0) {
     return `本月发布额度已用完（${publishTotal.value} 次），下月 1 日重置`
@@ -1223,7 +1161,7 @@ const confirmPublish = async () => {
     } else {
       await loadLearnedSkills()
     }
-    message.success('skills 已重新提交审核')
+    message.success('提示词已重新提交审核')
   } catch (err) {
     message.error(err?.message || '提交失败')
   } finally {
@@ -1344,15 +1282,6 @@ const closeMyStylePromptModal = () => {
   gap: 24px;
 }
 
-.styles-empty-tip {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 60px 20px;
-  color: #ff2442;
-  font-size: 15px;
-  font-weight: 500;
-}
-
 .styles-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
@@ -1453,10 +1382,14 @@ const closeMyStylePromptModal = () => {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   margin-bottom: 6px;
 }
 
 .style-card-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
   font-size: 17px;
   font-weight: 700;
   color: #1a1a1a;
@@ -1488,11 +1421,6 @@ const closeMyStylePromptModal = () => {
   color: #ff4d4f;
 }
 
-.style-card-status.default {
-  background: #e6f7ff;
-  color: #1890ff;
-}
-
 .style-card-meta {
   display: flex;
   align-items: center;
@@ -1504,23 +1432,6 @@ const closeMyStylePromptModal = () => {
 .style-card-meta-dot {
   color: #d9d9d9;
   font-weight: 700;
-}
-
-.style-card-remove {
-  flex-shrink: 0;
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-card-remove:hover {
-  color: #ff4d4f;
-  background: #fff1f0;
 }
 
 .style-card-scope {
@@ -1610,6 +1521,15 @@ const closeMyStylePromptModal = () => {
 
 .style-action-btn.primary:hover {
   background: var(--color-primary-bg);
+}
+
+.style-action-btn.danger {
+  color: #ff4d4f;
+}
+
+.style-action-btn.danger:hover {
+  color: #ff4d4f;
+  background: #fff1f0;
 }
 
 .style-action-btn:disabled,
@@ -2331,10 +2251,6 @@ body[data-theme="dark"] .styles-empty {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .styles-empty-tip {
-  color: var(--color-primary);
-}
-
 body[data-theme="dark"] .styles-empty,
 body[data-theme="dark"] .styles-empty .style-add-card {
   background-color: #141414 !important;
@@ -2379,17 +2295,11 @@ body[data-theme="dark"] .style-card-status.rejected {
   color: #ff7875;
 }
 
-body[data-theme="dark"] .style-card-status.default {
-  background: rgba(24, 144, 255, 0.15);
-  color: #4dabf7;
+body[data-theme="dark"] .style-action-btn.danger {
+  color: #ff7875;
 }
 
-body[data-theme="dark"] .style-card-remove {
-  background: transparent;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-card-remove:hover {
+body[data-theme="dark"] .style-action-btn.danger:hover {
   background: rgba(255, 77, 79, 0.15);
   color: #ff4d4f;
 }
@@ -2687,7 +2597,7 @@ body[data-theme="dark"] .learned-excerpt {
   color: #d9d9d9;
 }
 
-/* 适用范围 tag 输入容器（skill 编辑器内 + 学习结果区） */
+/* 适用范围 tag 输入容器（提示词编辑器内 + 学习结果区） */
 body[data-theme="dark"] .style-scope-tags {
   background: #1f1f1f;
   border-color: #303030;
@@ -2792,7 +2702,7 @@ body[data-theme="dark"] .my-style-prompt-close-btn:hover {
 </style>
 
 <style>
-/* 学习 skills 导入对话框：teleport 到 body，需非 scoped 全局覆盖 */
+/* 学习提示词导入对话框：teleport 到 body，需非 scoped 全局覆盖 */
 .learned-import-modal .ant-modal-body {
   height: 520px;
   overflow-y: auto;
@@ -2813,7 +2723,7 @@ body[data-theme="dark"] .learned-import-modal .ant-modal-close:hover {
   color: #f0f0f0 !important;
 }
 
-/* 我的 skills 提示词详情弹框外壳（teleport 到 body，需全局覆盖） */
+/* 我的提示词详情弹框外壳（teleport 到 body，需全局覆盖） */
 body[data-theme="dark"] .my-style-prompt-modal .ant-modal-content,
 body[data-theme="dark"] .my-style-prompt-modal .ant-modal-header {
   background: #1f1f1f !important;

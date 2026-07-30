@@ -189,6 +189,16 @@ public class BenefitServiceImpl implements BenefitService {
         log.info("权益额度退回 userId={}, code={}, updated={}", userId, code, updated);
     }
 
+    @Override
+    public String getPlanBenefitValue(Long userId, String code, String defaultValue) {
+        String planKey = currentPlanKey(userId);
+        if (FREE_PLAN_KEY.equals(planKey)) {
+            return defaultValue;
+        }
+        PlanBenefit planBenefit = findPlanBenefit(planKey, code);
+        return planBenefit != null ? planBenefit.getBenefitValue() : defaultValue;
+    }
+
     /**
      * 查询套餐的全部权益值（带缓存，key 为 planKey）。
      */
