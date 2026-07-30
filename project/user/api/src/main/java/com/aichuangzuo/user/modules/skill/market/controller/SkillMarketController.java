@@ -48,6 +48,12 @@ public class SkillMarketController {
         return Result.success(skillMarketQueryService.pageEnabled(page, pageSize, keyword, sortType));
     }
 
+    @Operation(summary = "获取提示词市场概览")
+    @GetMapping("/overview")
+    public Result<MarketSkillOverviewVO> overview() {
+        return Result.success(skillMarketQueryService.getOverview());
+    }
+
     /**
      * 获取当前用户收藏的市场 skill id 列表。
      */

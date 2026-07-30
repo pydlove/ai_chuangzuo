@@ -5,17 +5,6 @@
         ← 返回
       </button>
       <h2 class="preview-title-text">预览/导出</h2>
-      <div class="preview-header-actions">
-        <button class="action-btn" @click="goToEditPage">
-          编辑正文
-        </button>
-        <button class="action-btn" @click="copyText">
-          <CopyOutlined /> 复制正文
-        </button>
-        <button class="action-btn primary" @click="exportWord">
-          导出 Word
-        </button>
-      </div>
     </div>
 
     <div v-if="!article" class="preview-empty">
@@ -30,9 +19,9 @@
         <div class="article-meta" :style="{ color: templateStyle.metaColor, borderBottomColor: templateStyle.metaBorder, textAlign: templateStyle.metaAlign || 'left' }">
           <span>{{ formatDate(article.completedAt) }}</span>
           <span>·</span>
-          <span>约 {{ article.wordCount }} 字</span>
+          <span>约 {{ displayWordCount }} 字</span>
           <span class="article-style-badge">
-             skills:{{ article.skillName || article.style || '专业严谨' }}
+             提示词：{{ article.skillName || article.skill || '专业严谨' }}
           </span>
           <span v-if="templateMeta" class="article-template-badge">
             模板:{{ templateMeta.name }}
@@ -132,6 +121,9 @@
       <button class="float-btn" @click="optimizeTitle">
         ✧ AI 优化标题
       </button>
+      <button class="float-btn" @click="goToEditPage">
+        编辑正文
+      </button>
       <button class="float-btn primary" @click="exportWord">
         导出 Word
       </button>
@@ -220,7 +212,7 @@ import { message } from 'ant-design-vue'
 
 const router = useRouter()
 const route = useRoute()
-import { CopyOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
@@ -385,7 +377,8 @@ const loadArticle = async () => {
       body: fresh.body,
       wordCount: fresh.wordCount,
       completedAt: fresh.completedAt,
-      style: fresh.style,
+      skill: fresh.skill,
+      skillName: fresh.skillName,
       platform: fresh.platform,
       template: fresh.template,
       styleOverrides: fresh.styleOverrides
@@ -511,6 +504,14 @@ function stripHtml(html) {
 const { getByKey, getStyle, getSignature, allSignatureTexts, load: loadExportTemplates } = useExportTemplates()
 const templateStyle = computed(() => getStyle(article.value?.template) || DEFAULT_TEMPLATE_STYLE)
 const templateMeta = computed(() => getByKey(article.value?.template))
+
+// 后端 wordCount 为 0 或缺失时（旧数据兼容），按正文实际字符数兜底
+const displayWordCount = computed(() => {
+  const wc = article.value?.wordCount
+  if (wc && wc > 0) return wc
+  if (!article.value?.body) return 0
+  return stripHtml(article.value.body).replace(/\s/g, '').length
+})
 
 // 从 body 尾部/头部剥离已知的平台签名
 const stripSignatures = (body) => {
@@ -757,41 +758,6 @@ onMounted(() => {
   color: #1a1a1a;
   margin: 0;
   line-height: 1.2;
-}
-
-.preview-header-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  border: 1px solid #d9d9d9;
-  background: #fff;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.action-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-}
-
-.action-btn.primary {
-  background: #ff2442;
-  border-color: #ff2442;
-  color: #fff;
-}
-
-.action-btn.primary:hover {
-  background: #e61e3a;
-  border-color: #e61e3a;
 }
 
 .preview-empty {
@@ -1496,21 +1462,6 @@ onMounted(() => {
     display: none;
   }
 
-  .preview-header-actions {
-    order: 2;
-    width: 100%;
-    gap: 6px;
-    flex-wrap: wrap;
-  }
-
-  .preview-header-actions .action-btn {
-    flex: 1;
-    min-width: 0;
-    justify-content: center;
-    padding: 6px 8px;
-    font-size: 12px;
-  }
-
   .preview-article {
     padding: 18px 16px;
   }
@@ -1621,28 +1572,6 @@ body[data-theme="dark"] .back-btn:hover {
 
 body[data-theme="dark"] .preview-title-text {
   color: #f0f0f0;
-}
-
-body[data-theme="dark"] .action-btn {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .action-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .action-btn.primary {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: #fff;
-}
-
-body[data-theme="dark"] .action-btn.primary:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
 }
 
 body[data-theme="dark"] .empty-text {

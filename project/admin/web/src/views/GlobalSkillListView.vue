@@ -2,8 +2,8 @@
   <div class="global-style">
     <a-card :bordered="false" class="global-style-card">
       <div class="global-style-header">
-        <h3 class="global-style-title">预设风格</h3>
-        <p class="global-style-desc">管理用户端可见的系统预设写作风格</p>
+        <h3 class="global-style-title">预设提示词</h3>
+        <p class="global-style-desc">管理用户端可见的系统预设提示词</p>
       </div>
 
       <!-- 工具栏 -->
@@ -16,7 +16,7 @@
         />
         <a-input
           v-model:value="keyword"
-          placeholder="按风格名搜索"
+          placeholder="按提示词名搜索"
           allow-clear
           style="width: 240px"
           @press-enter="handleSearch"
@@ -25,7 +25,7 @@
         <a-button @click="handleReset">重置</a-button>
         <a-button type="primary" @click="openCreateModal">
           <template #icon><PlusOutlined /></template>
-          新建预设风格
+          新建预设提示词
         </a-button>
       </div>
 
@@ -56,7 +56,7 @@
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
             <a-popconfirm
-              title="确定删除此预设风格？"
+              title="确定删除此预设提示词？"
               ok-text="删除"
               cancel-text="取消"
               @confirm="confirmDelete(record)"
@@ -85,7 +85,7 @@
     <!-- 新建 / 编辑 Modal -->
     <a-modal
       v-model:open="editorVisible"
-      :title="editingBizNo ? '编辑预设风格' : '新建预设风格'"
+      :title="editingBizNo ? '编辑预设提示词' : '新建预设提示词'"
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="submitting"
@@ -93,7 +93,7 @@
       @ok="confirmSubmit"
     >
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
-        <a-form-item label="风格名称" required>
+        <a-form-item label="提示词名称" required>
           <a-input
             v-model:value="form.skillName"
             placeholder="例如：年度总结"
@@ -119,7 +119,7 @@
         <a-form-item label="提示词" required>
           <a-textarea
             v-model:value="form.prompt"
-            placeholder="喂给 AI 的完整风格提示词"
+            placeholder="喂给 AI 的完整提示词"
             :rows="6"
           />
         </a-form-item>
@@ -174,7 +174,7 @@ const statusOptions = [
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 140 },
-  { title: '风格名称', dataIndex: 'name', key: 'name', width: 140 },
+  { title: '提示词名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 180 },
   { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 120 },
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 80 },
@@ -222,7 +222,7 @@ const openEditModal = (record) => {
 
 const confirmSubmit = async () => {
   if (!form.skillName.trim() || !form.prompt.trim()) {
-    message.error('请填写风格名称和提示词')
+    message.error('请填写提示词名称和提示词')
     return
   }
   const payload = {

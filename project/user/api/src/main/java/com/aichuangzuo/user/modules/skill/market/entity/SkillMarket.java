@@ -45,6 +45,12 @@ public class SkillMarket {
 
     private BigDecimal milestoneBonus;
 
+    private Integer monthlyUses;
+
+    private BigDecimal monthlyEarnings;
+
+    private BigDecimal leaderboardReward;
+
     private LocalDateTime lastSettlementAt;
 
     private Integer enableStatus;

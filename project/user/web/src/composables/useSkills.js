@@ -96,7 +96,7 @@ export async function loadMySkills() {
     mySkills.value = list.map(s => ({
       bizNo: s.bizNo,
       name: s.skillName,
-      desc: '自定义提示词',
+      desc: s.description || '自定义提示词',
       prompt: s.prompt,
       scope: s.scope,
       count: s.useCount || 0,
@@ -116,7 +116,8 @@ export const addCustomSkill = async (style) => {
   const trimmed = {
     skillName: style.name.trim(),
     prompt: style.prompt.trim(),
-    scope: (style.scope || '').trim()
+    scope: (style.scope || '').trim(),
+    description: (style.description || '').trim() || null
   }
   try {
     await createSkill(trimmed)
@@ -134,7 +135,8 @@ export const updateCustomSkill = async (oldName, style) => {
   const trimmed = {
     skillName: style.name.trim(),
     prompt: style.prompt.trim(),
-    scope: (style.scope || '').trim()
+    scope: (style.scope || '').trim(),
+    description: (style.description || '').trim() || null
   }
   try {
     await updateSkill(target.bizNo, trimmed)

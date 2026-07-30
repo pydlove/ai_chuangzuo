@@ -2,8 +2,8 @@
   <div class="market-style">
     <a-card :bordered="false" class="market-style-card">
       <div class="market-style-header">
-        <h3 class="market-style-title">风格市场</h3>
-        <p class="market-style-desc">管理用户端风格市场中展示的风格条目</p>
+        <h3 class="market-style-title">提示词市场</h3>
+        <p class="market-style-desc">管理用户端提示词市场中展示的提示词条目</p>
       </div>
 
       <!-- 工具栏 -->
@@ -16,7 +16,7 @@
         />
         <a-input
           v-model:value="keyword"
-          placeholder="按风格名或发布者搜索"
+          placeholder="按提示词名或发布者搜索"
           allow-clear
           style="width: 240px"
           @press-enter="handleSearch"
@@ -25,7 +25,7 @@
         <a-button @click="handleReset">重置</a-button>
         <a-button type="primary" @click="openCreateModal">
           <template #icon><PlusOutlined /></template>
-          新建风格
+          新建提示词
         </a-button>
       </div>
 
@@ -35,6 +35,7 @@
         :data-source="list"
         :loading="loading"
         :pagination="false"
+        :scroll="{ x: 1300 }"
         row-key="id"
         size="middle"
       >
@@ -44,11 +45,16 @@
               {{ record.status === 'enabled' ? '已启用' : '已禁用' }}
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'featured'">
+            <a-tag :color="record.featured === 1 ? 'red' : 'default'">
+              {{ record.featured === 1 ? '官方精选' : '普通' }}
+            </a-tag>
+          </template>
           <template v-else-if="column.key === 'description'">
-            <span class="cell-ellipsis">{{ record.description || '—' }}</span>
+            <span class="cell-ellipsis" :title="record.description">{{ record.description || '—' }}</span>
           </template>
           <template v-else-if="column.key === 'promptSummary'">
-            <span class="cell-ellipsis">{{ record.promptSummary || '—' }}</span>
+            <span class="cell-ellipsis" :title="record.promptSummary">{{ record.promptSummary || '—' }}</span>
           </template>
           <template v-else-if="column.key === 'publisherName'">
             <span>{{ record.publisherName || record.publisherUserId }}</span>
@@ -59,7 +65,7 @@
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
             <a-popconfirm
-              title="确定删除此风格市场条目？"
+              title="确定删除此提示词市场条目？"
               ok-text="删除"
               cancel-text="取消"
               @confirm="confirmDelete(record)"
@@ -88,7 +94,7 @@
     <!-- 新建 / 编辑 Modal -->
     <a-modal
       v-model:open="editorVisible"
-      :title="editingBizNo ? '编辑风格市场条目' : '新建风格市场条目'"
+      :title="editingBizNo ? '编辑提示词市场条目' : '新建提示词市场条目'"
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="submitting"
@@ -96,7 +102,7 @@
       @ok="confirmSubmit"
     >
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
-        <a-form-item label="风格名称" required>
+        <a-form-item label="提示词名称" required>
           <a-input
             v-model:value="form.skillName"
             placeholder="例如：爆款情感文"
@@ -134,7 +140,7 @@
         <a-form-item label="提示词" required>
           <a-textarea
             v-model:value="form.prompt"
-            placeholder="喂给 AI 的完整风格提示词"
+            placeholder="喂给 AI 的完整提示词"
             :rows="6"
           />
         </a-form-item>
@@ -180,6 +186,13 @@
             un-checked-children="禁用"
           />
         </a-form-item>
+        <a-form-item label="官方精选">
+          <a-switch
+            v-model:checked="form.featured"
+            checked-children="精选"
+            un-checked-children="普通"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
   </div>
@@ -219,13 +232,14 @@ const statusOptions = [
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 160 },
-  { title: '风格名称', dataIndex: 'name', key: 'name', width: 140 },
+  { title: '提示词名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 160 },
   { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 220 },
   { title: '发布者', dataIndex: 'publisherName', key: 'publisherName', width: 110 },
   { title: '累计使用', dataIndex: 'totalUses', key: 'totalUses', width: 90 },
   { title: '价格', dataIndex: 'price', key: 'price', width: 90 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+  { title: '官方精选', dataIndex: 'featured', key: 'featured', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
   { title: '操作', key: 'actions', width: 130, fixed: 'right' }
 ]
@@ -255,7 +269,8 @@ const form = reactive({
   prompt: '',
   totalUses: 0,
   price: '0.20',
-  enableStatus: true
+  enableStatus: true,
+  featured: false
 })
 
 function resetForm() {
@@ -269,6 +284,7 @@ function resetForm() {
   form.totalUses = 0
   form.price = '0.20'
   form.enableStatus = true
+  form.featured = false
   publisherOptions.value = []
 }
 
@@ -316,6 +332,7 @@ const openEditModal = (record) => {
   form.totalUses = record.totalUses || 0
   form.price = String(record.price || '0.20')
   form.enableStatus = record.status === 'enabled'
+  form.featured = record.featured === 1
   publisherOptions.value = [{
     label: record.publisherName ? `${record.publisherName}（${record.publisherUserId}）` : String(record.publisherUserId),
     value: record.publisherUserId
@@ -325,7 +342,7 @@ const openEditModal = (record) => {
 
 const confirmSubmit = async () => {
   if (!form.skillName.trim() || !form.prompt.trim()) {
-    message.error('请填写风格名称和提示词')
+    message.error('请填写提示词名称和提示词')
     return
   }
   if (form.publisherUserId == null) {
@@ -344,7 +361,8 @@ const confirmSubmit = async () => {
     prompt: form.prompt.trim(),
     scope: scopeRef.value || '',
     totalUses: form.totalUses || 0,
-    enableStatus: form.enableStatus ? 1 : 0
+    enableStatus: form.enableStatus ? 1 : 0,
+    featured: form.featured ? 1 : 0
   }
   const ok = editingBizNo.value
     ? await handleUpdate(editingBizNo.value, payload)
@@ -400,6 +418,7 @@ onMounted(() => {
 
 .cell-ellipsis {
   display: inline-block;
+  width: 100%;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;

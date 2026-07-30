@@ -14,6 +14,18 @@
       </div>
     </section>
 
+    <section class="commission-rules">
+      <h3>约稿规则</h3>
+      <ul>
+        <li>只能从爱创作中已生成完成的文章中选择投稿。</li>
+        <li>投稿文章字数需符合任务要求，否则无法选中。</li>
+        <li>同一篇文章在同一时间只能投递一个任务。</li>
+        <li>投递期内可随时撤回，并改投其它文章。</li>
+        <li>稿件被管理员采纳后，奖励全额发放至创作币账户。</li>
+        <li>投稿状态以页面展示为准，评选期间请耐心等待。</li>
+      </ul>
+    </section>
+
     <div class="commission-switcher" role="tablist">
       <button :class="{ active: tab === 'all' }" role="tab" @click="tab = 'all'">全部任务</button>
       <button :class="{ active: tab === 'mine' }" role="tab" @click="tab = 'mine'">我投稿的</button>
@@ -58,6 +70,18 @@
         <div class="task-card-bottom"><span class="detail-link">查看投稿详情 <span>→</span></span></div>
       </article>
     </div>
+
+    <div v-if="total > pageSize" class="pagination-bar">
+      <a-pagination
+        v-model:current="page"
+        v-model:page-size="pageSize"
+        :total="total"
+        :show-size-changer="true"
+        :page-size-options="['10', '20', '50']"
+        show-total
+        size="small"
+      />
+    </div>
   </div>
 </template>
 
@@ -68,7 +92,7 @@ import { message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
 
 const router = useRouter()
-const { tasks, mySubmissions, loading, loadTasks, loadMySubmissions } = useCommission()
+const { tasks, mySubmissions, loading, page, pageSize, total, loadTasks, loadMySubmissions } = useCommission()
 const tab = ref('all')
 const status = ref(null)
 const filters = [
@@ -90,15 +114,19 @@ const earnedCoinTotal = computed(() =>
 
 async function refresh() {
   try {
-    if (tab.value === 'mine') await loadMySubmissions({ page: 1, pageSize: 50 })
-    else await loadTasks({ status: status.value, page: 1, pageSize: 50 })
+    if (tab.value === 'mine') await loadMySubmissions()
+    else await loadTasks({ status: status.value })
   } catch (error) {
     message.error(error.message || '约稿任务加载失败')
   }
 }
 
 onMounted(refresh)
-watch([tab, status], refresh)
+watch([tab, status], () => {
+  page.value = 1
+  refresh()
+})
+watch([page, pageSize], refresh)
 
 function taskStatus(value) {
   return ['投递中', '评选中', '已完成'][value] || '未知状态'
@@ -237,6 +265,32 @@ function goDetail(id) {
 .hero-stats span {
   font-size: 12px;
   color: #595959;
+}
+
+.commission-rules {
+  background: #fff;
+  border-radius: 20px;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+.commission-rules h3 {
+  margin: 0 0 14px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #1f1f1f;
+}
+.commission-rules ul {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 28px;
+}
+.commission-rules li {
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .commission-switcher {
@@ -411,14 +465,24 @@ function goDetail(id) {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding: 14px 0;
+}
+
 body[data-theme="dark"] .task-card,
 body[data-theme="dark"] .submission-card,
-body[data-theme="dark"] .empty-block { background: #1f1f1f; }
+body[data-theme="dark"] .empty-block,
+body[data-theme="dark"] .commission-rules { background: #1f1f1f; }
 body[data-theme="dark"] .commission-hero { background: linear-gradient(135deg, #3a1f2a 0%, #2a1f3d 60%, #3a1f30 100%); }
 body[data-theme="dark"] .hero-stats > div { background: rgba(0, 0, 0, 0.35); }
 body[data-theme="dark"] .hero-stats span { color: #bfbfbf; }
 body[data-theme="dark"] .commission-hero h1 { color: #f5f5f5; }
 body[data-theme="dark"] .commission-hero p { color: #d9d9d9; }
+body[data-theme="dark"] .commission-rules h3 { color: #f5f5f5; }
+body[data-theme="dark"] .commission-rules li { color: #bfbfbf; }
 body[data-theme="dark"] .commission-switcher { background: #262626; }
 body[data-theme="dark"] .commission-switcher button { color: #bfbfbf; }
 body[data-theme="dark"] .commission-switcher button.active { background: #1f1f1f; }
@@ -464,6 +528,14 @@ body[data-theme="dark"] .eyebrow { background: rgba(255, 255, 255, 0.08); }
   .submission-grid { grid-template-columns: minmax(0, 1fr); }
   .task-card,
   .submission-card { padding: 16px; }
+  .commission-rules {
+    padding: 16px 18px;
+    border-radius: 16px;
+  }
+  .commission-rules ul {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+  }
   .task-card-top {
     min-height: 32px;
     padding-right: 118px;
@@ -480,5 +552,9 @@ body[data-theme="dark"] .eyebrow { background: rgba(255, 255, 255, 0.08); }
     line-clamp: 2;
   }
   .commission-switcher button { padding: 7px 16px; font-size: 13px; }
+  .pagination-bar {
+    justify-content: center;
+    margin-top: 16px;
+  }
 }
 </style>

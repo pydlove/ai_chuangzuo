@@ -40,6 +40,7 @@ com/aichuangzuo/user/modules/auth/mapper/UserMapper.class
 com/aichuangzuo/user/modules/user/dto/request/BindInviteCodeRequest.class
 com/aichuangzuo/user/modules/skill/market/controller/SkillMarketController.class
 com/aichuangzuo/user/modules/user/service/impl/UserInviteBindingServiceImpl.class
+com/aichuangzuo/user/modules/skill/market/config/entity/SkillMonthlyRewardConfig.class
 com/aichuangzuo/user/modules/commission/dto/request/CommissionSubmitRequest.class
 com/aichuangzuo/user/modules/generation/controller/GenerationTaskInternalController.class
 com/aichuangzuo/user/modules/article/service/TitleOptimizeAiService.class
@@ -84,6 +85,7 @@ com/aichuangzuo/user/modules/membership/vo/SubscribeResultVO.class
 com/aichuangzuo/user/modules/membership/service/PlanLookupService.class
 com/aichuangzuo/user/modules/skill/service/UserSkillService.class
 com/aichuangzuo/user/modules/benefit/entity/BenefitUsage.class
+com/aichuangzuo/user/modules/skill/market/controller/SkillUsageInternalController.class
 com/aichuangzuo/user/modules/skill/service/impl/SkillAnalyzeServiceImpl.class
 com/aichuangzuo/user/modules/message/enums/MessageSubType.class
 com/aichuangzuo/user/modules/skill/dto/request/AnalyzeSkillRequest.class
@@ -109,11 +111,13 @@ com/aichuangzuo/user/modules/leaderboard/entity/IncomeSubmission.class
 com/aichuangzuo/user/modules/membership/dto/request/SubscribeRequest.class
 com/aichuangzuo/user/modules/benefit/controller/BenefitController.class
 com/aichuangzuo/user/modules/message/entity/Message.class
+com/aichuangzuo/user/modules/skill/market/controller/SkillMarketInternalController.class
 com/aichuangzuo/user/modules/feedback/mapper/FeedbackMapper.class
 com/aichuangzuo/user/modules/article/vo/DraftPageVO.class
 com/aichuangzuo/user/modules/article/dto/request/SaveArticleRequest.class
 com/aichuangzuo/user/modules/generation/service/GenerationBenefitResolver.class
 com/aichuangzuo/user/modules/skill/market/vo/TopCreatorVO.class
+com/aichuangzuo/user/modules/skill/market/config/mapper/SkillMonthlyRewardConfigMapper.class
 com/aichuangzuo/user/config/AuthProperties.class
 com/aichuangzuo/user/modules/article/service/ArticleService.class
 com/aichuangzuo/user/modules/user/service/impl/InviteRewardServiceImpl.class
@@ -174,6 +178,7 @@ com/aichuangzuo/user/modules/message/enums/MessageErrorCode.class
 com/aichuangzuo/user/modules/skill/market/service/UserMarketFavoriteService.class
 com/aichuangzuo/user/modules/skill/market/mapper/UserMarketFavoriteMapper.class
 com/aichuangzuo/user/modules/learn/vo/LearnArticleVO.class
+com/aichuangzuo/user/modules/skill/market/job/SkillMarketMonthlySettlementJob$TopCreator.class
 com/aichuangzuo/user/modules/user/vo/UserProfileVO.class
 com/aichuangzuo/user/modules/skill/dto/request/CreateSkillRequest.class
 com/aichuangzuo/user/modules/message/service/impl/MessageServiceImpl.class
@@ -204,6 +209,7 @@ com/aichuangzuo/user/modules/feedback/enums/FeedbackType.class
 com/aichuangzuo/user/modules/generation/controller/GenerationTaskController.class
 com/aichuangzuo/user/modules/message/mapper/MessageReadMapper.class
 com/aichuangzuo/user/modules/feedback/service/impl/FeedbackServiceImpl.class
+com/aichuangzuo/user/modules/skill/market/service/SkillUsageRecordService.class
 com/aichuangzuo/user/modules/topic/mapper/TopicTitleUsageMapper.class
 com/aichuangzuo/user/modules/skill/market/service/SkillMarketQueryService.class
 com/aichuangzuo/user/modules/earnings/enums/EarningsType.class
@@ -221,6 +227,7 @@ com/aichuangzuo/user/modules/article/service/TitleOptimizeService.class
 com/aichuangzuo/user/modules/benefit/service/impl/BenefitServiceImpl.class
 com/aichuangzuo/user/config/CaffeineConfig$1.class
 com/aichuangzuo/user/modules/generation/service/GenerationRateLimiter.class
+com/aichuangzuo/user/modules/skill/market/job/SkillMarketMonthlySettlementJob.class
 com/aichuangzuo/user/modules/membership/mapper/PlanMapper.class
 com/aichuangzuo/user/modules/auth/dto/request/RegisterRequest.class
 com/aichuangzuo/user/modules/auth/entity/UserInviteRelation.class
@@ -251,6 +258,7 @@ com/aichuangzuo/user/UserApiApplication.class
 com/aichuangzuo/user/modules/skill/entity/UserSkill.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceImpl.class
 com/aichuangzuo/user/modules/membership/service/MembershipService.class
+com/aichuangzuo/user/modules/skill/market/service/SkillMarketUsageService.class
 com/aichuangzuo/user/modules/membership/service/impl/MembershipServiceImpl.class
 com/aichuangzuo/user/modules/exporttemplate/controller/ExportTemplateController.class
 com/aichuangzuo/user/infrastructure/cache/CacheUtil.class

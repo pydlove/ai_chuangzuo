@@ -79,6 +79,7 @@ class SkillMarketAdminServiceTest {
         req.setPublisherUserId(100L);
         req.setTotalUses(50);
         req.setEnableStatus(1);
+        req.setFeatured(0);
 
         when(platformUserMapper.selectById(100L)).thenReturn(platformUser(100L));
         when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
@@ -111,6 +112,7 @@ class SkillMarketAdminServiceTest {
         req.setPrompt("p");
         req.setPublisherUserId(999L);
         req.setEnableStatus(1);
+        req.setFeatured(0);
         when(platformUserMapper.selectById(999L)).thenReturn(null);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.create(req));
@@ -125,6 +127,7 @@ class SkillMarketAdminServiceTest {
         req.setPrompt("p");
         req.setPublisherUserId(100L);
         req.setEnableStatus(1);
+        req.setFeatured(0);
         when(platformUserMapper.selectById(100L)).thenReturn(platformUser(100L));
         when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
@@ -151,6 +154,7 @@ class SkillMarketAdminServiceTest {
         req.setPublisherUserId(200L);
         req.setTotalUses(999);
         req.setEnableStatus(0);
+        req.setFeatured(0);
 
         service.update("SM0009", req);
 
@@ -176,6 +180,7 @@ class SkillMarketAdminServiceTest {
         req.setPrompt("p");
         req.setPublisherUserId(100L);
         req.setEnableStatus(2);
+        req.setFeatured(0);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.update("SM0009", req));
         assertEquals(AdminSkillMarketErrorCode.ENABLE_STATUS_INVALID.getCode(), ex.getCode());
@@ -193,6 +198,7 @@ class SkillMarketAdminServiceTest {
         req.setPublisherUserId(100L);
         req.setTotalUses(-1);
         req.setEnableStatus(1);
+        req.setFeatured(0);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.update("SM0009", req));
         assertEquals(AdminSkillMarketErrorCode.TOTAL_USES_INVALID.getCode(), ex.getCode());
@@ -207,6 +213,7 @@ class SkillMarketAdminServiceTest {
         req.setPrompt("y");
         req.setPublisherUserId(100L);
         req.setEnableStatus(1);
+        req.setFeatured(0);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.update("NOPE", req));
         assertEquals(AdminSkillMarketErrorCode.SKILL_MARKET_NOT_FOUND.getCode(), ex.getCode());

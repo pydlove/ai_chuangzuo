@@ -25,6 +25,6 @@ public class MarketSkillOverviewVO {
     /** 官方精选（按总使用次数降序）。 */
     private List<MarketSkillVO> featuredSkills;
 
-    /** 收益潜力榜（按本周收益降序）。 */
+    /** 收益潜力榜（按本月收益降序）。 */
     private List<TopCreatorVO> topCreators;
 }

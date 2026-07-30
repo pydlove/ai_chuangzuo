@@ -16,6 +16,8 @@ import com.aichuangzuo.user.modules.generation.vo.GenerationTaskPageVO;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,6 +56,7 @@ public class GenerationTaskService {
     private final GenerationRateLimiter rateLimiter;
     private final BenefitService benefitService;
     private final UserSkillMapper userSkillMapper;
+    private final SkillMarketMapper skillMarketMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -61,16 +64,19 @@ public class GenerationTaskService {
      */
     @Transactional(rollbackFor = Exception.class)
     public GenerationTaskVO submit(GenerationSubmitRequest req, Long userId) {
-        // 1. 限流
+        // 1. 校验当前套餐队列任务数上限（避免基础版等低配套餐同时堆积多个任务）
+        checkQueueLimit(userId);
+
+        // 2. 限流
         rateLimiter.check(userId, benefitResolver.ratePerMinute(userId));
 
-        // 2. 校验当前套餐字数上限
+        // 3. 校验当前套餐字数上限
         int wordLimit = parseInt(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500"), 500);
         if (req.getWordCount() != null && req.getWordCount() > wordLimit) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_WORD_LIMIT_EXCEEDS_PLAN);
         }
 
-        // 3. 选模型
+        // 4. 选模型
         Long modelConfigId = req.getModelConfigId();
         if (modelConfigId == null) {
             modelConfigId = activeModelConfigMapper.selectActiveId();
@@ -79,7 +85,7 @@ public class GenerationTaskService {
             }
         }
 
-        // 4. 锁定唯一已发布模板（task 锁定版本）
+        // 5. 锁定唯一已发布模板（task 锁定版本）
         List<PromptTemplate> published = promptTemplateMapper.selectPublished();
         if (published.isEmpty()) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
@@ -90,7 +96,7 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TEMPLATE_DISABLED);
         }
 
-        // 5. 扣 1 次文章额度 + 入队
+        // 6. 扣 1 次文章额度 + 入队
         Integer retentionDays = benefitResolver.retentionDays(userId);
         String inputParam = buildInputParam(userId, req);
         String bizNo = generateBizNo();
@@ -134,6 +140,9 @@ public class GenerationTaskService {
                 && source.getStatus() != GenerationTaskStatus.COMPLETED) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TASK_NOT_FOUND);
         }
+
+        // 校验当前套餐队列任务数上限
+        checkQueueLimit(userId);
 
         // 限流
         rateLimiter.check(userId, benefitResolver.ratePerMinute(userId));
@@ -219,6 +228,16 @@ public class GenerationTaskService {
         return task;
     }
 
+    /** 校验当前队列任务数是否超过套餐上限（QUEUED / PROCESSING 均占坑）。 */
+    private void checkQueueLimit(Long userId) {
+        int maxQueueTasks = parseInt(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1"), 1);
+        long activeTaskCount = taskMapper.countUserTasks(userId,
+                List.of(GenerationTaskStatus.QUEUED.getCode(), GenerationTaskStatus.PROCESSING.getCode()));
+        if (activeTaskCount >= maxQueueTasks) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_QUEUE_LIMIT_EXCEEDED);
+        }
+    }
+
     private String buildInputParam(Long userId, GenerationSubmitRequest req) {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("title", req.getTitle());
@@ -244,6 +263,7 @@ public class GenerationTaskService {
      * <ol>
      *   <li>当前用户的自定义/学习风格（skillName 匹配）</li>
      *   <li>系统预设风格（source_type=3、enable_status=1、skillName 匹配）</li>
+     *   <li>提示词市场风格（bizNo 匹配，用于从市场选择 skill 的场景）</li>
      * </ol>
      * 都找不到（或 skillRef 为空）时返回 ""，不影响任务继续。
      */
@@ -269,7 +289,19 @@ public class GenerationTaskService {
                 .eq(UserSkill::getSkillName, skillRef)
                 .last("LIMIT 1");
         UserSkill systemSkill = userSkillMapper.selectOne(systemWrapper);
-        return systemSkill == null ? "" : nullToEmpty(systemSkill.getPrompt());
+        if (systemSkill != null) {
+            return nullToEmpty(systemSkill.getPrompt());
+        }
+
+        // 3. 提示词市场风格（skillRef 为市场 skill 的 bizNo）
+        LambdaQueryWrapper<SkillMarket> marketWrapper = new LambdaQueryWrapper<>();
+        marketWrapper.eq(SkillMarket::getBizNo, skillRef)
+                .eq(SkillMarket::getEnableStatus, 1)
+                .eq(SkillMarket::getAuditStatus, 1)
+                .eq(SkillMarket::getIsDeleted, 0)
+                .last("LIMIT 1");
+        SkillMarket marketSkill = skillMarketMapper.selectOne(marketWrapper);
+        return marketSkill == null ? "" : nullToEmpty(marketSkill.getPrompt());
     }
 
     private static String nullToEmpty(String s) {

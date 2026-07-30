@@ -20,9 +20,9 @@
         placement="top"
       >
         <button
-          :class="['topic-capsule', { used: topic.used }]"
-          :disabled="topic.used"
-          @click="topic.used ? null : applyTopic(topic)"
+          :class="['topic-capsule', { used: isUsed(topic) }]"
+          :disabled="isUsed(topic)"
+          @click="isUsed(topic) ? null : applyTopic(topic)"
         >
           {{ topic.title }}
         </button>
@@ -35,15 +35,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { useCreateForm } from './useCreateForm.js'
+import { useGenerationQueue } from './useGenerationQueue.js'
 
 const emit = defineEmits(['apply'])
 const { customTitle, customRequirement } = useCreateForm()
+const { queueList } = useGenerationQueue()
 
 const topics = ref([])
 const refreshing = ref(false)
+const usedIds = ref(new Set())
+const lastAppliedId = ref(null)
+const lastAppliedTaskId = ref(null)
 // 至少给用户一段"思考"时间，模拟大模型流式感，同时防止疯狂点击打后端
 const MIN_THINK_MS = 3000
 
@@ -54,7 +59,7 @@ const loadingChars = loadingText.split('')
 const loadTopics = async () => {
   try {
     const list = await fetchRandomTopics(6)
-    topics.value = (list || []).map(t => ({ id: t.id, title: t.title, summary: t.summary, used: false }))
+    topics.value = (list || []).map(t => ({ id: t.id, title: t.title, summary: t.summary }))
   } catch {
     topics.value = []
   }
@@ -62,13 +67,50 @@ const loadTopics = async () => {
 
 onMounted(loadTopics)
 
+const isUsed = (topic) => usedIds.value.has(topic.id)
+
 const applyTopic = (topic) => {
   customTitle.value = topic.title
   customRequirement.value = topic.summary || ''
-  topic.used = true
-  markTopicUsed(topic.id).catch(() => {})
+  lastAppliedId.value = topic.id
+  lastAppliedTaskId.value = null
   emit('apply', topic)
 }
+
+const markUsed = (taskId) => {
+  const id = lastAppliedId.value
+  if (!id) return
+  lastAppliedTaskId.value = taskId || null
+  if (usedIds.value.has(id)) return
+  usedIds.value.add(id)
+  markTopicUsed(id).catch(() => {})
+}
+
+const unmarkUsed = () => {
+  const id = lastAppliedId.value
+  if (!id) return
+  usedIds.value.delete(id)
+  lastAppliedTaskId.value = null
+}
+
+// 监听关联任务状态：停止/失败时回滚，重新生成时恢复
+watch(queueList, (list) => {
+  const taskId = lastAppliedTaskId.value
+  if (!taskId) return
+  const task = list.find(t => t.id === taskId)
+  if (!task) return
+  const id = lastAppliedId.value
+  if (!id) return
+  if (task.status === 'cancelled' || task.status === 'failed') {
+    if (usedIds.value.has(id)) {
+      usedIds.value.delete(id)
+    }
+  } else if (task.status === 'queued' || task.status === 'generating') {
+    if (!usedIds.value.has(id)) {
+      usedIds.value.add(id)
+    }
+  }
+}, { deep: true })
 
 const refreshTopics = () => {
   if (refreshing.value) return // 已经在思考中，忽略重复点击
@@ -82,7 +124,7 @@ const refreshTopics = () => {
   })
 }
 
-defineExpose({ loadTopics })
+defineExpose({ loadTopics, markUsed })
 </script>
 
 <style scoped>

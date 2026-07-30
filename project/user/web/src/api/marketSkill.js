@@ -7,6 +7,8 @@ function normalizeRow(s) {
     id: s.id,
     name: s.name,
     sourceType: s.sourceType,
+    description: s.description || s.desc || '',
+    promptSummary: s.promptSummary || '',
     creatorId: s.creatorId,
     creatorName: s.creatorName,
     prompt: s.prompt,
@@ -19,6 +21,9 @@ function normalizeRow(s) {
     totalUses: s.totalUses,
     weeklyEarnings: s.weeklyEarnings,
     milestoneBonus: s.milestoneBonus,
+    monthlyUses: s.monthlyUses,
+    monthlyEarnings: s.monthlyEarnings,
+    leaderboardReward: s.leaderboardReward,
     featured: s.featured === true,
     lastSettlementAt: s.lastSettlementAt,
     createdAt: s.createdAt
@@ -36,6 +41,8 @@ function normalizeOverview(data) {
       creatorName: c.creatorName,
       weeklyEarnings: c.weeklyEarnings || 0,
       weeklyUses: c.weeklyUses || 0,
+      monthlyEarnings: c.monthlyEarnings || 0,
+      monthlyUses: c.monthlyUses || 0,
       totalEarnings: c.totalEarnings || 0,
       bestSkill: c.bestSkill ? normalizeRow(c.bestSkill) : null
     }))

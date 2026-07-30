@@ -11,6 +11,7 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,6 +27,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,6 +58,9 @@ class GenerationTaskServiceTest {
     @Mock
     private UserSkillMapper userSkillMapper;
 
+    @Mock
+    private SkillMarketMapper skillMarketMapper;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -80,6 +86,8 @@ class GenerationTaskServiceTest {
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(benefitResolver.retentionDays(userId)).thenReturn(30);
         when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
         // 唯一已发布模板 id=1，latestPublishedVersion=1（submit 路径需要）
         PromptTemplate tpl = new PromptTemplate();
         tpl.setId(com.aichuangzuo.shared.creative.CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
@@ -180,6 +188,8 @@ class GenerationTaskServiceTest {
         Long userId = 10L;
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
         when(activeModelConfigMapper.selectActiveId()).thenReturn(10L);
         when(promptTemplateMapper.selectPublished()).thenReturn(List.of());
 
@@ -198,6 +208,8 @@ class GenerationTaskServiceTest {
         Long userId = 12L;
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
 
         com.aichuangzuo.shared.exception.BusinessException e =
                 org.junit.jupiter.api.Assertions.assertThrows(
@@ -216,6 +228,8 @@ class GenerationTaskServiceTest {
         Long userId = 14L;
         when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
         when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("500");
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
 
         com.aichuangzuo.shared.exception.BusinessException e =
                 org.junit.jupiter.api.Assertions.assertThrows(
@@ -225,6 +239,25 @@ class GenerationTaskServiceTest {
                 com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
                         .GENERATION_WORD_LIMIT_EXCEEDS_PLAN.getCode(),
                 e.getCode());
+    }
+
+    @Test
+    void submit_shouldRejectWhenQueueLimitExceeded() {
+        Long userId = 15L;
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(1L);
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequest(""), userId));
+        assertEquals(
+                com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                        .GENERATION_QUEUE_LIMIT_EXCEEDED.getCode(),
+                e.getCode());
+        verify(rateLimiter, never()).check(anyLong(), anyInt());
+        verify(benefitService, never()).consume(anyLong(), any());
+        verify(taskMapper, never()).insert(any(GenerationTask.class));
     }
 
     @Test

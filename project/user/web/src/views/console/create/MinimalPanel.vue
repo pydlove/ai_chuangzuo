@@ -15,16 +15,32 @@
         @focus="heroFocused = true"
         @blur="heroFocused = false"
       />
-      <textarea
-        ref="requirementEl"
-        v-model="customRequirement"
-        class="hero-textarea"
-        rows="4"
-        placeholder="补充要求：语气、案例、重点…"
-        @input="autoGrow"
-        @focus="heroFocused = true"
-        @blur="heroFocused = false"
-      ></textarea>
+      <div class="hero-textarea-wrap">
+        <textarea
+          ref="requirementEl"
+          v-model="customRequirement"
+          class="hero-textarea"
+          rows="4"
+          placeholder="补充要求：语气、案例、重点…"
+          :maxlength="REQUIREMENT_MAX"
+          @input="autoGrow"
+          @focus="heroFocused = true"
+          @blur="heroFocused = false"
+        ></textarea>
+        <div class="hero-textarea-meta">
+          <button class="hero-textarea-fullscreen" type="button" title="全屏编辑" @click="openRequirementFullscreen">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+              <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+              <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+              <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+            </svg>
+          </button>
+          <span class="hero-char-count" :class="{ warning: requirementChars >= REQUIREMENT_MAX * 0.9 }">
+            {{ requirementChars }}/{{ REQUIREMENT_MAX }}
+          </span>
+        </div>
+      </div>
 
       <div class="hero-divider"></div>
 
@@ -58,12 +74,43 @@
     </div>
 
     <!-- 灵感胶囊 -->
-    <TopicCapsules />
+    <TopicCapsules ref="topicCapsulesRef" />
+
+    <!-- 观点全屏编辑弹框 -->
+    <a-modal
+      v-model:open="requirementFullVisible"
+      title="编辑观点"
+      :width="720"
+      :footer="null"
+      :mask-closable="false"
+      centered
+      wrap-class-name="requirement-fullscreen-modal"
+      @cancel="closeRequirementFullscreen"
+    >
+      <div class="requirement-fullscreen-body">
+        <textarea
+          ref="fullRequirementEl"
+          v-model="fullRequirement"
+          class="requirement-fullscreen-textarea"
+          placeholder="补充要求：语气、案例、重点…"
+          :maxlength="REQUIREMENT_MAX"
+        ></textarea>
+        <div class="requirement-fullscreen-footer">
+          <span class="hero-char-count" :class="{ warning: fullRequirementChars >= REQUIREMENT_MAX * 0.9 }">
+            {{ fullRequirementChars }}/{{ REQUIREMENT_MAX }}
+          </span>
+          <div class="requirement-fullscreen-actions">
+            <button class="action-link" @click="closeRequirementFullscreen">取消</button>
+            <button class="hero-generate-btn" @click="saveRequirementFullscreen">保存</button>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import TopicCapsules from './TopicCapsules.vue'
@@ -93,11 +140,42 @@ const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === se
 
 const heroFocused = ref(false)
 const requirementEl = ref(null)
+const topicCapsulesRef = ref(null)
+const REQUIREMENT_MAX = 200
+const requirementFullVisible = ref(false)
+const fullRequirement = ref('')
+const fullRequirementEl = ref(null)
+
+const requirementChars = computed(() => customRequirement.value?.length || 0)
+const fullRequirementChars = computed(() => fullRequirement.value?.length || 0)
+
 const autoGrow = () => {
   const el = requirementEl.value
   if (!el) return
   el.style.height = 'auto'
   el.style.height = Math.min(el.scrollHeight, 300) + 'px'
+}
+
+const openRequirementFullscreen = () => {
+  fullRequirement.value = customRequirement.value || ''
+  requirementFullVisible.value = true
+  nextTick(() => {
+    const el = fullRequirementEl.value
+    if (el) {
+      el.focus()
+      el.setSelectionRange(fullRequirement.value.length, fullRequirement.value.length)
+    }
+  })
+}
+
+const closeRequirementFullscreen = () => {
+  requirementFullVisible.value = false
+}
+
+const saveRequirementFullscreen = () => {
+  customRequirement.value = fullRequirement.value
+  requirementFullVisible.value = false
+  nextTick(autoGrow)
 }
 
 const handleSaveDraft = async () => {
@@ -150,7 +228,7 @@ const handleGenerate = async () => {
     return
   }
   try {
-    await submitGeneration({
+    const task = await submitGeneration({
       title: customTitle.value,
       description: customRequirement.value,
       platform: currentPlatform.value?.key || '',
@@ -159,6 +237,7 @@ const handleGenerate = async () => {
       template: currentTemplate.value?.key || 'wechat'
     })
     message.success('已加入生成队列')
+    topicCapsulesRef.value?.markUsed(task?.id)
     clearForm()
     requirementEl.value && (requirementEl.value.style.height = '')
     loadQueue()
@@ -222,6 +301,10 @@ const handleGenerate = async () => {
   font-weight: 400;
 }
 
+.hero-textarea-wrap {
+  position: relative;
+}
+
 .hero-textarea {
   width: 100%;
   border: none;
@@ -240,6 +323,44 @@ const handleGenerate = async () => {
 
 .hero-textarea::placeholder {
   color: var(--color-text-placeholder);
+}
+
+.hero-textarea-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  padding-top: 6px;
+}
+
+.hero-textarea-fullscreen {
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: var(--color-text-placeholder);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.hero-textarea-fullscreen:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+.hero-char-count {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  transition: color 0.15s;
+  min-width: 42px;
+  text-align: right;
+}
+
+.hero-char-count.warning {
+  color: var(--color-error);
+  font-weight: 500;
 }
 
 .hero-divider {
@@ -338,6 +459,78 @@ const handleGenerate = async () => {
 
 .hero-generate-btn:active {
   transform: translateY(0);
+}
+
+/* 全屏编辑弹框 */
+.requirement-fullscreen-modal .ant-modal-content {
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.requirement-fullscreen-modal .ant-modal-header {
+  border-bottom: 1px solid var(--color-border-light);
+  padding: 16px 24px;
+}
+
+.requirement-fullscreen-modal .ant-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.requirement-fullscreen-modal .ant-modal-close {
+  top: 14px;
+  right: 16px;
+}
+
+.requirement-fullscreen-modal .ant-modal-body {
+  padding: 0;
+}
+
+.requirement-fullscreen-body {
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px 16px;
+  box-sizing: border-box;
+}
+
+.requirement-fullscreen-textarea {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 15px;
+  line-height: 1.8;
+  color: var(--color-text-regular);
+  background: transparent;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.requirement-fullscreen-textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+
+.requirement-fullscreen-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border-light);
+  gap: 16px;
+}
+
+.requirement-fullscreen-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.requirement-fullscreen-actions .hero-generate-btn {
+  padding: 8px 24px;
+  font-size: 14px;
 }
 
 @media (max-width: 768px) {

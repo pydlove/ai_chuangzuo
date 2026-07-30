@@ -28,7 +28,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
     private static final int MAX_PAGE_SIZE = 100;
     private static final int DEFAULT_PAGE_SIZE = 15;
     private static final int FEATURED_LIMIT = 6;
-    private static final int CREATOR_LIMIT = 20;
+    private static final int CREATOR_LIMIT = 5;
 
     private final SkillMarketAggregateMapper aggregateMapper;
 
@@ -68,12 +68,21 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
                 .mapToLong(r -> r.getTotalUses() == null ? 0L : r.getTotalUses().longValue())
                 .sum());
         overview.setTotalEarnings(allApproved.stream()
-                .map(r -> r.getTotalUses() == null ? BigDecimal.ZERO
-                        : BigDecimal.valueOf(r.getTotalUses().longValue() * 2L))
+                .map(r -> {
+                    BigDecimal price = r.getPrice() == null ? BigDecimal.valueOf(2) : r.getPrice();
+                    int totalUses = r.getTotalUses() == null ? 0 : r.getTotalUses();
+                    return price.multiply(BigDecimal.valueOf(totalUses));
+                })
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
 
-        // 当前表结构无 featured 字段，官方精选默认返回空列表
-        List<MarketSkillVO> featured = java.util.Collections.emptyList();
+        // 官方精选：取 featured=1 的已上架提示词，按本月使用倒序，限制 FEATURED_LIMIT 条
+        List<MarketSkillVO> featured = allApproved.stream()
+                .filter(r -> r.getFeatured() != null && r.getFeatured() == 1)
+                .sorted(Comparator.comparing(MarketSkillRow::getMonthlyUses, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(MarketSkillRow::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(FEATURED_LIMIT)
+                .map(this::toVo)
+                .collect(Collectors.toList());
         overview.setFeaturedSkills(featured);
 
         overview.setTopCreators(buildTopCreators(allApproved));
@@ -94,20 +103,24 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
                     TopCreatorVO vo = new TopCreatorVO();
                     vo.setCreatorId(e.getKey());
                     vo.setCreatorName(list.get(0).getPublisherName());
-                    vo.setWeeklyEarnings(list.stream()
-                            .map(MarketSkillRow::getWeeklyEarnings)
+                    vo.setMonthlyEarnings(list.stream()
+                            .map(MarketSkillRow::getMonthlyEarnings)
                             .reduce(BigDecimal.ZERO, (a, b) -> a.add(b == null ? BigDecimal.ZERO : b)));
-                    vo.setWeeklyUses(list.stream()
-                            .mapToInt(r -> r.getWeeklyUses() == null ? 0 : r.getWeeklyUses())
+                    vo.setMonthlyUses(list.stream()
+                            .mapToInt(r -> r.getMonthlyUses() == null ? 0 : r.getMonthlyUses())
                             .sum());
                     vo.setBestSkill(best == null ? null : toVo(best));
                     vo.setTotalEarnings(list.stream()
-                            .map(r -> r.getTotalUses() == null ? BigDecimal.ZERO
-                                    : BigDecimal.valueOf(r.getTotalUses().longValue() * 2L))
+                            .map(r -> {
+                                BigDecimal price = r.getPrice() == null ? BigDecimal.valueOf(2) : r.getPrice();
+                                int totalUses = r.getTotalUses() == null ? 0 : r.getTotalUses();
+                                return price.multiply(BigDecimal.valueOf(totalUses));
+                            })
                             .reduce(BigDecimal.ZERO, BigDecimal::add));
                     return vo;
                 })
-                .sorted(Comparator.comparing(TopCreatorVO::getWeeklyEarnings, Comparator.nullsLast(Comparator.reverseOrder())))
+                .filter(vo -> vo.getMonthlyEarnings() != null && vo.getMonthlyEarnings().compareTo(BigDecimal.ZERO) > 0)
+                .sorted(Comparator.comparing(TopCreatorVO::getMonthlyEarnings, Comparator.nullsLast(Comparator.reverseOrder())))
                 .limit(CREATOR_LIMIT)
                 .collect(Collectors.toList());
     }
@@ -116,6 +129,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
         MarketSkillVO vo = new MarketSkillVO();
         vo.setId(row.getBizNo());
         vo.setName(row.getSkillName());
+        vo.setDescription(row.getDescription());
         vo.setSourceType("admin");
         vo.setCreatorId(row.getPublisherUserId());
         vo.setCreatorName(row.getPublisherName());
@@ -129,7 +143,10 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
         vo.setTotalUses(row.getTotalUses());
         vo.setWeeklyEarnings(row.getWeeklyEarnings());
         vo.setMilestoneBonus(row.getMilestoneBonus());
-        vo.setFeatured(false);
+        vo.setMonthlyUses(row.getMonthlyUses());
+        vo.setMonthlyEarnings(row.getMonthlyEarnings());
+        vo.setLeaderboardReward(row.getLeaderboardReward());
+        vo.setFeatured(row.getFeatured() != null && row.getFeatured() == 1);
         vo.setLastSettlementAt(row.getLastSettlementAt());
         vo.setCreatedAt(row.getCreatedAt());
         return vo;

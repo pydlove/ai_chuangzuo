@@ -17,6 +17,7 @@
                s.weekly_earnings AS weeklyEarnings,
                s.milestone_bonus AS milestoneBonus,
                s.enable_status   AS enableStatus,
+               s.featured        AS featured,
                s.created_at      AS createdAt
         FROM u_skill_market s
         LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0

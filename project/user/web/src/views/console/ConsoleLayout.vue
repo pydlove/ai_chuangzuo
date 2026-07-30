@@ -3302,13 +3302,15 @@ provide('consoleActions', {
 
 /* 消息列表 */
 .notif-list {
-  max-height: 520px;
-  min-height: 320px;
+  height: 520px;
   overflow-y: auto;
 }
 
 .notif-empty {
-  padding: 40px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
   text-align: center;
 }
 

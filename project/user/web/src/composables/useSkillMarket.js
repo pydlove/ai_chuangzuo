@@ -19,13 +19,13 @@ function loadEarningsRecords() {
   try {
     const raw = localStorage.getItem(EARNINGS_KEY)
     const records = raw ? JSON.parse(raw) : []
-    const currentWeek = getCurrentWeek()
+    const currentMonth = getCurrentMonth()
     return records.map((r) => {
-      const week = r.settlementWeek || (r.createdAt ? getWeekFromDate(new Date(r.createdAt)) : currentWeek)
+      const month = r.settlementMonth || (r.createdAt ? getMonthFromDate(new Date(r.createdAt)) : currentMonth)
       return {
         ...r,
-        status: r.status || (week < currentWeek ? 'settled' : 'unsettled'),
-        settlementWeek: week
+        status: r.status || (month < currentMonth ? 'settled' : 'unsettled'),
+        settlementMonth: month
       }
     })
   } catch {
@@ -125,23 +125,12 @@ export function isFavorite(marketId) {
   return favoriteIds.value.includes(marketId)
 }
 
-function getWeekFromDate(date) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
-  const dayNum = d.getUTCDay() || 7
-  d.setUTCDate(d.getUTCDate() + 4 - dayNum)
-  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1))
-  const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1) / 7)
-  return `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`
+function getMonthFromDate(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
 }
 
-function getCurrentWeek() {
-  return getWeekFromDate(new Date())
-}
-
-/** 当前 yyyy-MM 字符串，用于「本月已发布数」计数隔离。 */
 function getCurrentMonth() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  return getMonthFromDate(new Date())
 }
 
 /** 当前用户本月已发布到市场的 skills 数量（按 marketSkills 实时统计）。 */
@@ -185,6 +174,7 @@ export function shareSkillToMarket(style, sourceType) {
     creatorId: getUserId(),
     creatorName: '我',
     prompt: style.prompt,
+    description: style.description || style.desc || '',
     scope: style.scope || '',
     excerpt1: style.excerpt1 || '',
     excerpt2: style.excerpt2 || '',
@@ -195,6 +185,9 @@ export function shareSkillToMarket(style, sourceType) {
     totalUses: 0,
     weeklyEarnings: 0,
     milestoneBonus: 0,
+    monthlyUses: 0,
+    monthlyEarnings: 0,
+    leaderboardReward: 0,
     lastSettlementAt: new Date().toISOString(),
     createdAt: new Date().toISOString()
   })
@@ -210,9 +203,9 @@ export function useMarketSkill(marketId) {
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
 
-  s.weeklyUses += 1
-  s.totalUses += 1
-  s.weeklyEarnings = Number((s.weeklyUses * PRICE_PER_USE).toFixed(2))
+  s.monthlyUses = (s.monthlyUses || 0) + 1
+  s.totalUses = (s.totalUses || 0) + 1
+  s.monthlyEarnings = Number(((s.monthlyUses || 0) * PRICE_PER_USE).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
@@ -223,52 +216,10 @@ export function useMarketSkill(marketId) {
     fromUserId: getUserId(),
     description: `使用「${s.name}」生成文章`,
     status: 'unsettled',
-    settlementWeek: getCurrentWeek(),
+    settlementMonth: getCurrentMonth(),
     createdAt: new Date().toISOString()
   })
   saveEarningsRecords()
-}
-
-function calcMilestoneBonus(weeklyUses) {
-  if (weeklyUses >= 1000) return 600
-  if (weeklyUses >= 500) return 300
-  if (weeklyUses >= 200) return 150
-  if (weeklyUses >= 50) return 50
-  return 0
-}
-
-export function settleWeeklyMilestone() {
-  const now = new Date()
-  marketSkills.value.forEach(s => {
-    if (s.status !== 'approved') return
-    const last = new Date(s.lastSettlementAt)
-    const daysSince = (now.getTime() - last.getTime()) / (1000 * 60 * 60 * 24)
-    if (daysSince < 7) return
-
-    const bonus = calcMilestoneBonus(s.weeklyUses)
-    if (bonus > 0) {
-      const balance = getCoinBalance()
-      setCoinBalance(Number((balance + bonus).toFixed(2)))
-      s.milestoneBonus = bonus
-      earningsRecords.value.unshift({
-        id: 'earn-' + Date.now().toString(36) + '-' + s.id,
-        type: 'milestone',
-        skillName: s.name,
-        skillId: s.id,
-        amount: bonus,
-        description: `「${s.name}」本周使用 ${s.weeklyUses} 次，获得里程碑奖励`,
-        status: 'unsettled',
-        settlementWeek: getCurrentWeek(),
-        createdAt: now.toISOString()
-      })
-      saveEarningsRecords()
-    }
-
-    s.weeklyUses = 0
-    s.weeklyEarnings = 0
-    s.milestoneBonus = 0
-    s.lastSettlementAt = now.toISOString()
-  })
 }
 
 export function simulateExternalUse(marketId) {
@@ -280,9 +231,9 @@ export function simulateExternalUse(marketId) {
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
 
-  s.weeklyUses += 1
-  s.totalUses += 1
-  s.weeklyEarnings = Number((s.weeklyUses * PRICE_PER_USE).toFixed(2))
+  s.monthlyUses = (s.monthlyUses || 0) + 1
+  s.totalUses = (s.totalUses || 0) + 1
+  s.monthlyEarnings = Number(((s.monthlyUses || 0) * PRICE_PER_USE).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
@@ -293,7 +244,7 @@ export function simulateExternalUse(marketId) {
     fromUserId: 'external-user',
     description: `其他用户使用「${s.name}」生成文章`,
     status: 'unsettled',
-    settlementWeek: getCurrentWeek(),
+    settlementMonth: getCurrentMonth(),
     createdAt: new Date().toISOString()
   })
   saveEarningsRecords()
@@ -323,26 +274,26 @@ export function getUnsettledEarnings() {
     .reduce((sum, r) => sum + r.amount, 0)
 }
 
-export function getWeeklyEarnings(week) {
+export function getMonthlyEarnings(month) {
   return earningsRecords.value
-    .filter(r => r.settlementWeek === week && r.amount > 0)
+    .filter(r => r.settlementMonth === month && r.amount > 0)
     .reduce((sum, r) => sum + r.amount, 0)
 }
 
-export function getCurrentWeekEarnings() {
-  return getWeeklyEarnings(getCurrentWeek())
+export function getCurrentMonthEarnings() {
+  return getMonthlyEarnings(getCurrentMonth())
 }
 
-export function getWeeklySettlementList() {
+export function getMonthlySettlementList() {
   const map = new Map()
   earningsRecords.value
     .filter(r => r.amount > 0)
     .forEach((r) => {
-      const week = r.settlementWeek || getWeekFromDate(new Date(r.createdAt))
-      if (!map.has(week)) {
-        map.set(week, { week, total: 0, settled: 0, unsettled: 0, count: 0 })
+      const month = r.settlementMonth || getMonthFromDate(new Date(r.createdAt))
+      if (!map.has(month)) {
+        map.set(month, { month, total: 0, settled: 0, unsettled: 0, count: 0 })
       }
-      const item = map.get(week)
+      const item = map.get(month)
       item.total += r.amount
       item.count += 1
       if (r.status === 'settled') {
@@ -351,14 +302,14 @@ export function getWeeklySettlementList() {
         item.unsettled += r.amount
       }
     })
-  return Array.from(map.values()).sort((a, b) => b.week.localeCompare(a.week))
+  return Array.from(map.values()).sort((a, b) => b.month.localeCompare(a.month))
 }
 
-export function weeklySettle(targetWeek) {
-  const week = targetWeek || getPreviousWeek()
+export function monthlySettle(targetMonth) {
+  const month = targetMonth || getPreviousMonth()
   let settled = 0
   earningsRecords.value.forEach((r) => {
-    if (r.settlementWeek === week && r.status === 'unsettled') {
+    if (r.settlementMonth === month && r.status === 'unsettled') {
       r.status = 'settled'
       settled += r.amount
     }
@@ -369,15 +320,15 @@ export function weeklySettle(targetWeek) {
   return settled
 }
 
-export function getPreviousWeek() {
+export function getPreviousMonth() {
   const now = new Date()
-  now.setDate(now.getDate() - 7)
-  return getWeekFromDate(now)
+  now.setMonth(now.getMonth() - 1)
+  return getMonthFromDate(now)
 }
 
 // ===== 提示词市场视觉升级 v2 — 聚合 computed =====
 // 数据来源原则：统计/榜单/精选从 marketOverview 读取；
-// weeklyUses / totalUses / weeklyEarnings 取 marketSkills 单条；
+// monthlyUses / totalUses / monthlyEarnings 取 marketSkills 单条；
 // totalEarnings（创作者总收益）取 earningsRecords，按 skillId → creatorId 关联。
 
 const totalEarningsByCreator = computed(() => {

@@ -56,10 +56,6 @@
             <h3>任务说明</h3>
             <div class="description">{{ task.description }}</div>
           </div>
-          <div v-if="task.skillHint" class="style-hint-block">
-            <h3>skills 提示</h3>
-            <p>{{ task.skillHint }}</p>
-          </div>
         </section>
 
         <!-- 右侧：固定操作卡 -->
@@ -483,10 +479,8 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; c
   }
 }
 
-.description-block,
-.style-hint-block { margin-top: 18px; }
-.description-block h3,
-.style-hint-block h3 {
+.description-block { margin-top: 18px; }
+.description-block h3 {
   margin: 0 0 10px;
   font-size: 14px;
   font-weight: 600;
@@ -497,15 +491,6 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; c
   line-height: 1.85;
   color: #262626;
   font-size: 14px;
-}
-.style-hint-block p {
-  margin: 0;
-  padding: 14px 16px;
-  border-radius: 12px;
-  background: #fff7ed;
-  color: #874800;
-  font-size: 13px;
-  line-height: 1.7;
 }
 
 .action-panel {
@@ -799,10 +784,6 @@ body[data-theme="dark"] .reward-card {
 body[data-theme="dark"] .reward-label,
 body[data-theme="dark"] .reward-note { color: #f5d0d8; }
 body[data-theme="dark"] .reward-value small { color: #bfbfbf; }
-body[data-theme="dark"] .style-hint-block p {
-  background: #2a1f10;
-  color: #f5d0a8;
-}
 body[data-theme="dark"] .article-item {
   background: #262626;
   border-color: #303030;

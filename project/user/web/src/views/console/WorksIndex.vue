@@ -74,15 +74,10 @@
             <span>{{ formatDate(work.completedAt) }}</span>
           </div>
           <div class="work-actions">
-            <a-button
-              type="primary"
-              class="primary-btn"
-              @click="openArticle(work.id)"
-            >
-              导出
-            </a-button>
-            <button class="work-action-btn" @click="editWork(work.id)">编辑内容</button>
-            <button class="work-action-btn danger" @click="deleteWork(work)">删除</button>
+            <button class="work-action-btn" @click="openArticle(work.id)">查看</button>
+            <button class="work-action-btn outline" @click="exportWorkWord(work)">导出word</button>
+            <button class="work-action-btn outline" @click="editWork(work.id)">编辑内容</button>
+            <button class="work-action-btn" @click="deleteWork(work)">删除</button>
           </div>
         </div>
       </div>
@@ -123,10 +118,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Modal } from 'ant-design-vue'
+import { Modal, message } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
-import { deleteArticle as deleteArticleApi } from '@/api/article.js'
+import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 
 const route = useRoute()
@@ -343,6 +338,59 @@ const openArticle = (bizNo) => {
   router.push(`/console/preview/${bizNo}`)
 }
 
+const exportWorkWord = async (work) => {
+  try {
+    const detail = await getArticle(work.id)
+    const title = detail?.title || work.title || '未命名文章'
+    const body = detail?.body || ''
+
+    // 简单处理 Markdown 标题：## 标题 → <h2>，普通段落 → <p>
+    const formattedBody = body
+      .split(/\n\n+/)
+      .map((part) => {
+        const trimmed = part.trim()
+        if (!trimmed) return ''
+        const mdHeading = trimmed.match(/^(#{1,6})\s+(.+)$/)
+        if (mdHeading) {
+          const level = Math.min(mdHeading[1].length, 3)
+          const fontSize = level === 1 ? 24 : level === 2 ? 20 : 18
+          return `<h${level} style="font-size: ${fontSize}px; font-weight: 600; margin: 18px 0 8px; color: #1a1a1a;">${mdHeading[2]}</h${level}>`
+        }
+        return `<p style="margin-bottom: 16px;">${trimmed.replace(/\n/g, '<br>')}</p>`
+      })
+      .filter(Boolean)
+      .join('')
+
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
+        <head>
+          <meta charset="UTF-8">
+          <title>${title}</title>
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; color: #262626;">
+          <h1 style="font-size: 24px; margin-bottom: 16px; line-height: 1.4; color: #1a1a1a;">${title}</h1>
+          <div style="font-size: 16px; line-height: 1.8;">${formattedBody}</div>
+        </body>
+      </html>
+    `
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = title.replace(/[\\/:*?"<>|]/g, '_') + '.doc'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+
+    message.success('Word 导出成功')
+  } catch (e) {
+    console.warn('导出 Word 失败', e)
+    message.error('导出失败，请稍后重试')
+  }
+}
+
 const editWork = (bizNo) => {
   router.push(`/console/edit/${bizNo}`)
 }
@@ -486,6 +534,16 @@ const editWork = (bizNo) => {
   color: #ff2442;
 }
 
+.work-action-btn.outline {
+  background: #fff;
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+.work-action-btn.outline:hover {
+  background: #fff0f2;
+}
+
 .work-action-btn.primary {
   background: #ff2442;
   border-color: #ff2442;
@@ -495,22 +553,6 @@ const editWork = (bizNo) => {
 .work-action-btn.primary:hover {
   background: #e61e3a;
   border-color: #e61e3a;
-}
-
-.primary-btn {
-  background: #ff2442;
-  border-color: #ff2442;
-  box-shadow: 0 2px 0 rgba(255, 36, 66, 0.1) !important;
-}
-
-.primary-btn:hover {
-  background: #e61e3a !important;
-  border-color: #e61e3a !important;
-}
-
-.primary-btn:active {
-  background: #cc1832 !important;
-  border-color: #cc1832 !important;
 }
 
 .works-filter-bar {
@@ -587,10 +629,14 @@ body[data-theme="dark"] .work-action-btn.primary {
   color: #fff;
 }
 
-body[data-theme="dark"] .work-action-btn.danger {
-  background: rgba(255, 77, 79, 0.15);
-  border-color: rgba(255, 77, 79, 0.3);
-  color: #ff4d4f;
+body[data-theme="dark"] .work-action-btn.outline {
+  background: transparent;
+  border-color: var(--color-primary, #ff2442);
+  color: var(--color-primary, #ff2442);
+}
+
+body[data-theme="dark"] .work-action-btn.outline:hover {
+  background: rgba(255, 36, 66, 0.15);
 }
 
 body[data-theme="dark"] .works-tabs {
@@ -687,17 +733,6 @@ body[data-theme="dark"] .works-filter-time :deep(.ant-radio-button-wrapper:hover
 
 body[data-theme="dark"] :deep(.ant-empty-description) {
   color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .primary-btn {
-  background: var(--color-primary) !important;
-  border-color: var(--color-primary) !important;
-  color: #fff !important;
-}
-
-body[data-theme="dark"] .primary-btn:hover {
-  background: var(--color-primary-hover) !important;
-  border-color: var(--color-primary-hover) !important;
 }
 
 /* ============ 移动端：搜索栏换行 + 各控件自适应宽度 ============

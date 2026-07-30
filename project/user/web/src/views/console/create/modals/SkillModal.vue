@@ -43,28 +43,21 @@
     <div class="style-content">
       <!-- 系统预设 -->
       <div v-show="styleTab === 'system'" class="style-grid">
-        <div
+        <SkillCard
           v-for="s in systemSkills"
           :key="s.name"
-          :class="['style-card', { selected: selectedStyleName === s.name }]"
+          :name="s.name"
+          :prompt="s.promptSummary"
+          :scope="s.scope"
+          size="compact"
+          :selected="selectedStyleName === s.name"
+          clickable
+          show-view-btn
           @click="selectStyle(s)"
+          @view="openPromptModal(s)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ s.name }}</div>
-              </div>
-              <div class="style-card-meta">{{ s.desc }}</div>
-            </div>
-          </div>
-          <div class="style-card-prompt">{{ s.promptSummary }}</div>
-          <div class="style-card-footer">
-            <button class="style-action-btn" @click.stop="openPromptModal(s)">
-              查看完整提示词
-            </button>
-          </div>
-        </div>
+          <template #meta>{{ s.desc }}</template>
+        </SkillCard>
       </div>
 
       <!-- 我的提示词 -->
@@ -73,35 +66,25 @@
           <div class="style-add-icon">+</div>
           <div class="style-add-text">新建我的提示词</div>
         </div>
-        <div
+        <SkillCard
           v-for="m in mySkills"
           :key="m.name"
-          :class="['style-card', { selected: selectedStyleName === m.name }]"
+          :name="m.name"
+          :prompt="promptSummary(m.prompt)"
+          :scope="m.scope"
+          size="compact"
+          :selected="selectedStyleName === m.name"
+          clickable
+          show-view-btn
           @click="selectStyle(m)"
+          @view="openPromptModal(m)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar">{{ m.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ m.name }}</div>
-              </div>
-              <div class="style-card-meta">
-                <span>自定义提示词</span>
-                <span class="style-card-meta-dot">·</span>
-                <span>已用 {{ m.count }} 次</span>
-              </div>
-            </div>
-          </div>
-          <div v-if="m.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(m.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div class="style-card-prompt">{{ promptSummary(m.prompt) }}</div>
-          <div class="style-card-footer">
-            <button class="style-action-btn" @click.stop="openPromptModal(m)">
-              查看完整提示词
-            </button>
-          </div>
-        </div>
+          <template #meta>
+            <span>{{ m.desc }}</span>
+            <span class="style-card-meta-dot">·</span>
+            <span>已用 {{ m.count }} 次</span>
+          </template>
+        </SkillCard>
       </div>
 
       <!-- 学习的提示词 -->
@@ -112,34 +95,23 @@
         >
           还没有学习过的提示词，请前往「我的提示词」页面学习。
         </div>
-        <div
+        <SkillCard
           v-for="l in learnedSkills"
           v-else
           :key="l.name"
-          :class="['style-card', { selected: selectedStyleName === l.name }]"
+          :name="l.name"
+          :prompt="promptSummary(l.prompt)"
+          :scope="l.scope"
+          size="compact"
+          avatar-variant="learned"
+          :selected="selectedStyleName === l.name"
+          clickable
+          show-view-btn
           @click="selectStyle(l)"
+          @view="openPromptModal(l)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar learned">{{ l.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ l.name }}</div>
-              </div>
-              <div class="style-card-meta">
-                <span>学习 · {{ (l.createdAt || '').slice(0, 10) }}</span>
-              </div>
-            </div>
-          </div>
-          <div v-if="l.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(l.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div class="style-card-prompt">{{ promptSummary(l.prompt) }}</div>
-          <div class="style-card-footer">
-            <button class="style-action-btn" @click.stop="openPromptModal(l)">
-              查看完整提示词
-            </button>
-          </div>
-        </div>
+          <template #meta>学习 · {{ (l.createdAt || '').slice(0, 10) }}</template>
+        </SkillCard>
       </div>
 
       <!-- 收藏的提示词 -->
@@ -152,32 +124,22 @@
           <button class="style-empty-link" @click="goToSkillMarket">提示词市场</button>
           收藏喜欢的提示词吧。
         </div>
-        <div
+        <SkillCard
           v-for="f in favoriteSkills"
           v-else
           :key="f.id"
-          :class="['style-card', { selected: selectedStyleName === f.name }]"
+          :name="f.name"
+          :prompt="promptSummary(f.prompt)"
+          :scope="f.scope"
+          size="compact"
+          :selected="selectedStyleName === f.name"
+          clickable
+          show-view-btn
           @click="selectStyle(f)"
+          @view="openPromptModal(f)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar">{{ f.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ f.name }}</div>
-              </div>
-              <div class="style-card-meta">by {{ f.creatorName }}</div>
-            </div>
-          </div>
-          <div v-if="f.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(f.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div class="style-card-prompt">{{ promptSummary(f.prompt) }}</div>
-          <div class="style-card-footer">
-            <button class="style-action-btn" @click.stop="openPromptModal(f)">
-              查看完整提示词
-            </button>
-          </div>
-        </div>
+          <template #meta>by {{ f.creatorName }}</template>
+        </SkillCard>
       </div>
     </div>
 
@@ -238,6 +200,7 @@ import {
   useMarketSkill
 } from '@/composables/useSkillMarket.js'
 import { useCreateForm } from '../useCreateForm.js'
+import SkillCard from '@/components/SkillCard.vue'
 
 const { styleVisible } = useCreateForm()
 const router = useRouter()
@@ -366,155 +329,9 @@ const promptSummary = (prompt) => {
   padding: 8px 0;
 }
 
-.style-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 16px;
-  min-height: 200px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.style-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-  border-color: var(--color-primary);
-}
-
-.style-card.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-}
-
-.style-card-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.style-card-avatar {
-  flex-shrink: 0;
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #fff0f2;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.style-card-avatar.learned {
-  background: #fff5f7;
-  color: var(--color-primary);
-}
-
-.style-card-title-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-.style-card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 4px;
-}
-
-.style-card-title {
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.35;
-  word-break: break-all;
-}
-
-.style-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
 .style-card-meta-dot {
   color: #d9d9d9;
   font-weight: 700;
-}
-
-.style-card-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-bottom: 10px;
-}
-
-.style-card-scope {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  font-size: 11px;
-  color: var(--color-primary);
-  background: #fff5f7;
-  border: 1px solid #ffd1d9;
-  padding: 2px 8px;
-  border-radius: 6px;
-}
-
-.style-card-scope::before {
-  content: '#';
-  opacity: 0.8;
-}
-
-.style-card-prompt {
-  font-size: 13px;
-  color: #262626;
-  line-height: 1.7;
-  margin-bottom: 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1 0 auto;
-  white-space: pre-line;
-}
-
-.style-card-footer {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
-}
-
-.style-card-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.style-action-btn {
-  padding: 4px 8px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-action-btn:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
 }
 
 .style-add-card {
@@ -722,63 +539,8 @@ body[data-theme="dark"] .style-tab.active {
   border-bottom-color: var(--color-primary);
 }
 
-body[data-theme="dark"] .style-card {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .style-card:hover {
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-card.selected {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-card-avatar {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-card-avatar.learned {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-card-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-card-meta {
-  color: #a6a6a6;
-}
-
 body[data-theme="dark"] .style-card-meta-dot {
   color: #595959;
-}
-
-body[data-theme="dark"] .style-card-scope {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: rgba(255, 36, 66, 0.25);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-card-prompt {
-  background: transparent;
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .style-action-btn {
-  background: transparent;
-  border-color: transparent;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-action-btn:hover {
-  border-color: transparent;
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .style-add-card {

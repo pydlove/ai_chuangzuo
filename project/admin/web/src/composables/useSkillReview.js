@@ -25,7 +25,7 @@ export function useSkillReview() {
       skills.value = res.list
       total.value = res.total
     } catch (error) {
-      message.error(error.message || '加载风格列表失败')
+      message.error(error.message || '加载提示词列表失败')
     } finally {
       loading.value = false
     }
@@ -56,7 +56,7 @@ export function useSkillReview() {
   const handleApprove = async (skill) => {
     try {
       await approveSkill(skill.id)
-      message.success('风格已通过')
+      message.success('提示词已通过')
       fetchSkills()
       return true
     } catch (error) {
@@ -68,7 +68,7 @@ export function useSkillReview() {
   const handleReject = async (skill, reason) => {
     try {
       await rejectSkill(skill.id, reason)
-      message.success('风格已打回')
+      message.success('提示词已打回')
       fetchSkills()
       return true
     } catch (error) {
@@ -80,7 +80,7 @@ export function useSkillReview() {
   const handleApproveBatch = async (ids) => {
     try {
       const count = await approveBatch(ids)
-      message.success(`批量通过 ${count} 条风格`)
+      message.success(`批量通过 ${count} 条提示词`)
       fetchSkills()
       return true
     } catch (error) {

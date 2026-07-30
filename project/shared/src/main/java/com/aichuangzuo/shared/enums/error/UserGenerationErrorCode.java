@@ -13,6 +13,7 @@ public enum UserGenerationErrorCode implements ErrorCode {
     GENERATION_TITLE_REQUIRED(212002, "标题不能为空"),
     GENERATION_WORD_LIMIT_TOO_LARGE(212003, "字数不能超过 3000"),
     GENERATION_RATE_LIMIT(212004, "操作过于频繁，请稍候再试"),
+    GENERATION_QUEUE_LIMIT_EXCEEDED(212005, "当前队列任务数已达上限，请等待任务完成后再试"),
     GENERATION_MODEL_UNAVAILABLE(212006, "AI 模型暂不可用"),
     GENERATION_TASK_NOT_FOUND(212007, "生成任务不存在"),
     GENERATION_INTERNAL_FORBIDDEN(212008, "禁止的内部调用"),

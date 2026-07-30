@@ -16,6 +16,7 @@ public class MarketSkillVO {
     private String id;
     private String name;
     private String sourceType;
+    private String description;
     private Long creatorId;
     private String creatorName;
     private String prompt;
@@ -28,6 +29,9 @@ public class MarketSkillVO {
     private Integer totalUses;
     private BigDecimal weeklyEarnings;
     private BigDecimal milestoneBonus;
+    private Integer monthlyUses;
+    private BigDecimal monthlyEarnings;
+    private BigDecimal leaderboardReward;
     private Boolean featured;
     private LocalDateTime lastSettlementAt;
     private LocalDateTime createdAt;

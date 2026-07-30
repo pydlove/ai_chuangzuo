@@ -421,8 +421,8 @@ class PlanCatalogServiceImplTest {
         list.add(pb("pro", "queue_priority", "priority"));
         list.add(pb("flagship", "queue_priority", "express"));
         list.add(pb("basic", "queue_max_tasks", "1"));
-        list.add(pb("pro", "queue_max_tasks", "5"));
-        list.add(pb("flagship", "queue_max_tasks", "10"));
+        list.add(pb("pro", "queue_max_tasks", "3"));
+        list.add(pb("flagship", "queue_max_tasks", "5"));
         list.add(pb("basic", "skill_market_publish", "0"));
         list.add(pb("pro", "skill_market_publish", "1"));
         list.add(pb("flagship", "skill_market_publish", "2"));

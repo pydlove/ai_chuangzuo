@@ -2,7 +2,7 @@
   <div class="plan-list-view">
     <h3 class="page-title">套餐管理</h3>
     <p class="page-desc">
-      套餐价格、文章数量、队列任务数、风格市场发布额度、风格学习次数、模板范围及功能开关都在这里统一配置。
+      套餐价格、文章数量、队列任务数、提示词市场发布额度、提示词学习次数、模板范围及功能开关都在这里统一配置。
       保存后，用户端 <code>/api/v1/user/plans</code> 接口将在 Caffeine 缓存失效（最长 5 分钟）后生效。
     </p>
 
@@ -408,7 +408,9 @@ async function load() {
       fetchPlanBenefits()
     ])
     plans.value = planList
-    benefits.value = [...benefitList].sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
+    benefits.value = [...benefitList]
+      .filter((b) => b.code !== 'generation_rate_limit')
+      .sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0))
     clearReactive(planBenefitValueMap)
     planBenefitList.forEach((item) => {
       planBenefitValueMap[`${item.planKey}:${item.benefitCode}`] = String(item.benefitValue)

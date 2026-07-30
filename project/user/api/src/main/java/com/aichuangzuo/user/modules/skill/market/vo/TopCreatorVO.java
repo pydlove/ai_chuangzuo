@@ -14,6 +14,8 @@ public class TopCreatorVO {
     private String creatorName;
     private BigDecimal weeklyEarnings;
     private Integer weeklyUses;
+    private BigDecimal monthlyEarnings;
+    private Integer monthlyUses;
     private MarketSkillVO bestSkill;
     private BigDecimal totalEarnings;
 }

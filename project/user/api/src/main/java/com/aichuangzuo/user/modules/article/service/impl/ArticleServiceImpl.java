@@ -8,6 +8,8 @@ import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
+import com.aichuangzuo.user.modules.skill.entity.UserSkill;
+import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -42,6 +44,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final ArticleMapper articleMapper;
     private final ObjectMapper objectMapper;
     private final SkillMarketMapper skillMarketMapper;
+    private final UserSkillMapper userSkillMapper;
 
     @Override
     public ArticlePageVO list(Long userId, String keyword, long page, long pageSize) {
@@ -176,22 +179,28 @@ public class ArticleServiceImpl implements ArticleService {
 
     /**
      * 解析风格可读名称。
-     * <p>市场风格以 SM 开头，需查 u_skill_market.biz_no 获取 skill_name；
-     * 其余情况 skill 字段本身即为名称（用户自定义/学习/系统预设风格名）。
+     * <p>优先按 {@code skill}（bizNo）查 {@code u_skill_market} 和 {@code u_user_skill}，
+     * 命中则返回对应中文名称；未命中则回显 skill 字段本身（兼容旧数据/直接保存名称的场景）。
      */
     private String resolveSkillName(String skill) {
         if (!StringUtils.hasText(skill)) {
             return null;
         }
-        if (skill.startsWith("SM")) {
-            SkillMarket market = skillMarketMapper.selectOne(
-                    new LambdaQueryWrapper<SkillMarket>()
-                            .eq(SkillMarket::getBizNo, skill)
-                            .eq(SkillMarket::getIsDeleted, 0)
-                            .last("LIMIT 1"));
-            return market != null && StringUtils.hasText(market.getSkillName())
-                    ? market.getSkillName()
-                    : skill;
+        SkillMarket market = skillMarketMapper.selectOne(
+                new LambdaQueryWrapper<SkillMarket>()
+                        .eq(SkillMarket::getBizNo, skill)
+                        .eq(SkillMarket::getIsDeleted, 0)
+                        .last("LIMIT 1"));
+        if (market != null && StringUtils.hasText(market.getSkillName())) {
+            return market.getSkillName();
+        }
+        UserSkill userSkill = userSkillMapper.selectOne(
+                new LambdaQueryWrapper<UserSkill>()
+                        .eq(UserSkill::getBizNo, skill)
+                        .eq(UserSkill::getIsDeleted, 0)
+                        .last("LIMIT 1"));
+        if (userSkill != null && StringUtils.hasText(userSkill.getSkillName())) {
+            return userSkill.getSkillName();
         }
         return skill;
     }

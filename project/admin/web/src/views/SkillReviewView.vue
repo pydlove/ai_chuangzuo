@@ -2,8 +2,8 @@
   <div class="skill-review">
     <a-card :bordered="false" class="skill-review-card">
       <div class="skill-review-header">
-        <h3 class="skill-review-title">风格审核</h3>
-        <p class="skill-review-desc">审核用户提交到风格市场的风格</p>
+        <h3 class="skill-review-title">提示词审核</h3>
+        <p class="skill-review-desc">审核用户提交到提示词市场的提示词</p>
       </div>
 
       <!-- 工具栏 -->
@@ -18,7 +18,7 @@
         </a-tabs>
         <a-input
           v-model:value="keyword"
-          placeholder="风格名称或创作者"
+          placeholder="提示词名称或创作者"
           allow-clear
           style="width: 280px"
           @press-enter="handleSearch"
@@ -51,7 +51,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'sourceType'">
-            {{ record.sourceType === 'my' ? '我的风格' : '学习的风格' }}
+            {{ record.sourceType === 'my' ? '我的提示词' : '学习的提示词' }}
           </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 'pending' ? '#ff4d6f'
@@ -118,40 +118,40 @@
     <!-- 通过弹框 -->
     <a-modal
       v-model:open="approveVisible"
-      title="通过风格"
+      title="通过提示词"
       ok-text="确认通过"
       cancel-text="取消"
       :confirm-loading="approveSubmitting"
       @ok="confirmApprove"
     >
-      <p v-if="approveTarget">风格名称：<strong>{{ approveTarget.name }}</strong></p>
+      <p v-if="approveTarget">提示词名称：<strong>{{ approveTarget.name }}</strong></p>
       <p v-if="approveTarget" style="margin-top: 8px">创作者：<strong>{{ approveTarget.creatorName }}</strong></p>
-      <p style="margin-top: 16px; color: #595959">通过后该风格将立即上架到风格市场，是否确认？</p>
+      <p style="margin-top: 16px; color: #595959">通过后该提示词将立即上架到提示词市场，是否确认？</p>
     </a-modal>
 
     <!-- 批量通过弹框 -->
     <a-modal
       v-model:open="batchApproveVisible"
-      title="批量通过风格"
+      title="批量通过提示词"
       ok-text="确认通过"
       cancel-text="取消"
       :confirm-loading="batchApproveSubmitting"
       @ok="confirmBatchApprove"
     >
-      <p>已选择 <strong>{{ selectedRowKeys.length }}</strong> 条风格</p>
+      <p>已选择 <strong>{{ selectedRowKeys.length }}</strong> 条提示词</p>
       <p style="margin-top: 8px; color: #595959">仅状态为「待审核」的记录会被通过并上架，其他状态会自动跳过。是否确认？</p>
     </a-modal>
 
     <!-- 打回弹框 -->
     <a-modal
       v-model:open="rejectVisible"
-      title="打回风格"
+      title="打回提示词"
       ok-text="确认打回"
       cancel-text="取消"
       :confirm-loading="rejectSubmitting"
       @ok="confirmReject"
     >
-      <p v-if="rejectTarget">风格名称：<strong>{{ rejectTarget.name }}</strong></p>
+      <p v-if="rejectTarget">提示词名称：<strong>{{ rejectTarget.name }}</strong></p>
       <p v-if="rejectTarget" style="margin-top: 8px">创作者：<strong>{{ rejectTarget.creatorName }}</strong></p>
       <div style="margin-top: 16px">
         <label style="display: block; margin-bottom: 6px; font-weight: 500">打回原因 <span style="color: #ff4d4f">*</span></label>
@@ -171,27 +171,27 @@
       title="打回原因"
       :footer="null"
     >
-      <p v-if="reasonTarget">风格名称：<strong>{{ reasonTarget.name }}</strong></p>
+      <p v-if="reasonTarget">提示词名称：<strong>{{ reasonTarget.name }}</strong></p>
       <a-divider style="margin: 12px 0" />
       <p>{{ reasonTarget?.rejectReason || '—' }}</p>
     </a-modal>
 
-    <!-- 风格详情弹框 -->
+    <!-- 提示词详情弹框 -->
     <a-modal
       v-model:open="detailVisible"
-      title="风格详情"
+      title="提示词详情"
       :footer="null"
       :width="640"
     >
       <div v-if="detailTarget" class="skill-detail-body">
         <div class="skill-detail-item">
-          <div class="skill-detail-label">风格名称</div>
+          <div class="skill-detail-label">提示词名称</div>
           <div class="skill-detail-content">{{ detailTarget.name }}</div>
         </div>
         <div class="skill-detail-item">
           <div class="skill-detail-label">来源类型</div>
           <div class="skill-detail-content">
-            {{ detailTarget.sourceType === 'my' ? '我的风格' : '学习的风格' }}
+            {{ detailTarget.sourceType === 'my' ? '我的提示词' : '学习的提示词' }}
           </div>
         </div>
         <div class="skill-detail-item">
@@ -203,7 +203,7 @@
           <div class="skill-detail-content">{{ detailTarget.scope || '—' }}</div>
         </div>
         <div class="skill-detail-item">
-          <div class="skill-detail-label">风格提示词</div>
+          <div class="skill-detail-label">提示词</div>
           <div class="skill-detail-prompt">{{ detailTarget.prompt || '—' }}</div>
         </div>
       </div>
@@ -236,7 +236,7 @@ const {
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 120 },
-  { title: '风格名称', dataIndex: 'name', key: 'name', width: 160 },
+  { title: '提示词名称', dataIndex: 'name', key: 'name', width: 160 },
   { title: '来源类型', dataIndex: 'sourceType', key: 'sourceType', width: 100 },
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 120 },
   { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },

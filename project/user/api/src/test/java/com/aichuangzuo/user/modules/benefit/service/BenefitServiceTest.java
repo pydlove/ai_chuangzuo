@@ -74,8 +74,8 @@ class BenefitServiceTest {
         assertEquals("pro", vo.getPlanKey());
         assertEquals("专业版", vo.getPlanName());
         assertEquals(LocalDate.now().plusDays(30).toString(), vo.getExpiresAt());
-        // 16 历史权益 + skill_market_publish / skill_learn_analyze (V1.0.0_029) + generation_word_limit (V1.0.0_044)
-        assertEquals(18, vo.getBenefits().size());
+        // 16 历史权益 + skill_market_publish / skill_learn_analyze (V1.0.0_029) + generation_word_limit (V1.0.0_044) + generation_rate_limit (V1.0.0_048)
+        assertEquals(19, vo.getBenefits().size());
 
         UserBenefitVO.BenefitItem quota = vo.getBenefits().stream()
                 .filter(b -> "ai_article_quota".equals(b.getCode()))

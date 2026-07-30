@@ -23,6 +23,10 @@ public class CreateSkillRequest {
     @Size(max = 256, message = "适用范围过长")
     private String scope;
 
+    /** 简短描述，一句话方便创作者快速了解该提示词。 */
+    @Size(max = 100, message = "简短描述不能超过 100 字符")
+    private String description;
+
     /** 来源类型：1-自定义（默认），2-学习；系统预设（3）不允许用户创建。 */
     @Min(value = 1, message = "来源类型不合法")
     @Max(value = 2, message = "来源类型不合法")

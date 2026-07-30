@@ -34,6 +34,11 @@ const routes = [
         component: () => import('@/views/MarketSkillListView.vue')
       },
       {
+        path: 'skill-monthly-rewards',
+        name: 'AdminSkillMonthlyRewards',
+        component: () => import('@/views/SkillMonthlyRewardConfigView.vue')
+      },
+      {
         path: 'model-configs',
         name: 'AdminModelConfig',
         component: () => import('@/views/ModelConfigView.vue')
@@ -177,6 +182,11 @@ const routes = [
         path: 'plans',
         name: 'AdminPlanList',
         component: () => import('@/views/PlanListView.vue')
+      },
+      {
+        path: 'security-settings',
+        name: 'AdminSecuritySettings',
+        component: () => import('@/views/SecuritySettingsView.vue')
       }
     ]
   },

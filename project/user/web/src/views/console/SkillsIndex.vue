@@ -68,6 +68,20 @@
             <div v-if="errors.name" class="style-editor-error">{{ errors.name }}</div>
           </div>
           <div class="style-editor-field">
+            <label class="style-editor-label">简短描述</label>
+            <input
+              v-model="editingStyle.desc"
+              type="text"
+              class="style-editor-input"
+              placeholder="一句话说明这个提示词适合写什么，例如：小红书种草笔记，语气亲切带 emoji"
+              maxlength="100"
+            />
+            <div class="style-editor-counter" :class="{ over: (editingStyle.desc || '').length > 100 }">
+              {{ (editingStyle.desc || '').length }} / 100
+            </div>
+            <div class="style-scope-hint">一句话让创作者快速了解你的提示词</div>
+          </div>
+          <div class="style-editor-field">
             <label class="style-editor-label">提示词 <span class="required">*</span></label>
             <textarea
               v-model="editingStyle.prompt"
@@ -136,43 +150,35 @@
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的提示词</div>
           </div>
-          <div
+          <SkillCard
             v-for="s in filteredMyStyles"
             :key="s.name"
-            class="style-card"
+            :name="s.name"
+            :prompt="promptSummary(s.prompt)"
+            :scope="s.scope"
           >
-            <div class="style-card-head">
-              <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
-              <div class="style-card-title-wrap">
-                <div class="style-card-title-row">
-                  <div class="style-card-title">{{ s.name }}</div>
-                  <div
-                    v-if="auditStatusText(s.auditStatus)"
-                    class="style-card-status"
-                    :class="auditStatusClass(s.auditStatus)"
-                  >
-                    {{ auditStatusText(s.auditStatus) }}
-                  </div>
-                  <div
-                    v-else-if="getMarketStatus(s.name)"
-                    class="style-card-status"
-                    :class="statusClass(s.name)"
-                  >
-                    {{ getMarketStatus(s.name) }}
-                  </div>
-                </div>
-                <div class="style-card-meta">
-                  <span>自定义提示词</span>
-                  <span class="style-card-meta-dot">·</span>
-                  <span>已用 {{ s.count }} 次</span>
-                </div>
+            <template #status>
+              <div
+                v-if="auditStatusText(s.auditStatus)"
+                class="style-card-status"
+                :class="auditStatusClass(s.auditStatus)"
+              >
+                {{ auditStatusText(s.auditStatus) }}
               </div>
-            </div>
-            <div v-if="s.scope" class="style-card-scope-list">
-              <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-            </div>
-            <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-            <div class="style-card-footer">
+              <div
+                v-else-if="getMarketStatus(s.name)"
+                class="style-card-status"
+                :class="statusClass(s.name)"
+              >
+                {{ getMarketStatus(s.name) }}
+              </div>
+            </template>
+            <template #meta>
+              <span>{{ s.desc }}</span>
+              <span class="style-card-meta-dot">·</span>
+              <span>已用 {{ s.count }} 次</span>
+            </template>
+            <template #footer>
               <div class="style-card-actions">
                 <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
                 <button class="style-action-btn" @click.stop="openMyStylePromptModal(s)">查看</button>
@@ -186,8 +192,8 @@
                 >发布</button>
                 <button class="style-action-btn danger" @click.stop="deleteSkill(s.name)">删除</button>
               </div>
-            </div>
-          </div>
+            </template>
+          </SkillCard>
         </div>
       </div>
     </div>
@@ -201,33 +207,23 @@
         没有找到匹配的系统预设提示词
       </div>
       <div v-else class="styles-grid">
-        <div
+        <SkillCard
           v-for="s in filteredSystemStyles"
           :key="s.name"
-          class="style-card"
+          :name="s.name"
+          :prompt="promptSummary(s.prompt)"
+          :scope="s.scope"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ s.name }}</div>
-              </div>
-              <div class="style-card-meta">{{ s.desc }}</div>
-            </div>
-          </div>
-          <div v-if="s.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-          <div class="style-card-footer">
+          <template #meta>{{ s.desc }}</template>
+          <template #footer>
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
               <button class="style-action-btn" @click.stop="openMyStylePromptModal(s, 'system')">
                 查看完整提示词
               </button>
             </div>
-          </div>
-        </div>
+          </template>
+        </SkillCard>
       </div>
     </div>
 
@@ -247,42 +243,33 @@
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
-        <div
+        <SkillCard
           v-for="s in filteredLearnedStyles"
           :key="s.name"
-          class="style-card"
+          :name="s.name"
+          :prompt="s.prompt"
+          :scope="s.scope"
+          avatar-variant="learned"
+          :expanded="expandedNames.has(s.name)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar learned">{{ s.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ s.name }}</div>
-                <div
-                  v-if="auditStatusText(s.auditStatus)"
-                  class="style-card-status"
-                  :class="auditStatusClass(s.auditStatus)"
-                >
-                  {{ auditStatusText(s.auditStatus) }}
-                </div>
-                <div
-                  v-else-if="getMarketStatus(s.name)"
-                  class="style-card-status"
-                  :class="statusClass(s.name)"
-                >
-                  {{ getMarketStatus(s.name) }}
-                </div>
-              </div>
-              <div class="style-card-meta">
-                学习 · {{ (s.createdAt || '').slice(0, 10) }}
-              </div>
+          <template #status>
+            <div
+              v-if="auditStatusText(s.auditStatus)"
+              class="style-card-status"
+              :class="auditStatusClass(s.auditStatus)"
+            >
+              {{ auditStatusText(s.auditStatus) }}
             </div>
-          </div>
-          <div v-if="s.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-          <div class="style-card-footer">
+            <div
+              v-else-if="getMarketStatus(s.name)"
+              class="style-card-status"
+              :class="statusClass(s.name)"
+            >
+              {{ getMarketStatus(s.name) }}
+            </div>
+          </template>
+          <template #meta>学习 · {{ (s.createdAt || '').slice(0, 10) }}</template>
+          <template #footer>
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
               <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
@@ -298,8 +285,8 @@
               >发布</button>
               <button class="style-action-btn danger" @click.stop="deleteLearnedStyle(s)">删除</button>
             </div>
-          </div>
-        </div>
+          </template>
+        </SkillCard>
       </div>
     </div>
 
@@ -313,26 +300,16 @@
         </a-empty>
       </div>
       <div v-else class="styles-grid">
-        <div
+        <SkillCard
           v-for="s in favoriteSkills"
           :key="s.id"
-          class="style-card"
+          :name="s.name"
+          :prompt="s.prompt"
+          :scope="s.scope"
+          :expanded="expandedNames.has(s.name)"
         >
-          <div class="style-card-head">
-            <div class="style-card-avatar">{{ s.name.charAt(0) }}</div>
-            <div class="style-card-title-wrap">
-              <div class="style-card-title-row">
-                <div class="style-card-title">{{ s.name }}</div>
-              </div>
-              <div class="style-card-meta">by {{ s.creatorName }}</div>
-            </div>
-          </div>
-          <div v-if="s.scope" class="style-card-scope-list">
-            <span v-for="tag in parseScopeTags(s.scope)" :key="tag" class="style-card-scope">{{ tag }}</span>
-          </div>
-          <div v-if="!expandedNames.has(s.name)" class="style-card-prompt">{{ promptSummary(s.prompt) }}</div>
-          <div v-show="expandedNames.has(s.name)" class="style-prompt-full">{{ s.prompt }}</div>
-          <div class="style-card-footer">
+          <template #meta>by {{ s.creatorName }}</template>
+          <template #footer>
             <div class="style-card-actions">
               <button class="style-action-btn primary" @click.stop="useFavoriteStyle(s)">使用</button>
               <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
@@ -340,8 +317,8 @@
               </button>
               <button class="style-action-btn danger" @click.stop="confirmUnfavorite(s)">取消收藏</button>
             </div>
-          </div>
-        </div>
+          </template>
+        </SkillCard>
       </div>
     </div>
   </div>
@@ -596,6 +573,7 @@ import {
 import { useBenefits } from '@/composables/useBenefits.js'
 import { getCustomStyleLimit } from '@/utils/membershipLimits.js'
 import { updateSkill } from '@/api/skill.js'
+import SkillCard from '@/components/SkillCard.vue'
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
@@ -746,6 +724,7 @@ const selectedMyStyleSource = ref('my')
 const editingStyle = reactive({
   originalName: '',
   name: '',
+  desc: '',
   prompt: '',
   scope: ''
 })
@@ -821,6 +800,7 @@ const isFormValid = computed(() => {
 const goToCreate = () => {
   editingStyle.originalName = ''
   editingStyle.name = ''
+  editingStyle.desc = ''
   editingStyle.prompt = ''
   editingStyle.scope = ''
   editingStyleScopeInput.value = ''
@@ -833,6 +813,7 @@ const goToCreate = () => {
 const goToEdit = (style) => {
   editingStyle.originalName = style.name
   editingStyle.name = style.name
+  editingStyle.desc = style.desc === '自定义提示词' ? '' : (style.desc || '')
   editingStyle.prompt = style.prompt
   editingStyle.scope = style.scope || ''
   editingStyleScopeInput.value = ''
@@ -852,12 +833,14 @@ const saveStyle = async () => {
     if (editingStyle.originalName) {
       await updateCustomSkill(editingStyle.originalName, {
         name: editingStyle.name,
+        description: editingStyle.desc,
         prompt: editingStyle.prompt,
         scope: editingStyle.scope
       })
     } else {
       await addCustomSkill({
         name: editingStyle.name,
+        description: editingStyle.desc,
         prompt: editingStyle.prompt,
         scope: editingStyle.scope
       })
@@ -1330,73 +1313,6 @@ const closeMyStylePromptModal = () => {
   font-weight: 500;
 }
 
-.style-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.style-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
-}
-
-.style-card-head {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-bottom: 16px;
-}
-
-.style-card-avatar {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 12px;
-  background: #fff0f2;
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.style-card-avatar.learned {
-  background: #fff5f7;
-  color: var(--color-primary);
-}
-
-.style-card-title-wrap {
-  flex: 1;
-  min-width: 0;
-}
-
-.style-card-title-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-bottom: 6px;
-}
-
-.style-card-title {
-  flex: 1 1 auto;
-  min-width: 0;
-  max-width: 100%;
-  font-size: 17px;
-  font-weight: 700;
-  color: #1a1a1a;
-  line-height: 1.35;
-  word-break: break-all;
-}
-
 .style-card-status {
   flex-shrink: 0;
   font-size: 11px;
@@ -1421,71 +1337,9 @@ const closeMyStylePromptModal = () => {
   color: #ff4d4f;
 }
 
-.style-card-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
 .style-card-meta-dot {
   color: #d9d9d9;
   font-weight: 700;
-}
-
-.style-card-scope {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  width: fit-content;
-  font-size: 12px;
-  color: var(--color-primary);
-  background: #fff5f7;
-  border: 1px solid #ffd1d9;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
-
-.style-card-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.style-card-scope::before {
-  content: '#';
-  opacity: 0.8;
-}
-
-.style-card-prompt {
-  font-size: 14px;
-  color: #262626;
-  line-height: 1.7;
-  margin-bottom: 16px;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  flex: 1 0 auto;
-}
-
-.style-prompt-full {
-  font-size: 14px;
-  color: #262626;
-  line-height: 1.7;
-  background: #fafafa;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-  white-space: pre-line;
-}
-
-.style-card-footer {
-  margin-top: 0;
-  padding-top: 0;
-  border-top: none;
 }
 
 .style-card-actions {
@@ -2207,26 +2061,9 @@ body[data-theme="dark"] .styles-search-input {
   color: #f0f0f0;
 }
 
-body[data-theme="dark"] .style-card,
 body[data-theme="dark"] .style-add-card {
   background: #1f1f1f;
   border-color: #303030;
-}
-
-body[data-theme="dark"] .style-card:hover {
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-card-title,
-body[data-theme="dark"] .modal-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .style-card-desc,
-body[data-theme="dark"] .style-card-prompt,
-body[data-theme="dark"] .style-card-meta,
-body[data-theme="dark"] .learned-hint {
-  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .style-card-meta-dot {
@@ -2270,16 +2107,6 @@ body[data-theme="dark"] .style-add-text {
   color: #d9d9d9;
 }
 
-body[data-theme="dark"] .style-card-avatar {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-card-avatar.learned {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
 body[data-theme="dark"] .style-card-status.approved {
   background: rgba(7, 193, 96, 0.15);
   color: #4ade80;
@@ -2302,23 +2129,6 @@ body[data-theme="dark"] .style-action-btn.danger {
 body[data-theme="dark"] .style-action-btn.danger:hover {
   background: rgba(255, 77, 79, 0.15);
   color: #ff4d4f;
-}
-
-body[data-theme="dark"] .style-card-scope {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: rgba(255, 36, 66, 0.25);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-card-prompt {
-  background: transparent;
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .style-prompt-full {
-  background: #141414;
-  color: #d9d9d9;
-  border: 1px solid #303030;
 }
 
 body[data-theme="dark"] .style-action-btn {

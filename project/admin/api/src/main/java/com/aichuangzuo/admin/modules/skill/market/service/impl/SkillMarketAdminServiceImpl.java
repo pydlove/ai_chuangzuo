@@ -65,6 +65,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     public String create(CreateSkillMarketRequest request) {
         validateName(request.getSkillName());
         validateEnableStatus(request.getEnableStatus());
+        validateFeatured(request.getFeatured());
         validatePublisher(request.getPublisherUserId());
         validateTotalUses(request.getTotalUses());
 
@@ -82,6 +83,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setWeeklyEarnings(BigDecimal.ZERO);
         market.setMilestoneBonus(BigDecimal.ZERO);
         market.setEnableStatus(request.getEnableStatus());
+        market.setFeatured(request.getFeatured());
         market.setAuditStatus(AUDIT_STATUS_APPROVED);
         market.setSourceType(SOURCE_TYPE_PLATFORM);
         market.setIsDeleted(0);
@@ -101,6 +103,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     @Transactional(rollbackFor = Exception.class)
     public void update(String bizNo, UpdateSkillMarketRequest request) {
         validateEnableStatus(request.getEnableStatus());
+        validateFeatured(request.getFeatured());
         validateTotalUses(request.getTotalUses());
 
         SkillMarket market = loadByBizNo(bizNo);
@@ -120,6 +123,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setPublisherUserId(request.getPublisherUserId());
         market.setTotalUses(request.getTotalUses() != null ? request.getTotalUses() : 0);
         market.setEnableStatus(request.getEnableStatus());
+        market.setFeatured(request.getFeatured());
 
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminId != null) {
@@ -183,6 +187,12 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         }
     }
 
+    private void validateFeatured(Integer featured) {
+        if (featured == null || (featured != 0 && featured != 1)) {
+            throw new BusinessException(AdminSkillMarketErrorCode.FEATURED_STATUS_INVALID);
+        }
+    }
+
     private void validatePublisher(Long publisherUserId) {
         if (publisherUserId == null) {
             throw new BusinessException(AdminSkillMarketErrorCode.PUBLISHER_NOT_FOUND);
@@ -227,6 +237,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         vo.setWeeklyEarnings(row.getWeeklyEarnings());
         vo.setMilestoneBonus(row.getMilestoneBonus());
         vo.setStatus(row.getEnableStatus() != null && row.getEnableStatus() == 1 ? "enabled" : "disabled");
+        vo.setFeatured(row.getFeatured() != null && row.getFeatured() == 1 ? 1 : 0);
         vo.setCreatedAt(row.getCreatedAt());
         return vo;
     }

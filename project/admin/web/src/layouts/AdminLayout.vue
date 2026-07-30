@@ -75,15 +75,18 @@
           <template #icon>
             <BookOutlined />
           </template>
-          <template #title>风格管理</template>
+          <template #title>提示词管理</template>
           <a-menu-item key="/console/skills">
-            风格审核
+            提示词审核
           </a-menu-item>
           <a-menu-item key="/console/global-skills">
-            预设风格
+            预设提示词
           </a-menu-item>
           <a-menu-item key="/console/market-skills">
-            风格市场
+            提示词市场
+          </a-menu-item>
+          <a-menu-item key="/console/skill-monthly-rewards">
+            月度奖励配置
           </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/learn">
@@ -165,6 +168,12 @@
             </template>
             用户反馈
           </a-menu-item>
+          <a-menu-item key="/console/security-settings">
+            <template #icon>
+              <SafetyOutlined />
+            </template>
+            安全设置
+          </a-menu-item>
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>
@@ -197,7 +206,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -216,13 +225,13 @@ const parentMenuKey = computed(() => {
   const p = route.path
   if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
-  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
+  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills' || p === '/console/skill-monthly-rewards') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks') return '/console/settings'
+  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings') return '/console/settings'
   return null
 })
 
@@ -239,7 +248,7 @@ const onOpenChange = (keys) => {
 }
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
-  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills') return '风格管理'
+  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills' || route.path === '/console/skill-monthly-rewards') return '提示词管理'
   if (route.path === '/console/model-configs') return '模型配置'
   if (route.path === '/console/prompt-templates' || route.path.startsWith('/console/prompt-templates/')) return '创作提示词'
   if (route.path === '/console/hot-search/platforms') return '平台管理'
@@ -266,6 +275,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/orders/stats') return '数据统计'
   if (route.path === '/console/home-banner') return '首页 Banner'
   if (route.path === '/console/plans') return '套餐管理'
+  if (route.path === '/console/security-settings') return '安全设置'
   return ''
 })
 

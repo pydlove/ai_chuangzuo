@@ -16,6 +16,10 @@
                s.weekly_uses     AS weeklyUses,
                s.weekly_earnings AS weeklyEarnings,
                s.milestone_bonus AS milestoneBonus,
+               s.monthly_uses    AS monthlyUses,
+               s.monthly_earnings AS monthlyEarnings,
+               s.leaderboard_reward AS leaderboardReward,
+               s.featured        AS featured,
                s.last_settlement_at AS lastSettlementAt,
                s.created_at      AS createdAt
         FROM u_skill_market s
@@ -29,10 +33,13 @@
                   OR s.scope LIKE CONCAT('%', #{keyword}, '%')
               )
           </if>
+          <if test="sortType == 'featured'">
+              AND s.featured = 1
+          </if>
         ORDER BY
         <choose>
             <when test="sortType == 'week-hot'">
-                s.weekly_uses DESC, s.id DESC
+                s.monthly_uses DESC, s.id DESC
             </when>
             <when test="sortType == 'all-hot'">
                 s.total_uses DESC, s.id DESC

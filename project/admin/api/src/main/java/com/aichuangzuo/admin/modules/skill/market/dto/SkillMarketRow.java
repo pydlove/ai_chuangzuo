@@ -25,5 +25,6 @@ public class SkillMarketRow {
     private BigDecimal weeklyEarnings;
     private BigDecimal milestoneBonus;
     private Integer enableStatus;
+    private Integer featured;
     private LocalDateTime createdAt;
 }

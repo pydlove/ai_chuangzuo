@@ -113,6 +113,7 @@ const stopItem = (item, event) => {
     okText: '停止',
     cancelText: '取消',
     centered: true,
+    wrapClassName: 'stop-task-confirm-modal',
     okButtonProps: { disabled: stoppingIds.value.has(item.id) },
     onOk: async () => {
       stoppingIds.value.add(item.id)
@@ -206,8 +207,8 @@ const retryItem = (item, event) => {
 .queue-item-retry-btn {
   margin-left: auto;
   border: none;
-  background: #f0fff2;
-  color: #07c160;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
   font-size: 11px;
   padding: 2px 8px;
   border-radius: 10px;
@@ -216,7 +217,7 @@ const retryItem = (item, event) => {
 }
 
 .queue-item-retry-btn:hover:not(:disabled) {
-  background: #07c160;
+  background: var(--color-primary);
   color: #fff;
 }
 
@@ -511,12 +512,12 @@ body[data-theme="dark"] .queue-item-status-badge.cancelled {
 }
 
 body[data-theme="dark"] .queue-item-retry-btn {
-  background: rgba(7, 193, 96, 0.15);
-  color: #4ade80;
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .queue-item-retry-btn:hover:not(:disabled) {
-  background: #07c160;
+  background: var(--color-primary);
   color: #fff;
 }
 
@@ -555,5 +556,28 @@ body[data-theme="dark"] .queue-drawer .queue-panel-empty .empty-text {
 
 body[data-theme="dark"] .queue-drawer .queue-panel-empty .empty-hint {
   color: #6a6a6a;
+}
+
+/* 停止任务确认弹框：使用主题色 */
+.stop-task-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:hover,
+.stop-task-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:disabled {
+  background: rgba(255, 36, 66, 0.4);
+  border-color: transparent;
+  color: #fff;
 }
 </style>

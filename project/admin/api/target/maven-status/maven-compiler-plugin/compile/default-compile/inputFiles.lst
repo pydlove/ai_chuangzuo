@@ -171,6 +171,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/service/PromptTemplateRenderService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/service/PromptTemplateService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/service/QuotaRefundInternalClient.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/service/SkillUsageInternalClient.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/vo/GeneratedArticleVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/vo/GenerationCallLogGroupedVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/generation/vo/GenerationCallLogVO.java
@@ -278,6 +279,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/handler/GenerationCompletedHandler.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/handler/GenerationFailedHandler.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/handler/MessageNotifyHandler.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/handler/SkillUsageHandler.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/job/NotifyOutboxDispatcherJob.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/mapper/MessageAggregateMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/message/mapper/NotifyOutboxMapper.java
@@ -352,6 +354,12 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/reminder/service/impl/ReminderConfigServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/reminder/vo/ExpiringUserVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/entity/UserSkillAggregate.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/controller/SkillMonthlyRewardConfigController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/dto/request/SkillMonthlyRewardConfigUpdateRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/entity/SkillMonthlyRewardConfig.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/mapper/SkillMonthlyRewardConfigMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/service/SkillMonthlyRewardConfigService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/config/vo/SkillMonthlyRewardConfigVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/controller/SkillMarketAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/dto/SkillMarketRow.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/market/dto/request/CreateSkillMarketRequest.java

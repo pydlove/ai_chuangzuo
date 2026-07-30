@@ -54,6 +54,7 @@
           class="market-featured-card"
           @click="openStyleDetail(s)"
         >
+          <span class="market-featured-badge">官方精选</span>
           <div class="market-featured-head">
             <div class="market-featured-name">{{ s.name }}</div>
             <div class="market-featured-uses">{{ s.weeklyUses }}</div>
@@ -145,35 +146,57 @@
         暂无已上架提示词
       </div>
       <div v-else class="market-grid">
-        <div
+        <SkillCard
           v-for="s in pagedStyles"
           :key="s.id"
-          class="market-card"
+          :name="s.name"
+          :desc="s.description || s.promptSummary || s.desc || ''"
+          :prompt="promptSummary(s.prompt)"
+          :show-avatar="false"
+          clickable
           @click="openStyleDetail(s)"
         >
-          <div class="market-card-body">
-            <div class="market-card-title">{{ s.name }}</div>
-            <div class="market-card-creator">
-              <span class="market-card-creator-avatar">
-                {{ (s.creatorName || '匿').charAt(0) }}
+          <template #meta>
+            <div class="market-card-meta-row">
+              <span class="market-card-creator">
+                <span class="market-card-creator-avatar">
+                  {{ (s.creatorName || '匿').charAt(0) }}
+                </span>
+                <span class="market-card-creator-name">by {{ s.creatorName || '匿名用户' }}</span>
               </span>
-              <span>by {{ s.creatorName || '匿名用户' }}</span>
+              <span
+                v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
+                class="market-card-scope-inline"
+              >
+                <span
+                  v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                  :key="t"
+                  class="market-card-tag-compact"
+                >
+                  # {{ t }}
+                </span>
+                <span
+                  v-if="parseScopeTags(s.scope).length > 2"
+                  class="market-card-tag-more"
+                >
+                  +{{ parseScopeTags(s.scope).length - 2 }}
+                </span>
+                <span v-if="s.creatorId === currentUserId" class="market-card-mine-compact">我的</span>
+              </span>
             </div>
-            <div class="market-card-prompt">{{ promptSummary(s.prompt) }}</div>
-            <div class="market-card-published" v-if="s.createdAt">
-              发布于 {{ formatTimeAgo(s.createdAt) }}
-            </div>
-            <div class="market-card-stats">
+          </template>
+          <template #extra>
+            <div class="market-card-extra-row">
+              <span v-if="s.createdAt" class="market-card-published">
+                发布于 {{ formatTimeAgo(s.createdAt) }}
+              </span>
+              <span class="market-card-extra-dot" v-if="s.createdAt">·</span>
               <span>本周 {{ s.weeklyUses }} 次</span>
+              <span class="market-card-extra-dot">·</span>
               <span>累计 {{ s.totalUses }} 次</span>
             </div>
-            <div v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
-                 class="market-card-tagrow">
-              <span v-for="t in parseScopeTags(s.scope)" :key="t" class="market-card-tag">
-                # {{ t }}
-              </span>
-              <span v-if="s.creatorId === currentUserId" class="market-card-mine">我的</span>
-            </div>
+          </template>
+          <template #footer>
             <div class="market-card-actions">
               <button class="market-card-use" @click.stop="handleUse(s)">使用</button>
               <button
@@ -191,8 +214,8 @@
                 模拟
               </button>
             </div>
-          </div>
-        </div>
+          </template>
+        </SkillCard>
       </div>
 
       <div v-if="!loading && total > 0" class="market-pagination">
@@ -296,73 +319,14 @@
     </div>
   </a-modal>
 
-  <!-- 提示词详情 modal — 展示提示词内容（prompt、统计、适用范围等） -->
-  <a-modal
+  <!-- 提示词详情 modal -->
+  <SkillDetailModal
     v-if="selectedStyle"
-    class="style-detail-modal"
-    :open="styleDetailVisible"
-    :footer="null"
-    :width="560"
-    centered
-    :destroy-on-close="true"
-    @cancel="closeStyleDetail"
-  >
-    <template #title>
-      <div class="style-detail-title">
-        <div class="style-detail-name">
-          {{ selectedStyle.name }}
-          <span v-if="selectedStyle.featured" class="style-detail-featured">官方精选</span>
-          <span v-if="selectedStyle.creatorId === currentUserId" class="style-detail-mine">我的</span>
-        </div>
-        <div class="style-detail-creator">
-          <span class="style-detail-creator-avatar">{{ (selectedStyle.creatorName || '匿').charAt(0) }}</span>
-          <span>by {{ selectedStyle.creatorName || '匿名用户' }}</span>
-        </div>
-      </div>
-    </template>
-
-    <div class="style-detail-stats">
-      <div class="style-detail-stat">
-        <div class="style-detail-stat-value">{{ selectedStyle.weeklyUses || 0 }}</div>
-        <div class="style-detail-stat-label">本周使用</div>
-      </div>
-      <div class="style-detail-stat">
-        <div class="style-detail-stat-value">{{ selectedStyle.totalUses || 0 }}</div>
-        <div class="style-detail-stat-label">累计使用</div>
-      </div>
-      <div class="style-detail-stat">
-        <div class="style-detail-stat-value">+{{ formatCoins(selectedStyle.weeklyEarnings) }}</div>
-        <div class="style-detail-stat-label">本周币</div>
-      </div>
-      <div class="style-detail-stat">
-        <div class="style-detail-stat-value">{{ formatCoins(styleDetailEarnings) }}</div>
-        <div class="style-detail-stat-label">累计币 (×2)</div>
-      </div>
-    </div>
-
-    <div class="style-detail-section" v-if="selectedStyle.scope">
-      <div class="style-detail-section-title">适用范围</div>
-      <div class="style-detail-scope-list">
-        <span v-for="tag in parseScopeTags(selectedStyle.scope)" :key="tag" class="style-detail-scope-tag"># {{ tag }}</span>
-      </div>
-    </div>
-
-    <div class="style-detail-section">
-      <div class="style-detail-section-title">提示词</div>
-      <div class="style-detail-prompt">{{ selectedStyle.prompt || '暂无提示词' }}</div>
-    </div>
-
-    <div class="style-detail-section" v-if="selectedStyle.excerpt1 || selectedStyle.excerpt2">
-      <div class="style-detail-section-title">示例片段</div>
-      <div v-if="selectedStyle.excerpt1" class="style-detail-excerpt">{{ selectedStyle.excerpt1 }}</div>
-      <div v-if="selectedStyle.excerpt2" class="style-detail-excerpt">{{ selectedStyle.excerpt2 }}</div>
-    </div>
-
-    <div class="style-detail-footer">
-      <span v-if="selectedStyle.createdAt">发布于 {{ formatTimeAgo(selectedStyle.createdAt) }}</span>
-      <span v-else>提示词市场</span>
-    </div>
-  </a-modal>
+    :skill="selectedStyle"
+    :visible="styleDetailVisible"
+    :current-user-id="currentUserId"
+    @update:visible="onStyleDetailVisibleChange"
+  />
 </template>
 
 <script setup>
@@ -377,12 +341,13 @@ import {
   simulateExternalUse,
   toggleFavorite,
   isFavorite,
-  getMarketStyleEarnings,
   loadMarketSkills,
   loadMarketSkillOverview,
   loadMarketSkillPage,
   loadFavoriteIds
 } from '@/composables/useSkillMarket.js'
+import SkillCard from '@/components/SkillCard.vue'
+import SkillDetailModal from '@/components/SkillDetailModal.vue'
 
 const router = useRouter()
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
@@ -440,15 +405,10 @@ const openStyleDetail = (s) => {
   selectedStyle.value = s
   styleDetailVisible.value = true
 }
-const closeStyleDetail = () => {
-  styleDetailVisible.value = false
-  selectedStyle.value = null
+const onStyleDetailVisibleChange = (val) => {
+  styleDetailVisible.value = val
+  if (!val) selectedStyle.value = null
 }
-const styleDetailEarnings = computed(() => {
-  const s = selectedStyle.value
-  if (!s) return 0
-  return (s.totalUses || 0) * 2
-})
 
 const scrollToGrid = () => {
   document.querySelector('.market-grid-section')?.scrollIntoView({ behavior: 'smooth' })
@@ -638,6 +598,8 @@ onMounted(() => {
   border-color: var(--color-primary);
 }
 .market-search-btn {
+  flex-shrink: 0;
+  white-space: nowrap;
   height: 40px;
   padding: 0 var(--space-md);
   border: 0;
@@ -697,63 +659,11 @@ onMounted(() => {
   gap: var(--space-lg);
 }
 
-.market-card {
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-sm2);
-  overflow: hidden;
+.market-card-meta-row {
   display: flex;
-  flex-direction: column;
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.market-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--shadow-md);
-}
-
-.market-card-cover-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.market-card-tagrow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
   align-items: center;
-  margin-bottom: 2px;
-}
-.market-card-tag {
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: var(--font-caption);
-  border-radius: var(--radius-md);
-  padding: 2px 8px;
-  font-weight: 500;
-}
-.market-card-mine {
-  background: var(--color-info);
-  color: #fff;
-  font-size: var(--font-caption);
-  border-radius: var(--radius-md);
-  padding: 2px 8px;
-  font-weight: 600;
-}
-
-.market-card-body {
-  padding: var(--space-md);
-  display: flex;
-  flex-direction: column;
   gap: var(--space-sm);
-  flex: 1;
-}
-.market-card-title {
-  font-size: var(--font-h3);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex-wrap: wrap;
 }
 .market-card-creator {
   display: flex;
@@ -774,24 +684,54 @@ onMounted(() => {
   font-size: var(--font-small);
   font-weight: 700;
 }
-.market-card-prompt {
-  font-size: var(--font-body);
-  color: var(--color-text-regular);
-  line-height: 1.6;
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
+.market-card-creator-name {
+  white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+.market-card-scope-inline {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+.market-card-tag-compact {
+  font-size: var(--font-caption);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  padding: 1px 6px;
+  border-radius: var(--radius-md);
+  white-space: nowrap;
+}
+.market-card-tag-more {
+  font-size: var(--font-caption);
+  color: var(--color-text-placeholder);
+  white-space: nowrap;
+}
+.market-card-mine-compact {
+  font-size: var(--font-caption);
+  color: #07c160;
+  background: rgba(7, 193, 96, 0.08);
+  padding: 1px 6px;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.market-card-extra-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+  font-size: var(--font-caption);
+  color: var(--color-text-placeholder);
 }
 .market-card-published {
   font-size: var(--font-caption);
   color: var(--color-text-placeholder);
 }
-.market-card-stats {
-  display: flex;
-  gap: var(--space-md);
-  font-size: var(--font-small);
-  color: var(--color-text-placeholder);
+.market-card-extra-dot {
+  opacity: 0.6;
 }
 .market-card-actions {
   display: flex;
@@ -805,8 +745,8 @@ onMounted(() => {
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
   border-radius: var(--radius-lg);
-  height: 40px;
-  padding: 0 var(--space-md);
+  height: 32px;
+  padding: 0 12px;
   font-size: var(--font-body);
   font-weight: 600;
   cursor: pointer;
@@ -817,22 +757,21 @@ onMounted(() => {
   color: #fff;
 }
 .market-card-fav {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-default);
+  background: transparent;
+  border: 0;
   border-radius: var(--radius-lg);
   font-size: var(--font-body);
   color: var(--color-text-placeholder);
   cursor: pointer;
 }
 .market-card-fav.active {
-  background: var(--color-primary-light);
+  background: transparent;
   color: var(--color-primary);
-  border-color: var(--color-primary);
 }
 .market-card-view, .market-card-sim {
   background: transparent;
@@ -864,30 +803,33 @@ body[data-theme="dark"] .market-tab.active {
   color: var(--color-text-primary);
   box-shadow: none;
 }
-body[data-theme="dark"] .market-card-title { color: var(--color-text-primary); }
 body[data-theme="dark"] .market-card-creator { color: var(--color-text-regular); }
 body[data-theme="dark"] .market-card-creator-avatar {
   background: rgba(255, 36, 66, 0.12);
   color: #ff6b81;
 }
-body[data-theme="dark"] .market-card-prompt { color: #d9d9d9; }
 body[data-theme="dark"] .market-card-published { color: #a6a6a6; }
-body[data-theme="dark"] .market-card-stats { color: #a6a6a6; }
-body[data-theme="dark"] .market-card-tag {
+body[data-theme="dark"] .market-card-tag-compact {
   background: rgba(255, 36, 66, 0.12);
   color: #ff6b81;
 }
+body[data-theme="dark"] .market-card-mine-compact {
+  background: rgba(7, 193, 96, 0.12);
+  color: #07c160;
+}
 body[data-theme="dark"] .market-card-fav {
   background: transparent;
-  border-color: #303030;
+  border-color: transparent;
 }
 body[data-theme="dark"] .market-card-fav.active {
-  background: rgba(255, 36, 66, 0.15);
+  background: transparent;
   color: #ff6b81;
-  border-color: var(--color-primary);
 }
 body[data-theme="dark"] .market-featured-card {
   border-color: #303030;
+}
+body[data-theme="dark"] .market-featured-badge {
+  background: var(--color-primary);
 }
 
 /* === 响应式 ≤768px === */
@@ -1103,6 +1045,7 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   gap: var(--space-sm);
 }
 .market-featured-card {
+  position: relative;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
@@ -1112,6 +1055,19 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   gap: var(--space-xs);
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
+}
+.market-featured-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: 0 var(--radius-lg) 0 var(--radius-md);
+  line-height: 1.4;
+  z-index: 1;
 }
 .market-featured-card:hover {
   border-color: var(--color-primary);
@@ -1260,131 +1216,9 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
 
-/* ===== 提示词详情 modal ===== */
-.style-detail-modal { }
-.style-detail-title {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.style-detail-name {
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.style-detail-featured {
-  font-size: 11px;
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-.style-detail-mine {
-  font-size: 11px;
-  color: #07c160;
-  background: rgba(7, 193, 96, 0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-.style-detail-creator {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--color-text-secondary);
-}
-.style-detail-creator-avatar {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ff5577 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  font-weight: 500;
-}
+</style>
 
-.style-detail-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
-  margin-bottom: 18px;
-}
-.style-detail-stat { text-align: center; }
-.style-detail-stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.style-detail-stat-label {
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-  margin-top: 2px;
-}
-
-.style-detail-section {
-  margin-bottom: 16px;
-}
-.style-detail-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--color-text-secondary);
-  margin-bottom: 8px;
-}
-.style-detail-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.style-detail-scope-tag {
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  background: var(--color-bg-page);
-  padding: 4px 10px;
-  border-radius: 999px;
-}
-.style-detail-prompt {
-  background: var(--color-bg-page);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--color-text-primary);
-  white-space: pre-wrap;
-  word-break: break-word;
-}
-.style-detail-excerpt {
-  background: var(--color-bg-page);
-  border-radius: var(--radius-md);
-  padding: 12px 14px;
-  font-size: 13px;
-  line-height: 1.7;
-  color: var(--color-text-secondary);
-  margin-bottom: 8px;
-}
-.style-detail-excerpt:last-child { margin-bottom: 0; }
-
-.style-detail-footer {
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid var(--color-border-light);
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-  text-align: center;
-}
-
-@media (max-width: 640px) {
-  .style-detail-stats { grid-template-columns: repeat(2, 1fr); }
-}
-
+<style>
 /* ===== 创作者详情 modal ===== */
 .creator-modal-body {
   display: flex;

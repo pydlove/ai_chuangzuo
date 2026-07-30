@@ -24,7 +24,7 @@ export function useGlobalStyleManagement() {
       list.value = res.list
       total.value = res.total
     } catch (error) {
-      message.error(error.message || '加载预设风格失败')
+      message.error(error.message || '加载预设提示词失败')
     } finally {
       loading.value = false
     }
@@ -52,7 +52,7 @@ export function useGlobalStyleManagement() {
     submitting.value = true
     try {
       await createGlobalSkill(payload)
-      message.success('预设风格已创建')
+      message.success('预设提示词已创建')
       await fetch()
       return true
     } catch (error) {
@@ -67,7 +67,7 @@ export function useGlobalStyleManagement() {
     submitting.value = true
     try {
       await updateGlobalSkill(bizNo, payload)
-      message.success('预设风格已更新')
+      message.success('预设提示词已更新')
       await fetch()
       return true
     } catch (error) {

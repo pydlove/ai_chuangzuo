@@ -27,5 +27,6 @@ public class SkillMarketVO {
     private BigDecimal weeklyEarnings;
     private BigDecimal milestoneBonus;
     private String status;
+    private Integer featured;
     private LocalDateTime createdAt;
 }

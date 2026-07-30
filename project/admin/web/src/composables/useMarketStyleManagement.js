@@ -29,7 +29,7 @@ export function useMarketStyleManagement() {
       list.value = res.list
       total.value = res.total
     } catch (error) {
-      message.error(error.message || '加载风格市场失败')
+      message.error(error.message || '加载提示词市场失败')
     } finally {
       loading.value = false
     }
@@ -57,7 +57,7 @@ export function useMarketStyleManagement() {
     submitting.value = true
     try {
       await createMarketSkill(payload)
-      message.success('风格市场条目已创建')
+      message.success('提示词市场条目已创建')
       await fetch()
       return true
     } catch (error) {
@@ -72,7 +72,7 @@ export function useMarketStyleManagement() {
     submitting.value = true
     try {
       await updateMarketSkill(bizNo, payload)
-      message.success('风格市场条目已更新')
+      message.success('提示词市场条目已更新')
       await fetch()
       return true
     } catch (error) {

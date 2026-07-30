@@ -36,4 +36,8 @@ public class UpdateSkillMarketRequest {
 
     @NotNull(message = "启用状态不能为空")
     private Integer enableStatus;
+
+    /** 是否官方精选：0-否，1-是。 */
+    @NotNull(message = "官方精选状态不能为空")
+    private Integer featured;
 }

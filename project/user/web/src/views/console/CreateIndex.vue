@@ -104,6 +104,7 @@ onMounted(async () => {
     const s = marketSkills.value.find(x => x.id === marketSkillId)
     if (s) {
       applySkillShared({
+        id: s.id,
         name: s.name,
         prompt: s.prompt,
         scope: s.scope
