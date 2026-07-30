@@ -6,6 +6,7 @@ import com.aichuangzuo.admin.modules.generation.pipeline.PipelineUtils;
 import com.aichuangzuo.admin.modules.generation.pipeline.StepResult;
 import com.aichuangzuo.admin.modules.generation.service.ArticleWriteInternalClient;
 import com.aichuangzuo.shared.entity.GenerationTask;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -54,7 +55,7 @@ public class PersistArticleStep implements GenerationStep {
         payload.put("body", ctx.getExportResult() == null ? null
                 : PipelineUtils.normalizeQuotes(ctx.getExportResult().getRenderedDocument()));
         payload.put("summary", in.get("description"));
-        payload.put("wordCount", ctx.getWordStats() == null ? 0 : ctx.getWordStats().getActual());
+        payload.put("wordCount", resolveWordCount(ctx));
         payload.put("platform", in.get("platform"));
         payload.put("skill", in.get("skillRef"));
         payload.put("template", in.get("template"));
@@ -66,6 +67,61 @@ public class PersistArticleStep implements GenerationStep {
         String articleBizNo = articleClient.saveArticle(payload);
         ctx.setArticleBizNo(articleBizNo);
         log.info("article 持久化完成 task={} articleBizNo={}", task.getId(), articleBizNo);
+
         return StepResult.CONTINUE;
+    }
+
+    /**
+     * 解析最终字数：优先用 stage 10 统计结果，未统计（如极速 3 阶段模板禁用 stage 10）
+     * 时从 finalDraftJson 兜底计算，避免 article.word_count 落库为 0。
+     */
+    private int resolveWordCount(GenerationContext ctx) {
+        if (ctx.getWordStats() != null) {
+            return Math.max(0, ctx.getWordStats().getActual());
+        }
+        return countWordsFromFinalDraft(ctx.getFinalDraftJson());
+    }
+
+    private int countWordsFromFinalDraft(String finalDraftJson) {
+        if (finalDraftJson == null || finalDraftJson.isBlank()) {
+            return 0;
+        }
+        try {
+            JsonNode root = objectMapper.readTree(finalDraftJson);
+            int total = 0;
+            for (JsonNode para : root.path("draft")) {
+                total += countChars(para.path("content").asText(""));
+            }
+            log.debug("finalDraftJson 兜底字数统计 actual={}", total);
+            return total;
+        } catch (Exception e) {
+            log.warn("finalDraftJson 兜底字数统计失败: {}", e.getMessage());
+            return 0;
+        }
+    }
+
+    private int countChars(String s) {
+        if (s == null || s.isEmpty()) {
+            return 0;
+        }
+        int n = 0;
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            if (Character.isWhitespace(c)) {
+                continue;
+            }
+            if (isPunctuation(c)) {
+                continue;
+            }
+            n++;
+        }
+        return n;
+    }
+
+    private boolean isPunctuation(char c) {
+        Character.UnicodeBlock b = Character.UnicodeBlock.of(c);
+        return b == Character.UnicodeBlock.GENERAL_PUNCTUATION
+                || b == Character.UnicodeBlock.CJK_SYMBOLS_AND_PUNCTUATION
+                || "，。！？、；：\"'\"'（）《》【】「」【】…—～·".indexOf(c) >= 0;
     }
 }
