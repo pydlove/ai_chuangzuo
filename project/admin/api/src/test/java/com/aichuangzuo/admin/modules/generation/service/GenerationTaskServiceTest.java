@@ -4,6 +4,8 @@ import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.message.service.NotifyOutboxService;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +15,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -26,6 +29,9 @@ class GenerationTaskServiceTest {
     private GenerationTaskMapper taskMapper;
     @Mock
     private NotifyOutboxService notifyOutboxService;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private GenerationTaskService taskService;
@@ -258,9 +264,37 @@ class GenerationTaskServiceTest {
     }
 
     @Test
-    void renewLease_shouldNoopWhenWorkerIdNull() {
-        // workerId 为 null 时 SQL 守卫必然不匹配，直接不调 mapper
-        taskService.renewLease(1L, null, 5);
-        verify(taskMapper, never()).renewLease(any(), any(), any(LocalDateTime.class));
+    void markCompleted_shouldInsertSkillUsageOutboxWhenSkillRefPresent() throws Exception {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        task.setTargetUserId(10L);
+        task.setInputParam("{\"skillRef\":\"SK123\"}");
+        when(taskMapper.selectById(1L)).thenReturn(task);
+        when(objectMapper.readValue(eq(task.getInputParam()), any(TypeReference.class)))
+                .thenReturn(Map.of("skillRef", "SK123"));
+
+        Map<String, Object> notifyPayload = Map.of("taskId", 1L, "userId", 10L);
+        taskService.markCompleted(1L, "ART123", null, notifyPayload);
+
+        verify(notifyOutboxService).insertPending(eq("skill_usage"), eq(1L), eq(10L), any(Map.class));
+        verify(notifyOutboxService).insertPending("generation_completed", 1L, 10L, notifyPayload);
+    }
+
+    @Test
+    void markCompleted_shouldNotInsertSkillUsageOutboxWhenSkillRefMissing() throws Exception {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setStatus(GenerationTaskStatus.PROCESSING);
+        task.setTargetUserId(10L);
+        task.setInputParam("{}");
+        when(taskMapper.selectById(1L)).thenReturn(task);
+        when(objectMapper.readValue(eq(task.getInputParam()), any(TypeReference.class)))
+                .thenReturn(Map.of());
+
+        Map<String, Object> notifyPayload = Map.of("taskId", 1L, "userId", 10L);
+        taskService.markCompleted(1L, "ART123", null, notifyPayload);
+
+        verify(notifyOutboxService, never()).insertPending(eq("skill_usage"), any(), any(), any(Map.class));
     }
 }

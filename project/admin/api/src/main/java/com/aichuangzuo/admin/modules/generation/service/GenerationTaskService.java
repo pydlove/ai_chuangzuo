@@ -6,12 +6,15 @@ import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,6 +31,7 @@ public class GenerationTaskService {
 
     private final GenerationTaskMapper mapper;
     private final NotifyOutboxService notifyOutboxService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 抢占一批任务（FOR UPDATE SKIP LOCKED）。
@@ -78,6 +82,7 @@ public class GenerationTaskService {
         log.info("task={} completed, articleBizNo={}", taskId, articleBizNo);
 
         if (notifyPayload != null) {
+            insertSkillUsageOutbox(task);
             notifyOutboxService.insertPending("generation_completed", taskId, task.getTargetUserId(), notifyPayload);
         }
     }
@@ -228,5 +233,25 @@ public class GenerationTaskService {
     private static String truncateReason(String reason) {
         if (reason == null || reason.length() <= MAX_FAILED_REASON_LEN) return reason;
         return reason.substring(0, MAX_FAILED_REASON_LEN);
+    }
+
+    private void insertSkillUsageOutbox(GenerationTask task) {
+        if (task.getInputParam() == null || task.getInputParam().isBlank()) {
+            return;
+        }
+        try {
+            Map<String, Object> input = objectMapper.readValue(task.getInputParam(), new TypeReference<>() {});
+            String skillRef = input.get("skillRef") == null ? null : input.get("skillRef").toString();
+            if (skillRef == null || skillRef.isBlank()) {
+                return;
+            }
+            Map<String, Object> payload = new HashMap<>();
+            payload.put("taskId", task.getId());
+            payload.put("userId", task.getTargetUserId());
+            payload.put("skillRef", skillRef);
+            notifyOutboxService.insertPending("skill_usage", task.getId(), task.getTargetUserId(), payload);
+        } catch (Exception e) {
+            log.warn("task={} 解析 inputParam 提取 skillRef 失败: {}", task.getId(), e.getMessage());
+        }
     }
 }
