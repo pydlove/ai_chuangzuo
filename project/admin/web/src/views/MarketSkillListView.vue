@@ -59,9 +59,6 @@
           <template v-else-if="column.key === 'publisherName'">
             <span>{{ record.publisherName || record.publisherUserId }}</span>
           </template>
-          <template v-else-if="column.key === 'price'">
-            <span>{{ record.price }}</span>
-          </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
             <a-popconfirm
@@ -176,9 +173,6 @@
             style="width: 160px"
           />
         </a-form-item>
-        <a-form-item label="单次价格">
-          <a-input :value="form.price + ' 创作币'" disabled style="width: 160px" />
-        </a-form-item>
         <a-form-item label="启用状态">
           <a-switch
             v-model:checked="form.enableStatus"
@@ -237,7 +231,6 @@ const columns = [
   { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 220 },
   { title: '发布者', dataIndex: 'publisherName', key: 'publisherName', width: 110 },
   { title: '累计使用', dataIndex: 'totalUses', key: 'totalUses', width: 90 },
-  { title: '价格', dataIndex: 'price', key: 'price', width: 90 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '官方精选', dataIndex: 'featured', key: 'featured', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
@@ -268,7 +261,6 @@ const form = reactive({
   promptSummary: '',
   prompt: '',
   totalUses: 0,
-  price: '0.20',
   enableStatus: true,
   featured: false
 })
@@ -282,7 +274,6 @@ function resetForm() {
   scopeRef.value = ''
   scopeInput.value = ''
   form.totalUses = 0
-  form.price = '0.20'
   form.enableStatus = true
   form.featured = false
   publisherOptions.value = []
@@ -330,7 +321,6 @@ const openEditModal = (record) => {
   scopeRef.value = record.scope || ''
   scopeInput.value = ''
   form.totalUses = record.totalUses || 0
-  form.price = String(record.price || '0.20')
   form.enableStatus = record.status === 'enabled'
   form.featured = record.featured === 1
   publisherOptions.value = [{

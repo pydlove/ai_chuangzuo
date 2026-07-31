@@ -12,6 +12,8 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+
 /**
  * 提示词市场月度排行榜奖励配置服务。
  *
@@ -47,6 +49,28 @@ public class SkillMonthlyRewardConfigService {
                 adminUserId, exist.getFirstAmount(), exist.getSecondAmount(), exist.getThirdAmount(),
                 exist.getFourthAmount(), exist.getFifthAmount(), exist.getSettlementCron(), exist.getEnabled());
         return toVo(exist);
+    }
+
+    public BigDecimal getPricePerUse() {
+        SkillMonthlyRewardConfig config = mapper.selectById(CONFIG_ID);
+        if (config == null || config.getPricePerUse() == null) {
+            return new BigDecimal("2.00");
+        }
+        return config.getPricePerUse().compareTo(BigDecimal.ZERO) > 0 ? config.getPricePerUse() : new BigDecimal("2.00");
+    }
+
+    @Transactional
+    public BigDecimal updatePricePerUse(BigDecimal pricePerUse, Long adminUserId) {
+        if (pricePerUse == null || pricePerUse.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException(AdminSkillMarketErrorCode.PRICE_INVALID);
+        }
+        SkillMonthlyRewardConfig exist = requireById(CONFIG_ID);
+        exist.setPricePerUse(pricePerUse);
+        exist.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
+        mapper.updateById(exist);
+
+        log.info("admin={} 更新提示词市场单次收益单价 pricePerUse={}", adminUserId, pricePerUse);
+        return exist.getPricePerUse();
     }
 
     /**

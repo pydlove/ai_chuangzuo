@@ -82,6 +82,42 @@ export function getFavoriteIds() {
   })
 }
 
+function normalizeRewardConfig(data) {
+  if (!data) return null
+  return {
+    firstAmount: Number(data.firstAmount || 0),
+    secondAmount: Number(data.secondAmount || 0),
+    thirdAmount: Number(data.thirdAmount || 0),
+    fourthAmount: Number(data.fourthAmount || 0),
+    fifthAmount: Number(data.fifthAmount || 0),
+    pricePerUse: Number(data.pricePerUse || 2),
+    enabled: data.enabled === 1
+  }
+}
+
+/**
+ * 获取提示词市场月度排行榜奖励配置。
+ * @returns {Promise<Object|null>}
+ */
+export function getMarketSkillMonthlyRewardConfig() {
+  return api.get('/market-skills/monthly-reward-config').then((res) => {
+    const data = res.data || res
+    return normalizeRewardConfig(data)
+  })
+}
+
+/**
+ * 获取提示词市场单次使用收益单价。
+ * @returns {Promise<number>}
+ */
+export function getMarketSkillPricePerUse() {
+  return api.get('/market-skills/price-per-use').then((res) => {
+    const data = res.data ?? res
+    const value = Number(data)
+    return Number.isFinite(value) && value > 0 ? value : 2
+  })
+}
+
 /**
  * 收藏市场 skill。
  * @param {string} marketSkillId

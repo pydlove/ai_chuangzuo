@@ -45,29 +45,6 @@ MOCK_COIN = {
     }
 }
 
-MOCK_INCOME = {
-    "code": 0,
-    "data": {
-        "topList": [
-            {"userId": "u1", "nickname": "创作达人", "amount": 25800.00, "rank": 1, "isMe": False},
-            {"userId": "u2", "nickname": "小李同学", "amount": 19600.00, "rank": 2, "isMe": False},
-            {"userId": "u3", "nickname": "张三", "amount": 14200.00, "rank": 3, "isMe": False},
-            {"userId": "u4", "nickname": "UserFour", "amount": 9800.00, "rank": 4, "isMe": False},
-            {"userId": "u5", "nickname": "UserFive", "amount": 7600.00, "rank": 5, "isMe": False},
-            {"userId": "me", "nickname": "我", "amount": 5200.00, "rank": 7, "isMe": True}
-        ],
-        "me": {"userId": "me", "nickname": "我", "amount": 5200.00, "rank": 7, "isMe": True}
-    }
-}
-
-MOCK_SUBMISSIONS = {
-    "code": 0,
-    "data": [
-        {"bizNo": "s1", "periodMonth": "2026-07", "amount": 5200.00, "platform": "wechat", "auditStatus": 1, "rejectReason": None},
-        {"bizNo": "s2", "periodMonth": "2026-06", "amount": 3100.00, "platform": "xiaohongshu", "auditStatus": 2, "rejectReason": "截图不清晰"}
-    ]
-}
-
 
 def main():
     server = start_preview_server()
@@ -85,10 +62,8 @@ def main():
                 url = request.url
                 if "/leaderboards/coin" in url:
                     route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_COIN))
-                elif "/leaderboards/income" in url:
-                    route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_INCOME))
-                elif "/leaderboards/income-submissions/me" in url:
-                    route.fulfill(status=200, content_type="application/json", body=json.dumps(MOCK_SUBMISSIONS))
+                elif "/api/" in url:
+                    route.fulfill(status=200, content_type="application/json", body=json.dumps({"code": 0, "data": {}, "message": "ok"}))
                 else:
                     route.continue_()
 
@@ -103,39 +78,22 @@ def main():
             page.locator('.console-sidebar-item:has-text("收益排行榜")').click()
             time.sleep(1)
 
-            # 验证页面标题与标签
+            # 验证页面标题与规则说明
             assert page.is_visible("text=收益排行榜"), "page title not found"
-            assert page.is_visible("text=创作币榜"), "coin tab not found"
-            assert page.is_visible("text=自媒体收入榜"), "income tab not found"
             assert page.is_visible("text=规则说明"), "rules link not found"
+            # 自媒体收入榜与 tab 切换已暂时隐藏
+            assert not page.is_visible("text=自媒体收入榜"), "income tab should be hidden"
+            assert not page.locator(".leaderboard-tabs").is_visible(), "tab switch should be hidden"
+            assert not page.is_visible("text=申报收入"), "submit button should be hidden"
 
             # 截图：创作币榜
-            page.click("text=创作币榜")
-            time.sleep(0.3)
             page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_coin.png"))
 
             # 截图：前三名卡片
             top_cards = page.locator(".leaderboard-top-card").count()
             assert top_cards >= 1, "expected top cards"
 
-            # 切换到自媒体收入榜
-            page.locator('.leaderboard-tab >> text=自媒体收入榜').click()
-            time.sleep(0.5)
-            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_income.png"))
-
-            # 打开申报弹框
-            page.locator(".leaderboard-submit-btn").click()
-            time.sleep(0.3)
-            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_submit.png"))
-
-            # 验证申报表单元素
-            assert page.is_visible("text=所属月份"), "submit month label not found"
-            assert page.is_visible("text=收入金额（元）"), "submit amount label not found"
-            assert page.is_visible("text=收益截图"), "submit screenshot label not found"
-
-            # 关闭申报弹框并打开规则弹框
-            page.keyboard.press("Escape")
-            time.sleep(0.3)
+            # 打开规则弹框
             page.click("text=规则说明")
             time.sleep(0.3)
             page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_rules.png"))
@@ -150,12 +108,7 @@ def main():
                 }"""
             )
             time.sleep(0.3)
-            page.locator('.leaderboard-tab >> text=创作币榜').click()
-            time.sleep(0.3)
             page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_coin_dark.png"))
-            page.locator('.leaderboard-tab >> text=自媒体收入榜').click()
-            time.sleep(0.3)
-            page.screenshot(path=str(SCREENSHOT_DIR / "leaderboard_income_dark.png"))
 
             # 暗色规则弹框截图
             page.click("text=规则说明")

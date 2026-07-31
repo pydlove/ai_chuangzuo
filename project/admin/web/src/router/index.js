@@ -93,11 +93,12 @@ const routes = [
         name: 'AdminHotSearchConfig',
         component: () => import('@/views/HotSearchConfigView.vue')
       },
-      {
-        path: 'leaderboard/review',
-        name: 'AdminLeaderboardReview',
-        component: () => import('@/views/LeaderboardReviewView.vue')
-      },
+      // 自媒体收入榜功能暂时隐藏
+      // {
+      //   path: 'leaderboard/review',
+      //   name: 'AdminLeaderboardReview',
+      //   component: () => import('@/views/LeaderboardReviewView.vue')
+      // },
       {
         path: 'leaderboard/award',
         name: 'AdminLeaderboardAward',
@@ -113,16 +114,17 @@ const routes = [
         name: 'AdminEarningsSettlements',
         component: () => import('@/views/SettlementView.vue')
       },
-      {
-        path: 'earnings/self-media-review',
-        name: 'AdminEarningsSelfMediaReview',
-        component: () => import('@/views/SelfMediaReviewView.vue')
-      },
-      {
-        path: 'earnings/leaderboard-awards',
-        name: 'AdminEarningsLeaderboardAwards',
-        component: () => import('@/views/LeaderboardAwardView.vue')
-      },
+      // 自媒体收入榜功能暂时隐藏
+      // {
+      //   path: 'earnings/self-media-review',
+      //   name: 'AdminEarningsSelfMediaReview',
+      //   component: () => import('@/views/SelfMediaReviewView.vue')
+      // },
+      // {
+      //   path: 'earnings/leaderboard-awards',
+      //   name: 'AdminEarningsLeaderboardAwards',
+      //   component: () => import('@/views/LeaderboardAwardView.vue')
+      // },
       {
         path: 'commission-tasks',
         name: 'AdminCommissionTask',

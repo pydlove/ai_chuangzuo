@@ -22,7 +22,7 @@
           <a-row :gutter="16">
             <a-col :span="12">
               <a-form-item label="Top1 奖励" name="firstAmount">
-                <a-input-number v-model:value="form.firstAmount" :min="0" :precision="2" style="width: 100%" />
+                <a-input-number v-model:value="form.firstAmount" :min="0" :precision="0" style="width: 100%" />
               </a-form-item>
             </a-col>
             <a-col :span="12">

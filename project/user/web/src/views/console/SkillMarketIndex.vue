@@ -30,43 +30,12 @@
       <div class="market-upload-icon">＋</div>
       <div class="market-upload-body">
         <div class="market-upload-title">上传你的提示词，开始赚创作币</div>
-        <div class="market-upload-sub">每被他人使用 1 次即得 2 币；周里程碑最高额外 +600</div>
+        <div class="market-upload-sub">每被他人使用一次，获得{{ formatCoinInt(pricePerUse) }}创作币的收益</div>
       </div>
       <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
     </section>
 
-    <!-- ③ 官方精选大卡 -->
-    <section class="market-featured">
-      <div class="market-section-head">
-        <div class="market-section-title-wrap">
-          <h2 class="market-section-title">官方精选</h2>
-          <span class="market-official-badge">官方</span>
-        </div>
-        <button class="market-section-link" @click="scrollToGrid">查看全部 →</button>
-      </div>
-      <div v-if="featuredSkills.length === 0" class="market-featured-empty">
-        官方精选即将上线
-      </div>
-      <div v-else class="market-featured-rail">
-        <div
-          v-for="s in featuredSkills"
-          :key="s.id"
-          class="market-featured-card"
-          @click="openStyleDetail(s)"
-        >
-          <span class="market-featured-badge">官方精选</span>
-          <div class="market-featured-head">
-            <div class="market-featured-name">{{ s.name }}</div>
-            <div class="market-featured-uses">{{ s.weeklyUses }}</div>
-          </div>
-          <div class="market-featured-meta">
-            <span v-if="s.scope"># {{ firstScope(s.scope) }} · </span>by {{ s.creatorName || '匿名用户' }}
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- ④ 收益潜力榜 -->
+    <!-- ③ 收益潜力榜 -->
     <section class="market-creators">
       <div class="market-section-head">
         <div class="market-section-title-wrap">
@@ -112,7 +81,7 @@
     </section>
 
     <!-- ⑤ 全部提示词区 -->
-    <section class="market-grid-section" ref="gridSection">
+    <section class="market-grid-section">
       <div class="market-section-head">
         <div class="market-section-title-wrap">
           <h2 class="market-section-title">全部提示词</h2>
@@ -152,67 +121,55 @@
           :name="s.name"
           :desc="s.description || s.promptSummary || s.desc || ''"
           :prompt="promptSummary(s.prompt)"
+          :featured="s.featured"
           :show-avatar="false"
           clickable
+          :actions="[
+            { label: '使用', type: 'primary', handler: () => handleUse(s) },
+            { label: isFavorite(s.id) ? '♥' : '♡', active: isFavorite(s.id), handler: () => handleToggleFavorite(s.id) },
+            { label: '查看', handler: () => openStyleDetail(s) },
+            { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) }
+          ]"
           @click="openStyleDetail(s)"
         >
           <template #meta>
-            <div class="market-card-meta-row">
-              <span class="market-card-creator">
-                <span class="market-card-creator-avatar">
+            <div class="skill-card__meta-row">
+              <span class="skill-card__creator">
+                <span class="skill-card__creator-avatar">
                   {{ (s.creatorName || '匿').charAt(0) }}
                 </span>
-                <span class="market-card-creator-name">by {{ s.creatorName || '匿名用户' }}</span>
+                <span class="skill-card__creator-name">by {{ s.creatorName || '匿名用户' }}</span>
               </span>
               <span
                 v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
-                class="market-card-scope-inline"
+                class="skill-card__scope-inline"
               >
                 <span
                   v-for="t in parseScopeTags(s.scope).slice(0, 2)"
                   :key="t"
-                  class="market-card-tag-compact"
+                  class="skill-card__tag-compact"
                 >
                   # {{ t }}
                 </span>
                 <span
                   v-if="parseScopeTags(s.scope).length > 2"
-                  class="market-card-tag-more"
+                  class="skill-card__tag-more"
                 >
                   +{{ parseScopeTags(s.scope).length - 2 }}
                 </span>
-                <span v-if="s.creatorId === currentUserId" class="market-card-mine-compact">我的</span>
+                <span v-if="s.creatorId === currentUserId" class="skill-card__mine-compact">我的</span>
               </span>
             </div>
           </template>
           <template #extra>
-            <div class="market-card-extra-row">
-              <span v-if="s.createdAt" class="market-card-published">
+            <div class="skill-card__extra-row">
+              <span v-if="s.createdAt" class="skill-card__published">
                 发布于 {{ formatTimeAgo(s.createdAt) }}
               </span>
-              <span class="market-card-extra-dot" v-if="s.createdAt">·</span>
+              <span class="skill-card__extra-dot" v-if="s.createdAt">·</span>
               <span>本周 {{ s.weeklyUses }} 次</span>
-              <span class="market-card-extra-dot">·</span>
+              <span class="skill-card__extra-dot">·</span>
               <span>累计 {{ s.totalUses }} 次</span>
-            </div>
-          </template>
-          <template #footer>
-            <div class="market-card-actions">
-              <button class="market-card-use" @click.stop="handleUse(s)">使用</button>
-              <button
-                :class="['market-card-fav', { active: isFavorite(s.id) }]"
-                @click.stop="handleToggleFavorite(s.id)"
-              >
-                {{ isFavorite(s.id) ? '♥' : '♡' }}
-              </button>
-              <button class="market-card-view" @click.stop="openStyleDetail(s)">查看</button>
-              <button
-                v-if="s.creatorId === currentUserId"
-                class="market-card-sim"
-                @click.stop="handleSimulate(s)"
-              >
-                模拟
-              </button>
             </div>
           </template>
         </SkillCard>
@@ -241,9 +198,21 @@
     centered
   >
     <ol class="style-market-rules-list">
-      <li>他人每使用一次你分享的提示词，你将获得 <span class="style-market-rule-highlight">2 创作币</span> 奖励。</li>
-      <li>每周根据提示词被使用次数发放里程碑奖励：<span class="style-market-rule-highlight">50 次 50 币</span>、<span class="style-market-rule-highlight">200 次 150 币</span>、<span class="style-market-rule-highlight">500 次 300 币</span>、<span class="style-market-rule-highlight">1000 次 600 币</span>。</li>
-      <li>里程碑奖励 <span class="style-market-rule-highlight">每周结算一次</span>，结算后当周使用次数清零并重新累计。</li>
+      <li>他人每使用一次你分享的提示词，你将获得 <span class="style-market-rule-highlight">{{ formatCoinInt(pricePerUse) }} 创作币</span> 奖励。</li>
+      <li v-if="rewardAmounts.length">
+        每月根据提示词市场 <span class="style-market-rule-highlight">收益潜力榜 Top5</span> 发放月度奖励：
+        <span
+          v-for="(item, idx) in rewardAmounts"
+          :key="item.rank"
+        >
+          <span class="style-market-rule-highlight">Top{{ item.rank }} {{ formatCoinInt(item.amount) }} 币</span>
+          <span v-if="idx < rewardAmounts.length - 1">、</span>
+        </span>。
+      </li>
+      <li v-else>
+        每月根据提示词市场 <span class="style-market-rule-highlight">收益潜力榜 Top5</span> 发放月度奖励，具体金额以平台公布为准。
+      </li>
+      <li>月度奖励 <span class="style-market-rule-highlight">每月结算一次</span>，结算后当月使用次数与月度收益清零并重新累计。</li>
       <li>使用他人分享的提示词 <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
       <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架提示词</span>。</li>
       <li>使用提示词市场上的提示词生成文章并成功后，该提示词的累计使用次数与本月使用次数会增加，创作者可获得对应创作币收益。</li>
@@ -285,8 +254,8 @@
           <div class="creator-modal-stat-label">本周币</div>
         </div>
         <div class="creator-modal-stat">
-          <div class="creator-modal-stat-value">{{ formatUses(creatorTotalEarnings) }}</div>
-          <div class="creator-modal-stat-label">累计币 (按使用×2)</div>
+          <div class="creator-modal-stat-value">{{ formatCoins(creatorTotalEarnings) }}</div>
+          <div class="creator-modal-stat-label">累计币 (按使用×单价)</div>
         </div>
         <div v-if="creatorFeaturedCount > 0" class="creator-modal-stat highlight">
           <div class="creator-modal-stat-value">{{ creatorFeaturedCount }}</div>
@@ -339,7 +308,7 @@ import {
   marketSkills,
   marketStats,
   topCreators,
-  featuredSkills,
+  pricePerUse,
   useMarketSkill,
   simulateExternalUse,
   toggleFavorite,
@@ -347,8 +316,10 @@ import {
   loadMarketSkills,
   loadMarketSkillOverview,
   loadMarketSkillPage,
-  loadFavoriteIds
+  loadFavoriteIds,
+  loadPricePerUse
 } from '@/composables/useSkillMarket.js'
+import { getMarketSkillMonthlyRewardConfig } from '@/api/marketSkill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
 
@@ -357,7 +328,30 @@ const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
 const rulesVisible = ref(false)
 
 const formatCoins = (n) => Number(n || 0).toFixed(2)
+const formatCoinInt = (n) => String(Math.round(Number(n || 0)))
 const formatUses = (n) => Number(n || 0).toLocaleString()
+
+const rewardConfig = ref(null)
+const rewardAmounts = computed(() => {
+  const cfg = rewardConfig.value
+  if (!cfg || !cfg.enabled) return []
+  return [
+    { rank: 1, amount: cfg.firstAmount },
+    { rank: 2, amount: cfg.secondAmount },
+    { rank: 3, amount: cfg.thirdAmount },
+    { rank: 4, amount: cfg.fourthAmount },
+    { rank: 5, amount: cfg.fifthAmount }
+  ]
+})
+
+const loadRewardConfig = async () => {
+  try {
+    rewardConfig.value = await getMarketSkillMonthlyRewardConfig()
+  } catch (e) {
+    console.warn('[loadRewardConfig]', e?.message || '加载失败')
+    rewardConfig.value = null
+  }
+}
 
 const goUpload = () => {
   router.push('/console/skills')
@@ -384,7 +378,10 @@ const creatorStyles = computed(() => {
 const creatorTotalEarnings = computed(() => {
   const c = selectedCreator.value
   if (!c) return 0
-  return creatorStyles.value.reduce((sum, s) => sum + (s.totalUses || 0), 0) * 2
+  const price = Number(pricePerUse.value || 2)
+  return creatorStyles.value.reduce((sum, s) => {
+    return sum + (s.totalUses || 0) * price
+  }, 0)
 })
 const creatorFeaturedCount = computed(() =>
   creatorStyles.value.filter((s) => s.featured === true).length
@@ -413,13 +410,8 @@ const onStyleDetailVisibleChange = (val) => {
   if (!val) selectedStyle.value = null
 }
 
-const scrollToGrid = () => {
-  document.querySelector('.market-grid-section')?.scrollIntoView({ behavior: 'smooth' })
-}
-
 const searchQuery = ref('')
 const activeTab = ref('all')
-const gridSection = ref(null)
 
 // ④ 收益榜：默认前 5 行，「查看完整榜单」可展开到前 20
 const creatorsExpanded = ref(false)
@@ -502,6 +494,8 @@ onMounted(() => {
   loadMarketSkills()
   loadFavoriteIds()
   loadMarketSkillOverview()
+  loadRewardConfig()
+  loadPricePerUse()
   loadPage(1)
 })
 </script>
@@ -662,134 +656,7 @@ onMounted(() => {
   gap: var(--space-lg);
 }
 
-.market-card-meta-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  flex-wrap: wrap;
-}
-.market-card-creator {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  font-size: var(--font-body);
-  color: var(--color-text-regular);
-}
-.market-card-creator-avatar {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-small);
-  font-weight: 700;
-}
-.market-card-creator-name {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 120px;
-}
-.market-card-scope-inline {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  flex-wrap: wrap;
-}
-.market-card-tag-compact {
-  font-size: var(--font-caption);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
-  padding: 1px 6px;
-  border-radius: var(--radius-md);
-  white-space: nowrap;
-}
-.market-card-tag-more {
-  font-size: var(--font-caption);
-  color: var(--color-text-placeholder);
-  white-space: nowrap;
-}
-.market-card-mine-compact {
-  font-size: var(--font-caption);
-  color: #07c160;
-  background: rgba(7, 193, 96, 0.08);
-  padding: 1px 6px;
-  border-radius: var(--radius-md);
-  font-weight: 600;
-  white-space: nowrap;
-}
-.market-card-extra-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-xs);
-  flex-wrap: wrap;
-  font-size: var(--font-caption);
-  color: var(--color-text-placeholder);
-}
-.market-card-published {
-  font-size: var(--font-caption);
-  color: var(--color-text-placeholder);
-}
-.market-card-extra-dot {
-  opacity: 0.6;
-}
-.market-card-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  margin-top: auto;
-  padding-top: var(--space-sm);
-}
-.market-card-use {
-  background: transparent;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-lg);
-  height: 32px;
-  padding: 0 12px;
-  font-size: var(--font-body);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-.market-card-use:hover {
-  background: var(--color-primary);
-  color: #fff;
-}
-.market-card-fav {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-body);
-  color: var(--color-text-placeholder);
-  cursor: pointer;
-}
-.market-card-fav.active {
-  background: transparent;
-  color: var(--color-primary);
-}
-.market-card-view, .market-card-sim {
-  background: transparent;
-  border: 0;
-  font-size: var(--font-body);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  padding: var(--space-sm);
-}
-.market-card-view:hover, .market-card-sim:hover {
-  color: var(--color-primary);
-}
-
 /* ⑤ 暗色 */
-body[data-theme="dark"] .market-card { background: #1f1f1f; }
 body[data-theme="dark"] .market-search-input {
   background: #141414;
   border-color: #303030;
@@ -805,34 +672,6 @@ body[data-theme="dark"] .market-tab.active {
   background: #2a2a2a;
   color: var(--color-text-primary);
   box-shadow: none;
-}
-body[data-theme="dark"] .market-card-creator { color: var(--color-text-regular); }
-body[data-theme="dark"] .market-card-creator-avatar {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-body[data-theme="dark"] .market-card-published { color: #a6a6a6; }
-body[data-theme="dark"] .market-card-tag-compact {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-body[data-theme="dark"] .market-card-mine-compact {
-  background: rgba(7, 193, 96, 0.12);
-  color: #07c160;
-}
-body[data-theme="dark"] .market-card-fav {
-  background: transparent;
-  border-color: transparent;
-}
-body[data-theme="dark"] .market-card-fav.active {
-  background: transparent;
-  color: #ff6b81;
-}
-body[data-theme="dark"] .market-featured-card {
-  border-color: #303030;
-}
-body[data-theme="dark"] .market-featured-badge {
-  background: var(--color-primary);
 }
 
 /* === 响应式 ≤768px === */
@@ -864,7 +703,6 @@ body[data-theme="dark"] .market-featured-badge {
     padding: var(--space-md);
   }
   .market-upload-cta { grid-column: 1 / -1; width: 100%; margin-top: var(--space-sm); }
-  .market-featured-rail { grid-template-columns: 1fr; }
   .market-creator-row {
     grid-template-columns: auto auto 1fr;
     gap: var(--space-sm);
@@ -996,7 +834,7 @@ body[data-theme="dark"] .market-creator-avatar {
 }
 body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary); }
 
-/* === ③ 官方精选 === */
+/* === ③ 收益潜力榜 === */
 .market-section-head {
   display: flex;
   justify-content: space-between;
@@ -1014,14 +852,6 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   color: var(--color-text-primary);
   margin: 0;
 }
-.market-official-badge {
-  background: var(--color-primary);
-  color: #fff;
-  font-size: var(--font-caption);
-  border-radius: var(--radius-md);
-  padding: 2px 8px;
-  font-weight: 600;
-}
 .market-section-link {
   background: transparent;
   border: 0;
@@ -1031,80 +861,6 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   font-weight: 500;
 }
 .market-section-link:hover { color: var(--color-primary-hover); }
-
-.market-featured-empty {
-  height: 96px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--color-text-placeholder);
-  font-size: var(--font-body);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-}
-.market-featured-rail {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: var(--space-sm);
-}
-.market-featured-card {
-  position: relative;
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md) var(--space-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-  cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
-}
-.market-featured-badge {
-  position: absolute;
-  top: 0;
-  right: 0;
-  font-size: 10px;
-  font-weight: 600;
-  color: #fff;
-  background: var(--color-primary);
-  padding: 2px 8px;
-  border-radius: 0 var(--radius-lg) 0 var(--radius-md);
-  line-height: 1.4;
-  z-index: 1;
-}
-.market-featured-card:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-light);
-}
-.market-featured-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-}
-.market-featured-name {
-  font-size: var(--font-body);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  flex: 1;
-}
-.market-featured-uses {
-  font-size: var(--font-h3);
-  font-weight: 700;
-  color: var(--color-primary);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-.market-featured-meta {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 
 /* === ② 上传激励卡 === */
 .market-upload-card {

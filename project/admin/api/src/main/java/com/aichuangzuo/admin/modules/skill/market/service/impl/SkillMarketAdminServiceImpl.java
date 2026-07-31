@@ -37,7 +37,6 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
 
     private static final int AUDIT_STATUS_APPROVED = 1;
     private static final int SOURCE_TYPE_PLATFORM = 3;
-    private static final BigDecimal DEFAULT_PRICE = new BigDecimal("0.20");
 
     private final SkillMarketMapper skillMarketMapper;
     private final SkillMarketAggregateMapper aggregateMapper;
@@ -77,7 +76,6 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setPrompt(request.getPrompt().trim());
         market.setScope(normalizeScope(request.getScope()));
         market.setPublisherUserId(request.getPublisherUserId());
-        market.setPrice(DEFAULT_PRICE);
         market.setTotalUses(request.getTotalUses() != null ? request.getTotalUses() : 0);
         market.setWeeklyUses(0);
         market.setWeeklyEarnings(BigDecimal.ZERO);
@@ -231,7 +229,6 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         vo.setScope(row.getScope());
         vo.setPublisherUserId(row.getPublisherUserId());
         vo.setPublisherName(row.getPublisherName());
-        vo.setPrice(row.getPrice());
         vo.setTotalUses(row.getTotalUses());
         vo.setWeeklyUses(row.getWeeklyUses());
         vo.setWeeklyEarnings(row.getWeeklyEarnings());

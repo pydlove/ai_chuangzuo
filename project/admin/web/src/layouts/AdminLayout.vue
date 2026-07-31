@@ -112,7 +112,9 @@
             <TrophyOutlined />
           </template>
           <template #title>收益排行榜</template>
+          <!-- 自媒体收入榜功能暂时隐藏
           <a-menu-item key="/console/leaderboard/review">收入审核</a-menu-item>
+          -->
           <a-menu-item key="/console/leaderboard/award">奖励发放</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/earnings">
@@ -122,8 +124,10 @@
           <template #title>收益管理</template>
           <a-menu-item key="/console/earnings/accounts">账户明细</a-menu-item>
           <a-menu-item key="/console/earnings/settlements">结算中心</a-menu-item>
+          <!-- 自媒体收入榜功能暂时隐藏
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
+          -->
         </a-sub-menu>
         <a-sub-menu key="/console/orders">
           <template #icon>
@@ -254,12 +258,14 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/hot-search/platforms') return '平台管理'
   if (route.path === '/console/hot-search/daily') return '今日榜单'
   if (route.path === '/console/hot-search/config') return '抓取配置'
-  if (route.path === '/console/leaderboard/review') return '收入审核'
+  // 自媒体收入榜功能暂时隐藏
+  // if (route.path === '/console/leaderboard/review') return '收入审核'
   if (route.path === '/console/leaderboard/award') return '奖励发放'
   if (route.path === '/console/earnings/accounts') return '账户明细'
   if (route.path === '/console/earnings/settlements') return '结算中心'
-  if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
-  if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
+  // 自媒体收入榜功能暂时隐藏
+  // if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
+  // if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
   if (route.path === '/console/commission-tasks') return '约稿管理'
   if (route.path === '/console/messages') return '消息管理'
   if (route.path === '/console/feedbacks') return '用户反馈'

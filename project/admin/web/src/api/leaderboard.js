@@ -1,16 +1,17 @@
 import request from '@/utils/request.js'
 
-export function getSubmissions(params) {
-  return request.get('/api/v1/admin/leaderboards/income-submissions', { params }).then((res) => res.data)
-}
+// 自媒体收入榜功能暂时隐藏
+// export function getSubmissions(params) {
+//   return request.get('/api/v1/admin/leaderboards/income-submissions', { params }).then((res) => res.data)
+// }
 
-export function approveSubmission(id) {
-  return request.post(`/api/v1/admin/leaderboards/income-submissions/${id}/approve`)
-}
+// export function approveSubmission(id) {
+//   return request.post(`/api/v1/admin/leaderboards/income-submissions/${id}/approve`)
+// }
 
-export function rejectSubmission(id, reason) {
-  return request.post(`/api/v1/admin/leaderboards/income-submissions/${id}/reject`, { reason })
-}
+// export function rejectSubmission(id, reason) {
+//   return request.post(`/api/v1/admin/leaderboards/income-submissions/${id}/reject`, { reason })
+// }
 
 export function previewTop10(params) {
   return request.get('/api/v1/admin/leaderboards/rewards/preview', { params }).then((res) => res.data)

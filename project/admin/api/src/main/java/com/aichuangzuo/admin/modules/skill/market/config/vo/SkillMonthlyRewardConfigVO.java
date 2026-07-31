@@ -19,6 +19,7 @@ public class SkillMonthlyRewardConfigVO {
     private BigDecimal fifthAmount;
     private String settlementCron;
     private Integer enabled;
+    private BigDecimal pricePerUse;
     private LocalDateTime updatedAt;
     private Long updatedBy;
 }

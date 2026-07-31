@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
+import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
+import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
 import com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketAggregateMapper;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketQueryService;
@@ -29,8 +31,11 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
     private static final int DEFAULT_PAGE_SIZE = 15;
     private static final int FEATURED_LIMIT = 6;
     private static final int CREATOR_LIMIT = 5;
+    private static final long CONFIG_ID = 1L;
+    private static final BigDecimal DEFAULT_PRICE_PER_USE = new BigDecimal("2.00");
 
     private final SkillMarketAggregateMapper aggregateMapper;
+    private final SkillMonthlyRewardConfigMapper configMapper;
 
     @Override
     public List<MarketSkillVO> listEnabled() {
@@ -61,6 +66,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
     @Override
     public MarketSkillOverviewVO getOverview() {
         List<MarketSkillRow> allApproved = aggregateMapper.selectEnabledMarketSkills(new Page<>(1, Integer.MAX_VALUE), null, "all").getRecords();
+        BigDecimal pricePerUse = resolvePricePerUse();
 
         MarketSkillOverviewVO overview = new MarketSkillOverviewVO();
         overview.setApprovedCount((long) allApproved.size());
@@ -69,9 +75,8 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
                 .sum());
         overview.setTotalEarnings(allApproved.stream()
                 .map(r -> {
-                    BigDecimal price = r.getPrice() == null ? BigDecimal.valueOf(2) : r.getPrice();
                     int totalUses = r.getTotalUses() == null ? 0 : r.getTotalUses();
-                    return price.multiply(BigDecimal.valueOf(totalUses));
+                    return pricePerUse.multiply(BigDecimal.valueOf(totalUses));
                 })
                 .reduce(BigDecimal.ZERO, BigDecimal::add));
 
@@ -90,6 +95,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
     }
 
     private List<TopCreatorVO> buildTopCreators(List<MarketSkillRow> rows) {
+        BigDecimal pricePerUse = resolvePricePerUse();
         Map<Long, List<MarketSkillRow>> byCreator = rows.stream()
                 .filter(r -> r.getPublisherUserId() != null)
                 .collect(Collectors.groupingBy(MarketSkillRow::getPublisherUserId));
@@ -112,9 +118,8 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
                     vo.setBestSkill(best == null ? null : toVo(best));
                     vo.setTotalEarnings(list.stream()
                             .map(r -> {
-                                BigDecimal price = r.getPrice() == null ? BigDecimal.valueOf(2) : r.getPrice();
                                 int totalUses = r.getTotalUses() == null ? 0 : r.getTotalUses();
-                                return price.multiply(BigDecimal.valueOf(totalUses));
+                                return pricePerUse.multiply(BigDecimal.valueOf(totalUses));
                             })
                             .reduce(BigDecimal.ZERO, BigDecimal::add));
                     return vo;
@@ -138,7 +143,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
         vo.setExcerpt1(null);
         vo.setExcerpt2(null);
         vo.setStatus("approved");
-        vo.setPrice(row.getPrice());
+        vo.setPrice(resolvePricePerUse());
         vo.setWeeklyUses(row.getWeeklyUses());
         vo.setTotalUses(row.getTotalUses());
         vo.setWeeklyEarnings(row.getWeeklyEarnings());
@@ -150,5 +155,14 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
         vo.setLastSettlementAt(row.getLastSettlementAt());
         vo.setCreatedAt(row.getCreatedAt());
         return vo;
+    }
+
+    private BigDecimal resolvePricePerUse() {
+        SkillMonthlyRewardConfig config = configMapper.selectById(CONFIG_ID);
+        if (config == null || config.getPricePerUse() == null
+                || config.getPricePerUse().compareTo(BigDecimal.ZERO) <= 0) {
+            return DEFAULT_PRICE_PER_USE;
+        }
+        return config.getPricePerUse();
     }
 }

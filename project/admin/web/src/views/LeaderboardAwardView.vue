@@ -5,7 +5,9 @@
         <a-form-item label="榜单">
           <a-select v-model:value="state.leaderboardType" style="width: 160px">
             <a-select-option :value="1">创作币榜</a-select-option>
+            <!-- 自媒体收入榜功能暂时隐藏
             <a-select-option :value="2">自媒体收入榜</a-select-option>
+            -->
           </a-select>
         </a-form-item>
         <a-form-item label="月份">

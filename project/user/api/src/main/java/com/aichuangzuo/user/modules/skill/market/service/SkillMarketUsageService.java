@@ -3,6 +3,8 @@ package com.aichuangzuo.user.modules.skill.market.service;
 import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
 import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
+import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
+import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -26,9 +28,11 @@ public class SkillMarketUsageService {
 
     private static final DateTimeFormatter MONTH_FMT = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final String SOURCE_TYPE_SKILL_MARKET = "skill_market";
+    private static final BigDecimal DEFAULT_PRICE_PER_USE = new BigDecimal("2.00");
 
     private final SkillMarketMapper skillMarketMapper;
     private final EarningsRecordMapper earningsRecordMapper;
+    private final SkillMonthlyRewardConfigMapper configMapper;
 
     /**
      * 记录一次市场提示词被使用（生成文章成功后调用）。
@@ -54,7 +58,7 @@ public class SkillMarketUsageService {
             return;
         }
 
-        BigDecimal price = skill.getPrice() == null ? BigDecimal.valueOf(2) : skill.getPrice();
+        BigDecimal price = resolvePricePerUse();
         String month = LocalDateTime.now().format(MONTH_FMT);
 
         skillMarketMapper.update(null, new LambdaUpdateWrapper<SkillMarket>()
@@ -78,5 +82,14 @@ public class SkillMarketUsageService {
 
         log.info("记录提示词市场使用 bizNo={} skillName={} consumer={} publisher={} price={} month={}",
                 marketSkillBizNo, skill.getSkillName(), consumerUserId, skill.getPublisherUserId(), price, month);
+    }
+
+    private BigDecimal resolvePricePerUse() {
+        SkillMonthlyRewardConfig config = configMapper.selectById(1L);
+        if (config == null || config.getPricePerUse() == null
+                || config.getPricePerUse().compareTo(BigDecimal.ZERO) <= 0) {
+            return DEFAULT_PRICE_PER_USE;
+        }
+        return config.getPricePerUse();
     }
 }

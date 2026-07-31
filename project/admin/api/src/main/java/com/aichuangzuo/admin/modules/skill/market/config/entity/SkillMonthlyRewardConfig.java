@@ -43,6 +43,9 @@ public class SkillMonthlyRewardConfig {
     /** 是否启用。 */
     private Integer enabled;
 
+    /** 提示词每次被使用创作者获得的收益（创作币），统一配置。 */
+    private BigDecimal pricePerUse;
+
     private Integer isDeleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

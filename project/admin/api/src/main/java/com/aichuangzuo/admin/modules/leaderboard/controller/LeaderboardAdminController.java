@@ -1,11 +1,13 @@
 package com.aichuangzuo.admin.modules.leaderboard.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+// 自媒体收入榜功能暂时隐藏
+// import com.aichuangzuo.admin.modules.leaderboard.dto.request.LeaderboardRejectRequest;
 import com.aichuangzuo.admin.modules.leaderboard.dto.request.LeaderboardGrantRequest;
-import com.aichuangzuo.admin.modules.leaderboard.dto.request.LeaderboardRejectRequest;
 import com.aichuangzuo.admin.modules.leaderboard.service.LeaderboardAwardService;
-import com.aichuangzuo.admin.modules.leaderboard.service.LeaderboardReviewService;
-import com.aichuangzuo.admin.modules.leaderboard.vo.IncomeSubmissionAdminVO;
+// 自媒体收入榜功能暂时隐藏
+// import com.aichuangzuo.admin.modules.leaderboard.service.LeaderboardReviewService;
+// import com.aichuangzuo.admin.modules.leaderboard.vo.IncomeSubmissionAdminVO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardGrantResultVO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.RewardRecordAdminVO;
@@ -26,27 +28,29 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LeaderboardAdminController {
 
-    private final LeaderboardReviewService reviewService;
+    // 自媒体收入榜功能暂时隐藏
+    // private final LeaderboardReviewService reviewService;
     private final LeaderboardAwardService awardService;
 
-    @GetMapping("/income-submissions")
-    public Result<IPage<IncomeSubmissionAdminVO>> page(@RequestParam(name = "status", required = false) Integer status,
-                                                          @RequestParam(name = "page", defaultValue = "1") int page,
-                                                          @RequestParam(name = "size", defaultValue = "20") int size) {
-        return Result.success(reviewService.page(status, new Page<>(page, size)));
-    }
+    // 自媒体收入榜功能暂时隐藏
+    // @GetMapping("/income-submissions")
+    // public Result<IPage<IncomeSubmissionAdminVO>> page(@RequestParam(name = "status", required = false) Integer status,
+    //                                                       @RequestParam(name = "page", defaultValue = "1") int page,
+    //                                                       @RequestParam(name = "size", defaultValue = "20") int size) {
+    //     return Result.success(reviewService.page(status, new Page<>(page, size)));
+    // }
 
-    @PostMapping("/income-submissions/{id}/approve")
-    public Result<Void> approve(@PathVariable(name = "id") Long id) {
-        reviewService.approve(id, currentAdminId());
-        return Result.success();
-    }
+    // @PostMapping("/income-submissions/{id}/approve")
+    // public Result<Void> approve(@PathVariable(name = "id") Long id) {
+    //     reviewService.approve(id, currentAdminId());
+    //     return Result.success();
+    // }
 
-    @PostMapping("/income-submissions/{id}/reject")
-    public Result<Void> reject(@PathVariable(name = "id") Long id, @Valid @RequestBody LeaderboardRejectRequest request) {
-        reviewService.reject(id, currentAdminId(), request.getReason());
-        return Result.success();
-    }
+    // @PostMapping("/income-submissions/{id}/reject")
+    // public Result<Void> reject(@PathVariable(name = "id") Long id, @Valid @RequestBody LeaderboardRejectRequest request) {
+    //     reviewService.reject(id, currentAdminId(), request.getReason());
+    //     return Result.success();
+    // }
 
     @GetMapping("/rewards/preview")
     public Result<List<LeaderboardTop10VO>> previewTop10(@RequestParam(name = "leaderboardType") Integer leaderboardType,

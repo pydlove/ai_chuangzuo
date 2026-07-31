@@ -154,8 +154,17 @@
             v-for="s in filteredMyStyles"
             :key="s.name"
             :name="s.name"
+            :desc="s.desc && s.desc !== '自定义提示词' ? s.desc : ''"
             :prompt="promptSummary(s.prompt)"
             :scope="s.scope"
+            show-avatar="false"
+            :actions="[
+              { label: '使用', type: 'primary', handler: () => useStyle(s) },
+              { label: '查看', handler: () => openMyStylePromptModal(s) },
+              { label: '编辑', handler: () => goToEdit(s) },
+              { label: '发布', type: 'primary', visible: (s.auditStatus == null || s.auditStatus === 2) && publishTotal > 0, disabled: publishBlocked, title: publishQuotaHint, handler: () => openPublishConfirm(s, 'my') },
+              { label: '删除', type: 'danger', handler: () => deleteSkill(s.name) }
+            ]"
           >
             <template #status>
               <div
@@ -174,23 +183,24 @@
               </div>
             </template>
             <template #meta>
-              <span>{{ s.desc }}</span>
-              <span class="style-card-meta-dot">·</span>
-              <span>已用 {{ s.count }} 次</span>
+              <div class="skill-card__meta-row">
+                <span class="skill-card__scope-inline">
+                  <span
+                    v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                    :key="t"
+                    class="skill-card__tag-compact"
+                  ># {{ t }}</span>
+                  <span
+                    v-if="parseScopeTags(s.scope).length > 2"
+                    class="skill-card__tag-more"
+                  >+{{ parseScopeTags(s.scope).length - 2 }}</span>
+                  <span class="skill-card__mine-compact">我的</span>
+                </span>
+              </div>
             </template>
-            <template #footer>
-              <div class="style-card-actions">
-                <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-                <button class="style-action-btn" @click.stop="openMyStylePromptModal(s)">查看</button>
-                <button class="style-action-btn" @click.stop="goToEdit(s)">编辑</button>
-                <button
-                  v-if="s.auditStatus == null || s.auditStatus === 2"
-                  class="style-action-btn primary"
-                  :disabled="publishBlocked"
-                  :title="publishQuotaHint"
-                  @click.stop="openPublishConfirm(s, 'my')"
-                >发布</button>
-                <button class="style-action-btn danger" @click.stop="deleteSkill(s.name)">删除</button>
+            <template #extra>
+              <div class="skill-card__extra-row">
+                <span>已用 {{ s.count }} 次</span>
               </div>
             </template>
           </SkillCard>
@@ -211,16 +221,29 @@
           v-for="s in filteredSystemStyles"
           :key="s.name"
           :name="s.name"
+          :desc="s.desc"
           :prompt="promptSummary(s.prompt)"
           :scope="s.scope"
+          show-avatar="false"
+          :actions="[
+            { label: '使用', type: 'primary', handler: () => useStyle(s) },
+            { label: '查看完整提示词', handler: () => openMyStylePromptModal(s, 'system') }
+          ]"
         >
-          <template #meta>{{ s.desc }}</template>
-          <template #footer>
-            <div class="style-card-actions">
-              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-              <button class="style-action-btn" @click.stop="openMyStylePromptModal(s, 'system')">
-                查看完整提示词
-              </button>
+          <template #meta>
+            <div class="skill-card__meta-row">
+              <span class="skill-card__scope-inline">
+                <span
+                  v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                  :key="t"
+                  class="skill-card__tag-compact"
+                ># {{ t }}</span>
+                <span
+                  v-if="parseScopeTags(s.scope).length > 2"
+                  class="skill-card__tag-more"
+                >+{{ parseScopeTags(s.scope).length - 2 }}</span>
+                <span class="skill-card__mine-compact">系统</span>
+              </span>
             </div>
           </template>
         </SkillCard>
@@ -249,8 +272,16 @@
           :name="s.name"
           :prompt="s.prompt"
           :scope="s.scope"
+          show-avatar="false"
           avatar-variant="learned"
           :expanded="expandedNames.has(s.name)"
+          :actions="[
+            { label: '使用', type: 'primary', handler: () => useStyle(s) },
+            { label: expandedNames.has(s.name) ? '收起' : '查看', handler: () => togglePrompt(s.name) },
+            { label: '编辑', handler: () => goToEditLearned(s) },
+            { label: '发布', type: 'primary', visible: (s.auditStatus == null || s.auditStatus === 2) && publishTotal > 0, disabled: publishBlocked, title: publishQuotaHint, handler: () => openPublishConfirm(s, 'learned') },
+            { label: '删除', type: 'danger', handler: () => deleteLearnedStyle(s) }
+          ]"
         >
           <template #status>
             <div
@@ -268,22 +299,25 @@
               {{ getMarketStatus(s.name) }}
             </div>
           </template>
-          <template #meta>学习 · {{ (s.createdAt || '').slice(0, 10) }}</template>
-          <template #footer>
-            <div class="style-card-actions">
-              <button class="style-action-btn primary" @click.stop="useStyle(s)">使用</button>
-              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-                {{ expandedNames.has(s.name) ? '收起' : '查看' }}
-              </button>
-              <button class="style-action-btn" @click.stop="goToEditLearned(s)">编辑</button>
-              <button
-                v-if="s.auditStatus == null || s.auditStatus === 2"
-                class="style-action-btn primary"
-                :disabled="publishBlocked"
-                :title="publishQuotaHint"
-                @click.stop="openPublishConfirm(s, 'learned')"
-              >发布</button>
-              <button class="style-action-btn danger" @click.stop="deleteLearnedStyle(s)">删除</button>
+          <template #meta>
+            <div class="skill-card__meta-row">
+              <span class="skill-card__scope-inline">
+                <span
+                  v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                  :key="t"
+                  class="skill-card__tag-compact"
+                ># {{ t }}</span>
+                <span
+                  v-if="parseScopeTags(s.scope).length > 2"
+                  class="skill-card__tag-more"
+                >+{{ parseScopeTags(s.scope).length - 2 }}</span>
+                <span class="skill-card__mine-compact">学习</span>
+              </span>
+            </div>
+          </template>
+          <template #extra>
+            <div class="skill-card__extra-row">
+              <span>学习 · {{ (s.createdAt || '').slice(0, 10) }}</span>
             </div>
           </template>
         </SkillCard>
@@ -294,7 +328,7 @@
     <div v-show="activeTab === 'favorites'" class="styles-content">
       <div v-if="favoriteSkills.length === 0" class="styles-empty">
         <a-empty description="还没有收藏的提示词">
-          <button class="style-action-btn primary" @click="router.push('/console/skill-market')">
+          <button class="empty-action-btn" @click="router.push('/console/skill-market')">
             去收藏
           </button>
         </a-empty>
@@ -304,18 +338,34 @@
           v-for="s in favoriteSkills"
           :key="s.id"
           :name="s.name"
+          :desc="s.description || s.promptSummary || s.desc || ''"
           :prompt="s.prompt"
           :scope="s.scope"
+          show-avatar="false"
           :expanded="expandedNames.has(s.name)"
+          :actions="[
+            { label: '使用', type: 'primary', handler: () => useFavoriteStyle(s) },
+            { label: expandedNames.has(s.name) ? '收起' : '查看', handler: () => togglePrompt(s.name) },
+            { label: '取消收藏', type: 'danger', handler: () => confirmUnfavorite(s) }
+          ]"
         >
-          <template #meta>by {{ s.creatorName }}</template>
-          <template #footer>
-            <div class="style-card-actions">
-              <button class="style-action-btn primary" @click.stop="useFavoriteStyle(s)">使用</button>
-              <button class="style-action-btn" @click.stop="togglePrompt(s.name)">
-                {{ expandedNames.has(s.name) ? '收起' : '查看' }}
-              </button>
-              <button class="style-action-btn danger" @click.stop="confirmUnfavorite(s)">取消收藏</button>
+          <template #meta>
+            <div class="skill-card__meta-row">
+              <span class="skill-card__creator">
+                <span class="skill-card__creator-avatar">{{ (s.creatorName || '匿').charAt(0) }}</span>
+                <span class="skill-card__creator-name">by {{ s.creatorName || '匿名用户' }}</span>
+              </span>
+              <span class="skill-card__scope-inline">
+                <span
+                  v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                  :key="t"
+                  class="skill-card__tag-compact"
+                ># {{ t }}</span>
+                <span
+                  v-if="parseScopeTags(s.scope).length > 2"
+                  class="skill-card__tag-more"
+                >+{{ parseScopeTags(s.scope).length - 2 }}</span>
+              </span>
             </div>
           </template>
         </SkillCard>
@@ -525,7 +575,7 @@
           @click="goToEdit(selectedMyStyle); closeMyStylePromptModal()"
         >编辑</button>
         <button
-          v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (selectedMyStyle.auditStatus == null || selectedMyStyle.auditStatus === 2)"
+          v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (selectedMyStyle.auditStatus == null || selectedMyStyle.auditStatus === 2) && publishTotal > 0"
           class="my-style-prompt-publish-btn"
           :disabled="publishBlocked"
           :title="publishQuotaHint"
@@ -1337,77 +1387,20 @@ const closeMyStylePromptModal = () => {
   color: #ff4d4f;
 }
 
-.style-card-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-
-.style-card-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 0;
-}
-
-.style-action-btn {
-  padding: 6px 10px;
-  background: transparent;
-  border: none;
-  border-radius: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.style-action-btn:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.style-action-btn.primary {
+.empty-action-btn {
   padding: 6px 12px;
   background: #fff;
   color: var(--color-primary);
   border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.style-action-btn.primary:hover {
+.empty-action-btn:hover {
   background: var(--color-primary-bg);
-}
-
-.style-action-btn.danger {
-  color: #ff4d4f;
-}
-
-.style-action-btn.danger:hover {
-  color: #ff4d4f;
-  background: #fff1f0;
-}
-
-.style-action-btn:disabled,
-.style-action-btn.primary:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-  cursor: not-allowed;
-}
-
-.style-action-btn.success:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-}
-
-.style-action-btn.success {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 1px solid #b7eb8f;
-}
-
-.style-action-btn.success:hover {
-  background: #d9f7be;
 }
 
 .publish-confirm-body {
@@ -2066,10 +2059,6 @@ body[data-theme="dark"] .style-add-card {
   border-color: #303030;
 }
 
-body[data-theme="dark"] .style-card-meta-dot {
-  color: #595959;
-}
-
 body[data-theme="dark"] .learned-cancel-btn {
   background: #1f1f1f;
   border-color: #303030;
@@ -2122,59 +2111,14 @@ body[data-theme="dark"] .style-card-status.rejected {
   color: #ff7875;
 }
 
-body[data-theme="dark"] .style-action-btn.danger {
-  color: #ff7875;
-}
-
-body[data-theme="dark"] .style-action-btn.danger:hover {
-  background: rgba(255, 77, 79, 0.15);
-  color: #ff4d4f;
-}
-
-body[data-theme="dark"] .style-action-btn {
-  background: transparent;
-  border-color: transparent;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-action-btn:hover {
-  border-color: transparent;
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .style-action-btn.primary {
+body[data-theme="dark"] .empty-action-btn {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-body[data-theme="dark"] .style-action-btn.primary:hover {
+body[data-theme="dark"] .empty-action-btn:hover {
   background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .style-action-btn.success {
-  background: rgba(7, 193, 96, 0.15);
-  border-color: rgba(7, 193, 96, 0.4);
-  color: #4ade80;
-}
-
-body[data-theme="dark"] .style-action-btn.success:hover {
-  background: rgba(7, 193, 96, 0.25);
-  border-color: #4ade80;
-}
-
-body[data-theme="dark"] .style-action-btn:disabled,
-body[data-theme="dark"] .style-action-btn.primary:disabled {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: #434343;
-  color: #595959;
-}
-
-body[data-theme="dark"] .style-action-btn.success:disabled {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: #434343;
-  color: #595959;
 }
 
 body[data-theme="dark"] .publish-confirm-title {

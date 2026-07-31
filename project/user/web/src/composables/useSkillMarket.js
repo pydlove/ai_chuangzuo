@@ -4,6 +4,7 @@ import {
   getMarketSkillOverview,
   getMarketSkillsPage,
   getFavoriteIds,
+  getMarketSkillPricePerUse,
   addFavorite,
   removeFavorite
 } from '@/api/marketSkill.js'
@@ -14,6 +15,18 @@ const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
 const USER_ID_KEY = 'aichuangzuo_user_id'
 
 const PRICE_PER_USE = 2
+
+export const pricePerUse = ref(PRICE_PER_USE)
+
+export async function loadPricePerUse() {
+  try {
+    const value = await getMarketSkillPricePerUse()
+    pricePerUse.value = value
+  } catch (e) {
+    console.warn('[loadPricePerUse]', e?.message || '加载失败')
+    pricePerUse.value = PRICE_PER_USE
+  }
+}
 
 function loadEarningsRecords() {
   try {
@@ -180,7 +193,7 @@ export function shareSkillToMarket(style, sourceType) {
     excerpt2: style.excerpt2 || '',
     status: 'pending',
     featured: false,
-    price: PRICE_PER_USE,
+    price: pricePerUse.value,
     weeklyUses: 0,
     totalUses: 0,
     weeklyEarnings: 0,
@@ -200,19 +213,20 @@ export function useMarketSkill(marketId) {
   if (s.status !== 'approved') throw new Error('skill 未上架')
 
   // 前端 mock：使用他人分享的 skill 不扣创作币，创作者仍获得收益
+  const price = Number(s.price || pricePerUse.value)
   const creatorBalance = getCoinBalance()
-  setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
+  setCoinBalance(Number((creatorBalance + price).toFixed(2)))
 
   s.monthlyUses = (s.monthlyUses || 0) + 1
   s.totalUses = (s.totalUses || 0) + 1
-  s.monthlyEarnings = Number(((s.monthlyUses || 0) * PRICE_PER_USE).toFixed(2))
+  s.monthlyEarnings = Number(((s.monthlyUses || 0) * price).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
     type: 'usage',
     skillName: s.name,
     skillId: s.id,
-    amount: PRICE_PER_USE,
+    amount: price,
     fromUserId: getUserId(),
     description: `使用「${s.name}」生成文章`,
     status: 'unsettled',
@@ -228,19 +242,20 @@ export function simulateExternalUse(marketId) {
   if (s.status !== 'approved') throw new Error('skill 未上架')
 
   // 前端 mock：外部用户使用免费，创作者获得收益
+  const price = Number(s.price || pricePerUse.value)
   const creatorBalance = getCoinBalance()
-  setCoinBalance(Number((creatorBalance + PRICE_PER_USE).toFixed(2)))
+  setCoinBalance(Number((creatorBalance + price).toFixed(2)))
 
   s.monthlyUses = (s.monthlyUses || 0) + 1
   s.totalUses = (s.totalUses || 0) + 1
-  s.monthlyEarnings = Number(((s.monthlyUses || 0) * PRICE_PER_USE).toFixed(2))
+  s.monthlyEarnings = Number(((s.monthlyUses || 0) * price).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
     type: 'usage',
     skillName: s.name,
     skillId: s.id,
-    amount: PRICE_PER_USE,
+    amount: price,
     fromUserId: 'external-user',
     description: `其他用户使用「${s.name}」生成文章`,
     status: 'unsettled',

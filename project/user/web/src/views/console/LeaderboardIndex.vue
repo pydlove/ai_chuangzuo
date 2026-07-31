@@ -3,12 +3,13 @@
     <div class="leaderboard-header">
       <h2 class="leaderboard-title">收益排行榜</h2>
       <p class="leaderboard-subtitle">
-        创作币榜按月度统计平台收益，自媒体收入榜需提交收入截图并通过审核后计入排名
+        创作币榜按月度统计平台收益
         <span class="leaderboard-rules-link" @click="rulesVisible = true">规则说明</span>
       </p>
     </div>
 
-    <div class="leaderboard-tabs">
+    <!-- 创作币榜的 tab 切换隐藏 -->
+    <div v-if="false" class="leaderboard-tabs">
       <button
         :class="['leaderboard-tab', { active: activeTab === 'coin' }]"
         @click="activeTab = 'coin'"
@@ -24,7 +25,7 @@
     </div>
 
     <!-- 创作币榜 -->
-    <div v-show="activeTab === 'coin'" class="leaderboard-section">
+    <div class="leaderboard-section">
       <div class="leaderboard-toolbar">
         <div class="leaderboard-toolbar-left">
           <span class="leaderboard-period-label">{{ currentCoinMonth }}</span>
@@ -85,8 +86,8 @@
       </div>
     </div>
 
-    <!-- 自媒体收入榜 -->
-    <div v-show="activeTab === 'income'" class="leaderboard-section">
+    <!-- 自媒体收入榜功能暂时隐藏 -->
+    <div v-if="false" class="leaderboard-section">
       <div class="leaderboard-toolbar">
         <div class="leaderboard-toolbar-left">
           <div class="leaderboard-period-tabs">
@@ -203,10 +204,8 @@
     >
       <ol class="leaderboard-rules-list">
         <li><span class="leaderboard-rules-highlight">创作币榜</span>按自然月统计平台创作币收益，数据自动汇总，无需手动申报。</li>
-        <li><span class="leaderboard-rules-highlight">自媒体收入榜</span>分为月度榜和年度榜，需填写收入金额并上传平台收益截图，审核通过后计入榜单。</li>
-        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 10</span> 与 <span class="leaderboard-rules-highlight">自媒体收入榜月度 TOP 10</span> 均可获得 <span class="leaderboard-rules-highlight">1000 创作币</span>奖励。</li>
-        <li>奖励在榜单结算后自动发放至账户余额，同一人同一榜单同一周期只发放一次。</li>
-        <li>严禁提交虚假收入截图，一经查实将取消当月排名与奖励资格。</li>
+        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 10</span> 均可获得 <span class="leaderboard-rules-highlight">1000 创作币</span>奖励。</li>
+        <li>奖励在榜单结算后自动发放至账户余额，同一人同一周期只发放一次。</li>
       </ol>
       <div class="leaderboard-rules-footer">* 活动最终解释权归平台所有。</div>
       <div class="leaderboard-rules-guide-link">
@@ -214,8 +213,9 @@
       </div>
     </a-modal>
 
-    <!-- 收入申报 -->
+    <!-- 收入申报功能暂时隐藏 -->
     <a-modal
+      v-if="false"
       v-model:open="submitVisible"
       title="申报自媒体收入"
       :footer="null"
@@ -290,9 +290,10 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   getCoinLeaderboard,
-  getIncomeLeaderboard,
-  submitIncomeSubmission,
-  getMyIncomeSubmissions,
+  // 自媒体收入榜功能暂时隐藏
+  // getIncomeLeaderboard,
+  // submitIncomeSubmission,
+  // getMyIncomeSubmissions,
   getRewardRecord
 } from '@/composables/useLeaderboard.js'
 
@@ -350,38 +351,43 @@ async function loadCoinLeaderboard() {
 }
 
 async function loadIncomeLeaderboard() {
-  try {
-    loading.value = true
-    incomeList.value = await getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
-  } catch (err) {
-    message.error(err.message || '自媒体收入榜加载失败')
-  } finally {
-    loading.value = false
-  }
+  // 自媒体收入榜功能暂时隐藏
+  // try {
+  //   loading.value = true
+  //   incomeList.value = await getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
+  // } catch (err) {
+  //   message.error(err.message || '自媒体收入榜加载失败')
+  // } finally {
+  //   loading.value = false
+  // }
 }
 
 async function loadMySubmissions() {
-  try {
-    mySubmissions.value = await getMyIncomeSubmissions()
-  } catch (err) {
-    message.error(err.message || '我的申报记录加载失败')
-  }
+  // 自媒体收入榜功能暂时隐藏
+  // try {
+  //   mySubmissions.value = await getMyIncomeSubmissions()
+  // } catch (err) {
+  //   message.error(err.message || '我的申报记录加载失败')
+  // }
 }
 
 onMounted(async () => {
   await loadCoinLeaderboard()
-  await loadIncomeLeaderboard()
-  await loadMySubmissions()
+  // 自媒体收入榜功能暂时隐藏
+  // await loadIncomeLeaderboard()
+  // await loadMySubmissions()
 })
 
 watch([incomePeriodType, incomePeriodValue], () => {
-  loadIncomeLeaderboard()
+  // 自媒体收入榜功能暂时隐藏
+  // loadIncomeLeaderboard()
 })
 
 watch(activeTab, (tab) => {
-  if (tab === 'income') {
-    loadIncomeLeaderboard()
-  }
+  // 自媒体收入榜功能暂时隐藏
+  // if (tab === 'income') {
+  //   loadIncomeLeaderboard()
+  // }
 })
 
 const coinTop3 = computed(() => coinList.value.slice(0, 3))
@@ -688,7 +694,7 @@ async function handleSubmit() {
   padding: 0 18px;
   border: none;
   border-radius: 8px;
-  background: #ff2442;
+  background: var(--color-primary);
   color: #fff;
   font-size: 14px;
   font-weight: 500;
@@ -697,7 +703,7 @@ async function handleSubmit() {
 }
 
 .leaderboard-submit-btn:hover {
-  background: #e61e3a;
+  background: var(--color-primary-hover);
 }
 
 .reward-banner {
@@ -1073,10 +1079,18 @@ async function handleSubmit() {
   font-size: 14px;
   background: #fff;
   color: #1a1a1a;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
 
 .form-input::placeholder {
   color: #bfbfbf;
+}
+
+.form-input:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
 }
 
 .form-static {
@@ -1129,12 +1143,23 @@ async function handleSubmit() {
 
 .form-upload-add {
   background: #fafafa;
+  transition: all 0.2s;
+}
+
+.form-upload-add:hover {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
 .form-upload-add .form-upload-placeholder {
   font-size: 28px;
   font-weight: 300;
   color: #bfbfbf;
+  transition: color 0.2s;
+}
+
+.form-upload-add:hover .form-upload-placeholder {
+  color: var(--color-primary);
 }
 
 .form-file {
@@ -1205,17 +1230,17 @@ async function handleSubmit() {
 }
 
 .form-btn-default:hover {
-  border-color: #ff2442;
-  color: #ff2442;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .form-btn-primary {
-  background: #ff2442;
+  background: var(--color-primary);
   color: #fff;
 }
 
 .form-btn-primary:hover {
-  background: #e61e3a;
+  background: var(--color-primary-hover);
 }
 
 /* 移动端适配 */
@@ -1299,6 +1324,17 @@ async function handleSubmit() {
 
 <style>
 /* 暗色主题：全局覆盖（弹框 teleport 到 body，需非 scoped） */
+
+/* 申报自媒体收入弹框外壳主题色 */
+.leaderboard-submit-modal .ant-modal-content {
+  border-radius: 12px;
+  overflow: hidden;
+  border-top: 3px solid var(--color-primary);
+}
+
+.leaderboard-submit-modal .ant-modal-close:hover {
+  color: var(--color-primary);
+}
 body[data-theme="dark"] .leaderboard-page {
   background: #141414;
 }
@@ -1457,8 +1493,23 @@ body[data-theme="dark"] .form-btn-default {
 }
 
 body[data-theme="dark"] .form-btn-default:hover {
-  border-color: #ff2442;
-  color: #ff2442;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .form-input:focus,
+body[data-theme="dark"] .form-select:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 77, 111, 0.2);
+}
+
+body[data-theme="dark"] .form-upload-add:hover {
+  border-color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .form-upload-add:hover .form-upload-placeholder {
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .leaderboard-rules-list {

@@ -21,7 +21,6 @@ public class SkillMarketVO {
     private String scope;
     private Long publisherUserId;
     private String publisherName;
-    private BigDecimal price;
     private Integer totalUses;
     private Integer weeklyUses;
     private BigDecimal weeklyEarnings;

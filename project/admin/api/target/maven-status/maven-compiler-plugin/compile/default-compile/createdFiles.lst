@@ -6,6 +6,7 @@ com/aichuangzuo/admin/modules/topictitle/controller/TopicTitleAdminController.cl
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchDailyMapper.class
 com/aichuangzuo/admin/modules/commission/entity/CommissionSubmission.class
 com/aichuangzuo/admin/modules/skill/market/dto/SkillMarketRow.class
+com/aichuangzuo/admin/modules/skill/market/config/dto/request/SkillPricePerUseUpdateRequest.class
 com/aichuangzuo/admin/modules/order/vo/PlanDistributionVO.class
 com/aichuangzuo/admin/modules/hotsearch/entity/HotSearchConfig.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnCategoryServiceImpl.class
@@ -399,6 +400,7 @@ com/aichuangzuo/admin/modules/skill/review/enums/AdminSkillReviewErrorCode.class
 com/aichuangzuo/admin/modules/reminder/service/impl/ReminderConfigServiceImpl.class
 com/aichuangzuo/admin/modules/earnings/entity/EarningsRecord.class
 com/aichuangzuo/admin/modules/order/dto/request/OrderRefundRequest.class
+com/aichuangzuo/admin/modules/skill/market/config/controller/SkillPricePerUseController.class
 com/aichuangzuo/admin/modules/benefit/mapper/BenefitMapper.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/PersistArticleStep.class
 com/aichuangzuo/admin/config/WebMvcConfig.class

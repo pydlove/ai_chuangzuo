@@ -227,6 +227,8 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/mapper/UserSkillMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/config/entity/SkillMonthlyRewardConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/config/mapper/SkillMonthlyRewardConfigMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/config/service/SkillMonthlyRewardConfigService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/config/vo/SkillMonthlyRewardConfigVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/controller/SkillMarketController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/controller/SkillMarketInternalController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/market/controller/SkillUsageInternalController.java

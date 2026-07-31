@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.skill.market.config.dto.request;
 
-import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Digits;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,23 +16,28 @@ import java.math.BigDecimal;
 public class SkillMonthlyRewardConfigUpdateRequest {
 
     @NotNull
-    @DecimalMin("0.00")
+    @Min(0)
+    @Digits(integer = 10, fraction = 0, message = "奖励金额必须是整数")
     private BigDecimal firstAmount;
 
     @NotNull
-    @DecimalMin("0.00")
+    @Min(0)
+    @Digits(integer = 10, fraction = 0, message = "奖励金额必须是整数")
     private BigDecimal secondAmount;
 
     @NotNull
-    @DecimalMin("0.00")
+    @Min(0)
+    @Digits(integer = 10, fraction = 0, message = "奖励金额必须是整数")
     private BigDecimal thirdAmount;
 
     @NotNull
-    @DecimalMin("0.00")
+    @Min(0)
+    @Digits(integer = 10, fraction = 0, message = "奖励金额必须是整数")
     private BigDecimal fourthAmount;
 
     @NotNull
-    @DecimalMin("0.00")
+    @Min(0)
+    @Digits(integer = 10, fraction = 0, message = "奖励金额必须是整数")
     private BigDecimal fifthAmount;
 
     @NotBlank

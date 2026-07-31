@@ -40,8 +40,16 @@
           </div>
           <div class="skill-detail-stat">
             <div class="skill-detail-stat-value">{{ formatCoins(totalEarnings) }}</div>
-            <div class="skill-detail-stat-label">累计币 (×2)</div>
+            <div class="skill-detail-stat-label">累计币</div>
           </div>
+          <div class="skill-detail-stat">
+            <div class="skill-detail-stat-value">{{ formatCoinInt(skill.price) }}</div>
+            <div class="skill-detail-stat-label">单次收益（币）</div>
+          </div>
+        </div>
+
+        <div v-if="isMine" class="skill-detail-self-hint">
+          自己使用自己的提示词不会产生收益。
         </div>
 
         <div v-if="scopeTags.length" class="skill-detail-section">
@@ -103,11 +111,14 @@ const scopeTags = computed(() => {
   return props.skill.scope.split(/[,，]/).map(t => t.trim()).filter(Boolean)
 })
 
+const price = computed(() => Number(props.skill?.price || 2))
+
 const totalEarnings = computed(() =>
-  Number((props.skill?.totalUses || 0) * 2).toFixed(2)
+  Number((props.skill?.totalUses || 0) * price.value).toFixed(2)
 )
 
 const formatCoins = (n) => Number(n || 0).toFixed(2)
+const formatCoinInt = (n) => String(Math.round(Number(n || 0)))
 
 const formatTimeAgo = (value) => {
   if (!value) return ''
@@ -188,7 +199,7 @@ const formatTimeAgo = (value) => {
 
 .skill-detail-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 10px;
   margin-bottom: 18px;
 }
@@ -320,6 +331,15 @@ body[data-theme="dark"] .skill-detail-btn-fav.active {
   border-color: var(--color-primary);
   color: #ff6b81;
   background: rgba(255, 36, 66, 0.12);
+}
+
+.skill-detail-self-hint {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  background: var(--color-bg-page);
+  padding: 8px 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
 }
 
 @media (max-width: 640px) {

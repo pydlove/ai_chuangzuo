@@ -15,7 +15,8 @@ public enum AdminSkillMarketErrorCode implements ErrorCode {
     ENABLE_STATUS_INVALID(304004, "启用状态参数不合法"),
     TOTAL_USES_INVALID(304005, "使用量不能为负数"),
     FEATURED_STATUS_INVALID(304006, "官方精选状态参数不合法"),
-    SKILL_MONTHLY_REWARD_CONFIG_NOT_FOUND(304007, "提示词市场月度奖励配置不存在");
+    SKILL_MONTHLY_REWARD_CONFIG_NOT_FOUND(304007, "提示词市场月度奖励配置不存在"),
+    PRICE_INVALID(304008, "单次价格必须大于 0");
 
     private final int code;
     private final String message;

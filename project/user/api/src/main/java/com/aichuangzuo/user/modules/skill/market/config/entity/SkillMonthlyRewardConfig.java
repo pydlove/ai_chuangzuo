@@ -27,6 +27,10 @@ public class SkillMonthlyRewardConfig {
     private BigDecimal fifthAmount;
     private String settlementCron;
     private Integer enabled;
+
+    /** 提示词每次被使用创作者获得的收益（创作币），统一配置。 */
+    private BigDecimal pricePerUse;
+
     private Integer isDeleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

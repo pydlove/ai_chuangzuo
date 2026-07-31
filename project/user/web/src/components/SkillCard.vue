@@ -7,6 +7,8 @@
     ]"
     @click="clickable && $emit('click', $event)"
   >
+    <span v-if="featured" class="skill-card__featured-badge">官方精选</span>
+
     <div class="skill-card__head">
       <div
         v-if="showAvatar"
@@ -45,7 +47,29 @@
 
     <div class="skill-card__footer">
       <slot name="footer">
-        <button v-if="showViewBtn" class="skill-card__action-btn" @click.stop="$emit('view')">
+        <div v-if="visibleActions.length" class="skill-card__actions">
+          <button
+            v-for="(action, idx) in visibleActions"
+            :key="idx"
+            :class="[
+              'skill-card__action-btn',
+              { 'skill-card__action-btn--primary': action.type === 'primary',
+                'skill-card__action-btn--danger': action.type === 'danger',
+                'skill-card__action-btn--success': action.type === 'success',
+                'skill-card__action-btn--active': action.active }
+            ]"
+            :disabled="action.disabled"
+            :title="action.title"
+            @click.stop="action.handler && action.handler($event)"
+          >
+            {{ action.label }}
+          </button>
+        </div>
+        <button
+          v-else-if="showViewBtn"
+          class="skill-card__action-btn"
+          @click.stop="$emit('view')"
+        >
           查看完整提示词
         </button>
       </slot>
@@ -69,7 +93,9 @@ const props = defineProps({
   size: { type: String, default: 'default' },
   avatarVariant: { type: String, default: 'default' },
   showViewBtn: Boolean,
-  maxSummaryLength: { type: Number, default: 60 }
+  maxSummaryLength: { type: Number, default: 60 },
+  featured: Boolean,
+  actions: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['click', 'view'])
@@ -85,10 +111,13 @@ const summary = computed(() => {
   const p = props.prompt || ''
   return p.length > props.maxSummaryLength ? p.slice(0, props.maxSummaryLength) + '...' : p
 })
+
+const visibleActions = computed(() => props.actions.filter(a => a.visible !== false))
 </script>
 
 <style scoped>
 .skill-card {
+  position: relative;
   background: #fff;
   border: 1px solid #f0f0f0;
   border-radius: 16px;
@@ -97,6 +126,19 @@ const summary = computed(() => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.skill-card__featured-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: 0 16px 0 10px;
+  line-height: 1.4;
+  z-index: 1;
 }
 
 .skill-card:hover {
@@ -201,6 +243,101 @@ const summary = computed(() => {
   color: #8c8c8c;
 }
 
+:deep(.skill-card__meta-row) {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+:deep(.skill-card__creator) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
+  flex-shrink: 0;
+}
+
+:deep(.skill-card__creator-avatar) {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff0f2;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+:deep(.skill-card__creator-name) {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 120px;
+}
+
+:deep(.skill-card__scope-inline) {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+:deep(.skill-card__tag-compact) {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  width: fit-content;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
+  padding: 2px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+
+:deep(.skill-card__tag-more) {
+  font-size: 11px;
+  color: #8c8c8c;
+  white-space: nowrap;
+}
+
+:deep(.skill-card__mine-compact) {
+  font-size: 11px;
+  color: #07c160;
+  background: rgba(7, 193, 96, 0.08);
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+:deep(.skill-card__extra-row) {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+:deep(.skill-card__published) {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+:deep(.skill-card__extra-dot) {
+  opacity: 0.6;
+}
+
 .skill-card__scope-list {
   display: flex;
   flex-wrap: wrap;
@@ -276,19 +413,20 @@ const summary = computed(() => {
   align-items: flex-end;
 }
 
-.skill-card__extra {
+.skill-card__actions {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 10px;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .skill-card__action-btn {
-  padding: 4px 8px;
+  padding: 6px 12px;
   background: transparent;
   border: none;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 8px;
+  font-size: 13px;
   color: #8c8c8c;
   cursor: pointer;
   transition: all 0.2s;
@@ -297,6 +435,66 @@ const summary = computed(() => {
 .skill-card__action-btn:hover {
   color: var(--color-primary);
   background: var(--color-primary-bg);
+}
+
+.skill-card__action-btn--primary {
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  font-weight: 600;
+}
+
+.skill-card__action-btn--primary:hover {
+  background: var(--color-primary-bg);
+}
+
+.skill-card__action-btn--danger {
+  color: #ff4d4f;
+}
+
+.skill-card__action-btn--danger:hover {
+  color: #ff4d4f;
+  background: #fff1f0;
+}
+
+.skill-card__action-btn--success {
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.skill-card__action-btn--success:hover {
+  background: #d9f7be;
+}
+
+.skill-card__action-btn--active {
+  color: var(--color-primary);
+}
+
+.skill-card__action-btn--active:hover {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.skill-card__action-btn:disabled,
+.skill-card__action-btn--primary:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+  cursor: not-allowed;
+}
+
+.skill-card__action-btn--success:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+}
+
+.skill-card__extra {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
 }
 
 body[data-theme="dark"] .skill-card {
@@ -323,6 +521,35 @@ body[data-theme="dark"] .skill-card__title {
 }
 
 body[data-theme="dark"] .skill-card__meta {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] :deep(.skill-card__creator) {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] :deep(.skill-card__creator-avatar) {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] :deep(.skill-card__tag-compact) {
+  background: rgba(255, 36, 66, 0.12);
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] :deep(.skill-card__tag-more) {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] :deep(.skill-card__mine-compact) {
+  background: rgba(7, 193, 96, 0.12);
+  color: #07c160;
+}
+
+body[data-theme="dark"] :deep(.skill-card__extra-row),
+body[data-theme="dark"] :deep(.skill-card__published) {
   color: #a6a6a6;
 }
 
@@ -357,5 +584,61 @@ body[data-theme="dark"] .skill-card__action-btn:hover {
   border-color: transparent;
   color: var(--color-primary);
   background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .skill-card__action-btn--primary {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .skill-card__action-btn--primary:hover {
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .skill-card__action-btn--danger {
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--danger:hover {
+  background: rgba(255, 77, 79, 0.15);
+  color: #ff4d4f;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--success {
+  background: rgba(7, 193, 96, 0.15);
+  border-color: rgba(7, 193, 96, 0.4);
+  color: #4ade80;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--success:hover {
+  background: rgba(7, 193, 96, 0.25);
+  border-color: #4ade80;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--active {
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--active:hover {
+  color: #ff6b81;
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .skill-card__action-btn:disabled,
+body[data-theme="dark"] .skill-card__action-btn--primary:disabled {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #434343;
+  color: #595959;
+}
+
+body[data-theme="dark"] .skill-card__action-btn--success:disabled {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: #434343;
+  color: #595959;
+}
+
+body[data-theme="dark"] .skill-card__featured-badge {
+  background: var(--color-primary);
 }
 </style>

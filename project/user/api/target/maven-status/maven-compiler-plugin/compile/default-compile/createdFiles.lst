@@ -111,6 +111,7 @@ com/aichuangzuo/user/modules/leaderboard/entity/IncomeSubmission.class
 com/aichuangzuo/user/modules/membership/dto/request/SubscribeRequest.class
 com/aichuangzuo/user/modules/benefit/controller/BenefitController.class
 com/aichuangzuo/user/modules/message/entity/Message.class
+com/aichuangzuo/user/modules/skill/market/config/vo/SkillMonthlyRewardConfigVO.class
 com/aichuangzuo/user/modules/skill/market/controller/SkillMarketInternalController.class
 com/aichuangzuo/user/modules/feedback/mapper/FeedbackMapper.class
 com/aichuangzuo/user/modules/article/vo/DraftPageVO.class
@@ -269,6 +270,7 @@ com/aichuangzuo/user/infrastructure/security/JwtAuthenticationFilter.class
 com/aichuangzuo/user/modules/generation/dto/request/GenerationSubmitRequest.class
 com/aichuangzuo/user/modules/topic/entity/TopicTitleUsage.class
 com/aichuangzuo/user/modules/feedback/enums/FeedbackErrorCode.class
+com/aichuangzuo/user/modules/skill/market/config/service/SkillMonthlyRewardConfigService.class
 com/aichuangzuo/user/modules/learn/mapper/LearnArticleMapper.class
 com/aichuangzuo/user/modules/skill/market/vo/MarketSkillVO.class
 com/aichuangzuo/user/modules/auth/converter/AuthConverter.class
