@@ -41,10 +41,6 @@ public class EarningsRecordVO {
 
     private BigDecimal amount;
 
-    private Integer status;
-
-    private String statusLabel;
-
     private String settlementMonth;
 
     private LocalDateTime createdAt;

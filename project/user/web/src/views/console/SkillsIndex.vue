@@ -82,16 +82,19 @@
             <div class="style-scope-hint">一句话让创作者快速了解你的提示词</div>
           </div>
           <div class="style-editor-field">
-            <label class="style-editor-label">提示词 <span class="required">*</span></label>
+            <label class="style-editor-label style-editor-label--with-action">
+              <span>提示词 <span class="required">*</span></span>
+              <FullscreenOutlined class="style-editor-fullscreen-btn" title="全屏编辑" @click="openFullscreenPrompt" />
+            </label>
             <textarea
               v-model="editingStyle.prompt"
               class="style-editor-textarea"
               placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
               rows="5"
-              maxlength="1200"
+              :maxlength="promptMaxLength"
             ></textarea>
-            <div class="style-editor-counter" :class="{ over: editingStyle.prompt.length > 1200 }">
-              {{ editingStyle.prompt.length }} / 1200
+            <div class="style-editor-counter" :class="{ over: editingStyle.prompt.length > promptMaxLength }">
+              {{ editingStyle.prompt.length }} / {{ promptMaxLength }}
             </div>
             <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
           </div>
@@ -156,26 +159,18 @@
             :name="s.name"
             :desc="s.desc && s.desc !== '自定义提示词' ? s.desc : ''"
             :prompt="promptSummary(s.prompt)"
-            :scope="s.scope"
-            show-avatar="false"
+            :show-avatar="false"
             :actions="[
               { label: '使用', type: 'primary', handler: () => useStyle(s) },
               { label: '查看', handler: () => openMyStylePromptModal(s) },
               { label: '编辑', handler: () => goToEdit(s) },
-              { label: '发布', type: 'primary', visible: (s.auditStatus == null || s.auditStatus === 2) && publishTotal > 0, disabled: publishBlocked, title: publishQuotaHint, handler: () => openPublishConfirm(s, 'my') },
+              { label: '发布', type: 'primary', disabled: publishBlocked || getMarketStatus(s.name) === '审核中' || getMarketStatus(s.name) === '已上架', title: getMarketStatus(s.name) === '审核中' ? '审核中' : getMarketStatus(s.name) === '已上架' ? '已上架' : publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'my') },
               { label: '删除', type: 'danger', handler: () => deleteSkill(s.name) }
             ]"
           >
             <template #status>
               <div
-                v-if="auditStatusText(s.auditStatus)"
-                class="style-card-status"
-                :class="auditStatusClass(s.auditStatus)"
-              >
-                {{ auditStatusText(s.auditStatus) }}
-              </div>
-              <div
-                v-else-if="getMarketStatus(s.name)"
+                v-if="getMarketStatus(s.name)"
                 class="style-card-status"
                 :class="statusClass(s.name)"
               >
@@ -223,8 +218,7 @@
           :name="s.name"
           :desc="s.desc"
           :prompt="promptSummary(s.prompt)"
-          :scope="s.scope"
-          show-avatar="false"
+          :show-avatar="false"
           :actions="[
             { label: '使用', type: 'primary', handler: () => useStyle(s) },
             { label: '查看完整提示词', handler: () => openMyStylePromptModal(s, 'system') }
@@ -256,13 +250,29 @@
         {{ learnBannerText }}
       </div>
       <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
-        <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
+        <div v-if="isLearning" class="style-add-card learning-progress-card">
+          <div class="style-add-icon"><a-spin /></div>
+          <div class="style-add-text">AI 正在分析原文提示词…</div>
+        </div>
+        <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
+          <div class="style-add-icon">✓</div>
+          <div class="style-add-text">学习结果待保存，点击继续</div>
+        </div>
+        <div v-else-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
       </div>
       <div v-else class="styles-grid">
-        <div v-if="canLearn" class="style-add-card" @click="openImportDialog">
+        <div v-if="isLearning" class="style-add-card learning-progress-card">
+          <div class="style-add-icon"><a-spin /></div>
+          <div class="style-add-text">AI 正在分析原文提示词…</div>
+        </div>
+        <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
+          <div class="style-add-icon">✓</div>
+          <div class="style-add-text">学习结果待保存，点击继续</div>
+        </div>
+        <div v-else-if="canLearn" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
@@ -271,28 +281,20 @@
           :key="s.name"
           :name="s.name"
           :prompt="s.prompt"
-          :scope="s.scope"
-          show-avatar="false"
+          :show-avatar="false"
           avatar-variant="learned"
           :expanded="expandedNames.has(s.name)"
           :actions="[
             { label: '使用', type: 'primary', handler: () => useStyle(s) },
             { label: expandedNames.has(s.name) ? '收起' : '查看', handler: () => togglePrompt(s.name) },
             { label: '编辑', handler: () => goToEditLearned(s) },
-            { label: '发布', type: 'primary', visible: (s.auditStatus == null || s.auditStatus === 2) && publishTotal > 0, disabled: publishBlocked, title: publishQuotaHint, handler: () => openPublishConfirm(s, 'learned') },
+            { label: '发布', type: 'primary', disabled: publishBlocked || getMarketStatus(s.name) === '审核中' || getMarketStatus(s.name) === '已上架', title: getMarketStatus(s.name) === '审核中' ? '审核中' : getMarketStatus(s.name) === '已上架' ? '已上架' : publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'learned') },
             { label: '删除', type: 'danger', handler: () => deleteLearnedStyle(s) }
           ]"
         >
           <template #status>
             <div
-              v-if="auditStatusText(s.auditStatus)"
-              class="style-card-status"
-              :class="auditStatusClass(s.auditStatus)"
-            >
-              {{ auditStatusText(s.auditStatus) }}
-            </div>
-            <div
-              v-else-if="getMarketStatus(s.name)"
+              v-if="getMarketStatus(s.name)"
               class="style-card-status"
               :class="statusClass(s.name)"
             >
@@ -340,12 +342,10 @@
           :name="s.name"
           :desc="s.description || s.promptSummary || s.desc || ''"
           :prompt="s.prompt"
-          :scope="s.scope"
-          show-avatar="false"
-          :expanded="expandedNames.has(s.name)"
+          :show-avatar="false"
           :actions="[
             { label: '使用', type: 'primary', handler: () => useFavoriteStyle(s) },
-            { label: expandedNames.has(s.name) ? '收起' : '查看', handler: () => togglePrompt(s.name) },
+            { label: '查看', handler: () => openMyStylePromptModal(s, 'favorite') },
             { label: '取消收藏', type: 'danger', handler: () => confirmUnfavorite(s) }
           ]"
         >
@@ -381,6 +381,8 @@
     centered
     class="learned-import-modal"
     @cancel="closeImportDialog"
+    :maskClosable="!isLearning"
+    :keyboard="!isLearning"
   >
     <template #title>
       <div class="modal-title">{{ isEditingLearned ? '编辑学习的提示词' : '学习写作提示词' }}</div>
@@ -415,11 +417,10 @@
         ></textarea>
         <div class="learned-counter">{{ pasteText.length }} / 3000</div>
         <div v-if="pasteError" class="learned-error">{{ pasteError }}</div>
-        <button
-          class="learned-submit-btn"
-          :disabled="pasteText.trim().length < 200 || pasteText.trim().length > 3000"
-          @click="submitPaste"
-        >开始学习</button>
+       <button
+         class="learned-submit-btn"
+         @click="submitPaste"
+       >开始学习</button>
       </div>
 
       <!-- 上传 -->
@@ -440,11 +441,10 @@
           </div>
         </label>
         <div v-if="uploadError" class="learned-error">{{ uploadError }}</div>
-        <button
-          class="learned-submit-btn"
-          :disabled="!uploadFile"
-          @click="submitUpload"
-        >开始学习</button>
+       <button
+         class="learned-submit-btn"
+         @click="submitUpload"
+       >开始学习</button>
       </div>
     </template>
 
@@ -456,10 +456,10 @@
         <textarea
           v-model="learnedResult.prompt"
           class="learned-textarea"
-          maxlength="1200"
+          :maxlength="promptMaxLength"
         ></textarea>
-        <div class="learned-counter" :class="{ over: learnedResult.prompt.length > 1200 }">
-          {{ learnedResult.prompt.length }} / 1200
+        <div class="learned-counter" :class="{ over: learnedResult.prompt.length > promptMaxLength }">
+          {{ learnedResult.prompt.length }} / {{ promptMaxLength }}
         </div>
       </div>
       <div class="learned-result-field">
@@ -508,12 +508,11 @@
         <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
       </div>
       <div class="learned-result-actions">
-        <button class="learned-cancel-btn" @click="closeImportDialog">放弃</button>
-        <button
-          class="learned-submit-btn"
-          :disabled="!canSaveLearnedResult"
-          @click="saveLearnedResult"
-        >保存到提示词</button>
+        <button class="learned-cancel-btn" @click="closeImportDialog(true)">放弃</button>
+       <button
+         class="learned-submit-btn"
+         @click="saveLearnedResult"
+       >保存到提示词</button>
       </div>
     </div>
   </a-modal>
@@ -568,7 +567,7 @@
       </div>
       <div class="my-style-prompt-text">{{ selectedMyStyle.prompt }}</div>
       <div class="my-style-prompt-actions">
-        <button class="my-style-prompt-use-btn" @click="useStyle(selectedMyStyle); closeMyStylePromptModal()">使用</button>
+        <button class="my-style-prompt-use-btn" @click="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()">使用</button>
         <button
           v-if="selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned'"
           class="my-style-prompt-edit-btn"
@@ -582,6 +581,34 @@
           @click="openPublishConfirm(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
         >发布</button>
         <button class="my-style-prompt-close-btn" @click="closeMyStylePromptModal">关闭</button>
+      </div>
+    </div>
+  </a-modal>
+
+  <!-- 全屏编辑提示词 -->
+  <a-modal
+    v-model:open="fullscreenPromptVisible"
+    title="全屏编辑提示词"
+    :footer="null"
+    :width="800"
+    centered
+    class="fullscreen-prompt-modal"
+    @cancel="closeFullscreenPrompt"
+  >
+    <textarea
+      v-model="fullscreenPromptText"
+      class="fullscreen-prompt-textarea"
+      :maxlength="promptMaxLength"
+      rows="20"
+      placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
+    ></textarea>
+    <div class="fullscreen-prompt-footer">
+      <span class="fullscreen-prompt-counter" :class="{ over: fullscreenPromptText.length > promptMaxLength }">
+        {{ fullscreenPromptText.length }} / {{ promptMaxLength }}
+      </span>
+      <div class="fullscreen-prompt-actions">
+        <button class="fullscreen-prompt-cancel" @click="closeFullscreenPrompt">取消</button>
+        <button class="fullscreen-prompt-save" @click="saveFullscreenPrompt">确定</button>
       </div>
     </div>
   </a-modal>
@@ -621,7 +648,8 @@ import {
   loadFavoriteIds
 } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
-import { getCustomStyleLimit } from '@/utils/membershipLimits.js'
+import { FullscreenOutlined } from '@ant-design/icons-vue'
+import { getCustomStyleLimit, getSkillPromptMaxLength } from '@/utils/membershipLimits.js'
 import { updateSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 
@@ -630,6 +658,21 @@ const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const stylesIndexRef = ref(null)
 const activeTab = ref('my')
 const searchQuery = ref('')
+const promptMaxLength = ref(getSkillPromptMaxLength())
+const fullscreenPromptVisible = ref(false)
+const fullscreenPromptText = ref('')
+
+const openFullscreenPrompt = () => {
+  fullscreenPromptText.value = editingStyle.prompt
+  fullscreenPromptVisible.value = true
+}
+const closeFullscreenPrompt = () => {
+  fullscreenPromptVisible.value = false
+}
+const saveFullscreenPrompt = () => {
+  editingStyle.prompt = fullscreenPromptText.value
+  fullscreenPromptVisible.value = false
+}
 
 // 套餐权益相关
 const styleCustomLimit = computed(() => {
@@ -646,6 +689,9 @@ const learnRemaining = computed(() => benefitRemaining('skill_learn_analyze'))
 const learnTotal = computed(() => parseInt(benefitValue('skill_learn_analyze') || '0', 10))
 const canLearn = computed(() => learnRemaining.value > 0)
 const learnBannerText = computed(() => {
+  if (isLearning.value) {
+    return '● ● ● AI 正在分析原文提示词，请稍候…'
+  }
   if (!canLearn.value) {
     if (learnTotal.value <= 0) return '当前套餐不支持 AI 提示词学习，升级专业版/旗舰版后解锁'
     return `本月学习额度已用完（${learnTotal.value} 次），下月 1 日重置`
@@ -658,6 +704,7 @@ const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish'
 
 onMounted(async () => {
   await loadBenefits()
+  promptMaxLength.value = getSkillPromptMaxLength()
   await Promise.all([
     loadMySkills(),
     loadLearnedSkills(),
@@ -825,8 +872,8 @@ const validate = () => {
   if (!prompt) {
     errors.prompt = '请输入提示词'
     valid = false
-  } else if (prompt.length > 1200) {
-    errors.prompt = '提示词最多 1200 字'
+  } else if (prompt.length > promptMaxLength.value) {
+    errors.prompt = `提示词最多 ${promptMaxLength.value} 字`
     valid = false
   }
 
@@ -844,7 +891,7 @@ const isFormValid = computed(() => {
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
   const scopeTags = parseScopeTags(editingStyle.scope)
-  return name && name.length <= 20 && prompt && prompt.length <= 1200 && !validateScopeTags(scopeTags) && !isSkillNameExists(name, editingStyle.originalName)
+  return name && name.length <= 20 && prompt && prompt.length <= promptMaxLength.value && !validateScopeTags(scopeTags) && !isSkillNameExists(name, editingStyle.originalName)
 })
 
 const goToCreate = () => {
@@ -956,10 +1003,18 @@ const goToEditLearned = (style) => {
   importDialogVisible.value = true
 }
 
-const closeImportDialog = () => {
+const closeImportDialog = (clearResult = false) => {
+  if (clearResult) {
+    learnedResult.value = null
+  }
   importDialogVisible.value = false
   isEditingLearned.value = false
   editingLearnedOriginalName.value = ''
+}
+
+const resumeImportDialog = () => {
+  if (!isLearning.value && !learnedResult.value) return
+  importDialogVisible.value = true
 }
 
 const onFileChange = (e) => {
@@ -999,7 +1054,10 @@ const submitPaste = async () => {
 
 const submitUpload = async () => {
   uploadError.value = ''
-  if (!uploadFile.value) return
+  if (!uploadFile.value) {
+    uploadError.value = '请先选择文件'
+    return
+  }
   try {
     const ext = uploadFile.value.name.split('.').pop().toLowerCase()
     let text
@@ -1035,7 +1093,7 @@ const canSaveLearnedResult = computed(() => {
   if (!learnedResult.value) return false
   const name = learnedResult.value.name.trim()
   if (!name || name.length > 20) return false
-  if (learnedResult.value.prompt.length > 1200) return false
+  if (learnedResult.value.prompt.length > promptMaxLength.value) return false
   const scopeTags = parseScopeTags(learnedResult.value.scope)
   if (scopeTags.length === 0 || validateScopeTags(scopeTags)) return false
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
@@ -1063,8 +1121,8 @@ const saveLearnedResult = async () => {
     learnedResultError.value = '提示词名称最多 20 字'
     return
   }
-  if (learnedResult.value.prompt.length > 1200) {
-    learnedResultError.value = '提示词超过 1200 字'
+  if (learnedResult.value.prompt.length > promptMaxLength.value) {
+    learnedResultError.value = `提示词超过 ${promptMaxLength.value} 字`
     return
   }
   if (!learnedResult.value.scope || !parseScopeTags(learnedResult.value.scope).length) {
@@ -1082,6 +1140,7 @@ const saveLearnedResult = async () => {
     } else {
       await addLearnedSkill(learnedResult.value)
     }
+    learnedResult.value = null
     closeImportDialog()
   } catch {
     // 错误提示已在 composable 内 message.error
@@ -1128,20 +1187,6 @@ const statusClass = (name) => {
   const status = getMarketStatus(name)
   if (status === '已上架') return 'approved'
   if (status === '审核中') return 'pending'
-  return ''
-}
-
-const auditStatusText = (status) => {
-  if (status === 0) return '审核中'
-  if (status === 1) return '已通过'
-  if (status === 2) return '已打回'
-  return ''
-}
-
-const auditStatusClass = (status) => {
-  if (status === 0) return 'pending'
-  if (status === 1) return 'approved'
-  if (status === 2) return 'rejected'
   return ''
 }
 
@@ -1218,6 +1263,14 @@ const closeMyStylePromptModal = () => {
   myStylePromptVisible.value = false
   selectedMyStyle.value = null
   selectedMyStyleSource.value = 'my'
+}
+
+const useSelectedStyle = (style, source) => {
+  if (source === 'favorite') {
+    useFavoriteStyle(style)
+  } else {
+    useStyle(style)
+  }
 }
 </script>
 
@@ -1311,14 +1364,14 @@ const closeMyStylePromptModal = () => {
 
 .styles-empty {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
 }
 
 .styles-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--space-lg);
 }
 
 .style-add-card {
@@ -1361,6 +1414,25 @@ const closeMyStylePromptModal = () => {
   font-size: 14px;
   color: #595959;
   font-weight: 500;
+}
+.learning-progress-card {
+  cursor: default;
+}
+
+.learning-progress-card:hover {
+  border-color: #e8e8e8;
+  background: #fff;
+  transform: none;
+  box-shadow: none;
+}
+
+.pending-result-card {
+  cursor: pointer;
+}
+
+.pending-result-card .style-add-icon {
+  background: #f6ffed;
+  color: #52c41a;
 }
 
 .style-card-status {
@@ -1802,6 +1874,83 @@ const closeMyStylePromptModal = () => {
   margin-bottom: 12px;
 }
 
+.style-editor-label--with-action {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.style-editor-fullscreen-btn {
+  cursor: pointer;
+  color: #8c8c8c;
+  font-size: 14px;
+  transition: color 0.2s;
+}
+
+.style-editor-fullscreen-btn:hover {
+  color: var(--color-primary);
+}
+
+.fullscreen-prompt-textarea {
+  width: 100%;
+  min-height: 420px;
+  padding: 14px;
+  border: 1px solid #d9d9d9;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.8;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.fullscreen-prompt-textarea:focus {
+  border-color: var(--color-primary);
+}
+
+.fullscreen-prompt-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 14px;
+}
+
+.fullscreen-prompt-counter {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.fullscreen-prompt-counter.over {
+  color: #ff4d4f;
+}
+
+.fullscreen-prompt-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.fullscreen-prompt-cancel,
+.fullscreen-prompt-save {
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #595959;
+}
+
+.fullscreen-prompt-save {
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+}
+
+.fullscreen-prompt-save:hover {
+  background: var(--color-primary-hover);
+}
+
 .learned-subtabs {
   display: flex;
   gap: 4px;
@@ -1832,6 +1981,17 @@ const closeMyStylePromptModal = () => {
   display: flex;
   flex-direction: column;
   gap: 10px;
+}
+
+.learned-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.learned-pane .learned-textarea {
+  flex: 1;
+  min-height: 160px;
 }
 
 .learned-textarea {
@@ -1918,11 +2078,6 @@ const closeMyStylePromptModal = () => {
   cursor: pointer;
 }
 
-.learned-submit-btn:disabled {
-  background: #d9d9d9;
-  cursor: not-allowed;
-}
-
 .learned-progress {
   text-align: center;
   padding: 40px 0;
@@ -2006,6 +2161,11 @@ const closeMyStylePromptModal = () => {
 @media (max-width: 768px) {
   .styles-index {
     padding: 16px 12px;
+  }
+
+  .styles-empty,
+  .styles-grid {
+    grid-template-columns: 1fr;
   }
 
   .styles-tabs {
@@ -2094,6 +2254,16 @@ body[data-theme="dark"] .style-add-icon {
 
 body[data-theme="dark"] .style-add-text {
   color: #d9d9d9;
+}
+
+body[data-theme="dark"] .learning-progress-card:hover {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .pending-result-card .style-add-icon {
+  background: rgba(82, 196, 26, 0.15);
+  color: #4ade80;
 }
 
 body[data-theme="dark"] .style-card-status.approved {
@@ -2323,9 +2493,9 @@ body[data-theme="dark"] .learned-submit-btn {
   background: var(--color-primary);
 }
 
-body[data-theme="dark"] .learned-submit-btn:disabled {
-  background: #434343;
-  color: #737373;
+body[data-theme="dark"] .learned-progress {
+  background: linear-gradient(135deg, #2a1f22 0%, #1f1f1f 100%);
+  border-color: #3a2a2d;
 }
 
 body[data-theme="dark"] .learned-progress-text {
@@ -2458,8 +2628,18 @@ body[data-theme="dark"] .my-style-prompt-close-btn:hover {
 <style>
 /* 学习提示词导入对话框：teleport 到 body，需非 scoped 全局覆盖 */
 .learned-import-modal .ant-modal-body {
-  height: 520px;
+  display: flex;
+  flex-direction: column;
+  height: 420px;
+  max-height: 420px;
   overflow-y: auto;
+}
+
+.learned-import-modal .ant-modal-body > * {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 body[data-theme="dark"] .learned-import-modal .ant-modal-content,
@@ -2495,5 +2675,443 @@ body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close-x {
 body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close:hover {
   background: #2a2a2a !important;
   color: #f0f0f0 !important;
+}
+
+/* 全屏编辑提示词弹框暗色 */
+body[data-theme="dark"] .fullscreen-prompt-modal .ant-modal-content,
+body[data-theme="dark"] .fullscreen-prompt-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+body[data-theme="dark"] .fullscreen-prompt-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+body[data-theme="dark"] .fullscreen-prompt-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+body[data-theme="dark"] .fullscreen-prompt-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+body[data-theme="dark"] .fullscreen-prompt-textarea {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+body[data-theme="dark"] .fullscreen-prompt-textarea::placeholder {
+  color: #737373;
+}
+body[data-theme="dark"] .fullscreen-prompt-textarea:focus {
+  border-color: var(--color-primary);
+}
+body[data-theme="dark"] .fullscreen-prompt-counter {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .fullscreen-prompt-counter.over {
+  color: #ff7875;
+}
+body[data-theme="dark"] .fullscreen-prompt-cancel {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .fullscreen-prompt-save {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+body[data-theme="dark"] .fullscreen-prompt-save:hover {
+  background: var(--color-primary-hover);
+}
+
+/* 学习写作提示词弹框样式优化：与全局弹框/Tab保持一致 */
+
+.learned-subtabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: #f5f5f5;
+  padding: 4px;
+  border-radius: 8px;
+  height: 44px;
+  width: fit-content;
+  margin: 0 auto 20px;
+}
+
+.learned-subtab {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.learned-subtab:hover {
+  color: #262626;
+}
+
+.learned-subtab.active {
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.learned-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.learned-textarea {
+  width: 100%;
+  min-height: 240px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: inherit;
+  background: #fafafa;
+  resize: vertical;
+  transition: all 0.2s ease;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.learned-textarea:hover {
+  border-color: #c0c0c0;
+}
+
+.learned-textarea:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.learned-input {
+  padding: 10px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fafafa;
+  transition: all 0.2s ease;
+}
+
+.learned-input:hover {
+  border-color: #c0c0c0;
+}
+
+.learned-input:focus {
+  outline: none;
+  background: #fff;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.08);
+}
+
+.learned-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #8c8c8c;
+  padding: 0 4px;
+}
+
+.learned-counter.over {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+.learned-upload-zone {
+  display: block;
+  padding: 48px 24px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 12px;
+  text-align: center;
+  cursor: pointer;
+  background: #fafafa;
+  transition: all 0.25s ease;
+}
+
+.learned-upload-zone:hover {
+  border-color: var(--color-primary);
+  background: #fff5f6;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.learned-upload-hint {
+  font-size: 15px;
+  font-weight: 500;
+  color: #262626;
+  margin-bottom: 6px;
+}
+
+.learned-upload-types {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.learned-upload-info {
+  font-size: 14px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.learned-error {
+  color: #ff4d4f;
+  font-size: 13px;
+  margin-top: 4px;
+}
+
+.learned-submit-btn {
+  padding: 8px 20px;
+  background: #fff;
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: flex-end;
+}
+
+.learned-submit-btn:hover {
+  background: var(--color-primary-bg);
+}
+
+.learned-cancel-btn {
+  padding: 8px 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.learned-cancel-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: #fff0f2;
+}
+
+.learned-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 320px;
+  padding: 40px;
+  background: linear-gradient(135deg, #fff8f9 0%, #ffffff 100%);
+  border-radius: 16px;
+  border: 1px solid #ffe8ec;
+  text-align: center;
+}
+
+.learned-progress :deep(.ant-spin) {
+  font-size: 36px;
+}
+
+.learned-progress :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
+
+.learned-progress-text {
+  margin-top: 16px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--color-primary);
+  letter-spacing: 0.5px;
+}
+
+.learned-result-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.learned-result-title::before {
+  content: '✓';
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #52c41a;
+  color: #fff;
+  font-size: 13px;
+}
+
+.learned-result-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+}
+
+.learned-result-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.learned-result-label .required {
+  color: #ff4d4f;
+}
+
+.learned-excerpt {
+  padding: 12px 14px;
+  background: #fff;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 8px 8px 0;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.7;
+  margin-bottom: 8px;
+}
+
+.learned-result-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-subtabs {
+  background: #1a1a1a;
+}
+
+body[data-theme="dark"] .learned-subtab {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .learned-subtab.active {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-subtab:hover {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-textarea,
+body[data-theme="dark"] .learned-input {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-textarea:hover,
+body[data-theme="dark"] .learned-input:hover {
+  border-color: #555;
+}
+
+body[data-theme="dark"] .learned-textarea:focus,
+body[data-theme="dark"] .learned-input:focus {
+  background: #2a2a2a;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .learned-counter {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .learned-counter.over {
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .learned-upload-zone {
+  background: #1f1f1f;
+  border-color: #434343;
+}
+
+body[data-theme="dark"] .learned-upload-zone:hover {
+  border-color: var(--color-primary);
+  background: #262626;
+}
+
+body[data-theme="dark"] .learned-upload-hint {
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .learned-upload-types {
+  color: #737373;
+}
+
+body[data-theme="dark"] .learned-error {
+  color: #ff7875;
+}
+
+body[data-theme="dark"] .learned-submit-btn {
+  background: transparent;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .learned-submit-btn:hover {
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .learned-cancel-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .learned-cancel-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .learned-progress {
+  background: linear-gradient(135deg, #2a1f22 0%, #1f1f1f 100%);
+  border-color: #3a2a2d;
+}
+
+body[data-theme="dark"] .learned-progress-text {
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .learned-result-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-result-title::before {
+  background: #4ade80;
+}
+
+body[data-theme="dark"] .learned-result-field {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .learned-result-label {
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .learned-excerpt {
+  background: #2a2a2a;
+  color: #d9d9d9;
+}
+
+body[data-theme="dark"] .learned-result-actions {
+  border-color: #303030;
 }
 </style>

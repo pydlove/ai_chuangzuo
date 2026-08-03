@@ -104,8 +104,8 @@ class SkillReviewServiceTest {
         assertEquals("skill", message.getMsgType());
         assertEquals(Integer.valueOf(2), message.getScope());
         assertEquals(Long.valueOf(10001L), message.getTargetUserId());
-        assertEquals("风格审核通过", message.getTitle());
-        assertEquals("你的风格「测试风格」已通过审核，已上架风格市场。其他用户使用时，你将获得创作币收益。", message.getSummary());
+        assertEquals("提示词发布申请审核通过", message.getTitle());
+        assertEquals("你的提示词「测试风格」已通过审核，已上架提示词市场。其他用户使用时，你将获得创作币收益。", message.getSummary());
         assertEquals("approved", message.getSubType());
         assertNull(message.getContent());
     }
@@ -246,8 +246,8 @@ class SkillReviewServiceTest {
         assertEquals("skill", message.getMsgType());
         assertEquals(Integer.valueOf(2), message.getScope());
         assertEquals(Long.valueOf(10001L), message.getTargetUserId());
-        assertEquals("风格审核未通过", message.getTitle());
-        assertEquals("你的风格「测试风格」未通过审核，原因：太宽泛", message.getSummary());
+        assertEquals("提示词发布申请审核未通过", message.getTitle());
+        assertEquals("你的提示词「测试风格」未通过审核，原因：太宽泛", message.getSummary());
         assertEquals("太宽泛", message.getContent());
         assertEquals("rejected", message.getSubType());
     }

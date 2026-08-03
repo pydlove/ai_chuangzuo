@@ -2,15 +2,15 @@ import { api } from '@/api/auth'
 
 /**
  * 获取账户收益汇总。
- * @returns {Promise<{coinBalance:number, totalEarnings:number, settledEarnings:number, unsettledEarnings:number}>}
+ * @returns {Promise<{coinBalance:number, totalEarnings:number}>}
  */
 export function getAccountSummary() {
   return api.get('/account/summary').then((res) => res.data || {})
 }
 
 /**
- * 获取按月结算列表。
- * @returns {Promise<Array<{month:string, count:number, total:number, settled:number, unsettled:number}>>}
+ * 获取按月收益汇总列表。
+ * @returns {Promise<Array<{month:string, count:number, total:number}>>}
  */
 export function getMonthlySettlementList() {
   return api.get('/account/settlement-list').then((res) => res.data || [])

@@ -123,7 +123,6 @@
           </template>
           <template #title>收益管理</template>
           <a-menu-item key="/console/earnings/accounts">账户明细</a-menu-item>
-          <a-menu-item key="/console/earnings/settlements">结算中心</a-menu-item>
           <!-- 自媒体收入榜功能暂时隐藏
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>

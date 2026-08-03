@@ -5,7 +5,6 @@ import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
-import com.aichuangzuo.user.modules.earnings.enums.EarningsStatus;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
@@ -141,7 +140,7 @@ class MembershipServiceTest {
                         .eq(EarningsRecord::getType, "INVITE_REWARD")
                         .eq(EarningsRecord::getSourceType, "invite")
                         .eq(EarningsRecord::getSourceId, invitee.getId().toString())
-                        .eq(EarningsRecord::getStatus, EarningsStatus.SETTLED.getCode())
+                        .eq(EarningsRecord::getStatus, 1)
         );
         assertNotNull(earnings);
         assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("503.20")));

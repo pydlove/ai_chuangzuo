@@ -47,7 +47,6 @@ com/aichuangzuo/user/modules/article/service/TitleOptimizeAiService.class
 com/aichuangzuo/user/infrastructure/security/InternalKeyAuthenticationFilter.class
 com/aichuangzuo/user/modules/learn/entity/LearnCategoryEntity.class
 com/aichuangzuo/user/modules/skill/market/entity/SkillMarket.class
-com/aichuangzuo/user/modules/earnings/enums/EarningsStatus.class
 com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketQueryServiceImpl.class
 com/aichuangzuo/user/modules/leaderboard/dto/request/InternalGrantRequest.class
 com/aichuangzuo/user/modules/membership/mapper/UserMembershipMapper.class

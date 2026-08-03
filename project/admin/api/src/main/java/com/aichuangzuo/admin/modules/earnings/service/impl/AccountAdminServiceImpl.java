@@ -71,10 +71,6 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         BigDecimal totalEarnings = earnings.stream()
                 .map(EarningsRecord::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal settledEarnings = earnings.stream()
-                .filter(e -> e.getStatus() != null && e.getStatus() == 1)
-                .map(EarningsRecord::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
         LambdaQueryWrapper<UserCoinRecord> coinWrapper = Wrappers.lambdaQuery();
         coinWrapper.eq(UserCoinRecord::getUserId, userId)
@@ -100,8 +96,6 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         List<RewardRecord> rewards = rewardRecordMapper.selectList(rewardWrapper);
 
         detail.setTotalEarnings(totalEarnings);
-        detail.setSettledEarnings(settledEarnings);
-        detail.setUnsettledEarnings(totalEarnings.subtract(settledEarnings));
         detail.setTotalCoinIncome(totalCoinIncome);
         detail.setTotalCoinExpense(totalCoinExpense);
         detail.setRewardCount(rewardRecordMapper.selectCount(

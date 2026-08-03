@@ -16,7 +16,6 @@ com/aichuangzuo/user/modules/auth/service/AuthServiceTest.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateNicknameRequestValidationTest.class
 com/aichuangzuo/user/modules/exporttemplate/service/impl/ExportTemplateServiceImplTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServicePasswordTest.class
-com/aichuangzuo/user/modules/earnings/service/EarningsServiceTest.class
 com/aichuangzuo/user/modules/generation/service/GenerationTaskServiceTest.class
 com/aichuangzuo/user/modules/generation/service/GenerationBenefitResolverTest.class
 com/aichuangzuo/user/modules/auth/service/EmailCodeServiceSmtpFailTest.class

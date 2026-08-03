@@ -255,6 +255,71 @@ body[data-theme="dark"] .invite-coin-tooltip-section + .invite-coin-tooltip-sect
   border-top-color: #303030;
 }
 
+/* 收益潜力榜计算规则 tooltip（a-tooltip 内容渲染到 body，需全局） */
+.market-earnings-rank-tooltip .ant-tooltip-inner {
+  max-width: 360px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #262626;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.market-earnings-rank-tooltip .ant-tooltip-arrow::before {
+  background: #fff;
+}
+
+.market-earnings-rank-tooltip-content {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.market-earnings-rank-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.market-earnings-rank-tooltip-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: disc;
+}
+
+.market-earnings-rank-tooltip-list li {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #595959;
+  line-height: 1.6;
+}
+
+.market-earnings-rank-tooltip-list li:last-child {
+  margin-bottom: 0;
+}
+
+/* 收益潜力榜计算规则 tooltip 暗色主题 */
+body[data-theme="dark"] .market-earnings-rank-tooltip .ant-tooltip-inner {
+  background: #1f1f1f;
+  color: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .market-earnings-rank-tooltip .ant-tooltip-arrow::before {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .market-earnings-rank-tooltip-content,
+body[data-theme="dark"] .market-earnings-rank-tooltip-list li {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .market-earnings-rank-tooltip-title {
+  color: #f0f0f0;
+}
+
 /* Console 内容区深色模式兜底：卡片/区块/面板/列表项/筛选/标签暗色化 */
 body[data-theme="dark"] .console-content [class*="-card"]:not([class*="-card-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
 body[data-theme="dark"] .console-content [class*="-section"]:not([class*="-section-"]):not([class*="-btn"]):not([class*="-badge"]):not([class*="-tag"]):not([class*="-chip"]):not([class*="-status"]),
@@ -369,3 +434,73 @@ body[data-theme="dark"] .template-modal .ant-modal-title {
   border-color: var(--color-primary-light);
 }
 
+/* 提示词介绍 tooltip（a-tooltip 内容渲染到 body，需全局） */
+.market-prompt-intro-tooltip .ant-tooltip-inner {
+  max-width: 360px;
+  padding: 10px 12px;
+  background: #fff;
+  color: #262626;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.market-prompt-intro-tooltip .ant-tooltip-arrow::before {
+  background: #fff;
+}
+
+.market-prompt-intro-tooltip-content {
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #595959;
+}
+
+.market-prompt-intro-tooltip-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.market-prompt-intro-tooltip-list {
+  margin: 0;
+  padding: 0 0 0 14px;
+  list-style: disc;
+}
+
+.market-prompt-intro-tooltip-list li {
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: #595959;
+  line-height: 1.6;
+}
+
+.market-prompt-intro-tooltip-list li:last-child {
+  margin-bottom: 0;
+}
+
+.market-prompt-intro-tooltip-list b {
+  color: #1a1a1a;
+  font-weight: 600;
+}
+
+/* 提示词介绍 tooltip 暗色主题 */
+body[data-theme="dark"] .market-prompt-intro-tooltip .ant-tooltip-inner {
+  background: #1f1f1f;
+  color: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .market-prompt-intro-tooltip .ant-tooltip-arrow::before {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .market-prompt-intro-tooltip-content,
+body[data-theme="dark"] .market-prompt-intro-tooltip-list li {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .market-prompt-intro-tooltip-title,
+body[data-theme="dark"] .market-prompt-intro-tooltip-list b {
+  color: #f0f0f0;
+}

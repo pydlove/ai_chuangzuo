@@ -438,7 +438,7 @@
                 >
                   <div class="notif-item-dot" v-if="!n.read"></div>
                   <div class="notif-item-body">
-                    <div class="notif-item-title">{{ n.title }}</div>
+                    <div class="notif-item-title">{{ displayNotifTitle(n) }}</div>
                     <div class="notif-item-summary">{{ n.summary }}</div>
                     <div class="notif-item-time">{{ formatTime(n.createdAt) }}</div>
                   </div>
@@ -457,7 +457,7 @@
           >
             <div v-if="notifDetail" class="notif-detail-panel">
               <div class="notif-detail-type-chip">{{ notifTypeLabel(notifDetail) }}</div>
-              <h3 class="notif-detail-title">{{ notifDetail.title }}</h3>
+              <h3 class="notif-detail-title">{{ displayNotifTitle(notifDetail) }}</h3>
               <div class="notif-detail-time">{{ formatTime(notifDetail.createdAt) }}</div>
               <div class="notif-detail-content">{{ notifDetail.content || notifDetail.summary }}</div>
             </div>
@@ -1563,6 +1563,15 @@ const notifTypeLabel = (n) => {
   return tab ? tab.label : n.type
 }
 
+// 兼容旧数据：历史消息标题仍可能使用“风格审核”
+const displayNotifTitle = (n) => {
+  if (n.type === 'style') {
+    if (n.subType === 'approved') return '提示词发布申请审核通过'
+    if (n.subType === 'rejected') return '提示词发布申请审核未通过'
+  }
+  return n.title
+}
+
 // ---------- 教程 ----------
 const tutorialVisible = ref(false)
 
@@ -1724,6 +1733,7 @@ const handleInviteBindingSubmit = () => {
     okText: '确认绑定',
     cancelText: '取消',
     centered: true,
+    wrapClassName: 'membership-confirm-modal',
     async onOk() {
       try {
         await userProfile.saveInviteCode(code)
@@ -2554,7 +2564,7 @@ const notifTabs = [
   { type: 'announcement', label: '公告' },
   { type: 'station', label: '站内消息' },
   { type: 'generation', label: '生成完成' },
-  { type: 'style', label: 'skills 审核' },
+  { type: 'style', label: '提示词审核' },
   { type: 'feature', label: '新功能' },
   { type: 'promotion', label: '优惠活动' }
 ]

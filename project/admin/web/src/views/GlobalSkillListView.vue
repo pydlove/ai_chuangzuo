@@ -48,11 +48,6 @@
           <template v-else-if="column.key === 'description'">
             <span class="cell-ellipsis">{{ record.description || '—' }}</span>
           </template>
-          <template v-else-if="column.key === 'promptSummary'">
-            <a-tooltip :title="record.promptSummary || '—'">
-              <span class="cell-ellipsis">{{ record.promptSummary || '—' }}</span>
-            </a-tooltip>
-          </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
             <a-popconfirm
@@ -106,14 +101,6 @@
             v-model:value="form.description"
             placeholder="一句话描述，方便用户浏览"
             :maxlength="256"
-          />
-        </a-form-item>
-        <a-form-item label="提示词摘要">
-          <a-textarea
-            v-model:value="form.promptSummary"
-            placeholder="UI 卡片展示用，可换行；为空时使用提示词自动摘要"
-            :maxlength="512"
-            :rows="3"
           />
         </a-form-item>
         <a-form-item label="提示词" required>
@@ -176,7 +163,6 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 140 },
   { title: '提示词名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 180 },
-  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 120 },
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 80 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
@@ -188,7 +174,6 @@ const editingBizNo = ref(null)
 const form = reactive({
   skillName: '',
   description: '',
-  promptSummary: '',
   prompt: '',
   scope: '',
   enableStatus: true
@@ -197,7 +182,6 @@ const form = reactive({
 function resetForm() {
   form.skillName = ''
   form.description = ''
-  form.promptSummary = ''
   form.prompt = ''
   form.scope = ''
   form.enableStatus = true
@@ -213,7 +197,6 @@ const openEditModal = (record) => {
   editingBizNo.value = record.id
   form.skillName = record.name || ''
   form.description = record.description || ''
-  form.promptSummary = record.promptSummary || ''
   form.prompt = record.prompt || ''
   form.scope = record.scope || ''
   form.enableStatus = record.status === 'enabled'
@@ -228,7 +211,6 @@ const confirmSubmit = async () => {
   const payload = {
     skillName: form.skillName.trim(),
     description: form.description || '',
-    promptSummary: form.promptSummary || '',
     prompt: form.prompt.trim(),
     scope: form.scope || '',
     enableStatus: form.enableStatus ? 1 : 0

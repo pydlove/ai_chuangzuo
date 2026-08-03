@@ -6,9 +6,7 @@
         SELECT
             settlement_month AS month,
             COUNT(*) AS count,
-            SUM(amount) AS total,
-            SUM(CASE WHEN status = 1 THEN amount ELSE 0 END) AS settled,
-            SUM(CASE WHEN status = 0 THEN amount ELSE 0 END) AS unsettled
+            SUM(amount) AS total
         FROM u_earnings_record
         WHERE user_id = #{userId}
           AND is_deleted = 0

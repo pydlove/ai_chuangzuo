@@ -109,11 +109,6 @@ const routes = [
         name: 'AdminEarningsAccounts',
         component: () => import('@/views/AccountQueryView.vue')
       },
-      {
-        path: 'earnings/settlements',
-        name: 'AdminEarningsSettlements',
-        component: () => import('@/views/SettlementView.vue')
-      },
       // 自媒体收入榜功能暂时隐藏
       // {
       //   path: 'earnings/self-media-review',

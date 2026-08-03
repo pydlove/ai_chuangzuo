@@ -13,8 +13,4 @@ public class AccountSummaryVO {
     private BigDecimal coinBalance;
 
     private BigDecimal totalEarnings;
-
-    private BigDecimal settledEarnings;
-
-    private BigDecimal unsettledEarnings;
 }

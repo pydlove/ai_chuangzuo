@@ -7,17 +7,13 @@ import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.earnings.vo.AccountSummaryVO;
 import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordPageVO;
 import com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO;
-import com.aichuangzuo.user.modules.earnings.vo.SettleLastMonthResultVO;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.user.vo.InviteStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -52,11 +48,11 @@ public class AccountController {
         return Result.success(inviteRewardService.getInviteStats(userId));
     }
 
-    @Operation(summary = "按月结算列表")
-    @GetMapping("/settlement-list")
-    public Result<List<MonthlySettlementVO>> settlementList() {
+    @Operation(summary = "按月收益汇总")
+    @GetMapping("/monthly-summary")
+    public Result<List<MonthlySettlementVO>> monthlySummary() {
         Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(earningsService.getMonthlySettlementList(userId));
+        return Result.success(earningsService.getMonthlySummary(userId));
     }
 
     @Operation(summary = "收益记录分页")
@@ -64,12 +60,5 @@ public class AccountController {
     public Result<EarningsRecordPageVO> earnings(@Valid ListEarningsRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(earningsService.listEarnings(userId, request));
-    }
-
-    @Operation(summary = "结算上月收益")
-    @PostMapping("/settle-last-month")
-    public Result<SettleLastMonthResultVO> settleLastMonth() {
-        Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(earningsService.settleLastMonth(userId));
     }
 }

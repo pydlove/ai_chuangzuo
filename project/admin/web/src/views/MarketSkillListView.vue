@@ -53,9 +53,6 @@
           <template v-else-if="column.key === 'description'">
             <span class="cell-ellipsis" :title="record.description">{{ record.description || '—' }}</span>
           </template>
-          <template v-else-if="column.key === 'promptSummary'">
-            <span class="cell-ellipsis" :title="record.promptSummary">{{ record.promptSummary || '—' }}</span>
-          </template>
           <template v-else-if="column.key === 'publisherName'">
             <span>{{ record.publisherName || record.publisherUserId }}</span>
           </template>
@@ -124,14 +121,6 @@
             v-model:value="form.description"
             placeholder="一句话描述，方便用户浏览"
             :maxlength="256"
-          />
-        </a-form-item>
-        <a-form-item label="提示词摘要">
-          <a-textarea
-            v-model:value="form.promptSummary"
-            placeholder="UI 卡片展示用，可换行"
-            :maxlength="512"
-            :rows="3"
           />
         </a-form-item>
         <a-form-item label="提示词" required>
@@ -228,7 +217,6 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 160 },
   { title: '提示词名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 160 },
-  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', width: 220 },
   { title: '发布者', dataIndex: 'publisherName', key: 'publisherName', width: 110 },
   { title: '累计使用', dataIndex: 'totalUses', key: 'totalUses', width: 90 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
@@ -258,7 +246,6 @@ const form = reactive({
   skillName: '',
   publisherUserId: null,
   description: '',
-  promptSummary: '',
   prompt: '',
   totalUses: 0,
   enableStatus: true,
@@ -269,7 +256,6 @@ function resetForm() {
   form.skillName = ''
   form.publisherUserId = null
   form.description = ''
-  form.promptSummary = ''
   form.prompt = ''
   scopeRef.value = ''
   scopeInput.value = ''
@@ -316,7 +302,6 @@ const openEditModal = (record) => {
   form.skillName = record.name || ''
   form.publisherUserId = record.publisherUserId
   form.description = record.description || ''
-  form.promptSummary = record.promptSummary || ''
   form.prompt = record.prompt || ''
   scopeRef.value = record.scope || ''
   scopeInput.value = ''
@@ -347,7 +332,6 @@ const confirmSubmit = async () => {
     skillName: form.skillName.trim(),
     publisherUserId: form.publisherUserId,
     description: form.description || '',
-    promptSummary: form.promptSummary || '',
     prompt: form.prompt.trim(),
     scope: scopeRef.value || '',
     totalUses: form.totalUses || 0,

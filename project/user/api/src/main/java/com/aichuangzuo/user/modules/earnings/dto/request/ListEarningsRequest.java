@@ -12,11 +12,6 @@ import lombok.Data;
 public class ListEarningsRequest {
 
     /**
-     * 结算状态：all / settled / unsettled。
-     */
-    private String status = "all";
-
-    /**
      * 归属月份，格式 YYYY-MM。
      */
     @Pattern(regexp = "^\\d{4}-\\d{2}$", message = "月份格式应为 YYYY-MM")

@@ -3,7 +3,27 @@
     <!-- ① 平台 Banner 区 -->
     <section class="market-banner">
       <div class="market-banner-text">
-        <h1 class="market-banner-title">爱创作 · 提示词市场</h1>
+        <div class="market-banner-title-wrap">
+          <h1 class="market-banner-title">爱创作 · 提示词市场</h1>
+          <a-tooltip
+            placement="top"
+            :mouse-enter-delay="0.1"
+            :trigger="['hover', 'click']"
+            overlay-class-name="market-prompt-intro-tooltip"
+          >
+            <template #title>
+              <div class="market-prompt-intro-tooltip-content">
+                <div class="market-prompt-intro-tooltip-title">什么是提示词？</div>
+                <ul class="market-prompt-intro-tooltip-list">
+                  <li><b>提示词</b>是你写给 AI 的指令，用来描述你想要的选题、风格、结构、语气等。</li>
+                  <li>使用优质提示词可以让 AI 一次性生成更贴合你需求的文章，减少反复修改。</li>
+                  <li>你也可以把自己的提示词上架到市场，他人每次使用你都能获得创作币收益。</li>
+                </ul>
+              </div>
+            </template>
+            <QuestionCircleOutlined class="market-banner-help-icon" />
+          </a-tooltip>
+        </div>
         <p class="market-banner-sub">
           官方运营 · 精选创作者提示词 · 使用即获收益分成
           <span class="market-banner-rules-link" @click="rulesVisible = true">收益规则</span>
@@ -24,168 +44,198 @@
         </div>
       </div>
     </section>
+    <div class="market-content-wrapper">
+      <div class="market-main">
 
-    <!-- ② 上传激励卡 -->
-    <section class="market-upload-card" @click="goUpload">
-      <div class="market-upload-icon">＋</div>
-      <div class="market-upload-body">
-        <div class="market-upload-title">上传你的提示词，开始赚创作币</div>
-        <div class="market-upload-sub">每被他人使用一次，获得{{ formatCoinInt(pricePerUse) }}创作币的收益</div>
-      </div>
-      <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
-    </section>
+        <!-- ② 上传激励卡 -->
+        <section class="market-upload-card" @click="goUpload">
+          <div class="market-upload-icon">＋</div>
+          <div class="market-upload-body">
+            <div class="market-upload-title">上传你的提示词，开始赚创作币</div>
+            <div class="market-upload-sub">每被他人使用一次，获得{{ formatCoinInt(pricePerUse) }}创作币的收益</div>
+          </div>
+          <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
+        </section>
 
-    <!-- ③ 收益潜力榜 -->
-    <section class="market-creators">
-      <div class="market-section-head">
-        <div class="market-section-title-wrap">
-          <h2 class="market-section-title">收益潜力榜</h2>
-          <span class="market-section-sub">看看谁在用提示词赚到币</span>
-        </div>
-        <button
-          v-if="hasMoreCreators"
-          class="market-section-link"
-          @click="creatorsExpanded = !creatorsExpanded"
-        >
-          {{ creatorsExpanded ? '收起 ↑' : '查看完整榜单 ↓' }}
-        </button>
-      </div>
-      <div v-if="topCreators.length === 0" class="market-creators-empty">
-        暂无上榜创作者
-      </div>
-      <div v-else class="market-creators-list">
-        <div
-          v-for="(c, idx) in visibleCreators"
-          :key="c.creatorId"
-          class="market-creator-row"
-          @click="openCreator(c)"
-        >
-          <div :class="['market-creator-rank', { top3: idx < 3 }]">
-            {{ String(idx + 1).padStart(2, '0') }}
-          </div>
-          <div class="market-creator-avatar">
-            {{ (c.creatorName || '匿').charAt(0) }}
-          </div>
-          <div class="market-creator-info">
-            <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
-            <div v-if="c.bestSkill" class="market-creator-best">
-              代表提示词 · {{ c.bestSkill.name }}
+        <!-- ⑤ 全部提示词区 -->
+        <section class="market-grid-section">
+          <div class="market-section-head">
+            <div class="market-section-title-wrap">
+              <h2 class="market-section-title">全部提示词</h2>
+              <span class="market-section-sub">共 {{ total }} 款</span>
+            </div>
+            <div class="market-search">
+              <input
+                v-model="searchQuery"
+                type="text"
+                class="market-search-input"
+                placeholder="搜索提示词名或适用范围"
+                @keyup.enter="onSearch"
+              />
+              <button class="market-search-btn" @click="onSearch">搜索</button>
             </div>
           </div>
-          <div class="market-creator-earning">
-            <div class="market-creator-amount">+{{ formatCoins(c.weeklyEarnings) }}</div>
-            <div class="market-creator-amount-label">本周币</div>
+
+          <div class="market-tabs">
+            <button
+              v-for="tab in tabOptions"
+              :key="tab.key"
+              :class="['market-tab', { active: activeTab === tab.key }]"
+              @click="onTabChange(tab.key)"
+            >
+              {{ tab.label }}
+            </button>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- ⑤ 全部提示词区 -->
-    <section class="market-grid-section">
-      <div class="market-section-head">
-        <div class="market-section-title-wrap">
-          <h2 class="market-section-title">全部提示词</h2>
-          <span class="market-section-sub">共 {{ total }} 款</span>
-        </div>
-        <div class="market-search">
-          <input
-            v-model="searchQuery"
-            type="text"
-            class="market-search-input"
-            placeholder="搜索提示词名或适用范围"
-            @keyup.enter="onSearch"
-          />
-          <button class="market-search-btn" @click="onSearch">搜索</button>
-        </div>
-      </div>
+          <div v-if="loading" class="market-empty">加载中...</div>
+          <div v-else-if="pagedStyles.length === 0" class="market-empty">
+            暂无已上架提示词
+          </div>
+          <div v-else class="market-grid">
+            <SkillCard
+              v-for="s in pagedStyles"
+              :key="s.id"
+              :name="s.name"
+              :desc="s.description || s.promptSummary || s.desc || ''"
+              :prompt="promptSummary(s.prompt)"
+              :featured="s.featured"
+              :show-avatar="false"
+              clickable
+              :actions="[
+                { label: '使用', type: 'primary', handler: () => handleUse(s) },
+                { label: isFavorite(s.id) ? '♥' : '♡', active: isFavorite(s.id), handler: () => handleToggleFavorite(s.id) },
+                { label: '查看', handler: () => openStyleDetail(s) },
+                { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) }
+              ]"
+              @click="openStyleDetail(s)"
+            >
+              <template #meta>
+                <div class="skill-card__meta-row">
+                  <span class="skill-card__creator">
+                    <span class="skill-card__creator-avatar">
+                      {{ (s.creatorName || '匿').charAt(0) }}
+                    </span>
+                    <span class="skill-card__creator-name">by {{ s.creatorName || '匿名用户' }}</span>
+                  </span>
+                  <span
+                    v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
+                    class="skill-card__scope-inline"
+                  >
+                    <span
+                      v-for="t in parseScopeTags(s.scope).slice(0, 2)"
+                      :key="t"
+                      class="skill-card__tag-compact"
+                    >
+                      # {{ t }}
+                    </span>
+                    <span
+                      v-if="parseScopeTags(s.scope).length > 2"
+                      class="skill-card__tag-more"
+                    >
+                      +{{ parseScopeTags(s.scope).length - 2 }}
+                    </span>
+                    <span v-if="s.creatorId === currentUserId" class="skill-card__mine-compact">我的</span>
+                  </span>
+                </div>
+              </template>
+              <template #extra>
+                <div class="skill-card__extra-row">
+                  <span v-if="s.createdAt" class="skill-card__published">
+                    发布于 {{ formatTimeAgo(s.createdAt) }}
+                  </span>
+                  <span class="skill-card__extra-dot" v-if="s.createdAt">·</span>
+                  <span>本周 {{ s.weeklyUses }} 次</span>
+                  <span class="skill-card__extra-dot">·</span>
+                  <span>累计 {{ s.totalUses }} 次</span>
+                </div>
+              </template>
+            </SkillCard>
+          </div>
 
-      <div class="market-tabs">
-        <button
-          v-for="tab in tabOptions"
-          :key="tab.key"
-          :class="['market-tab', { active: activeTab === tab.key }]"
-          @click="onTabChange(tab.key)"
-        >
-          {{ tab.label }}
-        </button>
+          <div v-if="!loading && total > 0" class="market-pagination">
+            <a-pagination
+              v-model:current="page"
+              :page-size="pageSize"
+              :total="total"
+              :show-size-changer="false"
+              show-less-items
+              @change="onPageChange"
+            />
+          </div>
+        </section>
       </div>
+      <div class="market-sidebar">
 
-      <div v-if="loading" class="market-empty">加载中...</div>
-      <div v-else-if="pagedStyles.length === 0" class="market-empty">
-        暂无已上架提示词
-      </div>
-      <div v-else class="market-grid">
-        <SkillCard
-          v-for="s in pagedStyles"
-          :key="s.id"
-          :name="s.name"
-          :desc="s.description || s.promptSummary || s.desc || ''"
-          :prompt="promptSummary(s.prompt)"
-          :featured="s.featured"
-          :show-avatar="false"
-          clickable
-          :actions="[
-            { label: '使用', type: 'primary', handler: () => handleUse(s) },
-            { label: isFavorite(s.id) ? '♥' : '♡', active: isFavorite(s.id), handler: () => handleToggleFavorite(s.id) },
-            { label: '查看', handler: () => openStyleDetail(s) },
-            { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) }
-          ]"
-          @click="openStyleDetail(s)"
-        >
-          <template #meta>
-            <div class="skill-card__meta-row">
-              <span class="skill-card__creator">
-                <span class="skill-card__creator-avatar">
-                  {{ (s.creatorName || '匿').charAt(0) }}
-                </span>
-                <span class="skill-card__creator-name">by {{ s.creatorName || '匿名用户' }}</span>
-              </span>
-              <span
-                v-if="parseScopeTags(s.scope).length || s.creatorId === currentUserId"
-                class="skill-card__scope-inline"
+        <!-- ③ 收益潜力榜 -->
+        <section class="market-creators">
+          <div class="market-section-head">
+            <div class="market-section-title-wrap">
+              <h2 class="market-section-title">收益潜力榜</h2>
+              <a-tooltip
+                placement="top"
+                :mouse-enter-delay="0.1"
+                :trigger="['hover', 'click']"
+                overlay-class-name="market-earnings-rank-tooltip"
               >
-                <span
-                  v-for="t in parseScopeTags(s.scope).slice(0, 2)"
-                  :key="t"
-                  class="skill-card__tag-compact"
-                >
-                  # {{ t }}
-                </span>
-                <span
-                  v-if="parseScopeTags(s.scope).length > 2"
-                  class="skill-card__tag-more"
-                >
-                  +{{ parseScopeTags(s.scope).length - 2 }}
-                </span>
-                <span v-if="s.creatorId === currentUserId" class="skill-card__mine-compact">我的</span>
-              </span>
+                <template #title>
+                  <div class="market-earnings-rank-tooltip-content">
+                    <div class="market-earnings-rank-tooltip-title">收益潜力榜计算规则</div>
+                   <ul class="market-earnings-rank-tooltip-list">
+                      <li>榜单按创作者近一个月提示词被使用次数 × 单次使用收益单价计算每月收益，并按收益从高到低排序。</li>
+                     <li>他人每使用一次你的提示词，你都会获得相应创作币收益。</li>
+                      <li>每月结算时，榜单 Top5 会获得额外月度奖励，具体金额以平台公布为准。</li>
+                    </ul>
+                  </div>
+                </template>
+                <InfoCircleOutlined class="market-earnings-rank-icon" />
+              </a-tooltip>
+              <span class="market-section-sub">看看谁在用提示词赚到币</span>
             </div>
-          </template>
-          <template #extra>
-            <div class="skill-card__extra-row">
-              <span v-if="s.createdAt" class="skill-card__published">
-                发布于 {{ formatTimeAgo(s.createdAt) }}
-              </span>
-              <span class="skill-card__extra-dot" v-if="s.createdAt">·</span>
-              <span>本周 {{ s.weeklyUses }} 次</span>
-              <span class="skill-card__extra-dot">·</span>
-              <span>累计 {{ s.totalUses }} 次</span>
+            <button
+              v-if="hasMoreCreators"
+              class="market-section-link"
+              @click="creatorsExpanded = !creatorsExpanded"
+            >
+              {{ creatorsExpanded ? '收起 ↑' : '查看完整榜单 ↓' }}
+            </button>
+          </div>
+          <div v-if="topCreators.length === 0" class="market-creators-empty">
+            暂无上榜创作者
+          </div>
+          <div v-else class="market-creators-list">
+            <div
+              v-for="(c, idx) in visibleCreators"
+              :key="c.creatorId"
+              class="market-creator-row"
+              @click="openCreator(c)"
+            >
+              <div :class="['market-creator-rank', { top3: idx < 3 }]">
+                {{ String(idx + 1).padStart(2, '0') }}
+              </div>
+              <div class="market-creator-avatar">
+                {{ (c.creatorName || '匿').charAt(0) }}
+              </div>
+              <div class="market-creator-info">
+                <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
+                <div v-if="c.bestSkill" class="market-creator-best">
+                  代表提示词 · {{ c.bestSkill.name }}
+                </div>
+              </div>
+              <div class="market-creator-earning">
+                <div class="market-creator-amount">+{{ formatCoins(c.weeklyEarnings) }}</div>
+                <div class="market-creator-amount-label">本周币</div>
+              </div>
             </div>
-          </template>
-        </SkillCard>
+          </div>
+        </section>
+        <section class="market-leaderboard-section">
+          <div class="market-section-head">
+            <h2 class="market-section-title">收益排行榜</h2>
+          </div>
+          <LeaderboardPanel />
+        </section>
       </div>
-
-      <div v-if="!loading && total > 0" class="market-pagination">
-        <a-pagination
-          v-model:current="page"
-          :page-size="pageSize"
-          :total="total"
-          :show-size-changer="false"
-          show-less-items
-          @change="onPageChange"
-        />
-      </div>
-    </section>
+    </div>
   </div>
 
   <!-- 收益规则弹框 — 保留 v1 写法 -->
@@ -304,6 +354,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { InfoCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import LeaderboardPanel from '@/components/LeaderboardPanel.vue'
 import {
   marketSkills,
   marketStats,
@@ -523,13 +575,26 @@ onMounted(() => {
   box-shadow: var(--shadow-sm2);
 }
 
+.market-banner-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-sm);
+}
 .market-banner-title {
   font-size: var(--font-h1);
   font-weight: 700;
   color: var(--color-primary);
-  margin: 0 0 var(--space-sm) 0;
+  margin: 0;
   letter-spacing: -0.5px;
 }
+.market-banner-help-icon {
+  color: var(--color-text-secondary);
+  font-size: 18px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.market-banner-help-icon:hover { color: var(--color-primary); }
 
 .market-banner-sub {
   font-size: var(--font-body);
@@ -616,6 +681,55 @@ onMounted(() => {
   padding-top: var(--space-lg);
 }
 
+.market-pagination :deep(.ant-pagination) {
+  color: var(--color-text-secondary);
+}
+.market-pagination :deep(.ant-pagination-item) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+.market-pagination :deep(.ant-pagination-item a) {
+  color: var(--color-text-secondary);
+}
+.market-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+.market-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+.market-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.market-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+.market-pagination :deep(.ant-pagination-prev .ant-pagination-item-link,
+                         .ant-pagination-next .ant-pagination-item-link) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+.market-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link,
+                         .ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.market-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link,
+                         .ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-default);
+  cursor: not-allowed;
+}
+.market-pagination :deep(.ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-link-icon,
+                         .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-link-icon) {
+  color: var(--color-primary);
+}
+
 .market-tabs {
   display: inline-flex;
   align-items: center;
@@ -674,6 +788,99 @@ body[data-theme="dark"] .market-tab.active {
   box-shadow: none;
 }
 
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item) {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item a) {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
+}
+body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
+}
+
+/* === 左右布局 === */
+.market-content-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: var(--space-xl);
+  align-items: start;
+}
+
+.market-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.market-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+  position: sticky;
+  top: var(--space-lg);
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  padding-right: var(--space-sm);
+}
+
+.market-sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.market-sidebar::-webkit-scrollbar-thumb {
+  background: var(--color-border-default);
+  border-radius: 2px;
+}
+
+@media (max-width: 1024px) {
+  .market-content-wrapper {
+    grid-template-columns: 1fr;
+  }
+  .market-sidebar {
+    position: static;
+    max-height: none;
+    overflow-y: visible;
+    padding-right: 0;
+  }
+}
 /* === 响应式 ≤768px === */
 @media (max-width: 768px) {
   .market-page {
@@ -852,6 +1059,13 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   color: var(--color-text-primary);
   margin: 0;
 }
+.market-earnings-rank-icon {
+  color: var(--color-text-secondary);
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.market-earnings-rank-icon:hover { color: var(--color-primary); }
 .market-section-link {
   background: transparent;
   border: 0;

@@ -22,9 +22,7 @@ public class EarningsRecord {
     private String title;
     private String description;
     private BigDecimal amount;
-    private Integer status;
     private String settlementMonth;
-    private LocalDateTime settledAt;
 
     @TableLogic
     private Integer isDeleted;

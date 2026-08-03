@@ -2,10 +2,7 @@
   <div class="account-index">
     <div class="account-header">
       <h2 class="account-title">我的账户</h2>
-      <p class="account-subtitle">
-        查看账户余额、收益明细与结算状态
-        <span class="account-rules-link" @click="rulesVisible = true">结算规则</span>
-      </p>
+      <p class="account-subtitle">查看账户余额、收益明细</p>
     </div>
 
     <div class="account-tabs">
@@ -46,14 +43,6 @@
           <div class="account-stat-value">{{ summary.totalEarnings.toFixed(2) }}</div>
           <div class="account-stat-label">累计收益</div>
         </div>
-        <div class="account-stat-card">
-          <div class="account-stat-value">{{ summary.settledEarnings.toFixed(2) }}</div>
-          <div class="account-stat-label">已结算</div>
-        </div>
-        <div class="account-stat-card">
-          <div class="account-stat-value">{{ summary.unsettledEarnings.toFixed(2) }}</div>
-          <div class="account-stat-label">未结算</div>
-        </div>
       </div>
 
       <div class="account-section">
@@ -62,7 +51,7 @@
         </div>
         <div v-if="monthlyList.length === 0" class="account-empty">
           <div>还没有收益</div>
-          <router-link to="/guide" class="guide-link">看看怎么赚创作币 →</router-link>
+          <a href="/guide" target="_blank" class="guide-link">看看怎么赚创作币 →</a>
         </div>
         <div v-else class="monthly-list">
           <div
@@ -79,41 +68,16 @@
                 <span class="monthly-amount-label">总额</span>
                 <span class="monthly-amount-value">{{ item.total.toFixed(2) }}</span>
               </div>
-              <div class="monthly-amount">
-                <span class="monthly-amount-label">已结算</span>
-                <span class="monthly-amount-value settled">{{ item.settled.toFixed(2) }}</span>
-              </div>
-              <div class="monthly-amount">
-                <span class="monthly-amount-label">未结算</span>
-                <span class="monthly-amount-value unsettled">{{ item.unsettled.toFixed(2) }}</span>
-              </div>
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <a-modal
-      v-model:open="rulesVisible"
-      title="结算规则"
-      :footer="null"
-      :width="560"
-      centered
-      class="account-rules-modal"
-    >
-      <ol class="account-rules-list">
-        <li><span class="account-rules-highlight">实时到账</span>：提示词市场使用费、投稿奖励、邀请好友订阅返佣 等收益即时到账至账户余额，无需手动操作。</li>
-        <li><span class="account-rules-highlight">按月自动结算</span>：收益排行榜（月度 TOP 10）等活动奖励按自然月结算，每月 1 日由系统自动将上月奖励转入账户余额，无须用户操作。</li>
-        <li>账户余额满 <span class="account-rules-highlight">1000 创作币</span>可申请提现到支付宝，<span class="account-rules-highlight">10 创作币 = 1 元</span>人民币；提现申请约 1 个工作日审核，7 个工作日内到账。</li>
-        <li>账户余额即可提现金额，<span class="account-rules-highlight">不存在手动结算操作</span>；排行榜未到账的奖励不可单独提现，将随月结自动入账。</li>
-      </ol>
-      <div class="account-rules-footer">* 活动最终解释权归平台所有。</div>
-    </a-modal>
-
     <!-- 邀请奖励结算详情 -->
     <a-modal
       v-model:open="detailVisible"
-      title="邀请奖励结算详情"
+      title="邀请奖励详情"
       :footer="null"
       :width="440"
       centered
@@ -126,7 +90,7 @@
           <span class="earnings-detail-amount-unit">创作币</span>
         </div>
         <div class="earnings-detail-status">
-          <span class="earnings-status settled">实时到账</span>
+          <span class="earnings-status">实时到账</span>
         </div>
 
         <div class="earnings-detail-section">
@@ -200,14 +164,6 @@
                 <span class="monthly-amount-label">总额</span>
                 <span class="monthly-amount-value">{{ item.total.toFixed(2) }}</span>
               </div>
-              <div class="monthly-amount">
-                <span class="monthly-amount-label">已结算</span>
-                <span class="monthly-amount-value settled">{{ item.settled.toFixed(2) }}</span>
-              </div>
-              <div class="monthly-amount">
-                <span class="monthly-amount-label">未结算</span>
-                <span class="monthly-amount-value unsettled">{{ item.unsettled.toFixed(2) }}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -227,7 +183,7 @@
           <div class="earnings-item-left">
             <div class="earnings-item-title">{{ r.title }}</div>
             <div class="earnings-item-meta">
-              {{ r.typeLabel }} · {{ r.statusLabel }} · {{ formatTime(r.createdAt) }}
+              {{ r.typeLabel }} · {{ formatTime(r.createdAt) }}
               <span v-if="r.sourceLabel" class="earnings-item-source"> · {{ r.sourceLabel }}</span>
             </div>
             <div v-if="isInviteReward(r)" class="earnings-item-commission">
@@ -235,7 +191,6 @@
             </div>
           </div>
           <div class="earnings-item-right">
-            <span :class="['earnings-status', r.status]">{{ r.statusLabel }}</span>
             <span class="earnings-item-amount" :class="{ negative: r.amount < 0 }">
               {{ r.amount > 0 ? '+' : '' }}{{ r.amount.toFixed(2) }}
             </span>
@@ -269,14 +224,11 @@ const {
 
 const activeTab = ref('overview')
 const activeFilter = ref('all')
-const rulesVisible = ref(false)
 const detailVisible = ref(false)
 const detailRecord = ref(null)
 
 const filters = [
   { key: 'all', label: '全部' },
-  { key: 'settled', label: '已结算' },
-  { key: 'unsettled', label: '未结算' },
   { key: 'monthly', label: '排行榜奖励' }
 ]
 
@@ -284,10 +236,7 @@ const goToWithdraw = () => {
   router.push('/console/coin?from=account')
 }
 
-const filteredRecords = computed(() => {
-  if (activeFilter.value === 'all') return records.value
-  return records.value.filter((r) => r.status === activeFilter.value)
-})
+const filteredRecords = computed(() => records.value)
 
 const formatTime = (iso) => {
   if (!iso) return ''
@@ -364,20 +313,6 @@ onMounted(() => {
   margin: 0;
 }
 
-.account-rules-link {
-  color: #ff2442;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-left: 8px;
-}
-
-.account-rules-link:hover {
-  color: #e61e3a;
-}
-
 .account-tabs {
   display: flex;
   gap: 8px;
@@ -414,7 +349,7 @@ onMounted(() => {
 
 .account-stats {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 16px;
 }
 
@@ -540,33 +475,6 @@ onMounted(() => {
   color: #e61e3a;
 }
 
-.account-rules-list {
-  margin: 0;
-  padding-left: 20px;
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.8;
-}
-
-.account-rules-list li {
-  margin-bottom: 10px;
-}
-
-.account-rules-footer {
-  margin-top: 16px;
-  padding-top: 14px;
-  border-top: 1px solid #f0f0f0;
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-.account-rules-highlight {
-  color: #ff2442;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
 .monthly-list {
   display: flex;
   flex-direction: column;
@@ -616,14 +524,6 @@ onMounted(() => {
   font-size: 15px;
   font-weight: 600;
   color: #1a1a1a;
-}
-
-.monthly-amount-value.settled {
-  color: #52c41a;
-}
-
-.monthly-amount-value.unsettled {
-  color: #fa8c16;
 }
 
 .earnings-filters {
@@ -725,16 +625,6 @@ onMounted(() => {
   padding: 3px 8px;
   border-radius: 4px;
   font-weight: 500;
-}
-
-.earnings-status.settled {
-  background: #f6ffed;
-  color: #389e0d;
-}
-
-.earnings-status.unsettled {
-  background: #fff7e6;
-  color: #d48806;
 }
 
 .earnings-item-amount {
@@ -867,8 +757,6 @@ body[data-theme="dark"] .account-subtitle,
 body[data-theme="dark"] .account-stat-label,
 body[data-theme="dark"] .account-stat-unit,
 body[data-theme="dark"] .account-empty,
-body[data-theme="dark"] .account-rules-list,
-body[data-theme="dark"] .account-rules-footer,
 body[data-theme="dark"] .monthly-count,
 body[data-theme="dark"] .monthly-amount-label,
 body[data-theme="dark"] .earnings-item-meta {
@@ -952,10 +840,6 @@ body[data-theme="dark"] .earnings-filter:hover {
   background: #331018;
 }
 
-body[data-theme="dark"] .account-rules-footer {
-  border-color: #303030;
-}
-
 body[data-theme="dark"] .account-info-icon {
   color: #737373;
 }
@@ -972,42 +856,12 @@ body[data-theme="dark"] .account-stat-withdraw:hover {
   background: var(--color-primary-hover, #e61e3a);
 }
 
-body[data-theme="dark"] .earnings-status.settled {
-  background: rgba(82, 196, 26, 0.15);
-  color: #4ade80;
-}
-
-body[data-theme="dark"] .earnings-status.unsettled {
-  background: rgba(250, 140, 22, 0.15);
-  color: #ffa940;
-}
-
 body[data-theme="dark"] .guide-link {
   color: #ff4d6f;
 }
 </style>
 
 <style>
-/* 结算规则弹框：暗色全局覆盖（弹框 teleport 到 body，需非 scoped） */
-body[data-theme="dark"] .account-rules-modal .ant-modal-content,
-body[data-theme="dark"] .account-rules-modal .ant-modal-header {
-  background: #1f1f1f !important;
-  border-color: #303030 !important;
-}
-
-body[data-theme="dark"] .account-rules-modal .ant-modal-title {
-  color: #f0f0f0 !important;
-}
-
-body[data-theme="dark"] .account-rules-modal .ant-modal-close-x {
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .account-rules-modal .ant-modal-close:hover {
-  background: #2a2a2a !important;
-  color: #f0f0f0 !important;
-}
-
 /* 邀请奖励结算详情弹框：暗色全局覆盖 */
 body[data-theme="dark"] .earnings-detail-modal .ant-modal-content,
 body[data-theme="dark"] .earnings-detail-modal .ant-modal-header {

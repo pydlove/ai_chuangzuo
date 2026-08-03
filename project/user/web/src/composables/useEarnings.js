@@ -7,9 +7,7 @@ import {
 
 const summary = ref({
   coinBalance: 0,
-  totalEarnings: 0,
-  settledEarnings: 0,
-  unsettledEarnings: 0
+  totalEarnings: 0
 })
 
 const monthlyList = ref([])
@@ -23,8 +21,6 @@ function toNumber(value) {
 }
 
 function normalizeRecord(raw) {
-  const statusCode = raw.status
-  const status = statusCode === 1 ? 'settled' : 'unsettled'
   return {
     id: raw.id,
     type: raw.type,
@@ -41,9 +37,6 @@ function normalizeRecord(raw) {
     commissionRate: toNumber(raw.commissionRate),
     isFirstPurchase: raw.isFirstPurchase,
     amount: toNumber(raw.amount),
-    status,
-    statusLabel: raw.statusLabel || (status === 'settled' ? '已结算' : '未结算'),
-    settlementMonth: raw.settlementMonth,
     createdAt: raw.createdAt
   }
 }
@@ -53,9 +46,7 @@ export function useEarnings() {
     const data = await getAccountSummary()
     summary.value = {
       coinBalance: toNumber(data.coinBalance),
-      totalEarnings: toNumber(data.totalEarnings),
-      settledEarnings: toNumber(data.settledEarnings),
-      unsettledEarnings: toNumber(data.unsettledEarnings)
+      totalEarnings: toNumber(data.totalEarnings)
     }
   }
 
@@ -64,9 +55,7 @@ export function useEarnings() {
     monthlyList.value = (list || []).map((item) => ({
       month: item.month,
       count: item.count || 0,
-      total: toNumber(item.total),
-      settled: toNumber(item.settled),
-      unsettled: toNumber(item.unsettled)
+      total: toNumber(item.total)
     }))
   }
 

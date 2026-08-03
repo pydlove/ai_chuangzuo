@@ -25,68 +25,7 @@
     </div>
 
     <!-- 创作币榜 -->
-    <div class="leaderboard-section">
-      <div class="leaderboard-toolbar">
-        <div class="leaderboard-toolbar-left">
-          <span class="leaderboard-period-label">{{ currentCoinMonth }}</span>
-        </div>
-      </div>
-
-      <div :class="['reward-banner', coinRewardBanner.class]">
-        <div class="reward-banner-icon">🏆</div>
-        <div class="reward-banner-text">
-          <div class="reward-banner-title">{{ coinRewardBanner.title }}</div>
-          <div class="reward-banner-desc">{{ coinRewardBanner.desc }}</div>
-        </div>
-      </div>
-
-      <div v-if="myCoinStatus" class="my-reward-card">
-        <div class="my-reward-rank">第 {{ myCoinItem.rank }} 名</div>
-        <div class="my-reward-info">
-          <div class="my-reward-label">{{ myCoinStatus.label }}</div>
-          <div class="my-reward-desc">{{ myCoinStatus.desc }}</div>
-        </div>
-        <div class="my-reward-amount">+1000 创作币</div>
-      </div>
-
-      <div class="leaderboard-top3">
-        <div
-          v-for="item in coinTop3"
-          :key="item.userId"
-          :class="['leaderboard-top-card', 'top-' + item.rank, { 'is-me': item.isMe }]"
-        >
-          <div class="top-rank">{{ item.rank }}</div>
-          <div class="top-nickname">{{ item.nickname || '匿名用户' }}</div>
-          <div class="top-amount">{{ item.amount.toFixed(2) }} 创作币</div>
-          <div v-if="item.isMe" class="top-me-tag">我</div>
-          <div v-if="coinRewardLabel(item)" :class="['top-reward', coinRewardLabel(item).type]">
-            {{ coinRewardLabel(item).text }}
-          </div>
-        </div>
-      </div>
-
-      <div v-if="coinListAfter3.length === 0" class="leaderboard-empty">
-        暂无排名数据
-      </div>
-      <div v-else class="leaderboard-list">
-        <div
-          v-for="item in coinListAfter3"
-          :key="item.userId"
-          :class="['leaderboard-item', { 'is-me': item.isMe }, 'rank-' + item.rank]"
-        >
-          <span class="leaderboard-rank">{{ item.rank }}</span>
-          <span class="leaderboard-avatar">{{ (item.nickname || '?').charAt(0) }}</span>
-          <span class="leaderboard-nickname">{{ item.nickname || '匿名用户' }}</span>
-          <span v-if="item.isMe" class="leaderboard-me-tag">我</span>
-          <div v-if="coinRewardLabel(item)" :class="['leaderboard-reward', coinRewardLabel(item).type]">
-            {{ coinRewardLabel(item).text }}
-          </div>
-          <span class="leaderboard-amount">{{ item.amount.toFixed(2) }} 创作币</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- 自媒体收入榜功能暂时隐藏 -->
+    <LeaderboardPanel />
     <div v-if="false" class="leaderboard-section">
       <div class="leaderboard-toolbar">
         <div class="leaderboard-toolbar-left">
@@ -286,16 +225,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { message } from 'ant-design-vue'
-import {
-  getCoinLeaderboard,
-  // 自媒体收入榜功能暂时隐藏
-  // getIncomeLeaderboard,
-  // submitIncomeSubmission,
-  // getMyIncomeSubmissions,
-  getRewardRecord
-} from '@/composables/useLeaderboard.js'
+import LeaderboardPanel from '@/components/LeaderboardPanel.vue'
+import { getRewardRecord } from '@/composables/useLeaderboard.js'
 
 function getMonthOptions() {
   const options = []
@@ -335,20 +268,8 @@ function setIncomePeriodType(type) {
   incomePeriodValue.value = type === 'month' ? currentIncomeMonth : currentIncomeYear
 }
 
-const coinList = ref([])
 const incomeList = ref([])
 const mySubmissions = ref([])
-
-async function loadCoinLeaderboard() {
-  try {
-    loading.value = true
-    coinList.value = await getCoinLeaderboard(currentCoinMonth)
-  } catch (err) {
-    message.error(err.message || '创作币榜加载失败')
-  } finally {
-    loading.value = false
-  }
-}
 
 async function loadIncomeLeaderboard() {
   // 自媒体收入榜功能暂时隐藏
@@ -371,13 +292,6 @@ async function loadMySubmissions() {
   // }
 }
 
-onMounted(async () => {
-  await loadCoinLeaderboard()
-  // 自媒体收入榜功能暂时隐藏
-  // await loadIncomeLeaderboard()
-  // await loadMySubmissions()
-})
-
 watch([incomePeriodType, incomePeriodValue], () => {
   // 自媒体收入榜功能暂时隐藏
   // loadIncomeLeaderboard()
@@ -390,24 +304,13 @@ watch(activeTab, (tab) => {
   // }
 })
 
-const coinTop3 = computed(() => coinList.value.slice(0, 3))
-const coinListAfter3 = computed(() => coinList.value.slice(3))
-
 const incomeTop3 = computed(() => incomeList.value.slice(0, 3))
 const incomeListAfter3 = computed(() => incomeList.value.slice(3))
 
-const currentCoinMonth = monthOptions[0]
 const currentIncomeMonth = monthOptions[0]
 const currentIncomeYear = yearOptions[0]
 
-const myCoinItem = computed(() => coinList.value.find(i => i.isMe))
 const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
-
-const coinRewardBanner = computed(() => ({
-  class: 'is-current',
-  title: '本月 TOP 10 当月可获 1000 创作币奖励',
-  desc: '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
-}))
 
 const incomeRewardBanner = computed(() => {
   const isCurrent = incomePeriodValue.value === currentIncomeMonth
@@ -436,25 +339,11 @@ function myRewardStatus(item, type) {
   }
 }
 
-const myCoinStatus = computed(() => {
-  if (!myCoinItem.value) return null
-  if (!myCoinItem.value.rank || myCoinItem.value.rank > 10) return null
-  return myRewardStatus(myCoinItem.value, 'coin')
-})
-
 const myIncomeStatus = computed(() => {
-  if (incomePeriodType.value !== 'month') return null
   if (!myIncomeItem.value) return null
   if (!myIncomeItem.value.rank || myIncomeItem.value.rank > 10) return null
   return myRewardStatus(myIncomeItem.value, 'income')
 })
-
-function coinRewardLabel(item) {
-  if (item.rank > 10) return null
-  const record = getRewardRecord('coin', currentCoinMonth, item.userId)
-  if (record) return { text: '已获 1000 创作币', type: 'awarded' }
-  return { text: '本月榜单进行中，待结算', type: 'pending' }
-}
 
 function incomeRewardLabel(item) {
   const isCurrent =

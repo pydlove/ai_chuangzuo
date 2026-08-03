@@ -216,10 +216,10 @@ public class SkillReviewServiceImpl implements SkillReviewService {
      * 向用户推送风格审核结果消息。
      */
     private void pushSkillReviewMessage(UserSkillAggregate skill, boolean approved, String rejectReason) {
-        String title = approved ? "风格审核通过" : "风格审核未通过";
+        String title = approved ? "提示词发布申请审核通过" : "提示词发布申请审核未通过";
         String summary = approved
-                ? String.format("你的风格「%s」已通过审核，已上架风格市场。其他用户使用时，你将获得创作币收益。", skill.getSkillName())
-                : String.format("你的风格「%s」未通过审核，原因：%s", skill.getSkillName(), rejectReason);
+                ? String.format("你的提示词「%s」已通过审核，已上架提示词市场。其他用户使用时，你将获得创作币收益。", skill.getSkillName())
+                : String.format("你的提示词「%s」未通过审核，原因：%s", skill.getSkillName(), rejectReason);
 
         MessageAggregate message = new MessageAggregate();
         message.setMsgType(MSG_TYPE_SKILL);

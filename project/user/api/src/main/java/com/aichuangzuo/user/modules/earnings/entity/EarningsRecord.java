@@ -44,10 +44,16 @@ public class EarningsRecord {
 
     private BigDecimal amount;
 
-    private Integer status;
-
     private String settlementMonth;
 
+    /**
+     * 结算状态：0-未结算，1-已结算。
+     */
+    private Integer status;
+
+    /**
+     * 结算时间。
+     */
     private LocalDateTime settledAt;
 
     @TableLogic

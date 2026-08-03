@@ -15,8 +15,4 @@ public class MonthlySettlementVO {
     private Integer count;
 
     private BigDecimal total;
-
-    private BigDecimal settled;
-
-    private BigDecimal unsettled;
 }

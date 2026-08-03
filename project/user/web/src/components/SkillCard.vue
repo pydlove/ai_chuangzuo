@@ -63,6 +63,7 @@
             @click.stop="action.handler && action.handler($event)"
           >
             {{ action.label }}
+            <span v-if="action.badge" :class="['skill-card__action-badge', action.badge.class]">{{ action.badge.text }}</span>
           </button>
         </div>
         <button
@@ -420,8 +421,31 @@ const visibleActions = computed(() => props.actions.filter(a => a.visible !== fa
   flex-wrap: wrap;
   margin-top: 4px;
 }
+.skill-card__action-badge {
+  position: absolute;
+  top: -8px;
+  right: -6px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.skill-card__action-badge.pro {
+  color: #874d00;
+  background: linear-gradient(135deg, #fff1b8, #ffd666);
+}
+
+.skill-card__action-badge.flagship {
+  color: #fff;
+  background: linear-gradient(135deg, #ffd591, #ff7a45);
+}
 
 .skill-card__action-btn {
+  position: relative;
   padding: 6px 12px;
   background: transparent;
   border: none;
@@ -572,6 +596,16 @@ body[data-theme="dark"] .skill-card__prompt--full {
   background: #141414;
   color: #d9d9d9;
   border: 1px solid #303030;
+}
+
+body[data-theme="dark"] .skill-card__action-badge.pro {
+  color: #fff;
+  background: linear-gradient(135deg, #d48806, #fa8c16);
+}
+
+body[data-theme="dark"] .skill-card__action-badge.flagship {
+  color: #fff;
+  background: linear-gradient(135deg, #fa8c16, #ff4d4f);
 }
 
 body[data-theme="dark"] .skill-card__action-btn {

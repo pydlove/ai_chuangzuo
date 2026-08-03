@@ -64,6 +64,24 @@ export function getCustomStyleLimit() {
   return MEMBERSHIP_CUSTOM_STYLE_LIMIT[getCurrentPlanKey()] ?? 0
 }
 
+/**
+ * 会员等级 → 提示词最大长度
+ * 基础版 600 / 专业版 800 / 旗舰版 1200。
+ */
+export const MEMBERSHIP_SKILL_PROMPT_MAX_LENGTH = {
+  free: 600,
+  basic: 600,
+  pro: 800,
+  flagship: 1200,
+}
+
+/**
+ * 当前档位提示词最大长度。未开通或已过期 → 600。
+ */
+export function getSkillPromptMaxLength() {
+  return MEMBERSHIP_SKILL_PROMPT_MAX_LENGTH[getCurrentPlanKey()] ?? 600
+}
+
 export const PLAN_KEY_TO_NAME = {
   basic: '基础版',
   pro: '专业版',

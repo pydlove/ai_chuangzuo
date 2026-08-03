@@ -196,11 +196,30 @@ onMounted(async () => {
     const rawRows = res.data.compareRows || []
     // 生成贴图功能已下线，过滤掉对应权益
     const CARD_BENEFIT_CODE = 'sticker_quota'
+    const SKILL_CUSTOM_CODE = 'skill_custom'
+    const SKILL_CUSTOM_LABEL = '我的提示词'
     plans.value = rawPlans.map(plan => ({
       ...plan,
-      features: (plan.features || []).filter(f => f.code !== CARD_BENEFIT_CODE)
+      features: (plan.features || [])
+        .filter(f => f.code !== CARD_BENEFIT_CODE)
+        .map(f => f.code === SKILL_CUSTOM_CODE ? { ...f, text: `${SKILL_CUSTOM_LABEL} ${f.text}` } : f)
     }))
-    compareRows.value = rawRows.filter(row => row.code !== CARD_BENEFIT_CODE)
+    compareRows.value = rawRows
+      .filter(row => row.code !== CARD_BENEFIT_CODE)
+      .map(row => {
+        if (row.code !== SKILL_CUSTOM_CODE) return row
+        const prefixCell = (cell) => {
+          if (!cell || typeof cell.value !== 'string') return cell
+          return { ...cell, value: `${SKILL_CUSTOM_LABEL} ${cell.value}` }
+        }
+        return {
+          ...row,
+          label: SKILL_CUSTOM_LABEL,
+          basic: prefixCell(row.basic),
+          pro: prefixCell(row.pro),
+          flagship: prefixCell(row.flagship)
+        }
+      })
   } catch (err) {
     message.error(err.message || '定价加载失败')
   } finally {
