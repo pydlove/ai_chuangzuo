@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.leaderboard.client;
 
 import com.aichuangzuo.admin.infrastructure.security.JwtUtil;
+import com.aichuangzuo.admin.modules.leaderboard.dto.request.RecordEarningsRequest;
 import com.aichuangzuo.admin.modules.leaderboard.dto.request.UserCoinGrantRequest;
 import com.aichuangzuo.shared.result.Result;
 import lombok.RequiredArgsConstructor;
@@ -25,6 +26,35 @@ public class UserApiClient {
 
     @Value("${leaderboard.user-api.base-url:http://localhost:25050}")
     private String userApiBaseUrl;
+
+    /**
+     * 调用用户端记录收益。
+     */
+    public void recordEarnings(Long userId, String type, String sourceType, String sourceId,
+                               String title, String description, BigDecimal amount, String settlementMonth) {
+        String token = jwtUtil.generateAccessToken(userId);
+
+        RecordEarningsRequest request = new RecordEarningsRequest();
+        request.setUserId(userId);
+        request.setType(type);
+        request.setSourceType(sourceType);
+        request.setSourceId(sourceId);
+        request.setTitle(title);
+        request.setDescription(description);
+        request.setAmount(amount);
+        request.setSettlementMonth(settlementMonth);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+        HttpEntity<RecordEarningsRequest> entity = new HttpEntity<>(request, headers);
+
+        String url = userApiBaseUrl + "/api/v1/user/internal/earnings/record";
+        Result<Void> response = restTemplate.postForObject(url, entity, Result.class);
+        if (response == null) {
+            throw new RuntimeException("record earnings failed: empty response");
+        }
+    }
 
     /**
      * 调用用户端发放创作币。

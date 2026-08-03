@@ -101,7 +101,7 @@ class SkillReviewServiceTest {
         org.mockito.ArgumentCaptor<MessageAggregate> msgCaptor = org.mockito.ArgumentCaptor.forClass(MessageAggregate.class);
         verify(messageAggregateMapper).insert(msgCaptor.capture());
         MessageAggregate message = msgCaptor.getValue();
-        assertEquals("skill", message.getMsgType());
+        assertEquals("style", message.getMsgType());
         assertEquals(Integer.valueOf(2), message.getScope());
         assertEquals(Long.valueOf(10001L), message.getTargetUserId());
         assertEquals("提示词发布申请审核通过", message.getTitle());
@@ -243,7 +243,7 @@ class SkillReviewServiceTest {
         org.mockito.ArgumentCaptor<MessageAggregate> msgCaptor = org.mockito.ArgumentCaptor.forClass(MessageAggregate.class);
         verify(messageAggregateMapper).insert(msgCaptor.capture());
         MessageAggregate message = msgCaptor.getValue();
-        assertEquals("skill", message.getMsgType());
+        assertEquals("style", message.getMsgType());
         assertEquals(Integer.valueOf(2), message.getScope());
         assertEquals(Long.valueOf(10001L), message.getTargetUserId());
         assertEquals("提示词发布申请审核未通过", message.getTitle());

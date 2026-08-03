@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.skill.market.config.service.SkillMonthlyRewardConfigService;
 import com.aichuangzuo.user.modules.skill.market.config.vo.SkillMonthlyRewardConfigVO;
+import com.aichuangzuo.user.modules.skill.market.service.SkillMarketCommandService;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketQueryService;
 import com.aichuangzuo.user.modules.skill.market.service.UserMarketFavoriteService;
 import com.aichuangzuo.user.modules.skill.market.vo.MarketSkillOverviewVO;
@@ -33,6 +34,7 @@ import java.util.List;
 public class SkillMarketController {
 
     private final SkillMarketQueryService skillMarketQueryService;
+    private final SkillMarketCommandService skillMarketCommandService;
     private final UserMarketFavoriteService userMarketFavoriteService;
     private final SkillMonthlyRewardConfigService monthlyRewardConfigService;
 
@@ -100,5 +102,26 @@ public class SkillMarketController {
         Long userId = SecurityUserContext.getCurrentUserId();
         userMarketFavoriteService.removeFavorite(userId, marketSkillId);
         return Result.success();
+    }
+
+    /**
+     * 发布者删除（下架）自己的市场 skill。
+     */
+    @Operation(summary = "下架自己的市场 skill")
+    @DeleteMapping("/{marketSkillId}")
+    public Result<Void> deleteOwnMarketSkill(@PathVariable String marketSkillId) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        skillMarketCommandService.deleteOwnMarketSkill(marketSkillId, userId);
+        return Result.success();
+    }
+
+    /**
+     * 获取当前用户的全部市场提交记录（含待审核/已通过/已打回）。
+     */
+    @Operation(summary = "我的市场提交记录")
+    @GetMapping("/my-submissions")
+    public Result<List<MarketSkillVO>> listMySubmissions() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(skillMarketQueryService.listMySubmissions(userId));
     }
 }

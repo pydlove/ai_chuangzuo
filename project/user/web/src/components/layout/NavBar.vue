@@ -1,12 +1,14 @@
 <template>
   <header class="navbar">
     <div class="navbar-brand">
-      <img
-        src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-        alt="爱创作"
-        class="navbar-logo"
-      />
-      <span class="navbar-brand-name">爱创作</span>
+      <router-link to="/" class="navbar-brand-link">
+        <img
+          src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
+          alt="爱创作"
+          class="navbar-logo"
+        />
+        <span class="navbar-brand-name">爱创作</span>
+      </router-link>
     </div>
 
     <nav class="navbar-links">
@@ -208,6 +210,13 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.navbar-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
 }
 
 .navbar-logo {

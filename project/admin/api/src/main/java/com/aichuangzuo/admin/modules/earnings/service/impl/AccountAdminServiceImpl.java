@@ -112,7 +112,6 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         vo.setType(e.getType());
         vo.setTitle(e.getTitle());
         vo.setAmount(e.getAmount());
-        vo.setStatus(e.getStatus());
         vo.setSettlementMonth(e.getSettlementMonth());
         vo.setCreatedAt(e.getCreatedAt());
         return vo;

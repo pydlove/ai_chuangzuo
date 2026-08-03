@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>爱创作</title>
     <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
     <script>
@@ -133,8 +136,9 @@
         background: #2a2a2a;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-B41KrYcD.js"></script>
+    <script type="module" crossorigin src="/assets/index-DKYY1s8S.js"></script>
     <link rel="stylesheet" crossorigin href="/assets/index-DxeLp2qv.css">
+    <script>window.__APP_VERSION__ = 'build-1785749635526'</script>
   </head>
   <body>
     <div id="app-loader">
@@ -146,6 +150,19 @@
       <div class="loader-en">ai creation</div>
     </div>
     <div id="app"></div>
+    <script>
+      (function () {
+        const VERSION_KEY = 'aichuangzuo_app_version'
+        const current = (window.__APP_VERSION__ || 'dev').toString()
+        const saved = localStorage.getItem(VERSION_KEY)
+        if (saved && saved !== current) {
+          localStorage.setItem(VERSION_KEY, current)
+          location.reload(true)
+          return
+        }
+        localStorage.setItem(VERSION_KEY, current)
+      })()
+    </script>
     <script>
       (function () {
         const loader = document.getElementById('app-loader')

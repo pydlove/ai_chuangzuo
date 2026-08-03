@@ -41,3 +41,6 @@ export function crawlNow() {
 export function getLastRun() {
   return request.get('/api/v1/admin/hot-search/crawl/last-run').then((res) => res.data)
 }
+export function listCrawlLogs(params) {
+  return request.get('/api/v1/admin/hot-search/crawl/logs', { params }).then((res) => res.data)
+}

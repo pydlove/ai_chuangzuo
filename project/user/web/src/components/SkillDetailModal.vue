@@ -25,7 +25,7 @@
 
     <div class="skill-detail-wrap">
       <div class="skill-detail-body">
-        <div class="skill-detail-stats">
+        <div v-if="showStats" class="skill-detail-stats">
           <div class="skill-detail-stat">
             <div class="skill-detail-stat-value">{{ skill.weeklyUses || 0 }}</div>
             <div class="skill-detail-stat-label">本周使用</div>
@@ -77,13 +77,15 @@
           <span v-else>提示词市场</span>
         </div>
         <div class="skill-detail-footer-actions">
-          <button
-            :class="['skill-detail-btn-fav', { active: isFavorite }]"
-            @click.stop="$emit('toggle-favorite')"
-          >
-            {{ isFavorite ? '♥ 已收藏' : '♡ 收藏' }}
-          </button>
-          <button class="skill-detail-btn-use" @click.stop="$emit('use')">使用</button>
+          <slot name="footer-actions">
+            <button
+              :class="['skill-detail-btn-fav', { active: isFavorite }]"
+              @click.stop="$emit('toggle-favorite')"
+            >
+              {{ isFavorite ? '♥ 已收藏' : '♡ 收藏' }}
+            </button>
+            <button class="skill-detail-btn-use" @click.stop="$emit('use')">使用</button>
+          </slot>
         </div>
       </div>
     </div>
@@ -97,7 +99,8 @@ const props = defineProps({
   skill: { type: Object, default: null },
   visible: { type: Boolean, default: false },
   currentUserId: { type: String, default: '' },
-  isFavorite: { type: Boolean, default: false }
+  isFavorite: { type: Boolean, default: false },
+  showStats: { type: Boolean, default: true }
 })
 
 defineEmits(['update:visible', 'use', 'toggle-favorite'])
@@ -276,7 +279,8 @@ const formatTimeAgo = (value) => {
   align-items: center;
   gap: var(--space-sm);
 }
-.skill-detail-btn-use {
+.skill-detail-btn-use,
+:slotted(.skill-detail-btn-use) {
   height: 32px;
   padding: 0 16px;
   border: 0;
@@ -288,10 +292,12 @@ const formatTimeAgo = (value) => {
   cursor: pointer;
   transition: background 0.2s;
 }
-.skill-detail-btn-use:hover {
+.skill-detail-btn-use:hover,
+:slotted(.skill-detail-btn-use:hover) {
   background: var(--color-primary-hover);
 }
-.skill-detail-btn-fav {
+.skill-detail-btn-fav,
+:slotted(.skill-detail-btn-fav) {
   height: 32px;
   padding: 0 12px;
   border: 1px solid var(--color-border-default);
@@ -303,11 +309,13 @@ const formatTimeAgo = (value) => {
   cursor: pointer;
   transition: all 0.2s;
 }
-.skill-detail-btn-fav:hover {
+.skill-detail-btn-fav:hover,
+:slotted(.skill-detail-btn-fav:hover) {
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
-.skill-detail-btn-fav.active {
+.skill-detail-btn-fav.active,
+:slotted(.skill-detail-btn-fav.active) {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-light);
@@ -319,15 +327,19 @@ body[data-theme="dark"] .skill-detail-footer {
 body[data-theme="dark"] .skill-detail-footer-meta {
   color: #a6a6a6;
 }
-body[data-theme="dark"] .skill-detail-btn-use {
+body[data-theme="dark"] .skill-detail-btn-use,
+body[data-theme="dark"] :slotted(.skill-detail-btn-use) {
   background: var(--color-primary);
 }
-body[data-theme="dark"] .skill-detail-btn-fav {
+body[data-theme="dark"] .skill-detail-btn-fav,
+body[data-theme="dark"] :slotted(.skill-detail-btn-fav) {
   border-color: #303030;
   color: #a6a6a6;
 }
 body[data-theme="dark"] .skill-detail-btn-fav:hover,
-body[data-theme="dark"] .skill-detail-btn-fav.active {
+body[data-theme="dark"] .skill-detail-btn-fav.active,
+body[data-theme="dark"] :slotted(.skill-detail-btn-fav:hover),
+body[data-theme="dark"] :slotted(.skill-detail-btn-fav.active) {
   border-color: var(--color-primary);
   color: #ff6b81;
   background: rgba(255, 36, 66, 0.12);

@@ -29,10 +29,18 @@ export function useHotSearch() {
   const fetchLastRun = async () => {
     state.lastRun = await api.getLastRun()
   }
+  const crawlLogs = reactive({ items: [], total: 0, page: 1, size: 20 })
+  const fetchCrawlLogs = async (params = {}) => {
+    const res = await api.listCrawlLogs({ page: crawlLogs.page, size: crawlLogs.size, ...params })
+    crawlLogs.items = res.items || []
+    crawlLogs.total = res.total || 0
+    crawlLogs.page = res.page || 1
+    crawlLogs.size = res.size || 20
+  }
 
   return {
-    state,
-    fetchPlatforms, fetchDaily, fetchConfig, fetchLastRun,
+    state, crawlLogs,
+    fetchPlatforms, fetchDaily, fetchConfig, fetchLastRun, fetchCrawlLogs,
     savePlatform: async (data) => { await api.createPlatform(data); message.success('已新增') },
     updatePlatform: async (id, data) => { await api.updatePlatform(id, data); message.success('已更新') },
     removePlatform: async (id) => { await api.deletePlatform(id); message.success('已删除') },

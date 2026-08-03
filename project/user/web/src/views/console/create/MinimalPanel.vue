@@ -212,7 +212,7 @@ const handleGenerate = async () => {
       cancelText: '取消',
       centered: true,
       wrapClassName: 'membership-confirm-modal',
-      onOk: () => router.push('/pricing')
+      onOk: () => window.open('/pricing', '_blank')
     })
     return
   }
@@ -223,7 +223,7 @@ const handleGenerate = async () => {
       okText: '去升级',
       cancelText: '取消',
       centered: true,
-      onOk: () => router.push('/pricing')
+      onOk: () => window.open('/pricing', '_blank')
     })
     return
   }

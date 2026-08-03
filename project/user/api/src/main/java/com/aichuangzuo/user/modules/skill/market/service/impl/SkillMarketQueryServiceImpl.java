@@ -3,11 +3,14 @@ package com.aichuangzuo.user.modules.skill.market.service.impl;
 import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
 import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
 import com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketAggregateMapper;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketQueryService;
 import com.aichuangzuo.user.modules.skill.market.vo.MarketSkillOverviewVO;
 import com.aichuangzuo.user.modules.skill.market.vo.MarketSkillVO;
 import com.aichuangzuo.user.modules.skill.market.vo.TopCreatorVO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
     private final SkillMarketAggregateMapper aggregateMapper;
     private final SkillMonthlyRewardConfigMapper configMapper;
+    private final SkillMarketMapper skillMarketMapper;
 
     @Override
     public List<MarketSkillVO> listEnabled() {
@@ -92,6 +96,17 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
         overview.setTopCreators(buildTopCreators(allApproved));
         return overview;
+    }
+
+    @Override
+    public List<MarketSkillVO> listMySubmissions(Long userId) {
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getPublisherUserId, userId)
+                .eq(SkillMarket::getIsDeleted, 0)
+                .orderByDesc(SkillMarket::getCreatedAt);
+        return skillMarketMapper.selectList(wrapper).stream()
+                .map(this::toVo)
+                .collect(Collectors.toList());
     }
 
     private List<TopCreatorVO> buildTopCreators(List<MarketSkillRow> rows) {
@@ -155,6 +170,48 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
         vo.setLastSettlementAt(row.getLastSettlementAt());
         vo.setCreatedAt(row.getCreatedAt());
         return vo;
+    }
+
+    private MarketSkillVO toVo(SkillMarket market) {
+        MarketSkillVO vo = new MarketSkillVO();
+        vo.setId(market.getBizNo());
+        vo.setName(market.getSkillName());
+        vo.setDescription(market.getDescription());
+        vo.setSourceType(toSourceTypeString(market.getSourceType()));
+        vo.setCreatorId(market.getPublisherUserId());
+        vo.setCreatorName(null);
+        vo.setPrompt(market.getPrompt());
+        vo.setScope(market.getScope());
+        vo.setExcerpt1(null);
+        vo.setExcerpt2(null);
+        vo.setStatus(toStatusString(market.getAuditStatus()));
+        vo.setPrice(market.getPrice());
+        vo.setWeeklyUses(market.getWeeklyUses());
+        vo.setTotalUses(market.getTotalUses());
+        vo.setWeeklyEarnings(market.getWeeklyEarnings());
+        vo.setMilestoneBonus(market.getMilestoneBonus());
+        vo.setMonthlyUses(market.getMonthlyUses());
+        vo.setMonthlyEarnings(market.getMonthlyEarnings());
+        vo.setLeaderboardReward(market.getLeaderboardReward());
+        vo.setFeatured(Boolean.FALSE);
+        vo.setLastSettlementAt(market.getLastSettlementAt());
+        vo.setCreatedAt(market.getCreatedAt());
+        return vo;
+    }
+
+    private String toSourceTypeString(Integer code) {
+        return code != null && code == 1 ? "my" : "learned";
+    }
+
+    private String toStatusString(Integer code) {
+        if (code == null) {
+            return "pending";
+        }
+        return switch (code) {
+            case 1 -> "approved";
+            case 2 -> "rejected";
+            default -> "pending";
+        };
     }
 
     private BigDecimal resolvePricePerUse() {

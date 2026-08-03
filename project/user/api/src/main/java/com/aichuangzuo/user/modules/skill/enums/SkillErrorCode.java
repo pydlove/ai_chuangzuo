@@ -17,7 +17,9 @@ public enum SkillErrorCode implements ErrorCode {
     SKILL_PROMPT_EMPTY(112004, "风格提示词不能为空"),
     SKILL_SCOPE_TOO_LONG(112005, "适用范围标签过多或过长"),
     SKILL_ANALYZE_FAILED(112006, "风格分析失败，请重试"),
-    SKILL_QUOTA_EXCEEDED(112007, "当前套餐我的风格数量已达上限，升级套餐可保存更多风格");
+    SKILL_QUOTA_EXCEEDED(112007, "当前套餐我的风格数量已达上限，升级套餐可保存更多风格"),
+    SKILL_MARKET_NOT_OWNER(112008, "无权操作该提示词"),
+    SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED(112009, "本月提示词发布次数已达上限，升级套餐可发布更多提示词");
 
     private final int code;
     private final String message;

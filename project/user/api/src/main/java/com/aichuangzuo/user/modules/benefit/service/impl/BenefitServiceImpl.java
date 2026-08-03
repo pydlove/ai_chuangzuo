@@ -80,8 +80,10 @@ public class BenefitServiceImpl implements BenefitService {
             if (TYPE_QUOTA.equals(benefit.getType())) {
                 int limit = parseInt(pb.getBenefitValue(), 0);
                 int used = currentUsed(userId, benefit.getCode(), period);
+                int preUsed = currentPreUsed(userId, benefit.getCode(), period);
                 item.setUsed(used);
-                item.setRemaining(Math.max(limit - used, 0));
+                item.setPreUsed(preUsed);
+                item.setRemaining(Math.max(limit - used - preUsed, 0));
             }
             items.add(item);
         }
@@ -117,9 +119,11 @@ public class BenefitServiceImpl implements BenefitService {
         if (TYPE_QUOTA.equals(benefit.getType())) {
             int limit = parseInt(planBenefit.getBenefitValue(), 0);
             int used = currentUsed(userId, code, currentPeriod());
+            int preUsed = currentPreUsed(userId, code, currentPeriod());
             vo.setUsed(used);
-            vo.setRemaining(Math.max(limit - used, 0));
-            if (used < limit) {
+            vo.setPreUsed(preUsed);
+            vo.setRemaining(Math.max(limit - used - preUsed, 0));
+            if (used + preUsed < limit) {
                 vo.setAllowed(true);
             } else {
                 deny(vo, planBenefit.getBenefitValue(), BenefitErrorCode.QUOTA_EXHAUSTED.getMessage());
@@ -190,6 +194,71 @@ public class BenefitServiceImpl implements BenefitService {
     }
 
     @Override
+    public BenefitCheckVO preConsume(Long userId, String code) {
+        Benefit benefit = requireBenefit(code);
+        if (!TYPE_QUOTA.equals(benefit.getType())) {
+            throw new BusinessException(BenefitErrorCode.NOT_QUOTA_BENEFIT);
+        }
+
+        String planKey = currentPlanKey(userId);
+        PlanBenefit planBenefit = findPlanBenefit(planKey, code);
+        if (planBenefit == null) {
+            throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED);
+        }
+
+        int limit = parseInt(planBenefit.getBenefitValue(), 0);
+        String period = currentPeriod();
+
+        int updated = benefitUsageMapper.incrementPreIfBelowLimit(userId, code, period, limit);
+        if (updated == 0) {
+            BenefitUsage existing = benefitUsageMapper.selectByUserAndCodeAndPeriod(userId, code, period);
+            if (existing != null || limit < 1) {
+                throw new BusinessException(BenefitErrorCode.QUOTA_EXHAUSTED);
+            }
+            BenefitUsage usage = new BenefitUsage();
+            usage.setUserId(userId);
+            usage.setBenefitCode(code);
+            usage.setPeriod(period);
+            usage.setUsedCount(0);
+            usage.setPreUsedCount(1);
+            usage.setTenantId(0L);
+            try {
+                benefitUsageMapper.insert(usage);
+            } catch (DuplicateKeyException e) {
+                if (benefitUsageMapper.incrementPreIfBelowLimit(userId, code, period, limit) == 0) {
+                    throw new BusinessException(BenefitErrorCode.QUOTA_EXHAUSTED);
+                }
+            }
+        }
+
+        BenefitUsage current = benefitUsageMapper.selectByUserAndCodeAndPeriod(userId, code, period);
+        int used = current == null ? 0 : current.getUsedCount();
+        int preUsed = current == null ? 0 : current.getPreUsedCount();
+
+        BenefitCheckVO vo = new BenefitCheckVO();
+        vo.setAllowed(true);
+        vo.setCode(code);
+        vo.setType(benefit.getType());
+        vo.setValue(planBenefit.getBenefitValue());
+        vo.setUsed(used);
+        vo.setPreUsed(preUsed);
+        vo.setRemaining(Math.max(limit - used - preUsed, 0));
+        return vo;
+    }
+
+    @Override
+    public void confirmPreConsume(Long userId, String code) {
+        int updated = benefitUsageMapper.confirmPreConsume(userId, code, currentPeriod());
+        log.info("权益额度预扣转正 userId={}, code={}, updated={}", userId, code, updated);
+    }
+
+    @Override
+    public void cancelPreConsume(Long userId, String code) {
+        int updated = benefitUsageMapper.decrementPreIfAboveZero(userId, code, currentPeriod());
+        log.info("权益额度预扣释放 userId={}, code={}, updated={}", userId, code, updated);
+    }
+
+    @Override
     public String getPlanBenefitValue(Long userId, String code, String defaultValue) {
         String planKey = currentPlanKey(userId);
         if (FREE_PLAN_KEY.equals(planKey)) {
@@ -247,6 +316,11 @@ public class BenefitServiceImpl implements BenefitService {
     private int currentUsed(Long userId, String code, String period) {
         BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(userId, code, period);
         return usage == null ? 0 : usage.getUsedCount();
+    }
+
+    private int currentPreUsed(Long userId, String code, String period) {
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(userId, code, period);
+        return usage == null ? 0 : usage.getPreUsedCount();
     }
 
     private String currentPeriod() {

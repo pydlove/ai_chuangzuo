@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.skill.controller;
 
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.dto.request.AnalyzeSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
@@ -88,6 +89,18 @@ public class UserSkillController {
     }
 
     /**
+     * 将当前用户的风格发布到提示词市场（进入待审核状态）。
+     *
+     * @param bizNo 风格业务编号
+     */
+    @Operation(summary = "发布风格到市场")
+    @PostMapping("/{bizNo}/publish")
+    public Result<Void> publishSkill(@PathVariable String bizNo) {
+        userSkillService.publishSkill(bizNo);
+        return Result.success();
+    }
+
+    /**
      * 获取当前启用的系统预设风格。
      */
     @Operation(summary = "获取系统预设风格")
@@ -100,16 +113,47 @@ public class UserSkillController {
     /**
      * AI 分析参考文章写作风格，返回风格提示词与 2 段原文摘录。
      *
-     * <p>会消费本月 skill_learn_analyze 额度（basic=0/pro=1/flagship=2），
-     * 额度不足返回 118003 {@code QUOTA_EXHAUSTED}。
+     * <p>本接口不直接消费额度，请先在调用前执行 /analyze/pre-consume 预扣额度。
      *
-     * @param request 含参考文章正文（200-3000 字）
+     * @param request 含参考文章正文（200-1000 字）
      * @return 分析结果（excerpt 仅供展示，不入库）
      */
     @Operation(summary = "AI 分析参考文章写作风格并提取风格")
     @PostMapping("/analyze")
     public Result<SkillAnalyzeVO> analyzeSkill(@Valid @RequestBody AnalyzeSkillRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(skillAnalyzeService.analyze(userId, request.getText().trim()));
+        return Result.success(skillAnalyzeService.analyze(userId, request.getText()));
+    }
+
+    /**
+     * 预扣 skill_learn_analyze 月度额度。
+     */
+    @Operation(summary = "预扣学习提示词额度")
+    @PostMapping("/analyze/pre-consume")
+    public Result<BenefitCheckVO> preConsumeAnalyze(@RequestBody AnalyzeSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(skillAnalyzeService.preConsume(userId));
+    }
+
+    /**
+     * 确认扣减：用户保存学习结果时调用，将预扣额度转为正式用量。
+     */
+    @Operation(summary = "确认扣减学习提示词额度")
+    @PostMapping("/analyze/confirm")
+    public Result<Void> confirmAnalyzeConsume(@RequestBody AnalyzeSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        skillAnalyzeService.confirmConsume(userId);
+        return Result.success();
+    }
+
+    /**
+     * 释放预扣：用户取消或关闭弹框时调用，退回预扣额度。
+     */
+    @Operation(summary = "释放学习提示词预扣额度")
+    @PostMapping("/analyze/cancel")
+    public Result<Void> cancelAnalyzeConsume(@RequestBody AnalyzeSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        skillAnalyzeService.cancelConsume(userId);
+        return Result.success();
     }
 }

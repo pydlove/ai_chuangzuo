@@ -77,7 +77,7 @@ start_backend() {
   fi
 
   nohup env _JAVA_OPTIONS="${extra_jvm_opts}" \
-    mvn -pl admin/api spring-boot:run -Dspring-boot.run.jvmArguments="${extra_jvm_opts}" -DskipTests \
+    mvn -pl admin/api clean spring-boot:run -Dspring-boot.run.jvmArguments="${extra_jvm_opts}" -DskipTests \
     > "${BACKEND_LOG}" 2>&1 &
   echo $! > "${BACKEND_PID_FILE}"
   echo "后端 PID：$(cat "${BACKEND_PID_FILE}")，日志：${BACKEND_LOG}"

@@ -105,7 +105,8 @@
                 { label: '使用', type: 'primary', handler: () => handleUse(s) },
                 { label: isFavorite(s.id) ? '♥' : '♡', active: isFavorite(s.id), handler: () => handleToggleFavorite(s.id) },
                 { label: '查看', handler: () => openStyleDetail(s) },
-                { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) }
+                { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) },
+                { label: '下架', visible: s.creatorId === currentUserId, handler: () => handleDelete(s) }
               ]"
               @click="openStyleDetail(s)"
             >
@@ -228,12 +229,6 @@
             </div>
           </div>
         </section>
-        <section class="market-leaderboard-section">
-          <div class="market-section-head">
-            <h2 class="market-section-title">收益排行榜</h2>
-          </div>
-          <LeaderboardPanel />
-        </section>
       </div>
     </div>
   </div>
@@ -348,14 +343,30 @@
     @update:visible="onStyleDetailVisibleChange"
     @use="handleUse(selectedStyle)"
     @toggle-favorite="handleToggleFavorite(selectedStyle.id)"
-  />
+  >
+    <template #footer-actions>
+      <button
+        class="skill-detail-btn-fav"
+        :class="{ active: isFavorite(selectedStyle.id) }"
+        @click="handleToggleFavorite(selectedStyle.id)"
+      >
+        {{ isFavorite(selectedStyle.id) ? '♥ 已收藏' : '♡ 收藏' }}
+      </button>
+      <button class="skill-detail-btn-use" @click="handleUse(selectedStyle)">使用</button>
+      <button
+        v-if="String(selectedStyle?.creatorId) === String(currentUserId)"
+        class="skill-detail-btn-fav"
+        @click="handleDelete(selectedStyle); onStyleDetailVisibleChange(false)"
+      >下架</button>
+    </template>
+  </SkillDetailModal>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
 import { InfoCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
-import LeaderboardPanel from '@/components/LeaderboardPanel.vue'
 import {
   marketSkills,
   marketStats,
@@ -369,7 +380,8 @@ import {
   loadMarketSkillOverview,
   loadMarketSkillPage,
   loadFavoriteIds,
-  loadPricePerUse
+  loadPricePerUse,
+  unpublishSkill
 } from '@/composables/useSkillMarket.js'
 import { getMarketSkillMonthlyRewardConfig } from '@/api/marketSkill.js'
 import SkillCard from '@/components/SkillCard.vue'
@@ -448,6 +460,26 @@ const handleUse = (s) => {
   } catch (err) {
     alert(err.message)
   }
+}
+
+const handleDelete = (s) => {
+  Modal.confirm({
+    title: '下架提示词',
+    content: `确定要下架已发布的提示词「${s.name}」吗？下架后其他人将无法在市场中看到该提示词。`,
+    okText: '下架',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: async () => {
+      try {
+        await unpublishSkill(s.id)
+        message.success('提示词已下架')
+        loadPage(page.value)
+      } catch {
+        // composable 内已输出错误
+      }
+    }
+  })
 }
 
 // 提示词详情 modal：点击卡片/查看按钮展示提示词内容（prompt、统计等），不再直接跳转创作页

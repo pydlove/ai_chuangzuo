@@ -164,6 +164,131 @@ class BenefitServiceTest {
         assertEquals("express", vo.getValue());
     }
 
+    @Test
+    void check_quotaWithPreUsed_subtractsPreUsedFromRemaining() {
+        User user = createUser("benefit-check-pre@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 20, 5);
+
+        BenefitCheckVO vo = benefitService.check(user.getId(), "ai_article_quota");
+
+        assertTrue(vo.getAllowed());
+        assertEquals(20, vo.getUsed());
+        assertEquals(5, vo.getPreUsed());
+        assertEquals(75, vo.getRemaining());
+    }
+
+    @Test
+    void check_quotaExhaustedByPreUsed_denies() {
+        User user = createUser("benefit-check-pre-deny@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 29, 1);
+
+        BenefitCheckVO vo = benefitService.check(user.getId(), "ai_article_quota");
+
+        assertFalse(vo.getAllowed());
+        assertEquals(BenefitErrorCode.QUOTA_EXHAUSTED.getMessage(), vo.getMessage());
+    }
+
+    // ── preConsume / confirm / cancel ──
+
+    @Test
+    void preConsume_quotaFirstTime_insertsRowWithPreUsedCount() {
+        User user = createUser("benefit-preconsume-first@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+
+        BenefitCheckVO vo = benefitService.preConsume(user.getId(), "ai_article_quota");
+
+        assertTrue(vo.getAllowed());
+        assertEquals(0, vo.getUsed());
+        assertEquals(1, vo.getPreUsed());
+        assertEquals(29, vo.getRemaining());
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertNotNull(usage);
+        assertEquals(0, usage.getUsedCount());
+        assertEquals(1, usage.getPreUsedCount());
+    }
+
+    @Test
+    void preConsume_existingUsage_incrementsPreUsedCount() {
+        User user = createUser("benefit-preconsume-incr@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 10);
+
+        BenefitCheckVO vo = benefitService.preConsume(user.getId(), "ai_article_quota");
+
+        assertTrue(vo.getAllowed());
+        assertEquals(10, vo.getUsed());
+        assertEquals(1, vo.getPreUsed());
+        assertEquals(19, vo.getRemaining());
+    }
+
+    @Test
+    void preConsume_quotaExhaustedByUsed_throws() {
+        User user = createUser("benefit-preconsume-full-used@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 30);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> benefitService.preConsume(user.getId(), "ai_article_quota"));
+        assertEquals(BenefitErrorCode.QUOTA_EXHAUSTED.getCode(), ex.getCode());
+    }
+
+    @Test
+    void preConsume_quotaExhaustedByPreUsed_throws() {
+        User user = createUser("benefit-preconsume-full-pre@test.com");
+        createMembership(user.getId(), "basic", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 29, 1);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> benefitService.preConsume(user.getId(), "ai_article_quota"));
+        assertEquals(BenefitErrorCode.QUOTA_EXHAUSTED.getCode(), ex.getCode());
+    }
+
+    @Test
+    void confirmPreConsume_movesPreUsedToUsed() {
+        User user = createUser("benefit-confirm-pre@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 5, 3);
+
+        benefitService.confirmPreConsume(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertEquals(6, usage.getUsedCount());
+        assertEquals(2, usage.getPreUsedCount());
+    }
+
+    @Test
+    void cancelPreConsume_decrementsPreUsedCount() {
+        User user = createUser("benefit-cancel-pre@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 5, 3);
+
+        benefitService.cancelPreConsume(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertEquals(5, usage.getUsedCount());
+        assertEquals(2, usage.getPreUsedCount());
+    }
+
+    @Test
+    void cancelPreConsume_zeroPreUsed_staysAtZero() {
+        User user = createUser("benefit-cancel-pre-zero@test.com");
+        createMembership(user.getId(), "pro", LocalDate.now().plusDays(30));
+        createUsage(user.getId(), "ai_article_quota", 5, 0);
+
+        benefitService.cancelPreConsume(user.getId(), "ai_article_quota");
+
+        BenefitUsage usage = benefitUsageMapper.selectByUserAndCodeAndPeriod(
+                user.getId(), "ai_article_quota", YearMonth.now().toString());
+        assertEquals(5, usage.getUsedCount());
+        assertEquals(0, usage.getPreUsedCount());
+    }
+
     // ── getPlanBenefitValue ──
 
     @Test
@@ -317,11 +442,16 @@ class BenefitServiceTest {
     }
 
     private void createUsage(Long userId, String code, int usedCount) {
+        createUsage(userId, code, usedCount, 0);
+    }
+
+    private void createUsage(Long userId, String code, int usedCount, int preUsedCount) {
         BenefitUsage usage = new BenefitUsage();
         usage.setUserId(userId);
         usage.setBenefitCode(code);
         usage.setPeriod(YearMonth.now().toString());
         usage.setUsedCount(usedCount);
+        usage.setPreUsedCount(preUsedCount);
         usage.setTenantId(0L);
         benefitUsageMapper.insert(usage);
     }

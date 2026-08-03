@@ -35,11 +35,39 @@ public interface BenefitService {
     BenefitCheckVO consume(Long userId, String code);
 
     /**
-     * 退回一次配额（业务失败时调用），当前周期用量 -1，下限 0。
+     * 预扣一次配额（仅 quota 类）。
+     * 预扣不会立即增加 used_count，而是增加 pre_used_count，待业务确认后再转正。
+     *
+     * @param userId 用户ID
+     * @param code 权益编码
+     * @return 预扣结果
+     */
+    BenefitCheckVO preConsume(Long userId, String code);
+
+    /**
+     * 确认预扣：将 1 次预扣额度转为正式用量。
      *
      * @param userId 用户ID
      * @param code 权益编码
      */
+    void confirmPreConsume(Long userId, String code);
+
+    /**
+     * 取消预扣：释放 1 次预扣额度。
+     *
+     * @param userId 用户ID
+     * @param code 权益编码
+     */
+    void cancelPreConsume(Long userId, String code);
+
+    /**
+     * 退回一次配额（业务失败时调用），当前周期用量 -1，下限 0。
+     * 已废弃：请使用 {@link #cancelPreConsume(Long, String)} 释放预扣。
+     *
+     * @param userId 用户ID
+     * @param code 权益编码
+     */
+    @Deprecated
     void refund(Long userId, String code);
 
     /**

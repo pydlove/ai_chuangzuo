@@ -1,19 +1,30 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
+import com.aichuangzuo.admin.modules.benefit.entity.BenefitUsageAggregate;
+import com.aichuangzuo.admin.modules.benefit.mapper.BenefitUsageAdminMapper;
+import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
+import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.ResetCustomSkillQuotaRequest;
+import com.aichuangzuo.admin.modules.user.dto.excel.UserImportExcelRowData;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.entity.UserInviteRelation;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
+import com.aichuangzuo.admin.modules.user.util.UserExcelImportUtil;
+import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserImportRowErrorVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteeVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -24,13 +35,19 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.security.SecureRandom;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,10 +58,19 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PlatformUserLoginLogMapper platformUserLoginLogMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final PasswordEncoder passwordEncoder;
+    private final SkillReviewMapper skillReviewMapper;
+    private final BenefitUsageAdminMapper benefitUsageAdminMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
+
+    private static final String BENEFIT_CODE_LEARN_ANALYZE = "skill_learn_analyze";
+    private static final String BENEFIT_CODE_CUSTOM_SKILL = "skill_custom";
+    private static final int SOURCE_TYPE_CUSTOM = 1;
+    private static final int SOURCE_TYPE_LEARN = 2;
+    private static final String PERIOD_PATTERN = "^\\d{4}-\\d{2}$";
+    private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -82,6 +108,114 @@ public class AdminUserServiceImpl implements AdminUserService {
         platformUserMapper.insert(user);
 
         return toAdminUserVO(user);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public AdminUserImportResultVO importUsersFromExcel(MultipartFile file) {
+        List<UserImportExcelRowData> rows = UserExcelImportUtil.readRows(file);
+        List<AdminUserImportRowErrorVO> errors = new ArrayList<>();
+        List<PlatformUser> users = new ArrayList<>(rows.size());
+        List<String> emailsInFile = new ArrayList<>(rows.size());
+
+        for (int i = 0; i < rows.size(); i++) {
+            UserImportExcelRowData row = rows.get(i);
+            int rowIndex = i + 2;
+            List<String> rowErrors = new ArrayList<>();
+            PlatformUser user = validateAndBuildUser(row, rowIndex, rowErrors, emailsInFile);
+            if (!rowErrors.isEmpty()) {
+                errors.add(new AdminUserImportRowErrorVO(rowIndex, trim(row.getEmail()), rowErrors));
+            } else {
+                users.add(user);
+                emailsInFile.add(user.getEmail());
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            return new AdminUserImportResultVO(false, rows.size(), 0, errors);
+        }
+
+        for (PlatformUser user : users) {
+            platformUserMapper.insert(user);
+        }
+        return new AdminUserImportResultVO(true, rows.size(), users.size(), List.of());
+    }
+
+    private PlatformUser validateAndBuildUser(UserImportExcelRowData row, int rowIndex,
+                                              List<String> errors, List<String> emailsInFile) {
+        String email = trim(row.getEmail());
+        String nickname = trim(row.getNickname());
+        String password = trim(row.getPassword());
+        String userTypeText = trim(row.getUserType());
+
+        if (email == null || email.isEmpty()) {
+            errors.add("【邮箱】未填写");
+        } else if (email.length() > 128) {
+            errors.add("【邮箱】长度超过 128 字符，当前 " + email.length() + " 字符");
+        } else if (!EMAIL_PATTERN.matcher(email).matches()) {
+            errors.add("【邮箱】格式不正确");
+        }
+
+        if (nickname == null || nickname.isEmpty()) {
+            errors.add("【昵称】未填写");
+        } else if (nickname.length() > 64) {
+            errors.add("【昵称】长度超过 64 字符，当前 " + nickname.length() + " 字符");
+        }
+
+        String finalPassword = StringUtils.hasText(password) ? password : RESET_PASSWORD;
+        if (finalPassword.length() < 6 || finalPassword.length() > 32) {
+            errors.add("【密码】长度需在 6-32 字符之间");
+        }
+
+        Integer userType = parseUserType(userTypeText, errors);
+
+        if (email != null && !email.isEmpty() && emailsInFile.contains(email)) {
+            errors.add("【邮箱】在 Excel 中重复");
+        }
+
+        if (email != null && !email.isEmpty() && !errors.stream().anyMatch(e -> e.contains("邮箱"))) {
+            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+            existsWrapper.eq(PlatformUser::getEmail, email).eq(PlatformUser::getIsDeleted, 0);
+            if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                errors.add("【邮箱】已注册");
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            return null;
+        }
+
+        PlatformUser user = new PlatformUser();
+        user.setBizNo("U" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
+        user.setEmail(email);
+        user.setNickname(nickname);
+        user.setPasswordHash(passwordEncoder.encode(finalPassword));
+        user.setInviteCode(generateInviteCode());
+        user.setUserStatus(1);
+        user.setUserType(userType);
+        user.setEmailVerified(1);
+        user.setTenantId(0L);
+        user.setIsDeleted(0);
+        return user;
+    }
+
+    private Integer parseUserType(String value, List<String> errors) {
+        if (!StringUtils.hasText(value)) {
+            return 0;
+        }
+        String text = value.trim();
+        if ("0".equals(text) || "机器人".equals(text)) {
+            return 0;
+        }
+        if ("1".equals(text) || "真实用户".equals(text)) {
+            return 1;
+        }
+        errors.add("【用户类型】格式不正确，请填写 0/机器人 或 1/真实用户");
+        return null;
+    }
+
+    private String trim(String value) {
+        return value == null ? null : value.trim();
     }
 
     private String generateInviteCode() {
@@ -299,5 +433,90 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setNickname(user.getNickname());
         vo.setEmail(user.getEmail());
         return vo;
+    }
+
+    @Override
+    public List<AdminUserSkillVO> listUserSkills(Long userId, Integer sourceType) {
+        LambdaQueryWrapper<UserSkillAggregate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserSkillAggregate::getUserId, userId);
+        if (sourceType != null) {
+            wrapper.eq(UserSkillAggregate::getSourceType, sourceType);
+        }
+        wrapper.orderByDesc(UserSkillAggregate::getCreatedAt);
+        return skillReviewMapper.selectList(wrapper).stream()
+                .map(this::toAdminUserSkillVO)
+                .collect(Collectors.toList());
+    }
+
+    private AdminUserSkillVO toAdminUserSkillVO(UserSkillAggregate skill) {
+        AdminUserSkillVO vo = new AdminUserSkillVO();
+        vo.setBizNo(skill.getBizNo());
+        vo.setSkillName(skill.getSkillName());
+        vo.setPrompt(skill.getPrompt());
+        vo.setScope(skill.getScope());
+        vo.setSourceType(skill.getSourceType());
+        vo.setUseCount(skill.getUseCount());
+        vo.setAuditStatus(skill.getAuditStatus());
+        vo.setCreatedAt(skill.getCreatedAt());
+        return vo;
+    }
+
+    @Override
+    public List<AdminLearnedSkillMonthVO> listUserLearnedSkillsByMonth(Long userId) {
+        ensureUserExists(userId);
+
+        LambdaQueryWrapper<BenefitUsageAggregate> usageWrapper = new LambdaQueryWrapper<>();
+        usageWrapper.eq(BenefitUsageAggregate::getUserId, userId)
+                .eq(BenefitUsageAggregate::getBenefitCode, BENEFIT_CODE_LEARN_ANALYZE)
+                .orderByDesc(BenefitUsageAggregate::getPeriod);
+        List<BenefitUsageAggregate> usageRows = benefitUsageAdminMapper.selectList(usageWrapper);
+
+        LambdaQueryWrapper<UserSkillAggregate> skillWrapper = new LambdaQueryWrapper<>();
+        skillWrapper.eq(UserSkillAggregate::getUserId, userId)
+                .eq(UserSkillAggregate::getSourceType, SOURCE_TYPE_LEARN);
+        List<UserSkillAggregate> learnedSkills = skillReviewMapper.selectList(skillWrapper);
+
+        Map<String, Long> skillCountByPeriod = learnedSkills.stream()
+                .filter(s -> s.getCreatedAt() != null)
+                .collect(Collectors.groupingBy(
+                        s -> YearMonth.from(s.getCreatedAt()).toString(),
+                        Collectors.counting()));
+
+        return usageRows.stream()
+                .map(u -> {
+                    AdminLearnedSkillMonthVO vo = new AdminLearnedSkillMonthVO();
+                    vo.setPeriod(u.getPeriod());
+                    vo.setUsedCount(u.getUsedCount());
+                    vo.setPreUsedCount(u.getPreUsedCount());
+                    vo.setSkillCount(skillCountByPeriod.getOrDefault(u.getPeriod(), 0L));
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void resetLearnedSkillQuota(Long userId, String period) {
+        ensureUserExists(userId);
+        if (!Pattern.matches(PERIOD_PATTERN, period)) {
+            throw new BusinessException(AdminUserErrorCode.PERIOD_FORMAT_ERROR);
+        }
+        benefitUsageAdminMapper.resetQuotaByPeriod(userId, BENEFIT_CODE_LEARN_ANALYZE, period);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void releaseCustomSkillQuota(Long userId, ResetCustomSkillQuotaRequest request) {
+        ensureUserExists(userId);
+        String period = YearMonth.now().toString();
+        benefitUsageAdminMapper.decreaseUsedCount(
+                userId, BENEFIT_CODE_CUSTOM_SKILL, period, request.getCount());
+    }
+
+    private void ensureUserExists(Long userId) {
+        PlatformUser user = platformUserMapper.selectById(userId);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
     }
 }

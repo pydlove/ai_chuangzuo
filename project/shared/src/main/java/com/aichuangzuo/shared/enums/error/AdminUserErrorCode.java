@@ -12,7 +12,11 @@ public enum AdminUserErrorCode implements ErrorCode {
     USER_TYPE_INVALID(220005, "用户类型参数非法"),
     PASSWORD_FORMAT_ERROR(220006, "密码格式不符合要求"),
     NICKNAME_FORMAT_ERROR(220007, "昵称格式不符合要求"),
-    EMAIL_FORMAT_ERROR(220008, "邮箱格式不符合要求");
+    EMAIL_FORMAT_ERROR(220008, "邮箱格式不符合要求"),
+    PERIOD_FORMAT_ERROR(220009, "周期格式不正确，应为 yyyy-MM"),
+    EXCEL_FILE_INVALID(220010, "Excel 文件无效，请使用正确的模板"),
+    EXCEL_PARSE_ERROR(220011, "Excel 解析失败"),
+    EXCEL_IMPORT_EMPTY(220012, "Excel 数据为空");
 
     private final int code;
     private final String message;

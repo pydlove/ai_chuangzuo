@@ -30,6 +30,9 @@ public class BenefitUsage {
     /** 已用量。 */
     private Integer usedCount;
 
+    /** 预扣额度数（待用户确认后转入 used_count）。 */
+    private Integer preUsedCount;
+
     /** 租户ID。 */
     private Long tenantId;
 

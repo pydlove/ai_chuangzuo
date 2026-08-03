@@ -1,0 +1,5 @@
+SET NAMES utf8mb4;
+
+ALTER TABLE u_user_skill
+    ADD COLUMN excerpt1 VARCHAR(255) DEFAULT NULL COMMENT '原文提示词示例片段1' AFTER prompt,
+    ADD COLUMN excerpt2 VARCHAR(255) DEFAULT NULL COMMENT '原文提示词示例片段2' AFTER excerpt1;

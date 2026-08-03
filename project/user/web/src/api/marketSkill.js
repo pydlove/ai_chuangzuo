@@ -119,6 +119,25 @@ export function getMarketSkillPricePerUse() {
 }
 
 /**
+ * 获取当前用户的市场提交记录（含待审核/已通过/已打回）。
+ * @returns {Promise<Array>}
+ */
+export function getMyMarketSubmissions() {
+  return api.get('/market-skills/my-submissions').then((res) => {
+    const data = res.data || res || []
+    return Array.isArray(data) ? data.map(normalizeRow) : []
+  })
+}
+
+/**
+ * 下架自己发布的市场 skill。
+ * @param {string} marketSkillId
+ */
+export function deleteMarketSkill(marketSkillId) {
+  return api.delete(`/market-skills/${marketSkillId}`)
+}
+
+/**
  * 收藏市场 skill。
  * @param {string} marketSkillId
  */

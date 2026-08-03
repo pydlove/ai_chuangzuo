@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
@@ -11,6 +12,10 @@ import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
+import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
+import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.user.modules.skill.service.UserSkillService;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -19,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -38,10 +44,21 @@ public class UserSkillServiceImpl implements UserSkillService {
     private static final int MAX_SCOPE_TAG_LENGTH = 8;
     private static final int SOURCE_TYPE_CUSTOM = 1;
     private static final String BENEFIT_CODE_STYLE_CUSTOM = "skill_custom";
+    private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
+    private static final int AUDIT_STATUS_PENDING = 0;
+    private static final int AUDIT_STATUS_APPROVED = 1;
+    private static final int ENABLE_STATUS_DISABLED = 0;
+    private static final int ENABLE_STATUS_ENABLED = 1;
+    private static final int NOT_DELETED = 0;
+    private static final long REWARD_CONFIG_ID = 1L;
+    private static final BigDecimal DEFAULT_PRICE_PER_USE = new BigDecimal("2.00");
 
     private final UserSkillMapper userSkillMapper;
     private final UserMembershipMapper userMembershipMapper;
     private final PlanBenefitMapper planBenefitMapper;
+    private final SkillMarketMapper skillMarketMapper;
+    private final SkillMonthlyRewardConfigMapper rewardConfigMapper;
+    private final BenefitService benefitService;
 
     @Override
     public List<UserSkillVO> listMySkills(Integer sourceType) {
@@ -62,6 +79,8 @@ public class UserSkillServiceImpl implements UserSkillService {
         String prompt = request.getPrompt().trim();
         String scope = normalizeScope(request.getScope());
         String description = request.getDescription() == null ? null : request.getDescription().trim();
+        String excerpt1 = request.getExcerpt1() == null ? null : request.getExcerpt1().trim();
+        String excerpt2 = request.getExcerpt2() == null ? null : request.getExcerpt2().trim();
 
         validateScope(scope);
         ensureNameNotExists(userId, skillName, null);
@@ -72,6 +91,8 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setUserId(userId);
         skill.setSkillName(skillName);
         skill.setPrompt(prompt);
+        skill.setExcerpt1(excerpt1);
+        skill.setExcerpt2(excerpt2);
         skill.setDescription(description);
         skill.setScope(scope);
         skill.setSourceType(request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType());
@@ -92,12 +113,16 @@ public class UserSkillServiceImpl implements UserSkillService {
         String prompt = request.getPrompt().trim();
         String scope = normalizeScope(request.getScope());
         String description = request.getDescription() == null ? null : request.getDescription().trim();
+        String excerpt1 = request.getExcerpt1() == null ? null : request.getExcerpt1().trim();
+        String excerpt2 = request.getExcerpt2() == null ? null : request.getExcerpt2().trim();
 
         validateScope(scope);
         ensureNameNotExists(userId, skillName, skill.getId());
 
         skill.setSkillName(skillName);
         skill.setPrompt(prompt);
+        skill.setExcerpt1(excerpt1);
+        skill.setExcerpt2(excerpt2);
         skill.setDescription(description);
         skill.setScope(scope);
         // 修改后重新进入待审核状态，并清空上一次的打回原因
@@ -105,8 +130,30 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setRejectReason(null);
 
         userSkillMapper.updateById(skill);
+        syncSkillToPendingMarket(skill);
         log.info("更新风格成功 userId={}, bizNo={}, skillName={}", userId, bizNo, skillName);
         return toVO(skill);
+    }
+
+    /**
+     * 如果存在对应的市场待审核记录，同步更新其内容，避免审核员看到的是旧版本。
+     */
+    private void syncSkillToPendingMarket(UserSkill skill) {
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getBizNo, skill.getBizNo())
+                .eq(SkillMarket::getIsDeleted, 0);
+        SkillMarket market = skillMarketMapper.selectOne(wrapper);
+        if (market == null) {
+            return;
+        }
+        market.setSkillName(skill.getSkillName());
+        market.setDescription(skill.getDescription());
+        market.setPromptSummary(skill.getPromptSummary());
+        market.setPrompt(skill.getPrompt());
+        market.setScope(skill.getScope());
+        market.setUpdatedAt(LocalDateTime.now());
+        skillMarketMapper.updateById(market);
+        log.info("同步更新市场待审核记录 bizNo={}", skill.getBizNo());
     }
 
     @Override
@@ -115,6 +162,73 @@ public class UserSkillServiceImpl implements UserSkillService {
         UserSkill skill = getOwnedSkill(bizNo, userId);
         userSkillMapper.deleteById(skill.getId());
         log.info("删除风格成功 userId={}, bizNo={}", userId, bizNo);
+    }
+
+    @Override
+    public void publishSkill(String bizNo) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        UserSkill skill = getOwnedSkill(bizNo, userId);
+
+        try {
+            benefitService.consume(userId, BENEFIT_CODE_SKILL_MARKET_PUBLISH);
+        } catch (BusinessException e) {
+            throw new BusinessException(SkillErrorCode.SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED);
+        }
+
+        skill.setAuditStatus(AUDIT_STATUS_PENDING);
+        skill.setRejectReason(null);
+        userSkillMapper.updateById(skill);
+
+        SkillMarket market = skillMarketMapper.selectByBizNoIncludeDeleted(bizNo);
+        BigDecimal price = resolvePricePerUse();
+        if (market != null) {
+            market.setSkillName(skill.getSkillName());
+            market.setDescription(skill.getDescription());
+            market.setPromptSummary(skill.getPromptSummary());
+            market.setPrompt(skill.getPrompt());
+            market.setScope(skill.getScope());
+            market.setPublisherUserId(userId);
+            market.setPrice(price);
+            market.setEnableStatus(ENABLE_STATUS_DISABLED);
+            market.setAuditStatus(AUDIT_STATUS_PENDING);
+            market.setSourceType(skill.getSourceType());
+            market.setIsDeleted(NOT_DELETED);
+            market.setUpdatedAt(LocalDateTime.now());
+            skillMarketMapper.updateById(market);
+            log.info("重新提交市场 skill 审核 userId={}, bizNo={}", userId, bizNo);
+        } else {
+            market = new SkillMarket();
+            market.setBizNo(skill.getBizNo());
+            market.setSkillName(skill.getSkillName());
+            market.setDescription(skill.getDescription());
+            market.setPromptSummary(skill.getPromptSummary());
+            market.setPrompt(skill.getPrompt());
+            market.setScope(skill.getScope());
+            market.setPublisherUserId(userId);
+            market.setPrice(price);
+            market.setTotalUses(0);
+            market.setWeeklyUses(0);
+            market.setWeeklyEarnings(BigDecimal.ZERO);
+            market.setMilestoneBonus(BigDecimal.ZERO);
+            market.setMonthlyUses(0);
+            market.setMonthlyEarnings(BigDecimal.ZERO);
+            market.setLeaderboardReward(BigDecimal.ZERO);
+            market.setEnableStatus(ENABLE_STATUS_DISABLED);
+            market.setAuditStatus(AUDIT_STATUS_PENDING);
+            market.setSourceType(skill.getSourceType());
+            market.setIsDeleted(NOT_DELETED);
+            skillMarketMapper.insert(market);
+            log.info("创建市场 skill 待审核条目 userId={}, bizNo={}", userId, bizNo);
+        }
+    }
+
+    private BigDecimal resolvePricePerUse() {
+        SkillMonthlyRewardConfig config = rewardConfigMapper.selectById(REWARD_CONFIG_ID);
+        if (config == null || config.getPricePerUse() == null
+                || config.getPricePerUse().compareTo(BigDecimal.ZERO) <= 0) {
+            return DEFAULT_PRICE_PER_USE;
+        }
+        return config.getPricePerUse();
     }
 
     @Override
@@ -254,6 +368,8 @@ public class UserSkillServiceImpl implements UserSkillService {
         vo.setBizNo(skill.getBizNo());
         vo.setSkillName(skill.getSkillName());
         vo.setPrompt(skill.getPrompt());
+        vo.setExcerpt1(skill.getExcerpt1());
+        vo.setExcerpt2(skill.getExcerpt2());
         vo.setDescription(skill.getDescription());
         vo.setPromptSummary(skill.getPromptSummary());
         vo.setScope(skill.getScope());

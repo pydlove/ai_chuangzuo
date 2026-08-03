@@ -1,12 +1,19 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
+import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
+import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +26,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,6 +50,15 @@ class UserSkillServiceImplTest {
 
     @Mock
     private PlanBenefitMapper planBenefitMapper;
+
+    @Mock
+    private BenefitService benefitService;
+
+    @Mock
+    private SkillMarketMapper skillMarketMapper;
+
+    @Mock
+    private SkillMonthlyRewardConfigMapper rewardConfigMapper;
 
     @InjectMocks
     private UserSkillServiceImpl userSkillService;
@@ -85,6 +104,53 @@ class UserSkillServiceImplTest {
         UserSkill saved = captor.getValue();
         assertEquals(Integer.valueOf(0), saved.getAuditStatus());
         assertNull(saved.getRejectReason());
+    }
+
+    @Test
+    void publishSkill_firstPublish_consumesQuotaAndCreatesMarketRecord() {
+        UserSkill existing = new UserSkill();
+        existing.setId(1L);
+        existing.setBizNo("S123");
+        existing.setUserId(10001L);
+        existing.setSkillName("测试风格");
+        existing.setPrompt("测试提示词");
+        existing.setSourceType(1);
+
+        when(userSkillMapper.selectOne(any())).thenReturn(existing);
+        when(skillMarketMapper.selectByBizNoIncludeDeleted(any())).thenReturn(null);
+        when(rewardConfigMapper.selectById(any())).thenReturn(null);
+
+        userSkillService.publishSkill("S123");
+
+        verify(benefitService).consume(10001L, "skill_market_publish");
+        verify(userSkillMapper).updateById(existing);
+        ArgumentCaptor<SkillMarket> captor = ArgumentCaptor.forClass(SkillMarket.class);
+        verify(skillMarketMapper).insert(captor.capture());
+        SkillMarket market = captor.getValue();
+        assertEquals("S123", market.getBizNo());
+        assertEquals("测试风格", market.getSkillName());
+        assertEquals(Integer.valueOf(0), market.getEnableStatus());
+        assertEquals(Integer.valueOf(0), market.getAuditStatus());
+    }
+
+    @Test
+    void publishSkill_quotaExhausted_throwsSkillMarketPublishQuotaExceeded() {
+        UserSkill existing = new UserSkill();
+        existing.setId(1L);
+        existing.setBizNo("S123");
+        existing.setUserId(10001L);
+        existing.setSkillName("测试风格");
+        existing.setPrompt("测试提示词");
+
+        when(userSkillMapper.selectOne(any())).thenReturn(existing);
+        doThrow(new BusinessException(BenefitErrorCode.QUOTA_EXHAUSTED))
+                .when(benefitService).consume(eq(10001L), eq("skill_market_publish"));
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> userSkillService.publishSkill("S123"));
+        assertEquals(SkillErrorCode.SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED.getCode(), ex.getCode());
+        verify(userSkillMapper, never()).updateById((UserSkill) any());
+        verify(skillMarketMapper, never()).insert((SkillMarket) any());
     }
 
     @Test

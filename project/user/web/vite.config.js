@@ -9,6 +9,18 @@ export default defineConfig({
   plugins: [
     vue(),
     {
+      name: 'build-version',
+      transformIndexHtml(html, ctx) {
+        const version = ctx.bundle
+          ? `build-${Date.now()}`
+          : 'dev'
+        return html.replace(
+          '</head>',
+          `  <script>window.__APP_VERSION__ = '${version}'</script>\n  </head>`
+        )
+      }
+    },
+    {
       name: 'static-uploads',
       configureServer(server) {
         server.middlewares.use('/uploads/leaderboard', (req, res, next) => {

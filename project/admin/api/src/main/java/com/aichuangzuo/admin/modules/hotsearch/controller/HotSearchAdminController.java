@@ -3,18 +3,21 @@ package com.aichuangzuo.admin.modules.hotsearch.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchConfigRequest;
+import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchCrawlLogQueryRequest;
 import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchDailyQueryRequest;
 import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchDailyRequest;
 import com.aichuangzuo.admin.modules.hotsearch.dto.request.HotSearchPlatformRequest;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchConfig;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchPlatform;
+import com.aichuangzuo.admin.modules.hotsearch.enums.HotSearchTriggerType;
 import com.aichuangzuo.admin.modules.hotsearch.job.HotSearchCrawlJob;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchConfigService;
+import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchCrawlLogService;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchDailyAdminService;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchPlatformAdminService;
 import com.aichuangzuo.admin.modules.hotsearch.vo.CrawlResultVO;
-import com.aichuangzuo.admin.modules.hotsearch.vo.HotSearchDailyAdminVO;
 import com.aichuangzuo.admin.modules.hotsearch.vo.LastRunVO;
+import com.aichuangzuo.admin.modules.hotsearch.vo.HotSearchDailyAdminVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
@@ -42,6 +45,7 @@ public class HotSearchAdminController {
     private final HotSearchPlatformAdminService platformService;
     private final HotSearchDailyAdminService dailyService;
     private final HotSearchConfigService configService;
+    private final HotSearchCrawlLogService crawlLogService;
     private final HotSearchCrawlJob crawlJob;
     private final AdminUserPermissionService permissionService;
 
@@ -101,7 +105,7 @@ public class HotSearchAdminController {
     public Result<CrawlResultVO> recrawlDaily(@PathVariable("id") Long id) {
         checkSuperAdmin();
         HotSearchDailyAdminVO vo = dailyService.get(id);
-        return Result.success(crawlJob.recrawlPlatform(vo.getPlatformCode()));
+        return Result.success(crawlJob.recrawlPlatform(vo.getPlatformCode(), HotSearchTriggerType.MANUAL));
     }
 
     // ===== 配置 =====
@@ -119,17 +123,23 @@ public class HotSearchAdminController {
         return Result.success(configService.saveConfig(req, adminId));
     }
 
-    // ===== 手动抓取 & 摘要 =====
+    // ===== 手动抓取 & 摘要 & 日志 =====
     @PostMapping("/crawl")
     public Result<CrawlResultVO> crawlNow() {
         checkSuperAdmin();
-        return Result.success(crawlJob.crawlAll());
+        return Result.success(crawlJob.crawlAll(HotSearchTriggerType.MANUAL));
     }
 
     @GetMapping("/crawl/last-run")
     public Result<LastRunVO> lastRun() {
         checkSuperAdmin();
         return Result.success(crawlJob.getLastRun());
+    }
+
+    @GetMapping("/crawl/logs")
+    public Result<HotSearchCrawlLogService.PageResult> listCrawlLogs(@ModelAttribute HotSearchCrawlLogQueryRequest req) {
+        checkSuperAdmin();
+        return Result.success(crawlLogService.list(req));
     }
 
     private void checkSuperAdmin() {

@@ -44,6 +44,14 @@ public interface UserSkillService {
     void deleteSkill(String bizNo);
 
     /**
+     * 将当前用户的风格发布到提示词市场。
+     * <p>发布后会进入待审核状态，并在 u_skill_market 生成/复活对应记录。
+     *
+     * @param bizNo 风格业务编号
+     */
+    void publishSkill(String bizNo);
+
+    /**
      * 增加指定用户指定名称风格的累计使用次数。
      *
      * @param userId    用户ID

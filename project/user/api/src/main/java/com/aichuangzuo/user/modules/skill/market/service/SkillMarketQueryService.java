@@ -30,4 +30,11 @@ public interface SkillMarketQueryService {
      * 获取风格市场概览（统计、官方精选、收益潜力榜）。
      */
     MarketSkillOverviewVO getOverview();
+
+    /**
+     * 获取当前用户的全部市场提交记录（含待审核/已通过/已打回）。
+     *
+     * @param userId 用户ID
+     */
+    List<MarketSkillVO> listMySubmissions(Long userId);
 }

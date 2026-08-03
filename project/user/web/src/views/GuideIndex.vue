@@ -1,5 +1,6 @@
 <template>
-  <div class="guide-page">
+  <MobileGuide v-if="isMobile" />
+  <div v-else class="guide-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 主体 -->
@@ -47,7 +48,11 @@ import { useRoute, useRouter } from 'vue-router'
 import { guideSections } from '@/data/guide-content.js'
 import GuideSidebar from '@/components/guide/GuideSidebar.vue'
 import GuideArticle from '@/components/guide/GuideArticle.vue'
+import MobileGuide from '@/views/MobileGuide.vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import { useDevice } from '@/composables/useDevice.js'
+
+const { isMobile } = useDevice()
 
 const route = useRoute()
 const router = useRouter()

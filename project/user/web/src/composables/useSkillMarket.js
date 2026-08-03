@@ -5,10 +5,11 @@ import {
   getMarketSkillsPage,
   getFavoriteIds,
   getMarketSkillPricePerUse,
+  getMyMarketSubmissions,
   addFavorite,
-  removeFavorite
+  removeFavorite,
+  deleteMarketSkill
 } from '@/api/marketSkill.js'
-import { useBenefits } from '@/composables/useBenefits.js'
 
 const EARNINGS_KEY = 'aichuangzuo_earnings_records'
 const COIN_BALANCE_KEY = 'aichuangzuo_coin_balance'
@@ -78,12 +79,22 @@ export const marketOverview = ref({
 })
 export const earningsRecords = ref(loadEarningsRecords())
 export const favoriteIds = ref([])
+export const mySubmissions = ref([])
 
 export async function loadMarketSkills() {
   try {
     marketSkills.value = await getMarketSkills()
   } catch (e) {
     console.warn('[loadMarketSkills]', e?.message || '加载失败')
+  }
+}
+
+export async function loadMySubmissions() {
+  try {
+    mySubmissions.value = await getMyMarketSubmissions()
+  } catch (e) {
+    console.warn('[loadMySubmissions]', e?.message || '加载失败')
+    mySubmissions.value = []
   }
 }
 
@@ -146,65 +157,30 @@ function getCurrentMonth() {
   return getMonthFromDate(new Date())
 }
 
-/** 当前用户本月已发布到市场的 skills 数量（按 marketSkills 实时统计）。 */
-export function countMyPublishesThisMonth() {
-  const uid = getUserId()
-  const month = getCurrentMonth()
-  return marketSkills.value.filter(
-    s => s.creatorId === uid && (s.createdAt || '').startsWith(month)
-  ).length
+/**
+ * 下架自己发布的市场 skill（包括本地 mock 与后端已入库的）。
+ * @param {string} bizNo 源 skill 业务编号
+ */
+export async function unpublishSkill(bizNo) {
+  if (!bizNo) return
+  try {
+    await deleteMarketSkill(bizNo)
+  } catch (e) {
+    console.warn('[unpublishSkill] 下架失败', bizNo, e?.message || e)
+    throw e
+  } finally {
+    marketSkills.value = marketSkills.value.filter(s => s.id !== bizNo)
+    mySubmissions.value = mySubmissions.value.filter(s => s.id !== bizNo)
+  }
 }
 
-/** 当前档位本月还可发布多少次；0 表示禁止发布或额度已用完。 */
-export function getRemainingPublishQuota() {
-  const { benefitRemaining } = useBenefits()
-  return Math.max(benefitRemaining('skill_market_publish'), 0)
-}
-
-export function shareSkillToMarket(style, sourceType) {
-  const { benefitRemaining, benefitValue } = useBenefits()
-  const remaining = benefitRemaining('skill_market_publish')
-  if (remaining <= 0) {
-    const quota = parseInt(benefitValue('skill_market_publish') || '0', 10)
-    if (quota <= 0) {
-      throw new Error('当前套餐不支持发布 skills 到 提示词市场，请升级会员')
-    }
-    throw new Error(`本月发布额度已用完（${quota} 次），下月 1 日重置`)
-  }
-
-  const existing = marketSkills.value.find(
-    s => s.originalName === style.name && s.creatorId === getUserId() && s.sourceType === sourceType
-  )
-  if (existing) {
-    throw new Error('该 skill 已经分享过')
-  }
-  const id = 'market-' + Date.now().toString(36)
-  marketSkills.value.unshift({
-    id,
-    name: style.name,
-    sourceType,
-    originalName: style.name,
-    creatorId: getUserId(),
-    creatorName: '我',
-    prompt: style.prompt,
-    description: style.description || style.desc || '',
-    scope: style.scope || '',
-    excerpt1: style.excerpt1 || '',
-    excerpt2: style.excerpt2 || '',
-    status: 'pending',
-    featured: false,
-    price: pricePerUse.value,
-    weeklyUses: 0,
-    totalUses: 0,
-    weeklyEarnings: 0,
-    milestoneBonus: 0,
-    monthlyUses: 0,
-    monthlyEarnings: 0,
-    leaderboardReward: 0,
-    lastSettlementAt: new Date().toISOString(),
-    createdAt: new Date().toISOString()
-  })
-  return id
+export function getMarketStatusByBizNo(bizNo) {
+  const s = mySubmissions.value.find((m) => m.id === bizNo)
+  if (!s) return ''
+  if (s.status === 'pending') return '审核中'
+  if (s.status === 'approved') return '已上架'
+  if (s.status === 'rejected') return '已打回'
+  return ''
 }
 
 export function useMarketSkill(marketId) {

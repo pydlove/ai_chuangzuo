@@ -1,5 +1,6 @@
 <template>
-  <div class="pricing-page">
+  <MobilePricing v-if="isMobile" />
+  <div v-else class="pricing-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 主内容 -->
@@ -106,10 +107,6 @@
               </tr>
             </tbody>
           </table>
-          <div class="compare-footer">
-            <span class="compare-footer-icon">i</span>
-            导出模板暂仅提供系统预设，不支持自定义；可访问范围由所购套餐决定。
-          </div>
         </div>
       </div>
     </div>
@@ -146,11 +143,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { message } from 'ant-design-vue'
-import { subscribe, getPlanCatalog, getNewcomerOffer } from '@/api/membership'
 import NavBar from '@/components/layout/NavBar.vue'
+import MobilePricing from '@/views/MobilePricing.vue'
+import { useDevice } from '@/composables/useDevice.js'
+import { usePricing } from '@/composables/usePricing.js'
+
+const { isMobile } = useDevice()
 
 const navLinks = [
   { to: '/', label: '首页' },
@@ -161,199 +159,27 @@ const navLinks = [
 const ctaTo = '/login'
 const ctaLabel = '开始创作'
 
-const router = useRouter()
-const route = useRoute()
-
-const modalVisible = ref(false)
-const selectedPlan = ref(null)
-const payCode = ref('')
-const subscribeLoading = ref(false)
-
-const plans = ref([])
-const compareRows = ref([])
-const catalogLoading = ref(false)
-
-const newcomerOffer = ref(null)
-const newcomerLoading = ref(false)
-
-const planKeyToName = {
-  basic: '基础版',
-  pro: '专业版',
-  flagship: '旗舰版'
-}
-
-const cycleLabel = {
-  month: '月度',
-  quarter: '季度',
-  year: '年度'
-}
-
-onMounted(async () => {
-  catalogLoading.value = true
-  try {
-    const res = await getPlanCatalog()
-    const rawPlans = res.data.plans || []
-    const rawRows = res.data.compareRows || []
-    // 生成贴图功能已下线，过滤掉对应权益
-    const CARD_BENEFIT_CODE = 'sticker_quota'
-    const SKILL_CUSTOM_CODE = 'skill_custom'
-    const SKILL_CUSTOM_LABEL = '我的提示词'
-    plans.value = rawPlans.map(plan => ({
-      ...plan,
-      features: (plan.features || [])
-        .filter(f => f.code !== CARD_BENEFIT_CODE)
-        .map(f => f.code === SKILL_CUSTOM_CODE ? { ...f, text: `${SKILL_CUSTOM_LABEL} ${f.text}` } : f)
-    }))
-    compareRows.value = rawRows
-      .filter(row => row.code !== CARD_BENEFIT_CODE)
-      .map(row => {
-        if (row.code !== SKILL_CUSTOM_CODE) return row
-        const prefixCell = (cell) => {
-          if (!cell || typeof cell.value !== 'string') return cell
-          return { ...cell, value: `${SKILL_CUSTOM_LABEL} ${cell.value}` }
-        }
-        return {
-          ...row,
-          label: SKILL_CUSTOM_LABEL,
-          basic: prefixCell(row.basic),
-          pro: prefixCell(row.pro),
-          flagship: prefixCell(row.flagship)
-        }
-      })
-  } catch (err) {
-    message.error(err.message || '定价加载失败')
-  } finally {
-    catalogLoading.value = false
-  }
-
-  // 登录状态下查询新人首冲优惠（从横幅跳转或 Pricing 页直接访问）
-  if (localStorage.getItem('aichuangzuo_access_token')) {
-    newcomerLoading.value = true
-    try {
-      const res = await getNewcomerOffer()
-      const data = res.data || res
-      if (data?.eligible) {
-        newcomerOffer.value = data
-        // 从横幅跳转过来时，默认切到年付周期方便突出年包优惠
-        if (route.query.newcomer === '1') {
-          activeCycle.value = 'year'
-        }
-      }
-    } catch {
-      newcomerOffer.value = null
-    } finally {
-      newcomerLoading.value = false
-    }
-  }
-})
-
-const handleSubscribe = (plan) => {
-  if (!localStorage.getItem('aichuangzuo_access_token')) {
-    message.info('请先登录后再订阅')
-    router.push('/login')
-    return
-  }
-  selectedPlan.value = plan
-  payCode.value = ''
-  modalVisible.value = true
-}
-
-const handleNewcomerSubscribe = () => {
-  if (!localStorage.getItem('aichuangzuo_access_token')) {
-    message.info('请先登录后再订阅')
-    router.push('/login')
-    return
-  }
-  if (!newcomerOffer.value) return
-  const plan = plans.value.find(p => p.key === newcomerOffer.value.planKey)
-  if (!plan) return
-  selectedPlan.value = plan
-  activeCycle.value = 'year'
-  payCode.value = ''
-  modalVisible.value = true
-}
-
-const handlePay = async () => {
-  if (!payCode.value || payCode.value.length !== 6) {
-    message.warning('请输入 6 位支付码')
-    return
-  }
-
-  const plan = selectedPlan.value
-  const cycle = activeCycle.value
-  const isNewcomerDeal = newcomerOffer.value &&
-    plan.key === newcomerOffer.value.planKey &&
-    cycle === newcomerOffer.value.cycle
-  const price = isNewcomerDeal
-    ? { current: newcomerOffer.value.finalPrice }
-    : plan[cycle === 'month' ? 'monthly' : cycle]
-
-  subscribeLoading.value = true
-  try {
-    const res = await subscribe({
-      planKey: plan.key,
-      cycle,
-      payCode: payCode.value,
-      amount: price.current
-    })
-    const data = res.data
-    message.success('订阅成功')
-    localStorage.setItem('aichuangzuo_membership', JSON.stringify({
-      level: planKeyToName[data.level] || plan.name,
-      expiresAt: data.expiresAt
-    }))
-    modalVisible.value = false
-    router.push('/console/create')
-  } catch (err) {
-    message.error(err.message || '订阅失败，请重试')
-  } finally {
-    subscribeLoading.value = false
-  }
-}
-
-const activeCycle = ref('month')
-const cycles = [
-  { key: 'month', label: '月度' },
-  { key: 'quarter', label: '季度' },
-  { key: 'year', label: '年度' }
-]
-
-const getPeriodLabel = () => {
-  return activeCycle.value === 'month' ? '月'
-    : activeCycle.value === 'quarter' ? '季' : '年'
-}
-
-const getPrice = (plan) => {
-  const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
-  const cycle = plan[keyMap[activeCycle.value]]
-  return { original: cycle?.original, current: cycle?.current }
-}
-
-const getArticles = (plan) => {
-  const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
-  return plan[keyMap[activeCycle.value]]?.articles
-}
-
-const getSavings = (plan) => {
-  const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
-  return plan[keyMap[activeCycle.value]]?.savings || null
-}
-
-/** CompareCell 包装对象 → 渲染字符串（true=✓，false=✗，其他原样）。 */
-const cellValue = (cell) => (cell == null ? null : cell.value)
-
-const getCell = (row, col) => {
-  const cell = row[col]
-  if (cell == null) return ''
-  const val = cell.value
-  if (val === true) return '<span style="color:#FF2442;font-weight:600;">✓</span>'
-  if (val === false) return '<span style="color:#FF2442;font-weight:600;">✗</span>'
-  return `<span style="font-weight:500;">${val}</span>`
-}
-
-const scrollToCompare = () => {
-  document.getElementById('pricing-compare')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-}
+const {
+  modalVisible,
+  selectedPlan,
+  payCode,
+  subscribeLoading,
+  plans,
+  compareRows,
+  catalogLoading,
+  newcomerOffer,
+  activeCycle,
+  cycles,
+  getPeriodLabel,
+  getPrice,
+  getArticles,
+  getSavings,
+  getCell,
+  handleSubscribe,
+  handleNewcomerSubscribe,
+  handlePay,
+  scrollToCompare
+} = usePricing()
 </script>
 
 <style scoped>
@@ -749,35 +575,6 @@ const scrollToCompare = () => {
   font-weight: 500;
 }
 
-.compare-footer {
-  margin-top: 18px;
-  padding: 12px 14px;
-  border-radius: 8px;
-  background: #fff8e6;
-  border: 1px solid #ffe58f;
-  color: #874d00;
-  font-size: 13px;
-  line-height: 1.5;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.compare-footer-icon {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #faad14;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  font-style: italic;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* 底部 */
 .pricing-footer {
   padding: 16px 24px;
@@ -1038,16 +835,6 @@ body[data-theme="dark"] .compare-table td {
 body[data-theme="dark"] .compare-table td.recommended-col {
   background: rgba(255, 36, 66, 0.1);
   color: #e0e0e0;
-}
-
-body[data-theme="dark"] .compare-footer {
-  background: rgba(250, 173, 20, 0.12);
-  border-color: rgba(250, 173, 20, 0.35);
-  color: #ffd666;
-}
-
-body[data-theme="dark"] .compare-footer-icon {
-  background: #faad14;
 }
 
 body[data-theme="dark"] .pricing-footer {

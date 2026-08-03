@@ -1,23 +1,30 @@
 package com.aichuangzuo.admin.modules.hotsearch.job;
 
+import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.hotsearch.crawler.HotSearchFetcher;
 import com.aichuangzuo.admin.modules.hotsearch.crawler.HotSearchItem;
+import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchCrawlLog;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchDaily;
 import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchPlatform;
 import com.aichuangzuo.admin.modules.hotsearch.enums.AdminHotSearchErrorCode;
+import com.aichuangzuo.admin.modules.hotsearch.enums.HotSearchTriggerType;
 import com.aichuangzuo.admin.modules.hotsearch.event.HotSearchConfigChangedEvent;
 import com.aichuangzuo.admin.modules.hotsearch.mapper.HotSearchDailyMapper;
 import com.aichuangzuo.admin.modules.hotsearch.mapper.HotSearchPlatformMapper;
 import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchConfigService;
+import com.aichuangzuo.admin.modules.hotsearch.service.HotSearchCrawlLogService;
 import com.aichuangzuo.admin.modules.hotsearch.vo.CrawlResultVO;
 import com.aichuangzuo.admin.modules.hotsearch.vo.LastRunVO;
 import com.aichuangzuo.admin.modules.hotsearch.vo.PlatformCrawlResultVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.support.CronTrigger;
 import org.springframework.scheduling.support.SimpleTriggerContext;
@@ -28,6 +35,7 @@ import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,7 +53,16 @@ public class HotSearchCrawlJob {
     private final HotSearchDailyMapper dailyMapper;
     private final List<HotSearchFetcher> fetchers;
     private final HotSearchConfigService configService;
+    private final HotSearchCrawlLogService crawlLogService;
     private final ThreadPoolTaskScheduler taskScheduler;
+    private final ObjectMapper objectMapper;
+
+    /**
+     * 自注入代理，用于在定时入口走 Spring AOP 代理，使 @Transactional 生效。
+     */
+    @Autowired
+    @Lazy
+    private HotSearchCrawlJob self;
 
     private volatile ScheduledFuture<?> scheduledFuture;
     private volatile LastRunVO lastRun = new LastRunVO();
@@ -54,12 +71,16 @@ public class HotSearchCrawlJob {
                              HotSearchDailyMapper dailyMapper,
                              List<HotSearchFetcher> fetchers,
                              HotSearchConfigService configService,
-                             @Qualifier("hotSearchTaskScheduler") ThreadPoolTaskScheduler hotSearchTaskScheduler) {
+                             HotSearchCrawlLogService crawlLogService,
+                             @Qualifier("hotSearchTaskScheduler") ThreadPoolTaskScheduler hotSearchTaskScheduler,
+                             ObjectMapper objectMapper) {
         this.platformMapper = platformMapper;
         this.dailyMapper = dailyMapper;
         this.fetchers = fetchers;
         this.configService = configService;
+        this.crawlLogService = crawlLogService;
         this.taskScheduler = hotSearchTaskScheduler;
+        this.objectMapper = objectMapper;
     }
 
     /**
@@ -112,7 +133,7 @@ public class HotSearchCrawlJob {
     public void crawl() {
         log.info("热搜定时抓取任务开始执行");
         try {
-            crawlAll();
+            self.crawlAll(HotSearchTriggerType.AUTO);
         } catch (Exception e) {
             log.error("定时抓取异常", e);
         }
@@ -123,35 +144,42 @@ public class HotSearchCrawlJob {
      * 同步抓取所有启用平台，返回每平台结果。
      */
     @Transactional(rollbackFor = Exception.class)
-    public CrawlResultVO crawlAll() {
+    public CrawlResultVO crawlAll(HotSearchTriggerType triggerType) {
         Instant startedAt = Instant.now();
         LocalDate today = LocalDate.now();
+        HotSearchCrawlLog crawlLog = initCrawlLog(triggerType, startedAt);
 
-        LambdaQueryWrapper<HotSearchPlatform> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(HotSearchPlatform::getEnabled, 1)
-                .orderByAsc(HotSearchPlatform::getSortOrder);
-        List<HotSearchPlatform> platforms = platformMapper.selectList(wrapper);
+        try {
+            LambdaQueryWrapper<HotSearchPlatform> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(HotSearchPlatform::getEnabled, 1)
+                    .orderByAsc(HotSearchPlatform::getSortOrder);
+            List<HotSearchPlatform> platforms = platformMapper.selectList(wrapper);
 
-        List<PlatformCrawlResultVO> results = new ArrayList<>();
-        for (HotSearchPlatform platform : platforms) {
-            results.add(crawlPlatform(platform, today));
+            List<PlatformCrawlResultVO> results = new ArrayList<>();
+            for (HotSearchPlatform platform : platforms) {
+                results.add(crawlPlatform(platform, today));
+            }
+
+            CrawlResultVO result = new CrawlResultVO();
+            result.setResults(results);
+            result.setStartedAt(startedAt);
+            result.setFinishedAt(Instant.now());
+
+            updateLastRun(results);
+            saveCrawlLog(crawlLog, result, null);
+            log.info("热搜抓取完成，平台数={}", results.size());
+            return result;
+        } catch (Exception e) {
+            saveCrawlLog(crawlLog, null, e);
+            throw e;
         }
-
-        CrawlResultVO result = new CrawlResultVO();
-        result.setResults(results);
-        result.setStartedAt(startedAt);
-        result.setFinishedAt(Instant.now());
-
-        updateLastRun(results);
-        log.info("热搜抓取完成，平台数={}", results.size());
-        return result;
     }
 
     /**
      * 重抓指定平台当日。
      */
     @Transactional(rollbackFor = Exception.class)
-    public CrawlResultVO recrawlPlatform(String platformCode) {
+    public CrawlResultVO recrawlPlatform(String platformCode, HotSearchTriggerType triggerType) {
         Instant startedAt = Instant.now();
         LocalDate today = LocalDate.now();
         HotSearchPlatform platform = platformMapper.selectOne(
@@ -159,17 +187,65 @@ public class HotSearchCrawlJob {
         if (platform == null) {
             throw new BusinessException(AdminHotSearchErrorCode.PLATFORM_NOT_FOUND);
         }
-        List<PlatformCrawlResultVO> results = List.of(crawlPlatform(platform, today));
-        CrawlResultVO result = new CrawlResultVO();
-        result.setResults(results);
-        result.setStartedAt(startedAt);
-        result.setFinishedAt(Instant.now());
-        updateLastRun(results);
-        return result;
+
+        HotSearchCrawlLog crawlLog = initCrawlLog(triggerType, startedAt);
+        try {
+            List<PlatformCrawlResultVO> results = List.of(crawlPlatform(platform, today));
+            CrawlResultVO result = new CrawlResultVO();
+            result.setResults(results);
+            result.setStartedAt(startedAt);
+            result.setFinishedAt(Instant.now());
+            updateLastRun(results);
+            saveCrawlLog(crawlLog, result, null);
+            return result;
+        } catch (Exception e) {
+            saveCrawlLog(crawlLog, null, e);
+            throw e;
+        }
     }
 
     public LastRunVO getLastRun() {
         return lastRun;
+    }
+
+    private HotSearchCrawlLog initCrawlLog(HotSearchTriggerType triggerType, Instant startedAt) {
+        HotSearchCrawlLog crawlLog = new HotSearchCrawlLog();
+        crawlLog.setTriggerType(triggerType.name());
+        crawlLog.setStartedAt(LocalDateTime.ofInstant(startedAt, ZoneId.of("Asia/Shanghai")));
+        crawlLog.setCreatedBy(triggerType == HotSearchTriggerType.MANUAL
+                ? SecurityAdminContext.getCurrentAdminUserId()
+                : 0L);
+        return crawlLog;
+    }
+
+    private void saveCrawlLog(HotSearchCrawlLog crawlLog, CrawlResultVO result, Exception error) {
+        try {
+            crawlLog.setFinishedAt(LocalDateTime.now(ZoneId.of("Asia/Shanghai")));
+            if (error != null) {
+                crawlLog.setStatus("FAILED");
+                crawlLog.setErrorMsg(error.getMessage());
+                crawlLog.setSuccessCount(0);
+                crawlLog.setFailCount(0);
+                crawlLog.setTotalFetched(0);
+            } else {
+                int successCount = (int) result.getResults().stream().filter(PlatformCrawlResultVO::isSuccess).count();
+                int failCount = result.getResults().size() - successCount;
+                int totalFetched = result.getResults().stream().mapToInt(PlatformCrawlResultVO::getFetched).sum();
+                crawlLog.setSuccessCount(successCount);
+                crawlLog.setFailCount(failCount);
+                crawlLog.setTotalFetched(totalFetched);
+                crawlLog.setStatus(successCount == result.getResults().size() ? "SUCCESS"
+                        : successCount == 0 ? "FAILED" : "PARTIAL");
+                try {
+                    crawlLog.setResultsJson(objectMapper.writeValueAsString(result.getResults()));
+                } catch (Exception je) {
+                    log.warn("抓取结果序列化失败: {}", je.getMessage());
+                }
+            }
+            crawlLogService.saveLog(crawlLog);
+        } catch (Exception e) {
+            log.error("保存抓取日志失败", e);
+        }
     }
 
     private PlatformCrawlResultVO crawlPlatform(HotSearchPlatform platform, LocalDate date) {

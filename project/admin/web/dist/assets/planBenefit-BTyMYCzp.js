@@ -1,1 +1,0 @@
-import{r as e}from"./request-CtonUO6W.js";const i="/api/v1/admin/benefits";function f(){return e.get(i).then(t=>t.data||[])}const n="/api/v1/admin/plan-benefits";function r(){return e.get(n).then(t=>t.data||[])}function o(t){return e.post(n,t).then(a=>a.data)}export{r as a,f,o as u};

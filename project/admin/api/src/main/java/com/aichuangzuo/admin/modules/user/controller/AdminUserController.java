@@ -5,22 +5,33 @@ import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.ResetCustomSkillQuotaRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
+import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 
+import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.admin.modules.user.util.UserExcelImportUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "管理端用户管理")
 @RestController
@@ -47,6 +58,28 @@ public class AdminUserController {
     public Result<AdminUserVO> createUser(@Valid @RequestBody AdminUserCreateRequest request) {
         checkSuperAdmin();
         return Result.success(adminUserService.createUser(request));
+    }
+
+    @Operation(summary = "下载用户导入模板")
+    @GetMapping("/import-template")
+    public void downloadImportTemplate(HttpServletResponse response) {
+        checkSuperAdmin();
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setCharacterEncoding("utf-8");
+        String filename = URLEncoder.encode("用户导入模板.xlsx", StandardCharsets.UTF_8).replace("+", "%20");
+        response.setHeader("Content-Disposition", "attachment;filename=\"" + filename + "\"");
+        try {
+            UserExcelImportUtil.writeTemplate(response.getOutputStream());
+        } catch (IOException e) {
+            throw new BusinessException(AdminUserErrorCode.EXCEL_PARSE_ERROR);
+        }
+    }
+
+    @Operation(summary = "从 Excel 批量导入用户")
+    @PostMapping(value = "/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<AdminUserImportResultVO> importExcel(@RequestParam("file") MultipartFile file) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.importUsersFromExcel(file));
     }
 
     @Operation(summary = "查看用户详情")
@@ -101,6 +134,43 @@ public class AdminUserController {
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "limit", defaultValue = "20") int limit) {
         return Result.success(adminUserService.listUserOptions(keyword, limit));
+    }
+
+    @Operation(summary = "查询用户提示词列表")
+    @GetMapping("/{id}/skills")
+    public Result<List<AdminUserSkillVO>> listUserSkills(
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "sourceType", defaultValue = "1") Integer sourceType) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.listUserSkills(id, sourceType));
+    }
+
+    @Operation(summary = "查询用户学习提示词按月统计")
+    @GetMapping("/{id}/learned-skills")
+    public Result<List<AdminLearnedSkillMonthVO>> listUserLearnedSkillsByMonth(
+            @PathVariable(name = "id") Long id) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.listUserLearnedSkillsByMonth(id));
+    }
+
+    @Operation(summary = "重置用户指定月份学习提示词额度")
+    @PostMapping("/{id}/learned-skills/reset")
+    public Result<Void> resetLearnedSkillQuota(
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "period") String period) {
+        checkSuperAdmin();
+        adminUserService.resetLearnedSkillQuota(id, period);
+        return Result.success();
+    }
+
+    @Operation(summary = "释放用户自定义提示词额度")
+    @PostMapping("/{id}/custom-skill-quota/release")
+    public Result<Void> releaseCustomSkillQuota(
+            @PathVariable(name = "id") Long id,
+            @Valid @RequestBody ResetCustomSkillQuotaRequest request) {
+        checkSuperAdmin();
+        adminUserService.releaseCustomSkillQuota(id, request);
+        return Result.success();
     }
 
     private void checkSuperAdmin() {

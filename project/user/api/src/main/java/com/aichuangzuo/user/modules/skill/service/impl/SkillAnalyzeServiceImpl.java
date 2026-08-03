@@ -2,10 +2,12 @@ package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeAiService;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeService;
 import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +29,7 @@ import java.util.List;
 public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
 
     private static final int PROMPT_MAX_LENGTH = 1200;
+    private static final int TEXT_MAX_LENGTH = 1000;
     private static final int EXCERPT1_MAX = 120;
     private static final int EXCERPT2_MAX = 80;
     private static final List<String> REQUIRED_MARKERS = List.of("【语气】", "【词汇】", "【句式】", "【结构】");
@@ -42,7 +45,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             %s
 
             【任务】
-            1. 从【语气】【词汇】【句式】【结构】四个维度拆解风格特征。每条特征必须具体、可模仿，禁止空泛形容（不要写"语言优美"，要写"多用15字以内短句，段间留白多"这类可执行描述）。
+            1. 从【语气】【词汇】【句式】【结构】四个维度拆解风格特征。每条特征必须具体、可模仿，禁止空泛形容（不要写「语言优美」，要写「多用15字以内短句，段间留白多」这类可执行描述）。
             2. 从原文中逐字摘录 2 个最能代表该风格的片段。
 
             【输出 JSON 结构】
@@ -63,46 +66,146 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
               2. 不要用 ```json 或任何代码围栏包裹。
               3. 第一个字符必须是 {，最后一个字符必须是 }。
               4. 所有需要解释、标注、声明的信息，必须放进 JSON 字段里，不能写在 JSON 之外。
+              5. prompt 字段中若需引用示例词语，必须使用中文直角引号「」，严禁使用英文双引号 "，避免破坏 JSON 格式。
             """;
 
     private final SkillAnalyzeAiService aiService;
     private final BenefitService benefitService;
     private final ObjectMapper objectMapper;
+    private final ObjectMapper lenientObjectMapper = createLenientObjectMapper();
+
+    private static ObjectMapper createLenientObjectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.configure(JsonReadFeature.ALLOW_UNESCAPED_CONTROL_CHARS.mappedFeature(), true);
+        return mapper;
+    }
 
     /** 学习我的风格月度额度权益编码（basic=0/pro=1/flagship=2）。 */
     private static final String LEARN_ANALYZE_BENEFIT = "skill_learn_analyze";
 
     @Override
+    public BenefitCheckVO preConsume(Long userId) {
+        return benefitService.preConsume(userId, LEARN_ANALYZE_BENEFIT);
+    }
+
+    @Override
     public SkillAnalyzeVO analyze(Long userId, String text) {
-        // 额度门：消费本月 skill_learn_analyze；basic=0 直接抛 QUOTA_EXHAUSTED
-        benefitService.consume(userId, LEARN_ANALYZE_BENEFIT);
-
-        try {
-            String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
-            JsonNode root = parseJson(stripCodeFence(aiResp));
-
-            String prompt = root.path("prompt").asText("").trim();
-            validatePrompt(prompt);
-
-            SkillAnalyzeVO vo = new SkillAnalyzeVO();
-            vo.setPrompt(prompt);
-            vo.setExcerpt1(resolveExcerpt(root.path("excerpt1").asText(""), text, true));
-            vo.setExcerpt2(resolveExcerpt(root.path("excerpt2").asText(""), text, false));
-            return vo;
-        } catch (Exception e) {
-            // 学习失败时退回额度，避免 AI/解析/校验异常导致白扣次数
-            benefitService.refund(userId, LEARN_ANALYZE_BENEFIT);
-            throw e;
+        // 统一截断：超过 1000 字只取前 1000 字学习
+        if (text != null && text.length() > TEXT_MAX_LENGTH) {
+            text = text.substring(0, TEXT_MAX_LENGTH);
         }
+
+        String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
+        JsonNode root = parseJson(stripCodeFence(aiResp));
+
+        String prompt = root.path("prompt").asText("").trim();
+        validatePrompt(prompt);
+
+        SkillAnalyzeVO vo = new SkillAnalyzeVO();
+        vo.setPrompt(prompt);
+        vo.setExcerpt1(resolveExcerpt(root.path("excerpt1").asText(""), text, true));
+        vo.setExcerpt2(resolveExcerpt(root.path("excerpt2").asText(""), text, false));
+        return vo;
+    }
+
+    @Override
+    public void confirmConsume(Long userId) {
+        benefitService.confirmPreConsume(userId, LEARN_ANALYZE_BENEFIT);
+    }
+
+    @Override
+    public void cancelConsume(Long userId) {
+        benefitService.cancelPreConsume(userId, LEARN_ANALYZE_BENEFIT);
     }
 
     private JsonNode parseJson(String raw) {
+        String cleaned = stripCodeFence(raw);
         try {
-            return objectMapper.readTree(raw);
+            return lenientObjectMapper.readTree(cleaned);
         } catch (Exception e) {
-            log.warn("AI 风格分析结果解析失败 resp={}", abbreviate(raw));
+            String extracted = extractJsonObject(cleaned);
+            if (extracted != null && !extracted.equals(cleaned)) {
+                try {
+                    return lenientObjectMapper.readTree(extracted);
+                } catch (Exception ignored) {
+                    // 继续尝试修复 prompt 内未转义引号
+                }
+            }
+            String fixed = fixUnescapedQuotesInPrompt(cleaned);
+            if (!fixed.equals(cleaned)) {
+                try {
+                    return lenientObjectMapper.readTree(fixed);
+                } catch (Exception ignored) {
+                    // 继续走失败分支
+                }
+            }
+            log.warn("AI 风格分析结果解析失败 resp={}", abbreviate(raw, 2000));
             throw new BusinessException(SkillErrorCode.SKILL_ANALYZE_FAILED);
         }
+    }
+
+    /**
+     * 修复 prompt 字段内部未转义的英文双引号。
+     * 模型常把示例词语写成 "xxx" 而非 \"xxx\"，导致整个 JSON 非法。
+     */
+    private static String fixUnescapedQuotesInPrompt(String text) {
+        if (text == null) {
+            return text;
+        }
+        String promptKey = "\"prompt\"";
+        int keyIdx = text.indexOf(promptKey);
+        if (keyIdx < 0) {
+            return text;
+        }
+        int valueStart = text.indexOf('"', keyIdx + promptKey.length());
+        if (valueStart < 0) {
+            return text;
+        }
+        valueStart++; // 跳过 opening quote
+
+        // 从后往前找 prompt 字段的结束引号：第一个前面不是反斜杠的 "
+        int valueEnd = -1;
+        for (int i = text.length() - 1; i >= valueStart; i--) {
+            char c = text.charAt(i);
+            if (c == '"' && (i == 0 || text.charAt(i - 1) != '\\')) {
+                // 再确认它后面是合法的 JSON 分隔符（跳过空白）
+                int j = i + 1;
+                while (j < text.length() && Character.isWhitespace(text.charAt(j))) {
+                    j++;
+                }
+                if (j >= text.length() || text.charAt(j) == ',' || text.charAt(j) == '}') {
+                    valueEnd = i;
+                    break;
+                }
+            }
+        }
+        if (valueEnd <= valueStart) {
+            return text;
+        }
+
+        String promptValue = text.substring(valueStart, valueEnd);
+        StringBuilder fixed = new StringBuilder();
+        for (int i = 0; i < promptValue.length(); i++) {
+            char c = promptValue.charAt(i);
+            if (c == '"' && (i == 0 || promptValue.charAt(i - 1) != '\\')) {
+                fixed.append('\\');
+            }
+            fixed.append(c);
+        }
+        return text.substring(0, valueStart) + fixed + text.substring(valueEnd);
+    }
+
+    /** 从文本中截取出最外层 JSON 对象（兼容模型在 JSON 前后加说明的情况）。 */
+    private static String extractJsonObject(String text) {
+        if (text == null) {
+            return null;
+        }
+        int start = text.indexOf('{');
+        int end = text.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return text.substring(start, end + 1);
+        }
+        return null;
     }
 
     /** prompt 非空、≤1200 字、含四个维度标记，缺一不可。 */
@@ -151,6 +254,8 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             int firstNewline = s.indexOf('\n');
             if (firstNewline > 0) {
                 s = s.substring(firstNewline + 1);
+            } else {
+                s = s.substring(3);
             }
             if (s.endsWith("```")) {
                 s = s.substring(0, s.length() - 3);
@@ -159,10 +264,14 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
         return s.strip();
     }
 
-    private static String abbreviate(String s) {
+    private static String abbreviate(String s, int maxLength) {
         if (s == null) {
             return "null";
         }
-        return s.length() <= 200 ? s : s.substring(0, 200) + "...";
+        return s.length() <= maxLength ? s : s.substring(0, maxLength) + "...";
+    }
+
+    private static String abbreviate(String s) {
+        return abbreviate(s, 200);
     }
 }

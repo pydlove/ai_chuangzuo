@@ -42,7 +42,7 @@
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
             <a-tag :color="record.status === 'enabled' ? 'green' : 'default'">
-              {{ record.status === 'enabled' ? '已启用' : '已禁用' }}
+              {{ record.status === 'enabled' ? '已上架' : '已下架' }}
             </a-tag>
           </template>
           <template v-else-if="column.key === 'featured'">
@@ -58,6 +58,14 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
+            <a-popconfirm
+              :title="record.status === 'enabled' ? '确定下架此提示词？' : '确定上架此提示词？'"
+              ok-text="确定"
+              cancel-text="取消"
+              @confirm="toggleStatus(record)"
+            >
+              <a-button type="link" size="small" :danger="record.status === 'enabled'">{{ record.status === 'enabled' ? '下架' : '上架' }}</a-button>
+            </a-popconfirm>
             <a-popconfirm
               title="确定删除此提示词市场条目？"
               ok-text="删除"
@@ -162,11 +170,11 @@
             style="width: 160px"
           />
         </a-form-item>
-        <a-form-item label="启用状态">
+        <a-form-item label="上架状态">
           <a-switch
             v-model:checked="form.enableStatus"
-            checked-children="启用"
-            un-checked-children="禁用"
+            checked-children="上架"
+            un-checked-children="下架"
           />
         </a-form-item>
         <a-form-item label="官方精选">
@@ -209,8 +217,8 @@ const {
 
 const statusOptions = [
   { label: '全部状态', value: '' },
-  { label: '已启用', value: 1 },
-  { label: '已禁用', value: 0 }
+  { label: '已上架', value: 1 },
+  { label: '已下架', value: 0 }
 ]
 
 const columns = [
@@ -222,7 +230,7 @@ const columns = [
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '官方精选', dataIndex: 'featured', key: 'featured', width: 90 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
-  { title: '操作', key: 'actions', width: 130, fixed: 'right' }
+  { title: '操作', key: 'actions', width: 180, fixed: 'right' }
 ]
 
 const editorVisible = ref(false)
@@ -348,6 +356,25 @@ const confirmSubmit = async () => {
 
 const confirmDelete = async (record) => {
   await handleDelete(record.id)
+}
+
+const toggleStatus = async (record) => {
+  const nextStatus = record.status === 'enabled' ? 0 : 1
+  const payload = {
+    skillName: record.name,
+    publisherUserId: record.publisherUserId,
+    description: record.description || '',
+    prompt: record.prompt || '',
+    promptSummary: record.promptSummary || '',
+    scope: record.scope || '',
+    totalUses: record.totalUses || 0,
+    enableStatus: nextStatus,
+    featured: record.featured || 0
+  }
+  const ok = await handleUpdate(record.id, payload)
+  if (ok) {
+    message.success(nextStatus === 1 ? '提示词已上架' : '提示词已下架')
+  }
 }
 
 onMounted(() => {

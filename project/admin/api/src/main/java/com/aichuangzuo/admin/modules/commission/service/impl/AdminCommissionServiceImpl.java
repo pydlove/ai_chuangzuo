@@ -32,6 +32,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -293,10 +294,15 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
             throw new BusinessException(AdminCommissionErrorCode.SUBMISSION_STATUS_INVALID);
         }
         LocalDateTime now = LocalDateTime.now();
+        String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         for (CommissionSubmission submission : submissions) {
             String refId = "commission:" + submission.getId();
             String coinBizNo = userApiClient.grantCoin(submission.getSubmitterId(), "commission_reward",
                     task.getRewardCoin(), refId, "约稿采纳奖励：" + task.getTitle());
+            String title = "约稿采纳奖励：" + task.getTitle();
+            String description = "稿件被任务「" + task.getTitle() + "」采纳，获得 " + task.getRewardCoin().toPlainString() + " 创作币";
+            userApiClient.recordEarnings(submission.getSubmitterId(), "COMMISSION_REWARD", "commission", refId,
+                    title, description, task.getRewardCoin(), settlementMonth);
             submission.setStatus(SUBMISSION_STATUS_ADOPTED);
             submission.setRewardCoin(task.getRewardCoin());
             submission.setCoinRecordBizNo(coinBizNo);

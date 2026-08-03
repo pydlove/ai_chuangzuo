@@ -1,5 +1,15 @@
 import { ref, watch } from 'vue'
-import { getMySkills, createSkill, updateSkill, deleteSkill, getSystemSkills, analyzeSkill } from '@/api/skill'
+import {
+  getMySkills,
+  createSkill,
+  updateSkill,
+  deleteSkill,
+  getSystemSkills,
+  analyzeSkill,
+  preConsumeAnalyzeQuota as preConsumeAnalyzeQuotaApi,
+  confirmAnalyzeConsume as confirmAnalyzeConsumeApi,
+  cancelAnalyzeConsume as cancelAnalyzeConsumeApi
+} from '@/api/skill'
 import { message } from 'ant-design-vue'
 
 export const systemSkills = ref([])
@@ -190,6 +200,8 @@ export async function loadLearnedSkills() {
       bizNo: s.bizNo,
       name: s.skillName,
       prompt: s.prompt,
+      excerpt1: s.excerpt1 || '',
+      excerpt2: s.excerpt2 || '',
       scope: s.scope,
       count: s.useCount || 0,
       createdAt: s.createdAt,
@@ -217,7 +229,27 @@ export async function readDocxAsText(file) {
   return result.value
 }
 
-// skills 分析（后端 AI 分析）
+// skills 学习额度预扣/确认/释放
+export async function preConsumeAnalyzeQuota() {
+  const res = await preConsumeAnalyzeQuotaApi()
+  const data = res.data || res || {}
+  return {
+    allowed: data.allowed === true,
+    used: data.used || 0,
+    preUsed: data.preUsed || 0,
+    remaining: data.remaining || 0
+  }
+}
+
+export async function confirmAnalyzeQuota() {
+  await confirmAnalyzeConsume()
+}
+
+export async function cancelAnalyzeQuota() {
+  await cancelAnalyzeConsume()
+}
+
+// skills 分析（后端 AI 分析，调用前需先 preConsumeAnalyzeQuota 预扣额度）
 export async function analyzeArticleSkill(text, meta) {
   isLearning.value = true
   try {
@@ -250,6 +282,8 @@ export async function addLearnedSkill(style) {
       skillName: style.name.trim(),
       prompt: style.prompt.trim(),
       scope: (style.scope || '').trim(),
+      excerpt1: (style.excerpt1 || '').trim(),
+      excerpt2: (style.excerpt2 || '').trim(),
       sourceType: 2
     })
     await loadLearnedSkills()
@@ -265,7 +299,9 @@ export async function updateLearnedSkill(bizNo, style) {
     await updateSkill(bizNo, {
       skillName: style.name.trim(),
       prompt: style.prompt.trim(),
-      scope: (style.scope || '').trim()
+      scope: (style.scope || '').trim(),
+      excerpt1: (style.excerpt1 || '').trim(),
+      excerpt2: (style.excerpt2 || '').trim()
     })
     await loadLearnedSkills()
     message.success('提示词已更新')

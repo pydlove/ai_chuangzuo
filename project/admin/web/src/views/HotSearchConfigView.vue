@@ -66,6 +66,90 @@
         </a-card>
       </a-col>
     </a-row>
+
+    <!-- 执行记录 -->
+    <a-row :gutter="[16, 16]" style="margin-top: 16px;">
+      <a-col :span="24">
+        <a-card title="执行记录" :loading="logsLoading">
+          <a-table
+            :columns="logColumns"
+            :data-source="crawlLogs.items"
+            :pagination="{
+              current: crawlLogs.page,
+              pageSize: crawlLogs.size,
+              total: crawlLogs.total,
+              showSizeChanger: true,
+              pageSizeOptions: ['10', '20', '50']
+            }"
+            @change="handleLogTableChange"
+            row-key="id"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'triggerType'">
+                <a-tag :color="record.triggerType === 'AUTO' ? 'blue' : 'orange'">
+                  {{ record.triggerType === 'AUTO' ? '定时' : '手动' }}
+                </a-tag>
+              </template>
+              <template v-if="column.key === 'status'">
+                <a-tag :color="statusColor(record.status)">
+                  {{ statusText(record.status) }}
+                </a-tag>
+              </template>
+              <template v-if="column.key === 'time'">
+                <div>开始：{{ formatTime(record.startedAt) }}</div>
+                <div v-if="record.finishedAt">结束：{{ formatTime(record.finishedAt) }}</div>
+              </template>
+              <template v-if="column.key === 'count'">
+                <span>成功 {{ record.successCount }} / 失败 {{ record.failCount }} / 共 {{ record.totalFetched }} 条</span>
+              </template>
+              <template v-if="column.key === 'action'">
+                <a-button type="link" size="small" @click="showLogDetail(record)">详情</a-button>
+              </template>
+            </template>
+          </a-table>
+        </a-card>
+      </a-col>
+    </a-row>
+
+    <!-- 执行记录详情 -->
+    <a-modal
+      v-model:open="logDetailVisible"
+      title="执行详情"
+      :width="680"
+      :footer="null"
+    >
+      <template v-if="selectedLog">
+        <p>
+          触发方式：
+          <a-tag :color="selectedLog.triggerType === 'AUTO' ? 'blue' : 'orange'">
+            {{ selectedLog.triggerType === 'AUTO' ? '定时' : '手动' }}
+          </a-tag>
+        </p>
+        <p>开始时间：{{ formatTime(selectedLog.startedAt) }}</p>
+        <p>结束时间：{{ selectedLog.finishedAt ? formatTime(selectedLog.finishedAt) : '-' }}</p>
+        <p>状态：<a-tag :color="statusColor(selectedLog.status)">{{ statusText(selectedLog.status) }}</a-tag></p>
+        <p>成功 {{ selectedLog.successCount }} / 失败 {{ selectedLog.failCount }} / 总条数 {{ selectedLog.totalFetched }}</p>
+        <p v-if="selectedLog.errorMsg" style="color:#cf1322">异常：{{ selectedLog.errorMsg }}</p>
+        <a-divider />
+        <a-list
+          :data-source="selectedLogResults"
+          size="small"
+        >
+          <template #renderItem="{ item }">
+            <a-list-item>
+              <a-space>
+                <span>{{ item.platformName || item.platformCode }}</span>
+                <a-tag :color="item.success ? 'green' : 'red'">
+                  {{ item.success ? '成功' : '失败' }}
+                </a-tag>
+                <span v-if="item.success">{{ item.fetched }} 条</span>
+                <span v-else style="color:#cf1322">{{ item.error }}</span>
+              </a-space>
+            </a-list-item>
+          </template>
+        </a-list>
+      </template>
+    </a-modal>
   </div>
 </template>
 
@@ -74,7 +158,7 @@ import { onMounted, reactive, ref, computed } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch.js'
 
-const { state, fetchConfig, fetchLastRun, saveConfig, crawlNow } = useHotSearch()
+const { state, crawlLogs, fetchConfig, fetchLastRun, fetchCrawlLogs, saveConfig, crawlNow } = useHotSearch()
 
 const form = reactive({ cron: '', enabled: 1, topN: 50, connectTimeoutMillis: 5000, readTimeoutMillis: 10000 })
 const enabledBool = computed({ get: () => form.enabled === 1, set: (v) => (form.enabled = v ? 1 : 0) })
@@ -87,7 +171,7 @@ const rules = {
   topN: [{ required: true, message: '请输入条数' }]
 }
 
-const formatTime = (s) => new Date(s).toLocaleString()
+const formatTime = (s) => s ? new Date(s).toLocaleString() : '-'
 
 function validateCron(_, value) {
   if (!value) return Promise.resolve()
@@ -156,15 +240,69 @@ const handleCrawlNow = async () => {
   try {
     await crawlNow()
     await fetchLastRun()
+    await fetchCrawlLogs()
   } finally {
     crawling.value = false
   }
+}
+
+const logsLoading = ref(false)
+const logColumns = [
+  { title: '触发方式', key: 'triggerType' },
+  { title: '执行时间', key: 'time' },
+  { title: '状态', key: 'status' },
+  { title: '结果统计', key: 'count' },
+  { title: '操作', key: 'action' }
+]
+
+const handleLogTableChange = async (pagination) => {
+  crawlLogs.page = pagination.current
+  crawlLogs.size = pagination.pageSize
+  logsLoading.value = true
+  try {
+    await fetchCrawlLogs()
+  } finally {
+    logsLoading.value = false
+  }
+}
+
+const logDetailVisible = ref(false)
+const selectedLog = ref(null)
+const selectedLogResults = computed(() => {
+  if (!selectedLog.value?.resultsJson) return []
+  try {
+    return JSON.parse(selectedLog.value.resultsJson)
+  } catch {
+    return []
+  }
+})
+
+const showLogDetail = (record) => {
+  selectedLog.value = record
+  logDetailVisible.value = true
+}
+
+const statusColor = (status) => {
+  if (status === 'SUCCESS') return 'green'
+  if (status === 'PARTIAL') return 'orange'
+  return 'red'
+}
+const statusText = (status) => {
+  if (status === 'SUCCESS') return '成功'
+  if (status === 'PARTIAL') return '部分成功'
+  return '失败'
 }
 
 onMounted(async () => {
   await fetchConfig()
   Object.assign(form, state.config)
   await fetchLastRun()
+  logsLoading.value = true
+  try {
+    await fetchCrawlLogs()
+  } finally {
+    logsLoading.value = false
+  }
 })
 </script>
 

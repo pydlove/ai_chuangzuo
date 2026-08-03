@@ -18,6 +18,14 @@ public class UpdateSkillRequest {
     @Size(min = 1, max = 1200, message = "skill 提示词长度需为 1-1200 字符")
     private String prompt;
 
+    /** 原文提示词示例片段1（学习的提示词用）。 */
+    @Size(max = 255, message = "示例片段1 过长")
+    private String excerpt1;
+
+    /** 原文提示词示例片段2（学习的提示词用）。 */
+    @Size(max = 255, message = "示例片段2 过长")
+    private String excerpt2;
+
     @Size(max = 256, message = "适用范围过长")
     private String scope;
 

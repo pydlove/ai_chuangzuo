@@ -13,6 +13,8 @@ public class UserSkillVO {
     private String bizNo;
     private String skillName;
     private String prompt;
+    private String excerpt1;
+    private String excerpt2;
     private String description;
     private String promptSummary;
     private String scope;

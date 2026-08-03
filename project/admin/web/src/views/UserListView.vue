@@ -32,6 +32,21 @@
           <template #icon><PlusOutlined /></template>
           手动创建
         </a-button>
+        <a-button @click="downloadTemplate">
+          <template #icon><DownloadOutlined /></template>
+          下载导入模板
+        </a-button>
+        <a-upload
+          accept=".xlsx"
+          :show-upload-list="false"
+          :before-upload="beforeImport"
+          :custom-request="handleImport"
+        >
+          <a-button :loading="importing">
+            <template #icon><UploadOutlined /></template>
+            导入用户
+          </a-button>
+        </a-upload>
       </div>
 
       <!-- 表格 -->
@@ -200,43 +215,124 @@
       </a-form>
     </a-modal>
 
-    <!-- 查看详情抽屉 -->
-    <a-drawer
+    <!-- 查看详情弹框 -->
+    <a-modal
       v-model:open="detailVisible"
       title="用户详情"
-      :width="480"
-      placement="right"
+      width="100%"
+      class="user-detail-modal"
+      :footer="null"
+      @cancel="closeDetailModal"
     >
-      <a-descriptions v-if="detailUser" :column="1" bordered>
-        <a-descriptions-item label="ID">{{ detailUser.id }}</a-descriptions-item>
-        <a-descriptions-item label="邮箱/账号">{{ detailUser.email }}</a-descriptions-item>
-        <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
-        <a-descriptions-item label="状态">
-          <a-tag :color="detailUser.status === 'enabled' ? 'green' : 'red'">
-            {{ detailUser.status === 'enabled' ? '启用' : '禁用' }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item label="类型">
-          <a-tag :color="detailUser.userType === 'robot' ? 'orange' : 'blue'">
-            {{ detailUser.userType === 'robot' ? '机器人' : '真实用户' }}
-          </a-tag>
-        </a-descriptions-item>
-        <a-descriptions-item label="邀请码">{{ detailUser.inviteCode }}</a-descriptions-item>
-        <a-descriptions-item label="会员套餐">
-          <span v-if="detailUser.membershipPlan">{{ planLabel(detailUser.membershipPlan) }}</span>
-          <span v-else>—</span>
-        </a-descriptions-item>
-        <a-descriptions-item label="会员到期">
-          <span v-if="detailUser.membershipExpireAt">{{ formatDateTime(detailUser.membershipExpireAt) }}</span>
-          <span v-else>非会员</span>
-        </a-descriptions-item>
-        <a-descriptions-item label="注册时间">{{ formatDateTime(detailUser.createdAt) }}</a-descriptions-item>
-        <a-descriptions-item label="最后登录">{{ formatDateTime(detailUser.lastLoginAt) || '—' }}</a-descriptions-item>
-      </a-descriptions>
-      <template #footer>
-        <a-button @click="detailVisible = false">关闭</a-button>
-      </template>
-    </a-drawer>
+      <a-tabs v-model:activeKey="detailTabKey" type="card">
+        <a-tab-pane key="basic" tab="基础信息">
+          <a-descriptions v-if="detailUser" :column="1" bordered>
+            <a-descriptions-item label="ID">{{ detailUser.id }}</a-descriptions-item>
+            <a-descriptions-item label="邮箱/账号">{{ detailUser.email }}</a-descriptions-item>
+            <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
+            <a-descriptions-item label="状态">
+              <a-tag :color="detailUser.status === 'enabled' ? 'green' : 'red'">
+                {{ detailUser.status === 'enabled' ? '启用' : '禁用' }}
+              </a-tag>
+            </a-descriptions-item>
+            <a-descriptions-item label="类型">
+              <a-tag :color="detailUser.userType === 'robot' ? 'orange' : 'blue'">
+                {{ detailUser.userType === 'robot' ? '机器人' : '真实用户' }}
+              </a-tag>
+            </a-descriptions-item>
+            <a-descriptions-item label="邀请码">{{ detailUser.inviteCode }}</a-descriptions-item>
+            <a-descriptions-item label="会员套餐">
+              <span v-if="detailUser.membershipPlan">{{ planLabel(detailUser.membershipPlan) }}</span>
+              <span v-else>—</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="会员到期">
+              <span v-if="detailUser.membershipExpireAt">{{ formatDateTime(detailUser.membershipExpireAt) }}</span>
+              <span v-else>非会员</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="注册时间">{{ formatDateTime(detailUser.createdAt) }}</a-descriptions-item>
+            <a-descriptions-item label="最后登录">{{ formatDateTime(detailUser.lastLoginAt) || '—' }}</a-descriptions-item>
+          </a-descriptions>
+        </a-tab-pane>
+
+        <a-tab-pane key="skills" tab="我的提示词">
+          <a-spin :spinning="skillsLoading">
+            <div class="skill-tab-toolbar">
+              <a-space>
+                <span>释放额度数量：</span>
+                <a-input-number
+                  v-model:value="releaseCount"
+                  :min="1"
+                  :max="100"
+                  style="width: 120px"
+                  placeholder="数量"
+                />
+                <a-button type="primary" :loading="releaseLoading" @click="handleReleaseCustomQuota">
+                  释放额度
+                </a-button>
+              </a-space>
+            </div>
+            <a-table
+              :columns="skillColumns"
+              :data-source="userSkills"
+              :pagination="false"
+              size="small"
+              row-key="bizNo"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'auditStatus'">
+                  <a-tag :color="auditStatusColor(record.auditStatus)">
+                    {{ auditStatusLabel(record.auditStatus) }}
+                  </a-tag>
+                </template>
+                <template v-else-if="column.key === 'prompt'">
+                  <span :title="record.prompt">{{ record.prompt || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'scope'">
+                  {{ record.scope || '—' }}
+                </template>
+                <template v-else-if="column.key === 'createdAt'">
+                  {{ formatDateTime(record.createdAt) }}
+                </template>
+              </template>
+            </a-table>
+          </a-spin>
+        </a-tab-pane>
+
+        <a-tab-pane key="learned" tab="学习的提示词">
+          <a-spin :spinning="learnedLoading">
+            <a-table
+              :columns="learnedColumns"
+              :data-source="learnedMonths"
+              :pagination="false"
+              size="small"
+              row-key="period"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'skillCount'">
+                  {{ record.skillCount || 0 }}
+                </template>
+                <template v-else-if="column.key === 'period'">
+                  <span>
+                    {{ record.period }}
+                    <a-tag v-if="record.period === currentPeriod" color="blue" style="margin-left: 8px">当月</a-tag>
+                  </span>
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <a-button
+                    type="link"
+                    size="small"
+                    :loading="resettingPeriod === record.period"
+                    @click="handleResetLearnedQuota(record)"
+                  >
+                    重置当月额度
+                  </a-button>
+                </template>
+              </template>
+            </a-table>
+          </a-spin>
+        </a-tab-pane>
+      </a-tabs>
+    </a-modal>
 
     <!-- 邀请关系弹框 -->
     <a-modal
@@ -328,15 +424,49 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 导入结果弹框 -->
+    <a-modal
+      v-model:open="importResultVisible"
+      :title="importResult?.success ? '导入成功' : '导入失败'"
+      :footer="null"
+      @cancel="closeImportResultModal"
+    >
+      <div v-if="importResult" class="import-result">
+        <p>
+          共解析 <strong>{{ importResult.totalRows }}</strong> 行，成功导入
+          <strong>{{ importResult.importedCount }}</strong> 条。
+        </p>
+        <div v-if="!importResult.success && importResult.errors?.length" class="import-errors">
+          <div class="import-errors-title">错误明细：</div>
+          <a-list
+            :data-source="importResult.errors"
+            size="small"
+            :pagination="{ pageSize: 5 }"
+          >
+            <template #renderItem="{ item }">
+              <a-list-item>
+                <div class="import-error-item">
+                  <div class="import-error-row">第 {{ item.rowIndex }} 行（{{ item.email || '邮箱为空' }}）</div>
+                  <ul>
+                    <li v-for="(err, idx) in item.errors" :key="idx">{{ err }}</li>
+                  </ul>
+                </div>
+              </a-list-item>
+            </template>
+          </a-list>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons-vue'
+import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
-import { getUser, getUserInvites, updateUser } from '@/api/user.js'
+import { getUser, getUserInvites, updateUser, listUserSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 
 const {
   users,
@@ -383,6 +513,37 @@ const resetPasswordVisible = ref(false)
 const resetPasswordTarget = ref(null)
 const detailVisible = ref(false)
 const detailUser = ref(null)
+const detailTabKey = ref('basic')
+const userSkills = ref([])
+const skillsLoading = ref(false)
+const releaseCount = ref(1)
+const releaseLoading = ref(false)
+const learnedMonths = ref([])
+const learnedLoading = ref(false)
+const resettingPeriod = ref(null)
+
+const currentPeriod = (() => {
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+})()
+
+const skillColumns = [
+  { title: '业务编号', dataIndex: 'bizNo', key: 'bizNo', width: 150 },
+  { title: '提示词名称', dataIndex: 'skillName', key: 'skillName', width: 150 },
+  { title: '提示词内容', dataIndex: 'prompt', key: 'prompt', ellipsis: true, width: 320 },
+  { title: '适用范围', key: 'scope', width: 120 },
+  { title: '使用次数', dataIndex: 'useCount', key: 'useCount', width: 90 },
+  { title: '审核状态', key: 'auditStatus', width: 100 },
+  { title: '创建时间', key: 'createdAt', width: 170 }
+]
+
+const learnedColumns = [
+  { title: '月份', key: 'period', width: 120 },
+  { title: '已用次数', dataIndex: 'usedCount', key: 'usedCount', width: 100 },
+  { title: '预扣次数', dataIndex: 'preUsedCount', key: 'preUsedCount', width: 100 },
+  { title: '产生提示词数', key: 'skillCount', width: 120 },
+  { title: '操作', key: 'action', width: 140 }
+]
 
 const inviteModalVisible = ref(false)
 const inviteDetail = ref(null)
@@ -424,6 +585,10 @@ const createForm = reactive({
   userType: 1
 })
 const createLoading = ref(false)
+
+const importing = ref(false)
+const importResultVisible = ref(false)
+const importResult = ref(null)
 
 const createRules = {
   email: [
@@ -578,13 +743,108 @@ const confirmResetPassword = async () => {
 }
 
 const openDetailDrawer = async (user) => {
+  detailTabKey.value = 'basic'
+  releaseCount.value = 1
+  userSkills.value = []
+  learnedMonths.value = []
   try {
     detailUser.value = await getUser(user.id)
-    detailVisible.value = true
   } catch (error) {
     detailUser.value = user
-    detailVisible.value = true
   }
+  detailVisible.value = true
+  loadUserSkillsTab()
+  loadLearnedSkillsTab()
+}
+
+const closeDetailModal = () => {
+  detailVisible.value = false
+  detailUser.value = null
+  detailTabKey.value = 'basic'
+}
+
+const loadUserSkillsTab = async () => {
+  if (!detailUser.value?.id) return
+  skillsLoading.value = true
+  try {
+    userSkills.value = await listUserSkills(detailUser.value.id, 1)
+  } catch (error) {
+    message.error(error.message || '加载我的提示词失败')
+    userSkills.value = []
+  } finally {
+    skillsLoading.value = false
+  }
+}
+
+const loadLearnedSkillsTab = async () => {
+  if (!detailUser.value?.id) return
+  learnedLoading.value = true
+  try {
+    learnedMonths.value = await listUserLearnedSkillsByMonth(detailUser.value.id)
+  } catch (error) {
+    message.error(error.message || '加载学习的提示词失败')
+    learnedMonths.value = []
+  } finally {
+    learnedLoading.value = false
+  }
+}
+
+const handleReleaseCustomQuota = () => {
+  if (!detailUser.value?.id) return
+  if (!releaseCount.value || releaseCount.value < 1) {
+    message.warning('请输入有效的释放数量')
+    return
+  }
+  Modal.confirm({
+    title: '确定释放自定义提示词额度？',
+    content: `将为用户「${detailUser.value.nickname || detailUser.value.email}」释放 ${releaseCount.value} 个自定义提示词额度。`,
+    okText: '确认释放',
+    cancelText: '取消',
+    onOk: async () => {
+      releaseLoading.value = true
+      try {
+        await releaseCustomSkillQuota(detailUser.value.id, releaseCount.value)
+        message.success('额度已释放')
+        loadUserSkillsTab()
+      } catch (error) {
+        message.error(error.message || '释放额度失败')
+      } finally {
+        releaseLoading.value = false
+      }
+    }
+  })
+}
+
+const handleResetLearnedQuota = (record) => {
+  if (!detailUser.value?.id) return
+  Modal.confirm({
+    title: `确定重置 ${record.period} 学习提示词额度？`,
+    content: '重置后该月份的已用次数和预扣次数将清零，仅用于额度被异常占用的兜底场景。',
+    okText: '确认重置',
+    cancelText: '取消',
+    onOk: async () => {
+      resettingPeriod.value = record.period
+      try {
+        await resetLearnedSkillQuota(detailUser.value.id, record.period)
+        message.success(`${record.period} 额度已重置`)
+        loadLearnedSkillsTab()
+      } catch (error) {
+        message.error(error.message || '重置额度失败')
+      } finally {
+        resettingPeriod.value = null
+      }
+    }
+  })
+}
+
+const auditStatusLabel = (status) => {
+  const map = { 0: '待审核', 1: '已通过', 2: '已拒绝' }
+  return map[status] || '未知'
+}
+
+const auditStatusColor = (status) => {
+  const map = { 0: 'default', 1: 'green', 2: 'red' }
+  return map[status] || 'default'
 }
 
 const openInviteModal = async (user) => {
@@ -605,6 +865,57 @@ const closeInviteModal = () => {
   inviteModalVisible.value = false
   inviteDetail.value = null
   inviteTarget.value = null
+}
+
+const downloadTemplate = async () => {
+  try {
+    const res = await downloadUserImportTemplate()
+    const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '用户导入模板.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (error) {
+    message.error(error.message || '下载模板失败')
+  }
+}
+
+const beforeImport = (file) => {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    message.error('请上传 .xlsx 格式的 Excel 文件')
+    return false
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    message.error('文件大小不能超过 10MB')
+    return false
+  }
+  return true
+}
+
+const handleImport = async ({ file }) => {
+  importing.value = true
+  try {
+    const result = await importUsers(file)
+    importResult.value = result
+    importResultVisible.value = true
+    if (result.success) {
+      message.success(`成功导入 ${result.importedCount} 个用户`)
+      fetchUsers()
+    }
+  } catch (error) {
+    message.error(error.message || '导入失败')
+  } finally {
+    importing.value = false
+  }
+}
+
+const closeImportResultModal = () => {
+  importResultVisible.value = false
+  importResult.value = null
 }
 
 onMounted(() => {
@@ -679,5 +990,43 @@ onMounted(() => {
 
 .invite-modal-content .ant-descriptions {
   margin-bottom: 8px;
+}
+
+.skill-tab-toolbar {
+  margin-bottom: 16px;
+}
+
+:deep(.user-detail-modal) .ant-modal-content {
+  max-width: 1280px;
+  margin: 0 auto;
+}
+
+.import-result p {
+  margin: 0 0 12px 0;
+}
+
+.import-errors-title {
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.import-error-item {
+  width: 100%;
+}
+
+.import-error-row {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.import-error-item ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.import-error-item li {
+  color: #cf1322;
+  font-size: 13px;
+  line-height: 1.6;
 }
 </style>

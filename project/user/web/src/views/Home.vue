@@ -1,5 +1,6 @@
 <template>
-  <div class="home-page">
+  <MobileHome v-if="isMobile" />
+  <div v-else class="home-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- Hero 区(banner 嵌入右侧) -->
@@ -273,7 +274,11 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import MobileHome from '@/views/MobileHome.vue'
+import { useDevice } from '@/composables/useDevice.js'
 import { fetchHomeBanners } from '@/api/home.js'
+
+const { isMobile } = useDevice()
 
 const navLinks = [
   { to: '/', label: '首页' },

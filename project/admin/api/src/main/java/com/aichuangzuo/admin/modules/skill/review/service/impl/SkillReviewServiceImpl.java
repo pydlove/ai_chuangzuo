@@ -40,9 +40,10 @@ public class SkillReviewServiceImpl implements SkillReviewService {
 
     private static final int AUDIT_STATUS_APPROVED = 1;
     private static final int ENABLE_STATUS_ENABLED = 1;
+    private static final int ENABLE_STATUS_DISABLED = 0;
     private static final BigDecimal DEFAULT_PRICE = new BigDecimal("0.20");
 
-    private static final String MSG_TYPE_SKILL = "skill";
+    private static final String MSG_TYPE_SKILL = "style";
     private static final String SUB_TYPE_APPROVED = "approved";
     private static final String SUB_TYPE_REJECTED = "rejected";
     private static final int MSG_SCOPE_PERSONAL = 2;
@@ -143,8 +144,26 @@ public class SkillReviewServiceImpl implements SkillReviewService {
         skill.setAuditedAt(LocalDateTime.now());
         skill.setRejectReason(reason.trim());
         skillReviewMapper.updateById(skill);
+        markMarketRejected(skill.getBizNo());
         pushSkillReviewMessage(skill, false, reason.trim());
         log.info("风格审核打回 bizNo={}, adminId={}, reason={}", bizNo, adminId, reason.trim());
+    }
+
+    /**
+     * 将对应市场 skill 标记为已打回，使用户端 my-submissions 能正确展示拒绝状态。
+     */
+    private void markMarketRejected(String bizNo) {
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getBizNo, bizNo)
+                .eq(SkillMarket::getIsDeleted, 0);
+        SkillMarket market = skillMarketMapper.selectOne(wrapper);
+        if (market == null) {
+            return;
+        }
+        market.setAuditStatus(AuditStatus.REJECTED.getCode());
+        market.setEnableStatus(ENABLE_STATUS_DISABLED);
+        skillMarketMapper.updateById(market);
+        log.info("市场 skill 标记为已打回 bizNo={}", bizNo);
     }
 
     /**

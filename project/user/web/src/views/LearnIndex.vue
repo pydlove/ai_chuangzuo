@@ -1,5 +1,6 @@
 <template>
-  <div class="learn-page">
+  <MobileLearn v-if="isMobileView" />
+  <div v-else class="learn-page">
     <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <header class="learn-hero">
@@ -23,7 +24,7 @@
       </aside>
 
       <main class="learn-main">
-        <!-- 空状态页：banner + 推荐分类 -->
+        <!-- 空状态页：banner + 推荐课程 -->
         <template v-if="isEmptyState">
           <!-- Banner 轮播 -->
           <div v-if="banners.length" class="learn-banner-section">
@@ -57,10 +58,10 @@
             </p>
           </div>
 
-          <!-- 推荐分类 -->
+          <!-- 推荐课程 -->
           <div v-if="recommendedCategories.length" class="learn-recommend-section">
             <div class="learn-recommend-header">
-              <h2 class="learn-recommend-title">推荐分类</h2>
+              <h2 class="learn-recommend-title">推荐课程</h2>
               <span class="learn-recommend-desc">精选核心主题，快速找到你感兴趣的方向</span>
             </div>
             <div class="learn-recommend-grid">
@@ -131,82 +132,39 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners } from '@/api/learn'
+import { ref, onMounted } from 'vue'
 import { CATEGORY_ICONS } from '@/components/learn/learnCategoryIcons'
 import { ReadOutlined, BulbOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import LearnSidebar from '@/components/learn/LearnSidebar.vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
 import MobileTreeSheet from '@/components/learn/MobileTreeSheet.vue'
+import MobileLearn from '@/views/MobileLearn.vue'
+import { useDevice } from '@/composables/useDevice.js'
+import { useLearn } from '@/composables/useLearn.js'
 
-const route = useRoute()
-const router = useRouter()
-const categoryTree = ref([])
-const currentArticle = ref(null)
-const currentCategory = ref(null)
+const { isMobile: isMobileView } = useDevice()
+
+const {
+  categoryTree,
+  currentArticle,
+  currentCategory,
+  banners,
+  activeCategoryId,
+  currentCategoryName,
+  currentCategoryPath,
+  topCategories,
+  isEmptyState,
+  recommendedCategories,
+  onSelectCategory,
+  loadArticle,
+  goHome
+} = useLearn()
+
 const mobileSheetOpen = ref(false)
+
+// 侧边栏收起后显示的「分类」快捷按钮（PC 响应式布局用）
 const isMobile = ref(window.innerWidth < 992)
-
-const activeCategoryId = computed(() => {
-  if (route.params.id) return currentArticle.value?.categoryId ?? null
-  return route.query.cat ? Number(route.query.cat) : null
-})
-
-// 反查当前文章所属分类的名称，用于跨分类跳转提示
-const currentCategoryName = computed(() => {
-  if (!currentArticle.value?.categoryId) return ''
-  const targetId = currentArticle.value.categoryId
-  const walk = nodes => {
-    for (const n of nodes) {
-      if (n.id === targetId) return n.name
-      if (n.children?.length) {
-        const found = walk(n.children)
-        if (found) return found
-      }
-    }
-    return ''
-  }
-  return walk(categoryTree.value)
-})
-
-// 反查当前分类的完整路径（用于面包屑；文章详情和分类列表通用）
-const currentCategoryPath = computed(() => {
-  // 文章详情：用文章所属分类；分类列表：用 query.cat
-  const targetId = route.params.id
-    ? (currentArticle.value?.categoryId ?? null)
-    : (route.query.cat ? Number(route.query.cat) : null)
-  if (!targetId) return []
-  const result = []
-  const walk = (nodes, trail) => {
-    for (const n of nodes) {
-      const current = [...trail, { id: n.id, name: n.name }]
-      if (n.id === targetId) {
-        result.push(...current)
-        return true
-      }
-      if (n.children?.length && walk(n.children, current)) return true
-    }
-    return false
-  }
-  walk(categoryTree.value, [])
-  return result
-})
-
-// 空状态快捷入口：前 4 个顶级分类
-const topCategories = computed(() => categoryTree.value.slice(0, 4))
-
-// 是否为空状态页（未选文章、未选分类）
-const isEmptyState = computed(() => !route.params.id && !route.query.cat)
-
-// Banner 列表
-const banners = ref([])
-
-// 推荐分类（从分类树过滤 isRecommended === 1 的顶级分类）
-const recommendedCategories = computed(() =>
-  categoryTree.value.filter(c => c.isRecommended === 1)
-)
 
 function getCategoryIcon(name) {
   return CATEGORY_ICONS[name] || null
@@ -221,67 +179,15 @@ const navLinks = [
 const ctaTo = '/login'
 const ctaLabel = '开始创作'
 
-const onSelectCategory = id => router.replace({ path: '/learn', query: { cat: id } })
 const onSelectCategoryFromSheet = id => {
   mobileSheetOpen.value = false
   onSelectCategory(id)
 }
 
-const loadArticle = id => router.push(`/learn/article/${id}`)
-
-const goHome = () => router.replace({ path: '/learn' })
-
-async function bootstrap() {
-  try {
-    const tree = await fetchCategoryTree()
-    categoryTree.value = tree.data || []
-  } catch (e) {
-    categoryTree.value = []
-  }
-
-  if (route.params.id) {
-    try {
-      const res = await fetchArticle(route.params.id)
-      currentArticle.value = res.data || null
-    } catch (e) {
-      currentArticle.value = null
-    }
-    currentCategory.value = null
-  } else if (route.query.cat) {
-    try {
-      const detail = await fetchCategoryDetail(route.query.cat, 1, 50)
-      currentCategory.value = detail.data || null
-    } catch (e) {
-      currentCategory.value = null
-    }
-    currentArticle.value = null
-  } else {
-    currentCategory.value = null
-    currentArticle.value = null
-  }
-
-  // 加载 banner（仅空状态页需要）
-  if (!route.params.id && !route.query.cat) {
-    try {
-      const bannerRes = await fetchBanners()
-      banners.value = bannerRes.data || []
-    } catch (e) {
-      banners.value = []
-    }
-  }
-}
-
-window.addEventListener('resize', () => {
-  isMobile.value = window.innerWidth < 992
-})
-
-onMounted(bootstrap)
-watch(() => route.fullPath, (newPath, oldPath) => {
-  bootstrap()
-  // 仅当切换的是文章（params.id 存在且路径变化）时滚动到顶部，分类切换不动
-  if (route.params.id && newPath !== oldPath) {
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    isMobile.value = window.innerWidth < 992
+  }, { passive: true })
 })
 </script>
 
@@ -394,7 +300,7 @@ body[data-theme="dark"] .learn-intro {
 }
 body[data-theme="dark"] .learn-intro-text { color: #b0b0b0; }
 
-/* 暗色主题 — 推荐分类 */
+/* 暗色主题 — 推荐课程 */
 body[data-theme="dark"] .learn-recommend-title { color: #e0e0e0; }
 body[data-theme="dark"] .learn-recommend-card {
   background: linear-gradient(135deg, #1f1f1f 0%, #2a2226 100%);
@@ -495,7 +401,7 @@ body[data-theme="dark"] .learn-banner-carousel :deep(.slick-dots li button) {
   font-size: 14px; line-height: 1.8; color: #434343; margin: 0;
 }
 
-/* 推荐分类 */
+/* 推荐课程 */
 .learn-recommend-section { margin-bottom: 24px; }
 .learn-recommend-header {
   display: flex; align-items: baseline; gap: 12px; margin-bottom: 16px;

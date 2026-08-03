@@ -84,7 +84,7 @@
           <div class="style-editor-field">
             <label class="style-editor-label style-editor-label--with-action">
               <span>提示词 <span class="required">*</span></span>
-              <FullscreenOutlined class="style-editor-fullscreen-btn" title="全屏编辑" @click="openFullscreenPrompt" />
+              <FullscreenOutlined class="style-editor-fullscreen-btn" title="全屏编辑" @click="openFullscreenPrompt('custom')" />
             </label>
             <textarea
               v-model="editingStyle.prompt"
@@ -162,19 +162,20 @@
             :show-avatar="false"
             :actions="[
               { label: '使用', type: 'primary', handler: () => useStyle(s) },
+              { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'my') },
               { label: '查看', handler: () => openMyStylePromptModal(s) },
-              { label: '编辑', handler: () => goToEdit(s) },
-              { label: '发布', type: 'primary', disabled: publishBlocked || getMarketStatus(s.name) === '审核中' || getMarketStatus(s.name) === '已上架', title: getMarketStatus(s.name) === '审核中' ? '审核中' : getMarketStatus(s.name) === '已上架' ? '已上架' : publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'my') },
-              { label: '删除', type: 'danger', handler: () => deleteSkill(s.name) }
+              { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEdit(s) },
+              { label: '下架', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'my') },
+              { label: '删除', type: 'danger', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => deleteSkill(s.name) }
             ]"
           >
             <template #status>
               <div
-                v-if="getMarketStatus(s.name)"
+                v-if="getMarketStatus(s.bizNo)"
                 class="style-card-status"
-                :class="statusClass(s.name)"
+                :class="statusClass(s.bizNo)"
               >
-                {{ getMarketStatus(s.name) }}
+                {{ getMarketStatus(s.bizNo) }}
               </div>
             </template>
             <template #meta>
@@ -283,22 +284,22 @@
           :prompt="s.prompt"
           :show-avatar="false"
           avatar-variant="learned"
-          :expanded="expandedNames.has(s.name)"
           :actions="[
             { label: '使用', type: 'primary', handler: () => useStyle(s) },
-            { label: expandedNames.has(s.name) ? '收起' : '查看', handler: () => togglePrompt(s.name) },
-            { label: '编辑', handler: () => goToEditLearned(s) },
-            { label: '发布', type: 'primary', disabled: publishBlocked || getMarketStatus(s.name) === '审核中' || getMarketStatus(s.name) === '已上架', title: getMarketStatus(s.name) === '审核中' ? '审核中' : getMarketStatus(s.name) === '已上架' ? '已上架' : publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'learned') },
-            { label: '删除', type: 'danger', handler: () => deleteLearnedStyle(s) }
+            { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'learned') },
+            { label: '查看', handler: () => openMyStylePromptModal(s, 'learned') },
+            { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEditLearned(s) },
+            { label: '下架', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'learned') },
+            { label: '删除', type: 'danger', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => deleteLearnedStyle(s) }
           ]"
         >
           <template #status>
             <div
-              v-if="getMarketStatus(s.name)"
+              v-if="getMarketStatus(s.bizNo)"
               class="style-card-status"
-              :class="statusClass(s.name)"
+              :class="statusClass(s.bizNo)"
             >
-              {{ getMarketStatus(s.name) }}
+              {{ getMarketStatus(s.bizNo) }}
             </div>
           </template>
           <template #meta>
@@ -390,8 +391,17 @@
 
     <!-- 进度态 -->
     <div v-if="isLearning" class="learned-progress">
-      <a-spin />
-      <div class="learned-progress-text">● ● ● 分析中…</div>
+      <div class="learned-progress-bubble">
+        <span class="learned-progress-text">
+          <span
+            v-for="(ch, i) in loadingChars"
+            :key="i"
+            class="learned-progress-char"
+            :style="{ animationDelay: (i * 0.08) + 's' }"
+          >{{ ch }}</span>
+        </span>
+        <span class="learned-progress-dots"><span></span><span></span><span></span></span>
+      </div>
     </div>
 
     <!-- 粘贴 / 上传 tab -->
@@ -413,14 +423,15 @@
           v-model="pasteText"
           class="learned-textarea"
           placeholder="将原文粘贴到这里…"
-          maxlength="3000"
+          maxlength="1000"
         ></textarea>
-        <div class="learned-counter">{{ pasteText.length }} / 3000</div>
+        <div class="learned-counter">{{ pasteText.length }} / 1000</div>
         <div v-if="pasteError" class="learned-error">{{ pasteError }}</div>
-       <button
-         class="learned-submit-btn"
-         @click="submitPaste"
-       >开始学习</button>
+        <button
+          class="learned-submit-btn"
+          :disabled="pasteText.trim().length < 200 || pasteText.trim().length > 1000"
+          @click="submitPaste"
+        >开始学习</button>
       </div>
 
       <!-- 上传 -->
@@ -441,10 +452,11 @@
           </div>
         </label>
         <div v-if="uploadError" class="learned-error">{{ uploadError }}</div>
-       <button
-         class="learned-submit-btn"
-         @click="submitUpload"
-       >开始学习</button>
+        <button
+          class="learned-submit-btn"
+          :disabled="!uploadFile"
+          @click="submitUpload"
+        >开始学习</button>
       </div>
     </template>
 
@@ -453,11 +465,18 @@
       <div class="learned-result-title">{{ isEditingLearned ? '编辑提示词' : '学习结果 ✓ 已从参考文章中提取提示词' }}</div>
       <div class="learned-result-field">
         <label class="learned-result-label">学到的提示词（可编辑）</label>
-        <textarea
-          v-model="learnedResult.prompt"
-          class="learned-textarea"
-          :maxlength="promptMaxLength"
-        ></textarea>
+        <div class="learned-textarea-wrapper">
+          <textarea
+            v-model="learnedResult.prompt"
+            class="learned-textarea learned-textarea--with-fullscreen"
+            :maxlength="promptMaxLength"
+          ></textarea>
+          <FullscreenOutlined
+            class="learned-textarea-fullscreen-btn"
+            title="全屏编辑"
+            @click="openFullscreenPrompt('learned')"
+          />
+        </div>
         <div class="learned-counter" :class="{ over: learnedResult.prompt.length > promptMaxLength }">
           {{ learnedResult.prompt.length }} / {{ promptMaxLength }}
         </div>
@@ -508,11 +527,12 @@
         <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
       </div>
       <div class="learned-result-actions">
-        <button class="learned-cancel-btn" @click="closeImportDialog(true)">放弃</button>
+        <button class="learned-cancel-btn" :disabled="savingLearned" @click="closeImportDialog(true)">放弃</button>
        <button
          class="learned-submit-btn"
+         :disabled="savingLearned"
          @click="saveLearnedResult"
-       >保存到提示词</button>
+       >{{ savingLearned ? '保存中...' : '保存到提示词' }}</button>
       </div>
     </div>
   </a-modal>
@@ -541,49 +561,51 @@
     </div>
   </a-modal>
 
-  <!-- 我的提示词详情弹框 -->
-  <a-modal
-    class="my-style-prompt-modal"
-    :open="myStylePromptVisible"
-    :title="selectedMyStyle?.name"
-    :footer="null"
-    :width="560"
-    centered
-    @cancel="closeMyStylePromptModal"
+  <!-- 提示词详情弹框 -->
+  <SkillDetailModal
+    :skill="selectedSkillForModal"
+    :visible="myStylePromptVisible"
+    :current-user-id="currentUserId"
+    :is-favorite="selectedMyStyleSource === 'favorite'"
+    :show-stats="false"
+    @update:visible="closeMyStylePromptModal"
+    @use="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
+    @toggle-favorite="confirmUnfavorite(selectedMyStyle); closeMyStylePromptModal()"
   >
-    <div v-if="selectedMyStyle" class="my-style-prompt-body">
-      <div class="my-style-prompt-meta">
-        <span v-if="selectedMyStyleSource === 'system'">{{ selectedMyStyle.desc }}</span>
-        <template v-else-if="selectedMyStyleSource === 'my'">
-          <span>自定义提示词</span>
-          <span class="my-style-prompt-meta-dot">·</span>
-          <span>已用 {{ selectedMyStyle.count || 0 }} 次</span>
-        </template>
-        <span v-else-if="selectedMyStyleSource === 'learned'">学习 · {{ (selectedMyStyle.createdAt || '').slice(0, 10) }}</span>
-        <span v-else-if="selectedMyStyleSource === 'favorite'">by {{ selectedMyStyle.creatorName }}</span>
-      </div>
-      <div v-if="selectedMyStyle.scope" class="my-style-prompt-scope-list">
-        <span v-for="tag in parseScopeTags(selectedMyStyle.scope)" :key="tag" class="my-style-prompt-scope">{{ tag }}</span>
-      </div>
-      <div class="my-style-prompt-text">{{ selectedMyStyle.prompt }}</div>
-      <div class="my-style-prompt-actions">
-        <button class="my-style-prompt-use-btn" @click="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()">使用</button>
-        <button
-          v-if="selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned'"
-          class="my-style-prompt-edit-btn"
-          @click="goToEdit(selectedMyStyle); closeMyStylePromptModal()"
-        >编辑</button>
-        <button
-          v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (selectedMyStyle.auditStatus == null || selectedMyStyle.auditStatus === 2) && publishTotal > 0"
-          class="my-style-prompt-publish-btn"
-          :disabled="publishBlocked"
-          :title="publishQuotaHint"
-          @click="openPublishConfirm(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
-        >发布</button>
-        <button class="my-style-prompt-close-btn" @click="closeMyStylePromptModal">关闭</button>
-      </div>
-    </div>
-  </a-modal>
+    <template #footer-actions>
+      <button
+        class="skill-detail-btn-use"
+        @click="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
+      >使用</button>
+      <button
+        v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (!getMarketStatus(selectedMyStyle?.bizNo) || getMarketStatus(selectedMyStyle?.bizNo) === '已打回')"
+        :class="['skill-detail-btn-fav', { active: false }]"
+        :disabled="publishBlocked"
+        :title="publishQuotaHint"
+        @click="openPublishConfirm(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
+      >{{ getMarketStatus(selectedMyStyle?.bizNo) === '已打回' ? '重新发布' : '发布' }}</button>
+      <button
+        v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (!getMarketStatus(selectedMyStyle?.bizNo) || getMarketStatus(selectedMyStyle?.bizNo) === '已打回')"
+        class="skill-detail-btn-fav"
+        @click="(selectedMyStyleSource === 'learned' ? goToEditLearned : goToEdit)(selectedMyStyle); closeMyStylePromptModal()"
+      >编辑</button>
+      <button
+        v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && getMarketStatus(selectedMyStyle?.bizNo) === '审核中'"
+        class="skill-detail-btn-fav"
+        disabled
+      >审核中</button>
+      <button
+        v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && getMarketStatus(selectedMyStyle?.bizNo) === '已上架'"
+        class="skill-detail-btn-fav"
+        @click="confirmUnpublish(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
+      >下架</button>
+      <button
+        v-if="selectedMyStyleSource === 'favorite'"
+        class="skill-detail-btn-fav"
+        @click="confirmUnfavorite(selectedMyStyle); closeMyStylePromptModal()"
+      >取消收藏</button>
+    </template>
+  </SkillDetailModal>
 
   <!-- 全屏编辑提示词 -->
   <a-modal
@@ -629,6 +651,9 @@ import {
   learnedSkills,
   removeLearnedSkill,
   analyzeArticleSkill,
+  preConsumeAnalyzeQuota,
+  confirmAnalyzeQuota,
+  cancelAnalyzeQuota,
   isLearnedSkillNameExists,
   addLearnedSkill,
   isLearning,
@@ -640,37 +665,50 @@ import {
 } from '@/composables/useSkills.js'
 import {
   marketSkills,
-  shareSkillToMarket,
   favoriteSkills,
   toggleFavorite,
   useMarketSkill,
   loadMarketSkills,
-  loadFavoriteIds
+  loadFavoriteIds,
+  unpublishSkill,
+  mySubmissions,
+  loadMySubmissions,
+  getMarketStatusByBizNo
 } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { FullscreenOutlined } from '@ant-design/icons-vue'
 import { getCustomStyleLimit, getSkillPromptMaxLength } from '@/utils/membershipLimits.js'
-import { updateSkill } from '@/api/skill.js'
+import { publishSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
+import SkillDetailModal from '@/components/SkillDetailModal.vue'
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const stylesIndexRef = ref(null)
+const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
 const activeTab = ref('my')
 const searchQuery = ref('')
 const promptMaxLength = ref(getSkillPromptMaxLength())
 const fullscreenPromptVisible = ref(false)
 const fullscreenPromptText = ref('')
+const fullscreenPromptTarget = ref('') // 'custom' | 'learned'
 
-const openFullscreenPrompt = () => {
-  fullscreenPromptText.value = editingStyle.prompt
+const openFullscreenPrompt = (target) => {
+  fullscreenPromptTarget.value = target
+  fullscreenPromptText.value = target === 'learned'
+    ? (learnedResult.value?.prompt || '')
+    : editingStyle.prompt
   fullscreenPromptVisible.value = true
 }
 const closeFullscreenPrompt = () => {
   fullscreenPromptVisible.value = false
 }
 const saveFullscreenPrompt = () => {
-  editingStyle.prompt = fullscreenPromptText.value
+  if (fullscreenPromptTarget.value === 'learned' && learnedResult.value) {
+    learnedResult.value.prompt = fullscreenPromptText.value
+  } else {
+    editingStyle.prompt = fullscreenPromptText.value
+  }
   fullscreenPromptVisible.value = false
 }
 
@@ -696,25 +734,41 @@ const learnBannerText = computed(() => {
     if (learnTotal.value <= 0) return '当前套餐不支持 AI 提示词学习，升级专业版/旗舰版后解锁'
     return `本月学习额度已用完（${learnTotal.value} 次），下月 1 日重置`
   }
-  return `本月还可学习 ${learnRemaining.value} / ${learnTotal.value} 次 AI 提示词分析`
+  return `本月还可学习 ${learnRemaining.value} 次 AI 提示词分析`
 })
 
 const publishRemaining = computed(() => benefitRemaining('skill_market_publish'))
 const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish') || '0', 10))
 
 onMounted(async () => {
+  if (localStorage.getItem(PENDING_ANALYZE_KEY)) {
+    try {
+      await cancelAnalyzeQuota()
+    } catch {
+      // 兜底：忽略清理失败
+    }
+    clearAnalyzePending()
+  }
+
   await loadBenefits()
   promptMaxLength.value = getSkillPromptMaxLength()
   await Promise.all([
     loadMySkills(),
     loadLearnedSkills(),
     loadMarketSkills(),
-    loadFavoriteIds()
+    loadFavoriteIds(),
+    loadMySubmissions()
   ])
 })
 
 const MAX_SCOPE_TAGS = 3
 const MAX_SCOPE_TAG_LENGTH = 8
+const loadingText = '灵犀同学正在帮您分析...'
+const loadingChars = loadingText.split('')
+
+const PENDING_ANALYZE_KEY = 'aichuangzuo_skill_analyze_pending'
+const markAnalyzePending = () => localStorage.setItem(PENDING_ANALYZE_KEY, '1')
+const clearAnalyzePending = () => localStorage.removeItem(PENDING_ANALYZE_KEY)
 
 const parseScopeTags = (scopeStr) => {
   if (!scopeStr) return []
@@ -810,13 +864,31 @@ const learnedResultScopeInput = ref('')
 const learnedResultError = ref('')
 const isEditingLearned = ref(false)
 const editingLearnedOriginalName = ref('')
+const hasPreConsumedQuota = ref(false)
+const savingLearned = ref(false)
 const editorMode = ref(false)
-const expandedNames = ref(new Set())
 const publishConfirmVisible = ref(false)
 const pendingPublish = ref({ style: null, sourceType: '' })
 const myStylePromptVisible = ref(false)
 const selectedMyStyle = ref(null)
 const selectedMyStyleSource = ref('my')
+
+const selectedSkillForModal = computed(() => {
+  const s = selectedMyStyle.value
+  if (!s) return null
+  const source = selectedMyStyleSource.value
+  const isMyOrLearned = source === 'my' || source === 'learned'
+  return {
+    ...s,
+    creatorId: isMyOrLearned ? currentUserId : (s.creatorId || ''),
+    creatorName: source === 'system' ? '系统' : source === 'favorite' ? (s.creatorName || '匿名用户') : (s.creatorName || '我'),
+    prompt: s.prompt || s.promptSummary || '',
+    scope: s.scope || '',
+    createdAt: s.createdAt || null,
+    excerpt1: s.excerpt1 || '',
+    excerpt2: s.excerpt2 || ''
+  }
+})
 
 const editingStyle = reactive({
   originalName: '',
@@ -836,16 +908,6 @@ const errors = reactive({
 const promptSummary = (prompt) => {
   if (!prompt) return ''
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
-}
-
-const togglePrompt = (name) => {
-  const set = new Set(expandedNames.value)
-  if (set.has(name)) {
-    set.delete(name)
-  } else {
-    set.add(name)
-  }
-  expandedNames.value = set
 }
 
 const validate = () => {
@@ -990,6 +1052,7 @@ const openImportDialog = () => {
   learnedResultScopeInput.value = ''
   isEditingLearned.value = false
   editingLearnedOriginalName.value = ''
+  hasPreConsumedQuota.value = false
   importSubTab.value = 'paste'
   importDialogVisible.value = true
 }
@@ -1003,7 +1066,16 @@ const goToEditLearned = (style) => {
   importDialogVisible.value = true
 }
 
-const closeImportDialog = (clearResult = false) => {
+const closeImportDialog = async (clearResult = false) => {
+  if (hasPreConsumedQuota.value && !isEditingLearned.value) {
+    try {
+      await cancelAnalyzeQuota()
+    } catch {
+      // 释放预扣失败不阻断关闭弹框
+    }
+    hasPreConsumedQuota.value = false
+    clearAnalyzePending()
+  }
   if (clearResult) {
     learnedResult.value = null
   }
@@ -1045,8 +1117,8 @@ const submitPaste = async () => {
     pasteError.value = '正文过短（少于 200 字）'
     return
   }
-  if (text.length > 3000) {
-    pasteError.value = '正文过长（超过 3000 字）'
+  if (text.length > 1000) {
+    pasteError.value = '正文过长（超过 1000 字）'
     return
   }
   await runAnalysis(text, 'paste')
@@ -1066,26 +1138,41 @@ const submitUpload = async () => {
     } else {
       text = await readFileAsText(uploadFile.value)
     }
-    if (text.trim().length < 200) {
+    const trimmed = text.trim()
+    if (trimmed.length < 200) {
       uploadError.value = '正文过短（少于 200 字）'
       return
     }
-    if (text.trim().length > 3000) {
-      uploadError.value = '正文过长（超过 3000 字）'
-      return
-    }
-    await runAnalysis(text, ext)
+    // 超过 1000 字自动截断，只取前 1000 字学习
+    const truncated = trimmed.length > 1000 ? trimmed.slice(0, 1000) : trimmed
+    await runAnalysis(truncated, ext)
   } catch (err) {
     uploadError.value = err.message || '文件读取失败'
   }
 }
 
 const runAnalysis = async (text, sourceType) => {
+  if (isLearning.value) return
+  isLearning.value = true
   try {
+    await preConsumeAnalyzeQuota()
+    hasPreConsumedQuota.value = true
+    markAnalyzePending()
     const tempResult = await analyzeArticleSkill(text, { sourceType })
     learnedResult.value = { ...tempResult, name: '' }
   } catch (err) {
+    if (hasPreConsumedQuota.value) {
+      try {
+        await cancelAnalyzeQuota()
+      } catch {
+        // 释放失败不重试，避免死循环
+      }
+    }
+    hasPreConsumedQuota.value = false
+    clearAnalyzePending()
     message.error(err?.message || '分析失败，请重试')
+  } finally {
+    isLearning.value = false
   }
 }
 
@@ -1110,7 +1197,7 @@ const learnedNameConflict = computed(() => {
 })
 
 const saveLearnedResult = async () => {
-  if (!learnedResult.value) return
+  if (!learnedResult.value || savingLearned.value) return
   const name = learnedResult.value.name.trim()
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
   if (isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)) {
@@ -1134,23 +1221,35 @@ const saveLearnedResult = async () => {
     learnedResultError.value = scopeError
     return
   }
+  savingLearned.value = true
   try {
     if (isEditingLearned.value) {
       await updateLearnedSkill(learnedResult.value.bizNo, learnedResult.value)
     } else {
       await addLearnedSkill(learnedResult.value)
     }
+    if (hasPreConsumedQuota.value) {
+      try {
+        await confirmAnalyzeQuota()
+      } catch {
+        // 预扣转正失败不影响已保存的提示词，继续关闭弹框
+      }
+      hasPreConsumedQuota.value = false
+      clearAnalyzePending()
+    }
     learnedResult.value = null
     closeImportDialog()
   } catch {
     // 错误提示已在 composable 内 message.error
+  } finally {
+    savingLearned.value = false
   }
 }
 
 const deleteLearnedStyle = (s) => {
   Modal.confirm({
     title: '删除提示词',
-    content: `确定要删除「${s.name}」吗？删除后不可恢复。`,
+    content: `确定要删除「${s.name}」吗？删除后不可恢复，且不会恢复本月学习额度。`,
     okText: '删除',
     cancelText: '取消',
     okButtonProps: { danger: true },
@@ -1173,29 +1272,16 @@ const confirmUnfavorite = (s) => {
   })
 }
 
-const getMarketStatus = (name) => {
-  const s = marketSkills.value.find(
-    m => m.originalName === name && m.creatorId === localStorage.getItem('aichuangzuo_user_id')
-  )
-  if (!s) return ''
-  if (s.status === 'pending') return '审核中'
-  if (s.status === 'approved') return '已上架'
-  return ''
+const getMarketStatus = (bizNo) => {
+  return getMarketStatusByBizNo(bizNo)
 }
 
-const statusClass = (name) => {
-  const status = getMarketStatus(name)
+const statusClass = (bizNo) => {
+  const status = getMarketStatus(bizNo)
   if (status === '已上架') return 'approved'
   if (status === '审核中') return 'pending'
+  if (status === '已打回') return 'rejected'
   return ''
-}
-
-const shareStyle = (style, sourceType) => {
-  try {
-    shareSkillToMarket(style, sourceType)
-  } catch (err) {
-    message.error(err.message)
-  }
 }
 
 /** 当前档位的发布额度（用于按钮 tooltip / 顶部 banner）。 */
@@ -1220,26 +1306,14 @@ const confirmPublish = async () => {
   if (!style || !sourceType) return
 
   try {
-    // 发布后重新进入待审核状态（后端 updateSkill 会重置 audit_status）
-    await updateSkill(style.bizNo, {
-      skillName: style.name,
-      prompt: style.prompt,
-      scope: style.scope || ''
-    })
-
-    // 本地市场 mock：已分享过则忽略，避免重复报错
-    try {
-      shareStyle(style, sourceType)
-    } catch {
-      // 本地记录已存在或额度不足，不影响后端重提
-    }
-
+    await publishSkill(style.bizNo)
+    await loadMySubmissions()
     if (sourceType === 'my') {
       await loadMySkills()
     } else {
       await loadLearnedSkills()
     }
-    message.success('提示词已重新提交审核')
+    message.success('提示词已提交审核')
   } catch (err) {
     message.error(err?.message || '提交失败')
   } finally {
@@ -1251,6 +1325,25 @@ const confirmPublish = async () => {
 const closePublishConfirm = () => {
   publishConfirmVisible.value = false
   pendingPublish.value = { style: null, sourceType: '' }
+}
+
+const confirmUnpublish = (style, sourceType) => {
+  Modal.confirm({
+    title: '下架提示词',
+    content: `确定要下架已发布的提示词「${style.name}」吗？下架后其他人将无法在市场中看到该提示词。`,
+    okText: '下架',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    centered: true,
+    onOk: async () => {
+      try {
+        await unpublishSkill(style.bizNo)
+        message.success('提示词已下架')
+      } catch {
+        // 错误提示已在 composable 内处理
+      }
+    }
+  })
 }
 
 const openMyStylePromptModal = (style, source = 'my') => {
@@ -1554,127 +1647,6 @@ const useSelectedStyle = (style, source) => {
   background: #e61e3a;
 }
 
-.my-style-prompt-body {
-  padding: 8px 0 0;
-}
-
-.my-style-prompt-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #8c8c8c;
-  margin-bottom: 12px;
-}
-
-.my-style-prompt-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-
-.my-style-prompt-scope-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.my-style-prompt-scope {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--color-primary);
-  background: #fff5f7;
-  border: 1px solid #ffd1d9;
-  padding: 3px 10px;
-  border-radius: 6px;
-}
-
-.my-style-prompt-scope::before {
-  content: '#';
-  opacity: 0.8;
-}
-
-.my-style-prompt-text {
-  font-size: 14px;
-  color: #262626;
-  line-height: 1.8;
-  background: #fafafa;
-  border-radius: 12px;
-  padding: 16px;
-  margin-bottom: 20px;
-  white-space: pre-line;
-  max-height: 360px;
-  overflow-y: auto;
-}
-
-.my-style-prompt-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid #f0f0f0;
-}
-
-.my-style-prompt-use-btn {
-  padding: 8px 20px;
-  background: #ff2442;
-  border: 1px solid #ff2442;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.my-style-prompt-use-btn:hover {
-  background: #e61e3a;
-}
-
-.my-style-prompt-edit-btn,
-.my-style-prompt-publish-btn {
-  padding: 8px 20px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.my-style-prompt-edit-btn:hover,
-.my-style-prompt-publish-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
-}
-
-.my-style-prompt-publish-btn:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-  cursor: not-allowed;
-}
-
-.my-style-prompt-close-btn {
-  padding: 8px 20px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.my-style-prompt-close-btn:hover {
-  border-color: #ff2442;
-  color: #ff2442;
-  background: #fff0f2;
-}
-
 .style-editor {
   background: #fff;
   border: 1px solid #f0f0f0;
@@ -1951,197 +1923,7 @@ const useSelectedStyle = (style, source) => {
   background: var(--color-primary-hover);
 }
 
-.learned-subtabs {
-  display: flex;
-  gap: 4px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-  margin-bottom: 16px;
-  width: fit-content;
-}
-
-.learned-subtab {
-  padding: 6px 14px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-}
-
-.learned-subtab.active {
-  background: var(--color-primary);
-  color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.learned-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.learned-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.learned-pane .learned-textarea {
-  flex: 1;
-  min-height: 160px;
-}
-
-.learned-textarea {
-  width: 100%;
-  min-height: 200px;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  font-family: inherit;
-  resize: vertical;
-}
-
-.learned-textarea:focus {
-  outline: none;
-  border-color: #ff2442;
-}
-
-.learned-counter {
-  text-align: right;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.learned-counter.over {
-  color: #ff4d4f;
-}
-
-.learned-input {
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-.learned-input:focus {
-  outline: none;
-  border-color: #ff2442;
-}
-
-.learned-upload-zone {
-  display: block;
-  padding: 40px 20px;
-  border: 2px dashed #d9d9d9;
-  border-radius: 8px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.learned-upload-zone:hover {
-  border-color: #ff2442;
-  background: #fff0f2;
-}
-
-.learned-upload-hint {
-  font-size: 14px;
-  color: #595959;
-}
-
-.learned-upload-types {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.learned-upload-info {
-  font-size: 14px;
-  color: #ff2442;
-}
-
-.learned-error {
-  color: #ff4d4f;
-  font-size: 13px;
-}
-
-.learned-submit-btn {
-  padding: 10px 20px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.learned-progress {
-  text-align: center;
-  padding: 40px 0;
-}
-
-.learned-progress :deep(.ant-spin-dot-item) {
-  background-color: var(--color-primary);
-}
-
-.learned-progress-text {
-  margin-top: 12px;
-  font-size: 14px;
-  color: var(--color-primary);
-}
-
-.learned-result-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 16px;
-}
-
-.learned-result-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 16px;
-}
-
-.learned-result-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #262626;
-}
-
-.learned-result-label .required {
-  color: #ff4d4f;
-}
-
-.learned-excerpt {
-  padding: 10px 12px;
-  background: #fafafa;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #595959;
-  line-height: 1.6;
-  margin-bottom: 6px;
-}
-
-.learned-result-actions {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.learned-cancel-btn {
-  padding: 10px 20px;
-  background: #fff;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #595959;
-  cursor: pointer;
-}
+/* 学习写作提示词弹框的 subtab / pane / result 样式统一在下方全局 <style> 维护，避免与局部样式冲突 */
 
 .modal-title {
   font-size: 16px;
@@ -2424,24 +2206,6 @@ body[data-theme="dark"] .styles-upgrade-banner {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .learned-subtabs {
-  background: #141414;
-}
-
-body[data-theme="dark"] .learned-subtab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .learned-subtab:hover {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .learned-subtab.active {
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
-}
-
 body[data-theme="dark"] .learned-textarea,
 body[data-theme="dark"] .learned-input {
   background: #2a2a2a;
@@ -2493,13 +2257,13 @@ body[data-theme="dark"] .learned-submit-btn {
   background: var(--color-primary);
 }
 
-body[data-theme="dark"] .learned-progress {
-  background: linear-gradient(135deg, #2a1f22 0%, #1f1f1f 100%);
-  border-color: #3a2a2d;
+body[data-theme="dark"] .learned-progress-bubble {
+  background: #1f1f1f;
+  border-color: #2e2e2e;
 }
 
 body[data-theme="dark"] .learned-progress-text {
-  color: var(--color-primary);
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .learned-result-title {
@@ -2557,72 +2321,6 @@ body[data-theme="dark"] .style-scope-hint {
 body[data-theme="dark"] .modal-title {
   color: #f0f0f0;
 }
-
-body[data-theme="dark"] .my-style-prompt-meta {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .my-style-prompt-meta-dot {
-  color: #595959;
-}
-
-body[data-theme="dark"] .my-style-prompt-scope {
-  background: rgba(255, 36, 66, 0.12);
-  border-color: rgba(255, 36, 66, 0.25);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .my-style-prompt-text {
-  background: #141414;
-  color: #d9d9d9;
-  border: 1px solid #303030;
-}
-
-body[data-theme="dark"] .my-style-prompt-actions {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .my-style-prompt-use-btn {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .my-style-prompt-use-btn:hover {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-body[data-theme="dark"] .my-style-prompt-edit-btn,
-body[data-theme="dark"] .my-style-prompt-publish-btn {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .my-style-prompt-edit-btn:hover,
-body[data-theme="dark"] .my-style-prompt-publish-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .my-style-prompt-publish-btn:disabled {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: #434343;
-  color: #595959;
-}
-
-body[data-theme="dark"] .my-style-prompt-close-btn {
-  background: #2a2a2a;
-  border-color: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .my-style-prompt-close-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
 </style>
 
 <style>
@@ -2642,6 +2340,13 @@ body[data-theme="dark"] .my-style-prompt-close-btn:hover {
   flex-direction: column;
 }
 
+.learned-import-modal .ant-modal-body > .learned-subtabs {
+  flex: 0 0 auto;
+  min-height: 44px;
+  flex-direction: row;
+  align-items: center;
+}
+
 body[data-theme="dark"] .learned-import-modal .ant-modal-content,
 body[data-theme="dark"] .learned-import-modal .ant-modal-header {
   background: #1f1f1f !important;
@@ -2653,26 +2358,6 @@ body[data-theme="dark"] .learned-import-modal .ant-modal-close-x {
 }
 
 body[data-theme="dark"] .learned-import-modal .ant-modal-close:hover {
-  background: #2a2a2a !important;
-  color: #f0f0f0 !important;
-}
-
-/* 我的提示词详情弹框外壳（teleport 到 body，需全局覆盖） */
-body[data-theme="dark"] .my-style-prompt-modal .ant-modal-content,
-body[data-theme="dark"] .my-style-prompt-modal .ant-modal-header {
-  background: #1f1f1f !important;
-  border-color: #303030 !important;
-}
-
-body[data-theme="dark"] .my-style-prompt-modal .ant-modal-title {
-  color: #f0f0f0 !important;
-}
-
-body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close-x {
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .my-style-prompt-modal .ant-modal-close:hover {
   background: #2a2a2a !important;
   color: #f0f0f0 !important;
 }
@@ -2723,7 +2408,7 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   background: var(--color-primary-hover);
 }
 
-/* 学习写作提示词弹框样式优化：与全局弹框/Tab保持一致 */
+/* 学习写作提示词弹框：粘贴正文 / 上传文件 横向 tab */
 
 .learned-subtabs {
   display: flex;
@@ -2734,7 +2419,8 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   border-radius: 8px;
   height: 44px;
   width: fit-content;
-  margin: 0 auto 20px;
+  margin: 0 0 16px;
+  flex-shrink: 0;
 }
 
 .learned-subtab {
@@ -2763,7 +2449,39 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
 .learned-pane {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+}
+
+.learned-pane .learned-textarea {
+  flex: 1;
+  min-height: 0;
+}
+
+.learned-pane .learned-upload-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 0;
+}
+
+body[data-theme="dark"] .learned-subtabs {
+  background: #1a1a1a;
+}
+
+body[data-theme="dark"] .learned-subtab {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .learned-subtab:hover {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-subtab.active {
+  background: #2a2a2a;
+  color: #f0f0f0;
 }
 
 .learned-textarea {
@@ -2790,6 +2508,30 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   background: #fff;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.08), inset 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.learned-textarea-wrapper {
+  position: relative;
+}
+
+.learned-textarea--with-fullscreen {
+  padding-right: 40px;
+}
+
+.learned-textarea-fullscreen-btn {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  cursor: pointer;
+  color: #8c8c8c;
+  font-size: 16px;
+  line-height: 1;
+  transition: color 0.2s;
+  z-index: 1;
+}
+
+.learned-textarea-fullscreen-btn:hover {
+  color: var(--color-primary);
 }
 
 .learned-input {
@@ -2882,6 +2624,13 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   background: var(--color-primary-bg);
 }
 
+.learned-submit-btn:disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+  cursor: not-allowed;
+}
+
 .learned-cancel-btn {
   padding: 8px 20px;
   background: #fff;
@@ -2900,32 +2649,58 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
 }
 
 .learned-progress {
+  flex: 1;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 320px;
-  padding: 40px;
-  background: linear-gradient(135deg, #fff8f9 0%, #ffffff 100%);
+  min-height: 0;
+}
+
+.learned-progress-bubble {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
   border-radius: 16px;
-  border: 1px solid #ffe8ec;
-  text-align: center;
-}
-
-.learned-progress :deep(.ant-spin) {
-  font-size: 36px;
-}
-
-.learned-progress :deep(.ant-spin-dot-item) {
-  background-color: var(--color-primary);
+  padding: 14px 18px;
 }
 
 .learned-progress-text {
-  margin-top: 16px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--color-primary);
-  letter-spacing: 0.5px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.learned-progress-char {
+  display: inline-block;
+  animation: learned-char-wave 1.4s infinite ease-in-out;
+}
+
+.learned-progress-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+
+.learned-progress-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  animation: learned-dot-bounce 1.2s infinite ease-in-out;
+}
+
+.learned-progress-dots span:nth-child(2) { animation-delay: 0.15s; }
+.learned-progress-dots span:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes learned-char-wave {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+@keyframes learned-dot-bounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-3px); opacity: 1; }
 }
 
 .learned-result-title {
@@ -2987,26 +2762,23 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   display: flex;
   gap: 12px;
   justify-content: flex-end;
+  position: sticky;
+  bottom: 0;
   margin-top: auto;
-  padding-top: 16px;
+  padding: 16px 0;
+  background: #fff;
   border-top: 1px solid #f0f0f0;
 }
 
-body[data-theme="dark"] .learned-subtabs {
-  background: #1a1a1a;
+.learned-import-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
-body[data-theme="dark"] .learned-subtab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .learned-subtab.active {
-  background: #2a2a2a;
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .learned-subtab:hover {
-  color: #f0f0f0;
+.learned-result-actions .learned-cancel-btn:disabled,
+.learned-result-actions .learned-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 body[data-theme="dark"] .learned-textarea,
@@ -3026,6 +2798,14 @@ body[data-theme="dark"] .learned-input:focus {
   background: #2a2a2a;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .learned-textarea-fullscreen-btn {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .learned-textarea-fullscreen-btn:hover {
+  color: var(--color-primary);
 }
 
 body[data-theme="dark"] .learned-counter {
@@ -3080,13 +2860,13 @@ body[data-theme="dark"] .learned-cancel-btn:hover {
   background: rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .learned-progress {
-  background: linear-gradient(135deg, #2a1f22 0%, #1f1f1f 100%);
-  border-color: #3a2a2d;
+body[data-theme="dark"] .learned-progress-bubble {
+  background: #1f1f1f;
+  border-color: #2e2e2e;
 }
 
 body[data-theme="dark"] .learned-progress-text {
-  color: var(--color-primary);
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .learned-result-title {
@@ -3112,6 +2892,7 @@ body[data-theme="dark"] .learned-excerpt {
 }
 
 body[data-theme="dark"] .learned-result-actions {
+  background: #1f1f1f;
   border-color: #303030;
 }
 </style>

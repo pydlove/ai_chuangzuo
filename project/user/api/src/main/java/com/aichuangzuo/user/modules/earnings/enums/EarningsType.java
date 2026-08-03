@@ -14,6 +14,7 @@ public enum EarningsType {
     MILESTONE("MILESTONE", "里程碑奖励"),
     LEADERBOARD_REWARD("LEADERBOARD_REWARD", "排行榜奖励"),
     INVITE_REWARD("INVITE_REWARD", "邀请奖励"),
+    COMMISSION_REWARD("COMMISSION_REWARD", "约稿奖励"),
     OTHER("OTHER", "其他");
 
     private final String code;

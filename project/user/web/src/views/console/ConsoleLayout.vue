@@ -810,7 +810,7 @@
                     <span class="mbs-val">{{ b.display }}</span>
                   </li>
                 </ul>
-                <div class="mbs-foot" @click="router.push('/pricing')">查看会员套餐 ›</div>
+                <div class="mbs-foot" @click="openPricing()">查看会员套餐 ›</div>
               </div>
             </template>
             <span class="console-membership-badge has-membership">
@@ -841,9 +841,9 @@
                     <div class="membership-expiry" v-if="hasMembership">有效期至 {{ membershipExpiry }}</div>
                   </div>
                   <div class="membership-right">
-                    <button v-if="!hasMembership" class="membership-btn" @click="router.push('/pricing')">开通</button>
-                    <button v-else-if="isNearExpiry" class="membership-btn" @click="router.push('/pricing')">续费</button>
-                    <span v-else class="membership-link" @click="router.push('/pricing')">查看套餐 ›</span>
+                    <button v-if="!hasMembership" class="membership-btn" @click="openPricing()">开通</button>
+                    <button v-else-if="isNearExpiry" class="membership-btn" @click="openPricing()">续费</button>
+                    <span v-else class="membership-link" @click="openPricing()">查看套餐 ›</span>
                   </div>
                 </div>
 
@@ -1423,7 +1423,7 @@ const newcomerModalGoToPricing = () => {
   if (newcomerModalDontShow.value) {
     localStorage.setItem(NEWCOMER_MODAL_DISMISSED_KEY, '1')
   }
-  router.push('/pricing?newcomer=1')
+  openPricing('newcomer=1')
 }
 
 const dismissNewcomerBanner = () => {
@@ -1432,7 +1432,7 @@ const dismissNewcomerBanner = () => {
 }
 
 const goToNewcomerOffer = () => {
-  router.push('/pricing?newcomer=1')
+  openPricing('newcomer=1')
 }
 
 const navItems = [
@@ -1983,7 +1983,12 @@ const loadMembership = () => {
 }
 
 const handleMembershipClick = () => {
-  router.push('/pricing')
+  openPricing()
+}
+
+const openPricing = (query = '') => {
+  const url = query ? `/pricing?${query}` : '/pricing'
+  window.open(url, '_blank')
 }
 
 // ---------- header 会员徽章 hover 权益卡 ----------
@@ -2618,7 +2623,13 @@ const switchTab = (type) => {
 const loadNotifications = async () => {
   try {
     const res = await getMessages()
-    notifications.value = res.data || []
+    notifications.value = (res.data || []).map((n) => {
+      // 兼容旧数据：后端早期使用 msgType='skill'，前端按 'style' 渲染
+      if (n.type === 'skill') {
+        n.type = 'style'
+      }
+      return n
+    })
   } catch (err) {
     notifications.value = []
   }
@@ -2665,7 +2676,7 @@ const handleNotifClick = async (n) => {
 const goRenewal = async () => {
   renewalVisible.value = false
   await nextTick()
-  router.push('/pricing')
+  openPricing()
 }
 
 onMounted(async () => {

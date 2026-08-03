@@ -7,9 +7,11 @@ import com.aichuangzuo.user.modules.skill.service.impl.SkillAnalyzeServiceImpl;
 import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -83,6 +85,14 @@ class SkillAnalyzeServiceImplTest {
     }
 
     @Test
+    void analyze_shouldExtractJsonFromSurroundingText() {
+        SkillAnalyzeVO vo = serviceWith("好的，以下是分析结果：\n" + VALID_JSON + "\n希望对你有帮助。").analyze(USER_ID, ARTICLE);
+
+        assertEquals(VALID_PROMPT, vo.getPrompt());
+        assertEquals("清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。", vo.getExcerpt1());
+    }
+
+    @Test
     void analyze_shouldThrowOnInvalidJson() {
         assertThrows(BusinessException.class, () -> serviceWith("这不是 JSON").analyze(USER_ID, ARTICLE));
     }
@@ -98,11 +108,30 @@ class SkillAnalyzeServiceImplTest {
 
     @Test
     void analyze_shouldThrowWhenPromptTooLong() {
-        String longPrompt = VALID_PROMPT + "长".repeat(1000);
+        String longPrompt = VALID_PROMPT + "长".repeat(1200);
         String json = """
                 {"excerpt1":"","excerpt2":"","prompt":"%s"}
                 """.formatted(longPrompt.replace("\n", "\\n"));
         assertThrows(BusinessException.class, () -> serviceWith(json).analyze(USER_ID, ARTICLE));
+    }
+
+    @Test
+    void analyze_shouldFixUnescapedQuotesInsidePrompt() {
+        // 模拟模型在 prompt 字段内输出未转义的英文双引号，导致 JSON 非法
+        String promptWithRawQuotes = VALID_PROMPT.replace(
+                "【语气】温和怀旧，与读者平等对话",
+                "【语气】以\"你\"为主，保持\"我懂你，你也该懂\"的平视距离"
+        );
+        String excerpt1 = "清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。";
+        String json = """
+                {"excerpt1":"%s","excerpt2":"同样是编造的","prompt":"%s"}
+                """.formatted(excerpt1, promptWithRawQuotes.replace("\n", "\\n"));
+
+        SkillAnalyzeVO vo = serviceWith(json).analyze(USER_ID, ARTICLE);
+
+        assertTrue(vo.getPrompt().contains("\"你\""), "应保留 prompt 中的示例引号");
+        assertTrue(vo.getPrompt().contains("\"我懂你，你也该懂\""));
+        assertEquals(excerpt1, vo.getExcerpt1());
     }
 
     @Test
@@ -138,108 +167,85 @@ class SkillAnalyzeServiceImplTest {
         assertEquals(VALID_PROMPT, vo.getPrompt());
     }
 
-    /** 额度不足（basic=0 / pro/flagship 用满）应当阻断：抛 BusinessException 而不再调 AI。 */
+    /** 正文超过 1000 字时，后端应自动截断为前 1000 字再传给 AI。 */
     @Test
-    void analyze_shouldThrowWhenQuotaExhausted() {
+    void analyze_shouldTruncateTextTo1000Chars() {
+        String head = "a".repeat(800);
+        String tail = "b".repeat(500);
+        String longText = head + tail;
+
+        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
+        BenefitService bs = mockBenefitServiceAllowed();
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        svc.analyze(USER_ID, longText);
+
+        ArgumentCaptor<String> userMsgCaptor = ArgumentCaptor.forClass(String.class);
+        verify(aiService).call(anyString(), userMsgCaptor.capture());
+        String userMsg = userMsgCaptor.getValue();
+        assertTrue(userMsg.contains(head), "应包含前 800 个 a");
+        assertTrue(userMsg.contains("a".repeat(200)), "应包含第 801-1000 个 a");
+        assertFalse(userMsg.contains("b".repeat(201)), "tail 应只保留前 200 个 b，不超过 200");
+    }
+
+    /** analyze 不再直接消费额度，额度操作通过 preConsume/confirm/cancel 控制。 */
+    @Test
+    void analyze_shouldNotConsumeOrRefundQuota() {
+        BenefitService bs = mock(BenefitService.class);
+        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
+        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
+
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        svc.analyze(USER_ID, ARTICLE);
+
+        verify(bs, never()).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+        verify(bs, never()).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+        verify(bs, never()).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+    }
+
+    /** 预扣额度不足时应当阻断。 */
+    @Test
+    void preConsume_shouldThrowWhenQuotaExhausted() {
         BenefitService bs = mock(BenefitService.class);
         doThrow(new BusinessException(com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode.QUOTA_EXHAUSTED))
-                .when(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+                .when(bs).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
 
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        // 若 AI 被错误调用就 fail
-        when(aiService.call(anyString(), anyString())).thenThrow(new AssertionError("AI 不应在额度不足时被调用"));
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
+        assertThrows(BusinessException.class, () -> svc.preConsume(USER_ID));
     }
 
-    /** 额度校验放行后必须实际触发消费（含写入 u_benefit_usage）。 */
+    /** 预扣成功时应调用 benefitService.preConsume 并返回结果。 */
     @Test
-    void analyze_shouldConsumeQuotaBeforeCallingAi() {
+    void preConsume_shouldCallBenefitServicePreConsume() {
         BenefitService bs = mock(BenefitService.class);
         BenefitCheckVO vo = new BenefitCheckVO();
         vo.setAllowed(true);
-        when(bs.consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"))).thenReturn(vo);
+        vo.setRemaining(1);
+        when(bs.preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"))).thenReturn(vo);
 
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
+        BenefitCheckVO result = svc.preConsume(USER_ID);
 
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        svc.analyze(USER_ID, ARTICLE);
-
-        org.mockito.Mockito.verify(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+        assertTrue(result.getAllowed());
+        assertEquals(1, result.getRemaining());
+        verify(bs).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
     }
 
-    /** AI 调用失败时应当退回额度，避免学习失败也扣次数。 */
+    /** 确认保存时应将预扣转为正式用量。 */
     @Test
-    void analyze_shouldRefundQuotaWhenAiFails() {
-        BenefitService bs = mockBenefitServiceForRefundTest();
-
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenThrow(new BusinessException(
-                com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode.QUOTA_EXHAUSTED));
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
-
-        verify(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** AI 返回无法解析的响应时应当退回额度。 */
-    @Test
-    void analyze_shouldRefundQuotaWhenJsonInvalid() {
-        BenefitService bs = mockBenefitServiceForRefundTest();
-
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenReturn("这不是 JSON");
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
-
-        verify(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** AI 返回的 prompt 校验不通过时应当退回额度。 */
-    @Test
-    void analyze_shouldRefundQuotaWhenPromptInvalid() {
-        BenefitService bs = mockBenefitServiceForRefundTest();
-
-        String badPrompt = "你是一位中文写手。【语气】温和【词汇】书面【句式】短句为主，没有结构标记";
-        String json = """
-                {"excerpt1":"","excerpt2":"","prompt":"%s"}
-                """.formatted(badPrompt);
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenReturn(json);
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        assertThrows(BusinessException.class, () -> svc.analyze(USER_ID, ARTICLE));
-
-        verify(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** 成功时不应退回额度。 */
-    @Test
-    void analyze_shouldNotRefundQuotaOnSuccess() {
-        BenefitService bs = mockBenefitServiceForRefundTest();
-
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        svc.analyze(USER_ID, ARTICLE);
-
-        verify(bs).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs, never()).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    private BenefitService mockBenefitServiceForRefundTest() {
+    void confirmConsume_shouldCallBenefitServiceConfirmPreConsume() {
         BenefitService bs = mock(BenefitService.class);
-        BenefitCheckVO vo = new BenefitCheckVO();
-        vo.setAllowed(true);
-        when(bs.consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"))).thenReturn(vo);
-        return bs;
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
+        svc.confirmConsume(USER_ID);
+        verify(bs).confirmPreConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
+    }
+
+    /** 取消或关闭弹框时应释放预扣额度。 */
+    @Test
+    void cancelConsume_shouldCallBenefitServiceCancelPreConsume() {
+        BenefitService bs = mock(BenefitService.class);
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
+        svc.cancelConsume(USER_ID);
+        verify(bs).cancelPreConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
     }
 }

@@ -55,4 +55,48 @@ public interface BenefitUsageMapper extends BaseMapper<BenefitUsage> {
     int decrementIfAboveZero(@Param("userId") Long userId,
                              @Param("benefitCode") String benefitCode,
                              @Param("period") String period);
+
+    /**
+     * 原子地将预扣用量 +1，仅在 used_count + pre_used_count 未超限时生效。
+     *
+     * @param userId 用户ID
+     * @param benefitCode 权益编码
+     * @param period 周期标识
+     * @param limit 额度上限
+     * @return 受影响行数；0 表示记录不存在或已达上限
+     */
+    @Update("UPDATE u_benefit_usage SET pre_used_count = pre_used_count + 1 " +
+            "WHERE user_id = #{userId} AND benefit_code = #{benefitCode} AND period = #{period} AND (used_count + pre_used_count) < #{limit}")
+    int incrementPreIfBelowLimit(@Param("userId") Long userId,
+                                 @Param("benefitCode") String benefitCode,
+                                 @Param("period") String period,
+                                 @Param("limit") int limit);
+
+    /**
+     * 原子地将预扣用量 -1（下限 0），用于取消预扣释放额度。
+     *
+     * @param userId 用户ID
+     * @param benefitCode 权益编码
+     * @param period 周期标识
+     * @return 受影响行数
+     */
+    @Update("UPDATE u_benefit_usage SET pre_used_count = pre_used_count - 1 " +
+            "WHERE user_id = #{userId} AND benefit_code = #{benefitCode} AND period = #{period} AND pre_used_count > 0")
+    int decrementPreIfAboveZero(@Param("userId") Long userId,
+                                @Param("benefitCode") String benefitCode,
+                                @Param("period") String period);
+
+    /**
+     * 将 1 次预扣转为正式用量：pre_used_count -1，used_count +1。
+     *
+     * @param userId 用户ID
+     * @param benefitCode 权益编码
+     * @param period 周期标识
+     * @return 受影响行数
+     */
+    @Update("UPDATE u_benefit_usage SET pre_used_count = pre_used_count - 1, used_count = used_count + 1 " +
+            "WHERE user_id = #{userId} AND benefit_code = #{benefitCode} AND period = #{period} AND pre_used_count > 0")
+    int confirmPreConsume(@Param("userId") Long userId,
+                          @Param("benefitCode") String benefitCode,
+                          @Param("period") String period);
 }

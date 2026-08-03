@@ -12,6 +12,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/auth/service/EmailCodeServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/benefit/service/BenefitServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/benefit/service/PlanCatalogServiceImplTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/exporttemplate/service/impl/ExportTemplateServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/feedback/service/FeedbackServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/generation/controller/GenerationTaskInternalControllerNotifyTest.java

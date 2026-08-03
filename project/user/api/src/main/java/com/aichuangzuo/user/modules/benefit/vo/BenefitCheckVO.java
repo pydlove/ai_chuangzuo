@@ -25,6 +25,9 @@ public class BenefitCheckVO {
     /** 已用量（仅 quota 类型有值）。 */
     private Integer used;
 
+    /** 预扣量（仅 quota 类型有值）。 */
+    private Integer preUsed;
+
     /** 剩余额度（仅 quota 类型有值）。 */
     private Integer remaining;
 

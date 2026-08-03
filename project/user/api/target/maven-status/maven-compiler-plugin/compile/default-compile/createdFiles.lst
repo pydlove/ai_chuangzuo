@@ -92,6 +92,7 @@ com/aichuangzuo/user/modules/commission/vo/CommissionTaskDetailVO.class
 com/aichuangzuo/user/infrastructure/cache/CacheValue.class
 com/aichuangzuo/user/modules/membership/entity/Order.class
 com/aichuangzuo/user/modules/benefit/mapper/BenefitMapper.class
+com/aichuangzuo/user/modules/earnings/controller/EarningsInternalController.class
 com/aichuangzuo/user/modules/skill/market/dto/MarketSkillRow.class
 com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketMapper.class
 com/aichuangzuo/user/modules/user/converter/UserConverter.class
@@ -158,6 +159,7 @@ com/aichuangzuo/user/modules/skill/service/SystemSkillService.class
 com/aichuangzuo/user/modules/hotsearch/mapper/HotSearchPlatformMapper.class
 com/aichuangzuo/user/modules/user/vo/InviteFriendVO.class
 com/aichuangzuo/user/modules/benefit/service/PlanCatalogService.class
+com/aichuangzuo/user/modules/skill/market/service/SkillMarketCommandService.class
 com/aichuangzuo/user/modules/topic/mapper/TopicTitleMapper.class
 com/aichuangzuo/user/modules/leaderboard/mapper/UserCoinRecordMapper.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/IncomeSubmissionServiceImpl.class
@@ -254,6 +256,8 @@ com/aichuangzuo/user/modules/commission/vo/CommissionTaskVO.class
 com/aichuangzuo/user/modules/leaderboard/vo/IncomeSubmissionVO.class
 com/aichuangzuo/user/modules/benefit/service/impl/PlanCatalogServiceImpl.class
 com/aichuangzuo/user/modules/leaderboard/vo/CoinLeaderboardVO.class
+com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketCommandServiceImpl.class
+com/aichuangzuo/user/modules/earnings/dto/request/RecordEarningsRequest.class
 com/aichuangzuo/user/UserApiApplication.class
 com/aichuangzuo/user/modules/skill/entity/UserSkill.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceImpl.class
