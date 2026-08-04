@@ -3,7 +3,7 @@ import {
   getMarketSkills,
   getMarketSkillOverview,
   getMarketSkillsPage,
-  getFavoriteIds,
+  getFavoriteSkills,
   getMarketSkillPricePerUse,
   getMyMarketSubmissions,
   addFavorite,
@@ -78,7 +78,8 @@ export const marketOverview = ref({
   topCreators: []
 })
 export const earningsRecords = ref(loadEarningsRecords())
-export const favoriteIds = ref([])
+export const favoriteSkills = ref([])
+export const favoriteIds = computed(() => favoriteSkills.value.map(s => s.id))
 export const mySubmissions = ref([])
 
 export async function loadMarketSkills() {
@@ -98,12 +99,12 @@ export async function loadMySubmissions() {
   }
 }
 
-export async function loadFavoriteIds() {
+export async function loadFavoriteSkills() {
   try {
-    favoriteIds.value = await getFavoriteIds()
+    favoriteSkills.value = await getFavoriteSkills()
   } catch (e) {
-    console.warn('[loadFavoriteIds]', e?.message || '加载失败')
-    favoriteIds.value = []
+    console.warn('[loadFavoriteSkills]', e?.message || '加载失败')
+    favoriteSkills.value = []
   }
 }
 
@@ -124,20 +125,17 @@ export async function loadMarketSkillPage({ page = 1, pageSize = 15, keyword = '
   }
 }
 
-export const favoriteSkills = computed(() =>
-  marketSkills.value.filter(s => s.status === 'approved' && favoriteIds.value.includes(s.id))
-)
-
 export async function toggleFavorite(marketId) {
   const currentlyFavorite = favoriteIds.value.includes(marketId)
   try {
     if (currentlyFavorite) {
       await removeFavorite(marketId)
-      favoriteIds.value = favoriteIds.value.filter((id) => id !== marketId)
+      favoriteSkills.value = favoriteSkills.value.filter((s) => s.id !== marketId)
     } else {
       await addFavorite(marketId)
-      if (!favoriteIds.value.includes(marketId)) {
-        favoriteIds.value = [...favoriteIds.value, marketId]
+      const skill = marketSkills.value.find((s) => s.id === marketId)
+      if (skill && !favoriteSkills.value.some((s) => s.id === marketId)) {
+        favoriteSkills.value = [...favoriteSkills.value, skill]
       }
     }
   } catch (e) {

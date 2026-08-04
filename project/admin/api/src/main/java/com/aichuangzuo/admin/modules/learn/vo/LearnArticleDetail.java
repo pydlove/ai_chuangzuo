@@ -18,6 +18,7 @@ public class LearnArticleDetail {
     private String content;
     private ArticleStatus status;
     private Integer sort;
+    private Integer isRecommended;
     private Long authorId;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;

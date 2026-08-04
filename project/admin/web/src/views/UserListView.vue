@@ -220,6 +220,7 @@
       v-model:open="detailVisible"
       title="用户详情"
       width="100%"
+      :style="{ maxWidth: '1280px' }"
       class="user-detail-modal"
       :footer="null"
       @cancel="closeDetailModal"
@@ -254,8 +255,9 @@
           </a-descriptions>
         </a-tab-pane>
 
-        <a-tab-pane key="skills" tab="我的提示词">
+        <a-tab-pane key="skills" tab="提示词">
           <a-spin :spinning="skillsLoading">
+            <div class="skill-section-title">我的提示词</div>
             <div class="skill-tab-toolbar">
               <a-space>
                 <span>释放额度数量：</span>
@@ -296,10 +298,79 @@
               </template>
             </a-table>
           </a-spin>
-        </a-tab-pane>
 
-        <a-tab-pane key="learned" tab="学习的提示词">
+          <a-spin :spinning="publishedLoading">
+            <div class="skill-section-title">发布的提示词</div>
+            <a-table
+              :columns="publishedSkillColumns"
+              :data-source="publishedSkills"
+              :pagination="false"
+              size="small"
+              row-key="bizNo"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'auditStatus'">
+                  <a-tag :color="publishStatusColor(record.auditStatus)">
+                    {{ publishStatusLabel(record.auditStatus) }}
+                  </a-tag>
+                </template>
+                <template v-else-if="column.key === 'prompt'">
+                  <span :title="record.prompt">{{ record.prompt || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'promptSummary'">
+                  <span :title="record.promptSummary">{{ record.promptSummary || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'scope'">
+                  {{ record.scope || '—' }}
+                </template>
+                <template v-else-if="column.key === 'price'">
+                  {{ record.price != null ? record.price.toFixed(2) : '—' }}
+                </template>
+                <template v-else-if="column.key === 'createdAt'">
+                  {{ formatDateTime(record.createdAt) }}
+                </template>
+              </template>
+            </a-table>
+          </a-spin>
+
+          <a-spin :spinning="favoriteLoading">
+            <div class="skill-section-title">收藏的提示词</div>
+            <a-table
+              :columns="favoriteSkillColumns"
+              :data-source="favoriteSkills"
+              :pagination="false"
+              size="small"
+              row-key="bizNo"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'prompt'">
+                  <span :title="record.prompt">{{ record.prompt || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'promptSummary'">
+                  <span :title="record.promptSummary">{{ record.promptSummary || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'scope'">
+                  {{ record.scope || '—' }}
+                </template>
+                <template v-else-if="column.key === 'price'">
+                  {{ record.price != null ? record.price.toFixed(2) : '—' }}
+                </template>
+                <template v-else-if="column.key === 'publisher'">
+                  <span v-if="record.publisherEmail">
+                    {{ record.publisherNickname || record.publisherEmail }}
+                    <span style="color: #8c8c8c; font-size: 12px">({{ record.publisherEmail }})</span>
+                  </span>
+                  <span v-else style="color: #8c8c8c">—</span>
+                </template>
+                <template v-else-if="column.key === 'favoriteAt'">
+                  {{ formatDateTime(record.favoriteAt) }}
+                </template>
+              </template>
+            </a-table>
+          </a-spin>
+
           <a-spin :spinning="learnedLoading">
+            <div class="skill-section-title">学习的提示词</div>
             <a-table
               :columns="learnedColumns"
               :data-source="learnedMonths"
@@ -329,6 +400,66 @@
                 </template>
               </template>
             </a-table>
+          </a-spin>
+        </a-tab-pane>
+        <a-tab-pane key="works" tab="作品">
+          <a-spin :spinning="articlesLoading">
+            <div class="article-tab-toolbar">
+              <a-input
+                v-model:value="articleKeyword"
+                placeholder="标题或描述"
+                allow-clear
+                style="width: 240px"
+                @press-enter="handleArticleSearch"
+              />
+              <a-button type="primary" @click="handleArticleSearch">查询</a-button>
+              <a-button @click="resetArticleSearch">重置</a-button>
+            </div>
+            <a-table
+              :columns="articleColumns"
+              :data-source="articles"
+              :pagination="false"
+              size="small"
+              row-key="bizNo"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'title'">
+                  <a-button type="link" size="small" @click="openArticleDetail(record)">
+                    {{ record.title || '—' }}
+                  </a-button>
+                </template>
+                <template v-else-if="column.key === 'description'">
+                  <span :title="record.description">{{ record.description || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'platform'">
+                  {{ record.platform || '—' }}
+                </template>
+                <template v-else-if="column.key === 'skill'">
+                  {{ record.skill || '—' }}
+                </template>
+                <template v-else-if="column.key === 'wordCount'">
+                  {{ record.wordCount || '—' }}
+                </template>
+                <template v-else-if="column.key === 'completedAt'">
+                  {{ formatDateTime(record.completedAt) || '—' }}
+                </template>
+                <template v-else-if="column.key === 'createdAt'">
+                  {{ formatDateTime(record.createdAt) }}
+                </template>
+              </template>
+            </a-table>
+            <div class="article-tab-pagination">
+              <a-pagination
+                :current="articlePage"
+                :page-size="articlePageSize"
+                :total="articleTotal"
+                :page-size-options="['10', '20', '50']"
+                show-size-changer
+                show-total
+                @change="handleArticlePageChange"
+                @show-size-change="handleArticlePageChange"
+              />
+            </div>
           </a-spin>
         </a-tab-pane>
       </a-tabs>
@@ -458,6 +589,33 @@
         </div>
       </div>
     </a-modal>
+    <!-- 作品详情弹框 -->
+    <a-modal
+      v-model:open="articleDetailVisible"
+      title="作品详情"
+      width="960"
+      :footer="null"
+      @cancel="closeArticleDetailModal"
+    >
+      <a-spin :spinning="articleDetailLoading">
+        <div v-if="articleDetail" class="article-detail-content">
+          <a-descriptions :column="2" bordered size="small">
+            <a-descriptions-item label="业务编号" :span="2">{{ articleDetail.bizNo }}</a-descriptions-item>
+            <a-descriptions-item label="标题" :span="2">{{ articleDetail.title || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="平台">{{ articleDetail.platform || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="风格">{{ articleDetail.skill || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="模板">{{ articleDetail.template || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="字数">{{ articleDetail.wordCount || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="完成时间">{{ formatDateTime(articleDetail.completedAt) || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="创建时间">{{ formatDateTime(articleDetail.createdAt) }}</a-descriptions-item>
+          </a-descriptions>
+          <div class="article-detail-body">
+            <div class="article-detail-body-title">正文</div>
+            <div class="article-detail-body-text">{{ articleDetail.body || '—' }}</div>
+          </div>
+        </div>
+      </a-spin>
+    </a-modal>
   </div>
 </template>
 
@@ -466,7 +624,8 @@ import { onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
-import { getUser, getUserInvites, updateUser, listUserSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
+import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
+import { listUserArticles, getArticleDetail } from '@/api/article.js'
 
 const {
   users,
@@ -518,9 +677,23 @@ const userSkills = ref([])
 const skillsLoading = ref(false)
 const releaseCount = ref(1)
 const releaseLoading = ref(false)
+const publishedSkills = ref([])
+const publishedLoading = ref(false)
+const favoriteSkills = ref([])
+const favoriteLoading = ref(false)
 const learnedMonths = ref([])
 const learnedLoading = ref(false)
 const resettingPeriod = ref(null)
+
+const articles = ref([])
+const articlesLoading = ref(false)
+const articleKeyword = ref('')
+const articlePage = ref(1)
+const articlePageSize = ref(10)
+const articleTotal = ref(0)
+const articleDetail = ref(null)
+const articleDetailVisible = ref(false)
+const articleDetailLoading = ref(false)
 
 const currentPeriod = (() => {
   const d = new Date()
@@ -537,12 +710,44 @@ const skillColumns = [
   { title: '创建时间', key: 'createdAt', width: 170 }
 ]
 
+const publishedSkillColumns = [
+  { title: '业务编号', dataIndex: 'bizNo', key: 'bizNo', width: 150 },
+  { title: '提示词名称', dataIndex: 'skillName', key: 'skillName', width: 150 },
+  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', ellipsis: true, width: 260 },
+  { title: '适用范围', key: 'scope', width: 120 },
+  { title: '价格', key: 'price', width: 90 },
+  { title: '累计使用', dataIndex: 'totalUses', key: 'totalUses', width: 90 },
+  { title: '发布状态', key: 'auditStatus', width: 100 },
+  { title: '创建时间', key: 'createdAt', width: 170 }
+]
+
 const learnedColumns = [
   { title: '月份', key: 'period', width: 120 },
   { title: '已用次数', dataIndex: 'usedCount', key: 'usedCount', width: 100 },
   { title: '预扣次数', dataIndex: 'preUsedCount', key: 'preUsedCount', width: 100 },
   { title: '产生提示词数', key: 'skillCount', width: 120 },
   { title: '操作', key: 'action', width: 140 }
+]
+
+const favoriteSkillColumns = [
+  { title: '业务编号', dataIndex: 'bizNo', key: 'bizNo', width: 150 },
+  { title: '提示词名称', dataIndex: 'skillName', key: 'skillName', width: 150 },
+  { title: '提示词摘要', dataIndex: 'promptSummary', key: 'promptSummary', ellipsis: true, width: 240 },
+  { title: '提示词内容', dataIndex: 'prompt', key: 'prompt', ellipsis: true, width: 260 },
+  { title: '适用范围', key: 'scope', width: 120 },
+  { title: '价格', key: 'price', width: 90 },
+  { title: '发布者', key: 'publisher', width: 180 },
+  { title: '收藏时间', key: 'favoriteAt', width: 170 }
+]
+
+const articleColumns = [
+  { title: '标题', key: 'title', ellipsis: true, width: 200 },
+  { title: '描述', key: 'description', ellipsis: true, width: 240 },
+  { title: '平台', key: 'platform', width: 100 },
+  { title: '风格', key: 'skill', width: 120 },
+  { title: '字数', key: 'wordCount', width: 80 },
+  { title: '完成时间', key: 'completedAt', width: 170 },
+  { title: '创建时间', key: 'createdAt', width: 170 }
 ]
 
 const inviteModalVisible = ref(false)
@@ -746,7 +951,15 @@ const openDetailDrawer = async (user) => {
   detailTabKey.value = 'basic'
   releaseCount.value = 1
   userSkills.value = []
+  publishedSkills.value = []
+  favoriteSkills.value = []
   learnedMonths.value = []
+  articles.value = []
+  articleKeyword.value = ''
+  articlePage.value = 1
+  articlePageSize.value = 10
+  articleTotal.value = 0
+  articleDetail.value = null
   try {
     detailUser.value = await getUser(user.id)
   } catch (error) {
@@ -754,7 +967,10 @@ const openDetailDrawer = async (user) => {
   }
   detailVisible.value = true
   loadUserSkillsTab()
+  loadUserPublishedSkillsTab()
+  loadUserFavoriteSkillsTab()
   loadLearnedSkillsTab()
+  loadUserArticles()
 }
 
 const closeDetailModal = () => {
@@ -776,6 +992,32 @@ const loadUserSkillsTab = async () => {
   }
 }
 
+const loadUserPublishedSkillsTab = async () => {
+  if (!detailUser.value?.id) return
+  publishedLoading.value = true
+  try {
+    publishedSkills.value = await listUserPublishedSkills(detailUser.value.id)
+  } catch (error) {
+    message.error(error.message || '加载发布的提示词失败')
+    publishedSkills.value = []
+  } finally {
+    publishedLoading.value = false
+  }
+}
+
+const loadUserFavoriteSkillsTab = async () => {
+  if (!detailUser.value?.id) return
+  favoriteLoading.value = true
+  try {
+    favoriteSkills.value = await listUserFavoriteSkills(detailUser.value.id)
+  } catch (error) {
+    message.error(error.message || '加载收藏的提示词失败')
+    favoriteSkills.value = []
+  } finally {
+    favoriteLoading.value = false
+  }
+}
+
 const loadLearnedSkillsTab = async () => {
   if (!detailUser.value?.id) return
   learnedLoading.value = true
@@ -787,6 +1029,62 @@ const loadLearnedSkillsTab = async () => {
   } finally {
     learnedLoading.value = false
   }
+}
+
+const loadUserArticles = async () => {
+  if (!detailUser.value?.id) return
+  articlesLoading.value = true
+  try {
+    const res = await listUserArticles({
+      userId: detailUser.value.id,
+      keyword: articleKeyword.value,
+      page: articlePage.value,
+      pageSize: articlePageSize.value
+    })
+    articles.value = res.list || []
+    articleTotal.value = res.total || 0
+  } catch (error) {
+    message.error(error.message || '加载作品列表失败')
+    articles.value = []
+    articleTotal.value = 0
+  } finally {
+    articlesLoading.value = false
+  }
+}
+
+const handleArticleSearch = () => {
+  articlePage.value = 1
+  loadUserArticles()
+}
+
+const resetArticleSearch = () => {
+  articleKeyword.value = ''
+  articlePage.value = 1
+  loadUserArticles()
+}
+
+const handleArticlePageChange = (p, size) => {
+  articlePage.value = p
+  if (size) articlePageSize.value = size
+  loadUserArticles()
+}
+
+const openArticleDetail = async (record) => {
+  articleDetailVisible.value = true
+  articleDetailLoading.value = true
+  try {
+    articleDetail.value = await getArticleDetail(record.bizNo)
+  } catch (error) {
+    message.error(error.message || '加载作品详情失败')
+    articleDetail.value = null
+  } finally {
+    articleDetailLoading.value = false
+  }
+}
+
+const closeArticleDetailModal = () => {
+  articleDetailVisible.value = false
+  articleDetail.value = null
 }
 
 const handleReleaseCustomQuota = () => {
@@ -844,6 +1142,16 @@ const auditStatusLabel = (status) => {
 
 const auditStatusColor = (status) => {
   const map = { 0: 'default', 1: 'green', 2: 'red' }
+  return map[status] || 'default'
+}
+
+const publishStatusLabel = (status) => {
+  const map = { 0: '审核中', 1: '发布成功' }
+  return map[status] || '未知'
+}
+
+const publishStatusColor = (status) => {
+  const map = { 0: 'orange', 1: 'green' }
   return map[status] || 'default'
 }
 
@@ -996,9 +1304,15 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
-:deep(.user-detail-modal) .ant-modal-content {
-  max-width: 1280px;
-  margin: 0 auto;
+.skill-section-title {
+  margin: 24px 0 12px 0;
+  font-weight: 600;
+  font-size: 15px;
+  color: #1a1a1a;
+}
+
+.skill-section-title:first-child {
+  margin-top: 0;
 }
 
 .import-result p {
@@ -1028,5 +1342,39 @@ onMounted(() => {
   color: #cf1322;
   font-size: 13px;
   line-height: 1.6;
+}
+.article-tab-toolbar {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+  align-items: center;
+}
+
+.article-tab-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.article-detail-content .article-detail-body {
+  margin-top: 16px;
+}
+
+.article-detail-body-title {
+  font-weight: 600;
+  font-size: 15px;
+  margin-bottom: 8px;
+  color: #1a1a1a;
+}
+
+.article-detail-body-text {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  color: #262626;
+  background: #f6ffed;
+  padding: 16px;
+  border-radius: 8px;
+  max-height: 420px;
+  overflow-y: auto;
 }
 </style>

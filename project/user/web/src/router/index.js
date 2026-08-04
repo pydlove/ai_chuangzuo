@@ -70,6 +70,11 @@ const routes = [
         component: () => import('@/views/console/SkillMarketIndex.vue')
       },
       {
+        path: 'skill-market/rank',
+        name: 'ConsoleSkillMarketRank',
+        component: () => import('@/views/console/SkillMarketRankIndex.vue')
+      },
+      {
         path: 'earnings',
         name: 'ConsoleEarnings',
         component: () => import('@/views/console/EarningsIndex.vue')
@@ -95,6 +100,21 @@ const routes = [
         component: () => import('@/views/console/HotSearchIndex.vue')
       },
       {
+        path: 'learn',
+        name: 'ConsoleLearn',
+        component: () => import('@/views/console/ConsoleLearnIndex.vue')
+      },
+      {
+        path: 'learn/article/:id',
+        name: 'ConsoleLearnArticle',
+        component: () => import('@/views/console/ConsoleLearnIndex.vue')
+      },
+      {
+        path: 'messages',
+        name: 'ConsoleMessages',
+        component: () => import('@/views/console/MessagesIndex.vue')
+      },
+      {
         path: 'leaderboard',
         name: 'ConsoleLeaderboard',
         component: () => import('@/views/console/LeaderboardIndex.vue')
@@ -105,6 +125,11 @@ const routes = [
         component: () => import('@/views/console/MineIndex.vue')
       },
       {
+        path: 'benefits',
+        name: 'ConsoleBenefits',
+        component: () => import('@/views/console/BenefitsIndex.vue')
+      },
+      {
         path: 'invite',
         name: 'ConsoleInvite',
         component: () => import('@/views/console/InviteIndex.vue')
@@ -113,6 +138,11 @@ const routes = [
         path: 'invite-rules',
         name: 'ConsoleInviteRules',
         component: () => import('@/views/console/InviteRulesIndex.vue')
+      },
+      {
+        path: 'activities',
+        name: 'ConsoleActivities',
+        component: () => import('@/views/console/ActivitiesIndex.vue')
       },
       {
         path: 'commission',

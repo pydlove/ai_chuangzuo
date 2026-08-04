@@ -31,6 +31,7 @@ function normalizeRow(s) {
 }
 
 function normalizeOverview(data) {
+  if (!data) return null
   return {
     approvedCount: data.approvedCount || 0,
     totalUses: data.totalUses || 0,
@@ -72,13 +73,13 @@ export function getMarketSkillOverview() {
 }
 
 /**
- * 获取当前用户收藏的市场 skill id 列表。
- * @returns {Promise<Array<string>>}
+ * 获取当前用户收藏的市场 skill 详情列表（含已下架）。
+ * @returns {Promise<Array>}
  */
-export function getFavoriteIds() {
+export function getFavoriteSkills() {
   return api.get('/market-skills/favorites').then((res) => {
     const data = res.data || res || []
-    return Array.isArray(data) ? data : []
+    return Array.isArray(data) ? data.map(normalizeRow) : []
   })
 }
 

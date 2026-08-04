@@ -29,7 +29,7 @@ export function listSkills(params = {}) {
   if (reviewed !== undefined && reviewed !== null) {
     query.reviewed = reviewed
   }
-  return request.get('/api/v1/admin/skill-reviews', { params: query }).then((body) => {
+  return request.get('/skill-reviews', { params: query }).then((body) => {
     const data = body.data || {}
     const rows = data.records || data.list || []
     return {
@@ -40,15 +40,15 @@ export function listSkills(params = {}) {
 }
 
 export function rejectSkill(id, reason) {
-  return request.post(`/api/v1/admin/skill-reviews/${id}/actions/reject`, { reason })
+  return request.post(`/skill-reviews/${id}/actions/reject`, { reason })
 }
 
 export function approveSkill(id) {
-  return request.post(`/api/v1/admin/skill-reviews/${id}/actions/approve`)
+  return request.post(`/skill-reviews/${id}/actions/approve`)
 }
 
 export function approveBatch(ids) {
-  return request.post('/api/v1/admin/skill-reviews/actions/batch-approve', { bizNos: ids }).then((body) => {
+  return request.post('/skill-reviews/actions/batch-approve', { bizNos: ids }).then((body) => {
     return body.data || 0
   })
 }

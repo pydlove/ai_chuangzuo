@@ -85,21 +85,24 @@
         </div>
       </section>
 
-      <section v-if="recommendedCategories.length" class="ml-section">
+      <section v-if="recommendedArticles.length" class="ml-section">
         <div class="ml-section__header">
-          <h2 class="ml-section__title">推荐课程</h2>
-          <span class="ml-section__subtitle">精选核心主题，快速找到你感兴趣的方向</span>
+          <h2 class="ml-section__title">推荐文章</h2>
+          <span class="ml-section__subtitle">精选必读内容</span>
         </div>
-        <div class="ml-category-grid">
+        <div class="ml-article-list">
           <div
-            v-for="cat in recommendedCategories"
-            :key="cat.id"
-            class="ml-category-card"
-            @click="onSelectCategory(cat.id)"
+            v-for="article in recommendedArticles"
+            :key="article.id"
+            class="ml-article-card"
+            @click="loadArticle(article.id)"
           >
-            <div class="ml-category-card__icon">{{ cat.name.charAt(0) }}</div>
-            <div class="ml-category-card__name">{{ cat.name }}</div>
-            <div v-if="cat.children?.length" class="ml-category-card__count">{{ cat.children.length }} 个子分类</div>
+            <img v-if="article.coverImageUrl" :src="article.coverImageUrl" class="ml-article-card__cover" alt="" />
+            <div class="ml-article-card__body">
+              <div class="ml-article-card__title">{{ article.title }}</div>
+              <p v-if="article.summary" class="ml-article-card__summary">{{ plainExcerpt(article) }}</p>
+              <div class="ml-article-card__meta">{{ article.categoryName || '' }}</div>
+            </div>
           </div>
         </div>
       </section>
@@ -269,7 +272,7 @@ const {
   currentCategoryName,
   currentCategoryPath,
   isEmptyState,
-  recommendedCategories,
+  recommendedArticles,
   onSelectCategory,
   loadArticle,
   goHome
@@ -331,8 +334,7 @@ watch(banners, (newBanners) => {
 }, { flush: 'post' })
 
 onMounted(() => {
-  // 默认展开推荐课程
-  recommendedCategories.value.forEach(c => expandedIds.value.add(c.id))
+  if (banners.value.length > 1) startBannerCarousel()
 })
 
 onUnmounted(() => {

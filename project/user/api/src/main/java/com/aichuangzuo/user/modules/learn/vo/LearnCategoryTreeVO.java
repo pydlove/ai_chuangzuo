@@ -11,6 +11,5 @@ public class LearnCategoryTreeVO {
     private Long parentId;
     private String name;
     private Integer sort;
-    private Integer isRecommended;
     private List<LearnCategoryTreeVO> children = new ArrayList<>();
 }

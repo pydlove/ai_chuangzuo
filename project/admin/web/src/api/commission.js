@@ -1,6 +1,6 @@
 import request from '@/utils/request.js'
 
-const BASE = '/api/v1/admin/commission/tasks'
+const BASE = '/commission/tasks'
 
 export function fetchCommissionTasks(params = {}) {
   return request.get(BASE, { params }).then((res) => res.data)

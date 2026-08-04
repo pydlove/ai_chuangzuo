@@ -1,3 +1,9 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/aichuangzuo?useUnicode=true&characterEncoding=UTF-8&serverTimezone=Asia/Shanghai
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:root}
+
 logging:
   level:
     com.aichuangzuo: INFO

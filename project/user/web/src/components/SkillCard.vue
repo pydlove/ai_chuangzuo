@@ -313,8 +313,8 @@ const visibleActions = computed(() => props.actions.filter(a => a.visible !== fa
 
 :deep(.skill-card__mine-compact) {
   font-size: 11px;
-  color: #07c160;
-  background: rgba(7, 193, 96, 0.08);
+  color: var(--color-primary);
+  background: var(--color-primary-bg, rgba(255, 36, 66, 0.08));
   padding: 1px 6px;
   border-radius: 4px;
   font-weight: 600;
@@ -568,8 +568,8 @@ body[data-theme="dark"] :deep(.skill-card__tag-more) {
 }
 
 body[data-theme="dark"] :deep(.skill-card__mine-compact) {
-  background: rgba(7, 193, 96, 0.12);
-  color: #07c160;
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] :deep(.skill-card__extra-row),

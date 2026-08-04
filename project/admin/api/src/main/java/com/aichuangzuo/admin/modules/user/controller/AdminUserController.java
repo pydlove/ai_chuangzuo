@@ -8,10 +8,12 @@ import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.ResetCustomSkillQuotaRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
 import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
@@ -145,6 +147,14 @@ public class AdminUserController {
         return Result.success(adminUserService.listUserSkills(id, sourceType));
     }
 
+    @Operation(summary = "查询用户已发布/审核中的提示词列表")
+    @GetMapping("/{id}/published-skills")
+    public Result<List<AdminUserPublishedSkillVO>> listUserPublishedSkills(
+            @PathVariable(name = "id") Long id) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.listUserPublishedSkills(id));
+    }
+
     @Operation(summary = "查询用户学习提示词按月统计")
     @GetMapping("/{id}/learned-skills")
     public Result<List<AdminLearnedSkillMonthVO>> listUserLearnedSkillsByMonth(
@@ -171,6 +181,14 @@ public class AdminUserController {
         checkSuperAdmin();
         adminUserService.releaseCustomSkillQuota(id, request);
         return Result.success();
+    }
+
+    @Operation(summary = "查询用户收藏的提示词列表")
+    @GetMapping("/{id}/favorite-skills")
+    public Result<List<AdminUserFavoriteSkillVO>> listUserFavoriteSkills(
+            @PathVariable(name = "id") Long id) {
+        checkSuperAdmin();
+        return Result.success(adminUserService.listUserFavoriteSkills(id));
     }
 
     private void checkSuperAdmin() {

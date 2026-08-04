@@ -49,12 +49,13 @@
       </div>
 
       <!-- 周期切换 -->
-      <div class="mp-cycle">
+      <div class="mp-cycle" :class="{ locked: cycleLocked() }">
         <button
           v-for="cycle in cycles"
           :key="cycle.key"
-          :class="['mp-cycle__btn', { active: activeCycle === cycle.key }]"
-          @click="activeCycle = cycle.key"
+          :class="['mp-cycle__btn', { active: activeCycle === cycle.key, disabled: cycleLocked() && activeCycle !== cycle.key }]"
+          :disabled="cycleLocked() && activeCycle !== cycle.key"
+          @click="setCycle(cycle.key)"
         >
           {{ cycle.label }}
           <span v-if="cycle.key === 'year'" class="mp-cycle__badge">最高省 ¥359</span>
@@ -98,9 +99,10 @@
           <div class="mp-card__articles">{{ getArticles(plan) }}</div>
           <div v-if="getSavings(plan)" class="mp-card__savings">年付立省 ¥{{ getSavings(plan) }}</div>
           <button
-            :class="['mp-card__btn', { primary: plan.recommended }]"
+            :class="['mp-card__btn', { primary: getPlanButton(plan).primary || plan.recommended, disabled: getPlanButton(plan).disabled }]"
+            :disabled="getPlanButton(plan).disabled"
             @click="handleSubscribe(plan)"
-          >立即订阅</button>
+          >{{ getPlanButton(plan).text }}</button>
           <ul class="mp-card__features">
             <li
               v-for="feature in plan.features"
@@ -155,10 +157,45 @@
       <div>浙ICP备XXXXXXXX号-1</div>
     </footer>
 
+    <!-- 升级确认弹框 -->
+    <a-modal
+      v-model:open="upgradeModalVisible"
+      :title="`确认升级 ${selectedPlan ? selectedPlan.name : ''}`"
+      :width="320"
+      centered
+      class="mp-upgrade-modal"
+      @ok="confirmUpgrade"
+      :confirm-loading="upgradeLoading"
+    >
+      <div v-if="upgradePreview" class="mp-upgrade-panel">
+        <div class="mp-upgrade-row">
+          <span class="mp-upgrade-label">当前套餐</span>
+          <span class="mp-upgrade-value">{{ upgradePreview.currentPlanName }}</span>
+        </div>
+        <div class="mp-upgrade-row">
+          <span class="mp-upgrade-label">剩余天数</span>
+          <span class="mp-upgrade-value">{{ upgradePreview.remainingDays }} 天</span>
+        </div>
+        <div class="mp-upgrade-row">
+          <span class="mp-upgrade-label">抵扣金额</span>
+          <span class="mp-upgrade-value credit">-¥{{ upgradePreview.creditAmount }}</span>
+        </div>
+        <div class="mp-upgrade-row">
+          <span class="mp-upgrade-label">新套餐价格</span>
+          <span class="mp-upgrade-value">¥{{ upgradePreview.originalPrice }}</span>
+        </div>
+        <div class="mp-upgrade-row total">
+          <span class="mp-upgrade-label">实付金额</span>
+          <span class="mp-upgrade-value final">¥{{ upgradePreview.finalPrice }}</span>
+        </div>
+        <p class="mp-upgrade-tip">升级后立即生效，有效期 {{ upgradePreview.targetDays }} 天至 {{ upgradePreview.newExpiresAt }}。</p>
+      </div>
+    </a-modal>
+
     <!-- 支付弹框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="`确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
+      :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
       :width="320"
       centered
       class="mp-subscribe-modal"
@@ -167,7 +204,7 @@
     >
       <div class="mp-pay-panel">
         <p class="mp-pay-tip">
-          测试阶段，请输入支付码 <strong>123456</strong> 完成订阅。
+          测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
         </p>
         <a-input
           v-model:value="payCode"
@@ -214,13 +251,20 @@ const {
   newcomerOffer,
   activeCycle,
   cycles,
+  cycleLocked,
+  setCycle,
+  upgradeModalVisible,
+  upgradePreview,
+  upgradeLoading,
   getPeriodLabel,
   getPrice,
   getArticles,
   getSavings,
   cellValue,
+  getPlanButton,
   handleSubscribe,
   handleNewcomerSubscribe,
+  confirmUpgrade,
   handlePay,
   scrollToCompare
 } = usePricing()
@@ -409,6 +453,12 @@ const {
   color: #fff;
   box-shadow: 0 2px 8px rgba(255, 36, 66, 0.25);
 }
+.mp-cycle__btn.disabled {
+  color: #bfbfbf;
+}
+.mp-cycle.locked .mp-cycle__btn.active {
+  cursor: default;
+}
 .mp-cycle__badge {
   font-size: 10px;
   font-weight: 500;
@@ -505,6 +555,53 @@ const {
   font-weight: 600;
 }
 
+/* 升级弹框 */
+.mp-upgrade-panel {
+  padding: 8px 0 16px;
+}
+.mp-upgrade-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px dashed #f0f0f0;
+  font-size: 14px;
+}
+.mp-upgrade-row:last-child {
+  border-bottom: none;
+}
+.mp-upgrade-row.total {
+  padding-top: 14px;
+  margin-top: 4px;
+  border-top: 2px solid #f0f0f0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.mp-upgrade-label {
+  color: #595959;
+}
+.mp-upgrade-value {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+.mp-upgrade-value.credit {
+  color: #ff2442;
+}
+.mp-upgrade-value.final {
+  color: #ff2442;
+  font-size: 18px;
+  font-weight: 700;
+}
+.mp-upgrade-tip {
+  margin-top: 14px;
+  padding: 10px;
+  background: #fff5f7;
+  border-radius: 8px;
+  color: #595959;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
 /* 加载 */
 .mp-loading {
   text-align: center;
@@ -594,6 +691,11 @@ const {
   color: #fff;
   border: none;
   box-shadow: 0 8px 24px rgba(255, 36, 66, 0.3);
+}
+.mp-card__btn.disabled {
+  background: #f5f5f5;
+  color: #8c8c8c;
+  border-color: #d9d9d9;
 }
 .mp-card__features {
   list-style: none;
@@ -778,6 +880,7 @@ body[data-theme="dark"] .mp-cycle {
 }
 body[data-theme="dark"] .mp-cycle__btn { color: #a6a6a6; }
 body[data-theme="dark"] .mp-cycle__btn.active { color: #fff; }
+body[data-theme="dark"] .mp-cycle__btn.disabled { color: #666; }
 body[data-theme="dark"] .mp-card,
 body[data-theme="dark"] .mp-compare {
   background: #1f1f1f;
@@ -792,6 +895,11 @@ body[data-theme="dark"] .mp-card__btn.primary {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
   color: #fff;
   border: none;
+}
+body[data-theme="dark"] .mp-card__btn.disabled {
+  background: #2a2a2a;
+  color: #666;
+  border-color: #434343;
 }
 body[data-theme="dark"] .mp-card__features li.disabled { color: #666; }
 body[data-theme="dark"] .mp-card__features li.disabled span { color: #666; }
@@ -827,6 +935,22 @@ body[data-theme="dark"] .mp-pay-tip strong {
 }
 body[data-theme="dark"] .mp-newcomer__btn {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+}
+body[data-theme="dark"] .mp-upgrade-row {
+  border-bottom-color: #303030;
+}
+body[data-theme="dark"] .mp-upgrade-row.total {
+  border-top-color: #303030;
+}
+body[data-theme="dark"] .mp-upgrade-label {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .mp-upgrade-value {
+  color: #e0e0e0;
+}
+body[data-theme="dark"] .mp-upgrade-tip {
+  background: rgba(255, 36, 66, 0.12);
+  color: #a6a6a6;
 }
 body[data-theme="dark"] .mp-footer {
   background: #1f1f1f;

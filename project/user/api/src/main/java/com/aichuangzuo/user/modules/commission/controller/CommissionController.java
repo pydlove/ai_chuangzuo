@@ -24,7 +24,7 @@ public class CommissionController {
     @Operation(summary = "约稿任务列表")
     @GetMapping("/tasks")
     public Result<IPage<CommissionTaskVO>> list(
-            @RequestParam(required = false) Integer status,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int pageSize) {
         return Result.success(commissionService.list(status, page, pageSize));

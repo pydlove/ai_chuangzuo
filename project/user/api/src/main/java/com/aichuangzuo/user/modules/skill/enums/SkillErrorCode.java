@@ -19,7 +19,9 @@ public enum SkillErrorCode implements ErrorCode {
     SKILL_ANALYZE_FAILED(112006, "风格分析失败，请重试"),
     SKILL_QUOTA_EXCEEDED(112007, "当前套餐我的风格数量已达上限，升级套餐可保存更多风格"),
     SKILL_MARKET_NOT_OWNER(112008, "无权操作该提示词"),
-    SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED(112009, "本月提示词发布次数已达上限，升级套餐可发布更多提示词");
+    SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED(112009, "本月提示词发布次数已达上限，升级套餐可发布更多提示词"),
+    SKILL_ANALYZE_DAILY_LIMIT_EXCEEDED(112010, "今日的分析额度已经用完，明天再来吧"),
+    SKILL_LEARN_QUOTA_EXCEEDED(112011, "本月学习额度已用完，升级套餐可获得更多额度");
 
     private final int code;
     private final String message;

@@ -18,9 +18,9 @@ NGINX_SSL_KEY="/root/ssl/www.mmshuo.tech.key"          # SSL 私钥路径
 
 # 业务端口
 USER_FRONTEND_PORT=22345
-USER_BACKEND_PORT=22346
+USER_BACKEND_PORT=25050
 ADMIN_FRONTEND_PORT=22347
-ADMIN_BACKEND_PORT=22348
+ADMIN_BACKEND_PORT=26060
 # ===================================================
 
 # 项目根目录（脚本位于 scripts/remote/ 下）

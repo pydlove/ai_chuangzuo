@@ -10,12 +10,13 @@
         <p class="pricing-subtitle">告别熬夜憋稿，轻松开启内容变现之旅</p>
 
         <!-- 周期切换 -->
-        <div class="billing-toggle">
+        <div class="billing-toggle" :class="{ locked: cycleLocked() }">
           <button
             v-for="cycle in cycles"
             :key="cycle.key"
-            :class="['toggle-btn', { active: activeCycle === cycle.key }]"
-            @click="activeCycle = cycle.key"
+            :class="['toggle-btn', { active: activeCycle === cycle.key, disabled: cycleLocked() && activeCycle !== cycle.key }]"
+            :disabled="cycleLocked() && activeCycle !== cycle.key"
+            @click="setCycle(cycle.key)"
           >
             {{ cycle.label }}
             <span v-if="cycle.key === 'year'" class="toggle-badge">最高立省 ¥359</span>
@@ -67,10 +68,11 @@
             <div v-if="getSavings(plan)" class="plan-savings">年付立省 ¥{{ getSavings(plan) }}</div>
             <button
               class="plan-btn"
-              :class="{ primary: plan.recommended }"
+              :class="{ primary: getPlanButton(plan).primary || plan.recommended, disabled: getPlanButton(plan).disabled }"
+              :disabled="getPlanButton(plan).disabled"
               @click="handleSubscribe(plan)"
             >
-              立即订阅
+              {{ getPlanButton(plan).text }}
             </button>
             <ul class="plan-features">
               <li v-for="feature in plan.features" :key="feature.code + '-' + feature.text" :class="{ disabled: !feature.included }">
@@ -116,10 +118,43 @@
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
       <span>浙ICP备XXXXXXXX号-1</span>
     </footer>
+    <!-- 升级确认弹框 -->
+    <a-modal
+      v-model:open="upgradeModalVisible"
+      :title="`确认升级 ${selectedPlan ? selectedPlan.name : ''}`"
+      :width="420"
+      centered
+      class="upgrade-modal"
+      @ok="confirmUpgrade"
+      :confirm-loading="upgradeLoading"
+    >
+      <div v-if="upgradePreview" class="upgrade-panel">
+        <div class="upgrade-row">
+          <span class="upgrade-label">当前套餐</span>
+          <span class="upgrade-value">{{ upgradePreview.currentPlanName }}（剩余 {{ upgradePreview.remainingDays }} 天，到期 {{ upgradePreview.currentExpiresAt }}）</span>
+        </div>
+        <div class="upgrade-row">
+          <span class="upgrade-label">抵扣金额</span>
+          <span class="upgrade-value credit">-¥{{ upgradePreview.creditAmount }}</span>
+        </div>
+        <div class="upgrade-row">
+          <span class="upgrade-label">{{ upgradePreview.targetPlanName }} {{ cycleLabel[upgradePreview.targetCycle] }}价</span>
+          <span class="upgrade-value">¥{{ upgradePreview.originalPrice }}</span>
+        </div>
+        <div class="upgrade-row total">
+          <span class="upgrade-label">实付金额</span>
+          <span class="upgrade-value final">¥{{ upgradePreview.finalPrice }}</span>
+        </div>
+        <p class="upgrade-tip">
+          升级后新套餐立即生效，有效期 {{ upgradePreview.targetDays }} 天至 {{ upgradePreview.newExpiresAt }}；当前订阅剩余价值已折算为抵扣金额。
+        </p>
+      </div>
+    </a-modal>
+
     <!-- 订阅支付弹框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="`确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
+      :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
       :width="420"
       centered
       class="subscribe-modal"
@@ -128,7 +163,7 @@
     >
       <div class="subscribe-pay-panel">
         <p class="subscribe-pay-tip">
-          测试阶段，请输入支付码 <strong>123456</strong> 完成订阅。
+          测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
         </p>
         <a-input
           v-model:value="payCode"
@@ -170,13 +205,21 @@ const {
   newcomerOffer,
   activeCycle,
   cycles,
+  cycleLocked,
+  setCycle,
+  upgradeModalVisible,
+  upgradePreview,
+  upgradeLoading,
+  cycleLabel,
   getPeriodLabel,
   getPrice,
   getArticles,
   getSavings,
   getCell,
+  getPlanButton,
   handleSubscribe,
   handleNewcomerSubscribe,
+  confirmUpgrade,
   handlePay,
   scrollToCompare
 } = usePricing()
@@ -242,6 +285,15 @@ const {
   background: #fff;
   color: #FF2442;
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.toggle-btn.disabled {
+  color: #bfbfbf;
+  cursor: not-allowed;
+}
+
+.billing-toggle.locked .toggle-btn.active {
+  cursor: default;
 }
 
 .toggle-badge {
@@ -355,6 +407,53 @@ const {
 }
 .newcomer-offer-btn:hover {
   background: #e61e3a;
+}
+
+/* 升级弹框 */
+.upgrade-panel {
+  padding: 8px 0 16px;
+}
+.upgrade-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px dashed #f0f0f0;
+  font-size: 14px;
+}
+.upgrade-row:last-child {
+  border-bottom: none;
+}
+.upgrade-row.total {
+  padding-top: 16px;
+  margin-top: 4px;
+  border-top: 2px solid #f0f0f0;
+  font-size: 16px;
+  font-weight: 600;
+}
+.upgrade-label {
+  color: #595959;
+}
+.upgrade-value {
+  color: #1a1a1a;
+  font-weight: 500;
+}
+.upgrade-value.credit {
+  color: #ff2442;
+}
+.upgrade-value.final {
+  color: #ff2442;
+  font-size: 20px;
+  font-weight: 700;
+}
+.upgrade-tip {
+  margin-top: 16px;
+  padding: 12px;
+  background: #fff5f7;
+  border-radius: 8px;
+  color: #595959;
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 /* 定价卡片 */
@@ -498,6 +597,17 @@ const {
 
 .plan-btn.primary:hover {
   background: #E61E3A;
+}
+
+.plan-btn.disabled {
+  background: #f5f5f5;
+  color: #8c8c8c;
+  border-color: #d9d9d9;
+  cursor: not-allowed;
+}
+
+.plan-btn.disabled:hover {
+  background: #f5f5f5;
 }
 
 /* 权益对比表 */
@@ -711,6 +821,23 @@ body[data-theme="dark"] .newcomer-offer-btn:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
+body[data-theme="dark"] .upgrade-row {
+  border-bottom-color: #303030;
+}
+body[data-theme="dark"] .upgrade-row.total {
+  border-top-color: #303030;
+}
+body[data-theme="dark"] .upgrade-label {
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .upgrade-value {
+  color: #e0e0e0;
+}
+body[data-theme="dark"] .upgrade-tip {
+  background: rgba(255, 36, 66, 0.12);
+  color: #a6a6a6;
+}
+
 body[data-theme="dark"] .pricing-page {
   background: #141414;
 }
@@ -734,6 +861,10 @@ body[data-theme="dark"] .toggle-btn {
 body[data-theme="dark"] .toggle-btn.active {
   background: #1f1f1f;
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .toggle-btn.disabled {
+  color: #666;
 }
 
 body[data-theme="dark"] .compare-link span {
@@ -795,6 +926,16 @@ body[data-theme="dark"] .plan-btn.primary {
 body[data-theme="dark"] .plan-btn.primary:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
   color: #fff;
+}
+
+body[data-theme="dark"] .plan-btn.disabled {
+  background: #2a2a2a;
+  color: #666;
+  border-color: #434343;
+}
+
+body[data-theme="dark"] .plan-btn.disabled:hover {
+  background: #2a2a2a;
 }
 
 body[data-theme="dark"] .compare-section {

@@ -59,9 +59,9 @@ cp scripts/remote/.env.example scripts/remote/.env
 该 `nginx.conf` 中已经包含爱创作的配置：
 
 - 用户端前端: `listen 22345`
-- 用户端后端 upstream: `127.0.0.1:22346`
+- 用户端后端 upstream: `127.0.0.1:25050`
 - 管理端前端: `listen 22347`
-- 管理端后端 upstream: `127.0.0.1:22348`
+- 管理端后端 upstream: `127.0.0.1:26060`
 
 如果你需要绑定域名或开启 HTTPS，直接修改 `nginx/nginx.conf` 中对应的 `server_name` 和 SSL 配置，然后重新部署即可。
 
@@ -76,8 +76,8 @@ cd scripts/remote
 
 - 用户端: http://服务器IP:22345
 - 管理端: http://服务器IP:22347
-- 用户端后端: http://服务器IP:22346
-- 管理端后端: http://服务器IP:22348
+- 用户端后端: http://服务器IP:25050
+- 管理端后端: http://服务器IP:26060
 
 ## 服务器端常用命令
 
@@ -99,6 +99,6 @@ cd scripts/remote
 
 ## 注意事项
 
-1. 首次部署前，请确保 MySQL 中已创建数据库，且 `application-prod.yml` 中的数据库连接信息正确。
+1. 首次部署前，请确保 MySQL 中已创建数据库，且 `application-dev.yml` / `application-prod.yml` 中的数据库连接信息正确。
 2. 如果使用 HTTPS，请配置 `NGINX_SSL_CERT` 和 `NGINX_SSL_KEY`，并修改生成的 nginx 配置添加 SSL。
-3. 管理端后端 `project/admin/api` 目前为空，脚本会自动检测并跳过；添加代码后自动部署。
+3. 用户端后端 `project/user/api` 和管理端后端 `project/admin/api` 均使用 Flyway 自动执行数据库迁移；生产配置中的敏感值使用 `ENC(...)` 加密，请确保服务器 `.env` 中的 `JASYPT_ENCRYPTOR_PASSWORD` 正确。

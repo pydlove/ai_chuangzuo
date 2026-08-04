@@ -5,10 +5,7 @@ import {
   updateSkill,
   deleteSkill,
   getSystemSkills,
-  analyzeSkill,
-  preConsumeAnalyzeQuota as preConsumeAnalyzeQuotaApi,
-  confirmAnalyzeConsume as confirmAnalyzeConsumeApi,
-  cancelAnalyzeConsume as cancelAnalyzeConsumeApi
+  analyzeSkill
 } from '@/api/skill'
 import { message } from 'ant-design-vue'
 
@@ -199,6 +196,7 @@ export async function loadLearnedSkills() {
     learnedSkills.value = list.map(s => ({
       bizNo: s.bizNo,
       name: s.skillName,
+      desc: s.description || '',
       prompt: s.prompt,
       excerpt1: s.excerpt1 || '',
       excerpt2: s.excerpt2 || '',
@@ -213,43 +211,7 @@ export async function loadLearnedSkills() {
   }
 }
 
-export function readFileAsText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = e => resolve(e.target.result)
-    reader.onerror = () => reject(new Error('文件读取失败'))
-    reader.readAsText(file)
-  })
-}
-
-export async function readDocxAsText(file) {
-  if (!window.mammoth) throw new Error('mammoth.js 未加载')
-  const buffer = await file.arrayBuffer()
-  const result = await window.mammoth.extractRawText({ arrayBuffer: buffer })
-  return result.value
-}
-
-// skills 学习额度预扣/确认/释放
-export async function preConsumeAnalyzeQuota() {
-  const res = await preConsumeAnalyzeQuotaApi()
-  const data = res.data || res || {}
-  return {
-    allowed: data.allowed === true,
-    used: data.used || 0,
-    preUsed: data.preUsed || 0,
-    remaining: data.remaining || 0
-  }
-}
-
-export async function confirmAnalyzeQuota() {
-  await confirmAnalyzeConsume()
-}
-
-export async function cancelAnalyzeQuota() {
-  await cancelAnalyzeConsume()
-}
-
-// skills 分析（后端 AI 分析，调用前需先 preConsumeAnalyzeQuota 预扣额度）
+// skills 分析（后端 AI 分析）
 export async function analyzeArticleSkill(text, meta) {
   isLearning.value = true
   try {
@@ -260,6 +222,7 @@ export async function analyzeArticleSkill(text, meta) {
       excerpt1: data.excerpt1 || '',
       excerpt2: data.excerpt2 || '',
       prompt: data.prompt || '',
+      desc: data.description || '',
       scope: '',     // 适用范围，由用户在结果页手填
       createdAt: new Date().toISOString()
     }
@@ -282,6 +245,7 @@ export async function addLearnedSkill(style) {
       skillName: style.name.trim(),
       prompt: style.prompt.trim(),
       scope: (style.scope || '').trim(),
+      description: (style.desc || '').trim() || null,
       excerpt1: (style.excerpt1 || '').trim(),
       excerpt2: (style.excerpt2 || '').trim(),
       sourceType: 2
@@ -300,6 +264,7 @@ export async function updateLearnedSkill(bizNo, style) {
       skillName: style.name.trim(),
       prompt: style.prompt.trim(),
       scope: (style.scope || '').trim(),
+      description: (style.desc || '').trim() || null,
       excerpt1: (style.excerpt1 || '').trim(),
       excerpt2: (style.excerpt2 || '').trim()
     })

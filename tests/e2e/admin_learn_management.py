@@ -4,7 +4,7 @@
 前置条件：
 - MySQL 启动且 Flyway 已迁移（含 V2.0.0_023__create_learn_tables）
 - admin-api 启动（默认 8080），user-api 启动（默认 8081）
-- admin-web dev 启动（默认 http://localhost:22346）
+- admin-web dev 启动（默认 http://localhost:22347）
 - user-web dev 启动（默认 http://localhost:5173/learn；见 learn_browsing.py）
 - 已存在管理员账号（环境变量 ADMIN_USER / ADMIN_PASS，默认 admin / admin123）
 
@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 from playwright.sync_api import sync_playwright, expect
 
-ADMIN_URL = os.environ.get("ADMIN_URL", "http://localhost:22346")
+ADMIN_URL = os.environ.get("ADMIN_URL", "http://localhost:22347")
 USER_URL = os.environ.get("USER_URL", "http://localhost:22345")
 ADMIN_USER = os.environ.get("ADMIN_USER", "admin")
 ADMIN_PASS = os.environ.get("ADMIN_PASS", "admin123")

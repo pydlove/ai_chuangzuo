@@ -1,6 +1,6 @@
 import request from '@/utils/request.js'
 
-const BASE = '/api/v1/admin/plans'
+const BASE = '/plans'
 
 /** 拉取所有套餐元数据（含停用）。 */
 export function fetchPlans() {

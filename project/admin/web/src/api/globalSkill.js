@@ -6,7 +6,7 @@ export function listGlobalSkills(params = {}) {
   if (enableStatus !== undefined && enableStatus !== null && enableStatus !== '') {
     query.enableStatus = enableStatus
   }
-  return request.get('/api/v1/admin/global-skills', { params: query }).then((body) => {
+  return request.get('/global-skills', { params: query }).then((body) => {
     const data = body.data || {}
     const rows = data.records || data.list || []
     return {
@@ -17,13 +17,13 @@ export function listGlobalSkills(params = {}) {
 }
 
 export function createGlobalSkill(data) {
-  return request.post('/api/v1/admin/global-skills', data).then((body) => body.data)
+  return request.post('/global-skills', data).then((body) => body.data)
 }
 
 export function updateGlobalSkill(bizNo, data) {
-  return request.put(`/api/v1/admin/global-skills/${bizNo}`, data)
+  return request.put(`/global-skills/${bizNo}`, data)
 }
 
 export function deleteGlobalSkill(bizNo) {
-  return request.delete(`/api/v1/admin/global-skills/${bizNo}`)
+  return request.delete(`/global-skills/${bizNo}`)
 }

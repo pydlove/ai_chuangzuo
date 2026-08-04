@@ -3,9 +3,11 @@ package com.aichuangzuo.user.modules.membership.controller;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
+import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
+import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -40,5 +42,14 @@ public class MembershipController {
     public Result<MembershipStatusVO> getMyMembership() {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(membershipService.getMyMembership(userId));
+    }
+
+    /**
+     * 升级套餐价格预览。
+     */
+    @PostMapping("/upgrade-preview")
+    public Result<UpgradePreviewVO> previewUpgrade(@Valid @RequestBody UpgradePreviewRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(membershipService.previewUpgrade(userId, request));
     }
 }

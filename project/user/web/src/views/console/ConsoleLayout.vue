@@ -1266,8 +1266,12 @@ import {
   DollarOutlined,
   TrophyOutlined,
   UserOutlined,
+  CrownOutlined,
   FileTextOutlined,
-  CaretRightOutlined
+  CaretRightOutlined,
+  GiftOutlined,
+  MessageOutlined,
+  BookOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1287,18 +1291,24 @@ const { benefits, loadBenefits } = useBenefits()
 const isMobile = useIsMobile()
 
 // 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
-const tabbarPaths = ['/console/create', '/console/works', '/console/leaderboard', '/console/mine']
+const tabbarPaths = ['/console/create', '/console/activities', '/console/messages', '/console/mine']
 const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
 
 // 手机端子页面顶部返回标题
 const pageTitleMap = {
   '/console/create': '创作',
+  '/console/activities': '活动',
   '/console/works': '我的作品',
   '/console/skills': '我的提示词',
   '/console/skill-market': '提示词市场',
+  '/console/skill-market/rank': '收益潜力榜',
   '/console/earnings': '我的账户',
+  '/console/benefits': '我的权益',
   '/console/hot-search': '热搜榜',
+  '/console/learn': '创作学院',
+  '/console/learn/article/:id': '文章详情',
   '/console/leaderboard': '收益排行榜',
+  '/console/messages': '消息中心',
   '/console/mine': '我的',
   '/console/edit': '编辑文章',
   '/console/preview': '预览文章',
@@ -1439,15 +1449,16 @@ const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
-  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
+  { path: '/console/learn', label: '创作学院', icon: BookOutlined },
   {
     label: '我的',
     icon: UserOutlined,
     children: [
       { path: '/console/works', label: '我的作品', icon: FolderOutlined },
       { path: '/console/skills', label: '我的提示词', icon: SmileOutlined },
-      { path: '/console/earnings', label: '我的账户', icon: DollarOutlined }
+      { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
+      { path: '/console/benefits', label: '我的权益', icon: CrownOutlined }
     ]
   }
 ]
@@ -1456,8 +1467,8 @@ const navItems = [
 // 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
 const tabbarItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
-  { path: '/console/works', label: '作品', icon: FolderOutlined },
-  { path: '/console/leaderboard', label: '排行榜', icon: TrophyOutlined },
+  { path: '/console/activities', label: '活动', icon: GiftOutlined },
+  { path: '/console/messages', label: '消息', icon: MessageOutlined },
   { path: '/console/mine', label: '我的', icon: UserOutlined }
 ]
 
@@ -2777,11 +2788,11 @@ provide('consoleActions', {
   padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 8px;
 }
 
 .console-sidebar-group {
-  margin-bottom: 4px;
+  margin-bottom: 8px;
 }
 
 .console-sidebar-group-title {

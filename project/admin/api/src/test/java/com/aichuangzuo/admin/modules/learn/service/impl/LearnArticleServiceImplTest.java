@@ -104,6 +104,36 @@ class LearnArticleServiceImplTest {
         verify(articleMapper, never()).insert(any(LearnArticleEntity.class));
     }
 
+    @Test
+    void create_defaultsIsRecommendedToZero() {
+        when(categoryMapper.selectById(1L)).thenReturn(new com.aichuangzuo.admin.modules.learn.entity.LearnCategoryEntity());
+
+        LearnArticleReq req = new LearnArticleReq();
+        req.setCategoryId(1L);
+        req.setTitle("t");
+        req.setContentType(ContentType.MARKDOWN);
+        req.setContent("x");
+        req.setStatus(ArticleStatus.DRAFT);
+
+        service.create(req);
+
+        ArgumentCaptor<LearnArticleEntity> cap = ArgumentCaptor.forClass(LearnArticleEntity.class);
+        verify(articleMapper).insert(cap.capture());
+        assertThat(cap.getValue().getIsRecommended()).isEqualTo(0);
+    }
+
+    @Test
+    void setRecommended_persistsValue() {
+        LearnArticleEntity e = article(10L, ArticleStatus.DRAFT, null);
+        when(articleMapper.selectById(10L)).thenReturn(e);
+
+        service.setRecommended(10L, 1);
+
+        ArgumentCaptor<LearnArticleEntity> cap = ArgumentCaptor.forClass(LearnArticleEntity.class);
+        verify(articleMapper).updateById(cap.capture());
+        assertThat(cap.getValue().getIsRecommended()).isEqualTo(1);
+    }
+
     private LearnArticleEntity article(Long id, ArticleStatus status, LocalDateTime pub) {
         LearnArticleEntity e = new LearnArticleEntity();
         e.setId(id);

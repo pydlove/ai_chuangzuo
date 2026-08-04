@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnRecommendedArticleVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -55,5 +56,11 @@ public class LearnController {
     @GetMapping("/banner")
     public Result<List<LearnBannerVO>> banners() {
         return Result.success(service.banners());
+    }
+
+    @Operation(summary = "推荐文章列表")
+    @GetMapping("/article/recommended")
+    public Result<List<LearnRecommendedArticleVO>> recommendedArticles() {
+        return Result.success(service.recommendedArticles());
     }
 }

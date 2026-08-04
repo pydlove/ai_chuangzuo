@@ -10,16 +10,18 @@ import java.util.Arrays;
 @Getter
 public enum MembershipPlan {
 
-    BASIC("basic", "基础版"),
-    PRO("pro", "专业版"),
-    FLAGSHIP("flagship", "旗舰版");
+    BASIC("basic", "基础版", 0),
+    PRO("pro", "专业版", 1),
+    FLAGSHIP("flagship", "旗舰版", 2);
 
     private final String key;
     private final String displayName;
+    private final int rank;
 
-    MembershipPlan(String key, String displayName) {
+    MembershipPlan(String key, String displayName, int rank) {
         this.key = key;
         this.displayName = displayName;
+        this.rank = rank;
     }
 
     /**

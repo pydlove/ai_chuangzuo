@@ -14,7 +14,7 @@ fi
 
 echo ""
 echo "端口监听情况:"
-ss -tlnp 2>/dev/null | grep -E ":22345|:22346|:22347|:22348" || netstat -tlnp 2>/dev/null | grep -E ":22345|:22346|:22347|:22348" || true
+ss -tlnp 2>/dev/null | grep -E ":22345|:22347|:25050|:26060" || netstat -tlnp 2>/dev/null | grep -E ":22345|:22347|:25050|:26060" || true
 
 echo ""
 echo "访问地址:"

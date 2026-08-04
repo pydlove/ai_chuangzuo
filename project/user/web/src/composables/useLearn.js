@@ -1,8 +1,8 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners } from '@/api/learn'
+import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners, fetchRecommendedArticles } from '@/api/learn'
 
-export function useLearn() {
+export function useLearn(basePath = '/learn') {
   const route = useRoute()
   const router = useRouter()
 
@@ -10,6 +10,7 @@ export function useLearn() {
   const currentArticle = ref(null)
   const currentCategory = ref(null)
   const banners = ref([])
+  const recommendedArticles = ref([])
 
   const activeCategoryId = computed(() => {
     if (route.params.id) return currentArticle.value?.categoryId ?? null
@@ -55,14 +56,19 @@ export function useLearn() {
 
   const topCategories = computed(() => categoryTree.value.slice(0, 4))
   const isEmptyState = computed(() => !route.params.id && !route.query.cat)
-  const recommendedCategories = computed(() =>
-    categoryTree.value.filter(c => c.isRecommended === 1)
-  )
 
-  const onSelectCategory = id => router.replace({ path: '/learn', query: { cat: id } })
-  const loadArticle = id => router.push(`/learn/article/${id}`)
-  const goHome = () => router.replace({ path: '/learn' })
+  const onSelectCategory = id => router.replace({ path: basePath, query: { cat: id } })
+  const loadArticle = id => router.push(`${basePath}/article/${id}`)
+  const goHome = () => router.replace({ path: basePath })
 
+  async function loadRecommendedArticles() {
+    try {
+      const res = await fetchRecommendedArticles()
+      recommendedArticles.value = res.data || []
+    } catch (e) {
+      recommendedArticles.value = []
+    }
+  }
   async function bootstrap() {
     try {
       const tree = await fetchCategoryTree()
@@ -99,6 +105,9 @@ export function useLearn() {
       } catch (e) {
         banners.value = []
       }
+      await loadRecommendedArticles()
+    } else {
+      recommendedArticles.value = []
     }
   }
 
@@ -120,7 +129,7 @@ export function useLearn() {
     currentCategoryPath,
     topCategories,
     isEmptyState,
-    recommendedCategories,
+    recommendedArticles,
     onSelectCategory,
     loadArticle,
     goHome

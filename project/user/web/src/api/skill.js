@@ -60,27 +60,3 @@ export function getSystemSkills(keyword = '') {
 export function analyzeSkill(text) {
   return api.post('/skills/analyze', { text }, { timeout: 90000 })
 }
-
-/**
- * 预扣学习提示词额度。
- * @returns {Promise<{code:number, data:{allowed:boolean, used:number, preUsed:number, remaining:number}}>}
- */
-export function preConsumeAnalyzeQuota() {
-  return api.post('/skills/analyze/pre-consume', {}, { timeout: 10000 })
-}
-
-/**
- * 确认扣减学习提示词额度（用户保存结果时调用）。
- * @returns {Promise<{code:number}>}
- */
-export function confirmAnalyzeConsume() {
-  return api.post('/skills/analyze/confirm', {}, { timeout: 10000 })
-}
-
-/**
- * 释放学习提示词预扣额度（用户取消或关闭弹框时调用）。
- * @returns {Promise<{code:number}>}
- */
-export function cancelAnalyzeConsume() {
-  return api.post('/skills/analyze/cancel', {}, { timeout: 10000 })
-}

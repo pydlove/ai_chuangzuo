@@ -38,6 +38,9 @@
             <a-checkbox v-model:checked="updatePublishedAt">编辑已发布文章时刷新发布时间</a-checkbox>
           </span>
         </a-form-item>
+        <a-form-item label="推荐">
+          <a-switch v-model:checked="form.isRecommended" :checked-value="1" :un-checked-value="0" />
+        </a-form-item>
         <a-form-item label="正文类型">
           <a-radio-group v-model:value="form.contentType" :disabled="contentTypeLocked">
             <a-radio value="markdown">Markdown</a-radio>
@@ -112,6 +115,7 @@ const form = reactive({
   summary: '',
   coverImageUrl: '',
   sort: 0,
+  isRecommended: 0,
   contentType: 'markdown',
   content: ''
 })
@@ -137,6 +141,7 @@ async function load() {
       summary: a.summary,
       coverImageUrl: a.coverImageUrl || '',
       sort: a.sort,
+      isRecommended: a.isRecommended ?? 0,
       contentType: a.contentType,
       content: a.content
     })
@@ -171,6 +176,7 @@ function buildPayload(target) {
     summary: form.summary,
     coverImageUrl: form.coverImageUrl,
     sort: form.sort,
+    isRecommended: form.isRecommended ? 1 : 0,
     contentType: form.contentType,
     content: form.content,
     status: target

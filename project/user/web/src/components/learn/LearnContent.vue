@@ -7,11 +7,11 @@
           <header class="learn-content-head">
             <!-- 面包屑 -->
             <nav v-if="categoryPath.length" class="learn-breadcrumb">
-              <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
+              <router-link :to="basePath" class="learn-breadcrumb-item">创作学院</router-link>
               <template v-for="(seg, i) in categoryPath" :key="seg.id">
                 <span class="learn-breadcrumb-sep">›</span>
                 <router-link
-                  :to="`/learn?cat=${seg.id}`"
+                  :to="`${basePath}?cat=${seg.id}`"
                   class="learn-breadcrumb-item"
                   :class="{ active: i === categoryPath.length - 1 }"
                 >{{ seg.name }}</router-link>
@@ -37,7 +37,7 @@
               </span>
               <router-link
                 v-if="currentCategoryName"
-                :to="`/learn?cat=${article.categoryId}`"
+                :to="`${basePath}?cat=${article.categoryId}`"
                 class="learn-meta-tag"
               >
                 <TagOutlined class="learn-meta-icon" />
@@ -58,10 +58,43 @@
             <LearnRichText v-else :html="article.content" />
           </article>
 
+          <!-- 移动端目录浮钮 -->
+          <button
+            v-if="tocItems.length"
+            class="mobile-toc-btn"
+            type="button"
+            aria-label="目录"
+            @click="tocDrawerOpen = true"
+          >
+            <UnorderedListOutlined />
+          </button>
+
+          <a-drawer
+            v-model:open="tocDrawerOpen"
+            title="目录"
+            placement="bottom"
+            :height="'60vh'"
+            :closable="true"
+            class="mobile-toc-drawer"
+          >
+            <div class="mobile-toc-list">
+              <a
+                v-for="item in tocItems"
+                :key="item.id"
+                :class="['mobile-toc-item', { active: item.id === activeHeading, 'toc-h3': item.level === 3 }]"
+                href="#"
+                @click.prevent="onTocItemClick(item.id)"
+              >
+                <span class="mobile-toc-dot"></span>
+                <span class="mobile-toc-text">{{ item.text }}</span>
+              </a>
+            </div>
+          </a-drawer>
+
           <nav v-if="article.prevArticle || article.nextArticle" class="learn-nav">
             <router-link
               v-if="article.prevArticle"
-              :to="`/learn/article/${article.prevArticle.id}`"
+              :to="`${basePath}/article/${article.prevArticle.id}`"
               class="learn-nav-card learn-nav-prev"
             >
               <span class="learn-nav-dir">← 上一篇</span>
@@ -74,7 +107,7 @@
 
             <router-link
               v-if="article.nextArticle"
-              :to="`/learn/article/${article.nextArticle.id}`"
+              :to="`${basePath}/article/${article.nextArticle.id}`"
               class="learn-nav-card learn-nav-next"
             >
               <span class="learn-nav-dir">下一篇 →</span>
@@ -126,11 +159,11 @@
     <template v-else-if="category && category.articles && category.articles.length">
       <header class="learn-content-head">
         <nav v-if="categoryPath.length" class="learn-breadcrumb">
-          <router-link to="/learn" class="learn-breadcrumb-item">创作学院</router-link>
+          <router-link :to="basePath" class="learn-breadcrumb-item">创作学院</router-link>
           <template v-for="(seg, i) in categoryPath" :key="seg.id">
             <span class="learn-breadcrumb-sep">›</span>
             <router-link
-              :to="`/learn?cat=${seg.id}`"
+              :to="`${basePath}?cat=${seg.id}`"
               class="learn-breadcrumb-item"
               :class="{ active: i === categoryPath.length - 1 }"
             >{{ seg.name }}</router-link>
@@ -213,9 +246,12 @@ const props = defineProps({
   category: { type: Object, default: null },
   currentCategoryName: { type: String, default: '' },
   categoryPath: { type: Array, default: () => [] },
-  topCategories: { type: Array, default: () => [] }
+  topCategories: { type: Array, default: () => [] },
+  basePath: { type: String, default: '/learn' }
 })
 defineEmits(['load-article', 'select-category'])
+
+const tocDrawerOpen = ref(false)
 
 const readingMinutes = computed(() => {
   if (!props.article?.content) return 0
@@ -280,6 +316,11 @@ function buildToc() {
 function scrollToHeading(id) {
   const el = document.getElementById(id)
   if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function onTocItemClick(id) {
+  scrollToHeading(id)
+  tocDrawerOpen.value = false
 }
 
 watch(() => props.article?.id, async id => {
@@ -686,5 +727,156 @@ onUnmounted(() => {
 @media (max-width: 991px) {
   .learn-cta-card { flex-direction: column; text-align: center; }
   .learn-cta-btn { width: 100%; text-align: center; }
+}
+
+/* 移动端目录浮钮与抽屉 */
+.mobile-toc-btn {
+  display: none;
+}
+
+@media (max-width: 991px) {
+  .mobile-toc-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    right: 16px;
+    bottom: 76px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 0;
+    background: var(--color-primary, #ff2442);
+    color: #fff;
+    font-size: 20px;
+    box-shadow: 0 4px 16px rgba(255, 36, 66, 0.35);
+    cursor: pointer;
+    z-index: 40;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .learn-content-head {
+    border-bottom: 0;
+    padding-bottom: 0;
+    margin-bottom: 16px;
+  }
+
+  .learn-breadcrumb { margin-bottom: 8px; }
+  .learn-content-title { font-size: 20px; }
+  .learn-content-summary { font-size: 13px; }
+
+  .learn-meta-bar {
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    font-size: 11px;
+  }
+
+  .learn-meta-tag { font-size: 11px; padding: 1px 8px; }
+
+  .learn-content-cover {
+    border-radius: 14px;
+    max-height: 220px;
+    margin-bottom: 16px;
+  }
+
+  .learn-content-body { margin-bottom: 24px; }
+
+  .learn-article-card {
+    border-radius: 18px;
+    border: 0;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    margin-bottom: 12px;
+  }
+  .learn-article-card-link { padding: 12px; }
+  .learn-article-card-body {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .learn-article-card-cover {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 12px;
+  }
+  .learn-article-card-title { font-size: 15px; }
+  .learn-article-card-summary { font-size: 12px; -webkit-line-clamp: 2; }
+  .learn-article-card-meta { font-size: 11px; }
+
+  .learn-nav { margin: 24px 0; }
+  .learn-nav-card { padding: 14px 16px; border-radius: 16px; }
+  .learn-nav-title { font-size: 14px; }
+
+  .learn-cta-card {
+    border-radius: 18px;
+    padding: 18px;
+    gap: 12px;
+  }
+  .learn-cta-icon { font-size: 28px; }
+  .learn-cta-title { font-size: 15px; }
+  .learn-cta-subtitle { font-size: 12px; }
+  .learn-cta-btn { height: 40px; line-height: 40px; padding: 0; border-radius: 999px; }
+
+  .learn-content-empty { min-height: 260px; }
+}
+
+.mobile-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.mobile-toc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: #595959;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background 0.2s, color 0.2s;
+}
+.mobile-toc-item:hover,
+.mobile-toc-item.active {
+  background: #FFF5F7;
+  color: #FF2442;
+  font-weight: 600;
+}
+.mobile-toc-item.active .mobile-toc-dot { background: #FF2442; }
+.mobile-toc-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-top: 5px;
+}
+.mobile-toc-item.toc-h3 {
+  padding-left: 24px;
+  font-size: 13px;
+}
+
+body[data-theme="dark"] .mobile-toc-item { color: rgba(255, 255, 255, 0.65); }
+body[data-theme="dark"] .mobile-toc-item:hover,
+body[data-theme="dark"] .mobile-toc-item.active {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+body[data-theme="dark"] .mobile-toc-item.active .mobile-toc-dot { background: #ff6b81; }
+body[data-theme="dark"] .mobile-toc-dot { background: #595959; }
+
+@media (max-width: 991px) {
+  body[data-theme="dark"] .learn-article-card,
+  body[data-theme="dark"] .learn-nav-card {
+    background: #1f1f1f;
+    border-color: #303030;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.2);
+  }
+  body[data-theme="dark"] .learn-content-head { border-bottom: 0; }
+  body[data-theme="dark"] .learn-meta-bar { border-top-color: #303030; }
+  body[data-theme="dark"] .learn-cta-card {
+    background: linear-gradient(135deg, rgba(255, 36, 66, 0.12) 0%, rgba(255, 36, 66, 0.06) 100%);
+  }
 }
 </style>

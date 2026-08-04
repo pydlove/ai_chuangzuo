@@ -32,4 +32,7 @@ public class LearnArticleReq {
     private ArticleStatus status = ArticleStatus.DRAFT;
 
     private Integer sort = 0;
+
+    /** 是否推荐：0=否 1=是 */
+    private Integer isRecommended = 0;
 }

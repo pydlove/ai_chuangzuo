@@ -17,6 +17,9 @@ public class MembershipStatusVO {
     /** 等级显示名。 */
     private String levelName;
 
+    /** 当前订阅周期：month / quarter / year。 */
+    private String cycle;
+
     /** 到期日期 yyyy-MM-dd。 */
     private String expiresAt;
 }

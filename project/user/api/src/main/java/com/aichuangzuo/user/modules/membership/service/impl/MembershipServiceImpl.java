@@ -9,6 +9,7 @@ import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
+import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.entity.Order;
 import com.aichuangzuo.user.modules.membership.entity.Plan;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
@@ -23,6 +24,7 @@ import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
+import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -36,6 +38,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -86,14 +89,18 @@ public class MembershipServiceImpl implements MembershipService {
             throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
         }
 
-        BigDecimal expectedAmount = resolveExpectedAmount(userId, plan.getKey(), cycle.getCode());
+        boolean upgrade = isUpgrade(userId, plan);
+        if (upgrade) {
+            validateUpgradeCycle(userId, request.getCycle());
+        }
+        BigDecimal expectedAmount = resolveExpectedAmount(userId, plan.getKey(), cycle.getCode(), upgrade);
         if (request.getAmount() == null ||
                 request.getAmount().subtract(expectedAmount).abs().compareTo(AMOUNT_TOLERANCE) > 0) {
             throw new BusinessException(MembershipErrorCode.INVALID_AMOUNT);
         }
 
         Order order = createPaidOrder(userId, plan, cycle, expectedAmount);
-        UserMembership membership = activateOrExtendMembership(userId, plan, cycle);
+        UserMembership membership = activateOrExtendMembership(userId, plan, cycle, upgrade);
 
         sendSubscriptionNotification(userId, plan, membership);
         boolean rewarded = rewardInviter(userId, plan, order);
@@ -112,9 +119,9 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     /**
-     * 计算本次订阅应付金额：新人首冲旗舰版年包在正常年付价上再打 8 折。
+     * 计算本次订阅应付金额：新人首冲享折扣；升级套餐可用当前订阅剩余价值抵扣。
      */
-    private BigDecimal resolveExpectedAmount(Long userId, String planKey, String cycleCode) {
+    private BigDecimal resolveExpectedAmount(Long userId, String planKey, String cycleCode, boolean upgrade) {
         Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
                 .eq(Plan::getPlanKey, planKey)
                 .eq(Plan::getStatus, EFFECTIVE_STATUS));
@@ -122,6 +129,25 @@ public class MembershipServiceImpl implements MembershipService {
             throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
         }
 
+        BigDecimal basePrice = resolveCyclePrice(plan, cycleCode);
+
+        boolean eligibleForNewcomer = NEWCOMER_PLAN_KEY.equals(planKey)
+                && NEWCOMER_CYCLE.equals(cycleCode)
+                && isNewcomerEligible(userId);
+        if (eligibleForNewcomer) {
+            return basePrice.multiply(NEWCOMER_EXTRA_DISCOUNT)
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+
+        if (upgrade) {
+            BigDecimal credit = calculateCredit(userId);
+            return basePrice.subtract(credit).max(BigDecimal.ZERO)
+                    .setScale(2, RoundingMode.HALF_UP);
+        }
+        return basePrice;
+    }
+
+    private BigDecimal resolveCyclePrice(Plan plan, String cycleCode) {
         BigDecimal basePrice;
         if ("month".equals(cycleCode)) {
             basePrice = plan.getPriceMonthly();
@@ -135,14 +161,6 @@ public class MembershipServiceImpl implements MembershipService {
         if (basePrice == null) {
             throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
         }
-
-        boolean eligibleForNewcomer = NEWCOMER_PLAN_KEY.equals(planKey)
-                && NEWCOMER_CYCLE.equals(cycleCode)
-                && isNewcomerEligible(userId);
-        if (eligibleForNewcomer) {
-            return basePrice.multiply(NEWCOMER_EXTRA_DISCOUNT)
-                    .setScale(2, RoundingMode.HALF_UP);
-        }
         return basePrice;
     }
 
@@ -153,6 +171,63 @@ public class MembershipServiceImpl implements MembershipService {
         }
         UserInviteRelation relation = userInviteRelationMapper.selectByInviteeId(userId);
         return relation == null;
+    }
+
+    /**
+     * 判断目标套餐是否高于当前有效套餐（升级）。
+     */
+    private boolean isUpgrade(Long userId, MembershipPlan targetPlan) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return false;
+        }
+        MembershipPlan currentPlan = MembershipPlan.of(membership.getLevel());
+        return currentPlan != null && targetPlan.getRank() > currentPlan.getRank();
+    }
+
+    /**
+     * 计算当前有效订阅的剩余价值：优先按最近一次已支付订单的金额/周期折算日单价；
+     * 无订单时按当前套餐月价/30 天作为兜底日单价。
+     */
+    private BigDecimal calculateCredit(Long userId) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return BigDecimal.ZERO;
+        }
+        return calculateCredit(userId, membership);
+    }
+
+    private BigDecimal calculateCredit(Long userId, UserMembership membership) {
+        long remainingDays = ChronoUnit.DAYS.between(LocalDate.now(), membership.getExpiresAt());
+        if (remainingDays <= 0) {
+            return BigDecimal.ZERO;
+        }
+
+        Order latestOrder = orderMapper.selectOne(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getPlanKey, membership.getLevel())
+                        .eq(Order::getStatus, 1)
+                        .orderByDesc(Order::getPaidAt)
+                        .last("LIMIT 1")
+        );
+
+        BigDecimal dailyRate;
+        if (latestOrder != null && latestOrder.getAmount() != null) {
+            MembershipCycle cycle = MembershipCycle.of(latestOrder.getCycle());
+            int cycleDays = cycle != null ? cycle.getDays() : 30;
+            dailyRate = latestOrder.getAmount().divide(BigDecimal.valueOf(cycleDays), 10, RoundingMode.HALF_UP);
+        } else {
+            Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
+                    .eq(Plan::getPlanKey, membership.getLevel())
+                    .eq(Plan::getStatus, EFFECTIVE_STATUS));
+            BigDecimal monthly = plan != null && plan.getPriceMonthly() != null
+                    ? plan.getPriceMonthly() : BigDecimal.ZERO;
+            dailyRate = monthly.divide(BigDecimal.valueOf(30), 10, RoundingMode.HALF_UP);
+        }
+
+        return dailyRate.multiply(BigDecimal.valueOf(remainingDays))
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     @Override
@@ -168,6 +243,92 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setLevel(membership.getLevel());
         vo.setLevelName(planLookupService.getDisplayName(membership.getLevel()));
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
+
+        Order latestOrder = orderMapper.selectOne(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getPlanKey, membership.getLevel())
+                        .eq(Order::getStatus, 1)
+                        .orderByDesc(Order::getPaidAt)
+                        .last("LIMIT 1")
+        );
+        if (latestOrder != null && latestOrder.getCycle() != null) {
+            vo.setCycle(latestOrder.getCycle());
+        }
+        return vo;
+    }
+
+    private String getCurrentMembershipCycle(Long userId) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return null;
+        }
+        Order latestOrder = orderMapper.selectOne(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getPlanKey, membership.getLevel())
+                        .eq(Order::getStatus, 1)
+                        .orderByDesc(Order::getPaidAt)
+                        .last("LIMIT 1")
+        );
+        return latestOrder == null ? null : latestOrder.getCycle();
+    }
+
+    private void validateUpgradeCycle(Long userId, String requestCycle) {
+        String currentCycle = getCurrentMembershipCycle(userId);
+        if (currentCycle != null && !currentCycle.equals(requestCycle)) {
+            throw new BusinessException(MembershipErrorCode.UPGRADE_CYCLE_MISMATCH);
+        }
+    }
+
+    @Override
+    public UpgradePreviewVO previewUpgrade(Long userId, UpgradePreviewRequest request) {
+        MembershipPlan targetPlan = MembershipPlan.of(request.getPlanKey());
+        if (targetPlan == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
+        }
+        MembershipCycle targetCycle = MembershipCycle.of(request.getCycle());
+        if (targetCycle == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
+        }
+
+        validateUpgradeCycle(userId, request.getCycle());
+
+        Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
+                .eq(Plan::getPlanKey, targetPlan.getKey())
+                .eq(Plan::getStatus, EFFECTIVE_STATUS));
+        if (plan == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
+        }
+
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        boolean hasActive = membership != null && !membership.getExpiresAt().isBefore(LocalDate.now());
+        MembershipPlan currentPlan = hasActive ? MembershipPlan.of(membership.getLevel()) : null;
+        boolean upgrade = currentPlan != null && targetPlan.getRank() > currentPlan.getRank();
+
+        BigDecimal originalPrice = resolveCyclePrice(plan, targetCycle.getCode());
+        BigDecimal creditAmount = upgrade ? calculateCredit(userId, membership) : BigDecimal.ZERO;
+        BigDecimal finalPrice = originalPrice.subtract(creditAmount).max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        UpgradePreviewVO vo = new UpgradePreviewVO();
+        vo.setHasMembership(hasActive);
+        if (hasActive) {
+            vo.setCurrentPlanKey(currentPlan.getKey());
+            vo.setCurrentPlanName(planLookupService.getDisplayName(currentPlan.getKey()));
+            vo.setCurrentExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
+            vo.setRemainingDays((int) ChronoUnit.DAYS.between(LocalDate.now(), membership.getExpiresAt()));
+        }
+        vo.setUpgrade(upgrade);
+        vo.setTargetPlanKey(targetPlan.getKey());
+        vo.setTargetPlanName(planLookupService.getDisplayName(targetPlan.getKey()));
+        vo.setTargetCycle(targetCycle.getCode());
+        vo.setOriginalPrice(originalPrice);
+        vo.setCreditAmount(creditAmount);
+        vo.setFinalPrice(finalPrice);
+        vo.setTargetDays(targetCycle.getDays());
+        vo.setNewExpiresAt(LocalDate.now().plusDays(targetCycle.getDays())
+                .format(DateTimeFormatter.ISO_LOCAL_DATE));
         return vo;
     }
 
@@ -225,11 +386,11 @@ public class MembershipServiceImpl implements MembershipService {
         return ORDER_NO_PREFIX + date + random;
     }
 
-    private UserMembership activateOrExtendMembership(Long userId, MembershipPlan plan, MembershipCycle cycle) {
+    private UserMembership activateOrExtendMembership(Long userId, MembershipPlan plan, MembershipCycle cycle, boolean upgrade) {
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
         LocalDate today = LocalDate.now();
         LocalDate baseDate = today;
-        if (membership != null && membership.getExpiresAt().isAfter(today.minusDays(1))) {
+        if (!upgrade && membership != null && membership.getExpiresAt().isAfter(today.minusDays(1))) {
             baseDate = membership.getExpiresAt();
         }
         LocalDate newExpiresAt = baseDate.plusDays(cycle.getDays());

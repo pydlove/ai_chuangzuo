@@ -5,10 +5,12 @@ import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.ResetCustomSkillQuotaRequest;
 import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
@@ -68,4 +70,20 @@ public interface AdminUserService {
      * @param request 释放数量
      */
     void releaseCustomSkillQuota(Long userId, ResetCustomSkillQuotaRequest request);
+
+    /**
+     * 查询用户已发布/审核中的提示词列表（来自提示词市场）。
+     *
+     * @param userId 用户ID
+     * @return 已发布提示词列表
+     */
+    List<AdminUserPublishedSkillVO> listUserPublishedSkills(Long userId);
+
+    /**
+     * 查询用户收藏的提示词列表（来自提示词市场）。
+     *
+     * @param userId 用户ID
+     * @return 收藏提示词列表
+     */
+    List<AdminUserFavoriteSkillVO> listUserFavoriteSkills(Long userId);
 }

@@ -1,6 +1,6 @@
 import request from '@/utils/request.js'
 
-const BASE = '/api/v1/admin/home-banner'
+const BASE = '/home-banner'
 
 export function fetchHomeBanners() {
   return request.get(BASE).then((res) => res.data || [])

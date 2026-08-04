@@ -73,13 +73,13 @@ public class SkillMarketController {
     }
 
     /**
-     * 获取当前用户收藏的市场 skill id 列表。
+     * 获取当前用户收藏的市场 skill 详情列表（含已下架）。
      */
-    @Operation(summary = "获取收藏的市场 skill id 列表")
+    @Operation(summary = "获取收藏的市场 skill 详情列表")
     @GetMapping("/favorites")
-    public Result<List<String>> listFavoriteIds() {
+    public Result<List<MarketSkillVO>> listFavoriteSkills() {
         Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(userMarketFavoriteService.listFavoriteIds(userId));
+        return Result.success(userMarketFavoriteService.listFavoriteSkills(userId));
     }
 
     /**

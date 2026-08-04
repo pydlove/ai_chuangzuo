@@ -4,6 +4,10 @@ export function subscribe(data) {
   return request.post('/membership/subscribe', data)
 }
 
+export function previewUpgrade(data) {
+  return request.post('/membership/upgrade-preview', data)
+}
+
 export function getMyMembership() {
   return request.get('/membership/me')
 }

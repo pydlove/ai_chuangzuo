@@ -1,8 +1,8 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.benefit.service.BenefitService;
-import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
+import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
+import com.aichuangzuo.user.modules.skill.analyze.service.SkillAnalyzeDailyLimiter;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeAiService;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeService;
@@ -32,6 +32,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
     private static final int TEXT_MAX_LENGTH = 1000;
     private static final int EXCERPT1_MAX = 120;
     private static final int EXCERPT2_MAX = 80;
+    private static final int DESCRIPTION_MAX = 100;
     private static final List<String> REQUIRED_MARKERS = List.of("【语气】", "【词汇】", "【句式】", "【结构】");
 
     private static final String SYSTEM_MESSAGE =
@@ -49,7 +50,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             2. 从原文中逐字摘录 2 个最能代表该风格的片段。
 
             【输出 JSON 结构】
-            {"excerpt1":"原文中最能代表风格的连续片段，不超过120字，必须逐字摘自原文","excerpt2":"另一个代表性片段，不超过80字，必须逐字摘自原文，且不与excerpt1重复","prompt":"不超过1200字的风格提示词"}
+            {"excerpt1":"原文中最能代表风格的连续片段，不超过120字，必须逐字摘自原文","excerpt2":"另一个代表性片段，不超过80字，必须逐字摘自原文，且不与excerpt1重复","description":"用一句话描述这个提示词适合写什么、风格是什么，不超过100字，不要出现英文双引号","prompt":"不超过1200字的风格提示词"}
 
             其中 prompt 字段严格使用以下模板：
             你是一位中文写手，请模仿以下参考文章的写作风格：
@@ -70,7 +71,8 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             """;
 
     private final SkillAnalyzeAiService aiService;
-    private final BenefitService benefitService;
+    private final SkillAnalyzeConfigService skillAnalyzeConfigService;
+    private final SkillAnalyzeDailyLimiter skillAnalyzeDailyLimiter;
     private final ObjectMapper objectMapper;
     private final ObjectMapper lenientObjectMapper = createLenientObjectMapper();
 
@@ -80,16 +82,11 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
         return mapper;
     }
 
-    /** 学习我的风格月度额度权益编码（basic=0/pro=1/flagship=2）。 */
-    private static final String LEARN_ANALYZE_BENEFIT = "skill_learn_analyze";
-
-    @Override
-    public BenefitCheckVO preConsume(Long userId) {
-        return benefitService.preConsume(userId, LEARN_ANALYZE_BENEFIT);
-    }
-
     @Override
     public SkillAnalyzeVO analyze(Long userId, String text) {
+        int dailyLimit = skillAnalyzeConfigService.getDailyAttemptLimit();
+        skillAnalyzeDailyLimiter.checkAndIncrement(userId, dailyLimit);
+
         // 统一截断：超过 1000 字只取前 1000 字学习
         if (text != null && text.length() > TEXT_MAX_LENGTH) {
             text = text.substring(0, TEXT_MAX_LENGTH);
@@ -101,21 +98,17 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
         String prompt = root.path("prompt").asText("").trim();
         validatePrompt(prompt);
 
+        String description = root.path("description").asText("").trim();
+        if (description.length() > DESCRIPTION_MAX) {
+            description = description.substring(0, DESCRIPTION_MAX);
+        }
+
         SkillAnalyzeVO vo = new SkillAnalyzeVO();
         vo.setPrompt(prompt);
+        vo.setDescription(description);
         vo.setExcerpt1(resolveExcerpt(root.path("excerpt1").asText(""), text, true));
         vo.setExcerpt2(resolveExcerpt(root.path("excerpt2").asText(""), text, false));
         return vo;
-    }
-
-    @Override
-    public void confirmConsume(Long userId) {
-        benefitService.confirmPreConsume(userId, LEARN_ANALYZE_BENEFIT);
-    }
-
-    @Override
-    public void cancelConsume(Long userId) {
-        benefitService.cancelPreConsume(userId, LEARN_ANALYZE_BENEFIT);
     }
 
     private JsonNode parseJson(String raw) {

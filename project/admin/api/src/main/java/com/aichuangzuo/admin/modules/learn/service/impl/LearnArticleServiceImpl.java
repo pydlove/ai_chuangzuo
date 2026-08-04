@@ -130,6 +130,13 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         }
     }
 
+    @Override
+    public void setRecommended(Long id, Integer recommended) {
+        LearnArticleEntity e = requireExisting(id);
+        e.setIsRecommended(recommended != null ? recommended : 0);
+        articleMapper.updateById(e);
+    }
+
     // -------- helpers --------
 
     private void applyStatusTransition(LearnArticleEntity e, ArticleStatus target) {
@@ -150,6 +157,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         e.setContentType(req.getContentType());
         e.setContent(req.getContent());
         if (req.getSort() != null) e.setSort(req.getSort());
+        e.setIsRecommended(req.getIsRecommended() != null ? req.getIsRecommended() : 0);
         // 不通过 copyFromReq 设 status — 由显式 publish/unpublish 控制
     }
 
@@ -186,6 +194,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         v.setContent(e.getContent());
         v.setStatus(e.getStatus());
         v.setSort(e.getSort());
+        v.setIsRecommended(e.getIsRecommended());
         v.setAuthorId(e.getAuthorId());
         v.setPublishedAt(e.getPublishedAt());
         v.setCreatedAt(e.getCreatedAt());

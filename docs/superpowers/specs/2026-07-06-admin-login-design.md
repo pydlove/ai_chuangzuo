@@ -395,13 +395,13 @@ scripts/local/admin-full-stack/
 | 服务 | 端口 | PID 文件 | 日志 |
 |---|---|---|---|
 | admin/api | 26060 | `logs/.pids/admin-api.pid` | `logs/admin-api.log` |
-| admin/web | 22346 | `logs/.pids/admin-web.pid` | `logs/admin-web.log` |
+| admin/web | 22347 | `logs/.pids/admin-web.pid` | `logs/admin-web.log` |
 
 `start.sh` 行为：
 1. 先 `mvn -pl shared install`。
 2. 启动 `admin/api` Spring Boot。
 3. 启动 `admin/web` Vite dev server。
-4. 等待端口就绪，输出访问地址：`http://localhost:22346/login`。
+4. 等待端口就绪，输出访问地址：`http://localhost:22347/login`。
 
 环境变量默认：
 - `MYSQL_USERNAME` / `MYSQL_PASSWORD`：root / 123456

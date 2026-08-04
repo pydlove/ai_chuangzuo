@@ -1,6 +1,6 @@
 import request from '@/utils/request.js'
 
-const BASE = '/api/v1/admin/learn'
+const BASE = '/learn'
 
 // ---------- 分类 ----------
 export function fetchCategoryTree() {
@@ -46,6 +46,10 @@ export function moveArticle(id, categoryId) {
 }
 export function sortArticle(items) {
   return request.post(`${BASE}/article/sort`, { items })
+}
+
+export function recommendArticle(id, recommended) {
+  return request.post(`${BASE}/article/${id}/recommend?recommended=${recommended}`)
 }
 
 // ---------- Banner ----------

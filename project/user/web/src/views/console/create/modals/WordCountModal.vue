@@ -114,10 +114,10 @@ const { wordCountVisible, currentPlatform, currentWordCount, customWordCount } =
 
 const wordCountTab = ref('tier')
 const wordCountTabs = [
-  { key: 'platform', label: '按平台推荐' },
-  { key: 'scenario', label: '按内容场景' },
-  { key: 'tier', label: '按字数档位' },
-  { key: 'custom', label: '自定义字数' }
+  { key: 'platform', label: '平台' },
+  { key: 'scenario', label: '场景' },
+  { key: 'tier', label: '档位' },
+  { key: 'custom', label: '自定义' }
 ]
 
 const wordCountLimit = computed(() => getWordCountLimit())
@@ -176,11 +176,12 @@ const cancelCustom = () => {
   padding: 0 0 12px;
   border-bottom: 1px solid #f0f0f0;
   margin-bottom: 16px;
-  overflow-x: auto;
 }
 
 .wc-tab {
-  padding: 8px 16px;
+  flex: 1;
+  min-width: 0;
+  padding: 8px 0;
   border: 1px solid #d9d9d9;
   background: #fff;
   border-radius: 6px;
@@ -189,6 +190,8 @@ const cancelCustom = () => {
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .wc-tab.active {
@@ -416,6 +419,85 @@ const cancelCustom = () => {
   cursor: not-allowed;
 }
 
+/* 移动端：底部滑上全屏面板 */
+@media (max-width: 768px) {
+  :global(.word-count-modal .ant-modal) {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0;
+    transform: none !important;
+    padding: 0;
+  }
+
+  :global(.word-count-modal .ant-modal-content) {
+    border-radius: 20px 20px 0 0;
+    height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.word-count-modal .ant-modal-header) {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  :global(.word-count-modal .ant-modal-body) {
+    flex: 1;
+    overflow: hidden;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .wc-content {
+    height: 100%;
+  }
+
+  .wc-tabs {
+    padding-bottom: 12px;
+  }
+
+  .wc-tab {
+    font-size: 13px;
+    padding: 9px 2px;
+    border-radius: 8px;
+  }
+
+  .wc-grid {
+    gap: 12px;
+  }
+
+  .wc-item {
+    padding: 16px 12px;
+    border-radius: 12px;
+  }
+
+  .wc-item-wide {
+    padding: 14px 12px;
+    border-radius: 12px;
+  }
+
+  .wc-desc {
+    max-width: 110px;
+    text-align: right;
+  }
+
+  .wc-custom-display {
+    font-size: 42px;
+  }
+
+  .wc-footer {
+    margin-top: 24px;
+  }
+
+  .wc-footer-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 10px;
+  }
+}
 
 body[data-theme="dark"] .wc-tabs {
   border-bottom-color: #303030;

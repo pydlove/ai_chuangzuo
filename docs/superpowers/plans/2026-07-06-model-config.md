@@ -1783,7 +1783,7 @@ Expected: code 0；数据库 `a_model_config` 中 `api_key_encrypted` 为密文�
 from playwright.sync_api import sync_playwright
 import requests
 
-BASE_URL = 'http://localhost:22346'
+BASE_URL = 'http://localhost:22347'
 API_URL = 'http://localhost:26060'
 
 

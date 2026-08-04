@@ -95,9 +95,9 @@ class PlanCatalogServiceImplTest {
         // ai_title_optimize: boolean=false → 显示名称，灰显
         assertFeature(basic, "ai_title_optimize", "AI 标题优化", false);
         // skill_market_publish: 0 → 显示 label，不包含
-        assertFeature(basic, "skill_market_publish", "发布到风格市场", false);
+        assertFeature(basic, "skill_market_publish", "发布提示词", false);
         // skill_learn_analyze: 0 → 显示 label，不包含
-        assertFeature(basic, "skill_learn_analyze", "学习我的风格", false);
+        assertFeature(basic, "skill_learn_analyze", "学习我的提示词", false);
     }
 
     @Test
@@ -189,17 +189,17 @@ class PlanCatalogServiceImplTest {
         assertEquals(Boolean.TRUE, title.getPro().getValue());
         assertEquals(Boolean.TRUE, title.getFlagship().getValue());
 
-        // skill_market_publish：basic=0 → false（quota=0 视为不包含）；pro/flagship → 字符串 + 名词“风格”
+        // skill_market_publish：basic=0 → false（lifetime=0 视为不包含）；pro/flagship → 永久提示词额度
         PlanCatalogVO.CompareRowVO publish = findRow(rows, "skill_market_publish");
         assertEquals(Boolean.FALSE, publish.getBasic().getValue());
-        assertEquals("每月可发布 1 个风格", publish.getPro().getValue());
-        assertEquals("每月可发布 2 个风格", publish.getFlagship().getValue());
+        assertEquals("可发布 1 个提示词", publish.getPro().getValue());
+        assertEquals("可发布 2 个提示词", publish.getFlagship().getValue());
 
-        // skill_learn_analyze：basic=0 → false；pro/flagship → 字符串 + "AI 风格分析"
+        // skill_learn_analyze：basic=0 → false；pro/flagship → 字符串 + "AI 提示词分析"
         PlanCatalogVO.CompareRowVO learn = findRow(rows, "skill_learn_analyze");
         assertEquals(Boolean.FALSE, learn.getBasic().getValue());
-        assertEquals("每月可学习 1 次 AI 风格分析", learn.getPro().getValue());
-        assertEquals("每月可学习 2 次 AI 风格分析", learn.getFlagship().getValue());
+        assertEquals("每月可学习 1 次 AI 提示词分析", learn.getPro().getValue());
+        assertEquals("每月可学习 2 次 AI 提示词分析", learn.getFlagship().getValue());
 
         // history_days：basic=30 → "30 天"；pro/flagship=-1 → "永久"
         PlanCatalogVO.CompareRowVO history = findRow(rows, "history_days");
@@ -356,8 +356,8 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("queue_priority", "生成队列优先级", "tier", "生成队列优先级", null,
                 "{\"standard\":\"标准\",\"priority\":\"优先\",\"express\":\"极速\"}", 14));
         list.add(benefit("queue_max_tasks", "队列任务数", "quota", "队列任务数", "队列最多 {value} 个任务", null, 15));
-        list.add(benefit("skill_market_publish", "发布到风格市场", "quota", "发布到风格市场", "每月可发布 {value} 个风格", null, 16));
-        list.add(benefit("skill_learn_analyze", "学习我的风格", "quota", "学习我的风格", "每月可学习 {value} 次 AI 风格分析", null, 17));
+        list.add(benefit("skill_market_publish", "发布到提示词市场", "lifetime", "发布提示词", "可发布 {value} 个提示词", null, 16));
+        list.add(benefit("skill_learn_analyze", "学习我的提示词", "quota", "学习我的提示词", "每月可学习 {value} 次 AI 提示词分析", null, 17));
         list.add(benefit("generation_word_limit", "单次生成字数上限", "quota", "单次生成字数", "最多 {value} 字", null, 18));
         return list;
     }

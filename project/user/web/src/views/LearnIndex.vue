@@ -58,39 +58,38 @@
             </p>
           </div>
 
-          <!-- 推荐课程 -->
-          <div v-if="recommendedCategories.length" class="learn-recommend-section">
+          <!-- 推荐文章 -->
+          <div v-if="recommendedArticles.length" class="learn-recommend-section">
             <div class="learn-recommend-header">
-              <h2 class="learn-recommend-title">推荐课程</h2>
-              <span class="learn-recommend-desc">精选核心主题，快速找到你感兴趣的方向</span>
+              <h2 class="learn-recommend-title">推荐文章</h2>
+              <span class="learn-recommend-desc">精选必读内容，快速提升创作能力</span>
             </div>
             <div class="learn-recommend-grid">
               <a
-                v-for="cat in recommendedCategories"
-                :key="cat.id"
-                class="learn-recommend-card"
-                @click.prevent="onSelectCategory(cat.id)"
+                v-for="article in recommendedArticles"
+                :key="article.id"
+                class="learn-recommend-card learn-recommend-article"
+                @click.prevent="loadArticle(article.id)"
                 href="#"
               >
-                <div class="learn-recommend-icon-wrap">
-                  <component
-                    v-if="getCategoryIcon(cat.name)"
-                    :is="getCategoryIcon(cat.name)"
-                    class="learn-recommend-icon"
-                  />
-                  <span v-else class="learn-recommend-icon-fallback">{{ cat.name.charAt(0) }}</span>
+                <img
+                  v-if="article.coverImageUrl"
+                  :src="article.coverImageUrl"
+                  class="learn-recommend-cover"
+                  alt=""
+                />
+                <div class="learn-recommend-body">
+                  <span v-if="article.categoryName" class="learn-recommend-category">{{ article.categoryName }}</span>
+                  <h3 class="learn-recommend-article-title">{{ article.title }}</h3>
+                  <p v-if="article.summary" class="learn-recommend-summary">{{ article.summary }}</p>
                 </div>
-                <span class="learn-recommend-name">{{ cat.name }}</span>
-                <span v-if="cat.children?.length" class="learn-recommend-count">
-                  {{ cat.children.length }} 个子分类
-                </span>
                 <span class="learn-recommend-arrow">›</span>
               </a>
             </div>
           </div>
 
           <!-- 兜底空状态 -->
-          <div v-if="!banners.length && !recommendedCategories.length" class="learn-content-empty">
+          <div v-if="!banners.length && !recommendedArticles.length" class="learn-content-empty">
             <ReadOutlined class="learn-empty-icon" />
             <div class="learn-empty-title">欢迎来到创作学院</div>
             <div class="learn-empty-subtitle">从左侧选择一个分类开始学习</div>
@@ -155,7 +154,7 @@ const {
   currentCategoryPath,
   topCategories,
   isEmptyState,
-  recommendedCategories,
+  recommendedArticles,
   onSelectCategory,
   loadArticle,
   goHome
@@ -494,6 +493,62 @@ body[data-theme="dark"] .learn-banner-carousel :deep(.slick-dots li button) {
 .learn-empty-icon { font-size: 48px; color: #d9d9d9; margin-bottom: 12px; }
 .learn-empty-title { font-size: 16px; font-weight: 600; color: #262626; margin-bottom: 4px; }
 .learn-empty-subtitle { font-size: 13px; color: #8c8c8c; }
+
+.learn-recommend-article {
+  align-items: flex-start;
+  text-align: left;
+  padding: 0;
+  overflow: hidden;
+}
+.learn-recommend-cover {
+  width: 100%;
+  height: 120px;
+  object-fit: cover;
+  display: block;
+}
+.learn-recommend-body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.learn-recommend-category {
+  align-self: flex-start;
+  font-size: 12px;
+  color: #FF2442;
+  background: #FFF0F2;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.learn-recommend-article-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.learn-recommend-summary {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 0;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* 暗色主题 — 推荐文章 */
+body[data-theme="dark"] .learn-recommend-article-title { color: #e0e0e0; }
+body[data-theme="dark"] .learn-recommend-summary { color: #a6a6a6; }
+body[data-theme="dark"] .learn-recommend-category {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
 
 @media (max-width: 991px) {
   .learn-banner-section { margin-bottom: 16px; }

@@ -8,12 +8,14 @@ import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
+import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.entity.Order;
 import com.aichuangzuo.user.modules.membership.entity.UserMembership;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
+import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import com.aichuangzuo.user.modules.message.entity.Message;
 import com.aichuangzuo.user.modules.message.mapper.MessageMapper;
 import org.junit.jupiter.api.Test;
@@ -106,17 +108,123 @@ class MembershipServiceTest {
         existing.setTenantId(0L);
         userMembershipMapper.insert(existing);
 
-        SubscribeRequest request = buildRequest("pro", "quarter", "123456", new BigDecimal("161.7"));
+        SubscribeRequest request = buildRequest("basic", "quarter", "123456", new BigDecimal("53.1"));
         SubscribeResultVO result = membershipService.subscribe(user.getId(), request);
 
         UserMembership membership = userMembershipMapper.selectByUserId(user.getId());
-        assertEquals("pro", membership.getLevel());
+        assertEquals("basic", membership.getLevel());
         assertEquals(LocalDate.now().plusDays(10).plusDays(90), membership.getExpiresAt());
         assertEquals(90, result.getDays());
     }
 
     @Test
-    void subscribe_withInviter_grantsRewardAndSendsNotification() {
+    void subscribe_upgradeAppliesCreditAndStartsFresh() {
+        User user = createUser("sub-upgrade@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(user.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("month");
+        firstOrder.setAmount(new BigDecimal("29.90"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        // basic -> pro 为升级，抵扣剩余 10 天价值（约 9.97），实付约 151.73
+        SubscribeRequest request = buildRequest("pro", "quarter", "123456", new BigDecimal("151.73"));
+        SubscribeResultVO result = membershipService.subscribe(user.getId(), request);
+
+        UserMembership membership = userMembershipMapper.selectByUserId(user.getId());
+        assertEquals("pro", membership.getLevel());
+        assertEquals(LocalDate.now().plusDays(90), membership.getExpiresAt());
+        assertEquals(90, result.getDays());
+    }
+
+    @Test
+    void previewUpgrade_withActiveMembership_returnsCreditBreakdown() {
+        User user = createUser("preview-upgrade@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(user.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("month");
+        firstOrder.setAmount(new BigDecimal("29.90"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        UpgradePreviewRequest request = new UpgradePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("month");
+
+        UpgradePreviewVO vo = membershipService.previewUpgrade(user.getId(), request);
+
+        assertTrue(vo.isHasMembership());
+        assertEquals("basic", vo.getCurrentPlanKey());
+        assertEquals("pro", vo.getTargetPlanKey());
+        assertTrue(vo.isUpgrade());
+        assertEquals(10, vo.getRemainingDays());
+        assertEquals(0, new BigDecimal("59.90").compareTo(vo.getOriginalPrice()));
+        assertEquals(0, new BigDecimal("9.97").compareTo(vo.getCreditAmount()));
+        assertEquals(0, new BigDecimal("49.93").compareTo(vo.getFinalPrice()));
+        assertEquals(LocalDate.now().plusDays(30), LocalDate.parse(vo.getNewExpiresAt()));
+    }
+
+    @Test
+    void previewUpgrade_mismatchedCycle_throwsBusinessException() {
+        User user = createUser("preview-upgrade-cycle@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(user.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("month");
+        firstOrder.setAmount(new BigDecimal("29.90"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        UpgradePreviewRequest request = new UpgradePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("quarter");
+
+        try {
+            membershipService.previewUpgrade(user.getId(), request);
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("升级必须保持当前订阅周期"));
+            return;
+        }
+        throw new AssertionError("应抛出周期不匹配异常");
+    }
+
+    @Test
+    void subscribe_withInviter_rewardsInviterFirstPurchase() {
         User inviter = createUser("sub-inviter@test.com");
         User invitee = createUser("sub-invitee@test.com");
         createInviteRelation(inviter, invitee);

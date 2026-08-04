@@ -45,6 +45,7 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private static final int ACTIVE = 1;
     private static final String TYPE_BOOLEAN = "boolean";
     private static final String TYPE_QUOTA = "quota";
+    private static final String TYPE_LIFETIME = "lifetime";
     private static final String TYPE_TIER = "tier";
     private static final String TIER_NONE = "none";
 
@@ -185,7 +186,7 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
             } else if (TYPE_BOOLEAN.equals(benefit.getType())) {
                 text = label;
                 included = "true".equalsIgnoreCase(value);
-            } else if (TYPE_QUOTA.equals(benefit.getType())) {
+            } else if (TYPE_QUOTA.equals(benefit.getType()) || TYPE_LIFETIME.equals(benefit.getType())) {
                 // valueLabelJson 覆盖视为包含（-1 → 永久 等特殊值不算 0 配额）
                 String labelOverride = value != null ? lookupValueLabel(benefit, value) : null;
                 if (labelOverride != null) {
@@ -244,7 +245,7 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
         if (TYPE_BOOLEAN.equals(benefit.getType())) {
             return new PlanCatalogVO.CompareCell(Boolean.parseBoolean(value));
         }
-        if (TYPE_QUOTA.equals(benefit.getType())) {
+        if (TYPE_QUOTA.equals(benefit.getType()) || TYPE_LIFETIME.equals(benefit.getType())) {
             // 优先查 valueLabelJson 覆盖（特殊值如 -1→永久，非数值含义）
             String labelOverride = value != null ? lookupValueLabel(benefit, value) : null;
             if (labelOverride != null) {

@@ -1,28 +1,28 @@
 import request from '@/utils/request.js'
 
 export function listTemplates(params = {}) {
-  return request.get('/api/v1/admin/prompt-templates', { params }).then((res) => res.data)
+  return request.get('/prompt-templates', { params }).then((res) => res.data)
 }
 
 export function getTemplate(id) {
-  return request.get(`/api/v1/admin/prompt-templates/${id}`).then((res) => res.data)
+  return request.get(`/prompt-templates/${id}`).then((res) => res.data)
 }
 
 export function createTemplate(data) {
-  return request.post('/api/v1/admin/prompt-templates', data).then((res) => res.data)
+  return request.post('/prompt-templates', data).then((res) => res.data)
 }
 
 export function updateTemplate(id, data) {
-  return request.put(`/api/v1/admin/prompt-templates/${id}`, data).then((res) => res.data)
+  return request.put(`/prompt-templates/${id}`, data).then((res) => res.data)
 }
 
 export function deleteTemplate(id) {
-  return request.delete(`/api/v1/admin/prompt-templates/${id}`)
+  return request.delete(`/prompt-templates/${id}`)
 }
 
 /** 老模板初始化 12 阶段默认值（返回插入的 stage 数量）。 */
 export function initTemplateStages(id) {
-  return request.post(`/api/v1/admin/prompt-templates/${id}/init-stages`).then((res) => res.data)
+  return request.post(`/prompt-templates/${id}/init-stages`).then((res) => res.data)
 }
 
 // ===== 阶段 2：发布 / 下线 / 克隆 / 版本 =====
@@ -33,13 +33,13 @@ export function initTemplateStages(id) {
  */
 export function publishTemplate(id, changeNote) {
   return request
-    .post(`/api/v1/admin/prompt-templates/${id}/actions/publish`, { changeNote })
+    .post(`/prompt-templates/${id}/actions/publish`, { changeNote })
     .then((res) => res.data)
 }
 
 /** 下线模板（仅 PUBLISHED 可下线）。 */
 export function offlineTemplate(id) {
-  return request.post(`/api/v1/admin/prompt-templates/${id}/actions/offline`)
+  return request.post(`/prompt-templates/${id}/actions/offline`)
 }
 
 /**
@@ -49,11 +49,11 @@ export function offlineTemplate(id) {
  */
 export function cloneTemplate(id, body) {
   return request
-    .post(`/api/v1/admin/prompt-templates/${id}/actions/clone`, body)
+    .post(`/prompt-templates/${id}/actions/clone`, body)
     .then((res) => res.data)
 }
 
 /** 取模板的全部版本快照摘要。 */
 export function listTemplateVersions(id) {
-  return request.get(`/api/v1/admin/prompt-templates/${id}/versions`).then((res) => res.data)
+  return request.get(`/prompt-templates/${id}/versions`).then((res) => res.data)
 }

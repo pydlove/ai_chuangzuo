@@ -41,6 +41,8 @@ public class BenefitServiceImpl implements BenefitService {
     private static final String FREE_PLAN_NAME = "免费版";
     private static final String TYPE_BOOLEAN = "boolean";
     private static final String TYPE_QUOTA = "quota";
+    private static final String TYPE_LIFETIME = "lifetime";
+    private static final String LIFETIME_PERIOD = "lifetime";
 
     private final BenefitMapper benefitMapper;
     private final PlanBenefitMapper planBenefitMapper;
@@ -65,7 +67,6 @@ public class BenefitServiceImpl implements BenefitService {
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
 
         Map<String, Benefit> benefitMap = loadActiveBenefitMap();
-        String period = currentPeriod();
         List<UserBenefitVO.BenefitItem> items = new ArrayList<>();
         for (PlanBenefit pb : listPlanBenefits(planKey)) {
             Benefit benefit = benefitMap.get(pb.getBenefitCode());
@@ -77,8 +78,9 @@ public class BenefitServiceImpl implements BenefitService {
             item.setName(benefit.getName());
             item.setType(benefit.getType());
             item.setValue(pb.getBenefitValue());
-            if (TYPE_QUOTA.equals(benefit.getType())) {
+            if (TYPE_QUOTA.equals(benefit.getType()) || TYPE_LIFETIME.equals(benefit.getType())) {
                 int limit = parseInt(pb.getBenefitValue(), 0);
+                String period = resolvePeriod(benefit);
                 int used = currentUsed(userId, benefit.getCode(), period);
                 int preUsed = currentPreUsed(userId, benefit.getCode(), period);
                 item.setUsed(used);
@@ -116,10 +118,11 @@ public class BenefitServiceImpl implements BenefitService {
             return vo;
         }
 
-        if (TYPE_QUOTA.equals(benefit.getType())) {
+        if (TYPE_QUOTA.equals(benefit.getType()) || TYPE_LIFETIME.equals(benefit.getType())) {
             int limit = parseInt(planBenefit.getBenefitValue(), 0);
-            int used = currentUsed(userId, code, currentPeriod());
-            int preUsed = currentPreUsed(userId, code, currentPeriod());
+            String period = resolvePeriod(benefit);
+            int used = currentUsed(userId, code, period);
+            int preUsed = currentPreUsed(userId, code, period);
             vo.setUsed(used);
             vo.setPreUsed(preUsed);
             vo.setRemaining(Math.max(limit - used - preUsed, 0));
@@ -139,7 +142,7 @@ public class BenefitServiceImpl implements BenefitService {
     @Override
     public BenefitCheckVO consume(Long userId, String code) {
         Benefit benefit = requireBenefit(code);
-        if (!TYPE_QUOTA.equals(benefit.getType())) {
+        if (!TYPE_QUOTA.equals(benefit.getType()) && !TYPE_LIFETIME.equals(benefit.getType())) {
             throw new BusinessException(BenefitErrorCode.NOT_QUOTA_BENEFIT);
         }
 
@@ -150,7 +153,7 @@ public class BenefitServiceImpl implements BenefitService {
         }
 
         int limit = parseInt(planBenefit.getBenefitValue(), 0);
-        String period = currentPeriod();
+        String period = resolvePeriod(benefit);
 
         int updated = benefitUsageMapper.incrementIfBelowLimit(userId, code, period, limit);
         if (updated == 0) {
@@ -158,7 +161,7 @@ public class BenefitServiceImpl implements BenefitService {
             if (existing != null || limit < 1) {
                 throw new BusinessException(BenefitErrorCode.QUOTA_EXHAUSTED);
             }
-            // 本期首次消费：插入用量记录；并发插入冲突时退回到原子 +1
+            // 首次消费：插入用量记录；并发插入冲突时退回到原子 +1
             BenefitUsage usage = new BenefitUsage();
             usage.setUserId(userId);
             usage.setBenefitCode(code);
@@ -189,14 +192,16 @@ public class BenefitServiceImpl implements BenefitService {
 
     @Override
     public void refund(Long userId, String code) {
-        int updated = benefitUsageMapper.decrementIfAboveZero(userId, code, currentPeriod());
-        log.info("权益额度退回 userId={}, code={}, updated={}", userId, code, updated);
+        Benefit benefit = requireBenefit(code);
+        String period = resolvePeriod(benefit);
+        int updated = benefitUsageMapper.decrementIfAboveZero(userId, code, period);
+        log.info("权益额度退回 userId={}, code={}, period={}, updated={}", userId, code, period, updated);
     }
 
     @Override
     public BenefitCheckVO preConsume(Long userId, String code) {
         Benefit benefit = requireBenefit(code);
-        if (!TYPE_QUOTA.equals(benefit.getType())) {
+        if (!TYPE_QUOTA.equals(benefit.getType()) && !TYPE_LIFETIME.equals(benefit.getType())) {
             throw new BusinessException(BenefitErrorCode.NOT_QUOTA_BENEFIT);
         }
 
@@ -207,7 +212,7 @@ public class BenefitServiceImpl implements BenefitService {
         }
 
         int limit = parseInt(planBenefit.getBenefitValue(), 0);
-        String period = currentPeriod();
+        String period = resolvePeriod(benefit);
 
         int updated = benefitUsageMapper.incrementPreIfBelowLimit(userId, code, period, limit);
         if (updated == 0) {
@@ -248,14 +253,18 @@ public class BenefitServiceImpl implements BenefitService {
 
     @Override
     public void confirmPreConsume(Long userId, String code) {
-        int updated = benefitUsageMapper.confirmPreConsume(userId, code, currentPeriod());
-        log.info("权益额度预扣转正 userId={}, code={}, updated={}", userId, code, updated);
+        Benefit benefit = requireBenefit(code);
+        String period = resolvePeriod(benefit);
+        int updated = benefitUsageMapper.confirmPreConsume(userId, code, period);
+        log.info("权益额度预扣转正 userId={}, code={}, period={}, updated={}", userId, code, period, updated);
     }
 
     @Override
     public void cancelPreConsume(Long userId, String code) {
-        int updated = benefitUsageMapper.decrementPreIfAboveZero(userId, code, currentPeriod());
-        log.info("权益额度预扣释放 userId={}, code={}, updated={}", userId, code, updated);
+        Benefit benefit = requireBenefit(code);
+        String period = resolvePeriod(benefit);
+        int updated = benefitUsageMapper.decrementPreIfAboveZero(userId, code, period);
+        log.info("权益额度预扣释放 userId={}, code={}, period={}, updated={}", userId, code, period, updated);
     }
 
     @Override
@@ -325,6 +334,16 @@ public class BenefitServiceImpl implements BenefitService {
 
     private String currentPeriod() {
         return YearMonth.now().toString();
+    }
+
+    /**
+     * 根据权益类型解析周期标识。quota 类按自然月；lifetime 类永久累计。
+     */
+    private String resolvePeriod(Benefit benefit) {
+        if (benefit != null && TYPE_LIFETIME.equals(benefit.getType())) {
+            return LIFETIME_PERIOD;
+        }
+        return currentPeriod();
     }
 
     private int parseInt(String value, int fallback) {

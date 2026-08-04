@@ -58,6 +58,15 @@
         </section>
 
         <!-- ⑤ 全部提示词区 -->
+        <section class="market-rank-entry" @click="goRank">
+          <div class="market-rank-entry__icon"><TrophyOutlined /></div>
+          <div class="market-rank-entry__body">
+            <div class="market-rank-entry__title">收益潜力榜</div>
+            <div class="market-rank-entry__sub">看看谁靠提示词赚得最多 · Top5 有奖</div>
+          </div>
+          <div class="market-rank-entry__arrow">→</div>
+        </section>
+
         <section class="market-grid-section">
           <div class="market-section-head">
             <div class="market-section-title-wrap">
@@ -366,7 +375,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { InfoCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons-vue'
+import { InfoCircleOutlined, QuestionCircleOutlined, TrophyOutlined } from '@ant-design/icons-vue'
 import {
   marketSkills,
   marketStats,
@@ -379,7 +388,7 @@ import {
   loadMarketSkills,
   loadMarketSkillOverview,
   loadMarketSkillPage,
-  loadFavoriteIds,
+  loadFavoriteSkills,
   loadPricePerUse,
   unpublishSkill
 } from '@/composables/useSkillMarket.js'
@@ -419,6 +428,10 @@ const loadRewardConfig = async () => {
 
 const goUpload = () => {
   router.push('/console/skills')
+}
+
+const goRank = () => {
+  router.push('/console/skill-market/rank')
 }
 
 // ④ 排行榜点击 → 打开创作者详情 modal（只查看 ta 对外公布的提示词，不直接使用）
@@ -576,7 +589,7 @@ const handleSimulate = (s) => {
 
 onMounted(() => {
   loadMarketSkills()
-  loadFavoriteIds()
+  loadFavoriteSkills()
   loadMarketSkillOverview()
   loadRewardConfig()
   loadPricePerUse()
@@ -594,6 +607,8 @@ onMounted(() => {
   flex-direction: column;
   gap: var(--space-xl);
   box-sizing: border-box;
+  background: #fafafa;
+  min-height: 100%;
 }
 
 .market-banner {
@@ -812,13 +827,16 @@ body[data-theme="dark"] .market-search-input:focus {
   background: #1f1f1f;
   border-color: var(--color-primary);
 }
-body[data-theme="dark"] .market-tabs { background: #141414; }
-body[data-theme="dark"] .market-tab { color: var(--color-text-secondary); }
+body[data-theme="dark"] .market-tabs { background: #262626; }
+body[data-theme="dark"] .market-tab { color: #a6a6a6; }
 body[data-theme="dark"] .market-tab.active {
-  background: #2a2a2a;
-  color: var(--color-text-primary);
+  background: #1f1f1f;
+  color: var(--color-primary);
   box-shadow: none;
 }
+body[data-theme="dark"] .market-empty { background: #1f1f1f; color: #8c8c8c; }
+body[data-theme="dark"] .market-creators-empty { background: #1f1f1f; }
+body[data-theme="dark"] .market-creator-earning { border-top-color: #303030; }
 
 body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item) {
   background: #1f1f1f;
@@ -875,6 +893,8 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   align-items: start;
 }
 
+.market-rank-entry { display: none; }
+
 .market-main {
   min-width: 0;
   display: flex;
@@ -916,56 +936,228 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
 /* === 响应式 ≤768px === */
 @media (max-width: 768px) {
   .market-page {
-    padding: var(--space-md);
-    gap: var(--space-lg);
+    padding: 16px;
+    gap: 16px;
   }
   .market-banner {
     grid-template-columns: 1fr;
-    padding: var(--space-md);
+    padding: 18px;
+    border-radius: 20px;
+    gap: 16px;
+  }
+  .market-banner-title-wrap {
+    margin-bottom: 4px;
+  }
+  .market-banner-title {
+    font-size: 22px;
+  }
+  .market-banner-sub {
+    font-size: 13px;
+    gap: 8px;
+  }
+  .market-banner-help-icon {
+    font-size: 16px;
   }
   .market-banner-stats {
-    display: flex;
-    overflow-x: auto;
-    gap: var(--space-sm);
-    padding-bottom: var(--space-sm);
-    scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
-            mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 16px), transparent 100%);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    overflow-x: visible;
+    mask-image: none;
+    -webkit-mask-image: none;
+    padding-bottom: 0;
   }
-  .market-banner-stats::-webkit-scrollbar { display: none; }
   .market-banner-stat {
-    flex: 0 0 120px;
-    min-width: 120px;
+    flex: none;
+    min-width: auto;
+    padding: 14px 8px;
+    border-radius: 16px;
+    text-align: center;
   }
+  .market-banner-stat-num {
+    font-size: 20px;
+    color: var(--color-primary, #ff2442);
+  }
+  .market-banner-stat-label {
+    font-size: 11px;
+    margin-top: 2px;
+  }
+
+  .market-content-wrapper {
+    gap: 16px;
+  }
+
   .market-upload-card {
     grid-template-columns: auto 1fr;
-    padding: var(--space-md);
+    padding: 16px;
+    border-radius: 18px;
+    gap: 12px;
   }
-  .market-upload-cta { grid-column: 1 / -1; width: 100%; margin-top: var(--space-sm); }
+  .market-upload-icon {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+  .market-upload-title {
+    font-size: 15px;
+  }
+  .market-upload-sub {
+    font-size: 12px;
+  }
+  .market-upload-cta {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 38px;
+    margin-top: 4px;
+  }
+
+  .market-sidebar { display: none; }
+
+  .market-rank-entry {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: var(--color-bg-card, #fff);
+    border-radius: 18px;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    cursor: pointer;
+  }
+  .market-rank-entry:active { transform: scale(0.99); }
+  .market-rank-entry__icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255, 36, 66, 0.08);
+    color: var(--color-primary, #ff2442);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+  }
+  .market-rank-entry__body { flex: 1; min-width: 0; }
+  .market-rank-entry__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary, #1a1a1a);
+  }
+  .market-rank-entry__sub {
+    font-size: 12px;
+    color: var(--color-text-secondary, #8c8c8c);
+    margin-top: 2px;
+  }
+  .market-rank-entry__arrow {
+    font-size: 18px;
+    color: var(--color-text-placeholder, #bfbfbf);
+  }
+
+  .market-section-head {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  .market-section-title {
+    font-size: 17px;
+  }
+  .market-section-sub {
+    font-size: 13px;
+  }
+
+  .market-search {
+    width: 100%;
+  }
+  .market-search-input {
+    flex: 1;
+    min-width: 0;
+    max-width: none;
+    height: 38px;
+  }
+  .market-search-btn {
+    height: 38px;
+  }
+
+  .market-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+    background: #f5f5f5;
+    border-radius: 999px;
+    padding: 4px;
+    margin-bottom: 12px;
+  }
+  .market-tabs::-webkit-scrollbar { display: none; }
+  .market-tab {
+    flex-shrink: 0;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 13px;
+  }
+  .market-tab.active {
+    background: #fff;
+    color: var(--color-primary, #ff2442);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .market-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .market-creators-list {
+    border-radius: 18px;
+  }
   .market-creator-row {
     grid-template-columns: auto auto 1fr;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    gap: 10px;
+    padding: 12px 14px;
+  }
+  .market-creator-rank {
+    font-size: 16px;
+    min-width: 32px;
+  }
+  .market-creator-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+  .market-creator-name {
+    font-size: 14px;
+  }
+  .market-creator-best {
+    font-size: 11px;
   }
   .market-creator-earning {
     grid-column: 1 / -1;
     display: flex;
     align-items: baseline;
-    gap: var(--space-xs);
+    gap: 6px;
     text-align: left;
+    padding-top: 6px;
+    border-top: 1px dashed var(--color-border-light);
   }
-  .market-creator-amount-label { margin-top: 0; }
-  .market-tabs {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    max-width: 100%;
-    scrollbar-width: none;
+  .market-creator-amount {
+    font-size: 16px;
   }
-  .market-tabs::-webkit-scrollbar { display: none; }
-  .market-tab { flex-shrink: 0; }
-  .market-grid { grid-template-columns: 1fr; }
-  .market-section-head { flex-wrap: wrap; gap: var(--space-sm); }
-  .market-search-input { min-width: 200px; }
+  .market-creator-amount-label {
+    font-size: 11px;
+    margin-top: 0;
+  }
+
+  .market-pagination {
+    justify-content: center;
+    padding-top: 12px;
+  }
+
+  .market-empty {
+    padding: 48px 16px;
+    background: #fff;
+    border-radius: 18px;
+  }
 }
 
 /* === ④ 收益潜力榜（排行榜式列表） === */
@@ -1173,6 +1365,7 @@ body[data-theme="dark"] .market-upload-title { color: var(--color-text-primary);
 body[data-theme="dark"] .market-upload-sub { color: var(--color-text-secondary); }
 
 /* ① 暗色 */
+body[data-theme="dark"] .market-page { background: #141414; }
 body[data-theme="dark"] .market-banner { background: #1f1f1f; }
 body[data-theme="dark"] .market-banner-title { color: #ff6b81; }
 body[data-theme="dark"] .market-banner-sub { color: var(--color-text-secondary); }

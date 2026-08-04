@@ -14,6 +14,7 @@ import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnRecommendedArticleVO;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -47,7 +48,6 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
             n.setParentId(e.getParentId());
             n.setName(e.getName());
             n.setSort(e.getSort());
-            n.setIsRecommended(e.getIsRecommended());
             map.put(e.getId(), n);
         }
         List<LearnCategoryTreeVO> roots = new ArrayList<>();
@@ -138,6 +138,26 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
                     v.setLinkUrl(e.getLinkUrl());
                     return v;
                 }).toList();
+    }
+
+    @Override
+    public List<LearnRecommendedArticleVO> recommendedArticles() {
+        List<LearnArticleEntity> list = articleMapper.selectList(
+                new QueryWrapper<LearnArticleEntity>()
+                        .eq("status", ArticleStatus.PUBLISHED.getCode())
+                        .eq("is_recommended", 1)
+                        .orderByAsc("sort")
+                        .orderByDesc("updated_at"));
+        Map<Long, String> catNames = loadCategoryNames();
+        return list.stream().map(e -> {
+            LearnRecommendedArticleVO v = new LearnRecommendedArticleVO();
+            v.setId(e.getId());
+            v.setTitle(e.getTitle());
+            v.setSummary(e.getSummary());
+            v.setCoverImageUrl(e.getCoverImageUrl());
+            v.setCategoryName(catNames.get(e.getCategoryId()));
+            return v;
+        }).toList();
     }
 
     /**

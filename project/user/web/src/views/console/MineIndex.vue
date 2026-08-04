@@ -2,23 +2,25 @@
   <div class="mine-page">
     <!-- 用户卡 -->
     <section class="mine-user-card">
-      <div class="mine-user-avatar">{{ avatarLetter }}</div>
-      <div class="mine-user-info">
-        <div class="mine-user-name-row">
-          <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
-          <span
-            v-if="hasMembership"
-            class="mine-user-vip"
-            :class="{ 'mine-user-vip-pro': membershipLevel === '专业版会员' }"
-          >
-            <CrownOutlined class="mine-user-vip-icon" />
-            {{ membershipLevel }}
-          </span>
-          <span v-else class="mine-user-vip mine-user-vip-free">免费版</span>
-        </div>
-        <div class="mine-user-email">{{ emailForm.email || 'user@example.com' }}</div>
-        <div v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
-          有效期至 {{ membershipExpiry }}
+      <div class="mine-user-main">
+        <div class="mine-user-avatar">{{ avatarLetter }}</div>
+        <div class="mine-user-info">
+          <div class="mine-user-name-row">
+            <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
+            <span
+              :class="[
+                'mine-user-vip',
+                { 'mine-user-vip-pro': membershipLevel === '专业版会员', 'mine-user-vip-free': !hasMembership }
+              ]"
+            >
+              <CrownOutlined v-if="hasMembership" class="mine-user-vip-icon" />
+              {{ membershipLevel || '免费版' }}
+            </span>
+          </div>
+          <div class="mine-user-email">{{ emailForm.email || 'user@example.com' }}</div>
+          <div v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
+            有效期至 {{ membershipExpiry }}
+          </div>
         </div>
       </div>
       <button class="mine-edit-btn" @click="actions.openProfileModal">
@@ -26,8 +28,8 @@
       </button>
     </section>
 
-    <!-- 数据区 -->
-    <section class="mine-stats">
+    <!-- 数据卡 -->
+    <section class="mine-stats-card">
       <div class="mine-stat-item">
         <div class="mine-stat-value">{{ monthlyWorks }}</div>
         <div class="mine-stat-label">本月已生成</div>
@@ -44,50 +46,48 @@
       </div>
     </section>
 
-    <!-- 我的资产 -->
-    <!-- 我的资产 -->
+    <!-- 常用功能 -->
     <section class="mine-block">
-      <h3 class="mine-section-title">我的资产</h3>
-      <ul class="mine-list">
-        <li class="mine-list-item" @click="$router.push('/console/earnings')">
-          <DollarOutlined class="mine-list-icon" />
-          <span class="mine-list-label">我的账户</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="$router.push('/console/coin')">
-          <WalletOutlined class="mine-list-icon" />
-          <span class="mine-list-label">创作币提现</span>
-          <span class="mine-list-extra">{{ coinBalance }} 币</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-      </ul>
+      <h3 class="mine-section-title">常用功能</h3>
+      <div class="mine-grid">
+        <div class="mine-grid-item" @click="$router.push('/console/works')">
+          <div class="mine-grid-icon mine-grid-icon--works"><ContainerOutlined /></div>
+          <span class="mine-grid-label">我的作品</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/earnings')">
+          <div class="mine-grid-icon mine-grid-icon--earnings"><DollarOutlined /></div>
+          <span class="mine-grid-label">我的账户</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/benefits')">
+          <div class="mine-grid-icon mine-grid-icon--benefits"><CrownOutlined /></div>
+          <span class="mine-grid-label">我的权益</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/invite')">
+          <div class="mine-grid-icon mine-grid-icon--invite"><GiftOutlined /></div>
+          <span class="mine-grid-label">邀请有礼</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/skills')">
+          <div class="mine-grid-icon mine-grid-icon--skills"><SmileOutlined /></div>
+          <span class="mine-grid-label">我的提示词</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/skill-market')">
+          <div class="mine-grid-icon mine-grid-icon--market"><ShopOutlined /></div>
+          <span class="mine-grid-label">提示词市场</span>
+        </div>
+        <div class="mine-grid-item" @click="$router.push('/console/hot-search')">
+          <div class="mine-grid-icon mine-grid-icon--hot"><FireOutlined /></div>
+          <span class="mine-grid-label">热搜榜</span>
+        </div>
+        <div class="mine-grid-item" @click="actions.openRedeemModal">
+          <div class="mine-grid-icon mine-grid-icon--redeem"><TagOutlined /></div>
+          <span class="mine-grid-label">兑换码</span>
+        </div>
+      </div>
     </section>
 
-    <!-- 我的创作 -->
+    <!-- 服务与帮助 -->
     <section class="mine-block">
-      <h3 class="mine-section-title">我的创作</h3>
-      <ul class="mine-list">
-        <li class="mine-list-item" @click="$router.push('/console/skills')">
-          <SmileOutlined class="mine-list-icon" />
-          <span class="mine-list-label">我的提示词</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="$router.push('/console/skill-market')">
-          <ShopOutlined class="mine-list-icon" />
-          <span class="mine-list-label">提示词市场</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="$router.push('/console/hot-search')">
-          <FireOutlined class="mine-list-icon" />
-          <span class="mine-list-label">热搜榜</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-      </ul>
-    </section>
-
-    <!-- 邀请与帮助 -->
-    <section class="mine-block">
-      <h3 class="mine-section-title">邀请与帮助</h3>
+      <h3 class="mine-section-title">服务与帮助</h3>
       <ul class="mine-list">
         <li
           v-if="actions.profile?.value?.inviterUserId == null"
@@ -98,24 +98,10 @@
           <span class="mine-list-label">绑定邀请人</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
-        <li
-          v-else
-          class="mine-list-item"
-        >
+        <li v-else class="mine-list-item">
           <UserAddOutlined class="mine-list-icon" />
           <span class="mine-list-label">我的邀请人</span>
           <span class="mine-list-extra">{{ actions.profile?.value?.inviterNickname || '已绑定' }}</span>
-        </li>
-        <li class="mine-list-item" @click="$router.push('/console/invite')">
-          <GiftOutlined class="mine-list-icon mine-list-icon-gift" />
-          <span class="mine-list-label">邀请有礼</span>
-          <span class="mine-list-tag mine-list-tag-hot">HOT</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openRedeemModal">
-          <TagOutlined class="mine-list-icon" />
-          <span class="mine-list-label">兑换码</span>
-          <RightOutlined class="mine-list-arrow" />
         </li>
         <li class="mine-list-item" @click="actions.openTutorialModal">
           <BookOutlined class="mine-list-icon" />
@@ -190,7 +176,6 @@
       </ul>
     </section>
 
-    <!-- 退出登录：单独、最显眼、放在最底部 -->
     <button class="mine-logout" @click="confirmLogout">
       <LogoutOutlined class="mine-logout-icon" />
       <span>退出登录</span>
@@ -209,7 +194,7 @@ import {
   CrownOutlined,
   EditOutlined,
   DollarOutlined,
-  WalletOutlined,
+  ContainerOutlined,
   SmileOutlined,
   ShopOutlined,
   FireOutlined,
@@ -278,31 +263,34 @@ const openOfficialSite = () => {
 
 <style scoped>
 .mine-page {
-  padding: 20px 16px calc(80px + env(safe-area-inset-bottom));
+  padding: 16px 12px calc(80px + env(safe-area-inset-bottom));
   max-width: 720px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 /* ========== 用户卡 ========== */
 .mine-user-card {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 20px;
-  background: linear-gradient(135deg, #FF2442 0%, #E61E3A 100%);
-  border-radius: 16px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 22px 18px;
+  background: linear-gradient(135deg, #FF2442 0%, #FF4D6F 100%);
+  border-radius: 20px;
   color: #fff;
-  position: relative;
   overflow: hidden;
+  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.22);
 }
 
 .mine-user-card::before {
   content: '';
   position: absolute;
-  top: -40px;
+  top: -50px;
   right: -40px;
-  width: 140px;
-  height: 140px;
+  width: 160px;
+  height: 160px;
   background: rgba(255, 255, 255, 0.08);
   border-radius: 50%;
 }
@@ -310,36 +298,41 @@ const openOfficialSite = () => {
 .mine-user-card::after {
   content: '';
   position: absolute;
-  bottom: -30px;
-  left: -20px;
-  width: 100px;
-  height: 100px;
+  bottom: -40px;
+  left: -30px;
+  width: 120px;
+  height: 120px;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 50%;
 }
 
+.mine-user-main {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+}
+
 .mine-user-avatar {
   flex-shrink: 0;
-  width: 56px;
-  height: 56px;
+  width: 60px;
+  height: 60px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.22);
   border: 2px solid rgba(255, 255, 255, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 700;
   color: #fff;
-  position: relative;
-  z-index: 1;
 }
 
 .mine-user-info {
   flex: 1;
   min-width: 0;
-  position: relative;
-  z-index: 1;
 }
 
 .mine-user-name-row {
@@ -350,8 +343,8 @@ const openOfficialSite = () => {
 }
 
 .mine-user-name {
-  font-size: 17px;
-  font-weight: 600;
+  font-size: 18px;
+  font-weight: 700;
   color: #fff;
 }
 
@@ -376,7 +369,7 @@ const openOfficialSite = () => {
 
 .mine-user-vip-free {
   background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .mine-user-vip-icon {
@@ -384,7 +377,7 @@ const openOfficialSite = () => {
 }
 
 .mine-user-email {
-  margin-top: 4px;
+  margin-top: 5px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.85);
   overflow: hidden;
@@ -400,10 +393,10 @@ const openOfficialSite = () => {
 
 .mine-edit-btn {
   flex-shrink: 0;
-  width: 36px;
-  height: 36px;
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.35);
   background: rgba(255, 255, 255, 0.15);
   color: #fff;
   font-size: 14px;
@@ -416,19 +409,19 @@ const openOfficialSite = () => {
   z-index: 1;
 }
 
-.mine-edit-btn:hover {
+.mine-edit-btn:active {
   background: rgba(255, 255, 255, 0.3);
 }
 
-/* ========== 数据区 ========== */
-.mine-stats {
+/* ========== 数据卡 ========== */
+.mine-stats-card {
   display: flex;
   align-items: stretch;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 18px;
   padding: 18px 8px;
-  margin-top: 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  margin-top: 12px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
 .mine-stat-item {
@@ -436,7 +429,7 @@ const openOfficialSite = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   cursor: default;
 }
 
@@ -464,16 +457,71 @@ const openOfficialSite = () => {
 
 /* ========== 通用 section ========== */
 .mine-block {
-  margin-top: 18px;
+  margin-top: 16px;
 }
 
 .mine-section-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #8c8c8c;
-  padding: 8px 16px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1a1a1a;
+  padding: 10px 12px;
   margin-bottom: 0;
   letter-spacing: 0.5px;
+}
+
+/* ========== 常用功能网格 ========== */
+.mine-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 16px 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+
+.mine-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-grid-item:active {
+  background: #f5f5f5;
+}
+
+.mine-grid-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #FF2442;
+  background: #FFF5F7;
+}
+
+.mine-grid-icon--works { background: #FFF5F7; color: #FF2442; }
+.mine-grid-icon--earnings { background: #FFF5F7; color: #FF2442; }
+.mine-grid-icon--benefits { background: #FFF5F7; color: #FF2442; }
+.mine-grid-icon--invite { background: #FFF7F0; color: #fa8c16; }
+.mine-grid-icon--skills { background: #F0F9FF; color: #1890ff; }
+.mine-grid-icon--market { background: #F0F9FF; color: #1890ff; }
+.mine-grid-icon--hot { background: #FFF5F7; color: #FF2442; }
+.mine-grid-icon--redeem { background: #F6FFED; color: #52c41a; }
+
+.mine-grid-label {
+  font-size: 12px;
+  color: #262626;
+  text-align: center;
+  line-height: 1.2;
 }
 
 /* ========== 列表项 ========== */
@@ -482,16 +530,16 @@ const openOfficialSite = () => {
   margin: 0;
   padding: 0;
   background: #fff;
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
 .mine-list-item {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 16px;
+  padding: 14px 14px;
   cursor: pointer;
   transition: background 0.15s;
   user-select: none;
@@ -516,37 +564,19 @@ const openOfficialSite = () => {
   justify-content: center;
 }
 
-.mine-list-icon-gift {
-  color: #fa8c16;
-}
-
 .mine-list-icon-wechat {
   color: #07c160;
 }
 
 .mine-list-label {
   flex: 1;
-  font-size: 15px;
-  color: #1a1a1a;
+  font-size: 14px;
+  color: #262626;
 }
 
 .mine-list-extra {
   font-size: 13px;
   color: #8c8c8c;
-}
-
-.mine-list-tag {
-  flex-shrink: 0;
-  padding: 1px 6px;
-  font-size: 10px;
-  font-weight: 700;
-  border-radius: 4px;
-  color: #fff;
-  letter-spacing: 0.5px;
-}
-
-.mine-list-tag-hot {
-  background: linear-gradient(135deg, #ff4d4f 0%, #FF2442 100%);
 }
 
 .mine-list-arrow {
@@ -555,38 +585,33 @@ const openOfficialSite = () => {
   color: #bfbfbf;
 }
 
-/* ========== 退出登录：最底部、最显眼 ========== */
+/* ========== 退出登录 ========== */
 .mine-logout {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 10px;
   width: 100%;
-  margin-top: 28px;
-  padding: 18px 20px;
+  margin-top: 24px;
+  padding: 16px 20px;
   background: #fff;
   color: #FF2442;
   border: 1px solid rgba(255, 36, 66, 0.2);
-  border-radius: 14px;
-  font-size: 17px;
-  font-weight: 700;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.1);
+  box-shadow: 0 4px 18px rgba(255, 36, 66, 0.08);
   transition: all 0.2s;
 }
 
-.mine-logout:hover {
-  background: #FFF5F7;
-  border-color: #FF2442;
-  box-shadow: 0 6px 24px rgba(255, 36, 66, 0.18);
-}
-
 .mine-logout:active {
+  background: #FFF5F7;
   transform: scale(0.99);
 }
 
 .mine-logout-icon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .mine-footer {
@@ -596,39 +621,57 @@ const openOfficialSite = () => {
   color: #bfbfbf;
 }
 
-@media (max-width: 768px) {
+/* ========== PC 端适配 ========== */
+@media (min-width: 769px) {
   .mine-page {
-    padding: 16px 12px calc(80px + env(safe-area-inset-bottom));
-    max-width: 100%;
-    margin: 0;
+    padding: 24px 16px calc(80px + env(safe-area-inset-bottom));
   }
 
   .mine-user-card {
-    padding: 16px;
+    padding: 26px 24px;
   }
 
-  .mine-list-item {
-    padding: 14px 12px;
+  .mine-user-avatar {
+    width: 68px;
+    height: 68px;
+    font-size: 26px;
   }
 
-  .mine-section-title {
-    padding: 8px 12px 12px;
+  .mine-user-name {
+    font-size: 20px;
+  }
+
+  .mine-grid {
+    grid-template-columns: repeat(8, 1fr);
+    padding: 18px 16px;
+  }
+
+  .mine-grid-icon {
+    width: 50px;
+    height: 50px;
+    font-size: 22px;
   }
 }
 
 /* ========== 暗色主题 ========== */
+body[data-theme="dark"] .mine-user-card {
+  background: linear-gradient(135deg, #ff4d6f 0%, #e61e3a 100%);
+  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.25);
+}
 
-body[data-theme="dark"] .mine-stats {
+body[data-theme="dark"] .mine-stats-card,
+body[data-theme="dark"] .mine-list,
+body[data-theme="dark"] .mine-grid {
   background: #1f1f1f;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
 }
 
 body[data-theme="dark"] .mine-stat-value {
-  color: #e0e0e0;
+  color: #f5f5f5;
 }
 
 body[data-theme="dark"] .mine-stat-item-coin .mine-stat-value {
-  color: #ff4d6f;
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .mine-stat-divider {
@@ -636,18 +679,27 @@ body[data-theme="dark"] .mine-stat-divider {
 }
 
 body[data-theme="dark"] .mine-section-title {
-  color: #a6a6a6;
-  background: #141414;
+  color: #f5f5f5;
 }
 
-body[data-theme="dark"] .mine-block {
-  background: #141414;
+body[data-theme="dark"] .mine-grid-item:active {
+  background: #2a2a2a;
 }
 
-body[data-theme="dark"] .mine-list {
-  background: #1f1f1f;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+body[data-theme="dark"] .mine-grid-label {
+  color: #e0e0e0;
 }
+
+body[data-theme="dark"] .mine-grid-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .mine-grid-icon--works { background: rgba(255, 36, 66, 0.12); color: #ff6b81; }
+body[data-theme="dark"] .mine-grid-icon--invite { background: rgba(250, 140, 22, 0.12); color: #ffc53d; }
+body[data-theme="dark"] .mine-grid-icon--skills { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
+body[data-theme="dark"] .mine-grid-icon--market { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
+body[data-theme="dark"] .mine-grid-icon--redeem { background: rgba(82, 196, 26, 0.12); color: #95de64; }
 
 body[data-theme="dark"] .mine-list-item + .mine-list-item {
   border-top-color: #303030;
@@ -670,11 +722,7 @@ body[data-theme="dark"] .mine-list-arrow {
 }
 
 body[data-theme="dark"] .mine-list-icon {
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .mine-list-icon-gift {
-  color: #ffa940;
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .mine-list-icon-wechat {
@@ -683,14 +731,13 @@ body[data-theme="dark"] .mine-list-icon-wechat {
 
 body[data-theme="dark"] .mine-logout {
   background: #1f1f1f;
-  color: #ff4d6f;
+  color: #ff6b81;
   border-color: rgba(255, 77, 111, 0.4);
-  box-shadow: 0 4px 16px rgba(255, 77, 111, 0.12);
+  box-shadow: 0 4px 18px rgba(255, 77, 111, 0.1);
 }
 
-body[data-theme="dark"] .mine-logout:hover {
+body[data-theme="dark"] .mine-logout:active {
   background: rgba(255, 77, 111, 0.08);
-  border-color: #ff4d6f;
 }
 
 body[data-theme="dark"] .mine-footer {

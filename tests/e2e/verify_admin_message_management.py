@@ -15,7 +15,7 @@ from pathlib import Path
 
 from playwright.sync_api import sync_playwright
 
-ADMIN_WEB = "http://127.0.0.1:22346"
+ADMIN_WEB = "http://127.0.0.1:22347"
 SCREENSHOT_DIR = Path(__file__).parent / "screenshots"
 SCREENSHOT_DIR.mkdir(exist_ok=True)
 

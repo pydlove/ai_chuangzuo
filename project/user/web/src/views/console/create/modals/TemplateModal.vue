@@ -11,15 +11,12 @@
     <template #title>
       <div class="modal-title-wrap">
         <div class="modal-title">导出模板库</div>
-        <div class="modal-subtitle">共 {{ filteredTemplates.length }} 个模板 · 左侧实时预览 · 右侧选择模板</div>
+        <div class="modal-subtitle">
+          <template v-if="isMobile">共 {{ filteredTemplates.length }} 个模板 · 选择并预览</template>
+          <template v-else>共 {{ filteredTemplates.length }} 个模板 · 左侧实时预览 · 右侧选择模板</template>
+        </div>
       </div>
     </template>
-
-    <!-- 顶部声明：目前不支持自定义导出模板 -->
-    <div class="template-notice">
-      <span class="template-notice-icon">i</span>
-      当前仅提供系统预设模板，暂不支持自定义导出模板。可访问范围由所购套餐决定。
-    </div>
 
     <!-- 平台标签 -->
     <div class="template-tabs">
@@ -67,8 +64,10 @@ import { message } from 'ant-design-vue'
 import { buildLargePreview } from '@/utils/articleTemplates.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useCreateForm } from '../useCreateForm.js'
+import { useDevice } from '@/composables/useDevice.js'
 
 const { templateVisible, selectedTemplateKey } = useCreateForm()
+const { isMobile } = useDevice()
 const { templates: apiTemplates } = useExportTemplates()
 const allTemplates = computed(() => apiTemplates.value)
 
@@ -76,11 +75,11 @@ const templatePlatformTabs = [
   { key: 'all', label: '全部' },
   { key: 'wechat', label: '公众号' },
   { key: 'xiaohongshu', label: '小红书' },
-  { key: 'toutiao', label: '今日头条' },
+  { key: 'toutiao', label: '头条' },
   { key: 'baijiahao', label: '百家号' },
   { key: 'zhihu', label: '知乎' },
-  { key: 'douyin', label: '抖音图文' },
-  { key: 'general', label: '通用提示词' }
+  { key: 'douyin', label: '抖音' },
+  { key: 'general', label: '通用' }
 ]
 const templatePlatformTab = ref('all')
 
@@ -122,45 +121,6 @@ const applyTemplate = () => {
 /* 模板选择 */
 :deep(.template-lib-modal .ant-modal-content) {
   width: 960px;
-}
-
-.template-notice {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  margin-bottom: 12px;
-  border-radius: 8px;
-  background: #fff8e6;
-  border: 1px solid #ffe58f;
-  color: #874d00;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.template-notice-icon {
-  flex-shrink: 0;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #faad14;
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  font-style: italic;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-body[data-theme="dark"] .template-notice {
-  background: rgba(250, 173, 20, 0.12);
-  border-color: rgba(250, 173, 20, 0.35);
-  color: #ffd666;
-}
-
-body[data-theme="dark"] .template-notice-icon {
-  background: #faad14;
 }
 
 .template-tabs {
@@ -373,48 +333,81 @@ body[data-theme="dark"] .template-footer {
 <style>
 @media (max-width: 768px) {
   .template-modal-wrap {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    justify-content: flex-start !important;
+    align-items: flex-end;
   }
 
   .template-modal-wrap .template-modal,
   .template-modal-wrap.ant-modal-centered .template-modal {
-    top: 0 !important;
+    position: absolute !important;
+    top: auto !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     margin: 0 auto !important;
     width: 100% !important;
     max-width: 100vw !important;
-    height: 100vh !important;
-    max-height: 100vh !important;
-    display: flex !important;
-    flex-direction: column !important;
+    height: 90vh !important;
+    max-height: 90vh !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Ant Design Vue 把 ant-modal-content 包在 focus 容器里，需要让容器也撑满 */
+  .template-modal > div:first-of-type {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .template-modal > div:last-of-type {
+    flex: 0 0 0;
+    min-height: 0;
   }
 
   .template-modal .ant-modal-content {
-    border-radius: 0;
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    min-height: 0;
+    width: 100% !important;
+    border-radius: 20px 20px 0 0;
+    padding: 0;
+  }
+
+  .template-modal .ant-modal-header {
+    flex-shrink: 0;
+    border-radius: 20px 20px 0 0;
+    padding: 16px 18px;
+    border-bottom: 1px solid #f0f0f0;
+    margin-bottom: 0;
   }
 
   .template-modal .ant-modal-body {
-    flex: 1;
+    flex: 1 1 0;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    padding: 16px;
+    padding: 14px 18px calc(14px + env(safe-area-inset-bottom));
+    min-height: 0;
   }
 
   .template-modal .template-tabs {
     flex-shrink: 0;
+    gap: 6px;
     padding-bottom: 10px;
     margin-bottom: 12px;
   }
 
+  .template-modal .template-tab {
+    padding: 5px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+  }
+
   .template-modal .template-body {
-    flex: 1;
+    flex: 1 1 0;
     flex-direction: column;
     gap: 12px;
     overflow: hidden;
@@ -427,7 +420,7 @@ body[data-theme="dark"] .template-footer {
     display: flex;
     gap: 10px;
     height: auto;
-    max-height: 130px;
+    max-height: 120px;
     overflow-x: auto;
     overflow-y: hidden;
     padding-right: 0;
@@ -440,12 +433,13 @@ body[data-theme="dark"] .template-footer {
   }
 
   .template-modal .template-row {
-    flex: 0 0 132px;
+    flex: 0 0 128px;
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
     padding: 12px;
     margin-bottom: 0;
+    border-radius: 12px;
   }
 
   .template-modal .template-row-name {
@@ -460,11 +454,10 @@ body[data-theme="dark"] .template-footer {
   /* 预览区放在下方，占据剩余空间 */
   .template-modal .template-preview-pane {
     order: 2;
-    flex: 1;
+    flex: 1 1 0;
     width: 100%;
-    height: auto;
-    max-height: 45vh;
-    min-height: 200px;
+    min-height: 160px;
+    border-radius: 12px;
     overflow-y: auto;
   }
 
@@ -478,7 +471,18 @@ body[data-theme="dark"] .template-footer {
 
   .template-modal .template-apply-btn {
     width: 100%;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 15px;
   }
+}
+
+body[data-theme="dark"] .template-modal .ant-modal-header {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .template-modal .ant-modal-content {
+  background: #1f1f1f;
 }
 
 body[data-theme="dark"] .template-modal .template-footer {

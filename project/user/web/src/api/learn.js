@@ -27,6 +27,13 @@ export function fetchArticle(id) {
 }
 
 /**
+ * 创作学院 - 推荐文章列表。
+ */
+export function fetchRecommendedArticles() {
+  return request.get('/learn/article/recommended')
+}
+
+/**
  * 创作学院 - Banner 列表。
  * @returns {Promise<{code:number, data:Array, message:string}>}
  */

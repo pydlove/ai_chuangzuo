@@ -53,6 +53,34 @@
               <a-button @click="load">重置</a-button>
             </a-space>
           </a-form-item>
+
+          <a-divider orientation="left">AI 提示词学习日限次</a-divider>
+          <p class="section-tip">
+            限制每个用户每天最多可进行 AI 提示词分析的次数，防止反复分析浪费 Token。
+            修改后约 1 分钟内在用户端生效。
+          </p>
+
+          <a-row :gutter="16">
+            <a-col :span="8">
+              <a-form-item label="每日上限（次/天）">
+                <a-input-number
+                  v-model:value="skillAnalyzeDailyLimit"
+                  :min="1"
+                  :max="1000"
+                  :precision="0"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
+
+          <a-form-item>
+            <a-space>
+              <a-button type="primary" :loading="submittingSkillAnalyze" @click="onSubmitSkillAnalyze">
+                保存
+              </a-button>
+            </a-space>
+          </a-form-item>
         </a-form>
       </a-spin>
     </a-card>
@@ -64,6 +92,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { fetchBenefits } from '@/api/benefit.js'
 import { fetchPlanBenefits, upsertPlanBenefit } from '@/api/planBenefit.js'
+import { getSkillAnalyzeConfig, updateSkillAnalyzeConfig } from '@/api/security.js'
 
 const BENEFIT_CODE = 'generation_rate_limit'
 const PLAN_KEYS = ['basic', 'pro', 'flagship']
@@ -71,15 +100,19 @@ const DEFAULT_VALUES = { basic: 3, pro: 5, flagship: 8 }
 
 const loading = ref(false)
 const submitting = ref(false)
+const submittingSkillAnalyze = ref(false)
 const values = reactive({ ...DEFAULT_VALUES })
 const originalValues = reactive({ ...DEFAULT_VALUES })
+const skillAnalyzeDailyLimit = ref(5)
+const originalSkillAnalyzeDailyLimit = ref(5)
 
 async function load() {
   loading.value = true
   try {
-    const [benefitList, planBenefitList] = await Promise.all([
+    const [benefitList, planBenefitList, skillAnalyzeConfig] = await Promise.all([
       fetchBenefits(),
-      fetchPlanBenefits()
+      fetchPlanBenefits(),
+      getSkillAnalyzeConfig()
     ])
 
     const benefit = benefitList.find((b) => b.code === BENEFIT_CODE)
@@ -96,6 +129,13 @@ async function load() {
       values[key] = parsed
       originalValues[key] = parsed
     })
+
+    const parsedDailyLimit = parsePositiveInt(
+      skillAnalyzeConfig?.dailyAttemptLimit,
+      5
+    )
+    skillAnalyzeDailyLimit.value = parsedDailyLimit
+    originalSkillAnalyzeDailyLimit.value = parsedDailyLimit
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {
@@ -124,6 +164,24 @@ async function onSubmit() {
     message.error(e?.message || '保存失败')
   } finally {
     submitting.value = false
+  }
+}
+
+async function onSubmitSkillAnalyze() {
+  if (skillAnalyzeDailyLimit.value === originalSkillAnalyzeDailyLimit.value) {
+    return
+  }
+  submittingSkillAnalyze.value = true
+  try {
+    await updateSkillAnalyzeConfig({
+      dailyAttemptLimit: skillAnalyzeDailyLimit.value
+    })
+    message.success('保存成功')
+    originalSkillAnalyzeDailyLimit.value = skillAnalyzeDailyLimit.value
+  } catch (e) {
+    message.error(e?.message || '保存失败')
+  } finally {
+    submittingSkillAnalyze.value = false
   }
 }
 

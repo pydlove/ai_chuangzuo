@@ -6,7 +6,7 @@ import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
 public interface CommissionService {
-    IPage<CommissionTaskVO> list(Integer status, int page, int pageSize);
+    IPage<CommissionTaskVO> list(String status, int page, int pageSize);
     CommissionTaskDetailVO detail(Long userId, Long taskId);
     Long submit(Long userId, Long taskId, String articleBizNo);
     void withdraw(Long userId, Long submissionId);

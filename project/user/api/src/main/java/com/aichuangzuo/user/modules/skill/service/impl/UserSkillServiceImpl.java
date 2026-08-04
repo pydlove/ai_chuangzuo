@@ -43,7 +43,9 @@ public class UserSkillServiceImpl implements UserSkillService {
     private static final int MAX_SCOPE_TAGS = 3;
     private static final int MAX_SCOPE_TAG_LENGTH = 8;
     private static final int SOURCE_TYPE_CUSTOM = 1;
+    private static final int SOURCE_TYPE_LEARNED = 2;
     private static final String BENEFIT_CODE_STYLE_CUSTOM = "skill_custom";
+    private static final String BENEFIT_CODE_LEARN_ANALYZE = "skill_learn_analyze";
     private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
     private static final int AUDIT_STATUS_PENDING = 0;
     private static final int AUDIT_STATUS_APPROVED = 1;
@@ -86,6 +88,15 @@ public class UserSkillServiceImpl implements UserSkillService {
         ensureNameNotExists(userId, skillName, null);
         ensureSkillQuotaNotExceeded(userId);
 
+        Integer sourceType = request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType();
+        if (sourceType == SOURCE_TYPE_LEARNED) {
+            try {
+                benefitService.consume(userId, BENEFIT_CODE_LEARN_ANALYZE);
+            } catch (BusinessException e) {
+                throw new BusinessException(SkillErrorCode.SKILL_LEARN_QUOTA_EXCEEDED);
+            }
+        }
+
         UserSkill skill = new UserSkill();
         skill.setBizNo(generateBizNo());
         skill.setUserId(userId);
@@ -95,7 +106,7 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setExcerpt2(excerpt2);
         skill.setDescription(description);
         skill.setScope(scope);
-        skill.setSourceType(request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType());
+        skill.setSourceType(sourceType);
         skill.setAuditStatus(0);
         skill.setUseCount(0);
 

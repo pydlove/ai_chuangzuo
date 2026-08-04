@@ -1,5 +1,6 @@
 <template>
-  <PullToRefresh :full-page="true">
+  <MobileLogin v-if="isMobile" />
+  <PullToRefresh v-else :full-page="true">
     <div class="login-page">
     <!-- 背景装饰 -->
     <div class="login-bg">
@@ -52,6 +53,8 @@
             placeholder="请输入密码"
           />
         </div>
+
+        <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
 
         <button class="submit-btn" @click="handleLogin">登录</button>
 
@@ -155,6 +158,8 @@
           />
         </div>
 
+        <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
+
         <button class="submit-btn" @click="handleRegister">注册</button>
       </div>
     </div>
@@ -204,19 +209,34 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
-import { getRefFromUrl } from '@/composables/useInviteCode'
-import { sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
+import MobileLogin from '@/views/MobileLogin.vue'
+import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
+import { useDevice } from '@/composables/useDevice.js'
+import { useLogin } from '@/composables/useLogin.js'
 
-const router = useRouter()
+const { isMobile } = useDevice()
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const {
+  activeTab,
+  showInviteBanner,
+  agreed,
+  agreementShakeCount,
+  loginForm,
+  registerForm,
+  sliderModalVisible,
+  sliderModalPassed,
+  loginSliderModalVisible,
+  loginModalPassed,
+  codeCountdown,
+  openSliderModal,
+  handleLogin,
+  handleRegister
+} = useLogin()
 
 const navLinks = [
   { to: '/', label: '首页' },
@@ -227,10 +247,7 @@ const navLinks = [
 const ctaTo = '/login'
 const ctaLabel = '开始创作'
 
-// ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移 ----------
-// 在 window 上监听 mousemove，根据鼠标相对卡片中心的距离，
-// 把卡片朝鼠标方向 translate 一个像素量（最大 ±8px）。
-// transition 让移动有一点"律动"延迟感。
+// ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移（仅 PC） ----------
 const cardRef = ref(null)
 const MAGNET_OFFSET_PX = 8
 
@@ -242,208 +259,18 @@ const onPageMouseMove = (e) => {
   const cardCenterY = rect.top + rect.height / 2
   const dx = e.clientX - cardCenterX
   const dy = e.clientY - cardCenterY
-  // 归一化到 [-1, 1]：鼠标越偏离屏幕中心，偏移越接近最大值
   const nx = Math.max(-1, Math.min(1, dx / (window.innerWidth / 2)))
   const ny = Math.max(-1, Math.min(1, dy / (window.innerHeight / 2)))
   card.style.setProperty('--mx', `${nx * MAGNET_OFFSET_PX}px`)
   card.style.setProperty('--my', `${ny * MAGNET_OFFSET_PX}px`)
 }
 
-// ---------- 主题切换由 NavBar 组件统一处理 ----------
-
-const activeTab = ref('login')
-const showInviteBanner = ref(false)
-
-const loginForm = reactive({
-  email: 'py_world@163.com',
-  password: '123456'
-})
-
-const registerForm = reactive({
-  email: 'py_world@163.com',
-  code: '',
-  password: '',
-  confirmPassword: '',
-  inviteCode: ''
-})
-
-// ---------- 滑块弹框：纯前端 UX mock，通过后直接调后端 ----------
-// 注册流程：滑块弹框状态
-const sliderModalVisible = ref(false)
-const sliderModalPassed = ref(false)
-let modalSending = false  // 防止 watch 在 close → reset 路径上重复触发
-
-// 登录流程：滑块弹框状态
-const loginSliderModalVisible = ref(false)
-const loginModalPassed = ref(false)
-let loginModalSending = false
-
-// 注册弹框内滑块通过 → 调发送邮箱验证码接口
-watch(sliderModalPassed, async (val) => {
-  if (!val || modalSending) return
-  modalSending = true
-  try {
-    await sendEmailCode({ email: registerForm.email })
-    startCodeCountdown()
-    message.success('验证码已发送')
-  } catch (err) {
-    message.error(err?.message || '发送失败')
-  } finally {
-    sliderModalVisible.value = false
-    modalSending = false
-  }
-})
-
-// 登录弹框内滑块通过 → 调后端登录接口
-watch(loginModalPassed, async (val) => {
-  if (!val || loginModalSending) return
-  loginModalSending = true
-  try {
-    const res = await loginApi({
-      email: loginForm.email,
-      password: loginForm.password
-    })
-    persistTokens(res.data)
-    message.success('登录成功')
-    loginSliderModalVisible.value = false
-    router.push('/console')
-  } catch (err) {
-    message.error(err?.message || '登录失败')
-    loginSliderModalVisible.value = false
-  } finally {
-    loginModalSending = false
-  }
-})
-
-// 打开注册滑块弹框
-const openSliderModal = () => {
-  if (codeCountdown.value > 0) return
-  if (!registerForm.email) {
-    message.warning('请先填写邮箱')
-    return
-  }
-  if (!EMAIL_REGEX.test(registerForm.email)) {
-    message.warning('邮箱格式不正确')
-    return
-  }
-  sliderModalPassed.value = false
-  sliderModalVisible.value = true
-}
-
-// 打开登录滑块弹框
-const openLoginSliderModal = async () => {
-  if (!loginForm.email) {
-    message.warning('请填写邮箱')
-    return
-  }
-  if (!loginForm.password) {
-    message.warning('请填写密码')
-    return
-  }
-  loginModalPassed.value = false
-  loginSliderModalVisible.value = true
-}
-
-// ---------- 邮箱验证码倒计时 ----------
-const codeCountdown = ref(0)
-let countdownTimer = null
-
-const startCodeCountdown = () => {
-  codeCountdown.value = 60
-  if (countdownTimer) clearInterval(countdownTimer)
-  countdownTimer = setInterval(() => {
-    codeCountdown.value--
-    if (codeCountdown.value <= 0) {
-      clearInterval(countdownTimer)
-      countdownTimer = null
-    }
-  }, 1000)
-}
-
-const persistTokens = (data) => {
-  localStorage.setItem('aichuangzuo_access_token', data.accessToken)
-  localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
-  // 登录/注册切换账号时，清空旧的本地会员缓存，避免右上角显示成上一个账号的会员
-  localStorage.removeItem('aichuangzuo_membership')
-  // 切换账号后重新判断新人弹框资格
-  localStorage.removeItem('aichuangzuo_newcomer_modal_dismissed')
-  localStorage.removeItem('aichuangzuo_invite_modal_dismissed')
-}
-
-const handleLogin = async () => {
-  await openLoginSliderModal()
-}
-
-const handleRegister = async () => {
-  // 前端基础校验：按填写顺序给出明确提示
-  if (!registerForm.email) {
-    message.warning('请输入邮箱')
-    return
-  }
-  if (!EMAIL_REGEX.test(registerForm.email)) {
-    message.warning('邮箱格式不正确')
-    return
-  }
-  if (!registerForm.code) {
-    message.warning('请输入邮箱验证码')
-    return
-  }
-  if (!/^\d{6}$/.test(registerForm.code)) {
-    message.warning('邮箱验证码为 6 位数字')
-    return
-  }
-  if (!registerForm.password) {
-    message.warning('请输入密码')
-    return
-  }
-  if (registerForm.password.length < 6 || registerForm.password.length > 20) {
-    message.warning('密码长度需在 6-20 位之间')
-    return
-  }
-  if (!registerForm.confirmPassword) {
-    message.warning('请再次输入确认密码')
-    return
-  }
-  if (registerForm.password !== registerForm.confirmPassword) {
-    message.warning('两次输入的密码不一致')
-    return
-  }
-
-  const inviteCode = registerForm.inviteCode.trim().toUpperCase()
-
-  try {
-    const res = await registerApi({
-      email: registerForm.email,
-      emailCode: registerForm.code,
-      password: registerForm.password,
-      confirmPassword: registerForm.confirmPassword,
-      inviteCode: inviteCode || undefined
-    })
-    persistTokens(res.data)
-    message.success('注册成功')
-
-    router.push('/console')
-  } catch (err) {
-    message.error(err?.message || '注册失败')
-  }
-}
-
 onMounted(() => {
   window.addEventListener('mousemove', onPageMouseMove)
-  const ref = getRefFromUrl()
-  if (ref) {
-    registerForm.inviteCode = ref
-    showInviteBanner.value = true
-    activeTab.value = 'register'
-  }
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('mousemove', onPageMouseMove)
-  if (countdownTimer) {
-    clearInterval(countdownTimer)
-    countdownTimer = null
-  }
 })
 </script>
 

@@ -2047,7 +2047,7 @@ cd /Users/panyong/aio_project/ai_chuangzuo/project/admin/web
 npm run dev > /tmp/admin-web-e2e.log 2>&1 &
 for i in 1 2 3 4 5 6 7 8 9 10 11 12; do
   if curl -sS http://localhost:26060/api/v1/admin/auth/login -X POST -H 'Content-Type: application/json' -d '{"username":"admin","password":"Root1qaz!QAZ"}' >/dev/null 2>&1 \
-     && curl -sS http://localhost:22346/ -o /dev/null -w "%{http_code}" 2>/dev/null | grep -q "200"; then
+     && curl -sS http://localhost:22347/ -o /dev/null -w "%{http_code}" 2>/dev/null | grep -q "200"; then
     echo "ready after ${i}s"; break
   fi
   sleep 2
@@ -2062,7 +2062,7 @@ from playwright.sync_api import sync_playwright
 import requests
 from pathlib import Path
 
-BASE_URL = 'http://localhost:22346'
+BASE_URL = 'http://localhost:22347'
 API_URL = 'http://localhost:26060'
 SCREENSHOT_DIR = Path(__file__).resolve().parent / 'screenshots'
 

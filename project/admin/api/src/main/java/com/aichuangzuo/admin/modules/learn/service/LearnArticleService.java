@@ -27,4 +27,6 @@ public interface LearnArticleService {
     void move(Long id, Long categoryId);
 
     void sortBatch(List<LearnSortReq.SortItem> items);
+
+    void setRecommended(Long id, Integer recommended);
 }

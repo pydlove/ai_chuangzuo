@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 import requests
 
-BASE_URL = 'http://localhost:22346'
+BASE_URL = 'http://localhost:22347'
 API_URL = 'http://localhost:26060'
 
 

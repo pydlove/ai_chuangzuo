@@ -458,17 +458,17 @@ function confirmWithdraw() {
   white-space: nowrap;
 }
 .adopter-block .submitter-avatar {
-  background: linear-gradient(135deg, #f6d365 0%, #fda085 100%);
+  background: linear-gradient(135deg, #ff4d6f 0%, #ff2442 100%);
 }
 .adopter-block .submitter-count {
-  background: #fff7e6;
-  color: #d48806;
+  background: rgba(255, 36, 66, 0.08);
+  color: var(--color-primary, #ff2442);
 }
 
 body[data-theme="dark"] .submitter-block h3 { color: #f5f5f5; }
 body[data-theme="dark"] .submitter-avatar { border-color: #1f1f1f; }
 body[data-theme="dark"] .submitter-count { background: #262626; color: #bfbfbf; }
-body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; color: #ffac33; }
+body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 36, 66, 0.12); color: #ff6b81; }
 
 @media (max-width: 768px) {
   .submitter-avatar {
@@ -559,8 +559,8 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; c
   margin: 14px 0;
   padding: 10px 12px;
   border-radius: 10px;
-  background: #e6f7ed;
-  color: #07c160;
+  background: rgba(255, 36, 66, 0.08);
+  color: var(--color-primary, #ff2442);
   font-size: 13px;
   font-weight: 500;
 }
@@ -583,11 +583,11 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: #2b2115; c
   font-size: 12px;
   font-weight: 500;
 }
-.status-0 { color: #1677ff; background: #e6f4ff; }
-.status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #07c160; background: #e6f7ed; }
-.submission-0 { color: #1677ff; background: #e6f4ff; }
-.submission-1 { color: #07c160; background: #e6f7ed; }
+.status-0 { color: var(--color-primary, #ff2442); background: rgba(255, 36, 66, 0.1); }
+.status-1 { color: #ff4d6f; background: rgba(255, 77, 111, 0.1); }
+.status-2 { color: #8c8c8c; background: #f5f5f5; }
+.submission-0 { color: var(--color-primary, #ff2442); background: rgba(255, 36, 66, 0.1); }
+.submission-1 { color: #ff4d6f; background: rgba(255, 77, 111, 0.1); }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }
 .submission-3 { color: #bfbfbf; background: #fafafa; }
 
@@ -817,8 +817,12 @@ body[data-theme="dark"] .article-item.selected .article-icon {
   color: #fff;
 }
 body[data-theme="dark"] .secondary-btn { background: #2a2a2a; color: #d9d9d9; }
+body[data-theme="dark"] .status-2 { color: #a6a6a6; background: #262626; }
+body[data-theme="dark"] .submission-2 { color: #a6a6a6; background: #262626; }
+body[data-theme="dark"] .submission-3 { color: #8c8c8c; background: #1a1a1a; }
 body[data-theme="dark"] .reward-result {
-  background: rgba(7, 193, 96, 0.15);
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
 }
 
 @media (max-width: 1024px) {
@@ -826,30 +830,125 @@ body[data-theme="dark"] .reward-result {
   .action-panel { position: static; }
 }
 @media (max-width: 768px) {
-  .detail-page { padding-bottom: 104px; }
-  .detail-grid { grid-template-columns: minmax(0, 1fr); }
-  .content-panel { padding: 20px 18px; }
-  .content-head h1 { font-size: 24px; }
-  .meta-row,
-  .action-head,
-  .fact-row { flex-wrap: wrap; }
+  .detail-page {
+    padding: 16px 16px 104px;
+    background: #fafafa;
+    min-height: 100%;
+  }
+  .back-btn { display: none; }
+  .detail-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .content-panel,
+  .action-panel > * {
+    border-radius: 18px;
+  }
+  .content-panel { padding: 18px; }
+  .content-head { margin-bottom: 14px; }
+  .content-head .status-tag { margin-bottom: 10px; }
+  .content-head h1 { font-size: 20px; }
+  .source-line { font-size: 12px; }
+  .meta-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    padding: 12px 0;
+    margin-bottom: 14px;
+    font-size: 12px;
+  }
+  .meta-row strong {
+    display: block;
+    font-size: 15px;
+    margin-bottom: 2px;
+  }
+
+  .submitter-block { margin: 14px 0; }
+  .submitter-block h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .submitter-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    margin-left: -8px;
+  }
+  .submitter-count {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+
+  .description-block { margin-top: 14px; }
+  .description-block h3 {
+    font-size: 13px;
+    margin-bottom: 8px;
+  }
+  .description {
+    font-size: 13px;
+    line-height: 1.75;
+  }
+
   .action-panel {
     position: static;
     top: auto;
+    gap: 12px;
   }
   .action-card,
   .fact-card,
-  .reward-card { padding: 18px; }
-  .reward-card { border-radius: 20px; }
+  .reward-card { padding: 16px; }
+  .reward-card {
+    border-radius: 18px;
+    gap: 4px;
+  }
+  .reward-label { font-size: 11px; }
   .reward-value { font-size: 28px; }
+  .reward-value small { font-size: 12px; }
+  .reward-note { font-size: 11px; }
+
+  .action-head { margin-bottom: 10px; }
+  .action-title { font-size: 14px; }
+  .action-desc {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  .submission-info h4 { font-size: 13px; }
+  .submission-info p { font-size: 11px; }
+  .reward-result {
+    margin: 12px 0;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .fact-card { padding: 14px 16px; }
+  .fact-row {
+    padding: 6px 0;
+    font-size: 12px;
+  }
+  .fact-row strong {
+    font-size: 13px;
+    max-width: 60%;
+    text-align: right;
+    word-break: break-all;
+  }
+
+  .primary-btn,
+  .secondary-btn {
+    min-height: 44px;
+    font-size: 14px;
+    border-radius: 12px;
+  }
   .action-panel .primary-btn,
   .action-panel .secondary-btn {
-    width: min(100%, 320px);
+    width: 100%;
   }
+
   :deep(.ant-modal) {
     width: min(560px, calc(100vw - 24px)) !important;
     max-width: none;
   }
+
   .mobile-submit-bar {
     display: flex;
     align-items: center;
@@ -861,7 +960,7 @@ body[data-theme="dark"] .reward-result {
     bottom: 12px;
     padding: 12px 14px;
     border: 1px solid #f0f0f0;
-    border-radius: 14px;
+    border-radius: 16px;
     background: #fff;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     z-index: 50;
@@ -883,6 +982,7 @@ body[data-theme="dark"] .reward-result {
     border-color: #303030;
   }
   body[data-theme="dark"] .mobile-submit-bar > span { color: #bfbfbf; }
+  body[data-theme="dark"] .detail-page { background: #141414; }
 }
 </style>
 

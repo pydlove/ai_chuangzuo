@@ -834,7 +834,7 @@ cd /Users/panyong/aio_project/ai_chuangzuo
 bash scripts/local/admin-full-stack/start.sh
 ```
 
-Expected: 后端启动在 26060，前端启动在 22346。
+Expected: 后端启动在 26060，前端启动在 22347。
 
 - [ ] **Step 2: 登录获取 token**
 
@@ -874,7 +874,7 @@ Expected: 均返回 `code: 0`；重置密码返回 `data.newPassword = "adc12345
 
 - [ ] **Step 5: 浏览器验证前端页面**
 
-Open http://localhost:22346/login，使用 admin/Root1qaz!QAZ 登录，进入"用户管理"页面，确认：
+Open http://localhost:22347/login，使用 admin/Root1qaz!QAZ 登录，进入"用户管理"页面，确认：
 - 表格加载出真实用户数据
 - 搜索、分页正常
 - 禁用/启用按钮可切换状态

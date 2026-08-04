@@ -1,13 +1,14 @@
 <template>
   <div class="create-index">
-    <div class="topbar-right">
+    <div v-if="!isMobile" class="topbar-right">
       <span class="quota-text">本月剩余 <strong>{{ quotaRemaining }}</strong> / {{ quotaTotal }} 次</span>
       <button class="topbar-btn" @click="queueOpen = true">
         队列<template v-if="activeCount > 0">（{{ activeCount }}）</template>
       </button>
     </div>
 
-    <MinimalPanel />
+    <MobileCreate v-if="isMobile" />
+    <MinimalPanel v-else />
 
     <QueueDrawer v-model:open="queueOpen" />
     <PlatformModal />
@@ -21,6 +22,7 @@
 import { computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useDevice } from '@/composables/useDevice.js'
 import {
   currentSkill,
   applySkill as applySkillShared,
@@ -29,12 +31,13 @@ import {
   loadLearnedSkills,
   restoreLastSkill
 } from '@/composables/useSkills.js'
-import { marketSkills, loadMarketSkills, loadFavoriteIds } from '@/composables/useSkillMarket.js'
+import { marketSkills, loadMarketSkills, loadFavoriteSkills } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
 import { useGenerationQueue } from './create/useGenerationQueue.js'
 import MinimalPanel from './create/MinimalPanel.vue'
+import MobileCreate from './create/MobileCreate.vue'
 import QueueDrawer from './create/QueueDrawer.vue'
 import PlatformModal from './create/modals/PlatformModal.vue'
 import WordCountModal from './create/modals/WordCountModal.vue'
@@ -43,6 +46,7 @@ import TemplateModal from './create/modals/TemplateModal.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { isMobile } = useDevice()
 
 // 导出模板（从 API 加载）
 const { templates: apiTemplates, load: loadExportTemplates } = useExportTemplates()
@@ -74,7 +78,7 @@ onMounted(async () => {
     loadMySkills().catch(() => {}),
     loadLearnedSkills().catch(() => {}),
     loadMarketSkills().catch(() => {}),
-    loadFavoriteIds().catch(() => {})
+    loadFavoriteSkills().catch(() => {})
   ])
 
   // 所有 skills 加载完成后，恢复上次本地记住的 skill
@@ -209,6 +213,10 @@ body[data-theme="dark"] .create-index {
 }
 
 @media (max-width: 768px) {
+  .create-index {
+    padding: 0;
+  }
+
   .topbar-right {
     top: 4px;
     right: 4px;

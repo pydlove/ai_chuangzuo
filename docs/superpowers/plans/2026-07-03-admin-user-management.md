@@ -747,13 +747,13 @@ export default router
 
 - [ ] **Step 2: 验证 dev server**
 
-启动 dev server 后访问 `http://localhost:22346/` 应重定向到 `/login`（未登录）或 `/console/users`（已登录）。
+启动 dev server 后访问 `http://localhost:22347/` 应重定向到 `/login`（未登录）或 `/console/users`（已登录）。
 
 ```bash
 cd project/admin/web && npm run dev
 ```
 
-Expected: 服务器在 22346 启动，无报错。
+Expected: 服务器在 22347 启动，无报错。
 
 - [ ] **Step 3: Commit**
 
@@ -778,7 +778,7 @@ git commit -m "refactor(admin): 控制台路由改为带 AdminLayout 的嵌套�
 from playwright.sync_api import sync_playwright
 import time
 
-BASE_URL = 'http://localhost:22346'
+BASE_URL = 'http://localhost:22347'
 
 
 def login_as_admin(page):

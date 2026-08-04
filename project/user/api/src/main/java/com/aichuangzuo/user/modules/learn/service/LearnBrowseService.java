@@ -4,6 +4,7 @@ import com.aichuangzuo.user.modules.learn.vo.LearnArticleVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
+import com.aichuangzuo.user.modules.learn.vo.LearnRecommendedArticleVO;
 
 import java.util.List;
 
@@ -20,4 +21,7 @@ public interface LearnBrowseService {
 
     /** Banner 列表（所有未删除，按 sort ASC） */
     List<LearnBannerVO> banners();
+
+    /** 推荐文章列表（仅已发布且 isRecommended=1） */
+    List<LearnRecommendedArticleVO> recommendedArticles();
 }

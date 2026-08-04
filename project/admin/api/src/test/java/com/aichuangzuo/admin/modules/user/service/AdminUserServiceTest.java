@@ -1,5 +1,9 @@
 package com.aichuangzuo.admin.modules.user.service;
 
+import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
+import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.admin.modules.skill.market.mapper.UserMarketFavoriteMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.entity.UserInviteRelation;
@@ -7,8 +11,10 @@ import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.impl.AdminUserServiceImpl;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
@@ -26,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -46,6 +53,12 @@ class AdminUserServiceTest {
 
     @Mock
     private PasswordEncoder passwordEncoder;
+
+    @Mock
+    private SkillMarketMapper skillMarketMapper;
+
+    @Mock
+    private UserMarketFavoriteMapper userMarketFavoriteMapper;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
@@ -269,21 +282,82 @@ class AdminUserServiceTest {
     }
 
     @Test
-    void getUserInviteDetail_shouldReturnEmptyWhenNoRelations() {
+    void listUserFavoriteSkills_shouldReturnFavoriteSkillsWithPublisher() {
         PlatformUser user = new PlatformUser();
         user.setId(1L);
-        user.setEmail("user@example.com");
-        user.setInviteCode("ABC123");
         user.setIsDeleted(0);
 
+        UserMarketFavorite favorite = new UserMarketFavorite();
+        favorite.setUserId(1L);
+        favorite.setMarketSkillId("S0001");
+        favorite.setCreatedAt(LocalDateTime.of(2026, 8, 1, 10, 0, 0));
+
+        SkillMarket market = new SkillMarket();
+        market.setBizNo("S0001");
+        market.setSkillName("收藏提示词");
+        market.setPromptSummary("摘要");
+        market.setPrompt("提示词内容");
+        market.setScope("小红书");
+        market.setPublisherUserId(2L);
+        market.setAuditStatus(1);
+
+        PlatformUser publisher = new PlatformUser();
+        publisher.setId(2L);
+        publisher.setEmail("publisher@example.com");
+        publisher.setNickname("发布者");
+        publisher.setIsDeleted(0);
+
         when(platformUserMapper.selectById(1L)).thenReturn(user);
-        when(userInviteRelationMapper.selectByInviteeId(1L)).thenReturn(null);
-        when(userInviteRelationMapper.selectInviteeIdsByInviterId(1L)).thenReturn(Collections.emptyList());
+        when(userMarketFavoriteMapper.selectList(any())).thenReturn(Arrays.asList(favorite));
+        when(skillMarketMapper.selectList(any())).thenReturn(Arrays.asList(market));
+        when(platformUserMapper.selectBatchIds(Arrays.asList(2L))).thenReturn(Arrays.asList(publisher));
 
-        AdminUserInviteDetailVO result = adminUserService.getUserInviteDetail(1L);
+        List<AdminUserFavoriteSkillVO> result = adminUserService.listUserFavoriteSkills(1L);
 
-        assertEquals("ABC123", result.getInviteCode());
-        assertNull(result.getInviter());
-        assertTrue(result.getInvitees().isEmpty());
+        assertEquals(1, result.size());
+        assertEquals("S0001", result.get(0).getBizNo());
+        assertEquals("收藏提示词", result.get(0).getSkillName());
+        assertEquals("publisher@example.com", result.get(0).getPublisherEmail());
+        assertEquals("发布者", result.get(0).getPublisherNickname());
+        assertNotNull(result.get(0).getFavoriteAt());
+    }
+
+    @Test
+    void listUserPublishedSkills_shouldReturnPendingAndApprovedMarketSkills() {
+        PlatformUser user = new PlatformUser();
+        user.setId(1L);
+        user.setIsDeleted(0);
+
+        SkillMarket pending = new SkillMarket();
+        pending.setBizNo("S0001");
+        pending.setSkillName("待审核提示词");
+        pending.setPromptSummary("摘要1");
+        pending.setScope("小红书");
+        pending.setPublisherUserId(1L);
+        pending.setAuditStatus(0);
+        pending.setTotalUses(0);
+        pending.setCreatedAt(LocalDateTime.now());
+
+        SkillMarket approved = new SkillMarket();
+        approved.setBizNo("S0002");
+        approved.setSkillName("已发布提示词");
+        approved.setPromptSummary("摘要2");
+        approved.setScope("公众号");
+        approved.setPublisherUserId(1L);
+        approved.setAuditStatus(1);
+        approved.setTotalUses(5);
+        approved.setCreatedAt(LocalDateTime.now());
+
+        when(platformUserMapper.selectById(1L)).thenReturn(user);
+        when(skillMarketMapper.selectList(any())).thenReturn(Arrays.asList(pending, approved));
+
+        List<AdminUserPublishedSkillVO> result = adminUserService.listUserPublishedSkills(1L);
+
+        assertEquals(2, result.size());
+        assertEquals("S0001", result.get(0).getBizNo());
+        assertEquals(0, result.get(0).getAuditStatus());
+        assertEquals("S0002", result.get(1).getBizNo());
+        assertEquals(1, result.get(1).getAuditStatus());
+        assertEquals(5, result.get(1).getTotalUses());
     }
 }

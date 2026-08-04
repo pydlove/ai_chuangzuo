@@ -3,6 +3,10 @@ package com.aichuangzuo.admin.modules.user.service.impl;
 import com.aichuangzuo.admin.modules.benefit.entity.BenefitUsageAggregate;
 import com.aichuangzuo.admin.modules.benefit.mapper.BenefitUsageAdminMapper;
 import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
+import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
+import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.admin.modules.skill.market.mapper.UserMarketFavoriteMapper;
 import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
@@ -17,12 +21,14 @@ import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
 import com.aichuangzuo.admin.modules.user.util.UserExcelImportUtil;
 import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportRowErrorVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteeVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserResetPasswordVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
@@ -59,6 +65,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final PasswordEncoder passwordEncoder;
     private final SkillReviewMapper skillReviewMapper;
+    private final SkillMarketMapper skillMarketMapper;
+    private final UserMarketFavoriteMapper userMarketFavoriteMapper;
     private final BenefitUsageAdminMapper benefitUsageAdminMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
@@ -69,6 +77,8 @@ public class AdminUserServiceImpl implements AdminUserService {
     private static final String BENEFIT_CODE_CUSTOM_SKILL = "skill_custom";
     private static final int SOURCE_TYPE_CUSTOM = 1;
     private static final int SOURCE_TYPE_LEARN = 2;
+    private static final int AUDIT_STATUS_PENDING = 0;
+    private static final int AUDIT_STATUS_APPROVED = 1;
     private static final String PERIOD_PATTERN = "^\\d{4}-\\d{2}$";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
 
@@ -459,6 +469,101 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setAuditStatus(skill.getAuditStatus());
         vo.setCreatedAt(skill.getCreatedAt());
         return vo;
+    }
+
+    @Override
+    public List<AdminUserPublishedSkillVO> listUserPublishedSkills(Long userId) {
+        ensureUserExists(userId);
+
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getPublisherUserId, userId)
+                .eq(SkillMarket::getIsDeleted, 0)
+                .and(w -> w.eq(SkillMarket::getAuditStatus, AUDIT_STATUS_PENDING)
+                        .or()
+                        .eq(SkillMarket::getAuditStatus, AUDIT_STATUS_APPROVED))
+                .orderByDesc(SkillMarket::getCreatedAt);
+        return skillMarketMapper.selectList(wrapper).stream()
+                .map(this::toAdminUserPublishedSkillVO)
+                .collect(Collectors.toList());
+    }
+
+    private AdminUserPublishedSkillVO toAdminUserPublishedSkillVO(SkillMarket market) {
+        AdminUserPublishedSkillVO vo = new AdminUserPublishedSkillVO();
+        vo.setBizNo(market.getBizNo());
+        vo.setSkillName(market.getSkillName());
+        vo.setPromptSummary(market.getPromptSummary());
+        vo.setPrompt(market.getPrompt());
+        vo.setScope(market.getScope());
+        vo.setPrice(market.getPrice());
+        vo.setTotalUses(market.getTotalUses());
+        vo.setAuditStatus(market.getAuditStatus());
+        vo.setCreatedAt(market.getCreatedAt());
+        return vo;
+    }
+
+    @Override
+    public List<AdminUserFavoriteSkillVO> listUserFavoriteSkills(Long userId) {
+        ensureUserExists(userId);
+
+        LambdaQueryWrapper<UserMarketFavorite> favoriteWrapper = new LambdaQueryWrapper<>();
+        favoriteWrapper.eq(UserMarketFavorite::getUserId, userId)
+                .orderByDesc(UserMarketFavorite::getCreatedAt);
+        List<UserMarketFavorite> favorites = userMarketFavoriteMapper.selectList(favoriteWrapper);
+        if (favorites.isEmpty()) {
+            return List.of();
+        }
+
+        List<String> skillBizNos = favorites.stream()
+                .map(UserMarketFavorite::getMarketSkillId)
+                .filter(StringUtils::hasText)
+                .distinct()
+                .toList();
+
+        LambdaQueryWrapper<SkillMarket> marketWrapper = new LambdaQueryWrapper<>();
+        marketWrapper.in(SkillMarket::getBizNo, skillBizNos);
+        List<SkillMarket> markets = skillMarketMapper.selectList(marketWrapper);
+        Map<String, SkillMarket> marketMap = markets.stream()
+                .collect(Collectors.toMap(SkillMarket::getBizNo, m -> m, (a, b) -> a));
+
+        List<Long> publisherIds = markets.stream()
+                .map(SkillMarket::getPublisherUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        Map<Long, PlatformUser> publisherMap = publisherIds.isEmpty()
+                ? Map.of()
+                : platformUserMapper.selectBatchIds(publisherIds).stream()
+                        .filter(u -> u.getIsDeleted() == 0)
+                        .collect(Collectors.toMap(PlatformUser::getId, u -> u));
+
+        Map<String, LocalDateTime> favoriteAtMap = favorites.stream()
+                .filter(f -> StringUtils.hasText(f.getMarketSkillId()))
+                .collect(Collectors.toMap(
+                        UserMarketFavorite::getMarketSkillId,
+                        f -> f.getCreatedAt() != null ? f.getCreatedAt() : LocalDateTime.MIN,
+                        (a, b) -> a));
+
+        return skillBizNos.stream()
+                .map(marketMap::get)
+                .filter(Objects::nonNull)
+                .map(market -> {
+                    AdminUserFavoriteSkillVO vo = new AdminUserFavoriteSkillVO();
+                    vo.setBizNo(market.getBizNo());
+                    vo.setSkillName(market.getSkillName());
+                    vo.setPromptSummary(market.getPromptSummary());
+                    vo.setPrompt(market.getPrompt());
+                    vo.setScope(market.getScope());
+                    vo.setPrice(market.getPrice());
+                    vo.setAuditStatus(market.getAuditStatus());
+                    vo.setFavoriteAt(favoriteAtMap.get(market.getBizNo()));
+                    PlatformUser publisher = publisherMap.get(market.getPublisherUserId());
+                    if (publisher != null) {
+                        vo.setPublisherEmail(publisher.getEmail());
+                        vo.setPublisherNickname(publisher.getNickname());
+                    }
+                    return vo;
+                })
+                .collect(Collectors.toList());
     }
 
     @Override

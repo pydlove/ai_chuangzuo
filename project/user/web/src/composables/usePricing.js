@@ -1,7 +1,14 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { subscribe, getPlanCatalog, getNewcomerOffer } from '@/api/membership'
+import { subscribe, getPlanCatalog, getNewcomerOffer, getMyMembership, previewUpgrade } from '@/api/membership'
+
+const PLAN_RANK = {
+  free: 0,
+  basic: 1,
+  pro: 2,
+  flagship: 3
+}
 
 export function usePricing() {
   const router = useRouter()
@@ -18,6 +25,13 @@ export function usePricing() {
 
   const newcomerOffer = ref(null)
   const newcomerLoading = ref(false)
+
+  const currentMembership = ref(null)
+  const membershipLoading = ref(false)
+
+  const upgradeModalVisible = ref(false)
+  const upgradePreview = ref(null)
+  const upgradeLoading = ref(false)
 
   const planKeyToName = {
     basic: '基础版',
@@ -37,6 +51,8 @@ export function usePricing() {
     { key: 'quarter', label: '季度' },
     { key: 'year', label: '年度' }
   ]
+
+  const isLoggedIn = () => !!localStorage.getItem('aichuangzuo_access_token')
 
   onMounted(async () => {
     catalogLoading.value = true
@@ -75,38 +91,108 @@ export function usePricing() {
       catalogLoading.value = false
     }
 
-    if (localStorage.getItem('aichuangzuo_access_token')) {
+    if (isLoggedIn()) {
+      membershipLoading.value = true
       newcomerLoading.value = true
       try {
-        const res = await getNewcomerOffer()
-        const data = res.data || res
-        if (data?.eligible) {
-          newcomerOffer.value = data
+        const [membershipRes, newcomerRes] = await Promise.all([
+          getMyMembership(),
+          getNewcomerOffer()
+        ])
+        const membershipData = membershipRes.data || membershipRes
+        if (membershipData?.hasMembership) {
+          currentMembership.value = membershipData
+          if (membershipData.cycle && cycles.some(c => c.key === membershipData.cycle)) {
+            activeCycle.value = membershipData.cycle
+          }
+        }
+        const newcomerData = newcomerRes.data || newcomerRes
+        if (newcomerData?.eligible) {
+          newcomerOffer.value = newcomerData
           if (route.query.newcomer === '1') {
             activeCycle.value = 'year'
           }
         }
       } catch {
+        currentMembership.value = null
         newcomerOffer.value = null
       } finally {
+        membershipLoading.value = false
         newcomerLoading.value = false
       }
     }
   })
 
-  const handleSubscribe = (plan) => {
-    if (!localStorage.getItem('aichuangzuo_access_token')) {
+  const currentPlanKey = () => {
+    if (!currentMembership.value) return 'free'
+    return currentMembership.value.level || 'free'
+  }
+
+  const cycleLocked = () => {
+    return !!currentMembership.value?.cycle
+  }
+
+  const currentCycle = () => {
+    const membershipCycle = currentMembership.value?.cycle
+    if (membershipCycle) {
+      activeCycle.value = membershipCycle
+      return membershipCycle
+    }
+    return activeCycle.value
+  }
+
+  const setCycle = (key) => {
+    if (cycleLocked()) return
+    activeCycle.value = key
+  }
+
+  const getPlanButton = (plan) => {
+    const currentKey = currentPlanKey()
+    if (currentKey === plan.key) {
+      return { text: '当前订阅', action: 'current', disabled: true }
+    }
+    if (PLAN_RANK[plan.key] > PLAN_RANK[currentKey]) {
+      return { text: '升级套餐', action: 'upgrade', disabled: false, primary: true }
+    }
+    if (PLAN_RANK[plan.key] < PLAN_RANK[currentKey]) {
+      return { text: '立即订阅', action: 'disabled', disabled: true }
+    }
+    return { text: '立即订阅', action: 'subscribe', disabled: false }
+  }
+
+  const handleSubscribe = async (plan) => {
+    const btn = getPlanButton(plan)
+    if (btn.disabled) return
+
+    if (!isLoggedIn()) {
       message.info('请先登录后再订阅')
       router.push('/login')
       return
     }
     selectedPlan.value = plan
     payCode.value = ''
+    upgradePreview.value = null
+
+    const currentKey = currentPlanKey()
+    if (PLAN_RANK[plan.key] > PLAN_RANK[currentKey]) {
+      upgradeLoading.value = true
+      try {
+        const res = await previewUpgrade({ planKey: plan.key, cycle: currentCycle() })
+        upgradePreview.value = res.data || res
+        upgradeModalVisible.value = true
+      } catch (err) {
+        message.error(err.message || '升级预览失败')
+      } finally {
+        upgradeLoading.value = false
+      }
+      return
+    }
+
     modalVisible.value = true
   }
 
   const handleNewcomerSubscribe = () => {
-    if (!localStorage.getItem('aichuangzuo_access_token')) {
+    if (!isLoggedIn()) {
       message.info('请先登录后再订阅')
       router.push('/login')
       return
@@ -117,6 +203,12 @@ export function usePricing() {
     selectedPlan.value = plan
     activeCycle.value = 'year'
     payCode.value = ''
+    upgradePreview.value = null
+    modalVisible.value = true
+  }
+
+  const confirmUpgrade = () => {
+    upgradeModalVisible.value = false
     modalVisible.value = true
   }
 
@@ -127,13 +219,20 @@ export function usePricing() {
     }
 
     const plan = selectedPlan.value
-    const cycle = activeCycle.value
+    const cycle = currentCycle()
     const isNewcomerDeal = newcomerOffer.value &&
       plan.key === newcomerOffer.value.planKey &&
       cycle === newcomerOffer.value.cycle
-    const price = isNewcomerDeal
-      ? { current: newcomerOffer.value.finalPrice }
-      : plan[cycle === 'month' ? 'monthly' : cycle]
+      cycle === newcomerOffer.value.cycle
+
+    let price
+    if (upgradePreview.value && upgradePreview.value.targetPlanKey === plan.key && upgradePreview.value.targetCycle === cycle) {
+      price = { current: upgradePreview.value.finalPrice }
+    } else if (isNewcomerDeal) {
+      price = { current: newcomerOffer.value.finalPrice }
+    } else {
+      price = plan[cycle === 'month' ? 'monthly' : cycle]
+    }
 
     subscribeLoading.value = true
     try {
@@ -144,12 +243,20 @@ export function usePricing() {
         amount: price.current
       })
       const data = res.data
-      message.success('订阅成功')
+      message.success(upgradePreview.value ? '升级成功' : '订阅成功')
       localStorage.setItem('aichuangzuo_membership', JSON.stringify({
         level: planKeyToName[data.level] || plan.name,
         expiresAt: data.expiresAt
       }))
       modalVisible.value = false
+      upgradeModalVisible.value = false
+      upgradePreview.value = null
+      currentMembership.value = {
+        hasMembership: true,
+        level: data.level,
+        levelName: planKeyToName[data.level] || plan.name,
+        expiresAt: data.expiresAt
+      }
       router.push('/console/create')
     } catch (err) {
       message.error(err.message || '订阅失败，请重试')
@@ -204,18 +311,27 @@ export function usePricing() {
     catalogLoading,
     newcomerOffer,
     newcomerLoading,
+    currentMembership,
+    membershipLoading,
+    upgradeModalVisible,
+    upgradePreview,
+    upgradeLoading,
     planKeyToName,
     cycleLabel,
     activeCycle,
     cycles,
+    cycleLocked,
+    setCycle,
     getPeriodLabel,
     getPrice,
     getArticles,
     getSavings,
     cellValue,
     getCell,
+    getPlanButton,
     handleSubscribe,
     handleNewcomerSubscribe,
+    confirmUpgrade,
     handlePay,
     scrollToCompare
   }

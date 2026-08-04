@@ -1,6 +1,11 @@
 <template>
   <div v-if="topics.length > 0 || refreshing" class="topic-capsules">
-    <span class="topic-capsules-label">没灵感？点一个快速开始：</span>
+    <div class="topic-capsules-header">
+      <span class="topic-capsules-label">{{ isMobile ? '没灵感？试试这些' : '没灵感？点一个快速开始：' }}</span>
+      <button class="refresh-capsule" :disabled="refreshing" @click="refreshTopics">
+        {{ refreshing ? '思考中…' : (isMobile ? '换一换' : '换一批') }}
+      </button>
+    </div>
     <div v-if="refreshing" class="topic-capsules-loading">
       <span class="topic-loading-text">
         <span
@@ -13,24 +18,33 @@
       <span class="topic-dots"><span></span><span></span><span></span></span>
     </div>
     <div v-else class="topic-capsules-grid">
-      <a-tooltip
-        v-for="topic in topics"
-        :key="topic.id"
-        :title="topic.title"
-        placement="top"
-      >
+      <template v-for="topic in topics" :key="topic.id">
+        <a-tooltip
+          v-if="!isMobile"
+          :title="topic.title"
+          placement="top"
+        >
+          <button
+            :class="['topic-capsule', { used: isUsed(topic) }]"
+            :disabled="isUsed(topic)"
+            @click="isUsed(topic) ? null : applyTopic(topic)"
+          >
+            {{ topic.title }}
+          </button>
+        </a-tooltip>
         <button
-          :class="['topic-capsule', { used: isUsed(topic) }]"
+          v-else
+          :class="['topic-capsule topic-capsule--mobile', { used: isUsed(topic) }]"
           :disabled="isUsed(topic)"
           @click="isUsed(topic) ? null : applyTopic(topic)"
         >
+          <svg class="topic-capsule-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
           {{ topic.title }}
         </button>
-      </a-tooltip>
+      </template>
     </div>
-    <button class="refresh-capsule" :disabled="refreshing" @click="refreshTopics">
-      {{ refreshing ? '思考中…' : '换一批' }}
-    </button>
   </div>
 </template>
 
@@ -39,10 +53,12 @@ import { ref, onMounted, watch } from 'vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
+import { useDevice } from '@/composables/useDevice.js'
 
 const emit = defineEmits(['apply'])
 const { customTitle, customRequirement } = useCreateForm()
 const { queueList } = useGenerationQueue()
+const { isMobile } = useDevice()
 
 const topics = ref([])
 const refreshing = ref(false)
@@ -58,8 +74,10 @@ const loadingChars = loadingText.split('')
 
 const loadTopics = async () => {
   try {
-    const list = await fetchRandomTopics(6)
-    topics.value = (list || []).map(t => ({ id: t.id, title: t.title, summary: t.summary }))
+    // 手机端一行一个，最多显示三行，因此只取 3 条；桌面端取 6 条
+    const count = isMobile.value ? 3 : 6
+    const list = await fetchRandomTopics(count)
+    topics.value = (list || []).slice(0, count).map(t => ({ id: t.id, title: t.title, summary: t.summary }))
   } catch {
     topics.value = []
   }
@@ -136,6 +154,13 @@ defineExpose({ loadTopics, markUsed })
   margin-bottom: 16px;
   flex-shrink: 0;
   min-width: 0;
+}
+
+.topic-capsules-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
 .topic-capsules-label {
@@ -262,8 +287,69 @@ defineExpose({ loadTopics, markUsed })
 }
 
 @media (max-width: 768px) {
+  .topic-capsules {
+    gap: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .topic-capsules-label {
+    font-size: 12px;
+    color: #8c8c8c;
+  }
+
   .refresh-capsule {
     align-self: center;
+    margin-top: 0;
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 12px;
+  }
+
+  .topic-capsules {
+    gap: 8px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+  }
+
+  .topic-capsules-label {
+    font-size: 12px;
+  }
+
+  .topic-capsules-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .topic-capsule--mobile {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #595959;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    text-align: left;
+    box-sizing: border-box;
+  }
+
+  .topic-capsule--mobile:hover {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+    background: #fff0f2;
+  }
+
+  .topic-capsule-icon {
+    flex-shrink: 0;
+    width: 12px;
+    height: 12px;
+    color: var(--color-primary);
+    opacity: 0.8;
   }
 }
 

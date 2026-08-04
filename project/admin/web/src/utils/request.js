@@ -3,7 +3,9 @@ import storage from '@/utils/storage.js'
 import { useUserStore } from '@/stores/user.js'
 
 const request = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
+  // 开发环境：/api 由 Vite proxy 转发到后端（见 vite.config.js）
+  // 生产环境：优先使用 VITE_API_BASE_URL；未配置时走相对路径 /api/v1/admin，由 Nginx 转发到 admin-api
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api/v1/admin',
   timeout: 30000
 })
 

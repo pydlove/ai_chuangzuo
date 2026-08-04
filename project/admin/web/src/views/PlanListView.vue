@@ -191,7 +191,7 @@
                   />
                 </template>
 
-                <template v-else-if="benefit.type === 'quota'">
+                <template v-else-if="benefit.type === 'quota' || benefit.type === 'lifetime'">
                   <div class="quota-editor">
                     <a-switch
                       :checked="isQuotaEnabled(benefit.code)"
@@ -346,19 +346,21 @@ function parseBenefitOptions(benefit) {
 function benefitTypeColor(type) {
   if (type === 'boolean') return 'blue'
   if (type === 'quota') return 'orange'
+  if (type === 'lifetime') return 'green'
   return 'purple'
 }
 
 function benefitTypeLabel(type) {
   if (type === 'boolean') return '功能开关'
   if (type === 'quota') return '使用额度'
+  if (type === 'lifetime') return '永久额度'
   if (type === 'tier') return '服务等级'
   return '配置项'
 }
 
 function defaultBenefitValue(benefit) {
   if (benefit.type === 'boolean') return 'false'
-  if (benefit.type === 'quota') return '0'
+  if (benefit.type === 'quota' || benefit.type === 'lifetime') return '0'
   return parseBenefitOptions(benefit)[0]?.value || ''
 }
 
@@ -370,7 +372,7 @@ function fillBenefitValues(planKey) {
     const value = planBenefitValueMap[`${planKey}:${benefit.code}`] ?? defaultBenefitValue(benefit)
     benefitValues[benefit.code] = String(value)
     originalBenefitValues[benefit.code] = String(value)
-    if (benefit.type === 'quota' && Number(value) !== 0) {
+    if ((benefit.type === 'quota' || benefit.type === 'lifetime') && Number(value) !== 0) {
       quotaPreviousValues[benefit.code] = String(value)
     }
   })

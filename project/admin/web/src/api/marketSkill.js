@@ -6,7 +6,7 @@ export function listMarketSkills(params = {}) {
   if (enableStatus !== undefined && enableStatus !== null && enableStatus !== '') {
     query.enableStatus = enableStatus
   }
-  return request.get('/api/v1/admin/market-skills', { params: query }).then((body) => {
+  return request.get('/market-skills', { params: query }).then((body) => {
     const data = body.data || {}
     const rows = data.records || data.list || []
     return {
@@ -17,13 +17,13 @@ export function listMarketSkills(params = {}) {
 }
 
 export function createMarketSkill(data) {
-  return request.post('/api/v1/admin/market-skills', data).then((body) => body.data)
+  return request.post('/market-skills', data).then((body) => body.data)
 }
 
 export function updateMarketSkill(bizNo, data) {
-  return request.put(`/api/v1/admin/market-skills/${bizNo}`, data)
+  return request.put(`/market-skills/${bizNo}`, data)
 }
 
 export function deleteMarketSkill(bizNo) {
-  return request.delete(`/api/v1/admin/market-skills/${bizNo}`)
+  return request.delete(`/market-skills/${bizNo}`)
 }

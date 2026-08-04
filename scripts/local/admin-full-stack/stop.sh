@@ -7,7 +7,7 @@ PID_DIR="${ROOT_DIR}/logs/.pids"
 BACKEND_PID_FILE="${PID_DIR}/admin-api.pid"
 FRONTEND_PID_FILE="${PID_DIR}/admin-web.pid"
 BACKEND_PORT=26060
-FRONTEND_PORT=22346
+FRONTEND_PORT=22347
 
 stop_one() {
   local name=$1

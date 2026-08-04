@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.skill.market.service;
 
+import com.aichuangzuo.user.modules.skill.market.vo.MarketSkillVO;
+
 import java.util.List;
 
 /**
@@ -8,12 +10,13 @@ import java.util.List;
 public interface UserMarketFavoriteService {
 
     /**
-     * 查询当前用户收藏的市场 skill id 列表。
+     * 查询当前用户收藏的市场 skill 详情列表。
+     * <p>返回结果包含已下架/已删除的 skill，方便前端展示收藏但不可用状态。
      *
      * @param userId 用户主键
-     * @return 市场 skill id 列表，按收藏时间倒序
+     * @return 市场 skill 视图对象列表，按收藏时间倒序
      */
-    List<String> listFavoriteIds(Long userId);
+    List<MarketSkillVO> listFavoriteSkills(Long userId);
 
     /**
      * 收藏市场 skill。

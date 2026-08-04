@@ -13,7 +13,7 @@
 
 前置条件：
   - admin-api 运行在 26060，user-api 运行在 25050
-  - user-web 运行在 22345，admin-web 运行在 22346
+  - user-web 运行在 22345，admin-web 运行在 22347
   - DB 已执行 V2.0.0_001 ~ V2.0.0_019
   - 默认模板 id=1 存在且为已发布状态
   - 已 seed admin / user 测试账号且用户有足够的创作币余额

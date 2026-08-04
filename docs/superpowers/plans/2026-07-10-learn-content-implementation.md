@@ -3402,7 +3402,7 @@ if (q.getStatus() != null && !q.getStatus().isBlank()) {
 | admin 视图命名 | `views/learn/CategoryManage.vue` 等 | 扁平 `views/*View.vue`（与项目 25 个既有视图一致） | `LearnCategoryView.vue`/`LearnArticleListView.vue`/`LearnArticleEditView.vue` |
 | admin request baseURL | `/admin/learn/...` | `VITE_API_BASE_URL`（无默认），调用方写完整 `/api/v1/admin/...` | api/learn.js 内联 `BASE = '/api/v1/admin/learn'` |
 | user request baseURL | `/api/v1/learn/...` | `/api/v1/user`（默认），调用方写相对 `/learn/...` | api/learn.js 调 `request.get('/learn/...')` |
-| admin Vite 端口 | 8080 | 22346 | E2E 脚本改 `ADMIN_URL=http://localhost:22346` |
+| admin Vite 端口 | 8080 | 22347 | E2E 脚本改 `ADMIN_URL=http://localhost:22347` |
 | user Vite 端口 | 5173 | 22345 | E2E 脚本改 `USER_URL=http://localhost:22345` |
 
 **Why**：admin 与 user 前端的 axios baseURL 策略不同；admin 路由必须嵌套在 `AdminLayout` 之下才会渲染侧边栏菜单；视图命名沿用项目扁平约定可避免新建子目录造成不一致。

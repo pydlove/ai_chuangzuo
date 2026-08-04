@@ -50,6 +50,26 @@ class LearnBrowseServiceImplTest {
     }
 
     @Test
+    void recommendedArticles_returnsOnlyPublishedRecommendedArticles() {
+        LearnCategoryEntity c1 = insertCategory(null, "C1", 1);
+        LearnCategoryEntity c2 = insertCategory(null, "C2", 2);
+
+        // 已发布 + 推荐：应返回
+        LearnArticleEntity rec1 = insertArticle(c1.getId(), "Rec1", 1, ArticleStatus.PUBLISHED, 1);
+        // 已发布 + 未推荐：应过滤
+        insertArticle(c1.getId(), "Normal", 2, ArticleStatus.PUBLISHED, 0);
+        // 草稿 + 推荐：应过滤
+        insertArticle(c2.getId(), "DraftRec", 1, ArticleStatus.DRAFT, 1);
+
+        var list = service.recommendedArticles();
+
+        assertEquals(1, list.size());
+        assertEquals(rec1.getId(), list.get(0).getId());
+        assertEquals("Rec1", list.get(0).getTitle());
+        assertEquals("C1", list.get(0).getCategoryName());
+    }
+
+    @Test
     void shouldChainArticlesAcrossCategories() {
         // C1 (sort=1) → A1, A2;  C2 (sort=2) → A3;  C3 (sort=3) → A4
         LearnCategoryEntity c1 = insertCategory(null, "C1", 1);
@@ -154,6 +174,10 @@ class LearnBrowseServiceImplTest {
     }
 
     private LearnArticleEntity insertArticle(Long categoryId, String title, int sort, ArticleStatus status) {
+        return insertArticle(categoryId, title, sort, status, 0);
+    }
+
+    private LearnArticleEntity insertArticle(Long categoryId, String title, int sort, ArticleStatus status, int isRecommended) {
         LearnArticleEntity e = new LearnArticleEntity();
         e.setCategoryId(categoryId);
         e.setTitle(title);
@@ -162,6 +186,7 @@ class LearnBrowseServiceImplTest {
         e.setContent("# " + title);
         e.setStatus(status);
         e.setSort(sort);
+        e.setIsRecommended(isRecommended);
         e.setPublishedAt(status == ArticleStatus.PUBLISHED ? LocalDateTime.now() : null);
         articleMapper.insert(e);
         return e;

@@ -16,4 +16,7 @@ public class SkillAnalyzeVO {
 
     /** 四段式 skill 提示词（≤1200 字，可直接入库 u_user_skill.prompt）。 */
     private String prompt;
+
+    /** 一句话描述该提示词适合写什么（≤100 字，可入库 u_user_skill.description）。 */
+    private String description;
 }

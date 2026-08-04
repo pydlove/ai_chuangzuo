@@ -38,6 +38,8 @@ public class LearnArticleEntity {
 
     private Integer sort;
 
+    private Integer isRecommended;
+
     private Long authorId;
 
     private LocalDateTime publishedAt;

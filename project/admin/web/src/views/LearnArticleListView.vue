@@ -52,11 +52,17 @@
               {{ record.status === 'published' ? '已发布' : '草稿' }}
             </a-tag>
           </template>
+          <template v-else-if="column.key === 'isRecommended'">
+            <a-tag v-if="record.isRecommended === 1" color="red">推荐</a-tag>
+            <span v-else style="color: #bfbfbf">—</span>
+          </template>
           <template v-else-if="column.key === 'contentType'">
             <a-tag>{{ record.contentType === 'markdown' ? 'Markdown' : '富文本' }}</a-tag>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a @click="$router.push(`/console/learn/article/edit/${record.id}`)">编辑</a>
+            <a-divider type="vertical" />
+            <a @click="onRecommend(record)">{{ record.isRecommended === 1 ? '取消推荐' : '推荐' }}</a>
             <a-divider type="vertical" />
             <a v-if="record.status !== 'published'" @click="onPublish(record)">发布</a>
             <a v-else @click="onUnpublish(record)">下线</a>
@@ -79,6 +85,7 @@ import {
   publishArticle,
   unpublishArticle,
   deleteArticle,
+  recommendArticle,
   fetchCategoryTree
 } from '@/api/learn'
 
@@ -120,9 +127,10 @@ const columns = [
   { title: '分类', key: 'category', customRender: ({ record }) => categoryNameMap.value[record.categoryId] || record.categoryId },
   { title: '类型', key: 'contentType', width: 100 },
   { title: '状态', key: 'status', width: 90 },
+  { title: '推荐', key: 'isRecommended', width: 80 },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 70 },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
-  { title: '操作', key: 'actions', width: 200, fixed: 'right' }
+  { title: '操作', key: 'actions', width: 240, fixed: 'right' }
 ]
 
 async function load() {
@@ -162,6 +170,16 @@ async function onUnpublish(r) {
 async function onDelete(r) {
   try { await deleteArticle(r.id); message.success('已删除'); load() }
   catch (e) { message.error(e?.message || '删除失败') }
+}
+async function onRecommend(r) {
+  try {
+    const next = r.isRecommended === 1 ? 0 : 1
+    await recommendArticle(r.id, next)
+    message.success(next === 1 ? '已推荐' : '已取消推荐')
+    load()
+  } catch (e) {
+    message.error(e?.message || '操作失败')
+  }
 }
 
 onMounted(() => { loadCategories(); load() })

@@ -649,13 +649,13 @@ export default router
 
 - [ ] **Step 2: 验证 dev server**
 
-启动 dev server 后访问 `http://localhost:22346/console/styles`，应显示风格审核列表。
+启动 dev server 后访问 `http://localhost:22347/console/styles`，应显示风格审核列表。
 
 ```bash
 cd project/admin/web && npm run dev
 ```
 
-Expected: 服务器在 22346 启动，无报错。
+Expected: 服务器在 22347 启动，无报错。
 
 - [ ] **Step 3: Commit**
 
@@ -680,7 +680,7 @@ git commit -m "feat(admin): 控制台路由新增 /console/styles 风格审核"
 from playwright.sync_api import sync_playwright
 import time
 
-BASE_URL = 'http://localhost:22346'
+BASE_URL = 'http://localhost:22347'
 
 
 def login_as_admin(page):

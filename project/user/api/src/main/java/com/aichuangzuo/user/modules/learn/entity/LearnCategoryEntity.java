@@ -26,8 +26,6 @@ public class LearnCategoryEntity {
 
     private Integer sort;
 
-    private Integer isRecommended;
-
     @TableLogic
     @TableField(select = false)
     private Integer isDeleted;

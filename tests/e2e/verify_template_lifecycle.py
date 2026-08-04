@@ -14,7 +14,7 @@
 
 前置条件：
   - admin-api 运行在 26060，user-api 运行在 25050
-  - admin-web 运行在 22346，user-web 运行在 22345
+  - admin-web 运行在 22347，user-web 运行在 22345
   - DB 已执行 V2.0.0_001 ~ V2.0.0_018
   - 默认模板 id=1 存在且为已发布状态
   - 已 seed admin / user 测试账号
@@ -29,7 +29,7 @@ from pathlib import Path
 import requests
 from playwright.sync_api import sync_playwright
 
-ADMIN_WEB = "http://localhost:22346"
+ADMIN_WEB = "http://localhost:22347"
 ADMIN_API = "http://localhost:26060/api/v1/admin"
 USER_WEB = "http://localhost:22345"
 USER_API = "http://localhost:25050/api/v1/user"

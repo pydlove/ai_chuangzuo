@@ -1,0 +1,16 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS a_skill_analyze_config (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID，固定为1',
+    daily_attempt_limit INT UNSIGNED NOT NULL DEFAULT 5 COMMENT '每个用户每天最多可进行 AI 提示词分析的次数',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='AI 提示词分析安全配置（单行配置 id=1）';
+
+INSERT INTO a_skill_analyze_config (id, daily_attempt_limit)
+VALUES (1, 5)
+ON DUPLICATE KEY UPDATE id = id;

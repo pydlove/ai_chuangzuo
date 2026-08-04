@@ -52,6 +52,11 @@
           自己使用自己的提示词不会产生收益。
         </div>
 
+        <div v-if="skill.desc" class="skill-detail-section">
+          <div class="skill-detail-section-title">简短描述</div>
+          <div class="skill-detail-desc">{{ skill.desc }}</div>
+        </div>
+
         <div v-if="scopeTags.length" class="skill-detail-section">
           <div class="skill-detail-section-title">适用范围</div>
           <div class="skill-detail-scope-list">
@@ -249,6 +254,15 @@ const formatTimeAgo = (value) => {
   color: var(--color-text-primary);
   white-space: pre-wrap;
   word-break: break-word;
+}
+
+.skill-detail-desc {
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-secondary);
 }
 .skill-detail-excerpt {
   background: var(--color-bg-page);

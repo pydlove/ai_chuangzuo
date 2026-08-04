@@ -18,7 +18,7 @@
 - 品牌色 `#FF2442`，圆角卡片 `8px`。
 - 移动端断点 `< 992px`。
 - 环境变量：`MYSQL_USERNAME=root`, `MYSQL_PASSWORD=123456`, `JASYPT_ENCRYPTOR_PASSWORD=MySecretKey2024`。
-- 端口：admin-api 25051，user-api 25050，admin-web 22346，user-web 22345。
+- 端口：admin-api 26060，user-api 25050，admin-web 22347，user-web 22345。
 
 ---
 
@@ -855,7 +855,7 @@ onMounted(load)
 
 - [ ] **Step 5: 验证**
 
-启动 admin-api 和 admin-web，访问 `http://localhost:22346/console/learn/banner`，确认：
+启动 admin-api 和 admin-web，访问 `http://localhost:22347/console/learn/banner`，确认：
 - 页面加载正常
 - 点击「新增 Banner」弹框正常
 - 填写图片 URL + 排序，保存后表格刷新显示
@@ -1166,7 +1166,7 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 - Create: `tests/e2e/learn_banner.py`
 
 **Interfaces:**
-- Consumes: 运行中的 admin-api（25051）、user-api（25050）、user-web（22345）
+- Consumes: 运行中的 admin-api（26060）、user-api（25050）、user-web（22345）
 
 - [ ] **Step 1: 编写脚本**
 
@@ -1175,7 +1175,7 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 """用户端 - 创作学院 banner + 推荐分类端到端验证。
 
 前置条件：
-- admin-api 启动（25051）
+- admin-api 启动（26060）
 - user-api 启动（25050）
 - user-web dev 启动（22345）
 - 已通过管理端录入至少 1 个 banner、至少 1 个推荐分类

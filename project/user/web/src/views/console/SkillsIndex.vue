@@ -253,13 +253,13 @@
       <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
         <div v-if="isLearning" class="style-add-card learning-progress-card">
           <div class="style-add-icon"><a-spin /></div>
-          <div class="style-add-text">AI 正在分析原文提示词…</div>
+          <div class="style-add-text learning-progress-text">灵犀同学正在帮您分析…</div>
         </div>
         <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
           <div class="style-add-icon">✓</div>
           <div class="style-add-text">学习结果待保存，点击继续</div>
         </div>
-        <div v-else-if="canLearn" class="style-add-card" @click="openImportDialog">
+        <div v-else-if="!isLearning && !learnedResult" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
@@ -267,13 +267,13 @@
       <div v-else class="styles-grid">
         <div v-if="isLearning" class="style-add-card learning-progress-card">
           <div class="style-add-icon"><a-spin /></div>
-          <div class="style-add-text">AI 正在分析原文提示词…</div>
+          <div class="style-add-text learning-progress-text">灵犀同学正在帮您分析…</div>
         </div>
         <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
           <div class="style-add-icon">✓</div>
           <div class="style-add-text">学习结果待保存，点击继续</div>
         </div>
-        <div v-else-if="canLearn" class="style-add-card" @click="openImportDialog">
+        <div v-else-if="!isLearning && !learnedResult" class="style-add-card" @click="openImportDialog">
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
@@ -281,6 +281,7 @@
           v-for="s in filteredLearnedStyles"
           :key="s.name"
           :name="s.name"
+          :desc="s.desc"
           :prompt="s.prompt"
           :show-avatar="false"
           avatar-variant="learned"
@@ -344,12 +345,21 @@
           :desc="s.description || s.promptSummary || s.desc || ''"
           :prompt="s.prompt"
           :show-avatar="false"
+          :class="{ 'favorite-offline': s.status !== 'approved' }"
           :actions="[
-            { label: '使用', type: 'primary', handler: () => useFavoriteStyle(s) },
+            { label: '使用', type: 'primary', disabled: s.status !== 'approved', title: s.status !== 'approved' ? '该提示词已下架' : '', handler: () => useFavoriteStyle(s) },
             { label: '查看', handler: () => openMyStylePromptModal(s, 'favorite') },
             { label: '取消收藏', type: 'danger', handler: () => confirmUnfavorite(s) }
           ]"
         >
+          <template #status>
+            <div
+              v-if="s.status !== 'approved'"
+              class="style-card-status offline"
+            >
+              已下架
+            </div>
+          </template>
           <template #meta>
             <div class="skill-card__meta-row">
               <span class="skill-card__creator">
@@ -382,8 +392,8 @@
     centered
     class="learned-import-modal"
     @cancel="closeImportDialog"
-    :maskClosable="!isLearning"
-    :keyboard="!isLearning"
+    :maskClosable="!isLearning && !learnedResult"
+    :keyboard="!isLearning && !learnedResult"
   >
     <template #title>
       <div class="modal-title">{{ isEditingLearned ? '编辑学习的提示词' : '学习写作提示词' }}</div>
@@ -404,21 +414,9 @@
       </div>
     </div>
 
-    <!-- 粘贴 / 上传 tab -->
+    <!-- 粘贴正文 -->
     <template v-else-if="!learnedResult">
-      <div class="learned-subtabs">
-        <button
-          :class="['learned-subtab', { active: importSubTab === 'paste' }]"
-          @click="importSubTab = 'paste'"
-        >粘贴正文</button>
-        <button
-          :class="['learned-subtab', { active: importSubTab === 'upload' }]"
-          @click="importSubTab = 'upload'"
-        >上传文件</button>
-      </div>
-
-      <!-- 粘贴 -->
-      <div v-show="importSubTab === 'paste'" class="learned-pane">
+      <div class="learned-pane">
         <textarea
           v-model="pasteText"
           class="learned-textarea"
@@ -433,60 +431,47 @@
           @click="submitPaste"
         >开始学习</button>
       </div>
-
-      <!-- 上传 -->
-      <div v-show="importSubTab === 'upload'" class="learned-pane">
-        <label class="learned-upload-zone">
-          <input
-            type="file"
-            accept=".txt,.md,.docx"
-            @change="onFileChange"
-            style="display: none;"
-          />
-          <div v-if="!uploadFile" class="learned-upload-hint">
-            点击选择文件或拖拽到此处<br/>
-            <span class="learned-upload-types">支持 .txt / .md / .docx（最大 1MB）</span>
-          </div>
-          <div v-else class="learned-upload-info">
-            ✓ {{ uploadFile.name }} ({{ Math.round(uploadFile.size / 1024) }} KB)
-          </div>
-        </label>
-        <div v-if="uploadError" class="learned-error">{{ uploadError }}</div>
-        <button
-          class="learned-submit-btn"
-          :disabled="!uploadFile"
-          @click="submitUpload"
-        >开始学习</button>
-      </div>
     </template>
 
     <!-- 结果页 -->
     <div v-else>
       <div class="learned-result-title">{{ isEditingLearned ? '编辑提示词' : '学习结果 ✓ 已从参考文章中提取提示词' }}</div>
-      <div class="learned-result-field">
-        <label class="learned-result-label">学到的提示词（可编辑）</label>
+      <div id="learned-prompt-field" class="learned-result-field">
+        <label class="learned-result-label">学到的提示词</label>
         <div class="learned-textarea-wrapper">
-          <textarea
-            v-model="learnedResult.prompt"
-            class="learned-textarea learned-textarea--with-fullscreen"
-            :maxlength="promptMaxLength"
-          ></textarea>
-          <FullscreenOutlined
-            class="learned-textarea-fullscreen-btn"
-            title="全屏编辑"
-            @click="openFullscreenPrompt('learned')"
-          />
+          <div class="learned-prompt-preview">{{ learnedResult.prompt }}</div>
+          <button class="learned-prompt-edit-btn" @click="openFullscreenPrompt('learned')">
+            <FullscreenOutlined />
+            编辑
+          </button>
         </div>
         <div class="learned-counter" :class="{ over: learnedResult.prompt.length > promptMaxLength }">
           {{ learnedResult.prompt.length }} / {{ promptMaxLength }}
         </div>
+        <div v-if="learnedResult.prompt.length > promptMaxLength" class="learned-error">
+          提示词超过 {{ promptMaxLength }} 字
+        </div>
+      </div>
+      <div class="learned-result-field">
+        <label class="learned-result-label">简短描述</label>
+        <input
+          v-model="learnedResult.desc"
+          type="text"
+          class="learned-input"
+          placeholder="一句话说明这个提示词适合写什么，例如：小红书种草笔记，语气亲切带 emoji"
+          maxlength="100"
+        />
+        <div class="style-editor-counter" :class="{ over: (learnedResult.desc || '').length > 100 }">
+          {{ (learnedResult.desc || '').length }} / 100
+        </div>
+        <div class="style-scope-hint">一句话让创作者快速了解你的提示词</div>
       </div>
       <div class="learned-result-field">
         <label class="learned-result-label">原文提示词示例</label>
         <div class="learned-excerpt">① {{ learnedResult.excerpt1 }}</div>
         <div class="learned-excerpt">② {{ learnedResult.excerpt2 }}</div>
       </div>
-      <div class="learned-result-field">
+      <div id="learned-scope-field" class="learned-result-field">
         <label class="learned-result-label">适用范围 <span class="required">*</span></label>
         <div class="style-scope-tags">
           <div
@@ -508,9 +493,10 @@
           />
         </div>
         <div class="style-scope-hint">最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字</div>
-        <div v-if="!learnedResult.scope || !parseScopeTags(learnedResult.scope).length" class="learned-hint">请至少添加一个适用范围标签</div>
+        <div v-if="learnedScopeError" class="learned-error">{{ learnedScopeError }}</div>
+        <div v-else-if="!learnedResult.scope || !parseScopeTags(learnedResult.scope).length" class="learned-hint">请至少添加一个适用范围标签</div>
       </div>
-      <div class="learned-result-field">
+      <div id="learned-name-field" class="learned-result-field">
         <label class="learned-result-label">命名 <span class="required">*</span></label>
         <input
           v-model="learnedResult.name"
@@ -575,6 +561,8 @@
     <template #footer-actions>
       <button
         class="skill-detail-btn-use"
+        :disabled="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved'"
+        :title="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved' ? '该提示词已下架' : ''"
         @click="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
       >使用</button>
       <button
@@ -637,7 +625,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import {
@@ -651,14 +639,9 @@ import {
   learnedSkills,
   removeLearnedSkill,
   analyzeArticleSkill,
-  preConsumeAnalyzeQuota,
-  confirmAnalyzeQuota,
-  cancelAnalyzeQuota,
   isLearnedSkillNameExists,
   addLearnedSkill,
   isLearning,
-  readFileAsText,
-  readDocxAsText,
   updateLearnedSkill,
   loadMySkills,
   loadLearnedSkills
@@ -669,7 +652,7 @@ import {
   toggleFavorite,
   useMarketSkill,
   loadMarketSkills,
-  loadFavoriteIds,
+  loadFavoriteSkills,
   unpublishSkill,
   mySubmissions,
   loadMySubmissions,
@@ -728,7 +711,7 @@ const learnTotal = computed(() => parseInt(benefitValue('skill_learn_analyze') |
 const canLearn = computed(() => learnRemaining.value > 0)
 const learnBannerText = computed(() => {
   if (isLearning.value) {
-    return '● ● ● AI 正在分析原文提示词，请稍候…'
+    return '● ● ● 灵犀同学正在帮您分析，请稍候…'
   }
   if (!canLearn.value) {
     if (learnTotal.value <= 0) return '当前套餐不支持 AI 提示词学习，升级专业版/旗舰版后解锁'
@@ -741,22 +724,13 @@ const publishRemaining = computed(() => benefitRemaining('skill_market_publish')
 const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish') || '0', 10))
 
 onMounted(async () => {
-  if (localStorage.getItem(PENDING_ANALYZE_KEY)) {
-    try {
-      await cancelAnalyzeQuota()
-    } catch {
-      // 兜底：忽略清理失败
-    }
-    clearAnalyzePending()
-  }
-
   await loadBenefits()
   promptMaxLength.value = getSkillPromptMaxLength()
   await Promise.all([
     loadMySkills(),
     loadLearnedSkills(),
     loadMarketSkills(),
-    loadFavoriteIds(),
+    loadFavoriteSkills(),
     loadMySubmissions()
   ])
 })
@@ -765,10 +739,6 @@ const MAX_SCOPE_TAGS = 3
 const MAX_SCOPE_TAG_LENGTH = 8
 const loadingText = '灵犀同学正在帮您分析...'
 const loadingChars = loadingText.split('')
-
-const PENDING_ANALYZE_KEY = 'aichuangzuo_skill_analyze_pending'
-const markAnalyzePending = () => localStorage.setItem(PENDING_ANALYZE_KEY, '1')
-const clearAnalyzePending = () => localStorage.removeItem(PENDING_ANALYZE_KEY)
 
 const parseScopeTags = (scopeStr) => {
   if (!scopeStr) return []
@@ -854,21 +824,25 @@ watch(importDialogVisible, (visible) => {
     consoleContent.style.overflowY = visible ? 'hidden' : ''
   }
 })
-const importSubTab = ref('paste')
 const pasteText = ref('')
 const pasteError = ref('')
-const uploadFile = ref(null)
-const uploadError = ref('')
 const learnedResult = ref(null)
 const learnedResultScopeInput = ref('')
 const learnedResultError = ref('')
+const learnedScopeError = ref('')
 const isEditingLearned = ref(false)
 const editingLearnedOriginalName = ref('')
-const hasPreConsumedQuota = ref(false)
 const savingLearned = ref(false)
 const editorMode = ref(false)
 const publishConfirmVisible = ref(false)
 const pendingPublish = ref({ style: null, sourceType: '' })
+
+watch(() => learnedResult.value?.scope, () => {
+  if (learnedScopeError.value) learnedScopeError.value = ''
+})
+watch(() => learnedResult.value?.name, () => {
+  if (learnedResultError.value) learnedResultError.value = ''
+})
 const myStylePromptVisible = ref(false)
 const selectedMyStyle = ref(null)
 const selectedMyStyleSource = ref('my')
@@ -883,6 +857,7 @@ const selectedSkillForModal = computed(() => {
     creatorId: isMyOrLearned ? currentUserId : (s.creatorId || ''),
     creatorName: source === 'system' ? '系统' : source === 'favorite' ? (s.creatorName || '匿名用户') : (s.creatorName || '我'),
     prompt: s.prompt || s.promptSummary || '',
+    desc: s.desc || '',
     scope: s.scope || '',
     createdAt: s.createdAt || null,
     excerpt1: s.excerpt1 || '',
@@ -1016,6 +991,10 @@ const useStyle = (style) => {
 }
 
 const useFavoriteStyle = (style) => {
+  if (style?.status !== 'approved') {
+    message.warning('该提示词已下架，无法使用')
+    return
+  }
   try {
     useMarketSkill(style.id)
     router.push(`/console/create?marketSkillId=${style.id}`)
@@ -1045,40 +1024,31 @@ const deleteSkill = (name) => {
 const openImportDialog = () => {
   pasteText.value = ''
   pasteError.value = ''
-  uploadFile.value = null
-  uploadError.value = ''
   learnedResult.value = null
   learnedResultError.value = ''
+  learnedScopeError.value = ''
   learnedResultScopeInput.value = ''
   isEditingLearned.value = false
   editingLearnedOriginalName.value = ''
-  hasPreConsumedQuota.value = false
-  importSubTab.value = 'paste'
   importDialogVisible.value = true
 }
 
 const goToEditLearned = (style) => {
   learnedResult.value = { ...style }
   learnedResultError.value = ''
+  learnedScopeError.value = ''
   learnedResultScopeInput.value = ''
   isEditingLearned.value = true
   editingLearnedOriginalName.value = style.name
   importDialogVisible.value = true
 }
 
-const closeImportDialog = async (clearResult = false) => {
-  if (hasPreConsumedQuota.value && !isEditingLearned.value) {
-    try {
-      await cancelAnalyzeQuota()
-    } catch {
-      // 释放预扣失败不阻断关闭弹框
-    }
-    hasPreConsumedQuota.value = false
-    clearAnalyzePending()
-  }
+const closeImportDialog = (clearResult = false) => {
   if (clearResult) {
     learnedResult.value = null
   }
+  learnedResultError.value = ''
+  learnedScopeError.value = ''
   importDialogVisible.value = false
   isEditingLearned.value = false
   editingLearnedOriginalName.value = ''
@@ -1087,27 +1057,6 @@ const closeImportDialog = async (clearResult = false) => {
 const resumeImportDialog = () => {
   if (!isLearning.value && !learnedResult.value) return
   importDialogVisible.value = true
-}
-
-const onFileChange = (e) => {
-  uploadError.value = ''
-  const file = e.target.files?.[0]
-  if (!file) {
-    uploadFile.value = null
-    return
-  }
-  if (file.size > 1 * 1024 * 1024) {
-    uploadError.value = '文件过大（> 1MB）'
-    uploadFile.value = null
-    return
-  }
-  const ext = file.name.split('.').pop().toLowerCase()
-  if (!['txt', 'md', 'docx'].includes(ext)) {
-    uploadError.value = '仅支持 .txt / .md / .docx'
-    uploadFile.value = null
-    return
-  }
-  uploadFile.value = file
 }
 
 const submitPaste = async () => {
@@ -1124,52 +1073,13 @@ const submitPaste = async () => {
   await runAnalysis(text, 'paste')
 }
 
-const submitUpload = async () => {
-  uploadError.value = ''
-  if (!uploadFile.value) {
-    uploadError.value = '请先选择文件'
-    return
-  }
-  try {
-    const ext = uploadFile.value.name.split('.').pop().toLowerCase()
-    let text
-    if (ext === 'docx') {
-      text = await readDocxAsText(uploadFile.value)
-    } else {
-      text = await readFileAsText(uploadFile.value)
-    }
-    const trimmed = text.trim()
-    if (trimmed.length < 200) {
-      uploadError.value = '正文过短（少于 200 字）'
-      return
-    }
-    // 超过 1000 字自动截断，只取前 1000 字学习
-    const truncated = trimmed.length > 1000 ? trimmed.slice(0, 1000) : trimmed
-    await runAnalysis(truncated, ext)
-  } catch (err) {
-    uploadError.value = err.message || '文件读取失败'
-  }
-}
-
 const runAnalysis = async (text, sourceType) => {
   if (isLearning.value) return
   isLearning.value = true
   try {
-    await preConsumeAnalyzeQuota()
-    hasPreConsumedQuota.value = true
-    markAnalyzePending()
     const tempResult = await analyzeArticleSkill(text, { sourceType })
     learnedResult.value = { ...tempResult, name: '' }
   } catch (err) {
-    if (hasPreConsumedQuota.value) {
-      try {
-        await cancelAnalyzeQuota()
-      } catch {
-        // 释放失败不重试，避免死循环
-      }
-    }
-    hasPreConsumedQuota.value = false
-    clearAnalyzePending()
     message.error(err?.message || '分析失败，请重试')
   } finally {
     isLearning.value = false
@@ -1200,25 +1110,48 @@ const saveLearnedResult = async () => {
   if (!learnedResult.value || savingLearned.value) return
   const name = learnedResult.value.name.trim()
   const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
+
+  const fail = async (msg, fieldId, errorType = 'name') => {
+    if (errorType === 'scope') {
+      learnedScopeError.value = msg
+    } else if (errorType === 'name') {
+      learnedResultError.value = msg
+    }
+    message.error(msg)
+    if (fieldId) {
+      await nextTick()
+      const el = document.getElementById(fieldId)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('learned-field-shake')
+        setTimeout(() => el.classList.remove('learned-field-shake'), 500)
+      }
+    }
+  }
+
+  if (!name) {
+    await fail('请填写提示词名称', 'learned-name-field')
+    return
+  }
   if (isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)) {
-    learnedResultError.value = '该提示词名称已存在'
+    await fail('该提示词名称已存在', 'learned-name-field')
     return
   }
   if (name.length > 20) {
-    learnedResultError.value = '提示词名称最多 20 字'
+    await fail('提示词名称最多 20 字', 'learned-name-field')
     return
   }
   if (learnedResult.value.prompt.length > promptMaxLength.value) {
-    learnedResultError.value = `提示词超过 ${promptMaxLength.value} 字`
+    await fail(`提示词超过 ${promptMaxLength.value} 字`, 'learned-prompt-field', 'prompt')
     return
   }
   if (!learnedResult.value.scope || !parseScopeTags(learnedResult.value.scope).length) {
-    learnedResultError.value = '请填写适用范围'
+    await fail('请填写适用范围', 'learned-scope-field', 'scope')
     return
   }
   const scopeError = validateScopeTags(parseScopeTags(learnedResult.value.scope))
   if (scopeError) {
-    learnedResultError.value = scopeError
+    await fail(scopeError, 'learned-scope-field', 'scope')
     return
   }
   savingLearned.value = true
@@ -1228,15 +1161,7 @@ const saveLearnedResult = async () => {
     } else {
       await addLearnedSkill(learnedResult.value)
     }
-    if (hasPreConsumedQuota.value) {
-      try {
-        await confirmAnalyzeQuota()
-      } catch {
-        // 预扣转正失败不影响已保存的提示词，继续关闭弹框
-      }
-      hasPreConsumedQuota.value = false
-      clearAnalyzePending()
-    }
+    await loadBenefits()
     learnedResult.value = null
     closeImportDialog()
   } catch {
@@ -1291,9 +1216,9 @@ const publishQuotaHint = computed(() => {
     return '当前套餐不支持发布到 提示词市场，请升级专业版/旗舰版会员'
   }
   if (publishRemaining.value <= 0) {
-    return `本月发布额度已用完（${publishTotal.value} 次），下月 1 日重置`
+    return `发布额度已用完（${publishTotal.value} 个），升级套餐可发布更多提示词`
   }
-  return `本月还可发布 ${publishRemaining.value} / ${publishTotal.value} 次`
+  return `还可发布 ${publishRemaining.value} / ${publishTotal.value} 个提示词到市场`
 })
 
 const openPublishConfirm = (style, sourceType) => {
@@ -1330,7 +1255,7 @@ const closePublishConfirm = () => {
 const confirmUnpublish = (style, sourceType) => {
   Modal.confirm({
     title: '下架提示词',
-    content: `确定要下架已发布的提示词「${style.name}」吗？下架后其他人将无法在市场中看到该提示词。`,
+    content: `确定要下架已发布的提示词「${style.name}」吗？\n\n下架后：\n1. 其他人将无法在市场中看到该提示词；\n2. 本月发布额度将恢复 1 个；\n3. 已产生的收益不受影响。`,
     okText: '下架',
     cancelText: '取消',
     okButtonProps: { danger: true },
@@ -1338,7 +1263,8 @@ const confirmUnpublish = (style, sourceType) => {
     onOk: async () => {
       try {
         await unpublishSkill(style.bizNo)
-        message.success('提示词已下架')
+        await loadBenefits()
+        message.success('提示词已下架，发布额度已恢复')
       } catch {
         // 错误提示已在 composable 内处理
       }
@@ -1359,6 +1285,10 @@ const closeMyStylePromptModal = () => {
 }
 
 const useSelectedStyle = (style, source) => {
+  if (source === 'favorite' && style?.status !== 'approved') {
+    message.warning('该提示词已下架，无法使用')
+    return
+  }
   if (source === 'favorite') {
     useFavoriteStyle(style)
   } else {
@@ -1512,6 +1442,14 @@ const useSelectedStyle = (style, source) => {
   cursor: default;
 }
 
+.learning-progress-text {
+  color: var(--color-primary);
+}
+
+.learning-progress-card .style-add-icon :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
+
 .learning-progress-card:hover {
   border-color: #e8e8e8;
   background: #fff;
@@ -1550,6 +1488,15 @@ const useSelectedStyle = (style, source) => {
 .style-card-status.rejected {
   background: #fff1f0;
   color: #ff4d4f;
+}
+
+.style-card-status.offline {
+  background: #f5f5f5;
+  color: #8c8c8c;
+}
+
+.favorite-offline {
+  opacity: 0.7;
 }
 
 .empty-action-btn {
@@ -2038,6 +1985,14 @@ body[data-theme="dark"] .style-add-text {
   color: #d9d9d9;
 }
 
+body[data-theme="dark"] .learning-progress-text {
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .learning-progress-card .style-add-icon :deep(.ant-spin-dot-item) {
+  background-color: #ff6b81;
+}
+
 body[data-theme="dark"] .learning-progress-card:hover {
   background: #1f1f1f;
   border-color: #303030;
@@ -2061,6 +2016,15 @@ body[data-theme="dark"] .style-card-status.pending {
 body[data-theme="dark"] .style-card-status.rejected {
   background: rgba(255, 77, 79, 0.15);
   color: #ff7875;
+}
+
+body[data-theme="dark"] .style-card-status.offline {
+  background: rgba(255, 255, 255, 0.06);
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .favorite-offline {
+  opacity: 0.6;
 }
 
 body[data-theme="dark"] .empty-action-btn {
@@ -2231,24 +2195,6 @@ body[data-theme="dark"] .learned-counter.over {
   color: #ff7875;
 }
 
-body[data-theme="dark"] .learned-upload-zone {
-  background: #1f1f1f;
-  border-color: #434343;
-}
-
-body[data-theme="dark"] .learned-upload-zone:hover {
-  border-color: var(--color-primary);
-  background: #262626;
-}
-
-body[data-theme="dark"] .learned-upload-hint {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .learned-upload-types {
-  color: #737373;
-}
-
 body[data-theme="dark"] .learned-error {
   color: #ff7875;
 }
@@ -2340,13 +2286,6 @@ body[data-theme="dark"] .modal-title {
   flex-direction: column;
 }
 
-.learned-import-modal .ant-modal-body > .learned-subtabs {
-  flex: 0 0 auto;
-  min-height: 44px;
-  flex-direction: row;
-  align-items: center;
-}
-
 body[data-theme="dark"] .learned-import-modal .ant-modal-content,
 body[data-theme="dark"] .learned-import-modal .ant-modal-header {
   background: #1f1f1f !important;
@@ -2408,43 +2347,7 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
   background: var(--color-primary-hover);
 }
 
-/* 学习写作提示词弹框：粘贴正文 / 上传文件 横向 tab */
-
-.learned-subtabs {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-  height: 44px;
-  width: fit-content;
-  margin: 0 0 16px;
-  flex-shrink: 0;
-}
-
-.learned-subtab {
-  padding: 8px 16px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  line-height: 1;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.learned-subtab:hover {
-  color: #262626;
-}
-
-.learned-subtab.active {
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
+/* 学习写作提示词弹框 */
 
 .learned-pane {
   display: flex;
@@ -2457,31 +2360,6 @@ body[data-theme="dark"] .fullscreen-prompt-save:hover {
 .learned-pane .learned-textarea {
   flex: 1;
   min-height: 0;
-}
-
-.learned-pane .learned-upload-zone {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 0;
-}
-
-body[data-theme="dark"] .learned-subtabs {
-  background: #1a1a1a;
-}
-
-body[data-theme="dark"] .learned-subtab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .learned-subtab:hover {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .learned-subtab.active {
-  background: #2a2a2a;
-  color: #f0f0f0;
 }
 
 .learned-textarea {
@@ -2514,24 +2392,68 @@ body[data-theme="dark"] .learned-subtab.active {
   position: relative;
 }
 
-.learned-textarea--with-fullscreen {
-  padding-right: 40px;
+.learned-prompt-preview {
+  width: 100%;
+  min-height: 180px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: inherit;
+  background: #fafafa;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
-.learned-textarea-fullscreen-btn {
-  position: absolute;
-  right: 12px;
-  bottom: 12px;
+.learned-prompt-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 6px 14px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #595959;
   cursor: pointer;
-  color: #8c8c8c;
-  font-size: 16px;
-  line-height: 1;
-  transition: color 0.2s;
-  z-index: 1;
+  transition: all 0.2s;
 }
 
-.learned-textarea-fullscreen-btn:hover {
+.learned-prompt-edit-btn:hover {
+  border-color: var(--color-primary);
   color: var(--color-primary);
+  background: #fff0f2;
+}
+
+.learned-field-shake {
+  animation: learned-field-shake 0.4s ease;
+}
+
+@keyframes learned-field-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-4px); }
+  40%, 80% { transform: translateX(4px); }
+}
+
+body[data-theme="dark"] .learned-prompt-preview {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .learned-prompt-edit-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .learned-prompt-edit-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: rgba(255, 36, 66, 0.12);
 }
 
 .learned-input {
@@ -2563,41 +2485,6 @@ body[data-theme="dark"] .learned-subtab.active {
 
 .learned-counter.over {
   color: #ff4d4f;
-  font-weight: 500;
-}
-
-.learned-upload-zone {
-  display: block;
-  padding: 48px 24px;
-  border: 2px dashed #d9d9d9;
-  border-radius: 12px;
-  text-align: center;
-  cursor: pointer;
-  background: #fafafa;
-  transition: all 0.25s ease;
-}
-
-.learned-upload-zone:hover {
-  border-color: var(--color-primary);
-  background: #fff5f6;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
-}
-
-.learned-upload-hint {
-  font-size: 15px;
-  font-weight: 500;
-  color: #262626;
-  margin-bottom: 6px;
-}
-
-.learned-upload-types {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.learned-upload-info {
-  font-size: 14px;
-  color: var(--color-primary);
   font-weight: 500;
 }
 
@@ -2800,38 +2687,12 @@ body[data-theme="dark"] .learned-input:focus {
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .learned-textarea-fullscreen-btn {
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .learned-textarea-fullscreen-btn:hover {
-  color: var(--color-primary);
-}
-
 body[data-theme="dark"] .learned-counter {
   color: #a6a6a6;
 }
 
 body[data-theme="dark"] .learned-counter.over {
   color: #ff7875;
-}
-
-body[data-theme="dark"] .learned-upload-zone {
-  background: #1f1f1f;
-  border-color: #434343;
-}
-
-body[data-theme="dark"] .learned-upload-zone:hover {
-  border-color: var(--color-primary);
-  background: #262626;
-}
-
-body[data-theme="dark"] .learned-upload-hint {
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .learned-upload-types {
-  color: #737373;
 }
 
 body[data-theme="dark"] .learned-error {

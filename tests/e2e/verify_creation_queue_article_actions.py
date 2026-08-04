@@ -1,7 +1,7 @@
 from playwright.sync_api import sync_playwright
 import sys
 
-URL = "http://127.0.0.1:22346/console/creation-queue"
+URL = "http://127.0.0.1:22347/console/creation-queue"
 
 with sync_playwright() as p:
     browser = p.chromium.launch(headless=True)

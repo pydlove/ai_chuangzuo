@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
@@ -19,7 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class SkillMarketCommandServiceImpl implements SkillMarketCommandService {
 
+    private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
+
     private final SkillMarketMapper skillMarketMapper;
+    private final BenefitService benefitService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -36,6 +40,7 @@ public class SkillMarketCommandServiceImpl implements SkillMarketCommandService 
         }
         market.setIsDeleted(1);
         skillMarketMapper.updateById(market);
+        benefitService.refund(userId, BENEFIT_CODE_SKILL_MARKET_PUBLISH);
         log.info("用户下架市场 skill userId={}, bizNo={}", userId, bizNo);
     }
 }

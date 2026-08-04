@@ -17,7 +17,7 @@
 - 接口信封：`{code: 0, data: ...}`；`submitGeneration` 返回完整 `GenerationTaskVO`（含 `id`、`progressPct`、`status`：0 排队 / 1 生成中 / 2 完成 / 3 失败）。
 - 单任务轮询用 `getGenerationTask(id)`（`GET /generation-tasks/{id}`），3s 一次；队列列表轮询 5s 一次。
 - 配置弹框 4 个（平台/字数/风格/模板）为**纯迁移**，交互视觉不变。
-- 开发服务器：`cd project/user/web && npm run dev`（端口被占时自动 +1，E2E 脚本用 `BASE` 环境变量覆盖，默认 `http://localhost:22346`）。
+- 开发服务器：`cd project/user/web && npm run dev`（端口被占时自动 +1，E2E 脚本用 `BASE` 环境变量覆盖，默认 `http://localhost:22345`）。
 - E2E 脚本放 `tests/e2e/`，截图放 `tests/e2e/screenshots/`，Playwright `page.route` mock API（信封 `{code:0,data:...}`）。
 - 不用的代码开发结束后必须删掉（CLAUDE.md 约定）：迁移后旧样式/旧逻辑 grep 确认无引用再删。
 
@@ -381,7 +381,7 @@ script 顶部 import 组件；onMounted 中 `loadTopics()` 改为 `topicCapsules
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 def main():
@@ -557,7 +557,7 @@ script：`const { queueList, activeCount, queueOpen, startPolling, stopPolling }
 import os, json
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 TASK = {
@@ -980,7 +980,7 @@ body[data-theme="dark"] .create-index {
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 def main():
@@ -1439,7 +1439,7 @@ script 增加 `const { createMode } = useCreateForm()`，import GuidedChat。
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 def main():
@@ -1733,7 +1733,7 @@ const editConfig = () => {
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 def mock_all(page):
@@ -2003,7 +2003,7 @@ template 新增分支：
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 
 def mock_common(page, quota_remaining=12, quota_value="50"):
@@ -2131,7 +2131,7 @@ git commit -m "feat(create): 引导模式生成链路 — 进度卡/结果卡/�
 import os
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("BASE", "http://localhost:22346")
+BASE = os.environ.get("BASE", "http://localhost:22345")
 SHOTS = "/Users/panyong/aio_project/ai_chuangzuo/tests/e2e/screenshots"
 VIEW = {"width": 390, "height": 844}
 

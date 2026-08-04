@@ -30,6 +30,10 @@ public class LearnArticleEntity extends BaseEntity {
     private String content;
     private ArticleStatus status;
     private Integer sort;
+
+    /** 是否推荐：0=否 1=是 */
+    private Integer isRecommended;
+
     private Long authorId;
     private LocalDateTime publishedAt;
 }

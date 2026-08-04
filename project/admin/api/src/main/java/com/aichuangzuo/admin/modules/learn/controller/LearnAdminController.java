@@ -121,6 +121,13 @@ public class LearnAdminController {
         return Result.success();
     }
 
+    @Operation(summary = "设置文章推荐")
+    @PostMapping("/article/{id}/recommend")
+    public Result<Void> recommendArticle(@PathVariable Long id, @RequestParam Integer recommended) {
+        articleService.setRecommended(id, recommended);
+        return Result.success();
+    }
+
     @Operation(summary = "批量拖拽排序（文章）")
     @PostMapping("/article/sort")
     public Result<Void> sortArticle(@RequestBody LearnSortReq req) {

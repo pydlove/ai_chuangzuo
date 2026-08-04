@@ -10,7 +10,7 @@
 
 前置条件：
   - admin-api 运行在 26060，user-api 运行在 25050
-  - admin-web 运行在 22346，user-web 运行在 22345
+  - admin-web 运行在 22347，user-web 运行在 22345
   - DB 已执行 V2.0.0_001 ~ V2.0.0_017 全部迁移
   - DB 中存在 test@local / Test@123 用户，且有余额
   - DB 中存在 enabled 的 model_config（指向真实 AI endpoint 或 fake endpoint）
@@ -26,7 +26,7 @@ from pathlib import Path
 import requests
 from playwright.sync_api import sync_playwright
 
-ADMIN_WEB = "http://localhost:22346"
+ADMIN_WEB = "http://localhost:22347"
 ADMIN_API = "http://localhost:26060/api/v1/admin"
 USER_WEB = "http://localhost:22345"
 USER_API = "http://localhost:25050/api/v1/user"

@@ -6,6 +6,7 @@ import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
 import com.aichuangzuo.user.modules.commission.entity.CommissionTask;
 import com.aichuangzuo.user.modules.commission.enums.CommissionErrorCode;
+import com.aichuangzuo.user.modules.commission.enums.CommissionTaskStatus;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionSubmissionMapper;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionTaskMapper;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
@@ -41,12 +42,14 @@ public class CommissionServiceImpl implements CommissionService {
     private final ArticleMapper articleMapper;
 
     @Override
-    public IPage<CommissionTaskVO> list(Integer status, int page, int pageSize) {
+    public IPage<CommissionTaskVO> list(String status, int page, int pageSize) {
         reconcilePhases();
+        List<Integer> statuses = CommissionTaskStatus.resolveCodes(status);
+        boolean filterByStatus = status != null && !status.isBlank() && !statuses.isEmpty();
         IPage<CommissionTask> taskPage = taskMapper.selectPage(new Page<>(page, pageSize),
                 new LambdaQueryWrapper<CommissionTask>()
                         .eq(CommissionTask::getIsDeleted, 0)
-                        .eq(status != null, CommissionTask::getStatus, status)
+                        .in(filterByStatus, CommissionTask::getStatus, statuses)
                         .orderByDesc(CommissionTask::getCreatedAt));
 
         List<CommissionTask> records = taskPage.getRecords();

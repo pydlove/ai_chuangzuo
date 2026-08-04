@@ -1,29 +1,27 @@
 package com.aichuangzuo.user.modules.skill.service;
 
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.benefit.service.BenefitService;
-import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
+import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
+import com.aichuangzuo.user.modules.skill.analyze.service.SkillAnalyzeDailyLimiter;
 import com.aichuangzuo.user.modules.skill.service.impl.SkillAnalyzeServiceImpl;
 import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatchers;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * SkillAnalyzeServiceImpl 纯单测：mock AI 调用器 + mock BenefitService，不起 Spring 上下文。
+ * SkillAnalyzeServiceImpl 纯单测：mock AI 调用器 + mock 配置/限流器，不起 Spring 上下文。
  */
 class SkillAnalyzeServiceImplTest {
 
@@ -46,26 +44,24 @@ class SkillAnalyzeServiceImplTest {
                     + "请在生成新内容时严格遵循以上风格特征。";
 
     private static final String VALID_JSON = """
-            {"excerpt1":"清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。","excerpt2":"慢到可以听见自己的心跳","prompt":"%s"}
+            {"excerpt1":"清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。","excerpt2":"慢到可以听见自己的心跳","description":"怀旧温和的生活散文风格，适合描写慢节奏日常与细腻情感","prompt":"%s"}
             """.formatted(VALID_PROMPT.replace("\n", "\\n").replace("\"", "\\\""));
 
-    /** 构造一个 BenefitService mock：默认任何 userId 都允许消费额度。 */
-    private BenefitService mockBenefitServiceAllowed() {
-        BenefitService bs = mock(BenefitService.class);
-        BenefitCheckVO vo = new BenefitCheckVO();
-        vo.setAllowed(true);
-        when(bs.consume(anyLong(), anyString())).thenReturn(vo);
-        return bs;
+    private SkillAnalyzeConfigService mockConfigService() {
+        SkillAnalyzeConfigService cs = mock(SkillAnalyzeConfigService.class);
+        when(cs.getDailyAttemptLimit()).thenReturn(5);
+        return cs;
+    }
+
+    private SkillAnalyzeDailyLimiter mockDailyLimiter() {
+        SkillAnalyzeDailyLimiter limiter = mock(SkillAnalyzeDailyLimiter.class);
+        return limiter;
     }
 
     private SkillAnalyzeServiceImpl serviceWith(String aiResponse) {
-        return serviceWith(aiResponse, mockBenefitServiceAllowed());
-    }
-
-    private SkillAnalyzeServiceImpl serviceWith(String aiResponse, BenefitService benefitService) {
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(aiResponse);
-        return new SkillAnalyzeServiceImpl(aiService, benefitService, new ObjectMapper());
+        return new SkillAnalyzeServiceImpl(aiService, mockConfigService(), mockDailyLimiter(), new ObjectMapper());
     }
 
     @Test
@@ -75,6 +71,7 @@ class SkillAnalyzeServiceImplTest {
         assertEquals("清晨的巷子总是被豆浆的香气唤醒，老人们坐在门口闲聊。", vo.getExcerpt1());
         assertEquals("慢到可以听见自己的心跳", vo.getExcerpt2());
         assertEquals(VALID_PROMPT, vo.getPrompt());
+        assertEquals("怀旧温和的生活散文风格，适合描写慢节奏日常与细腻情感", vo.getDescription());
     }
 
     @Test
@@ -176,8 +173,8 @@ class SkillAnalyzeServiceImplTest {
 
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
-        BenefitService bs = mockBenefitServiceAllowed();
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
+        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(
+                aiService, mockConfigService(), mockDailyLimiter(), new ObjectMapper());
         svc.analyze(USER_ID, longText);
 
         ArgumentCaptor<String> userMsgCaptor = ArgumentCaptor.forClass(String.class);
@@ -186,66 +183,5 @@ class SkillAnalyzeServiceImplTest {
         assertTrue(userMsg.contains(head), "应包含前 800 个 a");
         assertTrue(userMsg.contains("a".repeat(200)), "应包含第 801-1000 个 a");
         assertFalse(userMsg.contains("b".repeat(201)), "tail 应只保留前 200 个 b，不超过 200");
-    }
-
-    /** analyze 不再直接消费额度，额度操作通过 preConsume/confirm/cancel 控制。 */
-    @Test
-    void analyze_shouldNotConsumeOrRefundQuota() {
-        BenefitService bs = mock(BenefitService.class);
-        SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
-        when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(aiService, bs, new ObjectMapper());
-        svc.analyze(USER_ID, ARTICLE);
-
-        verify(bs, never()).consume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs, never()).refund(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-        verify(bs, never()).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** 预扣额度不足时应当阻断。 */
-    @Test
-    void preConsume_shouldThrowWhenQuotaExhausted() {
-        BenefitService bs = mock(BenefitService.class);
-        doThrow(new BusinessException(com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode.QUOTA_EXHAUSTED))
-                .when(bs).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
-        assertThrows(BusinessException.class, () -> svc.preConsume(USER_ID));
-    }
-
-    /** 预扣成功时应调用 benefitService.preConsume 并返回结果。 */
-    @Test
-    void preConsume_shouldCallBenefitServicePreConsume() {
-        BenefitService bs = mock(BenefitService.class);
-        BenefitCheckVO vo = new BenefitCheckVO();
-        vo.setAllowed(true);
-        vo.setRemaining(1);
-        when(bs.preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"))).thenReturn(vo);
-
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
-        BenefitCheckVO result = svc.preConsume(USER_ID);
-
-        assertTrue(result.getAllowed());
-        assertEquals(1, result.getRemaining());
-        verify(bs).preConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** 确认保存时应将预扣转为正式用量。 */
-    @Test
-    void confirmConsume_shouldCallBenefitServiceConfirmPreConsume() {
-        BenefitService bs = mock(BenefitService.class);
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
-        svc.confirmConsume(USER_ID);
-        verify(bs).confirmPreConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
-    }
-
-    /** 取消或关闭弹框时应释放预扣额度。 */
-    @Test
-    void cancelConsume_shouldCallBenefitServiceCancelPreConsume() {
-        BenefitService bs = mock(BenefitService.class);
-        SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(null, bs, new ObjectMapper());
-        svc.cancelConsume(USER_ID);
-        verify(bs).cancelPreConsume(anyLong(), ArgumentMatchers.eq("skill_learn_analyze"));
     }
 }

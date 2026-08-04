@@ -18,25 +18,25 @@
         :class="['style-tab', { active: styleTab === 'my' }]"
         @click="styleTab = 'my'"
       >
-        我的提示词
+        我的
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'learned' }]"
         @click="styleTab = 'learned'; loadLearnedSkills()"
       >
-        学习的提示词
+        学习
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'favorites' }]"
-        @click="styleTab = 'favorites'; loadFavoriteIds()"
+        @click="styleTab = 'favorites'; loadFavoriteSkills()"
       >
-        收藏的提示词
+        收藏
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'system' }]"
         @click="styleTab = 'system'"
       >
-        系统预设提示词
+        系统
       </button>
     </div>
 
@@ -133,12 +133,17 @@
           :scope="f.scope"
           size="compact"
           :selected="selectedStyleName === f.name"
-          clickable
+          :clickable="f.status === 'approved'"
+          :class="{ 'favorite-offline': f.status !== 'approved' }"
           show-view-btn
-          @click="selectStyle(f)"
+          @click="selectFavoriteStyle(f)"
           @view="openPromptModal(f)"
         >
-          <template #meta>by {{ f.creatorName }}</template>
+          <template #meta>
+            <span :class="['favorite-status-badge', f.status !== 'approved' ? 'offline' : '']">
+              {{ f.status === 'approved' ? 'by ' + f.creatorName : '已下架' }}
+            </span>
+          </template>
         </SkillCard>
       </div>
     </div>
@@ -186,6 +191,7 @@
 <script setup>
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import {
   systemSkills,
   mySkills,
@@ -196,7 +202,7 @@ import {
 } from '@/composables/useSkills.js'
 import {
   favoriteSkills,
-  loadFavoriteIds,
+  loadFavoriteSkills,
   useMarketSkill
 } from '@/composables/useSkillMarket.js'
 import { useCreateForm } from '../useCreateForm.js'
@@ -219,12 +225,20 @@ watch(styleVisible, async (open) => {
   promptModalVisible.value = false
   await Promise.all([
     loadMySkills(),
-    loadFavoriteIds()
+    loadFavoriteSkills()
   ])
 })
 
 const selectStyle = (s) => {
   selectedStyleName.value = s.name
+}
+
+const selectFavoriteStyle = (f) => {
+  if (f.status !== 'approved') {
+    message.warning('该提示词已下架，无法使用')
+    return
+  }
+  selectStyle(f)
 }
 
 const findSelectedSkill = () => {
@@ -241,6 +255,11 @@ const applySkillLocal = () => {
   const s = findSelectedSkill()
   if (!s) return
   if (s.id && favoriteSkills.value.some(x => x.id === s.id)) {
+    const favorite = favoriteSkills.value.find(x => x.id === s.id)
+    if (favorite && favorite.status !== 'approved') {
+      message.warning('该提示词已下架，无法使用')
+      return
+    }
     // 收藏的市场提示词：先记录使用 + 创作者收益，再应用到当前任务
     try { useMarketSkill(s.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
   }
@@ -250,10 +269,15 @@ const applySkillLocal = () => {
 
 const useFromPromptModal = () => {
   if (!viewingSkill.value) return
-  selectedStyleName.value = viewingSkill.value.name
   if (viewingSkill.value.id) {
+    const favorite = favoriteSkills.value.find(x => x.id === viewingSkill.value.id)
+    if (favorite && favorite.status !== 'approved') {
+      message.warning('该提示词已下架，无法使用')
+      return
+    }
     try { useMarketSkill(viewingSkill.value.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
   }
+  selectedStyleName.value = viewingSkill.value.name
   applySkill(viewingSkill.value)
   promptModalVisible.value = false
   styleVisible.value = false
@@ -429,6 +453,152 @@ const promptSummary = (prompt) => {
 
 .style-apply-btn:not(:disabled):hover {
   background: var(--color-primary-hover);
+}
+
+.favorite-offline {
+  opacity: 0.7;
+}
+
+.favorite-status-badge {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.favorite-status-badge.offline {
+  color: #ff4d4f;
+  font-weight: 500;
+}
+
+/* 移动端：底部滑上全屏面板 */
+@media (max-width: 768px) {
+  :global(.style-modal .ant-modal) {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0;
+    transform: none !important;
+    padding: 0;
+  }
+
+  :global(.style-modal .ant-modal-content) {
+    border-radius: 20px 20px 0 0;
+    height: 88vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  :global(.style-modal .ant-modal-header) {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  :global(.style-modal .ant-modal-body) {
+    flex: 1;
+    overflow: hidden;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
+    display: flex;
+    flex-direction: column;
+  }
+
+  .style-tabs {
+    gap: 0;
+    margin-bottom: 12px;
+  }
+
+  .style-tab {
+    flex: 1;
+    padding: 10px 0;
+    font-size: 13px;
+    text-align: center;
+    border-bottom-width: 2px;
+  }
+
+  .style-content {
+    height: auto;
+    flex: 1;
+    overflow-y: auto;
+  }
+
+  .style-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .style-add-card {
+    min-height: 120px;
+    padding: 16px;
+  }
+
+  .style-footer {
+    margin-top: 12px;
+    padding-top: 12px;
+  }
+
+  .style-apply-btn {
+    width: 100%;
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 15px;
+  }
+
+  /* 提示词详情弹框 */
+  .skill-prompt-modal .ant-modal {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0;
+    transform: none !important;
+    padding: 0;
+  }
+
+  .skill-prompt-modal .ant-modal-content {
+    border-radius: 20px 20px 0 0;
+    height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skill-prompt-modal .ant-modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 14px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .skill-prompt-modal .ant-modal-body {
+    flex: 1;
+    overflow: hidden;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .skill-prompt-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .skill-prompt-text {
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+
+  .skill-prompt-actions {
+    padding-top: 12px;
+  }
+
+  .skill-prompt-use-btn,
+  .skill-prompt-close-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 12px;
+  }
 }
 
 .skill-prompt-body {
@@ -636,6 +806,39 @@ body[data-theme="dark"] .skill-prompt-close-btn:hover {
 .skill-prompt-modal .ant-modal-body {
   max-height: 70vh;
   overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .skill-prompt-modal .ant-modal {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0;
+    transform: none !important;
+    padding: 0;
+  }
+
+  .skill-prompt-modal .ant-modal-content {
+    border-radius: 20px 20px 0 0;
+    height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skill-prompt-modal .ant-modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 14px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .skill-prompt-modal .ant-modal-body {
+    flex: 1;
+    max-height: none;
+    overflow: hidden;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+  }
 }
 
 body[data-theme="dark"] .skill-prompt-modal .ant-modal-content,

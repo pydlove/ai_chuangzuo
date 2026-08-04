@@ -1,0 +1,15 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS u_skill_analyze_daily (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+    attempt_date DATE NOT NULL COMMENT '分析日期',
+    attempt_count INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '当日已分析次数',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_skill_analyze_daily_user_date (user_id, attempt_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户 AI 提示词分析日次数统计';

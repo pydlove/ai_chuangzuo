@@ -66,6 +66,12 @@ public class CaffeineConfig {
                         .maximumSize(100)
                         .expireAfterWrite(10, TimeUnit.MINUTES)
                         .build());
+        // AI 提示词分析安全配置：1 分钟 TTL（管理端改动后较快生效）
+        manager.registerCustomCache("skillAnalyzeConfig",
+                Caffeine.newBuilder()
+                        .maximumSize(10)
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .build());
         return manager;
     }
 }

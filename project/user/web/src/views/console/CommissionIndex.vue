@@ -1,22 +1,31 @@
 <template>
   <div class="commission-page">
-    <section class="commission-hero">
-      <div class="hero-copy">
-        <span class="eyebrow">OFFICIAL COMMISSION</span>
-        <h1>官方约稿任务</h1>
-        <p>挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
+    <header class="commission-header">
+      <h1 class="commission-header__title">约稿中心</h1>
+      <p class="commission-header__subtitle">挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
+    </header>
+
+    <section class="commission-stats">
+      <div class="stat-card">
+        <strong>{{ activeTaskCount }}</strong>
+        <span>进行中</span>
       </div>
-      <div class="hero-orbit" aria-hidden="true"><span></span><span></span></div>
-      <div class="hero-stats">
-        <div><strong>{{ activeTaskCount }}</strong><span>进行中的任务</span></div>
-        <div><strong>{{ mySubmissionCount }}</strong><span>我的投稿</span></div>
-        <div><strong>{{ earnedCoinTotal }}</strong><span>已获得创作币</span></div>
+      <div class="stat-card">
+        <strong>{{ mySubmissionCount }}</strong>
+        <span>我的投稿</span>
+      </div>
+      <div class="stat-card">
+        <strong>{{ earnedCoinTotal }}</strong>
+        <span>已获得</span>
       </div>
     </section>
 
     <section class="commission-rules">
-      <h3>约稿规则</h3>
-      <ul>
+      <div class="commission-rules__header" @click="rulesExpanded = !rulesExpanded">
+        <h3>约稿规则</h3>
+        <span class="commission-rules__toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
+      </div>
+      <ul v-show="rulesExpanded">
         <li>只能从爱创作中已生成完成的文章中选择投稿。</li>
         <li>投稿文章字数需符合任务要求，否则无法选中。</li>
         <li>同一篇文章在同一时间只能投递一个任务。</li>
@@ -26,7 +35,7 @@
       </ul>
     </section>
 
-    <div class="commission-switcher" role="tablist">
+    <div class="commission-tabs" role="tablist">
       <button :class="{ active: tab === 'all' }" role="tab" @click="tab = 'all'">全部任务</button>
       <button :class="{ active: tab === 'mine' }" role="tab" @click="tab = 'mine'">我投稿的</button>
     </div>
@@ -39,7 +48,7 @@
 
     <div v-if="loading" class="empty-block">加载中...</div>
     <div v-else-if="visibleItems.length === 0" class="empty-block">{{ tab === 'mine' ? '还没有投递过稿件' : '暂无约稿任务' }}</div>
-    <div v-else-if="tab === 'all'" class="task-grid">
+    <div v-else-if="tab === 'all'" class="task-list">
       <article v-for="item in visibleItems" :key="item.id" class="task-card" @click="goDetail(item.taskId || item.id)">
         <div class="task-card-top">
           <span :class="['status-tag', `status-${item.status}`]">{{ taskStatus(item.status) }}</span>
@@ -55,7 +64,7 @@
         <div class="task-card-bottom"><span>{{ deadlineText(item) }}</span><span class="detail-link">查看详情 <span>→</span></span></div>
       </article>
     </div>
-    <div v-else class="task-grid submission-grid">
+    <div v-else class="task-list">
       <article v-for="item in visibleItems" :key="item.id" class="submission-card" @click="goDetail(item.taskId || item.id)">
         <div class="task-card-top">
           <span :class="['status-tag', `submission-${item.status}`]">{{ submissionStatus(item.status) }}</span>
@@ -95,6 +104,7 @@ const router = useRouter()
 const { tasks, mySubmissions, loading, page, pageSize, total, loadTasks, loadMySubmissions } = useCommission()
 const tab = ref('all')
 const status = ref(null)
+const rulesExpanded = ref(false)
 const filters = [
   { label: '全部', value: null },
   { label: '投递中', value: 0 },
@@ -176,116 +186,88 @@ function goDetail(id) {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 32px;
+  padding: 16px;
   box-sizing: border-box;
+  background: #fafafa;
+  min-height: 100%;
 }
 
-.commission-hero {
-  position: relative;
-  padding: 32px 36px;
-  margin-bottom: 24px;
-  border-radius: 24px;
-  background: linear-gradient(135deg, #ffe7ec 0%, #f3e8ff 60%, #fde7f3 100%);
-  display: grid;
-  grid-template-columns: 1.4fr auto;
-  grid-template-areas: 'copy stats';
-  gap: 24px;
-  overflow: hidden;
-  box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
+/* Header */
+.commission-header {
+  margin-bottom: 16px;
 }
-.hero-copy { grid-area: copy; position: relative; z-index: 2; }
-.eyebrow {
-  display: inline-block;
-  font-size: 12px;
+.commission-header__title {
+  font-size: 24px;
   font-weight: 700;
-  letter-spacing: 2px;
-  color: var(--color-primary, #ff2442);
-  background: rgba(255, 255, 255, 0.6);
-  padding: 4px 10px;
-  border-radius: 999px;
+  color: #1a1a1a;
+  margin: 0 0 8px;
 }
-.commission-hero h1 { margin: 12px 0 8px; font-size: 28px; font-weight: 700; color: #1f1f1f; }
-.commission-hero p { margin: 0; color: #595959; font-size: 14px; line-height: 1.7; max-width: 520px; }
-
-.hero-orbit {
-  position: absolute;
-  top: -40px;
-  right: 38%;
-  width: 220px;
-  height: 220px;
-  pointer-events: none;
-  opacity: 0.6;
-}
-.hero-orbit span {
-  position: absolute;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 36, 66, 0.25);
-}
-.hero-orbit span:nth-child(1) {
-  width: 220px; height: 220px;
-  top: 0; left: 0;
-  border-style: dashed;
-  animation: orbit-spin 22s linear infinite;
-}
-.hero-orbit span:nth-child(2) {
-  width: 130px; height: 130px;
-  top: 45px; left: 45px;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 36, 66, 0.18), transparent 70%);
+.commission-header__subtitle {
+  font-size: 14px;
+  color: #595959;
+  line-height: 1.6;
+  margin: 0;
 }
 
-@keyframes orbit-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
-}
-
-.hero-stats {
-  grid-area: stats;
+/* Stats */
+.commission-stats {
   display: grid;
-  grid-template-columns: repeat(3, minmax(120px, 1fr));
-  gap: 12px;
-  align-self: center;
-  position: relative;
-  z-index: 2;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
 }
-.hero-stats > div {
-  background: rgba(255, 255, 255, 0.78);
-  backdrop-filter: blur(6px);
+.stat-card {
+  background: #fff;
   border-radius: 16px;
-  padding: 16px 18px;
+  padding: 16px 12px;
+  text-align: center;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 120px;
 }
-.hero-stats strong {
-  font-size: 24px;
-  color: var(--color-primary, #ff2442);
+.stat-card strong {
+  font-size: 22px;
   font-weight: 700;
+  color: var(--color-primary, #ff2442);
 }
-.hero-stats span {
+.stat-card span {
   font-size: 12px;
-  color: #595959;
+  color: #8c8c8c;
 }
 
+/* Rules */
 .commission-rules {
   background: #fff;
-  border-radius: 20px;
-  padding: 20px 24px;
-  margin-bottom: 20px;
+  border-radius: 16px;
+  padding: 16px 18px;
+  margin-bottom: 16px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
-.commission-rules h3 {
-  margin: 0 0 14px;
+.commission-rules__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+.commission-rules__header h3 {
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: #1a1a1a;
+}
+.commission-rules__toggle {
+  font-size: 13px;
+  color: var(--color-primary, #ff2442);
+  font-weight: 500;
 }
 .commission-rules ul {
-  margin: 0;
+  margin: 12px 0 0;
   padding-left: 18px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .commission-rules li {
   color: #595959;
@@ -293,15 +275,21 @@ function goDetail(id) {
   line-height: 1.6;
 }
 
-.commission-switcher {
-  display: inline-flex;
+/* Tabs */
+.commission-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 8px;
   padding: 4px;
   background: #f5f5f5;
   border-radius: 999px;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
-.commission-switcher button {
-  padding: 8px 22px;
+.commission-tabs button {
+  flex: 1;
+  padding: 9px 16px;
   border: 0;
   background: transparent;
   font-size: 14px;
@@ -309,22 +297,29 @@ function goDetail(id) {
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
+  font-weight: 500;
 }
-.commission-switcher button.active {
+.commission-tabs button.active {
   background: #fff;
   color: var(--color-primary, #ff2442);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
+/* Filters */
 .commission-filter {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 20px;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
 }
+.commission-filter::-webkit-scrollbar { display: none; }
 .filter-chip {
-  padding: 6px 16px;
+  flex: 0 0 auto;
+  padding: 6px 14px;
   border: 1px solid #e8e8e8;
   border-radius: 999px;
   background: #fff;
@@ -333,25 +328,24 @@ function goDetail(id) {
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.filter-chip:hover { border-color: var(--color-primary, #ff2442); color: var(--color-primary, #ff2442); }
 .filter-chip.active {
   background: var(--color-primary, #ff2442);
   color: #fff;
   border-color: transparent;
 }
 
-.task-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16px;
+/* Task list */
+.task-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.submission-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .task-card,
 .submission-card {
   position: relative;
-  padding: 22px 22px 20px;
-  border-radius: 20px;
+  padding: 18px;
+  border-radius: 18px;
   background: #fff;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   cursor: pointer;
@@ -359,10 +353,9 @@ function goDetail(id) {
   display: flex;
   flex-direction: column;
 }
-.task-card:hover,
-.submission-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+.task-card:active,
+.submission-card:active {
+  transform: scale(0.99);
 }
 
 .task-card-top {
@@ -374,41 +367,42 @@ function goDetail(id) {
 }
 .status-tag {
   display: inline-block;
-  padding: 4px 12px;
+  padding: 4px 10px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
 }
-.status-0 { color: #1677ff; background: #e6f4ff; }
-.status-1 { color: #fa8c16; background: #fff4e6; }
-.status-2 { color: #07c160; background: #e6f7ed; }
-.submission-0 { color: #1677ff; background: #e6f4ff; }
-.submission-1 { color: #07c160; background: #e6f7ed; }
+.status-0 { color: var(--color-primary, #ff2442); background: rgba(255, 36, 66, 0.1); }
+.status-1 { color: #ff4d6f; background: rgba(255, 77, 111, 0.1); }
+.status-2 { color: #8c8c8c; background: #f5f5f5; }
+.submission-0 { color: var(--color-primary, #ff2442); background: rgba(255, 36, 66, 0.1); }
+.submission-1 { color: #ff4d6f; background: rgba(255, 77, 111, 0.1); }
 .submission-2 { color: #8c8c8c; background: #f5f5f5; }
 .submission-3 { color: #bfbfbf; background: #fafafa; }
 
 .task-reward {
-  font-size: 22px;
+  font-size: 18px;
   color: var(--color-primary, #ff2442);
   font-weight: 700;
   white-space: nowrap;
 }
 .task-reward small {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   color: #8c8c8c;
   margin-left: 2px;
 }
 
-.task-card h2 {
+.task-card h2,
+.submission-task-title {
   margin: 0 0 8px;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f1f1f;
+  color: #1a1a1a;
   line-height: 1.4;
 }
 .task-desc {
-  margin: 0 0 14px;
+  margin: 0 0 12px;
   color: #595959;
   font-size: 13px;
   line-height: 1.6;
@@ -421,10 +415,10 @@ function goDetail(id) {
 .task-facts {
   display: flex;
   flex-wrap: wrap;
-  gap: 14px;
-  color: #595959;
+  gap: 10px;
+  color: #8c8c8c;
   font-size: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 12px;
 }
 .task-card-bottom {
   margin-top: auto;
@@ -439,122 +433,130 @@ function goDetail(id) {
 .detail-link {
   color: var(--color-primary, #ff2442);
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
-.detail-link span { margin-left: 4px; transition: transform 0.2s ease; display: inline-block; }
-.task-card:hover .detail-link span,
-.submission-card:hover .detail-link span { transform: translateX(3px); }
+.detail-link span { transition: transform 0.2s ease; display: inline-block; }
+.task-card:active .detail-link span,
+.submission-card:active .detail-link span { transform: translateX(3px); }
 
 .submission-task-title { font-size: 16px; }
-.submission-article { margin-bottom: 12px; }
+.submission-article { margin-bottom: 10px; }
 .submission-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   color: #8c8c8c;
   font-size: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
-.reward-collected { color: #07c160; font-weight: 500; }
+.reward-collected { color: var(--color-primary, #ff2442); font-weight: 500; }
 
 .empty-block {
-  padding: 72px 20px;
+  padding: 56px 20px;
   text-align: center;
   color: #8c8c8c;
   background: #fff;
-  border-radius: 20px;
+  border-radius: 18px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  font-size: 14px;
 }
 
 .pagination-bar {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 20px;
-  padding: 14px 0;
+  justify-content: center;
+  margin-top: 16px;
+  padding: 12px 0;
 }
 
+/* 暗色主题 */
+body[data-theme="dark"] .commission-page { background: #141414; }
+body[data-theme="dark"] .commission-header__title { color: #f5f5f5; }
+body[data-theme="dark"] .commission-header__subtitle { color: #a6a6a6; }
+body[data-theme="dark"] .stat-card,
+body[data-theme="dark"] .commission-rules,
+body[data-theme="dark"] .filter-chip,
 body[data-theme="dark"] .task-card,
 body[data-theme="dark"] .submission-card,
-body[data-theme="dark"] .empty-block,
-body[data-theme="dark"] .commission-rules { background: #1f1f1f; }
-body[data-theme="dark"] .commission-hero { background: linear-gradient(135deg, #3a1f2a 0%, #2a1f3d 60%, #3a1f30 100%); }
-body[data-theme="dark"] .hero-stats > div { background: rgba(0, 0, 0, 0.35); }
-body[data-theme="dark"] .hero-stats span { color: #bfbfbf; }
-body[data-theme="dark"] .commission-hero h1 { color: #f5f5f5; }
-body[data-theme="dark"] .commission-hero p { color: #d9d9d9; }
-body[data-theme="dark"] .commission-rules h3 { color: #f5f5f5; }
-body[data-theme="dark"] .commission-rules li { color: #bfbfbf; }
-body[data-theme="dark"] .commission-switcher { background: #262626; }
-body[data-theme="dark"] .commission-switcher button { color: #bfbfbf; }
-body[data-theme="dark"] .commission-switcher button.active { background: #1f1f1f; }
-body[data-theme="dark"] .filter-chip { background: #262626; border-color: #404040; color: #d9d9d9; }
+body[data-theme="dark"] .empty-block { background: #1f1f1f; }
+body[data-theme="dark"] .stat-card span { color: #8c8c8c; }
+body[data-theme="dark"] .commission-rules__header h3 { color: #f5f5f5; }
+body[data-theme="dark"] .commission-rules li { color: #a6a6a6; }
+body[data-theme="dark"] .commission-tabs { background: #262626; }
+body[data-theme="dark"] .commission-tabs button { color: #a6a6a6; }
+body[data-theme="dark"] .commission-tabs button.active { background: #1f1f1f; }
+body[data-theme="dark"] .filter-chip { border-color: #404040; color: #d9d9d9; }
 body[data-theme="dark"] .task-card h2,
 body[data-theme="dark"] .submission-task-title { color: #f5f5f5; }
 body[data-theme="dark"] .task-desc,
 body[data-theme="dark"] .task-facts,
 body[data-theme="dark"] .submission-meta,
-body[data-theme="dark"] .task-card-bottom { color: #bfbfbf; }
+body[data-theme="dark"] .task-card-bottom { color: #a6a6a6; }
 body[data-theme="dark"] .task-card-bottom { border-top-color: #303030; }
-body[data-theme="dark"] .eyebrow { background: rgba(255, 255, 255, 0.08); }
+body[data-theme="dark"] .status-2 { color: #a6a6a6; background: #262626; }
+body[data-theme="dark"] .submission-2 { color: #a6a6a6; background: #262626; }
+body[data-theme="dark"] .submission-3 { color: #8c8c8c; background: #1a1a1a; }
 
-@media (max-width: 1024px) {
-  .task-grid, .submission-grid { grid-template-columns: 1fr; }
-  .commission-hero { grid-template-columns: 1fr; grid-template-areas: 'copy' 'stats'; }
-  .hero-orbit { display: none; }
-  .hero-stats { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 768px) {
-  .commission-hero {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'copy' 'stats';
-    padding: 24px 20px;
-    border-radius: 20px;
+/* PC 端适配 */
+@media (min-width: 769px) {
+  .commission-page {
+    padding: 24px 32px;
   }
-  .commission-hero h1 { font-size: 22px; }
-  .hero-orbit { display: none; }
-  .hero-stats {
-    display: flex;
-    grid-template-columns: none;
-    overflow-x: auto;
-    padding-bottom: 4px;
-    scrollbar-width: none;
+  .commission-header__title {
+    font-size: 28px;
   }
-  .hero-stats::-webkit-scrollbar { display: none; }
-  .hero-stats > div {
-    flex: 0 0 132px;
-    min-width: 132px;
-    padding: 14px 16px;
+  .commission-stats {
+    gap: 14px;
+    margin-bottom: 20px;
   }
-  .task-grid,
-  .submission-grid { grid-template-columns: minmax(0, 1fr); }
-  .task-card,
-  .submission-card { padding: 16px; }
+  .stat-card {
+    padding: 20px 16px;
+  }
+  .stat-card strong {
+    font-size: 26px;
+  }
   .commission-rules {
-    padding: 16px 18px;
-    border-radius: 16px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
   }
   .commission-rules ul {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 28px;
   }
-  .task-card-top {
-    min-height: 32px;
-    padding-right: 118px;
+  .commission-tabs {
+    position: static;
+    display: inline-flex;
+    width: auto;
+    margin-bottom: 16px;
   }
-  .task-reward {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    max-width: 116px;
-    text-align: right;
+  .commission-filter {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    margin-bottom: 16px;
   }
-  .task-desc {
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+  .task-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
   }
-  .commission-switcher button { padding: 7px 16px; font-size: 13px; }
+  .task-card,
+  .submission-card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+  .task-card:hover,
+  .submission-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+  }
+  .empty-block {
+    padding: 72px 20px;
+  }
   .pagination-bar {
-    justify-content: center;
-    margin-top: 16px;
+    justify-content: flex-end;
+    margin-top: 20px;
   }
 }
 </style>

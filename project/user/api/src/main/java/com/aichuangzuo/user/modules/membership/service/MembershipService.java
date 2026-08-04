@@ -1,8 +1,10 @@
 package com.aichuangzuo.user.modules.membership.service;
 
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
+import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
+import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 
 /**
  * 会员服务。
@@ -25,6 +27,15 @@ public interface MembershipService {
      * @return 会员状态
      */
     MembershipStatusVO getMyMembership(Long userId);
+
+    /**
+     * 升级套餐价格预览：计算当前订阅剩余价值可用于抵扣的金额。
+     *
+     * @param userId  当前用户ID
+     * @param request 升级预览请求
+     * @return 升级预览结果
+     */
+    UpgradePreviewVO previewUpgrade(Long userId, UpgradePreviewRequest request);
 
     /**
      * 给指定用户延长会员天数。
