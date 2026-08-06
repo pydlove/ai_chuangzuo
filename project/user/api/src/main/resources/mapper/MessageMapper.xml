@@ -27,6 +27,21 @@
         LIMIT 200
     </select>
 
+    <select id="countUnread" resultType="java.lang.Long">
+        SELECT COUNT(1)
+        FROM u_message m
+        LEFT JOIN u_message_read mr
+            ON mr.message_id = m.id
+            AND mr.user_id = #{userId}
+            AND mr.is_deleted = 0
+        WHERE m.is_deleted = 0
+          AND mr.id IS NULL
+          AND (
+              (m.scope = 1 AND m.created_at &gt;= #{registerAt})
+              OR (m.scope = 2 AND m.target_user_id = #{userId})
+          )
+    </select>
+
     <select id="selectVisibleMessageId" resultType="java.lang.Long">
         SELECT m.id
         FROM u_message m

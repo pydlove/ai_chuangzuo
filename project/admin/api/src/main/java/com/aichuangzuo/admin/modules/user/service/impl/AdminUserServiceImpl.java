@@ -75,6 +75,8 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private static final String BENEFIT_CODE_LEARN_ANALYZE = "skill_learn_analyze";
     private static final String BENEFIT_CODE_CUSTOM_SKILL = "skill_custom";
+    private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
+    private static final String LIFETIME_PERIOD = "lifetime";
     private static final int SOURCE_TYPE_CUSTOM = 1;
     private static final int SOURCE_TYPE_LEARN = 2;
     private static final int AUDIT_STATUS_PENDING = 0;
@@ -616,6 +618,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         String period = YearMonth.now().toString();
         benefitUsageAdminMapper.decreaseUsedCount(
                 userId, BENEFIT_CODE_CUSTOM_SKILL, period, request.getCount());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void releasePublishSkillQuota(Long userId, ResetCustomSkillQuotaRequest request) {
+        ensureUserExists(userId);
+        benefitUsageAdminMapper.decreaseUsedCount(
+                userId, BENEFIT_CODE_SKILL_MARKET_PUBLISH, LIFETIME_PERIOD, request.getCount());
     }
 
     private void ensureUserExists(Long userId) {

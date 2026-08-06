@@ -46,7 +46,14 @@
         <button class="hero-refresh" @click="refreshInspire">换一批</button>
       </div>
     </div>
-    <button v-else class="hero-inspire-btn" @click="expandInspire">
+    <button
+      v-else
+      :class="['hero-inspire-btn', { locked: isTopicInspirationLocked }]"
+      @click="expandInspire"
+    >
+      <div v-if="topicInspirationBadge" :class="['hero-inspire-badge', topicInspirationBadge.tier]">
+        {{ topicInspirationBadge.text }}
+      </div>
       <svg class="inspire-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 18h6"/>
         <path d="M10 22h4"/>
@@ -61,14 +68,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import { message } from 'ant-design-vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { useCreateForm } from './useCreateForm.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const emit = defineEmits(['submit'])
 const topicInput = ref('')
 const heroSlogan = ref('输入一个主题，AI 自动帮你写选题、写正文、排排版')
 const { customTitle, customRequirement } = useCreateForm()
+const { planKey } = useBenefits()
+
+const isTopicInspirationLocked = computed(() => planKey.value !== 'pro' && planKey.value !== 'flagship')
+const topicInspirationBadge = computed(() => {
+  if (!isTopicInspirationLocked.value) return null
+  return { text: '专业版', tier: 'pro' }
+})
 
 const submit = () => {
   const text = topicInput.value.trim()
@@ -117,6 +133,10 @@ const startStream = async () => {
 
 const expandInspire = () => {
   if (inspireExpanded.value) return
+  if (isTopicInspirationLocked.value) {
+    message.info(`AI 选题灵感需要 ${topicInspirationBadge.value?.text || '更高套餐'}，请升级套餐后使用`)
+    return
+  }
   inspireExpanded.value = true
   startStream()
 }
@@ -252,6 +272,7 @@ const applyTopic = (t) => {
 
 /* ===== 灵感入口 ===== */
 .hero-inspire-btn {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -283,6 +304,53 @@ const applyTopic = (t) => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-light);
+}
+
+.hero-inspire-btn.locked {
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #e8e8e8;
+  color: #8c8c8c;
+}
+
+.hero-inspire-btn.locked:hover {
+  background: #f5f5f5;
+  border-color: #e8e8e8;
+  color: #8c8c8c;
+}
+
+.hero-inspire-btn.locked .inspire-icon {
+  opacity: 0.55;
+}
+
+.hero-inspire-btn.locked span:last-child {
+  opacity: 0.55;
+}
+
+.hero-inspire-badge {
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  z-index: 10;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.hero-inspire-badge.pro {
+  color: #874d00;
+  background: linear-gradient(135deg, #fff1b8, #ffd666);
+}
+
+.hero-inspire-badge.flagship {
+  color: #fff;
+  background: linear-gradient(135deg, #a05013, #db3708);
+  box-shadow: 0 2px 6px rgba(219, 55, 8, 0.45);
+  z-index: 11;
 }
 
 .hero-inspire {
@@ -397,6 +465,18 @@ body[data-theme="dark"] .hero-topic,
 body[data-theme="dark"] .hero-inspire-btn {
   background: #1f1f1f;
   border-color: #2e2e2e;
+}
+
+body[data-theme="dark"] .hero-inspire-btn.locked {
+  background: #2a2a2a;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .hero-inspire-btn.locked:hover {
+  background: #2a2a2a;
+  border-color: #303030;
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .hero-send {

@@ -43,7 +43,7 @@
           :class="['template-row', { selected: selectedTemplateKey === t.key, locked: !t.accessible }]"
           @click="selectTemplate(t)"
         >
-          <div v-if="!t.accessible" class="template-row-badge locked">需升级</div>
+          <div v-if="!t.accessible" class="template-row-badge locked">{{ isFreePlan ? '需订阅' : '需升级' }}</div>
           <div class="template-row-info">
             <div class="template-row-name">{{ t.name }}</div>
             <div class="template-row-desc">{{ t.desc }}</div>
@@ -65,11 +65,14 @@ import { buildLargePreview } from '@/utils/articleTemplates.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useCreateForm } from '../useCreateForm.js'
 import { useDevice } from '@/composables/useDevice.js'
+import { getCurrentPlanKey } from '@/utils/membershipLimits.js'
 
 const { templateVisible, selectedTemplateKey } = useCreateForm()
 const { isMobile } = useDevice()
 const { templates: apiTemplates } = useExportTemplates()
 const allTemplates = computed(() => apiTemplates.value)
+const currentPlanKey = computed(() => getCurrentPlanKey())
+const isFreePlan = computed(() => currentPlanKey.value === 'free')
 
 const templatePlatformTabs = [
   { key: 'all', label: '全部' },
@@ -199,7 +202,6 @@ const applyTemplate = () => {
 }
 
 .template-row.locked {
-  opacity: 0.55;
   cursor: not-allowed;
   background: #f5f5f5;
 }
@@ -209,21 +211,29 @@ const applyTemplate = () => {
   background: #f5f5f5;
 }
 
+.template-row.locked .template-row-name,
+.template-row.locked .template-row-desc {
+  opacity: 0.55;
+}
+
 .template-row-badge {
   position: absolute;
   top: 4px;
   right: 6px;
+  z-index: 1;
   padding: 1px 6px;
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
   line-height: 1.4;
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
 }
 
 .template-row-badge.locked {
   color: #fff;
   background: linear-gradient(135deg, #ff9a4d, #ff2442);
+  box-shadow: 0 2px 5px rgba(255, 36, 66, 0.35);
 }
 
 .template-row-name {
@@ -305,12 +315,16 @@ body[data-theme="dark"] .template-row.selected {
 body[data-theme="dark"] .template-row.locked {
   background: #2a2a2a;
   border-color: #303030;
-  opacity: 0.45;
 }
 
 body[data-theme="dark"] .template-row.locked:hover {
   background: #2a2a2a;
   border-color: #303030;
+}
+
+body[data-theme="dark"] .template-row.locked .template-row-name,
+body[data-theme="dark"] .template-row.locked .template-row-desc {
+  opacity: 0.45;
 }
 
 body[data-theme="dark"] .template-row-name {

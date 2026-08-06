@@ -74,10 +74,10 @@
       </div>
     </div>
 
-    <!-- 邀请奖励结算详情 -->
+    <!-- 收益详情 -->
     <a-modal
       v-model:open="detailVisible"
-      title="邀请奖励详情"
+      title="收益详情"
       :footer="null"
       :width="440"
       centered
@@ -86,7 +86,7 @@
     >
       <div v-if="detailRecord" class="earnings-detail-body">
         <div class="earnings-detail-amount">
-          <span class="earnings-detail-amount-value">+{{ detailRecord.amount.toFixed(2) }}</span>
+          <span class="earnings-detail-amount-value">{{ detailRecord.amount > 0 ? '+' : '' }}{{ detailRecord.amount.toFixed(2) }}</span>
           <span class="earnings-detail-amount-unit">创作币</span>
         </div>
         <div class="earnings-detail-status">
@@ -94,6 +94,32 @@
         </div>
 
         <div class="earnings-detail-section">
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">标题</span>
+            <span class="earnings-detail-value">{{ detailRecord.title || '—' }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">收益类型</span>
+            <span class="earnings-detail-value">{{ detailRecord.typeLabel }}</span>
+          </div>
+          <div v-if="detailRecord.fromSkillMarket" class="earnings-detail-row">
+            <span class="earnings-detail-label">来源</span>
+            <span class="earnings-detail-value earnings-detail-source">提示词收益</span>
+          </div>
+          <div v-else-if="detailRecord.sourceLabel" class="earnings-detail-row">
+            <span class="earnings-detail-label">来源</span>
+            <span class="earnings-detail-value">{{ detailRecord.sourceLabel }}</span>
+          </div>
+          <div class="earnings-detail-row">
+            <span class="earnings-detail-label">流水号</span>
+            <span class="earnings-detail-value">
+              <span class="biz-no">{{ detailRecord.bizNo || '—' }}</span>
+              <button v-if="detailRecord.bizNo" class="copy-btn" @click="copyBizNo">复制</button>
+            </span>
+          </div>
+        </div>
+
+        <div v-if="isInviteReward(detailRecord)" class="earnings-detail-section">
           <div class="earnings-detail-row">
             <span class="earnings-detail-label">被邀请人</span>
             <span class="earnings-detail-value">{{ detailRecord.sourceLabel || '—' }}</span>
@@ -116,7 +142,7 @@
           </div>
         </div>
 
-        <div class="earnings-detail-formula">
+        <div v-if="isInviteReward(detailRecord)" class="earnings-detail-formula">
           <div class="earnings-detail-formula-label">计算明细</div>
           <div class="earnings-detail-formula-value">
             {{ detailPlanText }} ¥{{ detailRecord.orderAmount.toFixed(2) }} × {{ (detailRecord.commissionRate * 100).toFixed(0) }}% = {{ detailRecord.amount.toFixed(2) }} 创作币
@@ -177,13 +203,13 @@
           v-for="r in filteredRecords"
           :key="r.id"
           class="earnings-item"
-          :class="{ clickable: isInviteReward(r) }"
-          @click="isInviteReward(r) ? openDetail(r) : null"
+          @click="openDetail(r)"
         >
           <div class="earnings-item-left">
             <div class="earnings-item-title">{{ r.title }}</div>
             <div class="earnings-item-meta">
-              {{ r.typeLabel }} · {{ formatTime(r.createdAt) }}
+              <span v-if="r.fromSkillMarket" class="earnings-source-tag">提示词收益</span>
+              <span>{{ r.typeLabel }} · {{ formatTime(r.createdAt) }}</span>
               <span v-if="r.sourceLabel" class="earnings-item-source"> · {{ r.sourceLabel }}</span>
             </div>
             <div v-if="isInviteReward(r)" class="earnings-item-commission">
@@ -195,7 +221,6 @@
               {{ r.amount > 0 ? '+' : '' }}{{ r.amount.toFixed(2) }}
             </span>
             <button
-              v-if="isInviteReward(r)"
               class="earnings-detail-btn"
               @click.stop="openDetail(r)"
             >
@@ -211,6 +236,7 @@
 <script setup>
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { message } from 'ant-design-vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import { useEarnings } from '@/composables/useEarnings.js'
 
@@ -250,6 +276,16 @@ const isInviteReward = (record) => record.type === 'INVITE_REWARD' && record.ord
 const openDetail = (record) => {
   detailRecord.value = record
   detailVisible.value = true
+}
+
+const copyBizNo = async () => {
+  if (!detailRecord.value?.bizNo) return
+  try {
+    await navigator.clipboard.writeText(detailRecord.value.bizNo)
+    message.success('流水号已复制')
+  } catch {
+    message.error('复制失败')
+  }
 }
 
 const detailPlanText = computed(() => {
@@ -564,14 +600,11 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
 }
 
-.earnings-item.clickable {
-  cursor: pointer;
-}
-
-.earnings-item.clickable:hover {
+.earnings-item:hover {
   background: #fff8f9;
   border-color: #ffd1d9;
 }
@@ -588,6 +621,44 @@ onMounted(() => {
 }
 
 .earnings-item-source {
+  color: #ff2442;
+}
+
+.earnings-source-tag {
+  display: inline-block;
+  padding: 1px 6px;
+  margin-right: 6px;
+  background: #fff0f2;
+  color: #ff2442;
+  border-radius: 4px;
+  font-size: 11px;
+  line-height: 1.4;
+  vertical-align: middle;
+}
+
+.copy-btn {
+  margin-left: 8px;
+  padding: 2px 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  border-radius: 4px;
+  border: none;
+  background: #fff0f2;
+  color: #ff2442;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.copy-btn:hover {
+  background: #ffd1d9;
+}
+
+.biz-no {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  word-break: break-all;
+}
+
+.earnings-detail-source {
   color: #ff2442;
 }
 
@@ -771,9 +842,27 @@ body[data-theme="dark"] .earnings-item-commission {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .earnings-item.clickable:hover {
+body[data-theme="dark"] .earnings-item:hover {
   background: #331018;
   border-color: #52222b;
+}
+
+body[data-theme="dark"] .earnings-source-tag {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .copy-btn {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .copy-btn:hover {
+  background: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .earnings-detail-source {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .earnings-detail-btn {

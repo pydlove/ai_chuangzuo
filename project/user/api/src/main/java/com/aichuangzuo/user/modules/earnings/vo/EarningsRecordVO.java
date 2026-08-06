@@ -27,6 +27,10 @@ public class EarningsRecordVO {
 
     private String sourceLabel;
 
+    private Boolean fromSkillMarket;
+
+    private String bizNo;
+
     private String planKey;
 
     private String planName;

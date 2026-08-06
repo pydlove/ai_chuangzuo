@@ -35,6 +35,12 @@ public class MessageServiceImpl implements MessageService {
     }
 
     @Override
+    public long countUnread(Long userId, LocalDateTime registerAt) {
+        Long count = messageMapper.countUnread(userId, registerAt);
+        return count == null ? 0L : count;
+    }
+
+    @Override
     @Transactional
     public void markRead(Long userId, LocalDateTime registerAt, Long messageId) {
         Long visibleId = messageMapper.selectVisibleMessageId(messageId, userId, registerAt);

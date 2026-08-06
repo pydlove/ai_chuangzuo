@@ -117,6 +117,7 @@ import TopicCapsules from './TopicCapsules.vue'
 import { useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
 import { currentSkill } from '@/composables/useSkills.js'
+import { marketSkills } from '@/composables/useSkillMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration } from '@/api/generation.js'
@@ -131,9 +132,8 @@ const {
 } = useCreateForm()
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates } = useExportTemplates()
-const { benefits, loadBenefits } = useBenefits()
+const { benefits, planKey, loadBenefits } = useBenefits()
 
-const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
@@ -148,6 +148,17 @@ const fullRequirementEl = ref(null)
 
 const requirementChars = computed(() => customRequirement.value?.length || 0)
 const fullRequirementChars = computed(() => fullRequirement.value?.length || 0)
+
+const isCurrentSkillAvailable = () => {
+  const skill = currentSkill.value
+  if (!skill) return true
+  // 非市场提示词（没有 id）不在这里拦截
+  if (!skill.id) return true
+  // 以提示词市场实时列表为准：找不到或状态不是 approved 视为不可用
+  const live = marketSkills.value.find(s => s.id === skill.id)
+  if (!live) return false
+  return live.status === 'approved'
+}
 
 const autoGrow = () => {
   const el = requirementEl.value
@@ -196,24 +207,24 @@ const handleSaveDraft = async () => {
 }
 
 const handleGenerate = async () => {
+  if (planKey.value === 'free') {
+    Modal.confirm({
+      title: '需要订阅套餐',
+      content: '订阅套餐后即可使用 AI 生成文章，是否去订阅？',
+      okText: '去订阅',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => window.open('/pricing', '_blank')
+    })
+    return
+  }
   if (!customTitle.value.trim()) {
     message.warning('请输入文章标题')
     return
   }
   if (!customRequirement.value.trim()) {
     message.warning('请补充你的核心观点和要求')
-    return
-  }
-  if (quotaTotal.value <= 0) {
-    Modal.confirm({
-      title: '需要开通会员',
-      content: '开通会员后才能使用 AI 生成文章，是否去开通？',
-      okText: '去开通',
-      cancelText: '取消',
-      centered: true,
-      wrapClassName: 'membership-confirm-modal',
-      onOk: () => window.open('/pricing', '_blank')
-    })
     return
   }
   if (quotaRemaining.value <= 0) {
@@ -225,6 +236,10 @@ const handleGenerate = async () => {
       centered: true,
       onOk: () => window.open('/pricing', '_blank')
     })
+    return
+  }
+  if (!isCurrentSkillAvailable()) {
+    message.warning('该提示词已下架或不可用，请重新选择')
     return
   }
   try {

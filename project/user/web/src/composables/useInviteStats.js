@@ -7,7 +7,7 @@ const DEFAULT_COIN_BALANCE = 100
 // 模块级 ref：ConsoleLayout 和 MineIndex 共享同一份邀请统计。
 const inviteStats = ref({
   invitedCount: 0,
-  membershipDaysEarned: 0,
+  inviteCoinEarned: 0,
   coinEarned: 0,
   friends: []
 })
@@ -51,7 +51,7 @@ export function useInviteStats() {
       const data = await getInviteStats()
       inviteStats.value = {
         invitedCount: toNumber(data.invitedCount),
-        membershipDaysEarned: toNumber(data.membershipDaysEarned),
+        inviteCoinEarned: toNumber(data.inviteCoinEarned),
         coinEarned: toNumber(data.coinEarned),
         friends: Array.isArray(data.friends) ? data.friends : []
       }

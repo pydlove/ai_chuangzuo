@@ -6,13 +6,14 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.leaderboard.entity.CoinDirection;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.membership.entity.Order;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
-import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
@@ -23,8 +24,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +44,8 @@ import java.util.stream.Collectors;
 public class InviteRewardServiceImpl implements InviteRewardService {
 
     private static final String COIN_BIZ_TYPE_REGISTER_REWARD = "invite_register_reward";
+    private static final String COIN_BIZ_TYPE_LADDER_REWARD = "invite_ladder_reward";
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
-    private static final String MEMBERSHIP_LEVEL_PRO = "pro";
     private static final BigDecimal NEW_USER_COIN_BONUS = new BigDecimal("50");
     private static final int EFFECTIVE_STATUS = 1;
 
@@ -51,7 +54,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
     private final UserCoinRecordMapper userCoinRecordMapper;
     private final OrderMapper orderMapper;
     private final CoinRecordService coinRecordService;
-    private final MembershipService membershipService;
+    private final EarningsService earningsService;
     private final MessageService messageService;
 
     @Override
@@ -84,48 +87,61 @@ public class InviteRewardServiceImpl implements InviteRewardService {
                 null, "邀请注册奖励");
         log.info("被邀请人 {} 获得 {} 创作币，邀请人 {}", invitee.getEmail(), NEW_USER_COIN_BONUS, inviter.getEmail());
 
+        String inviterName = StringUtils.hasText(inviter.getNickname()) ? inviter.getNickname() : inviter.getEmail();
+        String description = String.format("接受 %s 的邀请注册，获得 %s 创作币奖励",
+                inviterName, NEW_USER_COIN_BONUS.toPlainString());
+        earningsService.recordEarnings(invitee.getId(), EarningsType.INVITE_REWARD.getCode(),
+                "invite_register", inviter.getId().toString(), "邀请注册奖励", description,
+                NEW_USER_COIN_BONUS, YearMonth.now().toString());
+
         long count = userInviteRelationMapper.selectCount(
                 new LambdaQueryWrapper<UserInviteRelation>()
                         .eq(UserInviteRelation::getInviterId, inviter.getId())
                         .eq(UserInviteRelation::getEffectiveStatus, EFFECTIVE_STATUS)
         );
-        long rewardDays = calculateMembershipRewardDays(count);
-        if (rewardDays > 0) {
-            membershipService.extendMembership(inviter.getId(), MEMBERSHIP_LEVEL_PRO, rewardDays);
-            sendMembershipRewardMessage(inviter, count, rewardDays);
-            log.info("邀请人 {} 累计有效邀请达到阶梯，获得 {} 天专业版会员", inviter.getEmail(), rewardDays);
+        BigDecimal rewardCoins = calculateInviteRewardCoins(count);
+        if (rewardCoins.compareTo(BigDecimal.ZERO) > 0) {
+            String coinBizNo = coinRecordService.grant(inviter.getId(), COIN_BIZ_TYPE_LADDER_REWARD, rewardCoins,
+                    null, "邀请阶梯奖励");
+            String ladderDescription = String.format("累计邀请 %d 位好友，获得 %s 创作币阶梯奖励",
+                    count, rewardCoins.toPlainString());
+            earningsService.recordEarnings(inviter.getId(), EarningsType.INVITE_REWARD.getCode(),
+                    "invite_ladder", coinBizNo, "邀请阶梯奖励", ladderDescription, rewardCoins,
+                    YearMonth.now().toString());
+            sendInviteRewardMessage(inviter, count, rewardCoins);
+            log.info("邀请人 {} 累计有效邀请达到阶梯，获得 {} 创作币", inviter.getEmail(), rewardCoins.toPlainString());
         }
     }
 
-    private void sendMembershipRewardMessage(User inviter, long count, long rewardDays) {
-        String summary = String.format("恭喜！您累计邀请 %d 位好友，获得 %d 天专业版会员", count, rewardDays);
+    private void sendInviteRewardMessage(User inviter, long count, BigDecimal rewardCoins) {
+        String summary = String.format("恭喜！您累计邀请 %d 位好友，获得 %s 创作币", count, rewardCoins.toPlainString());
         String content = String.format(
-                "亲爱的用户：\n\n恭喜您累计邀请 %d 位好友加入爱创作，系统已为您发放 %d 天专业版会员奖励。\n\n"
-                        + "会员权益已自动生效，您可前往「我的」页面查看会员有效期。\n\n感谢您的分享！",
-                count, rewardDays);
-        messageService.pushPersonal(inviter.getId(), "membership", "邀请会员奖励到账",
+                "亲爱的用户：\n\n恭喜您累计邀请 %d 位好友加入爱创作，系统已为您发放 %s 创作币奖励。\n\n"
+                        + "奖励已到账，您可前往「我的」页面查看创作币余额。\n\n感谢您的分享！",
+                count, rewardCoins.toPlainString());
+        messageService.pushPersonal(inviter.getId(), "coin", "邀请奖励到账",
                 summary, null, content, MessageSubType.INVITE_REWARD.getCode());
     }
 
     /**
-     * 根据邀请人当前累计有效邀请数，计算本次应额外奖励的会员天数。
+     * 根据邀请人当前累计有效邀请数，计算本次应额外奖励的创作币数量。
      *
-     * <p>阶梯规则：第 3 人 +3 天，第 5 人 +5 天，第 6 人起每多 1 人 +2 天。
+     * <p>阶梯规则：第 3 人 +30 创作币，第 5 人 +50 创作币，第 6 人起每多 1 人 +20 创作币。
      *
      * @param count 累计有效邀请数
-     * @return 本次应奖励的天数；不触发阶梯时返回 0
+     * @return 本次应奖励的创作币数量；不触发阶梯时返回 0
      */
-    private long calculateMembershipRewardDays(long count) {
+    private BigDecimal calculateInviteRewardCoins(long count) {
         if (count == 3) {
-            return 3;
+            return new BigDecimal("30");
         }
         if (count == 5) {
-            return 5;
+            return new BigDecimal("50");
         }
         if (count > 5) {
-            return 2;
+            return new BigDecimal("20");
         }
-        return 0;
+        return BigDecimal.ZERO;
     }
 
     @Override
@@ -146,7 +162,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
                         .orderByDesc(UserInviteRelation::getCreatedAt)
         );
         vo.setInvitedCount(relations.size());
-        vo.setMembershipDaysEarned(calculateTotalMembershipDays(relations.size()));
+        vo.setInviteCoinEarned(calculateTotalInviteCoins(relations.size()));
 
         List<UserCoinRecord> rewardRecords = userCoinRecordMapper.selectList(
                 new LambdaQueryWrapper<UserCoinRecord>()
@@ -164,26 +180,26 @@ public class InviteRewardServiceImpl implements InviteRewardService {
     }
 
     /**
-     * 根据累计有效邀请数计算累计获得的会员天数。
+     * 根据累计有效邀请数计算累计获得的邀请阶梯奖励创作币。
      *
-     * <p>规则：3 人 +3 天，5 人 +5 天，>5 人后每多 1 人 +2 天。
-     * 示例：6 人 = 3 + 5 + 2 = 10 天。
+     * <p>规则：3 人 +30 创作币，5 人 +50 创作币，>5 人后每多 1 人 +20 创作币。
+     * 示例：6 人 = 30 + 50 + 20 = 100 创作币。
      *
      * @param count 累计有效邀请数
-     * @return 累计会员天数
+     * @return 累计邀请阶梯奖励创作币
      */
-    private int calculateTotalMembershipDays(int count) {
-        int days = 0;
+    private int calculateTotalInviteCoins(int count) {
+        int coins = 0;
         if (count >= 3) {
-            days += 3;
+            coins += 30;
         }
         if (count >= 5) {
-            days += 5;
+            coins += 50;
         }
         if (count > 5) {
-            days += (count - 5) * 2;
+            coins += (count - 5) * 20;
         }
-        return days;
+        return coins;
     }
 
     private List<InviteFriendVO> buildFriends(List<UserInviteRelation> relations,

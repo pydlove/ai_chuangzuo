@@ -27,7 +27,7 @@ public interface SkillMarketQueryService {
     IPage<MarketSkillVO> pageEnabled(int page, int pageSize, String keyword, String sortType);
 
     /**
-     * 获取风格市场概览（统计、官方精选、收益潜力榜）。
+     * 获取风格市场概览（统计、官方精选）。
      */
     MarketSkillOverviewVO getOverview();
 

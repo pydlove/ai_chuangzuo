@@ -46,6 +46,15 @@ public class UpgradePreviewVO {
     /** 抵扣后应付金额。 */
     private BigDecimal finalPrice;
 
+    /** 用户创作币余额。 */
+    private BigDecimal coinBalance;
+
+    /** 本次最多可抵扣创作币数量。 */
+    private Long maxCoinAmount;
+
+    /** 创作币兑人民币比例。 */
+    private Integer coinToYuanRatio;
+
     /** 目标周期天数。 */
     private int targetDays;
 

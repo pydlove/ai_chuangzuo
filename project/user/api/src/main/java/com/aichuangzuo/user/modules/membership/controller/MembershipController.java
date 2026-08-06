@@ -2,10 +2,12 @@ package com.aichuangzuo.user.modules.membership.controller;
 
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.membership.dto.request.SubscribePreviewRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
+import com.aichuangzuo.user.modules.membership.vo.SubscribePreviewVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import jakarta.validation.Valid;
@@ -33,6 +35,15 @@ public class MembershipController {
     public Result<SubscribeResultVO> subscribe(@Valid @RequestBody SubscribeRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(membershipService.subscribe(userId, request));
+    }
+
+    /**
+     * 订阅价格预览。
+     */
+    @PostMapping("/subscribe-preview")
+    public Result<SubscribePreviewVO> previewSubscribe(@Valid @RequestBody SubscribePreviewRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(membershipService.previewSubscribe(userId, request));
     }
 
     /**

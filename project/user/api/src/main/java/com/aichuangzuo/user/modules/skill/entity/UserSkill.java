@@ -27,7 +27,7 @@ public class UserSkill {
     /** 所属用户ID。 */
     private Long userId;
 
-    /** 风格名称；同一用户下唯一。 */
+    /** 风格名称；全局唯一。 */
     private String skillName;
 
     /** 风格提示词，生成文章时使用。 */

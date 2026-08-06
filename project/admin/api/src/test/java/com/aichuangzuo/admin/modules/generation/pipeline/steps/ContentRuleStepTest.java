@@ -81,6 +81,34 @@ class ContentRuleStepTest {
     }
 
     @Test
+    void postProcess_shouldReplaceSingleQuotesInResponsibility() {
+        GenerationContext ctx = makeCtx();
+        ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",
+                "{\"singleQuoteToChineseQuotes\": true}"));
+        ctx.setDraftJson("{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"'核心'观点\",\"content\":\"正文。\"}]}");
+        ctx.setFinalDraftJson(ctx.getDraftJson());
+
+        step.process(ctx);
+
+        assertTrue(ctx.getFinalDraftJson().contains("“核心”观点"),
+                "小标题中的成对单引号应被替换为中文双引号");
+    }
+
+    @Test
+    void postProcess_shouldReplaceCornerBracketsInResponsibility() {
+        GenerationContext ctx = makeCtx();
+        ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",
+                "{\"cornerBracketToChineseQuotes\": true}"));
+        ctx.setDraftJson("{\"draft\":[{\"paragraph_index\":1,\"responsibility\":\"「核心」观点\",\"content\":\"正文。\"}]}");
+        ctx.setFinalDraftJson(ctx.getDraftJson());
+
+        step.process(ctx);
+
+        assertTrue(ctx.getFinalDraftJson().contains("“核心”观点"),
+                "小标题中的角引号应被替换为中文双引号");
+    }
+
+    @Test
     void postProcess_shouldSkipWhenConfigDisabled() {
         GenerationContext ctx = makeCtx();
         ctx.setStages(stagesWithKeyAndConfig(5, "content_post_process",

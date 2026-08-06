@@ -23,7 +23,7 @@
           v-model:value="selectedStyles"
           mode="multiple"
           class="works-filter-select"
-          placeholder="skills"
+          placeholder="提示词"
           :max-tag-count="1"
           :options="styleOptions.map(s => ({ value: s.key, label: s.label }))"
           allow-clear

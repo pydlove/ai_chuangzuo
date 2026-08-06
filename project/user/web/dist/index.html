@@ -136,9 +136,9 @@
         background: #2a2a2a;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-C6k1OceW.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DxeLp2qv.css">
-    <script>window.__APP_VERSION__ = 'build-1785823253209'</script>
+    <script type="module" crossorigin src="/assets/index-C8wDqvJn.js?v=build-1785985972998"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BIvJb7rQ.css?v=build-1785985972998">
+    <script>window.__APP_VERSION__ = 'build-1785985972998'</script>
   </head>
   <body>
     <div id="app-loader">
@@ -157,7 +157,10 @@
         const saved = localStorage.getItem(VERSION_KEY)
         if (saved && saved !== current) {
           localStorage.setItem(VERSION_KEY, current)
-          location.reload(true)
+          // 用新 URL 跳转绕过微信浏览器缓存（reload(true) 对微信不可靠）
+          const url = new URL(location.href)
+          url.searchParams.set('_v', current)
+          location.replace(url.toString())
           return
         }
         localStorage.setItem(VERSION_KEY, current)

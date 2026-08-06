@@ -95,7 +95,7 @@ class SkillMarketAdminServiceTest {
         SkillMarket saved = captor.getValue();
         assertEquals("爆款情感文", saved.getSkillName());
         assertEquals(100L, saved.getPublisherUserId());
-        assertEquals(new java.math.BigDecimal("0.20"), saved.getPrice());
+        assertEquals(new java.math.BigDecimal("2.00"), saved.getPrice());
         assertEquals(3, saved.getSourceType());
         assertEquals(1, saved.getAuditStatus());
         assertEquals(1, saved.getEnableStatus());

@@ -4,10 +4,30 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+    <meta http-equiv="Pragma" content="no-cache" />
+    <meta http-equiv="Expires" content="0" />
     <title>爱创作 · 管理控制台</title>
+    <script>window.__APP_VERSION__ = 'dev'</script>
   </head>
   <body>
     <div id="app"></div>
     <script type="module" src="/src/main.js"></script>
+    <script>
+      (function () {
+        const VERSION_KEY = 'aichuangzuo_admin_app_version'
+        const current = (window.__APP_VERSION__ || 'dev').toString()
+        const saved = localStorage.getItem(VERSION_KEY)
+        if (saved && saved !== current) {
+          localStorage.setItem(VERSION_KEY, current)
+          // 用新 URL 跳转绕过微信浏览器缓存（reload(true) 对微信不可靠）
+          const url = new URL(location.href)
+          url.searchParams.set('_v', current)
+          location.replace(url.toString())
+          return
+        }
+        localStorage.setItem(VERSION_KEY, current)
+      })()
+    </script>
   </body>
 </html>

@@ -1,12 +1,16 @@
 <template>
-  <div v-if="topics.length > 0 || refreshing" class="topic-capsules">
+  <div v-if="topics.length > 0 || refreshing || isTopicInspirationLocked" class="topic-capsules">
     <div class="topic-capsules-header">
       <span class="topic-capsules-label">{{ isMobile ? '没灵感？试试这些' : '没灵感？点一个快速开始：' }}</span>
-      <button class="refresh-capsule" :disabled="refreshing" @click="refreshTopics">
+      <button v-if="!isTopicInspirationLocked" class="refresh-capsule" :disabled="refreshing" @click="refreshTopics">
         {{ refreshing ? '思考中…' : (isMobile ? '换一换' : '换一批') }}
       </button>
     </div>
-    <div v-if="refreshing" class="topic-capsules-loading">
+    <div v-if="isTopicInspirationLocked" class="topic-capsules-locked" @click="handleLockedClick">
+      <div class="topic-capsules-locked-badge pro">专业版</div>
+      <span class="topic-capsules-locked-text">AI 选题灵感至少需要专业版</span>
+    </div>
+    <div v-else-if="refreshing" class="topic-capsules-loading">
       <span class="topic-loading-text">
         <span
           v-for="(ch, i) in loadingChars"
@@ -49,16 +53,19 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { message } from 'ant-design-vue'
 import { fetchRandomTopics, markTopicUsed } from '@/api/topic.js'
 import { useCreateForm } from './useCreateForm.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
 import { useDevice } from '@/composables/useDevice.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const emit = defineEmits(['apply'])
 const { customTitle, customRequirement } = useCreateForm()
 const { queueList } = useGenerationQueue()
 const { isMobile } = useDevice()
+const { planKey } = useBenefits()
 
 const topics = ref([])
 const refreshing = ref(false)
@@ -68,11 +75,18 @@ const lastAppliedTaskId = ref(null)
 // 至少给用户一段"思考"时间，模拟大模型流式感，同时防止疯狂点击打后端
 const MIN_THINK_MS = 3000
 
+const isTopicInspirationLocked = computed(() => planKey.value !== 'pro' && planKey.value !== 'flagship')
+const topicInspirationBadge = computed(() => {
+  if (!isTopicInspirationLocked.value) return null
+  return { text: '专业版', tier: 'pro' }
+})
+
 // 拆成单字，每个字独立律动形成"波浪"
 const loadingText = '灵犀同学正在帮你想新灵感'
 const loadingChars = loadingText.split('')
 
 const loadTopics = async () => {
+  if (isTopicInspirationLocked.value) return
   try {
     // 手机端一行一个，最多显示三行，因此只取 3 条；桌面端取 6 条
     const count = isMobile.value ? 3 : 6
@@ -83,16 +97,24 @@ const loadTopics = async () => {
   }
 }
 
-onMounted(loadTopics)
+onMounted(() => {
+  if (isTopicInspirationLocked.value) return
+  loadTopics()
+})
 
 const isUsed = (topic) => usedIds.value.has(topic.id)
 
 const applyTopic = (topic) => {
+  if (isTopicInspirationLocked.value) return
   customTitle.value = topic.title
   customRequirement.value = topic.summary || ''
   lastAppliedId.value = topic.id
   lastAppliedTaskId.value = null
   emit('apply', topic)
+}
+
+const handleLockedClick = () => {
+  message.info(`AI 选题灵感需要 ${topicInspirationBadge.value?.text || '更高套餐'}，请升级套餐后使用`)
 }
 
 const markUsed = (taskId) => {
@@ -131,6 +153,10 @@ watch(queueList, (list) => {
 }, { deep: true })
 
 const refreshTopics = () => {
+  if (isTopicInspirationLocked.value) {
+    handleLockedClick()
+    return
+  }
   if (refreshing.value) return // 已经在思考中，忽略重复点击
   refreshing.value = true
   // 取 fetch 与最少思考时长的较长者，确保动效稳定出现
@@ -246,6 +272,52 @@ defineExpose({ loadTopics, markUsed })
   padding: 14px 18px;
   min-height: 76px; /* 与两行 capsule 网格等高，避免布局跳动 */
   box-sizing: border-box;
+}
+
+.topic-capsules-locked {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  align-self: flex-start;
+  background: #f5f5f5;
+  border: 1px dashed #d9d9d9;
+  border-radius: 16px;
+  padding: 14px 18px;
+  min-height: 44px;
+  box-sizing: border-box;
+  cursor: not-allowed;
+}
+
+.topic-capsules-locked-badge {
+  position: absolute;
+  top: -7px;
+  right: -6px;
+  z-index: 10;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.topic-capsules-locked-badge.pro {
+  color: #874d00;
+  background: linear-gradient(135deg, #fff1b8, #ffd666);
+}
+
+.topic-capsules-locked-badge.flagship {
+  color: #fff;
+  background: linear-gradient(135deg, #a05013, #db3708);
+  box-shadow: 0 2px 6px rgba(219, 55, 8, 0.45);
+  z-index: 11;
+}
+
+.topic-capsules-locked-text {
+  font-size: 13px;
+  color: #8c8c8c;
 }
 
 .topic-loading-text {
@@ -368,5 +440,14 @@ body[data-theme="dark"] .topic-capsule:hover {
 body[data-theme="dark"] .topic-capsules-loading {
   background: #1f1f1f;
   border-color: #2e2e2e;
+}
+
+body[data-theme="dark"] .topic-capsules-locked {
+  background: #2a2a2a;
+  border-color: #434343;
+}
+
+body[data-theme="dark"] .topic-capsules-locked-text {
+  color: #a6a6a6;
 }
 </style>

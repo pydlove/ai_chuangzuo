@@ -22,8 +22,11 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -58,6 +61,11 @@ public class EarningsServiceImpl implements EarningsService {
     @Override
     public List<MonthlySettlementVO> getMonthlySummary(Long userId) {
         return earningsRecordMapper.selectMonthlySettlementList(userId);
+    }
+
+    @Override
+    public String nextBizNo() {
+        return "ER" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 
     @Override
@@ -125,11 +133,40 @@ public class EarningsServiceImpl implements EarningsService {
         record.setDescription(description);
         record.setAmount(commissionAmount);
         record.setSettlementMonth(settlementMonth);
+        record.setBizNo(nextBizNo());
         earningsRecordMapper.insert(record);
 
         String summary = String.format("邀请奖励 +%s 创作币", commissionAmount.toPlainString());
         String content = String.format("%s\n\n收益金额：%s 创作币", description, commissionAmount.toPlainString());
         messageService.pushPersonal(userId, "reward", title, summary, null, content, null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void recordCoinDiscountEarnings(Long userId, String sourceId, String planKey, String planName,
+                                           String cycle, BigDecimal coinAmount) {
+        if (coinAmount == null || coinAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("抵扣创作币数量必须大于 0");
+        }
+
+        String title = "订阅抵扣";
+        String description = String.format("订阅 %s %s 抵扣 %s 创作币", planName, cycleLabel(cycle), coinAmount.toPlainString());
+        String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        EarningsRecord record = new EarningsRecord();
+        record.setUserId(userId);
+        record.setType(EarningsType.COIN_DEDUCTION.getCode());
+        record.setSourceType("subscribe_coin_discount");
+        record.setSourceId(sourceId);
+        record.setPlanKey(planKey);
+        record.setPlanName(planName);
+        record.setCycle(cycle);
+        record.setTitle(title);
+        record.setDescription(description);
+        record.setAmount(coinAmount.negate());
+        record.setSettlementMonth(settlementMonth);
+        record.setBizNo(nextBizNo());
+        earningsRecordMapper.insert(record);
     }
 
     private String cycleLabel(String cycle) {
@@ -163,6 +200,7 @@ public class EarningsServiceImpl implements EarningsService {
         record.setDescription(description);
         record.setAmount(amount);
         record.setSettlementMonth(settlementMonth);
+        record.setBizNo(nextBizNo());
         earningsRecordMapper.insert(record);
 
         String safeTitle = StringUtils.hasText(title) ? title : "收益到账";
@@ -183,6 +221,8 @@ public class EarningsServiceImpl implements EarningsService {
         vo.setSourceType(record.getSourceType());
         vo.setSourceId(record.getSourceId());
         vo.setSourceLabel(buildSourceLabel(record));
+        vo.setFromSkillMarket("skill_market".equals(record.getSourceType()));
+        vo.setBizNo(record.getBizNo());
         vo.setPlanKey(record.getPlanKey());
         vo.setPlanName(record.getPlanName());
         vo.setCycle(record.getCycle());

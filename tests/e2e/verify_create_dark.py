@@ -17,7 +17,7 @@ def mock_all(page):
         if "/api/v1/user/membership/me" in url:
             return route.fulfill(json={"code": 0, "data": {"hasMembership": False}})
         if "/api/v1/user/account/invite-stats" in url:
-            return route.fulfill(json={"code": 0, "data": {"inviteCode": "", "invitedCount": 0, "membershipDaysEarned": 0, "coinEarned": 0, "coinBalance": 0, "friends": []}})
+            return route.fulfill(json={"code": 0, "data": {"inviteCode": "", "invitedCount": 0, "inviteCoinEarned": 0, "coinEarned": 0, "coinBalance": 0, "friends": []}})
         if "/api/v1/user/plans/newcomer-offer" in url:
             return route.fulfill(json={"code": 0, "data": {"eligible": False}})
         if "/api/v1/user/articles/monthly-count" in url:

@@ -30,6 +30,13 @@ public class MessageController {
         return Result.success(messageService.listVisibleMessages(userId, registerAt));
     }
 
+    @GetMapping("/unread-count")
+    public Result<Long> unreadCount() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        LocalDateTime registerAt = getRegisterAt(userId);
+        return Result.success(messageService.countUnread(userId, registerAt));
+    }
+
     @PutMapping("/{id}/read")
     public Result<Void> markRead(@PathVariable("id") Long messageId) {
         Long userId = SecurityUserContext.getCurrentUserId();

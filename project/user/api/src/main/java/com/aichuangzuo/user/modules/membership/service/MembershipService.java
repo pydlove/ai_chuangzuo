@@ -1,8 +1,10 @@
 package com.aichuangzuo.user.modules.membership.service;
 
+import com.aichuangzuo.user.modules.membership.dto.request.SubscribePreviewRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
+import com.aichuangzuo.user.modules.membership.vo.SubscribePreviewVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 
@@ -19,6 +21,15 @@ public interface MembershipService {
      * @return 订阅结果
      */
     SubscribeResultVO subscribe(Long userId, SubscribeRequest request);
+
+    /**
+     * 订阅价格预览：计算套餐现金应付及创作币可抵扣上限。
+     *
+     * @param userId  当前用户ID
+     * @param request 订阅预览请求
+     * @return 订阅预览结果
+     */
+    SubscribePreviewVO previewSubscribe(Long userId, SubscribePreviewRequest request);
 
     /**
      * 查询当前用户会员状态。

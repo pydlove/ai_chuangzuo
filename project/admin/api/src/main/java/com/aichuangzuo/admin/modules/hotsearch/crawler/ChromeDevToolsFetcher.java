@@ -1,13 +1,13 @@
 package com.aichuangzuo.admin.modules.hotsearch.crawler;
 
 import com.aichuangzuo.admin.modules.hotsearch.properties.HotSearchProperties;
-import com.aichuangzuo.admin.modules.hotsearch.entity.HotSearchPlatform;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 import java.net.URI;
@@ -41,7 +41,7 @@ public class ChromeDevToolsFetcher {
 
     private final HotSearchProperties properties;
 
-    @Value("${hot-search.chrome-path:/Applications/Google Chrome.app/Contents/MacOS/Google Chrome}")
+    @Value("${hot-search.chrome-path:}")
     private String chromePath;
 
     @Value("${hot-search.chrome-debugging-port:9222}")
@@ -55,42 +55,144 @@ public class ChromeDevToolsFetcher {
     @PostConstruct
     public synchronized void start() {
         try {
-            userDataDir = Files.createTempDirectory("hotsearch-cdp-");
-            List<String> cmd = new ArrayList<>();
-            cmd.add(chromePath);
-            cmd.add("--headless=new");
-            cmd.add("--no-sandbox");
-            cmd.add("--disable-gpu");
-            cmd.add("--disable-dev-shm-usage");
-            cmd.add("--user-data-dir=" + userDataDir.toString());
-            cmd.add("--remote-debugging-port=" + debuggingPort);
-            cmd.add("--remote-allow-origins=*");
-            cmd.add("about:blank");
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            chromeProcess = pb.start();
-            // 等 Chrome 启动并监听端口
-            if (!waitForPort(debuggingPort, 10)) {
-                throw new IOException("Chrome 启动后未监听 " + debuggingPort);
-            }
-            log.info("CDP Chrome 已启动，path={} port={} pid={}", chromePath, debuggingPort, chromeProcess.pid());
+            doStart();
         } catch (Exception e) {
-            log.warn("CDP Chrome 启动失败，相关平台（微博/B站/头条）将失败：{}", e.getMessage());
+            log.error("CDP Chrome 启动失败，相关平台（微博/B站/头条）将不可用：{}", e.getMessage(), e);
             chromeProcess = null;
         }
     }
 
+    /**
+     * 运行期发现 Chrome 进程死亡时调用：清理旧进程并重新启动。
+     */
+    public synchronized void restart() throws IOException {
+        doStop();
+        doStart();
+    }
+
     @PreDestroy
     public synchronized void stop() {
+        doStop();
+    }
+
+    private void doStart() throws IOException {
+        if (userDataDir != null) {
+            doStop();
+        }
+        String resolvedChromePath = resolveChromePath();
+        userDataDir = Files.createTempDirectory("hotsearch-cdp-");
+        List<String> cmd = new ArrayList<>();
+        cmd.add(resolvedChromePath);
+        cmd.add("--headless=new");
+        cmd.add("--no-sandbox");
+        cmd.add("--disable-setuid-sandbox");
+        cmd.add("--disable-gpu");
+        cmd.add("--disable-software-rasterizer");
+        cmd.add("--disable-dev-shm-usage");
+        cmd.add("--disable-background-networking");
+        cmd.add("--user-data-dir=" + userDataDir.toString());
+        cmd.add("--remote-debugging-port=" + debuggingPort);
+        cmd.add("--remote-allow-origins=*");
+        cmd.add("about:blank");
+        ProcessBuilder pb = new ProcessBuilder(cmd);
+        Path stderrFile = Files.createTempFile("hotsearch-cdp-stderr-", ".log");
+        pb.redirectError(stderrFile.toFile());
+        chromeProcess = pb.start();
+        // 等 Chrome 启动并监听端口
+        if (!waitForPort(debuggingPort, 20)) {
+            int exitCode = chromeProcess.isAlive() ? -1 : chromeProcess.exitValue();
+            String stderr = readTail(stderrFile, 4096);
+            doStop();
+            Files.deleteIfExists(stderrFile);
+            String hint = exitCode == 127
+                    ? "（退出码 127 通常表示命令未找到或缺少动态链接库，可执行 ldd " + resolvedChromePath + " 检查）"
+                    : "（通常是缺少 headless 依赖库）";
+            throw new IOException("Chrome 启动后未监听 " + debuggingPort + "，进程退出码=" + exitCode + " " + hint
+                    + "。Chrome stderr: " + stderr);
+        }
+        Files.deleteIfExists(stderrFile);
+        log.info("CDP Chrome 已启动，path={} port={} pid={}", resolvedChromePath, debuggingPort, chromeProcess.pid());
+    }
+
+    private void doStop() {
         if (chromeProcess != null && chromeProcess.isAlive()) {
             chromeProcess.destroyForcibly();
         }
+        chromeProcess = null;
         if (userDataDir != null) {
+            Path dir = userDataDir;
+            userDataDir = null;
             try {
-                Files.walk(userDataDir)
+                Files.walk(dir)
                         .sorted((a, b) -> b.getNameCount() - a.getNameCount())
                         .forEach(p -> { try { Files.deleteIfExists(p); } catch (IOException ignored) {} });
             } catch (IOException ignored) {}
         }
+    }
+
+    private String resolveChromePath() throws IOException {
+        if (StringUtils.hasText(chromePath)) {
+            Path configured = Path.of(chromePath);
+            if (Files.exists(configured) && !Files.isDirectory(configured)) {
+                return configured.toAbsolutePath().toString();
+            }
+            log.warn("配置的 Chrome 路径不存在或不是可执行文件：{}，尝试自动探测常见路径", chromePath);
+        }
+
+        String[] candidates = {
+                "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+                "/usr/bin/google-chrome",
+                "/usr/bin/chromium",
+                "/usr/bin/chromium-browser",
+                "/snap/bin/chromium",
+                "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+                "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe"
+        };
+        for (String candidate : candidates) {
+            Path path = Path.of(candidate);
+            if (Files.exists(path) && !Files.isDirectory(path)) {
+                log.info("自动探测到 Chrome/Chromium：{}", candidate);
+                return path.toAbsolutePath().toString();
+            }
+        }
+
+        throw new IOException(
+                "未找到 Chrome/Chromium 可执行文件。请在服务器上安装后，通过配置 hot-search.chrome-path 指定路径（例如 /usr/bin/chromium），"
+                        + "或通过环境变量 HOT_SEARCH_CHROME_PATH 覆盖。"
+        );
+    }
+
+    private static String readTail(Path file, int maxBytes) {
+        try {
+            long size = Files.size(file);
+            if (size == 0) {
+                return "";
+            }
+            long skip = Math.max(0, size - maxBytes);
+            try (var in = java.nio.file.Files.newInputStream(file)) {
+                in.skip(skip);
+                return new String(in.readAllBytes(), StandardCharsets.UTF_8).trim();
+            }
+        } catch (IOException e) {
+            return "";
+        }
+    }
+
+    private synchronized boolean ensureChromeRunning() {
+        if (chromeProcess != null && chromeProcess.isAlive()) {
+            return true;
+        }
+        log.warn("CDP Chrome 未运行，尝试重新启动");
+        try {
+            restart();
+            if (chromeProcess != null && chromeProcess.isAlive()) {
+                log.info("CDP Chrome 重新启动成功，pid={}", chromeProcess.pid());
+                return true;
+            }
+        } catch (Exception e) {
+            log.error("CDP Chrome 重新启动失败: {}", e.getMessage(), e);
+        }
+        return false;
     }
 
     private boolean waitForPort(int port, int maxSeconds) {
@@ -111,7 +213,7 @@ public class ChromeDevToolsFetcher {
      * 用 Chrome 打开 URL，等待 load + 短暂渲染后，读取 outerHTML。
      */
     public String fetchHtml(String url) {
-        if (chromeProcess == null || !chromeProcess.isAlive()) {
+        if (!ensureChromeRunning()) {
             log.warn("Chrome 进程未运行，跳过 {}", url);
             return "";
         }

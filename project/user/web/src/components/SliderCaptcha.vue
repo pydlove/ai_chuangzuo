@@ -1,7 +1,7 @@
 <template>
   <div class="slider-captcha" :class="{ 'is-passed': passed }">
     <div ref="trackRef" class="slider-track">
-      <div class="slider-fill" :style="{ width: progress + '%' }"></div>
+      <div class="slider-fill" :style="fillStyle"></div>
       <span class="slider-text">
         <template v-if="!passed">
           <svg class="slider-text-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -20,7 +20,7 @@
       <div
         ref="handleRef"
         class="slider-handle"
-        :style="{ left: progress + '%' }"
+        :style="handleStyle"
         @mousedown="onDragStart"
         @touchstart.prevent="onDragStart"
       >
@@ -36,7 +36,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -48,19 +48,52 @@ const passed = computed(() => props.modelValue)
 const trackRef = ref(null)
 const handleRef = ref(null)
 const progress = ref(props.modelValue ? 100 : 0)
-let isDragging = false
-let startX = 0
-let startProgress = 0
+// 轨道与手柄尺寸，用于把 progress 换算成 transform 的 px 偏移，全程走合成层
+const trackWidth = ref(0)
+const handleWidth = ref(38)
+
+const handleStyle = computed(() => {
+  const centerX = (progress.value / 100) * trackWidth.value
+  const tx = centerX - handleWidth.value / 2
+  return { transform: `translate3d(${tx}px, -50%, 0)` }
+})
+
+const fillStyle = computed(() => ({
+  transform: `scaleX(${progress.value / 100})`
+}))
+
+const measure = () => {
+  if (!trackRef.value) return
+  trackWidth.value = trackRef.value.offsetWidth
+  if (handleRef.value) handleWidth.value = handleRef.value.offsetWidth
+}
 
 watch(passed, (val) => {
   progress.value = val ? 100 : 0
 })
+
+let isDragging = false
+let startX = 0
+let startProgress = 0
+let maxDelta = 0
+let rafId = null
+let pendingProgress = 0
+
+const cleanupListeners = () => {
+  document.removeEventListener('mousemove', onDragMove)
+  document.removeEventListener('mouseup', onDragEnd)
+  document.removeEventListener('touchmove', onDragMove)
+  document.removeEventListener('touchend', onDragEnd)
+}
 
 const onDragStart = (e) => {
   if (passed.value) return
   isDragging = true
   startX = e.clientX ?? e.touches?.[0]?.clientX ?? 0
   startProgress = progress.value
+  // 拖拽开始时一次性测量轨道尺寸，避免 move 中重复触发同步 layout
+  measure()
+  maxDelta = trackWidth.value - handleWidth.value
   document.addEventListener('mousemove', onDragMove)
   document.addEventListener('mouseup', onDragEnd)
   document.addEventListener('touchmove', onDragMove, { passive: false })
@@ -69,25 +102,30 @@ const onDragStart = (e) => {
 }
 
 const onDragMove = (e) => {
-  if (!isDragging || !trackRef.value) return
+  if (!isDragging || maxDelta <= 0) return
   if (e.type.startsWith('touch')) e.preventDefault()
   const clientX = e.clientX ?? e.touches?.[0]?.clientX
   if (clientX === undefined) return
-  const trackRect = trackRef.value.getBoundingClientRect()
-  const handleWidth = handleRef.value?.offsetWidth || 40
-  const maxDelta = trackRect.width - handleWidth
-  if (maxDelta <= 0) return
-  const next = startProgress + ((clientX - startX) / maxDelta) * 100
-  progress.value = Math.max(0, Math.min(100, next))
+  pendingProgress = Math.max(0, Math.min(100, startProgress + ((clientX - startX) / maxDelta) * 100))
+  // rAF 对齐浏览器渲染节奏，合并高频 move 事件
+  if (rafId === null) {
+    rafId = requestAnimationFrame(() => {
+      progress.value = pendingProgress
+      rafId = null
+    })
+  }
 }
 
 const onDragEnd = () => {
   if (!isDragging) return
   isDragging = false
-  document.removeEventListener('mousemove', onDragMove)
-  document.removeEventListener('mouseup', onDragEnd)
-  document.removeEventListener('touchmove', onDragMove)
-  document.removeEventListener('touchend', onDragEnd)
+  if (rafId !== null) {
+    cancelAnimationFrame(rafId)
+    rafId = null
+    // 同步提交最后一次位置：touchend 可能比最后一次 rAF 先到，否则会基于过期 progress 误判弹回
+    progress.value = pendingProgress
+  }
+  cleanupListeners()
   if (progress.value >= 95) {
     progress.value = 100
     emit('update:modelValue', true)
@@ -95,6 +133,17 @@ const onDragEnd = () => {
     progress.value = 0
   }
 }
+
+onMounted(() => {
+  measure()
+  window.addEventListener('resize', measure)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('resize', measure)
+  if (isDragging) cleanupListeners()
+  if (rafId !== null) cancelAnimationFrame(rafId)
+})
 </script>
 
 <style scoped>
@@ -121,8 +170,10 @@ const onDragEnd = () => {
   top: 0;
   left: 0;
   height: 100%;
-  width: 0;
+  width: 100%;
   background: linear-gradient(90deg, rgba(255, 36, 66, 0.12) 0%, rgba(255, 36, 66, 0.28) 100%);
+  transform: scaleX(0);
+  transform-origin: left center;
   transition: background 0.2s;
   pointer-events: none;
 }
@@ -160,7 +211,7 @@ const onDragEnd = () => {
 .slider-handle {
   position: absolute;
   top: 50%;
-  transform: translate(-50%, -50%);
+  left: 0;
   width: 38px;
   height: 38px;
   background: #fff;
@@ -172,7 +223,7 @@ const onDragEnd = () => {
   color: #FF2442;
   cursor: grab;
   box-shadow: 0 2px 8px rgba(255, 36, 66, 0.18);
-  transition: box-shadow 0.2s, transform 0.1s;
+  transition: box-shadow 0.2s;
   z-index: 2;
   touch-action: none;
   -webkit-touch-callout: none;

@@ -3,10 +3,15 @@ package com.aichuangzuo.user.modules.earnings.controller;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.earnings.dto.request.ListEarningsRequest;
+import com.aichuangzuo.user.modules.earnings.dto.request.RealNameRequest;
+import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawApplyRequest;
 import com.aichuangzuo.user.modules.earnings.service.EarningsService;
+import com.aichuangzuo.user.modules.earnings.service.WithdrawService;
 import com.aichuangzuo.user.modules.earnings.vo.AccountSummaryVO;
 import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordPageVO;
 import com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO;
+import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;
+import com.aichuangzuo.user.modules.earnings.vo.WithdrawRequestVO;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.user.vo.InviteStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +33,7 @@ public class AccountController {
 
     private final EarningsService earningsService;
     private final InviteRewardService inviteRewardService;
+    private final WithdrawService withdrawService;
 
     @Operation(summary = "账户收益汇总")
     @GetMapping("/summary")
@@ -60,5 +66,34 @@ public class AccountController {
     public Result<EarningsRecordPageVO> earnings(@Valid ListEarningsRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(earningsService.listEarnings(userId, request));
+    }
+
+    @Operation(summary = "获取实名信息")
+    @GetMapping("/real-name")
+    public Result<RealNameVO> getRealName() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(withdrawService.getRealName(userId));
+    }
+
+    @Operation(summary = "提交实名认证")
+    @PostMapping("/real-name")
+    public Result<Void> submitRealName(@Valid @RequestBody RealNameRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        withdrawService.submitRealName(userId, request);
+        return Result.success();
+    }
+
+    @Operation(summary = "提现记录列表")
+    @GetMapping("/withdrawals")
+    public Result<List<WithdrawRequestVO>> listWithdrawals() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(withdrawService.listWithdrawRequests(userId));
+    }
+
+    @Operation(summary = "申请提现")
+    @PostMapping("/withdrawals")
+    public Result<String> applyWithdraw(@Valid @RequestBody WithdrawApplyRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(withdrawService.applyWithdraw(userId, request));
     }
 }

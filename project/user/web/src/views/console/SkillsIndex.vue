@@ -56,6 +56,7 @@
           <div class="style-editor-field">
             <label class="style-editor-label">提示词名称 <span class="required">*</span></label>
             <input
+              ref="nameInputRef"
               v-model="editingStyle.name"
               type="text"
               class="style-editor-input"
@@ -133,23 +134,27 @@
       </div>
 
       <div v-else>
-        <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
-          当前套餐不支持自定义提示词，升级基础版及以上套餐后即可创建
-        </div>
-        <div v-else-if="isCustomQuotaFull" class="styles-upgrade-banner">
-          我的提示词 数量已达上限（{{ customStyleQuotaText }}），删除旧提示词后可继续创建，或升级套餐保存更多
-        </div>
         <div v-if="canUseCustomStyles" class="styles-quota-hint">
           已创建 {{ customStyleQuotaText }} 个我的提示词
         </div>
         <div v-if="filteredMyStyles.length === 0" class="styles-empty">
-          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
+          <div
+            :class="['style-add-card', { locked: !canCreateCustom }]"
+            @click="canCreateCustom && goToCreate()"
+          >
+            <div v-if="!canUseCustomStyles" class="style-add-badge required basic">需基础版</div>
+            <div v-else-if="isCustomQuotaFull" class="style-add-badge quota">额度已满</div>
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的提示词</div>
           </div>
         </div>
         <div v-else class="styles-grid">
-          <div v-if="canCreateCustom" class="style-add-card" @click="goToCreate">
+          <div
+            :class="['style-add-card', { locked: !canCreateCustom }]"
+            @click="canCreateCustom && goToCreate()"
+          >
+            <div v-if="!canUseCustomStyles" class="style-add-badge required basic">需基础版</div>
+            <div v-else-if="isCustomQuotaFull" class="style-add-badge quota">额度已满</div>
             <div class="style-add-icon">+</div>
             <div class="style-add-text">新建我的提示词</div>
           </div>
@@ -247,7 +252,7 @@
 
     <!-- 学习的提示词 -->
     <div v-show="activeTab === 'learned'" class="styles-content">
-      <div class="learned-banner">
+      <div v-if="canLearn" class="learned-banner">
         {{ learnBannerText }}
       </div>
       <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
@@ -259,7 +264,13 @@
           <div class="style-add-icon">✓</div>
           <div class="style-add-text">学习结果待保存，点击继续</div>
         </div>
-        <div v-else-if="!isLearning && !learnedResult" class="style-add-card" @click="openImportDialog">
+        <div
+          v-else-if="!isLearning && !learnedResult"
+          :class="['style-add-card', { locked: !canLearn }]"
+          @click="canLearn && handleOpenImportDialog()"
+        >
+          <div v-if="!canLearn && learnTotal <= 0" class="style-add-badge required pro">需专业版</div>
+          <div v-else-if="!canLearn" class="style-add-badge quota">本月已满</div>
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
@@ -273,7 +284,13 @@
           <div class="style-add-icon">✓</div>
           <div class="style-add-text">学习结果待保存，点击继续</div>
         </div>
-        <div v-else-if="!isLearning && !learnedResult" class="style-add-card" @click="openImportDialog">
+        <div
+          v-else-if="!isLearning && !learnedResult"
+          :class="['style-add-card', { locked: !canLearn }]"
+          @click="canLearn && handleOpenImportDialog()"
+        >
+          <div v-if="!canLearn && learnTotal <= 0" class="style-add-badge required pro">需专业版</div>
+          <div v-else-if="!canLearn" class="style-add-badge quota">本月已满</div>
           <div class="style-add-icon">+</div>
           <div class="style-add-text">学习新提示词</div>
         </div>
@@ -508,8 +525,7 @@
         <div class="style-editor-counter" :class="{ over: (learnedResult.name || '').length > 20 }">
           {{ (learnedResult.name || '').length }} / 20
         </div>
-        <div v-if="learnedNameConflict" class="learned-error">该提示词名称已存在</div>
-        <div v-else-if="learnedResult.name.trim().length > 20" class="learned-error">提示词名称最多 20 字</div>
+        <div v-if="learnedResult.name.trim().length > 20" class="learned-error">提示词名称最多 20 字</div>
         <div v-else-if="learnedResultError" class="learned-error">{{ learnedResultError }}</div>
       </div>
       <div class="learned-result-actions">
@@ -639,7 +655,6 @@ import {
   learnedSkills,
   removeLearnedSkill,
   analyzeArticleSkill,
-  isLearnedSkillNameExists,
   addLearnedSkill,
   isLearning,
   updateLearnedSkill,
@@ -660,10 +675,11 @@ import {
 } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { FullscreenOutlined } from '@ant-design/icons-vue'
-import { getCustomStyleLimit, getSkillPromptMaxLength } from '@/utils/membershipLimits.js'
 import { publishSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
+
+const SKILL_PROMPT_MAX_LENGTH = 1200
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
@@ -671,10 +687,11 @@ const stylesIndexRef = ref(null)
 const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
 const activeTab = ref('my')
 const searchQuery = ref('')
-const promptMaxLength = ref(getSkillPromptMaxLength())
+const promptMaxLength = ref(SKILL_PROMPT_MAX_LENGTH)
 const fullscreenPromptVisible = ref(false)
 const fullscreenPromptText = ref('')
 const fullscreenPromptTarget = ref('') // 'custom' | 'learned'
+const nameInputRef = ref(null)
 
 const openFullscreenPrompt = (target) => {
   fullscreenPromptTarget.value = target
@@ -696,11 +713,7 @@ const saveFullscreenPrompt = () => {
 }
 
 // 套餐权益相关
-const styleCustomLimit = computed(() => {
-  // 优先用后端的实时权益值，拿不到再按本地当前档位兜底
-  const fromBenefit = parseInt(benefitValue('skill_custom') || '0', 10)
-  return fromBenefit > 0 ? fromBenefit : getCustomStyleLimit()
-})
+const styleCustomLimit = computed(() => parseInt(benefitValue('skill_custom') || '0', 10))
 const canUseCustomStyles = computed(() => styleCustomLimit.value > 0)
 const canCreateCustom = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length < styleCustomLimit.value)
 const isCustomQuotaFull = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length >= styleCustomLimit.value)
@@ -725,7 +738,6 @@ const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish'
 
 onMounted(async () => {
   await loadBenefits()
-  promptMaxLength.value = getSkillPromptMaxLength()
   await Promise.all([
     loadMySkills(),
     loadLearnedSkills(),
@@ -857,9 +869,10 @@ const selectedSkillForModal = computed(() => {
     creatorId: isMyOrLearned ? currentUserId : (s.creatorId || ''),
     creatorName: source === 'system' ? '系统' : source === 'favorite' ? (s.creatorName || '匿名用户') : (s.creatorName || '我'),
     prompt: s.prompt || s.promptSummary || '',
-    desc: s.desc || '',
+    desc: s.description || s.desc || '',
     scope: s.scope || '',
     createdAt: s.createdAt || null,
+    approvedAt: s.approvedAt || null,
     excerpt1: s.excerpt1 || '',
     excerpt2: s.excerpt2 || ''
   }
@@ -928,7 +941,7 @@ const isFormValid = computed(() => {
   const name = editingStyle.name.trim()
   const prompt = editingStyle.prompt.trim()
   const scopeTags = parseScopeTags(editingStyle.scope)
-  return name && name.length <= 20 && prompt && prompt.length <= promptMaxLength.value && !validateScopeTags(scopeTags) && !isSkillNameExists(name, editingStyle.originalName)
+  return name && name.length <= 20 && prompt && prompt.length <= promptMaxLength.value && !validateScopeTags(scopeTags)
 })
 
 const goToCreate = () => {
@@ -962,7 +975,12 @@ const goBack = () => {
 }
 
 const saveStyle = async () => {
-  if (!validate()) return
+  if (!validate()) {
+    if (errors.name === '该提示词名称已存在' && nameInputRef.value) {
+      nameInputRef.value.focus()
+    }
+    return
+  }
   try {
     if (editingStyle.originalName) {
       await updateCustomSkill(editingStyle.originalName, {
@@ -1021,7 +1039,19 @@ const deleteSkill = (name) => {
   })
 }
 
+const handleOpenImportDialog = () => {
+  if (!canLearn.value) {
+    message.warning(learnBannerText.value)
+    return
+  }
+  openImportDialog()
+}
+
 const openImportDialog = () => {
+  if (!canLearn.value) {
+    message.warning(learnBannerText.value)
+    return
+  }
   pasteText.value = ''
   pasteError.value = ''
   learnedResult.value = null
@@ -1060,6 +1090,10 @@ const resumeImportDialog = () => {
 }
 
 const submitPaste = async () => {
+  if (!canLearn.value) {
+    message.warning(learnBannerText.value)
+    return
+  }
   pasteError.value = ''
   const text = pasteText.value.trim()
   if (text.length < 200) {
@@ -1074,6 +1108,10 @@ const submitPaste = async () => {
 }
 
 const runAnalysis = async (text, sourceType) => {
+  if (!canLearn.value) {
+    message.warning(learnBannerText.value)
+    return
+  }
   if (isLearning.value) return
   isLearning.value = true
   try {
@@ -1093,17 +1131,7 @@ const canSaveLearnedResult = computed(() => {
   if (learnedResult.value.prompt.length > promptMaxLength.value) return false
   const scopeTags = parseScopeTags(learnedResult.value.scope)
   if (scopeTags.length === 0 || validateScopeTags(scopeTags)) return false
-  const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
-  if (isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)) return false
   return true
-})
-
-const learnedNameConflict = computed(() => {
-  if (!learnedResult.value) return false
-  const name = learnedResult.value.name.trim()
-  if (!name) return false
-  const excludeName = isEditingLearned.value ? editingLearnedOriginalName.value : null
-  return isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)
 })
 
 const saveLearnedResult = async () => {
@@ -1133,7 +1161,7 @@ const saveLearnedResult = async () => {
     await fail('请填写提示词名称', 'learned-name-field')
     return
   }
-  if (isSkillNameExists(name, excludeName) || isLearnedSkillNameExists(name, excludeName)) {
+  if (isSkillNameExists(name, excludeName)) {
     await fail('该提示词名称已存在', 'learned-name-field')
     return
   }
@@ -1263,10 +1291,14 @@ const confirmUnpublish = (style, sourceType) => {
     onOk: async () => {
       try {
         await unpublishSkill(style.bizNo)
-        await loadBenefits()
+        await Promise.all([
+          loadBenefits(),
+          loadMySubmissions(),
+          loadMarketSkills()
+        ])
         message.success('提示词已下架，发布额度已恢复')
-      } catch {
-        // 错误提示已在 composable 内处理
+      } catch (err) {
+        message.error(err?.message || '下架失败，请重试')
       }
     }
   })
@@ -1437,6 +1469,60 @@ const useSelectedStyle = (style, source) => {
   font-size: 14px;
   color: #595959;
   font-weight: 500;
+}
+
+.style-add-card {
+  position: relative;
+}
+
+.style-add-card.locked {
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-color: #e8e8e8;
+}
+
+.style-add-card.locked:hover {
+  border-color: #e8e8e8;
+  background: #f5f5f5;
+  transform: none;
+  box-shadow: none;
+}
+
+.style-add-card.locked .style-add-icon {
+  background: #f0f0f0;
+  color: #8c8c8c;
+}
+
+.style-add-card.locked .style-add-text {
+  color: #8c8c8c;
+}
+
+.style-add-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 1;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.style-add-badge.required.basic {
+  background: linear-gradient(135deg, #fffbe6, #fff3a3);
+  color: #8c6b00;
+}
+
+.style-add-badge.required.pro {
+  background: linear-gradient(135deg, #fff1b8, #ffd666);
+  color: #874d00;
+}
+
+.style-add-badge.quota {
+  background: #fff7e6;
+  color: #fa8c16;
 }
 .learning-progress-card {
   cursor: default;
@@ -1979,6 +2065,40 @@ body[data-theme="dark"] .style-add-card:hover {
 body[data-theme="dark"] .style-add-icon {
   background: rgba(255, 36, 66, 0.12);
   color: #ff6b81;
+}
+
+body[data-theme="dark"] .style-add-card.locked {
+  background: #2a2a2a;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-add-card.locked:hover {
+  background: #2a2a2a;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-add-card.locked .style-add-icon {
+  background: #1f1f1f;
+  color: #666;
+}
+
+body[data-theme="dark"] .style-add-card.locked .style-add-text {
+  color: #666;
+}
+
+body[data-theme="dark"] .style-add-badge.required.basic {
+  background: linear-gradient(135deg, #2b2611, #ad8b00);
+  color: #fffbe6;
+}
+
+body[data-theme="dark"] .style-add-badge.required.pro {
+  background: linear-gradient(135deg, #44311c, #d48806);
+  color: #fffbe6;
+}
+
+body[data-theme="dark"] .style-add-badge.quota {
+  background: #2b1a0a;
+  color: #ffa940;
 }
 
 body[data-theme="dark"] .style-add-text {

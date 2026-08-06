@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.auth.entity.User;
+import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.entity.UserMarketFavorite;
@@ -16,9 +18,12 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +39,7 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
 
     private final UserMarketFavoriteMapper favoriteMapper;
     private final SkillMarketMapper skillMarketMapper;
+    private final UserMapper userMapper;
 
     @Override
     public List<MarketSkillVO> listFavoriteSkills(Long userId) {
@@ -45,10 +51,29 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
             return Collections.emptyList();
         }
 
-        return favorites.stream()
-                .map(favorite -> buildFavoriteSkillVo(favorite.getMarketSkillId()))
+        List<MarketSkillVO> vos = new ArrayList<>(favorites.size());
+        for (UserMarketFavorite favorite : favorites) {
+            vos.add(buildFavoriteSkillVo(favorite.getMarketSkillId()));
+        }
+
+        Set<Long> creatorIds = vos.stream()
+                .map(MarketSkillVO::getCreatorId)
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                .collect(Collectors.toSet());
+        if (!creatorIds.isEmpty()) {
+            Map<Long, String> creatorNameMap = userMapper.selectBatchIds(creatorIds).stream()
+                    .collect(Collectors.toMap(
+                            User::getId,
+                            u -> StringUtils.hasText(u.getNickname()) ? u.getNickname() : "用户" + u.getId()
+                    ));
+            for (MarketSkillVO vo : vos) {
+                if (vo.getCreatorId() != null && creatorNameMap.containsKey(vo.getCreatorId())) {
+                    vo.setCreatorName(creatorNameMap.get(vo.getCreatorId()));
+                }
+            }
+        }
+
+        return vos.stream().filter(Objects::nonNull).collect(Collectors.toList());
     }
 
     private MarketSkillVO buildFavoriteSkillVo(String marketSkillId) {
@@ -71,9 +96,8 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
         vo.setId(market.getBizNo());
         vo.setName(market.getSkillName());
         vo.setDescription(market.getDescription());
-        vo.setSourceType("admin");
+        vo.setSourceType(toSourceTypeString(market.getSourceType()));
         vo.setCreatorId(market.getPublisherUserId());
-        vo.setCreatorName(null);
         vo.setPrompt(market.getPrompt());
         vo.setScope(market.getScope());
         vo.setExcerpt1(null);
@@ -84,13 +108,14 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
         vo.setTotalUses(market.getTotalUses());
         vo.setWeeklyEarnings(market.getWeeklyEarnings());
         vo.setMilestoneBonus(market.getMilestoneBonus());
-        vo.setMonthlyUses(market.getMonthlyUses());
-        vo.setMonthlyEarnings(market.getMonthlyEarnings());
-        vo.setLeaderboardReward(market.getLeaderboardReward());
         vo.setFeatured(Boolean.FALSE);
         vo.setLastSettlementAt(market.getLastSettlementAt());
         vo.setCreatedAt(market.getCreatedAt());
         return vo;
+    }
+
+    private String toSourceTypeString(Integer code) {
+        return code != null && code == 1 ? "my" : "learned";
     }
 
     private String resolveStatus(SkillMarket market) {

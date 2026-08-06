@@ -4,7 +4,6 @@ import {
   getMarketSkillOverview,
   getMarketSkillsPage,
   getFavoriteSkills,
-  getMarketSkillPricePerUse,
   getMyMarketSubmissions,
   addFavorite,
   removeFavorite,
@@ -20,13 +19,7 @@ const PRICE_PER_USE = 2
 export const pricePerUse = ref(PRICE_PER_USE)
 
 export async function loadPricePerUse() {
-  try {
-    const value = await getMarketSkillPricePerUse()
-    pricePerUse.value = value
-  } catch (e) {
-    console.warn('[loadPricePerUse]', e?.message || '加载失败')
-    pricePerUse.value = PRICE_PER_USE
-  }
+  pricePerUse.value = PRICE_PER_USE
 }
 
 function loadEarningsRecords() {
@@ -74,8 +67,7 @@ export const marketOverview = ref({
   approvedCount: 0,
   totalUses: 0,
   totalEarnings: 0,
-  featuredSkills: [],
-  topCreators: []
+  featuredSkills: []
 })
 export const earningsRecords = ref(loadEarningsRecords())
 export const favoriteSkills = ref([])
@@ -161,15 +153,9 @@ function getCurrentMonth() {
  */
 export async function unpublishSkill(bizNo) {
   if (!bizNo) return
-  try {
-    await deleteMarketSkill(bizNo)
-  } catch (e) {
-    console.warn('[unpublishSkill] 下架失败', bizNo, e?.message || e)
-    throw e
-  } finally {
-    marketSkills.value = marketSkills.value.filter(s => s.id !== bizNo)
-    mySubmissions.value = mySubmissions.value.filter(s => s.id !== bizNo)
-  }
+  await deleteMarketSkill(bizNo)
+  marketSkills.value = marketSkills.value.filter(s => s.id !== bizNo)
+  mySubmissions.value = mySubmissions.value.filter(s => s.id !== bizNo)
 }
 
 export function getMarketStatusByBizNo(bizNo) {
@@ -191,9 +177,7 @@ export function useMarketSkill(marketId) {
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + price).toFixed(2)))
 
-  s.monthlyUses = (s.monthlyUses || 0) + 1
   s.totalUses = (s.totalUses || 0) + 1
-  s.monthlyEarnings = Number(((s.monthlyUses || 0) * price).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
@@ -220,9 +204,7 @@ export function simulateExternalUse(marketId) {
   const creatorBalance = getCoinBalance()
   setCoinBalance(Number((creatorBalance + price).toFixed(2)))
 
-  s.monthlyUses = (s.monthlyUses || 0) + 1
   s.totalUses = (s.totalUses || 0) + 1
-  s.monthlyEarnings = Number(((s.monthlyUses || 0) * price).toFixed(2))
 
   earningsRecords.value.unshift({
     id: 'earn-' + Date.now().toString(36),
@@ -316,32 +298,11 @@ export function getPreviousMonth() {
 }
 
 // ===== 提示词市场视觉升级 v2 — 聚合 computed =====
-// 数据来源原则：统计/榜单/精选从 marketOverview 读取；
-// monthlyUses / totalUses / monthlyEarnings 取 marketSkills 单条；
-// totalEarnings（创作者总收益）取 earningsRecords，按 skillId → creatorId 关联。
-
-const totalEarningsByCreator = computed(() => {
-  const map = {}
-  earningsRecords.value.forEach((r) => {
-    if (!(r.amount > 0)) return
-    const s = marketSkills.value.find((m) => m.id === r.skillId)
-    if (!s) return
-    map[s.creatorId] = (map[s.creatorId] || 0) + r.amount
-  })
-  return map
-})
 
 export const marketStats = computed(() => ({
   approvedCount: Number(marketOverview.value.approvedCount || 0),
   totalUses: Number(marketOverview.value.totalUses || 0),
   totalEarnings: Number(marketOverview.value.totalEarnings || 0)
 }))
-
-export const topCreators = computed(() =>
-  (marketOverview.value.topCreators || []).map((c) => ({
-    ...c,
-    totalEarnings: Number(c.totalEarnings || 0)
-  }))
-)
 
 export const featuredSkills = computed(() => marketOverview.value.featuredSkills || [])

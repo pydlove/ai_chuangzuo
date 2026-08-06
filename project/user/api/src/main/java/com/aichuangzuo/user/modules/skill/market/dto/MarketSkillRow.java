@@ -24,10 +24,8 @@ public class MarketSkillRow {
     private Integer weeklyUses;
     private BigDecimal weeklyEarnings;
     private BigDecimal milestoneBonus;
-    private Integer monthlyUses;
-    private BigDecimal monthlyEarnings;
-    private BigDecimal leaderboardReward;
     private Integer featured;
     private LocalDateTime lastSettlementAt;
+    private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
 }

@@ -11,6 +11,7 @@ import com.aichuangzuo.admin.modules.skill.review.entity.AuditStatus;
 import com.aichuangzuo.admin.modules.skill.review.enums.AdminSkillReviewErrorCode;
 import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewAggregateMapper;
 import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewMapper;
+import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketQuotaRefundClient;
 import com.aichuangzuo.admin.modules.skill.review.service.impl.SkillReviewServiceImpl;
 import com.aichuangzuo.admin.modules.skill.review.vo.SkillReviewVO;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -57,6 +58,9 @@ class SkillReviewServiceTest {
 
     @Mock
     private MessageAggregateMapper messageAggregateMapper;
+
+    @Mock
+    private SkillMarketQuotaRefundClient quotaRefundClient;
 
     @InjectMocks
     private SkillReviewServiceImpl service;
@@ -239,6 +243,7 @@ class SkillReviewServiceTest {
         assertNotNull(s.getAuditedAt());
         assertEquals("太宽泛", s.getRejectReason());
         verify(skillReviewMapper).updateById((UserSkillAggregate) s);
+        verify(quotaRefundClient).refundPublishQuota(10001L);
 
         org.mockito.ArgumentCaptor<MessageAggregate> msgCaptor = org.mockito.ArgumentCaptor.forClass(MessageAggregate.class);
         verify(messageAggregateMapper).insert(msgCaptor.capture());

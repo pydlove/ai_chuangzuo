@@ -155,7 +155,10 @@
         const saved = localStorage.getItem(VERSION_KEY)
         if (saved && saved !== current) {
           localStorage.setItem(VERSION_KEY, current)
-          location.reload(true)
+          // 用新 URL 跳转绕过微信浏览器缓存（reload(true) 对微信不可靠）
+          const url = new URL(location.href)
+          url.searchParams.set('_v', current)
+          location.replace(url.toString())
           return
         }
         localStorage.setItem(VERSION_KEY, current)

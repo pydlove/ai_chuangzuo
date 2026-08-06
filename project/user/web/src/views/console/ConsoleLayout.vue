@@ -85,7 +85,7 @@
                   </div>
                   <div class="invite-rule-item">
                     <span class="invite-rule-label">🎁 邀请奖励</span>
-                    <span class="invite-rule-text">累计邀请 3 人 +3 天会员、5 人 +5 天，超过 5 人后每多 1 人 +2 天专业版会员。</span>
+                    <span class="invite-rule-text">累计邀请 3 人 +30 创作币、5 人 +50，超过 5 人后每多 1 人 +20 创作币。</span>
                   </div>
                   <div class="invite-rule-item">
                     <span class="invite-rule-label">💰 创作币返利</span>
@@ -111,8 +111,8 @@
                     <div class="invite-stat-label">已邀请</div>
                   </div>
                   <div class="invite-stat-item">
-                    <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
-                    <div class="invite-stat-label">奖励会员天数</div>
+                    <div class="invite-stat-value">{{ inviteStats.inviteCoinEarned }}</div>
+                    <div class="invite-stat-label">奖励创作币</div>
                   </div>
                   <div class="invite-stat-item invite-stat-item-coin">
                     <div class="invite-stat-value">{{ coinBalance }}</div>
@@ -159,7 +159,7 @@
                       <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
                     </div>
                     <div class="invite-progress-text">
-                      {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
+                      {{ inviteStats.invitedCount >= 3 ? '+30 币' : `${inviteStats.invitedCount}/3` }}
                     </div>
                   </div>
                   <div class="invite-progress-item">
@@ -167,13 +167,13 @@
                       <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
                     </div>
                     <div class="invite-progress-text">
-                      {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
+                      {{ inviteStats.invitedCount >= 5 ? '+50 币' : `${inviteStats.invitedCount}/5` }}
                     </div>
                   </div>
                   <div class="invite-progress-item">
-                    <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
+                    <div class="invite-progress-desc">超过 5 人后，每多 1 人 +20 创作币</div>
                     <div class="invite-progress-text">
-                      {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
+                      {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 20} 币` : '—' }}
                     </div>
                   </div>
                 </div>
@@ -272,8 +272,8 @@
                   </div>
                   <ul class="invite-rules-detail-list">
                     <li>通过专属邀请链接或邀请码建立邀请关系，好友注册成功即生效。</li>
-                    <li>累计邀请 3 人奖励 3 天专业版会员；累计邀请 5 人奖励 5 天专业版会员。</li>
-                    <li>超过 5 人后，每多邀请 1 人额外奖励 2 天专业版会员，会员天数可累计叠加。</li>
+                    <li>累计邀请 3 人奖励 30 创作币；累计邀请 5 人奖励 50 创作币。</li>
+                    <li>超过 5 人后，每多邀请 1 人额外奖励 20 创作币，创作币可累计叠加。</li>
                     <li>好友首次购买会员可获 10% 创作币返佣，续费返佣 5%，返佣以创作币形式即时到账。</li>
                     <li>被邀请的好友通过你的链接首次下单后，该笔订单视为你邀请的返佣订单。</li>
                     <li>好友需先建立邀请关系再购买会员；若先购买会员、再绑定邀请关系，首购订单不计入邀请返佣，但绑定后好友的后续续费仍可享受续费返佣。</li>
@@ -419,8 +419,8 @@
                   @click="switchTab(tab.type)"
                 >
                   {{ tab.label }}
-                  <span v-if="getUnreadByType(tab.type) > 0" class="notif-tab-badge">
-                    {{ getUnreadByType(tab.type) }}
+                  <span v-if="unreadCountByType(tab.type) > 0" class="notif-tab-badge">
+                    {{ unreadCountByType(tab.type) }}
                   </span>
                 </button>
               </div>
@@ -487,7 +487,7 @@
           <!-- 消息铃铛 -->
           <div class="bell-wrap">
             <a-tooltip title="消息">
-              <button class="console-icon-btn bell-btn" @click="notifVisible = true">
+              <button class="console-icon-btn bell-btn" @click="openNotif">
                 <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
                   <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
@@ -797,7 +797,7 @@
             <template #content>
               <div class="mbs-pop">
                 <div class="mbs-head">
-                  <span class="mbs-plan">{{ membershipLevel }}</span>
+                  <span class="mbs-plan" :class="membershipPlanKey">{{ membershipLevel }}</span>
                   <span v-if="membershipExpiry" class="mbs-expiry">有效期至 {{ membershipExpiry }}</span>
                 </div>
                 <ul class="mbs-list">
@@ -807,13 +807,13 @@
                     :class="{ off: b.off }"
                   >
                     <span class="mbs-name">{{ b.name }}</span>
-                    <span class="mbs-val">{{ b.display }}</span>
+                    <span class="mbs-val" :class="membershipPlanKey">{{ b.display }}</span>
                   </li>
                 </ul>
                 <div class="mbs-foot" @click="openPricing()">查看会员套餐 ›</div>
               </div>
             </template>
-            <span class="console-membership-badge has-membership">
+            <span class="console-membership-badge has-membership" :class="membershipPlanKey">
               {{ membershipLevel }}
             </span>
           </a-popover>
@@ -834,10 +834,10 @@
             <template #overlay>
               <div class="user-center-panel">
                 <!-- 会员卡 -->
-                <div class="membership-card">
+                <div class="membership-card" :class="membershipPlanKey">
                   <div class="membership-left">
                     <div class="membership-label">当前会员</div>
-                    <div class="membership-name">{{ hasMembership ? membershipLevel : '免费版' }}</div>
+                    <div class="membership-name" :class="membershipPlanKey">{{ hasMembership ? membershipLevel : '免费版' }}</div>
                     <div class="membership-expiry" v-if="hasMembership">有效期至 {{ membershipExpiry }}</div>
                   </div>
                   <div class="membership-right">
@@ -942,14 +942,6 @@
         <span class="newcomer-banner-close" @click="dismissNewcomerBanner">✕</span>
       </div>
 
-      <!-- 玩法指南横幅 -->
-      <div v-if="guideBannerVisible" class="guide-banner">
-        <span class="guide-banner-text" @click="goToGuide">
-          新手？3 分钟了解怎么在爱创作变现 →
-        </span>
-        <span class="guide-banner-close" @click="dismissGuideBanner">✕</span>
-      </div>
-
       <!-- 内容区 -->
       <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
         <PullToRefresh>
@@ -973,7 +965,15 @@
         class="console-tabbar-item"
         :class="{ active: isActive(tab.path) }"
       >
-        <component :is="tab.icon" class="console-tabbar-icon" />
+        <span class="console-tabbar-icon-wrap">
+          <component :is="tab.icon" class="console-tabbar-icon" />
+          <span
+            v-if="tab.path === '/console/messages' && unreadCount > 0"
+            class="console-tabbar-badge"
+          >
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
+        </span>
         <span class="console-tabbar-label">{{ tab.label }}</span>
       </router-link>
     </nav>
@@ -1237,7 +1237,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, onMounted, watch, nextTick, provide } from 'vue'
+import { ref, computed, reactive, onMounted, onUnmounted, watch, nextTick, provide } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import QRCode from 'qrcode'
@@ -1248,12 +1248,13 @@ import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
 import { useInviteStats } from '@/composables/useInviteStats'
+import { useWithdraw } from '@/composables/useWithdraw'
 import { useBenefits } from '@/composables/useBenefits'
-import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
+import { useMessages } from '@/composables/useMessages'
 import { getMyMembership } from '@/api/membership'
 import { getNewcomerOffer } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
-import { listArticles, getMonthlyCount } from '@/api/article'
+import { getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   EditOutlined,
@@ -1286,6 +1287,7 @@ const toggleMineGroup = () => {
 
 const userProfile = useUserProfile()
 const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
+const { applyWithdraw } = useWithdraw()
 const { benefits, loadBenefits } = useBenefits()
 
 const isMobile = useIsMobile()
@@ -1301,7 +1303,6 @@ const pageTitleMap = {
   '/console/works': '我的作品',
   '/console/skills': '我的提示词',
   '/console/skill-market': '提示词市场',
-  '/console/skill-market/rank': '收益潜力榜',
   '/console/earnings': '我的账户',
   '/console/benefits': '我的权益',
   '/console/hot-search': '热搜榜',
@@ -1331,21 +1332,6 @@ watch(
   { immediate: true }
 )
 
-// ---------- 玩法指南新手横幅 ----------
-const GUIDE_BANNER_DISMISSED_KEY = 'aichuangzuo_guide_banner_dismissed'
-const NEWCOMER_BANNER_DISMISSED_KEY = 'aichuangzuo_newcomer_banner_dismissed'
-const NEWCOMER_MODAL_DISMISSED_KEY = 'aichuangzuo_newcomer_modal_dismissed'
-const INVITE_MODAL_DISMISSED_KEY = 'aichuangzuo_invite_modal_dismissed'
-
-const hasWorks = async () => {
-  try {
-    const data = await listArticles({ page: 1, pageSize: 1 })
-    return (data.total || 0) > 0
-  } catch {
-    return false
-  }
-}
-
 // 本月已生成：从后端统计接口读取
 const readMonthlyWorks = async () => {
   try {
@@ -1356,18 +1342,10 @@ const readMonthlyWorks = async () => {
 }
 const monthlyWorks = ref(0)
 
-const guideBannerVisible = ref(!localStorage.getItem(GUIDE_BANNER_DISMISSED_KEY))
-
-const dismissGuideBanner = () => {
-  guideBannerVisible.value = false
-  localStorage.setItem(GUIDE_BANNER_DISMISSED_KEY, '1')
-}
-
-const goToGuide = () => {
-  router.push('/guide')
-}
-
 // ---------- 新人首冲优惠横幅 ----------
+const NEWCOMER_BANNER_DISMISSED_KEY = 'aichuangzuo_newcomer_banner_dismissed'
+const NEWCOMER_MODAL_DISMISSED_KEY = 'aichuangzuo_newcomer_modal_dismissed'
+const INVITE_MODAL_DISMISSED_KEY = 'aichuangzuo_invite_modal_dismissed'
 const newcomerOffer = ref({ eligible: false })
 const newcomerBannerVisible = ref(false)
 const newcomerModalVisible = ref(false)
@@ -1449,6 +1427,7 @@ const navItems = [
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
+  { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   { path: '/console/learn', label: '创作学院', icon: BookOutlined },
   {
@@ -1544,9 +1523,9 @@ const loadTheme = () => {
 }
 
 // ---------- 消息通知 ----------
+const { messages: notifications, unreadCount, loadMessages: loadNotifications, refreshUnreadCount, startUnreadPolling, stopUnreadPolling, markRead, markAllRead } = useMessages()
 const notifVisible = ref(false)
 const activeTab = ref('all')
-const notifications = ref([])
 
 // 消息详情弹框(announcement / feature / promotion / membership / reward)
 const notifDetailVisible = ref(false)
@@ -1958,6 +1937,14 @@ const isNearExpiry = computed(() => {
   return diffDays <= 7
 })
 
+const membershipPlanKey = computed(() => {
+  const level = String(membershipLevel.value || '')
+  if (level.includes('旗舰')) return 'flagship'
+  if (level.includes('专业')) return 'pro'
+  if (level.includes('基础')) return 'basic'
+  return 'free'
+})
+
 const loadMembership = () => {
   const raw = localStorage.getItem(MEMBERSHIP_KEY)
   if (!raw) {
@@ -2005,7 +1992,7 @@ const openPricing = (query = '') => {
 // ---------- header 会员徽章 hover 权益卡 ----------
 // tier 类权益值 → 中文展示
 const TIER_LABELS = {
-  none: '不可用', preset: '预设 skills', custom: '自定义',
+  none: '不可用', preset: '预设提示词', custom: '自定义',
   standard: '标准', priority: '优先', express: '极速'
 }
 
@@ -2081,7 +2068,6 @@ const refreshMembershipFromApi = async () => {
 }
 
 // ---------- 邀请有礼 ----------
-const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
 
 // ---------- 兑换码 ----------
 const REDEEM_USED_KEY = 'aichuangzuo_redeem_codes'
@@ -2202,6 +2188,10 @@ const inviteCode = computed(() => userProfile.profile.value?.inviteCode || '')
 
 const inviteLink = computed(() => {
   return `${window.location.origin}/login?ref=${inviteCode.value}`
+})
+
+const inviteShareText = computed(() => {
+  return `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n${inviteLink.value}`
 })
 
 // ---------- 海报样式 ----------
@@ -2529,8 +2519,8 @@ const copyInviteCode = () => {
 }
 
 const copyInviteLink = () => {
-  navigator.clipboard.writeText(inviteLink.value).then(() => {
-    message.success('邀请链接已复制')
+  navigator.clipboard.writeText(inviteShareText.value).then(() => {
+    message.success('邀请文案已复制')
   })
 }
 
@@ -2552,7 +2542,7 @@ const goToWithdraw = () => {
   router.push('/console/coin?from=invite')
 }
 
-const submitWithdraw = () => {
+const submitWithdraw = async () => {
   const amount = Number(withdrawAmount.value)
   const account = withdrawAccount.value.trim()
   const name = withdrawName.value.trim()
@@ -2568,11 +2558,13 @@ const submitWithdraw = () => {
     message.warning('请填写支付宝账号和真实姓名')
     return
   }
-  const requests = JSON.parse(localStorage.getItem(WITHDRAW_REQUESTS_KEY) || '[]')
-  requests.push({ amount, account, name, status: 'pending', createdAt: new Date().toISOString() })
-  localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(requests))
-  withdrawVisible.value = false
-  message.success('提现申请已提交，预计 7 天内到账')
+  try {
+    await applyWithdraw({ amount, account })
+    withdrawVisible.value = false
+    message.success('提现申请已提交，预计 7 天内到账')
+  } catch (err) {
+    message.error(err?.response?.data?.message || '提现申请失败')
+  }
 }
 
 const notifTabs = [
@@ -2604,18 +2596,6 @@ const currentNotifs = computed(() => {
     })
 })
 
-const unreadCount = computed(() => notifications.value.filter(n => !n.read).length)
-
-const getUnreadByType = (type) => {
-  if (type === 'all') {
-    return notifications.value.filter(n => !n.read).length
-  }
-  if (type === 'station') {
-    return notifications.value.filter(n => (n.type === 'membership' || n.type === 'reward') && !n.read).length
-  }
-  return notifications.value.filter(n => n.type === type && !n.read).length
-}
-
 const formatTime = (iso) => {
   const date = new Date(iso)
   const now = new Date()
@@ -2631,38 +2611,15 @@ const switchTab = (type) => {
   activeTab.value = type
 }
 
-const loadNotifications = async () => {
-  try {
-    const res = await getMessages()
-    notifications.value = (res.data || []).map((n) => {
-      // 兼容旧数据：后端早期使用 msgType='skill'，前端按 'style' 渲染
-      if (n.type === 'skill') {
-        n.type = 'style'
-      }
-      return n
-    })
-  } catch (err) {
-    notifications.value = []
-  }
-}
-
-const markAllRead = async () => {
-  try {
-    await markAllMessagesRead()
-    notifications.value.forEach(n => { n.read = true })
-  } catch {
-    // composable 已处理错误提示
-  }
+// 打开消息中心时用全量列表刷新一次：平时轮询只拿角标数字，列表可能是旧的
+const openNotif = () => {
+  notifVisible.value = true
+  loadNotifications()
 }
 
 const handleNotifClick = async (n) => {
   if (!n.read) {
-    try {
-      await markMessageRead(n.id)
-      n.read = true
-    } catch {
-      // 即使接口失败也允许跳转
-    }
+    await markRead(n.id)
   }
   notifVisible.value = false
 
@@ -2693,6 +2650,7 @@ const goRenewal = async () => {
 onMounted(async () => {
   loadTheme()
   await loadNotifications()
+  startUnreadPolling()
   loadMembership()
   refreshMembershipFromApi()
   userProfile.loadProfile()
@@ -2702,7 +2660,10 @@ onMounted(async () => {
   tryShowNewcomerModal()
 
   monthlyWorks.value = await readMonthlyWorks()
-  guideBannerVisible.value = guideBannerVisible.value && !(await hasWorks())
+})
+
+onUnmounted(() => {
+  stopUnreadPolling()
 })
 
 // ---------- 向子页面（MineIndex）暴露弹框 / 主题 / 退出 / 用户状态 ----------
@@ -2824,6 +2785,7 @@ provide('consoleActions', {
 .console-sidebar-item.sub-item {
   padding-left: 44px;
   font-size: 13px;
+  margin-top: 4px;
 }
 
 .console-sidebar-item {
@@ -2905,9 +2867,27 @@ provide('consoleActions', {
 }
 
 .console-membership-badge.has-membership {
-  background: #fff7e6;
-  color: #fa8c16;
-  border: 1px solid #ffd591;
+  background: #f5f5f5;
+  color: #8c8c8c;
+  border: 1px solid #d9d9d9;
+}
+
+.console-membership-badge.has-membership.basic {
+  background: linear-gradient(135deg, #fffbe6 0%, #fff3a3 100%);
+  color: #8c6b00;
+  border: 1px solid #f0e6b3;
+}
+
+.console-membership-badge.has-membership.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+  border: none;
+}
+
+.console-membership-badge.has-membership.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+  border: none;
 }
 
 .console-membership-badge.no-membership {
@@ -2937,7 +2917,27 @@ provide('consoleActions', {
 .mbs-plan {
   font-size: 14px;
   font-weight: 600;
-  color: #fa8c16;
+  color: #8c8c8c;
+}
+
+.mbs-plan.basic {
+  color: #8c6b00;
+}
+
+.mbs-plan.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fb8301;
+}
+
+.mbs-plan.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #db3708;
 }
 
 .mbs-expiry {
@@ -2978,8 +2978,28 @@ provide('consoleActions', {
 }
 
 .mbs-val {
-  color: #fa8c16;
+  color: #8c8c8c;
   font-weight: 500;
+}
+
+.mbs-val.basic {
+  color: #8c6b00;
+}
+
+.mbs-val.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fb8301;
+}
+
+.mbs-val.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #db3708;
 }
 
 .mbs-foot {
@@ -3166,36 +3186,6 @@ provide('consoleActions', {
 }
 .newcomer-modal-buy:hover {
   background: #e61e3a;
-}
-
-/* 玩法指南横幅 */
-.guide-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 12px 24px;
-  background: #fff5f7;
-  border-bottom: 1px solid #ffd1d9;
-  font-size: 14px;
-  flex-shrink: 0;
-}
-.guide-banner-text {
-  color: #ff2442;
-  cursor: pointer;
-  font-weight: 500;
-}
-.guide-banner-text:hover {
-  text-decoration: underline;
-}
-.guide-banner-close {
-  color: #8c8c8c;
-  cursor: pointer;
-  font-size: 12px;
-  padding: 0 4px;
-}
-.guide-banner-close:hover {
-  color: #595959;
 }
 
 /* 底部 */
@@ -3927,20 +3917,6 @@ body[data-theme="dark"] .newcomer-modal-later:hover {
   background: #3a3a3a;
 }
 
-body[data-theme="dark"] .guide-banner {
-  background: #331018;
-  border-bottom-color: #52222b;
-}
-body[data-theme="dark"] .guide-banner-text {
-  color: #ff4d6f;
-}
-body[data-theme="dark"] .guide-banner-close {
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .guide-banner-close:hover {
-  color: #e0e0e0;
-}
-
 body[data-theme="dark"] .console-footer {
   background: #1f1f1f;
   border-color: #303030;
@@ -3956,9 +3932,27 @@ body[data-theme="dark"] .console-icon-btn:hover {
 }
 
 body[data-theme="dark"] .console-membership-badge.has-membership {
-  background: #2b2111;
-  border-color: #594214;
-  color: #ffa940;
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .console-membership-badge.has-membership.basic {
+  background: linear-gradient(135deg, #5c4a10 0%, #8c6b00 100%);
+  color: #fffbe6;
+  border: none;
+}
+
+body[data-theme="dark"] .console-membership-badge.has-membership.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+  border: none;
+}
+
+body[data-theme="dark"] .console-membership-badge.has-membership.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+  border: none;
 }
 
 body[data-theme="dark"] .notif-panel {
@@ -4131,6 +4125,18 @@ body[data-theme="dark"] .about-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.membership-card.basic {
+  background: linear-gradient(135deg, #d4b43a 0%, #c4a000 100%);
+}
+
+.membership-card.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+}
+
+.membership-card.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
 }
 
 .membership-left {
@@ -4580,6 +4586,18 @@ body[data-theme="dark"] .user-center-panel {
 
 body[data-theme="dark"] .membership-card {
   background: linear-gradient(135deg, #b01030 0%, #8a0f25 100%);
+}
+
+body[data-theme="dark"] .membership-card.basic {
+  background: linear-gradient(135deg, #5c4a10 0%, #8c6b00 100%);
+}
+
+body[data-theme="dark"] .membership-card.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+}
+
+body[data-theme="dark"] .membership-card.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
 }
 
 body[data-theme="dark"] .user-section {
@@ -5943,14 +5961,6 @@ body[data-theme="dark"] .email-submit:hover {
     color: #1a1a1a;
   }
 
-  /* 移动端不再显示新手横幅（MineIndex 顶部已有引导卡） */
-  .guide-banner {
-    margin: 8px 12px 0;
-    border-radius: 10px;
-    padding: 10px 14px;
-    font-size: 12px;
-  }
-
   /* 移动端隐藏底部 footer（TabBar 已经占位） */
   .console-footer {
     display: none;
@@ -5999,6 +6009,30 @@ body[data-theme="dark"] .email-submit:hover {
     line-height: 1;
   }
 
+  .console-tabbar-icon-wrap {
+    position: relative;
+    display: inline-flex;
+  }
+
+  .console-tabbar-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    background: #FF2442;
+    color: #fff;
+    border-radius: 7px;
+    font-size: 9px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+    pointer-events: none;
+  }
+
   .console-tabbar-label {
     font-size: 11px;
     line-height: 1;
@@ -6006,6 +6040,164 @@ body[data-theme="dark"] .email-submit:hover {
 
   .console-tabbar-item.active {
     color: #FF2442;
+  }
+
+  /* ============ 邀请有礼弹框（手机端） ============ */
+  .invite-modal .ant-modal {
+    width: calc(100vw - 24px) !important;
+    max-width: 640px;
+    min-width: auto !important;
+  }
+
+  .invite-modal .ant-modal-content {
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  .invite-panel {
+    max-height: 78vh;
+  }
+
+  .invite-header {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 14px 16px;
+  }
+
+  .invite-title {
+    font-size: 16px;
+  }
+
+  .invite-user-id {
+    padding: 3px 8px;
+    font-size: 11px;
+    gap: 4px;
+  }
+
+  .invite-stats {
+    grid-template-columns: 1fr 1.3fr 1.4fr;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+
+  .invite-stat-item {
+    padding: 10px 6px;
+  }
+
+  .invite-stat-value {
+    font-size: 20px;
+  }
+
+  .invite-stat-label,
+  .invite-stat-label-tooltip {
+    font-size: 11px;
+    white-space: nowrap;
+  }
+
+  .invite-stat-label-row {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .invite-stat-go-withdraw {
+    padding: 1px 7px;
+    font-size: 10px;
+  }
+
+  .invite-rules {
+    margin: 10px 16px 0;
+    padding: 12px 14px;
+  }
+
+  .invite-rules-header {
+    margin-bottom: 12px;
+    padding-bottom: 10px;
+  }
+
+  .invite-rules-title {
+    font-size: 13px;
+  }
+
+  .invite-rule-item {
+    gap: 6px;
+  }
+
+  .invite-rule-label {
+    min-width: 80px;
+    font-size: 11px;
+  }
+
+  .invite-rule-text {
+    font-size: 11px;
+  }
+
+  .invite-rules-detail-btn {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .invite-code-card,
+  .invite-link-card,
+  .invite-progress-card,
+  .invite-friend-card {
+    margin: 10px 16px;
+    padding: 14px;
+  }
+
+  .invite-code-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .invite-code-box {
+    min-width: auto;
+    padding: 12px 14px;
+  }
+
+  .invite-code-value {
+    font-size: 18px;
+  }
+
+  .invite-link-actions {
+    gap: 8px;
+  }
+
+  .invite-link-actions .invite-btn,
+  .invite-code-card .invite-btn {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+
+  .invite-progress-text {
+    width: auto;
+    min-width: 44px;
+    flex-shrink: 0;
+    font-size: 11px;
+  }
+
+  .invite-progress-desc {
+    font-size: 11px;
+  }
+
+  .invite-friend-item {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .invite-friend-email {
+    word-break: break-all;
+  }
+
+  .invite-friend-status {
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: 11px;
+  }
+
+  .invite-modal-auto-footer {
+    padding: 10px 16px 14px;
   }
 }
 

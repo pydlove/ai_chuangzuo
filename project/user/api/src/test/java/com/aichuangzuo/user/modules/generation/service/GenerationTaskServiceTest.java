@@ -11,6 +11,7 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
+import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -94,6 +95,13 @@ class GenerationTaskServiceTest {
         tpl.setTemplateStatus(com.aichuangzuo.shared.creative.TemplateStatus.PUBLISHED.code);
         tpl.setLatestPublishedVersion(1);
         when(promptTemplateMapper.selectPublished()).thenReturn(List.of(tpl));
+    }
+
+    private void stubPreSkillValidation(Long userId) {
+        when(benefitResolver.ratePerMinute(userId)).thenReturn(5);
+        when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
+        when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
+        when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
     }
 
     @Test
@@ -381,5 +389,49 @@ class GenerationTaskServiceTest {
         assertEquals(com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
                 .GENERATION_TASK_INVALID_STATUS.getCode(), e.getCode());
         verify(benefitService, never()).refund(any(), any());
+    }
+
+    @Test
+    void submit_shouldRejectWhenMarketSkillDeleted() {
+        Long userId = 20L;
+        stubPreSkillValidation(userId);
+
+        SkillMarket marketSkill = new SkillMarket();
+        marketSkill.setBizNo("SK123");
+        marketSkill.setIsDeleted(1);
+        marketSkill.setEnableStatus(1);
+        marketSkill.setAuditStatus(1);
+        when(skillMarketMapper.selectOne(any())).thenReturn(marketSkill);
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequest("SK123"), userId));
+        assertEquals(com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                .GENERATION_SKILL_NOT_AVAILABLE.getCode(), e.getCode());
+        verify(benefitService, never()).consume(any(), any());
+        verify(taskMapper, never()).insert(any(GenerationTask.class));
+    }
+
+    @Test
+    void submit_shouldRejectWhenMarketSkillNotApproved() {
+        Long userId = 21L;
+        stubPreSkillValidation(userId);
+
+        SkillMarket marketSkill = new SkillMarket();
+        marketSkill.setBizNo("SK456");
+        marketSkill.setIsDeleted(0);
+        marketSkill.setEnableStatus(0);
+        marketSkill.setAuditStatus(1);
+        when(skillMarketMapper.selectOne(any())).thenReturn(marketSkill);
+
+        com.aichuangzuo.shared.exception.BusinessException e =
+                org.junit.jupiter.api.Assertions.assertThrows(
+                        com.aichuangzuo.shared.exception.BusinessException.class,
+                        () -> service.submit(sampleRequest("SK456"), userId));
+        assertEquals(com.aichuangzuo.shared.enums.error.UserGenerationErrorCode
+                .GENERATION_SKILL_NOT_AVAILABLE.getCode(), e.getCode());
+        verify(benefitService, never()).consume(any(), any());
+        verify(taskMapper, never()).insert(any(GenerationTask.class));
     }
 }

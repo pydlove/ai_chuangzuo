@@ -14,10 +14,22 @@ export default defineConfig({
         const version = ctx.bundle
           ? `build-${Date.now()}`
           : 'dev'
-        return html.replace(
+        let result = html.replace(
           '</head>',
           `  <script>window.__APP_VERSION__ = '${version}'</script>\n  </head>`
         )
+        if (ctx.bundle) {
+          // 给入口 JS/CSS 加构建版本戳，绕过微信浏览器缓存
+          result = result.replace(
+            /(<script[^>]*type="module"[^>]*src=")([^"]+)(")/g,
+            `$1$2?v=${version}$3`
+          )
+          result = result.replace(
+            /(<link[^>]*rel="stylesheet"[^>]*href=")([^"]+)(")/g,
+            `$1$2?v=${version}$3`
+          )
+        }
+        return result
       }
     },
     {

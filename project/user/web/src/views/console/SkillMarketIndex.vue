@@ -58,15 +58,6 @@
         </section>
 
         <!-- ⑤ 全部提示词区 -->
-        <section class="market-rank-entry" @click="goRank">
-          <div class="market-rank-entry__icon"><TrophyOutlined /></div>
-          <div class="market-rank-entry__body">
-            <div class="market-rank-entry__title">收益潜力榜</div>
-            <div class="market-rank-entry__sub">看看谁靠提示词赚得最多 · Top5 有奖</div>
-          </div>
-          <div class="market-rank-entry__arrow">→</div>
-        </section>
-
         <section class="market-grid-section">
           <div class="market-section-head">
             <div class="market-section-title-wrap">
@@ -150,10 +141,10 @@
               </template>
               <template #extra>
                 <div class="skill-card__extra-row">
-                  <span v-if="s.createdAt" class="skill-card__published">
-                    发布于 {{ formatTimeAgo(s.createdAt) }}
+                  <span v-if="s.approvedAt || s.createdAt" class="skill-card__published">
+                    发布于 {{ formatTimeAgo(s.approvedAt || s.createdAt) }}
                   </span>
-                  <span class="skill-card__extra-dot" v-if="s.createdAt">·</span>
+                  <span class="skill-card__extra-dot" v-if="s.approvedAt || s.createdAt">·</span>
                   <span>本周 {{ s.weeklyUses }} 次</span>
                   <span class="skill-card__extra-dot">·</span>
                   <span>累计 {{ s.totalUses }} 次</span>
@@ -174,71 +165,6 @@
           </div>
         </section>
       </div>
-      <div class="market-sidebar">
-
-        <!-- ③ 收益潜力榜 -->
-        <section class="market-creators">
-          <div class="market-section-head">
-            <div class="market-section-title-wrap">
-              <h2 class="market-section-title">收益潜力榜</h2>
-              <a-tooltip
-                placement="top"
-                :mouse-enter-delay="0.1"
-                :trigger="['hover', 'click']"
-                overlay-class-name="market-earnings-rank-tooltip"
-              >
-                <template #title>
-                  <div class="market-earnings-rank-tooltip-content">
-                    <div class="market-earnings-rank-tooltip-title">收益潜力榜计算规则</div>
-                   <ul class="market-earnings-rank-tooltip-list">
-                      <li>榜单按创作者近一个月提示词被使用次数 × 单次使用收益单价计算每月收益，并按收益从高到低排序。</li>
-                     <li>他人每使用一次你的提示词，你都会获得相应创作币收益。</li>
-                      <li>每月结算时，榜单 Top5 会获得额外月度奖励，具体金额以平台公布为准。</li>
-                    </ul>
-                  </div>
-                </template>
-                <InfoCircleOutlined class="market-earnings-rank-icon" />
-              </a-tooltip>
-              <span class="market-section-sub">看看谁在用提示词赚到币</span>
-            </div>
-            <button
-              v-if="hasMoreCreators"
-              class="market-section-link"
-              @click="creatorsExpanded = !creatorsExpanded"
-            >
-              {{ creatorsExpanded ? '收起 ↑' : '查看完整榜单 ↓' }}
-            </button>
-          </div>
-          <div v-if="topCreators.length === 0" class="market-creators-empty">
-            暂无上榜创作者
-          </div>
-          <div v-else class="market-creators-list">
-            <div
-              v-for="(c, idx) in visibleCreators"
-              :key="c.creatorId"
-              class="market-creator-row"
-              @click="openCreator(c)"
-            >
-              <div :class="['market-creator-rank', { top3: idx < 3 }]">
-                {{ String(idx + 1).padStart(2, '0') }}
-              </div>
-              <div class="market-creator-avatar">
-                {{ (c.creatorName || '匿').charAt(0) }}
-              </div>
-              <div class="market-creator-info">
-                <div class="market-creator-name">{{ c.creatorName || '匿名用户' }}</div>
-                <div v-if="c.bestSkill" class="market-creator-best">
-                  代表提示词 · {{ c.bestSkill.name }}
-                </div>
-              </div>
-              <div class="market-creator-earning">
-                <div class="market-creator-amount">+{{ formatCoins(c.weeklyEarnings) }}</div>
-                <div class="market-creator-amount-label">本周币</div>
-              </div>
-            </div>
-          </div>
-        </section>
-      </div>
     </div>
   </div>
 
@@ -253,93 +179,14 @@
   >
     <ol class="style-market-rules-list">
       <li>他人每使用一次你分享的提示词，你将获得 <span class="style-market-rule-highlight">{{ formatCoinInt(pricePerUse) }} 创作币</span> 奖励。</li>
-      <li v-if="rewardAmounts.length">
-        每月根据提示词市场 <span class="style-market-rule-highlight">收益潜力榜 Top5</span> 发放月度奖励：
-        <span
-          v-for="(item, idx) in rewardAmounts"
-          :key="item.rank"
-        >
-          <span class="style-market-rule-highlight">Top{{ item.rank }} {{ formatCoinInt(item.amount) }} 币</span>
-          <span v-if="idx < rewardAmounts.length - 1">、</span>
-        </span>。
-      </li>
-      <li v-else>
-        每月根据提示词市场 <span class="style-market-rule-highlight">收益潜力榜 Top5</span> 发放月度奖励，具体金额以平台公布为准。
-      </li>
       <li>月度奖励 <span class="style-market-rule-highlight">每月结算一次</span>，结算后当月使用次数与月度收益清零并重新累计。</li>
       <li>使用他人分享的提示词 <span class="style-market-rule-highlight">无需支付创作币</span>，创作者仍可正常获得收益。</li>
       <li>如发现违规刷量行为，平台有权 <span class="style-market-rule-highlight">取消相关收益并下架提示词</span>。</li>
-      <li>使用提示词市场上的提示词生成文章并成功后，该提示词的累计使用次数与本月使用次数会增加，创作者可获得对应创作币收益。</li>
+      <li>使用提示词市场上的提示词生成文章并成功后，该提示词的累计使用次数会增加，创作者可获得对应创作币收益。</li>
       <li>使用自己创建或学习获得的提示词生成文章并成功后，仅累计该提示词的使用次数，不产生收益。</li>
       <li>生成失败或手动停止的任务不计入使用次数与收益。</li>
     </ol>
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
-  </a-modal>
-
-  <!-- 创作者详情 modal — 显示 ta 对外公布的提示词 -->
-  <a-modal
-    v-if="selectedCreator"
-    class="creator-modal"
-    :open="creatorModalVisible"
-    :footer="null"
-    :width="640"
-    centered
-    :destroy-on-close="true"
-    @cancel="closeCreatorModal"
-  >
-    <template #title>
-      <div class="creator-modal-title">
-        <div class="creator-modal-avatar">{{ (selectedCreator.creatorName || '匿').charAt(0) }}</div>
-        <div class="creator-modal-title-text">
-          <div class="creator-modal-name">{{ selectedCreator.creatorName || '匿名用户' }}</div>
-          <div class="creator-modal-sub">TA 的提示词市场主页</div>
-        </div>
-      </div>
-    </template>
-
-    <div class="creator-modal-body">
-      <div class="creator-modal-stats">
-        <div class="creator-modal-stat">
-          <div class="creator-modal-stat-value">{{ creatorStyles.length }}</div>
-          <div class="creator-modal-stat-label">对外公布提示词</div>
-        </div>
-        <div class="creator-modal-stat">
-          <div class="creator-modal-stat-value">+{{ formatCoins(selectedCreator.weeklyEarnings) }}</div>
-          <div class="creator-modal-stat-label">本周币</div>
-        </div>
-        <div class="creator-modal-stat">
-          <div class="creator-modal-stat-value">{{ formatCoins(creatorTotalEarnings) }}</div>
-          <div class="creator-modal-stat-label">累计币 (按使用×单价)</div>
-        </div>
-        <div v-if="creatorFeaturedCount > 0" class="creator-modal-stat highlight">
-          <div class="creator-modal-stat-value">{{ creatorFeaturedCount }}</div>
-          <div class="creator-modal-stat-label">官方精选</div>
-        </div>
-      </div>
-
-      <div v-if="creatorStyles.length === 0" class="creator-modal-empty">
-        该创作者暂未对外公布提示词。
-      </div>
-      <div v-else class="creator-modal-list">
-        <div
-          v-for="s in creatorStyles"
-          :key="s.id"
-          class="creator-modal-style-row"
-        >
-          <div class="creator-modal-style-main">
-            <div class="creator-modal-style-name">
-              {{ s.name }}
-              <span v-if="s.featured" class="creator-modal-style-featured">官方精选</span>
-            </div>
-            <div v-if="s.scope" class="creator-modal-style-scope"># {{ firstScope(s.scope) }}</div>
-          </div>
-          <div class="creator-modal-style-meta">
-            <span class="creator-modal-style-uses">{{ formatUses(s.totalUses) }} 次使用</span>
-            <span class="creator-modal-style-earning">+{{ formatCoins(s.weeklyEarnings) }} 币/周</span>
-          </div>
-        </div>
-      </div>
-    </div>
   </a-modal>
 
   <!-- 提示词详情 modal -->
@@ -375,11 +222,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
-import { InfoCircleOutlined, QuestionCircleOutlined, TrophyOutlined } from '@ant-design/icons-vue'
+import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import {
   marketSkills,
   marketStats,
-  topCreators,
   pricePerUse,
   useMarketSkill,
   simulateExternalUse,
@@ -392,7 +238,6 @@ import {
   loadPricePerUse,
   unpublishSkill
 } from '@/composables/useSkillMarket.js'
-import { getMarketSkillMonthlyRewardConfig } from '@/api/marketSkill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
 
@@ -404,67 +249,9 @@ const formatCoins = (n) => Number(n || 0).toFixed(2)
 const formatCoinInt = (n) => String(Math.round(Number(n || 0)))
 const formatUses = (n) => Number(n || 0).toLocaleString()
 
-const rewardConfig = ref(null)
-const rewardAmounts = computed(() => {
-  const cfg = rewardConfig.value
-  if (!cfg || !cfg.enabled) return []
-  return [
-    { rank: 1, amount: cfg.firstAmount },
-    { rank: 2, amount: cfg.secondAmount },
-    { rank: 3, amount: cfg.thirdAmount },
-    { rank: 4, amount: cfg.fourthAmount },
-    { rank: 5, amount: cfg.fifthAmount }
-  ]
-})
-
-const loadRewardConfig = async () => {
-  try {
-    rewardConfig.value = await getMarketSkillMonthlyRewardConfig()
-  } catch (e) {
-    console.warn('[loadRewardConfig]', e?.message || '加载失败')
-    rewardConfig.value = null
-  }
-}
-
 const goUpload = () => {
   router.push('/console/skills')
 }
-
-const goRank = () => {
-  router.push('/console/skill-market/rank')
-}
-
-// ④ 排行榜点击 → 打开创作者详情 modal（只查看 ta 对外公布的提示词，不直接使用）
-const creatorModalVisible = ref(false)
-const selectedCreator = ref(null)
-const openCreator = (c) => {
-  selectedCreator.value = c
-  creatorModalVisible.value = true
-}
-const closeCreatorModal = () => {
-  creatorModalVisible.value = false
-  selectedCreator.value = null
-}
-const creatorStyles = computed(() => {
-  const c = selectedCreator.value
-  if (!c) return []
-  return marketSkills.value
-    .filter((s) => s.creatorId === c.creatorId && s.status === 'approved')
-    .sort((a, b) => (b.totalUses || 0) - (a.totalUses || 0))
-})
-const creatorTotalEarnings = computed(() => {
-  const c = selectedCreator.value
-  if (!c) return 0
-  const price = Number(pricePerUse.value || 2)
-  return creatorStyles.value.reduce((sum, s) => {
-    return sum + (s.totalUses || 0) * price
-  }, 0)
-})
-const creatorFeaturedCount = computed(() =>
-  creatorStyles.value.filter((s) => s.featured === true).length
-)
-
-const firstScope = (scope) => (scope || '').split(/[,，]/)[0]?.trim() || ''
 
 const handleUse = (s) => {
   try {
@@ -488,8 +275,8 @@ const handleDelete = (s) => {
         await unpublishSkill(s.id)
         message.success('提示词已下架')
         loadPage(page.value)
-      } catch {
-        // composable 内已输出错误
+      } catch (err) {
+        message.error(err?.message || '下架失败，请重试')
       }
     }
   })
@@ -509,13 +296,6 @@ const onStyleDetailVisibleChange = (val) => {
 
 const searchQuery = ref('')
 const activeTab = ref('all')
-
-// ④ 收益榜：默认前 5 行，「查看完整榜单」可展开到前 20
-const creatorsExpanded = ref(false)
-const visibleCreators = computed(() =>
-  creatorsExpanded.value ? topCreators.value : topCreators.value.slice(0, 5)
-)
-const hasMoreCreators = computed(() => topCreators.value.length > 5)
 
 const tabOptions = [
   { key: 'all', label: '全部' },
@@ -591,7 +371,6 @@ onMounted(() => {
   loadMarketSkills()
   loadFavoriteSkills()
   loadMarketSkillOverview()
-  loadRewardConfig()
   loadPricePerUse()
   loadPage(1)
 })
@@ -814,7 +593,93 @@ onMounted(() => {
 .market-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: var(--space-lg);
+  gap: var(--space-xl);
+}
+
+/* PC 端提示词市场卡片样式增强 */
+.market-grid :deep(.skill-card) {
+  padding: 24px;
+  border-radius: 20px;
+  border-color: var(--color-border-light);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.market-grid :deep(.skill-card:hover) {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
+.market-grid :deep(.skill-card__head) {
+  margin-bottom: 18px;
+}
+
+.market-grid :deep(.skill-card__title) {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+
+.market-grid :deep(.skill-card__prompt) {
+  font-size: 14px;
+  line-height: 1.75;
+  color: #595959;
+  margin-bottom: 18px;
+  -webkit-line-clamp: 3;
+}
+
+.market-grid :deep(.skill-card__extra) {
+  margin-bottom: 14px;
+}
+
+.market-grid :deep(.skill-card__extra-row) {
+  font-size: 12px;
+  color: #8c8c8c;
+  gap: 8px;
+}
+
+.market-grid :deep(.skill-card__actions) {
+  width: 100%;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-top: 0;
+}
+
+.market-grid :deep(.skill-card__action-btn) {
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  color: #595959;
+  background: #f5f5f5;
+  transition: all 0.2s;
+}
+
+.market-grid :deep(.skill-card__action-btn:hover) {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+.market-grid :deep(.skill-card__action-btn--primary) {
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  font-weight: 600;
+}
+
+.market-grid :deep(.skill-card__action-btn--primary:hover) {
+  background: var(--color-primary-hover);
+  color: #fff;
+}
+
+.market-grid :deep(.skill-card__action-btn--active) {
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.market-grid :deep(.skill-card__featured-badge) {
+  border-radius: 0 20px 0 12px;
+  padding: 3px 10px;
+  font-size: 11px;
 }
 
 /* ⑤ 暗色 */
@@ -835,8 +700,46 @@ body[data-theme="dark"] .market-tab.active {
   box-shadow: none;
 }
 body[data-theme="dark"] .market-empty { background: #1f1f1f; color: #8c8c8c; }
-body[data-theme="dark"] .market-creators-empty { background: #1f1f1f; }
-body[data-theme="dark"] .market-creator-earning { border-top-color: #303030; }
+
+body[data-theme="dark"] .market-grid :deep(.skill-card) {
+  background: #1f1f1f;
+  border-color: #303030;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card:hover) {
+  border-color: rgba(255, 36, 66, 0.4);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__title) { color: #f0f0f0; }
+body[data-theme="dark"] .market-grid :deep(.skill-card__prompt) { color: #a6a6a6; }
+body[data-theme="dark"] .market-grid :deep(.skill-card__extra-row) { color: #8c8c8c; }
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__action-btn) {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__action-btn:hover) {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__action-btn--primary) {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__action-btn--primary:hover) {
+  background: #ff4d6a;
+  color: #fff;
+}
+
+body[data-theme="dark"] .market-grid :deep(.skill-card__action-btn--active) {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff6b81;
+}
 
 body[data-theme="dark"] .market-pagination :deep(.ant-pagination-item) {
   background: #1f1f1f;
@@ -888,12 +791,10 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
 /* === 左右布局 === */
 .market-content-wrapper {
   display: grid;
-  grid-template-columns: 1fr 360px;
+  grid-template-columns: 1fr;
   gap: var(--space-xl);
   align-items: start;
 }
-
-.market-rank-entry { display: none; }
 
 .market-main {
   min-width: 0;
@@ -902,37 +803,6 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   gap: var(--space-xl);
 }
 
-.market-sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xl);
-  position: sticky;
-  top: var(--space-lg);
-  max-height: calc(100vh - 32px);
-  overflow-y: auto;
-  padding-right: var(--space-sm);
-}
-
-.market-sidebar::-webkit-scrollbar {
-  width: 4px;
-}
-
-.market-sidebar::-webkit-scrollbar-thumb {
-  background: var(--color-border-default);
-  border-radius: 2px;
-}
-
-@media (max-width: 1024px) {
-  .market-content-wrapper {
-    grid-template-columns: 1fr;
-  }
-  .market-sidebar {
-    position: static;
-    max-height: none;
-    overflow-y: visible;
-    padding-right: 0;
-  }
-}
 /* === 响应式 ≤768px === */
 @media (max-width: 768px) {
   .market-page {
@@ -1011,47 +881,6 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
     margin-top: 4px;
   }
 
-  .market-sidebar { display: none; }
-
-  .market-rank-entry {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 16px;
-    background: var(--color-bg-card, #fff);
-    border-radius: 18px;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-    cursor: pointer;
-  }
-  .market-rank-entry:active { transform: scale(0.99); }
-  .market-rank-entry__icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: rgba(255, 36, 66, 0.08);
-    color: var(--color-primary, #ff2442);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 20px;
-    flex-shrink: 0;
-  }
-  .market-rank-entry__body { flex: 1; min-width: 0; }
-  .market-rank-entry__title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--color-text-primary, #1a1a1a);
-  }
-  .market-rank-entry__sub {
-    font-size: 12px;
-    color: var(--color-text-secondary, #8c8c8c);
-    margin-top: 2px;
-  }
-  .market-rank-entry__arrow {
-    font-size: 18px;
-    color: var(--color-text-placeholder, #bfbfbf);
-  }
-
   .market-section-head {
     flex-wrap: wrap;
     gap: 10px;
@@ -1108,46 +937,6 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
     gap: 12px;
   }
 
-  .market-creators-list {
-    border-radius: 18px;
-  }
-  .market-creator-row {
-    grid-template-columns: auto auto 1fr;
-    gap: 10px;
-    padding: 12px 14px;
-  }
-  .market-creator-rank {
-    font-size: 16px;
-    min-width: 32px;
-  }
-  .market-creator-avatar {
-    width: 36px;
-    height: 36px;
-    font-size: 14px;
-  }
-  .market-creator-name {
-    font-size: 14px;
-  }
-  .market-creator-best {
-    font-size: 11px;
-  }
-  .market-creator-earning {
-    grid-column: 1 / -1;
-    display: flex;
-    align-items: baseline;
-    gap: 6px;
-    text-align: left;
-    padding-top: 6px;
-    border-top: 1px dashed var(--color-border-light);
-  }
-  .market-creator-amount {
-    font-size: 16px;
-  }
-  .market-creator-amount-label {
-    font-size: 11px;
-    margin-top: 0;
-  }
-
   .market-pagination {
     justify-content: center;
     padding-top: 12px;
@@ -1160,112 +949,7 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   }
 }
 
-/* === ④ 收益潜力榜（排行榜式列表） === */
-.market-section-sub {
-  font-size: var(--font-body);
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
-
-.market-creators-empty {
-  padding: var(--space-xl);
-  text-align: center;
-  color: var(--color-text-placeholder);
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  font-size: var(--font-body);
-}
-
-.market-creators-list {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-bg-card);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm2);
-}
-
-.market-creator-row {
-  display: grid;
-  grid-template-columns: auto auto 1fr auto;
-  align-items: center;
-  gap: var(--space-md);
-  padding: var(--space-md) var(--space-lg);
-  cursor: pointer;
-  transition: background 0.2s;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.market-creator-row:last-child { border-bottom: 0; }
-.market-creator-row:hover { background: var(--color-primary-light); }
-
-.market-creator-rank {
-  font-size: var(--font-h3);
-  font-weight: 700;
-  color: var(--color-text-placeholder);
-  min-width: 44px;
-  font-variant-numeric: tabular-nums;
-}
-.market-creator-rank.top3 { color: var(--color-primary); }
-
-.market-creator-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-body);
-  font-weight: 700;
-}
-
-.market-creator-info { min-width: 0; }
-.market-creator-name {
-  font-size: var(--font-body);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.market-creator-best {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  margin-top: 2px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.market-creator-earning {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-.market-creator-amount {
-  font-size: var(--font-h3);
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1.2;
-}
-.market-creator-amount-label {
-  font-size: var(--font-caption);
-  color: var(--color-text-secondary);
-  margin-top: 2px;
-}
-
-/* ④ 暗色 */
-body[data-theme="dark"] .market-creators-list { background: #1f1f1f; }
-body[data-theme="dark"] .market-creator-row { border-bottom-color: #303030; }
-body[data-theme="dark"] .market-creator-row:hover { background: rgba(255, 36, 66, 0.10); }
-body[data-theme="dark"] .market-creator-name { color: var(--color-text-primary); }
-body[data-theme="dark"] .market-creator-avatar {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary); }
-
-/* === ③ 收益潜力榜 === */
+/* === ③ 全部提示词区标题 === */
 .market-section-head {
   display: flex;
   justify-content: space-between;
@@ -1283,22 +967,11 @@ body[data-theme="dark"] .market-section-sub { color: var(--color-text-secondary)
   color: var(--color-text-primary);
   margin: 0;
 }
-.market-earnings-rank-icon {
-  color: var(--color-text-secondary);
-  font-size: 16px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.market-earnings-rank-icon:hover { color: var(--color-primary); }
-.market-section-link {
-  background: transparent;
-  border: 0;
-  color: var(--color-primary);
-  cursor: pointer;
+.market-section-sub {
   font-size: var(--font-body);
-  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-weight: 400;
 }
-.market-section-link:hover { color: var(--color-primary-hover); }
 
 /* === ② 上传激励卡 === */
 .market-upload-card {
@@ -1414,135 +1087,4 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
 
-</style>
-
-<style>
-/* ===== 创作者详情 modal ===== */
-.creator-modal-body {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-}
-.creator-modal-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.creator-modal-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ff5577 100%);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  font-weight: 600;
-}
-.creator-modal-title-text { display: flex; flex-direction: column; gap: 2px; }
-.creator-modal-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-}
-.creator-modal-sub {
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-}
-
-.creator-modal-stats {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-  padding: 14px;
-  background: var(--color-bg-page);
-  border-radius: var(--radius-md);
-  margin-bottom: 16px;
-}
-.creator-modal-stat { text-align: center; }
-.creator-modal-stat.highlight .creator-modal-stat-value { color: var(--color-primary); }
-.creator-modal-stat-value {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-variant-numeric: tabular-nums;
-}
-.creator-modal-stat-label {
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-  margin-top: 2px;
-}
-
-.creator-modal-empty {
-  padding: 32px 0;
-  text-align: center;
-  color: var(--color-text-placeholder);
-  font-size: 13px;
-}
-
-.creator-modal-list {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  border-top: 1px solid var(--color-border-light);
-}
-.creator-modal-style-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px 4px;
-  border-bottom: 1px solid var(--color-border-light);
-}
-.creator-modal-style-main { min-width: 0; flex: 1; }
-.creator-modal-style-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--color-text-primary);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.creator-modal-style-featured {
-  font-size: 11px;
-  color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.08);
-  padding: 1px 6px;
-  border-radius: 4px;
-  font-weight: 500;
-}
-.creator-modal-style-scope {
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-  margin-top: 2px;
-}
-.creator-modal-style-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  white-space: nowrap;
-}
-.creator-modal-style-earning {
-  color: var(--color-primary);
-  font-weight: 500;
-  font-variant-numeric: tabular-nums;
-}
-
-@media (max-width: 640px) {
-  .creator-modal-stats { grid-template-columns: repeat(2, 1fr); }
-}
-body[data-theme="dark"] .style-market-rules-footer {
-  border-top-color: #303030;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .style-market-rule-highlight { color: #ff6b81; }
-
-.creator-modal .ant-modal-body {
-  height: 520px;
-  padding: 20px 24px 24px;
-}
 </style>

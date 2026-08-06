@@ -21,6 +21,15 @@ public interface MessageService {
     List<MessageVO> listVisibleMessages(Long userId, LocalDateTime registerAt);
 
     /**
+     * 统计当前用户可见消息中的未读条数，供前端角标轮询。
+     *
+     * @param userId     用户ID
+     * @param registerAt 用户注册时间
+     * @return 未读条数
+     */
+    long countUnread(Long userId, LocalDateTime registerAt);
+
+    /**
      * 单条标记已读。
      *
      * @param userId     用户ID

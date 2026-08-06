@@ -138,6 +138,54 @@ class UserSkillServiceTest {
     }
 
     @Test
+    void shouldRejectDuplicateSkillNameAcrossSourceTypes() {
+        User user = createUser("cross-type-duplicate@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateSkillRequest customRequest = new CreateSkillRequest();
+        customRequest.setSkillName("跨类型重复");
+        customRequest.setPrompt("prompt 1");
+        customRequest.setSourceType(1);
+        userSkillService.createSkill(customRequest);
+
+        CreateSkillRequest learnedRequest = new CreateSkillRequest();
+        learnedRequest.setSkillName("跨类型重复");
+        learnedRequest.setPrompt("prompt 2");
+        learnedRequest.setSourceType(2);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> userSkillService.createSkill(learnedRequest));
+        assertEquals(SkillErrorCode.SKILL_NAME_EXISTS.getCode(), ex.getCode());
+        assertTrue(ex.getMessage().contains("我的提示词"));
+    }
+
+    @Test
+    void shouldRejectUpdateSkillNameToExistingCrossSourceType() {
+        User user = createUser("update-cross-type-duplicate@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateSkillRequest customRequest = new CreateSkillRequest();
+        customRequest.setSkillName("已有名称");
+        customRequest.setPrompt("prompt 1");
+        customRequest.setSourceType(1);
+        userSkillService.createSkill(customRequest);
+
+        CreateSkillRequest learnedRequest = new CreateSkillRequest();
+        learnedRequest.setSkillName("待修改名称");
+        learnedRequest.setPrompt("prompt 2");
+        learnedRequest.setSourceType(2);
+        UserSkillVO learned = userSkillService.createSkill(learnedRequest);
+
+        UpdateSkillRequest updateRequest = new UpdateSkillRequest();
+        updateRequest.setSkillName("已有名称");
+        updateRequest.setPrompt("prompt 2");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> userSkillService.updateSkill(learned.getBizNo(), updateRequest));
+        assertEquals(SkillErrorCode.SKILL_NAME_EXISTS.getCode(), ex.getCode());
+    }
+
+    @Test
     void shouldUpdateSkillSuccessfully() {
         User user = createUser("update-skill@test.com");
         SecurityUserContext.setCurrentUserId(user.getId());
@@ -158,6 +206,26 @@ class UserSkillServiceTest {
         assertEquals("新名称", updated.getSkillName());
         assertEquals("新提示词", updated.getPrompt());
         assertEquals("新标签1,新标签2", updated.getScope());
+    }
+
+    @Test
+    void shouldUpdateSkillWithSameNameSucceed() {
+        User user = createUser("update-same-name@test.com");
+        SecurityUserContext.setCurrentUserId(user.getId());
+
+        CreateSkillRequest createRequest = new CreateSkillRequest();
+        createRequest.setSkillName("原名称");
+        createRequest.setPrompt("原提示词");
+        UserSkillVO created = userSkillService.createSkill(createRequest);
+
+        UpdateSkillRequest updateRequest = new UpdateSkillRequest();
+        updateRequest.setSkillName("原名称");
+        updateRequest.setPrompt("修改后的提示词");
+
+        UserSkillVO updated = userSkillService.updateSkill(created.getBizNo(), updateRequest);
+
+        assertEquals("原名称", updated.getSkillName());
+        assertEquals("修改后的提示词", updated.getPrompt());
     }
 
     @Test

@@ -124,6 +124,7 @@ modules/message/
 | 方法 | 路径 | 说明 |
 |---|---|---|
 | GET | `/api/v1/user/messages` | 返回当前用户全部可见消息（广播+个人），带 `read` 标记，按 `created_at` 倒序，服务端封顶 200 条。前端一次拉取后客户端按 tab 分组、派生未读数。 |
+| GET | `/api/v1/user/messages/unread-count` | 只返回未读条数（`Result<Long>`），供铃铛 / 手机端 TabBar 角标轮询，避免为一个数字拉全量列表。 |
 | PUT | `/api/v1/user/messages/{id}/read` | 单条标记已读。校验该消息对当前用户可见，`INSERT ... ON DUPLICATE` 或"存在则跳过"保证幂等。消息不可见/不存在返回 `MessageErrorCode.MESSAGE_NOT_FOUND`。 |
 | PUT | `/api/v1/user/messages/read-all` | 把当前用户所有未读的可见消息批量插入已读记录。 |
 
@@ -162,6 +163,9 @@ import request from '@/utils/request'
 export function getMessages() {
   return request.get('/messages')
 }
+export function getUnreadCount() {
+  return request.get('/messages/unread-count')
+}
 export function markMessageRead(id) {
   return request.put(`/messages/${id}/read`)
 }
@@ -169,6 +173,15 @@ export function markAllMessagesRead() {
   return request.put('/messages/read-all')
 }
 ```
+
+### 角标刷新策略（轮询，不用 WebSocket）
+
+消息源（生成完成/失败、会员到期、奖励到账、公告）都是低频，秒级延迟无感；技术栈为单机、无 Redis/MQ，为一个角标维护长连接不划算。因此：
+
+- `useMessages.js` 内置模块级单例轮询，间隔 30s，只调 `/messages/unread-count`。
+- 监听 `visibilitychange`：页面切后台暂停轮询，回前台立刻补一次。
+- 打开铃铛弹框 / 进入 `/console/messages` 时用全量 `getMessages()` 覆盖列表与角标。
+- `useGenerationQueue` 的 5s 队列轮询发现任务变 `completed`/`failed` 时立即刷一次角标，让「创作完成」消息接近实时，无需压低全局轮询间隔。
 
 ### 改造 `ConsoleLayout.vue`
 

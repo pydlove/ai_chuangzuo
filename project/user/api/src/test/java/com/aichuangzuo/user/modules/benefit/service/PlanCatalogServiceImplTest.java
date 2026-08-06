@@ -59,7 +59,7 @@ class PlanCatalogServiceImplTest {
         PlanCatalogVO vo = service.getCatalog();
 
         assertEquals(3, vo.getPlans().size());
-        assertEquals(18, vo.getCompareRows().size());
+        assertEquals(16, vo.getCompareRows().size());
 
         // pro 推荐位
         PlanCatalogVO.PlanVO pro = vo.getPlans().get(1);
@@ -349,8 +349,6 @@ class PlanCatalogServiceImplTest {
         list.add(benefit("seo_keywords", "SEO 关键词建议", "boolean", "SEO 关键词建议", null, null, 8));
         list.add(benefit("template_access", "文章模板", "tier", "文章模板", null, null, 9));
         list.add(benefit("sticker_quota", "贴图生成", "quota", "贴图生成", "{value} 张/月", null, 10));
-        list.add(benefit("batch_generate", "批量生成/改写", "boolean", "批量生成/改写", null, null, 11));
-        list.add(benefit("batch_export", "批量导出", "boolean", "批量导出", null, null, 12));
         list.add(benefit("history_days", "历史记录", "quota", "历史记录", null,
                 "{\"30\":\"30 天\",\"90\":\"90 天\",\"180\":\"180 天\",\"365\":\"365 天\",\"-1\":\"永久\"}", 13));
         list.add(benefit("queue_priority", "生成队列优先级", "tier", "生成队列优先级", null,
@@ -400,7 +398,7 @@ class PlanCatalogServiceImplTest {
         list.add(pb("pro", "skill_custom", "2"));
         list.add(pb("flagship", "skill_custom", "4"));
         list.add(pb("basic", "seo_keywords", "false"));
-        list.add(pb("pro", "seo_keywords", "false"));
+        list.add(pb("pro", "seo_keywords", "true"));
         list.add(pb("flagship", "seo_keywords", "true"));
         list.add(pb("basic", "template_access", "wechat,business,marketing,academic,toutiao,xiaohongshu,baijiahao,story"));
         list.add(pb("pro", "template_access", "wechat,business,marketing,academic,toutiao,xiaohongshu,baijiahao,story,magazine,card,checklist,dark,wechat-minimal,wechat-dialogue,wechat-brand,wechat-infographic,xiaohongshu-list,xiaohongshu-review,xiaohongshu-tutorial,toutiao-news"));
@@ -408,12 +406,6 @@ class PlanCatalogServiceImplTest {
         list.add(pb("basic", "sticker_quota", "5"));
         list.add(pb("pro", "sticker_quota", "30"));
         list.add(pb("flagship", "sticker_quota", "100"));
-        list.add(pb("basic", "batch_generate", "false"));
-        list.add(pb("pro", "batch_generate", "false"));
-        list.add(pb("flagship", "batch_generate", "true"));
-        list.add(pb("basic", "batch_export", "false"));
-        list.add(pb("pro", "batch_export", "false"));
-        list.add(pb("flagship", "batch_export", "true"));
         list.add(pb("basic", "history_days", "30"));
         list.add(pb("pro", "history_days", "-1"));
         list.add(pb("flagship", "history_days", "-1"));

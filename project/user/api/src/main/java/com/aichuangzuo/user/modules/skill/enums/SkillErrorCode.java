@@ -11,7 +11,7 @@ import lombok.Getter;
 @Getter
 public enum SkillErrorCode implements ErrorCode {
 
-    SKILL_NAME_EXISTS(112001, "风格名称已存在"),
+    SKILL_NAME_EXISTS(112001, "提示词名称已存在"),
     SKILL_NOT_FOUND(112002, "风格不存在或无权访问"),
     SKILL_NAME_EMPTY(112003, "风格名称不能为空"),
     SKILL_PROMPT_EMPTY(112004, "风格提示词不能为空"),

@@ -12,6 +12,7 @@
                 'mine-user-vip',
                 { 'mine-user-vip-pro': membershipLevel === '专业版会员', 'mine-user-vip-free': !hasMembership }
               ]"
+              @click="router.push('/console/benefits')"
             >
               <CrownOutlined v-if="hasMembership" class="mine-user-vip-icon" />
               {{ membershipLevel || '免费版' }}
@@ -30,17 +31,17 @@
 
     <!-- 数据卡 -->
     <section class="mine-stats-card">
-      <div class="mine-stat-item">
+      <div class="mine-stat-item" @click="router.push('/console/works')">
         <div class="mine-stat-value">{{ monthlyWorks }}</div>
         <div class="mine-stat-label">本月已生成</div>
       </div>
       <div class="mine-stat-divider"></div>
-      <div class="mine-stat-item mine-stat-item-coin">
+      <div class="mine-stat-item mine-stat-item-coin" @click="router.push('/console/earnings')">
         <div class="mine-stat-value">{{ coinBalance }}</div>
         <div class="mine-stat-label">创作币余额</div>
       </div>
       <div class="mine-stat-divider"></div>
-      <div class="mine-stat-item">
+      <div class="mine-stat-item" @click="router.push('/console/invite')">
         <div class="mine-stat-value">{{ inviteStats.invitedCount }}</div>
         <div class="mine-stat-label">已邀请</div>
       </div>
@@ -63,7 +64,10 @@
           <span class="mine-grid-label">我的权益</span>
         </div>
         <div class="mine-grid-item" @click="$router.push('/console/invite')">
-          <div class="mine-grid-icon mine-grid-icon--invite"><GiftOutlined /></div>
+          <div class="mine-grid-icon mine-grid-icon--invite">
+            <GiftOutlined />
+            <span class="mine-grid-gift-badge">🎁</span>
+          </div>
           <span class="mine-grid-label">邀请有礼</span>
         </div>
         <div class="mine-grid-item" @click="$router.push('/console/skills')">
@@ -359,6 +363,13 @@ const openOfficialSite = () => {
   font-weight: 600;
   color: #fff;
   border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-user-vip:active {
+  opacity: 0.8;
 }
 
 .mine-user-vip-pro {
@@ -430,7 +441,13 @@ const openOfficialSite = () => {
   flex-direction: column;
   align-items: center;
   gap: 5px;
-  cursor: default;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-stat-item:active {
+  opacity: 0.7;
 }
 
 .mine-stat-value {
@@ -511,7 +528,25 @@ const openOfficialSite = () => {
 .mine-grid-icon--works { background: #FFF5F7; color: #FF2442; }
 .mine-grid-icon--earnings { background: #FFF5F7; color: #FF2442; }
 .mine-grid-icon--benefits { background: #FFF5F7; color: #FF2442; }
-.mine-grid-icon--invite { background: #FFF7F0; color: #fa8c16; }
+.mine-grid-icon--invite { background: #FFF7F0; color: #fa8c16; position: relative; }
+
+.mine-grid-gift-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FF2442;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  box-shadow: 0 2px 5px rgba(255, 36, 66, 0.35);
+  border: 2px solid #fff;
+}
 .mine-grid-icon--skills { background: #F0F9FF; color: #1890ff; }
 .mine-grid-icon--market { background: #F0F9FF; color: #1890ff; }
 .mine-grid-icon--hot { background: #FFF5F7; color: #FF2442; }
@@ -696,7 +731,14 @@ body[data-theme="dark"] .mine-grid-icon {
 }
 
 body[data-theme="dark"] .mine-grid-icon--works { background: rgba(255, 36, 66, 0.12); color: #ff6b81; }
-body[data-theme="dark"] .mine-grid-icon--invite { background: rgba(250, 140, 22, 0.12); color: #ffc53d; }
+body[data-theme="dark"] .mine-grid-icon--invite { background: rgba(250, 140, 22, 0.12); color: #ffc53d; position: relative; }
+
+body[data-theme="dark"] .mine-grid-gift-badge {
+  background: #ff4d6f;
+  color: #fff;
+  border-color: #1f1f1f;
+  box-shadow: 0 2px 5px rgba(255, 77, 111, 0.35);
+}
 body[data-theme="dark"] .mine-grid-icon--skills { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
 body[data-theme="dark"] .mine-grid-icon--market { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
 body[data-theme="dark"] .mine-grid-icon--redeem { background: rgba(82, 196, 26, 0.12); color: #95de64; }

@@ -12,8 +12,6 @@ import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
-import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
-import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.user.modules.skill.service.UserSkillService;
@@ -52,14 +50,12 @@ public class UserSkillServiceImpl implements UserSkillService {
     private static final int ENABLE_STATUS_DISABLED = 0;
     private static final int ENABLE_STATUS_ENABLED = 1;
     private static final int NOT_DELETED = 0;
-    private static final long REWARD_CONFIG_ID = 1L;
     private static final BigDecimal DEFAULT_PRICE_PER_USE = new BigDecimal("2.00");
 
     private final UserSkillMapper userSkillMapper;
     private final UserMembershipMapper userMembershipMapper;
     private final PlanBenefitMapper planBenefitMapper;
     private final SkillMarketMapper skillMarketMapper;
-    private final SkillMonthlyRewardConfigMapper rewardConfigMapper;
     private final BenefitService benefitService;
 
     @Override
@@ -85,10 +81,12 @@ public class UserSkillServiceImpl implements UserSkillService {
         String excerpt2 = request.getExcerpt2() == null ? null : request.getExcerpt2().trim();
 
         validateScope(scope);
-        ensureNameNotExists(userId, skillName, null);
-        ensureSkillQuotaNotExceeded(userId);
+        int sourceType = request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType();
+        ensureNameUniqueGlobally(skillName, null);
+        if (sourceType == SOURCE_TYPE_CUSTOM) {
+            ensureSkillQuotaNotExceeded(userId);
+        }
 
-        Integer sourceType = request.getSourceType() == null ? SOURCE_TYPE_CUSTOM : request.getSourceType();
         if (sourceType == SOURCE_TYPE_LEARNED) {
             try {
                 benefitService.consume(userId, BENEFIT_CODE_LEARN_ANALYZE);
@@ -128,7 +126,7 @@ public class UserSkillServiceImpl implements UserSkillService {
         String excerpt2 = request.getExcerpt2() == null ? null : request.getExcerpt2().trim();
 
         validateScope(scope);
-        ensureNameNotExists(userId, skillName, skill.getId());
+        ensureNameUniqueGlobally(skillName, skill.getId());
 
         skill.setSkillName(skillName);
         skill.setPrompt(prompt);
@@ -191,7 +189,7 @@ public class UserSkillServiceImpl implements UserSkillService {
         userSkillMapper.updateById(skill);
 
         SkillMarket market = skillMarketMapper.selectByBizNoIncludeDeleted(bizNo);
-        BigDecimal price = resolvePricePerUse();
+        BigDecimal price = DEFAULT_PRICE_PER_USE;
         if (market != null) {
             market.setSkillName(skill.getSkillName());
             market.setDescription(skill.getDescription());
@@ -221,9 +219,6 @@ public class UserSkillServiceImpl implements UserSkillService {
             market.setWeeklyUses(0);
             market.setWeeklyEarnings(BigDecimal.ZERO);
             market.setMilestoneBonus(BigDecimal.ZERO);
-            market.setMonthlyUses(0);
-            market.setMonthlyEarnings(BigDecimal.ZERO);
-            market.setLeaderboardReward(BigDecimal.ZERO);
             market.setEnableStatus(ENABLE_STATUS_DISABLED);
             market.setAuditStatus(AUDIT_STATUS_PENDING);
             market.setSourceType(skill.getSourceType());
@@ -234,12 +229,7 @@ public class UserSkillServiceImpl implements UserSkillService {
     }
 
     private BigDecimal resolvePricePerUse() {
-        SkillMonthlyRewardConfig config = rewardConfigMapper.selectById(REWARD_CONFIG_ID);
-        if (config == null || config.getPricePerUse() == null
-                || config.getPricePerUse().compareTo(BigDecimal.ZERO) <= 0) {
-            return DEFAULT_PRICE_PER_USE;
-        }
-        return config.getPricePerUse();
+        return DEFAULT_PRICE_PER_USE;
     }
 
     @Override
@@ -317,19 +307,20 @@ public class UserSkillServiceImpl implements UserSkillService {
     }
 
     /**
-     * 校验同一用户下风格名是否重复。
+     * 校验提示词名称全局唯一：任意用户的「我的提示词」和「学习的提示词」中均不能存在同名。
+     * 系统预设(source_type=3)也存储在同一张表，因此同样受该唯一索引约束。
      *
-     * @param excludeId 排除的风格主键（更新时使用）
+     * @param skillName 要校验的名称
+     * @param excludeId 更新时排除的提示词主键（创建时传 null）
      */
-    private void ensureNameNotExists(Long userId, String skillName, Long excludeId) {
+    private void ensureNameUniqueGlobally(String skillName, Long excludeId) {
         LambdaQueryWrapper<UserSkill> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserSkill::getUserId, userId)
-                .eq(UserSkill::getSkillName, skillName);
+        wrapper.eq(UserSkill::getSkillName, skillName);
         if (excludeId != null) {
             wrapper.ne(UserSkill::getId, excludeId);
         }
-        Long count = userSkillMapper.selectCount(wrapper);
-        if (count != null && count > 0) {
+        UserSkill existing = userSkillMapper.selectOne(wrapper.last("LIMIT 1"));
+        if (existing != null) {
             throw new BusinessException(SkillErrorCode.SKILL_NAME_EXISTS);
         }
     }

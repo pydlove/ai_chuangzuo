@@ -14,6 +14,13 @@ import java.util.List;
 public interface EarningsService {
 
     /**
+     * 生成下一条收益流水号。
+     *
+     * @return 业务唯一编号，前缀 ER
+     */
+    String nextBizNo();
+
+    /**
      * 查询当前用户账户汇总。
      *
      * @param userId 用户ID
@@ -52,6 +59,19 @@ public interface EarningsService {
      */
     void recordEarnings(Long userId, String type, String sourceType, String sourceId,
                         String title, String description, BigDecimal amount, String settlementMonth);
+
+    /**
+     * 记录创作币抵扣支出（用于订阅套餐抵扣）。
+     *
+     * @param userId      用户ID
+     * @param sourceId    来源业务ID（订单ID）
+     * @param planKey     套餐 key
+     * @param planName    套餐显示名
+     * @param cycle       周期 month/quarter/year
+     * @param coinAmount  抵扣创作币数量（必须为正）
+     */
+    void recordCoinDiscountEarnings(Long userId, String sourceId, String planKey, String planName,
+                                    String cycle, BigDecimal coinAmount);
 
     /**
      * 记录邀请奖励收益（已结算）。

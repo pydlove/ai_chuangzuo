@@ -15,11 +15,11 @@
     <div class="benefits-plan-card">
       <div class="benefits-plan-main">
         <div class="benefits-plan-label">当前套餐</div>
-        <div class="benefits-plan-name">{{ planName }}</div>
+        <div class="benefits-plan-name" :class="planColorClass">{{ planName }}</div>
         <div v-if="expiresAt" class="benefits-plan-expiry">有效期至 {{ expiresAt }}</div>
         <div v-else class="benefits-plan-expiry">未开通会员</div>
       </div>
-      <div class="benefits-plan-badge">
+      <div class="benefits-plan-badge" :class="planColorClass">
         <CrownOutlined />
       </div>
     </div>
@@ -40,7 +40,7 @@
           <div class="benefits-item-body">
             <div class="benefits-item-header">
               <span class="benefits-item-name">{{ item.name }}</span>
-              <span v-if="!item.included && item.requiredPlanName" class="benefits-item-tag required">
+              <span v-if="!item.included && item.requiredPlanName" :class="['benefits-item-tag', 'required', item.requiredPlan]">
                 需{{ item.requiredPlanName }}
               </span>
               <span v-else-if="item.displayType === 'quota'" class="benefits-item-tag quota">
@@ -150,8 +150,6 @@ const iconMap = {
   seo_keywords: TagsOutlined,
   template_access: LayoutOutlined,
   sticker_quota: PictureOutlined,
-  batch_generate: DatabaseOutlined,
-  batch_export: DatabaseOutlined,
   history_days: HistoryOutlined,
   queue_priority: RocketOutlined,
   queue_max_tasks: UnorderedListOutlined,
@@ -283,6 +281,16 @@ const displayBenefits = computed(() => {
   })
 })
 
+const planColorClass = computed(() => {
+  const key = planKey.value || 'free'
+  return {
+    'plan-free': key === 'free',
+    'plan-basic': key === 'basic',
+    'plan-pro': key === 'pro',
+    'plan-flagship': key === 'flagship'
+  }
+})
+
 onMounted(() => {
   loadBenefits()
   catalogLoading.value = true
@@ -385,6 +393,26 @@ onMounted(() => {
   color: #1a1a1a;
 }
 
+.benefits-plan-name.plan-basic {
+  color: #8c6b00;
+}
+
+.benefits-plan-name.plan-pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fb8301;
+}
+
+.benefits-plan-name.plan-flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #db3708;
+}
+
 .benefits-plan-expiry {
   font-size: 13px;
   color: #8c8c8c;
@@ -394,14 +422,33 @@ onMounted(() => {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #ffd666 0%, #fa8c16 100%);
-  color: #fff;
+  background: #f5f5f5;
+  color: #8c8c8c;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
-  box-shadow: 0 4px 12px rgba(250, 140, 22, 0.2);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
+}
+
+.benefits-plan-badge.plan-basic {
+  background: linear-gradient(135deg, #fffbe6 0%, #fff3a3 100%);
+  color: #8c6b00;
+  box-shadow: 0 4px 12px rgba(140, 107, 0, 0.12);
+}
+
+.benefits-plan-badge.plan-pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(251, 131, 1, 0.22);
+}
+
+.benefits-plan-badge.plan-flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 12px rgba(219, 55, 8, 0.22);
 }
 
 .benefits-section {
@@ -443,7 +490,6 @@ onMounted(() => {
 }
 
 .benefits-item.disabled {
-  opacity: 0.7;
   background: #fafafa;
 }
 
@@ -494,6 +540,8 @@ onMounted(() => {
 }
 
 .benefits-item-tag {
+  position: relative;
+  z-index: 1;
   flex-shrink: 0;
   padding: 3px 10px;
   border-radius: 999px;
@@ -502,8 +550,8 @@ onMounted(() => {
 }
 
 .benefits-item-tag.enabled {
-  background: #f6ffed;
-  color: #52c41a;
+  background: #52c41a;
+  color: #fff;
 }
 
 .benefits-item-tag.required {
@@ -511,14 +559,29 @@ onMounted(() => {
   color: #ff4d4f;
 }
 
+.benefits-item-tag.required.basic {
+  background: linear-gradient(135deg, #fffbe6 0%, #fff3a3 100%);
+  color: #8c6b00;
+}
+
+.benefits-item-tag.required.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+}
+
+.benefits-item-tag.required.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+}
+
 .benefits-item-tag.tier {
-  background: #e6f7ff;
-  color: #1890ff;
+  background: #52c41a;
+  color: #fff;
 }
 
 .benefits-item-tag.quota {
-  background: #fff7e6;
-  color: #fa8c16;
+  background: #52c41a;
+  color: #fff;
 }
 
 .benefits-quota {
@@ -619,13 +682,54 @@ body[data-theme="dark"] .benefits-plan-label {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .benefits-plan-name.plan-basic {
+  color: #ffd666;
+}
+
+body[data-theme="dark"] .benefits-plan-name.plan-pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #fb8301;
+}
+
+body[data-theme="dark"] .benefits-plan-name.plan-flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: #db3708;
+}
+
+body[data-theme="dark"] .benefits-plan-badge {
+  background: #2a2a2a;
+  color: #888;
+  border-color: transparent;
+}
+
+body[data-theme="dark"] .benefits-plan-badge.plan-basic {
+  background: linear-gradient(135deg, #5c4a10 0%, #8c6b00 100%);
+  color: #fffbe6;
+}
+
+body[data-theme="dark"] .benefits-plan-badge.plan-pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+}
+
+body[data-theme="dark"] .benefits-plan-badge.plan-flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+  border: none;
+}
+
 body[data-theme="dark"] .benefits-item:hover {
   border-color: #52222b;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 body[data-theme="dark"] .benefits-item.disabled {
-  opacity: 0.6;
   background: #1a1a1a;
 }
 
@@ -651,6 +755,29 @@ body[data-theme="dark"] .benefits-item-icon {
 body[data-theme="dark"] .benefits-item-tag.required {
   background: #2a1a1a;
   color: #ff7875;
+}
+
+body[data-theme="dark"] .benefits-item-tag.required.basic {
+  background: linear-gradient(135deg, #5c4a10 0%, #8c6b00 100%);
+  color: #fffbe6;
+}
+
+body[data-theme="dark"] .benefits-item-tag.required.pro {
+  background: linear-gradient(30deg, #dfb738 0%, #fb8301 100%);
+  color: #fff;
+}
+
+body[data-theme="dark"] .benefits-item-tag.required.flagship {
+  background: linear-gradient(135deg, #a05013 0%, #db3708 100%);
+  color: #fff;
+  border: none;
+}
+
+body[data-theme="dark"] .benefits-item-tag.enabled,
+body[data-theme="dark"] .benefits-item-tag.tier,
+body[data-theme="dark"] .benefits-item-tag.quota {
+  background: #52c41a;
+  color: #fff;
 }
 
 body[data-theme="dark"] .benefits-quota-used,

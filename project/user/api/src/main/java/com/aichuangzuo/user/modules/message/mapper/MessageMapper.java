@@ -26,6 +26,15 @@ public interface MessageMapper extends BaseMapper<Message> {
     List<MessageVO> selectVisibleMessages(@Param("userId") Long userId, @Param("registerAt") LocalDateTime registerAt);
 
     /**
+     * 统计用户可见消息中的未读条数，供角标轮询使用。
+     *
+     * @param userId     当前用户ID
+     * @param registerAt 用户注册时间
+     * @return 未读条数
+     */
+    Long countUnread(@Param("userId") Long userId, @Param("registerAt") LocalDateTime registerAt);
+
+    /**
      * 校验某消息对指定用户是否可见。
      *
      * @param messageId  消息ID

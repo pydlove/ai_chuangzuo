@@ -45,7 +45,7 @@
             v-for="item in list"
             :key="`${activePlatform}-${item.rank}`"
             class="hot-search-item"
-            @click="item.url ? openUrl(item.url) : copyTitle(item.title)"
+            @click="copyTitle(item.title)"
           >
             <span :class="['hot-search-rank', `rank-${item.rank}`]">{{ item.rank }}</span>
             <span class="hot-search-text" :title="item.title">{{ item.title }}</span>
@@ -101,10 +101,6 @@ const copyTitle = (title) => {
   } else {
     message.info(title)
   }
-}
-
-const openUrl = (url) => {
-  if (url) window.open(url, '_blank')
 }
 
 const refresh = async () => {

@@ -6,6 +6,7 @@ import com.aichuangzuo.admin.modules.message.mapper.MessageAggregateMapper;
 import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
 import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketQuotaRefundClient;
 import com.aichuangzuo.admin.modules.skill.review.dto.SkillReviewRow;
 import com.aichuangzuo.admin.modules.skill.review.dto.request.SkillReviewPageRequest;
 import com.aichuangzuo.admin.modules.skill.review.entity.AuditStatus;
@@ -47,11 +48,13 @@ public class SkillReviewServiceImpl implements SkillReviewService {
     private static final String SUB_TYPE_APPROVED = "approved";
     private static final String SUB_TYPE_REJECTED = "rejected";
     private static final int MSG_SCOPE_PERSONAL = 2;
+    private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
 
     private final SkillReviewMapper skillReviewMapper;
     private final SkillReviewAggregateMapper aggregateMapper;
     private final SkillMarketMapper skillMarketMapper;
     private final MessageAggregateMapper messageAggregateMapper;
+    private final SkillMarketQuotaRefundClient quotaRefundClient;
 
     @Override
     public IPage<SkillReviewVO> page(SkillReviewPageRequest request) {
@@ -145,6 +148,7 @@ public class SkillReviewServiceImpl implements SkillReviewService {
         skill.setRejectReason(reason.trim());
         skillReviewMapper.updateById(skill);
         markMarketRejected(skill.getBizNo());
+        quotaRefundClient.refundPublishQuota(skill.getUserId());
         pushSkillReviewMessage(skill, false, reason.trim());
         log.info("风格审核打回 bizNo={}, adminId={}, reason={}", bizNo, adminId, reason.trim());
     }
@@ -199,6 +203,9 @@ public class SkillReviewServiceImpl implements SkillReviewService {
             market.setEnableStatus(ENABLE_STATUS_ENABLED);
             market.setAuditStatus(AUDIT_STATUS_APPROVED);
             market.setSourceType(skill.getSourceType());
+            if (market.getApprovedAt() == null) {
+                market.setApprovedAt(LocalDateTime.now());
+            }
             if (adminId != null) {
                 market.setUpdatedBy(adminId);
             }
@@ -222,6 +229,7 @@ public class SkillReviewServiceImpl implements SkillReviewService {
             market.setAuditStatus(AUDIT_STATUS_APPROVED);
             market.setSourceType(skill.getSourceType());
             market.setIsDeleted(0);
+            market.setApprovedAt(LocalDateTime.now());
             if (adminId != null) {
                 market.setCreatedBy(adminId);
                 market.setUpdatedBy(adminId);

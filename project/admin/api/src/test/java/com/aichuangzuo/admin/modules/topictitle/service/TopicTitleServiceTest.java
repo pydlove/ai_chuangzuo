@@ -152,7 +152,7 @@ class TopicTitleServiceTest {
     @Test
     void submitTask_noActiveModel_throws() {
         // 把 active=1 的配置清掉
-        jdbcTemplate.update("UPDATE t_model_config SET is_active = 0");
+        jdbcTemplate.update("UPDATE a_model_config SET is_active = 0");
         assertThrows(RuntimeException.class, () -> topicTitleService.submitTask(2, "职场"));
     }
 

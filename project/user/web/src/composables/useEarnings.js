@@ -30,6 +30,8 @@ function normalizeRecord(raw) {
     sourceType: raw.sourceType || '',
     sourceId: raw.sourceId || '',
     sourceLabel: raw.sourceLabel || '',
+    fromSkillMarket: Boolean(raw.fromSkillMarket),
+    bizNo: raw.bizNo || '',
     planKey: raw.planKey || '',
     planName: raw.planName || '',
     cycle: raw.cycle || '',

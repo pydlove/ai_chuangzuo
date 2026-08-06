@@ -24,6 +24,8 @@ public class EarningsRecord {
 
     private String sourceType;
 
+    private String bizNo;
+
     private String sourceId;
 
     private String planKey;

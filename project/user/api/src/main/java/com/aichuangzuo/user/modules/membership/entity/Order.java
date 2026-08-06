@@ -31,8 +31,17 @@ public class Order {
     /** 周期：month/quarter/year。 */
     private String cycle;
 
-    /** 订单金额。 */
+    /** 订单金额（现金实付）。 */
     private BigDecimal amount;
+
+    /** 创作币抵扣数量。 */
+    private Long coinAmount;
+
+    /** 创作币抵扣金额（元）。 */
+    private BigDecimal coinDiscount;
+
+    /** 订单名义总金额（现金+创作币抵扣）。 */
+    private BigDecimal totalAmount;
 
     /** 状态：0-待支付，1-已支付。 */
     private Integer status;

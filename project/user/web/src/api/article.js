@@ -45,11 +45,12 @@ export function deleteArticle(bizNo) {
 
 /**
  * AI 标题优化：首次点击调用大模型生成，之后返回首次缓存结果。
+ * 大模型首次生成可能超过默认 10s，单独放宽到 70s。
  * @param {string} bizNo
  * @returns {Promise<{titles:Object<string,string[]>, cached:boolean}>}
  */
 export function optimizeTitles(bizNo) {
-  return api.post(`/articles/${bizNo}/title-optimize`).then((res) => res.data || { titles: {}, cached: true })
+  return api.post(`/articles/${bizNo}/title-optimize`, null, { timeout: 70000 }).then((res) => res.data || { titles: {}, cached: true })
 }
 
 /**

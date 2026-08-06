@@ -16,6 +16,9 @@ public class SubscribeResultVO {
     /** 开通等级。 */
     private String level;
 
+    /** 订阅周期。 */
+    private String cycle;
+
     /** 增加天数。 */
     private int days;
 
@@ -27,4 +30,13 @@ public class SubscribeResultVO {
 
     /** 奖励金额（创作币）。 */
     private BigDecimal rewardAmount;
+
+    /** 创作币抵扣数量。 */
+    private Long coinAmount;
+
+    /** 创作币抵扣金额（元）。 */
+    private BigDecimal coinDiscountYuan;
+
+    /** 现金实付金额（元）。 */
+    private BigDecimal cashAmount;
 }

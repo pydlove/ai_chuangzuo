@@ -113,6 +113,7 @@ import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { ThunderboltOutlined, CopyOutlined } from '@ant-design/icons-vue'
 import { listTopicTitles, submitTopicTitleTask, getTopicTitleTask, deleteTopicTitle } from '@/api/topicTitle.js'
+import { copyToClipboard } from '@/utils/clipboard.js'
 import { useAsyncTasksStore } from '@/stores/asyncTasks.js'
 import { useTaskPolling, notifyTaskResult } from '@/composables/useTaskPolling.js'
 
@@ -261,7 +262,7 @@ const onDelete = async (record) => {
 const copyText = async (text, label) => {
   if (!text) return
   try {
-    await navigator.clipboard.writeText(text)
+    await copyToClipboard(text)
     message.success(`${label}已复制`)
   } catch (e) {
     message.error('复制失败')

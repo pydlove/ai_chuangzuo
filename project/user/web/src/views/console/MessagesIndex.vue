@@ -107,12 +107,11 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message as antMessage } from 'ant-design-vue'
-import { getMessages, markMessageRead, markAllMessagesRead } from '@/api/message'
+import { useMessages } from '@/composables/useMessages'
 
 const router = useRouter()
 
-const messages = ref([])
-const loading = ref(false)
+const { messages, loading, unreadCount, unreadCountByType, loadMessages, markRead, markAllRead: markAllReadShared } = useMessages()
 const activeTab = ref('all')
 const markingAllRead = ref(false)
 const detailVisible = ref(false)
@@ -124,8 +123,6 @@ const tabs = computed(() => [
   { type: 'generation', label: '创作', count: unreadCountByType('generation') },
   { type: 'membership', label: '会员', count: unreadCountByType('membership') }
 ])
-
-const unreadCount = computed(() => messages.value.filter(m => !m.read).length)
 
 const filteredMessages = computed(() => {
   if (activeTab.value === 'all') return messages.value
@@ -142,41 +139,18 @@ const emptyTitle = computed(() => {
   return map[activeTab.value] || '暂无消息'
 })
 
-function unreadCountByType(type) {
-  if (type === 'all') return unreadCount.value
-  return messages.value.filter(m => m.type === type && !m.read).length
-}
-
 onMounted(loadMessages)
-
-async function loadMessages() {
-  loading.value = true
-  try {
-    const res = await getMessages()
-    const list = (res.data || []).map((n) => {
-      if (n.type === 'skill') n.type = 'style'
-      return n
-    })
-    messages.value = list.sort((a, b) => {
-      if (a.read !== b.read) return a.read ? 1 : -1
-      return new Date(b.createdAt) - new Date(a.createdAt)
-    })
-  } catch (e) {
-    messages.value = []
-  } finally {
-    loading.value = false
-  }
-}
 
 async function markAllRead() {
   if (markingAllRead.value) return
   markingAllRead.value = true
   try {
-    await markAllMessagesRead()
-    messages.value.forEach(m => { m.read = true })
-    antMessage.success('已全部标记为已读')
-  } catch (e) {
-    antMessage.error('操作失败，请重试')
+    const ok = await markAllReadShared()
+    if (ok) {
+      antMessage.success('已全部标记为已读')
+    } else {
+      antMessage.error('操作失败，请重试')
+    }
   } finally {
     markingAllRead.value = false
   }
@@ -184,12 +158,7 @@ async function markAllRead() {
 
 async function handleClick(msg) {
   if (!msg.read) {
-    try {
-      await markMessageRead(msg.id)
-      msg.read = true
-    } catch {
-      // 即使失败也允许继续交互
-    }
+    await markRead(msg.id)
   }
 
   if (msg.link) {

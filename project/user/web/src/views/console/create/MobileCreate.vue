@@ -153,9 +153,8 @@ const {
 } = useCreateForm()
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates } = useExportTemplates()
-const { benefits, loadBenefits } = useBenefits()
+const { benefits, planKey, loadBenefits } = useBenefits()
 
-const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
@@ -229,24 +228,24 @@ const handleSaveDraft = async () => {
 }
 
 const handleGenerate = async () => {
+  if (planKey.value === 'free') {
+    Modal.confirm({
+      title: '需要订阅套餐',
+      content: '订阅套餐后即可使用 AI 生成文章，是否去订阅？',
+      okText: '去订阅',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => window.open('/pricing', '_blank')
+    })
+    return
+  }
   if (!customTitle.value.trim()) {
     message.warning('请输入文章标题')
     return
   }
   if (!customRequirement.value.trim()) {
     message.warning('请补充你的核心观点和要求')
-    return
-  }
-  if (quotaTotal.value <= 0) {
-    Modal.confirm({
-      title: '需要开通会员',
-      content: '开通会员后才能使用 AI 生成文章，是否去开通？',
-      okText: '去开通',
-      cancelText: '取消',
-      centered: true,
-      wrapClassName: 'membership-confirm-modal',
-      onOk: () => window.open('/pricing', '_blank')
-    })
     return
   }
   if (quotaRemaining.value <= 0) {

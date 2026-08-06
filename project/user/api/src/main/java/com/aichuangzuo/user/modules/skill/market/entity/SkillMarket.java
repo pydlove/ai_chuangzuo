@@ -45,12 +45,6 @@ public class SkillMarket {
 
     private BigDecimal milestoneBonus;
 
-    private Integer monthlyUses;
-
-    private BigDecimal monthlyEarnings;
-
-    private BigDecimal leaderboardReward;
-
     private LocalDateTime lastSettlementAt;
 
     private Integer enableStatus;
@@ -58,6 +52,8 @@ public class SkillMarket {
     private Integer auditStatus;
 
     private Integer sourceType;
+
+    private LocalDateTime approvedAt;
 
     @TableLogic
     private Integer isDeleted;

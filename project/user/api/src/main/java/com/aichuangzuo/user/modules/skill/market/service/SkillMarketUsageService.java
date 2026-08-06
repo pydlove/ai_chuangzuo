@@ -3,8 +3,8 @@ package com.aichuangzuo.user.modules.skill.market.service;
 import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
 import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
-import com.aichuangzuo.user.modules.skill.market.config.entity.SkillMonthlyRewardConfig;
-import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
+import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -32,12 +32,13 @@ public class SkillMarketUsageService {
 
     private final SkillMarketMapper skillMarketMapper;
     private final EarningsRecordMapper earningsRecordMapper;
-    private final SkillMonthlyRewardConfigMapper configMapper;
+    private final EarningsService earningsService;
+    private final CoinRecordService coinRecordService;
 
     /**
      * 记录一次市场提示词被使用（生成文章成功后调用）。
      *
-     * <p>增加累计/月度使用次数与收益，并写入未结算的 USAGE 收益记录。
+     * <p>增加累计使用次数与收益，并写入未结算的 USAGE 收益记录。
      *
      * @param marketSkillBizNo 市场提示词业务编号
      * @param consumerUserId   使用者用户ID（用于日志，不参与分成计算）
@@ -58,15 +59,20 @@ public class SkillMarketUsageService {
             return;
         }
 
-        BigDecimal price = resolvePricePerUse();
+        BigDecimal price = DEFAULT_PRICE_PER_USE;
         String month = LocalDateTime.now().format(MONTH_FMT);
 
         skillMarketMapper.update(null, new LambdaUpdateWrapper<SkillMarket>()
                 .eq(SkillMarket::getId, skill.getId())
                 .setSql("total_uses = total_uses + 1")
-                .setSql("monthly_uses = monthly_uses + 1")
-                .setSql("monthly_earnings = monthly_earnings + " + price.toPlainString())
-                .set(SkillMarket::getUpdatedAt, LocalDateTime.now()));
+                .setSql("weekly_uses = weekly_uses + 1")
+                .setSql("weekly_earnings = weekly_earnings + " + price.toPlainString())
+                .setSql("updated_at = NOW(3)"));
+
+        String description = "用户 " + consumerUserId + " 使用「" + skill.getSkillName() + "」生成文章";
+
+        coinRecordService.grant(skill.getPublisherUserId(), "skill_market_usage", price,
+                marketSkillBizNo, "提示词使用收益：" + skill.getSkillName());
 
         EarningsRecord record = new EarningsRecord();
         record.setUserId(skill.getPublisherUserId());
@@ -74,22 +80,14 @@ public class SkillMarketUsageService {
         record.setSourceType(SOURCE_TYPE_SKILL_MARKET);
         record.setSourceId(marketSkillBizNo);
         record.setTitle("「" + skill.getSkillName() + "」被使用");
-        record.setDescription("用户 " + consumerUserId + " 使用「" + skill.getSkillName() + "」生成文章");
+        record.setDescription(description);
         record.setAmount(price);
         record.setStatus(0);
         record.setSettlementMonth(month);
+        record.setBizNo(earningsService.nextBizNo());
         earningsRecordMapper.insert(record);
 
         log.info("记录提示词市场使用 bizNo={} skillName={} consumer={} publisher={} price={} month={}",
                 marketSkillBizNo, skill.getSkillName(), consumerUserId, skill.getPublisherUserId(), price, month);
-    }
-
-    private BigDecimal resolvePricePerUse() {
-        SkillMonthlyRewardConfig config = configMapper.selectById(1L);
-        if (config == null || config.getPricePerUse() == null
-                || config.getPricePerUse().compareTo(BigDecimal.ZERO) <= 0) {
-            return DEFAULT_PRICE_PER_USE;
-        }
-        return config.getPricePerUse();
     }
 }

@@ -1,6 +1,7 @@
 com/aichuangzuo/user/modules/topic/service/TopicTitleServiceTest.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImplTest.class
 com/aichuangzuo/user/modules/benefit/service/PlanCatalogServiceImplTest.class
+com/aichuangzuo/user/modules/skill/market/service/SkillMarketUsageServiceTest.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.class
 com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/skill/market/service/SkillUsageRecordServiceTest.class

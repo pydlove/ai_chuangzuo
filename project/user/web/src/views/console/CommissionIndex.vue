@@ -1,29 +1,47 @@
 <template>
   <div class="commission-page">
-    <header class="commission-header">
-      <h1 class="commission-header__title">约稿中心</h1>
-      <p class="commission-header__subtitle">挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
-    </header>
-
-    <section class="commission-stats">
-      <div class="stat-card">
-        <strong>{{ activeTaskCount }}</strong>
-        <span>进行中</span>
+    <!-- PC 端 hero -->
+    <section v-if="!isMobile" class="commission-hero">
+      <div class="hero-copy">
+        <span class="eyebrow">OFFICIAL COMMISSION</span>
+        <h1>约稿中心</h1>
+        <p>挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
       </div>
-      <div class="stat-card">
-        <strong>{{ mySubmissionCount }}</strong>
-        <span>我的投稿</span>
-      </div>
-      <div class="stat-card">
-        <strong>{{ earnedCoinTotal }}</strong>
-        <span>已获得</span>
+      <div class="hero-orbit" aria-hidden="true"><span></span><span></span></div>
+      <div class="hero-stats">
+        <div><strong>{{ activeTaskCount }}</strong><span>进行中的任务</span></div>
+        <div><strong>{{ mySubmissionCount }}</strong><span>我的投稿</span></div>
+        <div><strong>{{ earnedCoinTotal }}</strong><span>已获得创作币</span></div>
       </div>
     </section>
+
+    <!-- 手机端头部、统计 -->
+    <template v-if="isMobile">
+      <header class="commission-header">
+        <h1 class="commission-header__title">约稿中心</h1>
+        <p class="commission-header__subtitle">挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
+      </header>
+
+      <section class="commission-stats">
+        <div class="stat-card">
+          <strong>{{ activeTaskCount }}</strong>
+          <span>进行中</span>
+        </div>
+        <div class="stat-card">
+          <strong>{{ mySubmissionCount }}</strong>
+          <span>我的投稿</span>
+        </div>
+        <div class="stat-card">
+          <strong>{{ earnedCoinTotal }}</strong>
+          <span>已获得</span>
+        </div>
+      </section>
+    </template>
 
     <section class="commission-rules">
       <div class="commission-rules__header" @click="rulesExpanded = !rulesExpanded">
         <h3>约稿规则</h3>
-        <span class="commission-rules__toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
+        <span v-if="isMobile" class="commission-rules__toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
       </div>
       <ul v-show="rulesExpanded">
         <li>只能从爱创作中已生成完成的文章中选择投稿。</li>
@@ -99,12 +117,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
+import { useIsMobile } from '@/composables/useMobile.js'
 
 const router = useRouter()
+const isMobile = useIsMobile()
 const { tasks, mySubmissions, loading, page, pageSize, total, loadTasks, loadMySubmissions } = useCommission()
 const tab = ref('all')
 const status = ref(null)
-const rulesExpanded = ref(false)
+const rulesExpanded = ref(!isMobile.value)
 const filters = [
   { label: '全部', value: null },
   { label: '投递中', value: 0 },
@@ -137,6 +157,9 @@ watch([tab, status], () => {
   refresh()
 })
 watch([page, pageSize], refresh)
+watch(isMobile, (mobile) => {
+  rulesExpanded.value = !mobile
+})
 
 function taskStatus(value) {
   return ['投递中', '评选中', '已完成'][value] || '未知状态'
@@ -469,6 +492,30 @@ function goDetail(id) {
   margin-top: 16px;
   padding: 12px 0;
 }
+.pagination-bar :deep(.ant-pagination-item-active) {
+  background: var(--color-primary, #ff2442);
+  border-color: var(--color-primary, #ff2442);
+}
+.pagination-bar :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+.pagination-bar :deep(.ant-pagination-item:hover),
+.pagination-bar :deep(.ant-pagination-prev:hover .ant-pagination-item-link),
+.pagination-bar :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary, #ff2442);
+  color: var(--color-primary, #ff2442);
+}
+.pagination-bar :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary, #ff2442);
+}
+.pagination-bar :deep(.ant-pagination-options-size-changer .ant-select-selector:hover),
+.pagination-bar :deep(.ant-pagination-options-size-changer .ant-select-focused .ant-select-selector) {
+  border-color: var(--color-primary, #ff2442);
+}
+.pagination-bar :deep(.ant-select-item-option-selected) {
+  background-color: rgba(255, 36, 66, 0.12);
+  color: var(--color-primary, #ff2442);
+}
 
 /* 暗色主题 */
 body[data-theme="dark"] .commission-page { background: #141414; }
@@ -497,45 +544,151 @@ body[data-theme="dark"] .task-card-bottom { border-top-color: #303030; }
 body[data-theme="dark"] .status-2 { color: #a6a6a6; background: #262626; }
 body[data-theme="dark"] .submission-2 { color: #a6a6a6; background: #262626; }
 body[data-theme="dark"] .submission-3 { color: #8c8c8c; background: #1a1a1a; }
+body[data-theme="dark"] .pagination-bar :deep(.ant-pagination-item-active a) { color: #fff; }
+body[data-theme="dark"] .pagination-bar :deep(.ant-select-item-option-selected) { background-color: rgba(255, 36, 66, 0.22); }
 
 /* PC 端适配 */
 @media (min-width: 769px) {
   .commission-page {
-    padding: 24px 32px;
+    padding: 28px 40px;
   }
-  .commission-header__title {
+
+  /* 渐变 hero + 横向统计 */
+  .commission-hero {
+    position: relative;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    border-radius: 24px;
+    background: linear-gradient(135deg, #ffe7ec 0%, #f3e8ff 60%, #fde7f3 100%);
+    display: grid;
+    grid-template-columns: 1.4fr auto;
+    grid-template-areas: 'copy stats';
+    gap: 24px;
+    overflow: hidden;
+    box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
+  }
+  .hero-copy { grid-area: copy; position: relative; z-index: 2; }
+  .eyebrow {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--color-primary, #ff2442);
+    background: rgba(255, 255, 255, 0.6);
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .commission-hero h1 {
+    margin: 12px 0 8px;
     font-size: 28px;
+    font-weight: 700;
+    color: #1f1f1f;
   }
-  .commission-stats {
-    gap: 14px;
-    margin-bottom: 20px;
+  .commission-hero p {
+    margin: 0;
+    color: #595959;
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 520px;
   }
-  .stat-card {
-    padding: 20px 16px;
+  .hero-orbit {
+    position: absolute;
+    top: -40px;
+    right: 38%;
+    width: 220px;
+    height: 220px;
+    pointer-events: none;
+    opacity: 0.6;
   }
-  .stat-card strong {
-    font-size: 26px;
+  .hero-orbit span {
+    position: absolute;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 36, 66, 0.25);
   }
+  .hero-orbit span:nth-child(1) {
+    width: 220px;
+    height: 220px;
+    top: 0;
+    left: 0;
+    border-style: dashed;
+    animation: orbit-spin 22s linear infinite;
+  }
+  .hero-orbit span:nth-child(2) {
+    width: 130px;
+    height: 130px;
+    top: 45px;
+    left: 45px;
+    background: radial-gradient(circle at 30% 30%, rgba(255, 36, 66, 0.18), transparent 70%);
+  }
+  @keyframes orbit-spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+  .hero-stats {
+    grid-area: stats;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+    gap: 12px;
+    align-self: center;
+    position: relative;
+    z-index: 2;
+  }
+  .hero-stats > div {
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: blur(6px);
+    border-radius: 16px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 120px;
+  }
+  .hero-stats strong {
+    font-size: 24px;
+    color: var(--color-primary, #ff2442);
+    font-weight: 700;
+  }
+  .hero-stats span {
+    font-size: 12px;
+    color: #595959;
+  }
+
+  /* 规则区：PC 上默认展开、无折叠按钮 */
   .commission-rules {
     padding: 20px 24px;
     margin-bottom: 20px;
+  }
+  .commission-rules__header {
+    cursor: default;
+  }
+  .commission-rules__toggle {
+    display: none;
   }
   .commission-rules ul {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px 28px;
+    margin-top: 12px;
   }
+
+  /* Tab：非吸顶胶囊 */
   .commission-tabs {
     position: static;
     display: inline-flex;
     width: auto;
     margin-bottom: 16px;
   }
+  .commission-tabs button {
+    flex: 0 0 auto;
+    padding: 8px 22px;
+  }
+
   .commission-filter {
     flex-wrap: wrap;
     overflow-x: visible;
     margin-bottom: 16px;
   }
+
   .task-list {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -557,6 +710,32 @@ body[data-theme="dark"] .submission-3 { color: #8c8c8c; background: #1a1a1a; }
   .pagination-bar {
     justify-content: flex-end;
     margin-top: 20px;
+  }
+
+  /* PC 暗色 */
+  body[data-theme="dark"] .commission-hero {
+    background: linear-gradient(135deg, #3a1f2a 0%, #2a1f3d 60%, #2a1f30 100%);
+  }
+  body[data-theme="dark"] .eyebrow {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ff6b81;
+  }
+  body[data-theme="dark"] .commission-hero h1 { color: #f5f5f5; }
+  body[data-theme="dark"] .commission-hero p { color: #bfbfbf; }
+  body[data-theme="dark"] .hero-orbit span { border-color: rgba(255, 36, 66, 0.35); }
+  body[data-theme="dark"] .hero-orbit span:nth-child(2) {
+    background: radial-gradient(circle at 30% 30%, rgba(255, 36, 66, 0.22), transparent 70%);
+  }
+  body[data-theme="dark"] .hero-stats > div {
+    background: rgba(31, 31, 31, 0.75);
+  }
+  body[data-theme="dark"] .hero-stats span { color: #a6a6a6; }
+}
+
+/* 大屏三列 */
+@media (min-width: 1280px) {
+  .task-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 </style>

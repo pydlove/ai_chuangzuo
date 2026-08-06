@@ -39,7 +39,7 @@ public class DraftStep extends AbstractAiStep {
             ctx.setPublishDescription(descNode.asText().trim());
         }
         JsonNode tagsNode = root.path("tags");
-        if (tagsNode.isArray()) {
+        if (tagsNode.isArray() && isSeoKeywordsEnabled(ctx)) {
             List<String> tags = new ArrayList<>();
             for (JsonNode n : tagsNode) {
                 if (n.isTextual()) {
@@ -49,5 +49,11 @@ public class DraftStep extends AbstractAiStep {
             }
             ctx.setPublishTags(tags);
         }
+    }
+
+    private static boolean isSeoKeywordsEnabled(GenerationContext ctx) {
+        Object value = ctx.getInput() == null ? null : ctx.getInput().get("seoKeywords");
+        if (value instanceof Boolean b) return b;
+        return "true".equalsIgnoreCase(String.valueOf(value));
     }
 }

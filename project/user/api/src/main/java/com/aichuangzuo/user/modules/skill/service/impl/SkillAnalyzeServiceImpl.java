@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
 import com.aichuangzuo.user.modules.skill.analyze.service.SkillAnalyzeDailyLimiter;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
@@ -33,6 +35,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
     private static final int EXCERPT1_MAX = 120;
     private static final int EXCERPT2_MAX = 80;
     private static final int DESCRIPTION_MAX = 100;
+    private static final String BENEFIT_CODE_SKILL_LEARN_ANALYZE = "skill_learn_analyze";
     private static final List<String> REQUIRED_MARKERS = List.of("【语气】", "【词汇】", "【句式】", "【结构】");
 
     private static final String SYSTEM_MESSAGE =
@@ -73,6 +76,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
     private final SkillAnalyzeAiService aiService;
     private final SkillAnalyzeConfigService skillAnalyzeConfigService;
     private final SkillAnalyzeDailyLimiter skillAnalyzeDailyLimiter;
+    private final BenefitService benefitService;
     private final ObjectMapper objectMapper;
     private final ObjectMapper lenientObjectMapper = createLenientObjectMapper();
 
@@ -84,6 +88,11 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
 
     @Override
     public SkillAnalyzeVO analyze(Long userId, String text) {
+        BenefitCheckVO benefitCheck = benefitService.check(userId, BENEFIT_CODE_SKILL_LEARN_ANALYZE);
+        if (!Boolean.TRUE.equals(benefitCheck.getAllowed())) {
+            throw new BusinessException(SkillErrorCode.SKILL_LEARN_QUOTA_EXCEEDED);
+        }
+
         int dailyLimit = skillAnalyzeConfigService.getDailyAttemptLimit();
         skillAnalyzeDailyLimiter.checkAndIncrement(userId, dailyLimit);
 

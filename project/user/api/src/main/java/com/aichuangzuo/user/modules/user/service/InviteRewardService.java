@@ -11,7 +11,7 @@ import com.aichuangzuo.user.modules.user.vo.InviteStatsVO;
 public interface InviteRewardService {
 
     /**
-     * 新用户通过邀请码注册后，给被邀请人发注册奖励，并给邀请人累计阶梯会员天数。
+     * 新用户通过邀请码注册后，给被邀请人发注册奖励，并给邀请人累计阶梯创作币奖励。
      *
      * <p>该方法应在新用户事务内调用，失败会随注册事务一起回滚。
      *
@@ -24,7 +24,7 @@ public interface InviteRewardService {
      * 已注册用户补绑邀请人后，发放奖励。
      *
      * <p>与 {@link #rewardAfterRegister} 的区别：调用方已经插入了邀请关系，
-     * 本方法只负责发 5 币和计算邀请人会员天数。
+     * 本方法只负责发 50 币和计算邀请人创作币奖励。
      *
      * @param invitee  被邀请人（当前登录用户）
      * @param inviter  邀请人

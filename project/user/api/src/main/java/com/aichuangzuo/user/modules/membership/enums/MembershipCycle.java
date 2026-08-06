@@ -10,16 +10,18 @@ import java.util.Arrays;
 @Getter
 public enum MembershipCycle {
 
-    MONTH("month", 30),
-    QUARTER("quarter", 90),
-    YEAR("year", 365);
+    MONTH("month", 30, 0),
+    QUARTER("quarter", 90, 1),
+    YEAR("year", 365, 2);
 
     private final String code;
     private final int days;
+    private final int rank;
 
-    MembershipCycle(String code, int days) {
+    MembershipCycle(String code, int days, int rank) {
         this.code = code;
         this.days = days;
+        this.rank = rank;
     }
 
     /**

@@ -10,11 +10,11 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public enum EarningsType {
 
-    USAGE("USAGE", "使用收益"),
+    USAGE("USAGE", "提示词使用收益"),
     MILESTONE("MILESTONE", "里程碑奖励"),
-    LEADERBOARD_REWARD("LEADERBOARD_REWARD", "排行榜奖励"),
     INVITE_REWARD("INVITE_REWARD", "邀请奖励"),
     COMMISSION_REWARD("COMMISSION_REWARD", "约稿奖励"),
+    COIN_DEDUCTION("COIN_DEDUCTION", "创作币抵扣"),
     OTHER("OTHER", "其他");
 
     private final String code;

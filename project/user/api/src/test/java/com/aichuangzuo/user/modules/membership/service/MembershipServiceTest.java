@@ -6,7 +6,9 @@ import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
 import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
+import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
+import com.aichuangzuo.user.modules.membership.dto.request.SubscribePreviewRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.entity.Order;
@@ -189,8 +191,8 @@ class MembershipServiceTest {
     }
 
     @Test
-    void previewUpgrade_mismatchedCycle_throwsBusinessException() {
-        User user = createUser("preview-upgrade-cycle@test.com");
+    void previewUpgrade_samePlanLongerCycle_returnsCreditBreakdown() {
+        User user = createUser("preview-upgrade-same-cycle@test.com");
         UserMembership existing = new UserMembership();
         existing.setUserId(user.getId());
         existing.setLevel("basic");
@@ -211,16 +213,55 @@ class MembershipServiceTest {
         orderMapper.insert(firstOrder);
 
         UpgradePreviewRequest request = new UpgradePreviewRequest();
-        request.setPlanKey("pro");
+        request.setPlanKey("basic");
         request.setCycle("quarter");
+
+        UpgradePreviewVO vo = membershipService.previewUpgrade(user.getId(), request);
+
+        assertTrue(vo.isHasMembership());
+        assertEquals("basic", vo.getCurrentPlanKey());
+        assertEquals("basic", vo.getTargetPlanKey());
+        assertTrue(vo.isUpgrade());
+        assertEquals(10, vo.getRemainingDays());
+        assertEquals(0, new BigDecimal("53.10").compareTo(vo.getOriginalPrice()));
+        assertEquals(0, new BigDecimal("9.97").compareTo(vo.getCreditAmount()));
+        assertEquals(0, new BigDecimal("43.13").compareTo(vo.getFinalPrice()));
+        assertEquals(LocalDate.now().plusDays(90), LocalDate.parse(vo.getNewExpiresAt()));
+    }
+
+    @Test
+    void previewUpgrade_shorterCycle_throwsBusinessException() {
+        User user = createUser("preview-upgrade-cycle@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(user.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("quarter");
+        firstOrder.setAmount(new BigDecimal("53.10"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        UpgradePreviewRequest request = new UpgradePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("month");
 
         try {
             membershipService.previewUpgrade(user.getId(), request);
         } catch (Exception e) {
-            assertTrue(e.getMessage().contains("升级必须保持当前订阅周期"));
+            assertTrue(e.getMessage().contains("升级不能缩短当前订阅周期"));
             return;
         }
-        throw new AssertionError("应抛出周期不匹配异常");
+        throw new AssertionError("应抛出周期缩短异常");
     }
 
     @Test
@@ -379,6 +420,172 @@ class MembershipServiceTest {
         assertEquals(Integer.valueOf(0), earnings.getIsFirstPurchase());
     }
 
+    @Test
+    void previewSubscribe_returnsCoinInfo() {
+        User user = createUser("preview-sub@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("200"));
+
+        SubscribePreviewRequest request = new SubscribePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("month");
+
+        com.aichuangzuo.user.modules.membership.vo.SubscribePreviewVO vo = membershipService.previewSubscribe(user.getId(), request);
+
+        assertEquals("pro", vo.getPlanKey());
+        assertEquals("month", vo.getCycle());
+        assertEquals(0, new BigDecimal("59.90").compareTo(vo.getOriginalPrice()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(vo.getCreditAmount()));
+        assertEquals(0, new BigDecimal("59.90").compareTo(vo.getFinalPrice()));
+        assertEquals(0, new BigDecimal("200").compareTo(vo.getCoinBalance()));
+        assertEquals(Long.valueOf(200L), vo.getMaxCoinAmount());
+        assertEquals(Integer.valueOf(10), vo.getCoinToYuanRatio());
+    }
+
+    @Test
+    void previewSubscribe_maxCoinAmountCappedByCash() {
+        User user = createUser("preview-sub-capped@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("1000"));
+
+        SubscribePreviewRequest request = new SubscribePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("month");
+
+        com.aichuangzuo.user.modules.membership.vo.SubscribePreviewVO vo = membershipService.previewSubscribe(user.getId(), request);
+
+        assertEquals(Long.valueOf(599L), vo.getMaxCoinAmount());
+    }
+
+    @Test
+    void previewUpgrade_returnsCoinInfo() {
+        User user = createUser("preview-upgrade-coin@test.com");
+        UserMembership existing = new UserMembership();
+        existing.setUserId(user.getId());
+        existing.setLevel("basic");
+        existing.setStartedAt(LocalDate.now().minusDays(30));
+        existing.setExpiresAt(LocalDate.now().plusDays(10));
+        existing.setTenantId(0L);
+        userMembershipMapper.insert(existing);
+
+        Order firstOrder = new Order();
+        firstOrder.setOrderNo("SUB" + System.nanoTime());
+        firstOrder.setUserId(user.getId());
+        firstOrder.setPlanKey("basic");
+        firstOrder.setCycle("month");
+        firstOrder.setAmount(new BigDecimal("29.90"));
+        firstOrder.setStatus(1);
+        firstOrder.setPaidAt(LocalDateTime.now());
+        firstOrder.setTenantId(0L);
+        orderMapper.insert(firstOrder);
+
+        setCoinBalance(user.getId(), new BigDecimal("500"));
+
+        UpgradePreviewRequest request = new UpgradePreviewRequest();
+        request.setPlanKey("pro");
+        request.setCycle("month");
+
+        UpgradePreviewVO vo = membershipService.previewUpgrade(user.getId(), request);
+
+        assertEquals(0, new BigDecimal("500").compareTo(vo.getCoinBalance()));
+        assertEquals(Long.valueOf(499L), vo.getMaxCoinAmount());
+        assertEquals(Integer.valueOf(10), vo.getCoinToYuanRatio());
+    }
+
+    @Test
+    void subscribe_withCoinDiscount_reducesCashAndBalance() {
+        User user = createUser("sub-coin@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("200"));
+
+        SubscribeRequest request = buildRequest("pro", "month", "123456", new BigDecimal("39.90"));
+        request.setCoinAmount(new BigDecimal("200"));
+
+        SubscribeResultVO result = membershipService.subscribe(user.getId(), request);
+
+        assertEquals(Long.valueOf(200L), result.getCoinAmount());
+        assertEquals(0, new BigDecimal("20.00").compareTo(result.getCoinDiscountYuan()));
+        assertEquals(0, new BigDecimal("39.90").compareTo(result.getCashAmount()));
+
+        Order order = orderMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Order>()
+                        .eq(Order::getOrderNo, result.getOrderNo()));
+        assertNotNull(order);
+        assertEquals(Long.valueOf(200L), order.getCoinAmount());
+        assertEquals(0, new BigDecimal("20.00").compareTo(order.getCoinDiscount()));
+        assertEquals(0, new BigDecimal("59.90").compareTo(order.getTotalAmount()));
+
+        User updatedUser = userMapper.selectById(user.getId());
+        assertEquals(0, BigDecimal.ZERO.compareTo(updatedUser.getCoinBalance()));
+
+        UserCoinRecord coinRecord = userCoinRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<UserCoinRecord>()
+                        .eq(UserCoinRecord::getUserId, user.getId())
+                        .eq(UserCoinRecord::getBizType, "subscribe_coin_discount"));
+        assertNotNull(coinRecord);
+        assertEquals(0, new BigDecimal("200").compareTo(coinRecord.getAmount()));
+
+        EarningsRecord earningsRecord = earningsRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, user.getId())
+                        .eq(EarningsRecord::getType, "COIN_DEDUCTION")
+                        .eq(EarningsRecord::getSourceType, "subscribe_coin_discount")
+                        .eq(EarningsRecord::getSourceId, order.getId().toString()));
+        assertNotNull(earningsRecord);
+        assertEquals(0, new BigDecimal("-200").compareTo(earningsRecord.getAmount()));
+        assertEquals("订阅抵扣", earningsRecord.getTitle());
+        assertTrue(earningsRecord.getDescription().contains("200"));
+    }
+
+    @Test
+    void subscribe_fullCoinDiscount_zeroCash() {
+        User user = createUser("sub-full-coin@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("599"));
+
+        SubscribeRequest request = buildRequest("pro", "month", "123456", BigDecimal.ZERO);
+        request.setCoinAmount(new BigDecimal("599"));
+
+        SubscribeResultVO result = membershipService.subscribe(user.getId(), request);
+
+        assertEquals(Long.valueOf(599L), result.getCoinAmount());
+        assertEquals(0, new BigDecimal("59.90").compareTo(result.getCoinDiscountYuan()));
+        assertEquals(0, BigDecimal.ZERO.compareTo(result.getCashAmount()));
+
+        User updatedUser = userMapper.selectById(user.getId());
+        assertEquals(0, BigDecimal.ZERO.compareTo(updatedUser.getCoinBalance()));
+    }
+
+    @Test
+    void subscribe_coinAmountExceedsBalance_throwsException() {
+        User user = createUser("sub-coin-exceed@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("100"));
+
+        SubscribeRequest request = buildRequest("pro", "month", "123456", new BigDecimal("49.90"));
+        request.setCoinAmount(new BigDecimal("200"));
+
+        try {
+            membershipService.subscribe(user.getId(), request);
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("创作币抵扣金额不正确"));
+            return;
+        }
+        throw new AssertionError("应抛出创作币抵扣金额错误异常");
+    }
+
+    @Test
+    void subscribe_fractionalCoinAmount_throwsException() {
+        User user = createUser("sub-coin-fractional@test.com");
+        setCoinBalance(user.getId(), new BigDecimal("100"));
+
+        SubscribeRequest request = buildRequest("pro", "month", "123456", new BigDecimal("54.90"));
+        request.setCoinAmount(new BigDecimal("50.5"));
+
+        try {
+            membershipService.subscribe(user.getId(), request);
+        } catch (Exception e) {
+            assertTrue(e.getMessage().contains("创作币抵扣金额不正确"));
+            return;
+        }
+        throw new AssertionError("应抛出创作币抵扣金额错误异常");
+    }
+
     private User createUser(String email) {
         User user = new User();
         user.setBizNo("B" + System.nanoTime());
@@ -400,6 +607,12 @@ class MembershipServiceTest {
         relation.setSourceType(2);
         relation.setEffectiveStatus(1);
         userInviteRelationMapper.insert(relation);
+    }
+
+    private void setCoinBalance(Long userId, BigDecimal balance) {
+        User user = userMapper.selectById(userId);
+        user.setCoinBalance(balance);
+        userMapper.updateById(user);
     }
 
     private SubscribeRequest buildRequest(String planKey, String cycle, String payCode, BigDecimal amount) {

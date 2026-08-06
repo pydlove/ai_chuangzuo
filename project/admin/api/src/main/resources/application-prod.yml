@@ -4,6 +4,9 @@ spring:
     username: ENC(eMjL+ruzQaGH8gRfZwORwDtEs6TCLNa3jGr+wMyh8zEXoZ17WTP0GtoL3jjCb3lY)
     password: ENC(mXEtXq8EKDtHEoKZbALlFJ5QexDtrpxZSxsLv2qACb58Tj1jbjbrq8egHpf09jF2)
 
+hot-search:
+  chrome-path: ${HOT_SEARCH_CHROME_PATH:}
+
 logging:
   level:
     com.aichuangzuo: INFO

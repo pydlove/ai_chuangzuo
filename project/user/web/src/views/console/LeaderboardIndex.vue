@@ -1,234 +1,224 @@
 <template>
   <div class="leaderboard-page">
-    <div class="leaderboard-header">
-      <h2 class="leaderboard-title">收益排行榜</h2>
-      <p class="leaderboard-subtitle">
-        创作币榜按月度统计平台收益
-        <span class="leaderboard-rules-link" @click="rulesVisible = true">规则说明</span>
-      </p>
-    </div>
-
-    <!-- 创作币榜的 tab 切换隐藏 -->
-    <div v-if="false" class="leaderboard-tabs">
-      <button
-        :class="['leaderboard-tab', { active: activeTab === 'coin' }]"
-        @click="activeTab = 'coin'"
-      >
-        创作币榜
-      </button>
-      <button
-        :class="['leaderboard-tab', { active: activeTab === 'income' }]"
-        @click="activeTab = 'income'"
-      >
-        自媒体收入榜
-      </button>
-    </div>
-
-    <!-- 创作币榜 -->
-    <LeaderboardPanel />
-    <div v-if="false" class="leaderboard-section">
-      <div class="leaderboard-toolbar">
-        <div class="leaderboard-toolbar-left">
-          <div class="leaderboard-period-tabs">
-            <button
-              :class="['leaderboard-period-tab', { active: incomePeriodType === 'month' }]"
-              @click="setIncomePeriodType('month')"
-            >
-              月度
-            </button>
-            <button
-              :class="['leaderboard-period-tab', { active: incomePeriodType === 'year' }]"
-              @click="setIncomePeriodType('year')"
-            >
-              年度
-            </button>
+    <div class="leaderboard-layout">
+      <div class="leaderboard-main">
+        <!-- 头部运营区 -->
+        <header id="toc-overview" class="leaderboard-hero">
+          <div class="leaderboard-hero__copy">
+            <div class="leaderboard-hero__badge">
+              <TrophyOutlined class="leaderboard-hero__badge-icon" />
+              创作激励榜
+            </div>
+            <h1 class="leaderboard-hero__title">收益排行榜</h1>
+            <p class="leaderboard-hero__subtitle">创作赚币，上榜有礼 · 每月 TOP 3 瓜分创作币奖励</p>
+            <span class="leaderboard-hero__rules" @click="rulesVisible = true">规则说明</span>
           </div>
-          <span class="leaderboard-period-label">{{ incomePeriodLabel }}</span>
-        </div>
-        <button class="leaderboard-submit-btn" @click="openSubmitModal">
-          申报收入
-        </button>
-      </div>
+          <div class="leaderboard-hero__glow" aria-hidden="true"></div>
+          <div class="leaderboard-hero__sparkle" aria-hidden="true"></div>
+        </header>
 
-      <div v-if="incomePeriodType === 'month'" :class="['reward-banner', incomeRewardBanner.class]">
-        <div class="reward-banner-icon">🏆</div>
-        <div class="reward-banner-text">
-          <div class="reward-banner-title">{{ incomeRewardBanner.title }}</div>
-          <div class="reward-banner-desc">{{ incomeRewardBanner.desc }}</div>
-        </div>
-      </div>
-
-      <div v-if="myIncomeStatus" class="my-reward-card">
-        <div class="my-reward-rank">第 {{ myIncomeItem.rank }} 名</div>
-        <div class="my-reward-info">
-          <div class="my-reward-label">{{ myIncomeStatus.label }}</div>
-          <div class="my-reward-desc">{{ myIncomeStatus.desc }}</div>
-        </div>
-        <div class="my-reward-amount">+1000 创作币</div>
-      </div>
-
-      <div class="leaderboard-top3">
-        <div
-          v-for="item in incomeTop3"
-          :key="item.userId"
-          :class="['leaderboard-top-card', 'top-' + item.rank, { 'is-me': item.isMe }]"
-        >
-          <div class="top-rank">{{ item.rank }}</div>
-          <div class="top-nickname">{{ item.nickname || '匿名用户' }}</div>
-          <div class="top-amount">{{ item.amount.toFixed(2) }} 元</div>
-          <div v-if="item.isMe" class="top-me-tag">我</div>
-          <div v-if="incomeRewardLabel(item)" :class="['top-reward', incomeRewardLabel(item).type]">
-            {{ incomeRewardLabel(item).text }}
-          </div>
-        </div>
-      </div>
-
-      <div v-if="incomeListAfter3.length === 0" class="leaderboard-empty">
-        暂无排名数据
-      </div>
-      <div v-else class="leaderboard-list">
-        <div
-          v-for="item in incomeListAfter3"
-          :key="item.userId"
-          :class="['leaderboard-item', { 'is-me': item.isMe }, 'rank-' + item.rank]"
-        >
-          <span class="leaderboard-rank">{{ item.rank }}</span>
-          <span class="leaderboard-avatar">{{ (item.nickname || '?').charAt(0) }}</span>
-          <span class="leaderboard-nickname">{{ item.nickname || '匿名用户' }}</span>
-          <span v-if="item.isMe" class="leaderboard-me-tag">我</span>
-          <div v-if="incomeRewardLabel(item)" :class="['leaderboard-reward', incomeRewardLabel(item).type]">
-            {{ incomeRewardLabel(item).text }}
-          </div>
-          <span class="leaderboard-amount">{{ item.amount.toFixed(2) }} 元</span>
-        </div>
-      </div>
-
-      <!-- 我的申报 -->
-      <div class="leaderboard-submissions">
-        <div class="leaderboard-submissions-header">
-          <span class="leaderboard-submissions-title">我的收入申报</span>
-          <span class="leaderboard-submissions-hint">审核通过后金额将计入榜单</span>
-        </div>
-        <div v-if="mySubmissions.length === 0" class="leaderboard-empty">
-          暂无申报记录
-        </div>
-        <div v-else class="leaderboard-submission-list">
-          <div
-            v-for="s in mySubmissions"
-            :key="s.id"
-            :class="['leaderboard-submission-item', s.status]"
+        <!-- 周期切换 -->
+        <div class="leaderboard-period-bar">
+          <button
+            v-for="p in periods"
+            :key="p.value"
+            :class="['leaderboard-period-btn', { active: activePeriod === p.value }]"
+            @click="activePeriod = p.value"
           >
-            <div class="submission-info">
-              <div class="submission-month">{{ s.month }}</div>
-              <div class="submission-meta">
-                {{ s.amount.toFixed(2) }} 元 · {{ statusText(s.status) }}
+            {{ p.label }}
+          </button>
+        </div>
+
+        <!-- 我的排名 -->
+        <section id="toc-my-rank" class="leaderboard-section leaderboard-section--my">
+          <div v-if="myCoinItem" class="leaderboard-my-card">
+            <div class="leaderboard-my__rank">
+              <div class="leaderboard-my__rank-num">{{ myCoinItem.rank }}</div>
+              <div class="leaderboard-my__rank-label">当前排名</div>
+            </div>
+            <div class="leaderboard-my__info">
+              <div class="leaderboard-my__name">{{ myCoinItem.nickname || '匿名用户' }}</div>
+              <div class="leaderboard-my__amount">{{ myCoinItem.amount.toFixed(2) }} 创作币</div>
+            </div>
+            <div v-if="myCoinItem.rank <= 3" class="leaderboard-my__reward">
+              <div class="leaderboard-my__reward-label">预计奖励</div>
+              <div class="leaderboard-my__reward-value">+500</div>
+            </div>
+            <div v-else class="leaderboard-my__reward leaderboard-my__reward--no">
+              <div class="leaderboard-my__reward-label">距 TOP 3</div>
+              <div class="leaderboard-my__reward-value">差 {{ rankGap }} 名</div>
+            </div>
+          </div>
+          <div v-else class="leaderboard-my-card leaderboard-my-card--empty">
+            <RocketOutlined class="leaderboard-my__empty-icon" />
+            <div class="leaderboard-my__empty-body">
+              <div class="leaderboard-my__empty-title">暂未上榜</div>
+              <div class="leaderboard-my__empty-desc">本月再创作几篇，就有机会进入 TOP 3</div>
+            </div>
+            <router-link to="/console/create" class="leaderboard-my__empty-action">去创作 →</router-link>
+          </div>
+        </section>
+
+        <!-- TOP3 领奖台 -->
+        <section id="toc-top3" class="leaderboard-section">
+          <div class="leaderboard-section-header">
+            <span class="leaderboard-section-tag">荣耀榜</span>
+            <h2 class="leaderboard-section-title">TOP 3</h2>
+          </div>
+
+          <div v-if="coinTop3.length === 0" class="leaderboard-empty">
+            暂无排名数据
+          </div>
+          <div v-else class="leaderboard-podium">
+            <!-- 第二名 -->
+            <div v-if="coinTop3[1]" class="podium-card podium-card--second">
+              <div class="podium-card__rank">2</div>
+              <div class="podium-card__avatar">{{ (coinTop3[1].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__name">{{ coinTop3[1].nickname || '匿名用户' }}</div>
+              <div class="podium-card__amount">{{ coinTop3[1].amount.toFixed(2) }}</div>
+              <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[1].isMe" class="podium-card__me">我</div>
+            </div>
+
+            <!-- 第一名 -->
+            <div v-if="coinTop3[0]" class="podium-card podium-card--first">
+              <div class="podium-card__crown"><CrownOutlined /></div>
+              <div class="podium-card__avatar">{{ (coinTop3[0].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__name">{{ coinTop3[0].nickname || '匿名用户' }}</div>
+              <div class="podium-card__amount">{{ coinTop3[0].amount.toFixed(2) }}</div>
+              <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[0].isMe" class="podium-card__me">我</div>
+            </div>
+
+            <!-- 第三名 -->
+            <div v-if="coinTop3[2]" class="podium-card podium-card--third">
+              <div class="podium-card__rank">3</div>
+              <div class="podium-card__avatar">{{ (coinTop3[2].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__name">{{ coinTop3[2].nickname || '匿名用户' }}</div>
+              <div class="podium-card__amount">{{ coinTop3[2].amount.toFixed(2) }}</div>
+              <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[2].isMe" class="podium-card__me">我</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- 完整榜单 -->
+        <section id="toc-full-list" class="leaderboard-section">
+          <div class="leaderboard-section-header">
+            <span class="leaderboard-section-tag">完整榜单</span>
+            <h2 class="leaderboard-section-title">TOP 4 - 100</h2>
+          </div>
+
+          <div v-if="coinListAfter3.length === 0" class="leaderboard-empty">
+            暂无更多排名数据
+          </div>
+          <div v-else class="leaderboard-list">
+            <div
+              v-for="item in coinListAfter3"
+              :key="item.userId"
+              :class="['leaderboard-row', { 'is-me': item.isMe }, 'rank-' + item.rank]"
+            >
+              <div class="leaderboard-row__rank">
+                <span v-if="item.rank <= 10" class="leaderboard-row__badge">{{ item.rank }}</span>
+                <span v-else">{{ item.rank }}</span>
+              </div>
+              <div class="leaderboard-row__avatar">{{ (item.nickname || '?').charAt(0) }}</div>
+              <div class="leaderboard-row__info">
+                <div class="leaderboard-row__name">
+                  {{ item.nickname || '匿名用户' }}
+                  <span v-if="item.isMe" class="leaderboard-row__me">我</span>
+                </div>
+                <div v-if="item.rank <= 3" class="leaderboard-row__tag">TOP 3 奖励</div>
+              </div>
+              <div class="leaderboard-row__amount">
+                <span class="leaderboard-row__num">{{ item.amount.toFixed(2) }}</span>
+                <span class="leaderboard-row__unit">创作币</span>
               </div>
             </div>
-            <div v-if="s.status === 'rejected' && s.rejectReason" class="submission-reason">
-              原因：{{ s.rejectReason }}
-            </div>
           </div>
-        </div>
+        </section>
       </div>
+
+      <!-- PC 端目录侧边栏 -->
+      <aside class="leaderboard-toc-sidebar">
+        <nav class="leaderboard-toc">
+          <div class="leaderboard-toc-title">
+            <UnorderedListOutlined class="leaderboard-toc-title-icon" />
+            目录
+          </div>
+          <div class="leaderboard-toc-track">
+            <a
+              v-for="item in tocItems"
+              :key="item.id"
+              :class="['leaderboard-toc-item', { active: item.id === activeHeading }]"
+              href="#"
+              @click.prevent="scrollToHeading(item.id)"
+            >
+              <span class="leaderboard-toc-dot"></span>
+              <span class="leaderboard-toc-text">{{ item.text }}</span>
+            </a>
+          </div>
+        </nav>
+      </aside>
     </div>
+
+    <!-- 移动端目录浮钮 -->
+    <button
+      class="mobile-toc-btn"
+      type="button"
+      aria-label="目录"
+      @click="tocDrawerOpen = true"
+    >
+      <UnorderedListOutlined />
+    </button>
+
+    <!-- 移动端目录 drawer -->
+    <a-drawer
+      v-model:open="tocDrawerOpen"
+      title="目录"
+      placement="bottom"
+      :height="'60vh'"
+      :closable="true"
+      class="mobile-toc-drawer"
+    >
+      <div class="mobile-toc-list">
+        <a
+          v-for="item in tocItems"
+          :key="item.id"
+          :class="['mobile-toc-item', { active: item.id === activeHeading }]"
+          href="#"
+          @click.prevent="onTocItemClick(item.id)"
+        >
+          <span class="mobile-toc-dot"></span>
+          <span class="mobile-toc-text">{{ item.text }}</span>
+        </a>
+      </div>
+    </a-drawer>
 
     <!-- 规则说明 -->
     <a-modal
       v-model:open="rulesVisible"
       title="收益排行榜规则"
       :footer="null"
-      :width="560"
+      :width="520"
       centered
       class="leaderboard-rules-modal"
     >
       <ol class="leaderboard-rules-list">
         <li><span class="leaderboard-rules-highlight">创作币榜</span>按自然月统计平台创作币收益，数据自动汇总，无需手动申报。</li>
-        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 10</span> 均可获得 <span class="leaderboard-rules-highlight">1000 创作币</span>奖励。</li>
+        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 3</span> 均可获得 <span class="leaderboard-rules-highlight">500 创作币</span>奖励。</li>
         <li>奖励在榜单结算后自动发放至账户余额，同一人同一周期只发放一次。</li>
       </ol>
       <div class="leaderboard-rules-footer">* 活动最终解释权归平台所有。</div>
-      <div class="leaderboard-rules-guide-link">
-        <router-link to="/guide">阅读完整玩法指南 →</router-link>
-      </div>
-    </a-modal>
-
-    <!-- 收入申报功能暂时隐藏 -->
-    <a-modal
-      v-if="false"
-      v-model:open="submitVisible"
-      title="申报自媒体收入"
-      :footer="null"
-      :width="480"
-      centered
-      class="leaderboard-submit-modal"
-      @cancel="resetSubmitForm"
-    >
-      <div class="leaderboard-submit-form">
-        <div class="form-row">
-          <label class="form-label">所属月份</label>
-          <div class="form-static">{{ currentMonth }}</div>
-        </div>
-        <div class="form-row">
-          <label class="form-label">收入金额（元）</label>
-          <input
-            v-model.number="submitAmount"
-            type="number"
-            min="0"
-            step="0.01"
-            class="form-input"
-            placeholder="请输入收入金额"
-          />
-        </div>
-        <div class="form-row">
-          <label class="form-label">自媒体平台</label>
-          <select v-model="submitPlatform" class="form-select">
-            <option
-              v-for="option in PLATFORM_OPTIONS"
-              :key="option.value"
-              :value="option.value"
-            >
-              {{ option.label }}
-            </option>
-          </select>
-        </div>
-        <div class="form-row">
-          <label class="form-label">收益截图 <span class="form-label-hint">可上传多张，支持多平台</span></label>
-          <div class="form-upload-grid">
-            <div
-              v-for="(src, index) in submitPreviews"
-              :key="index"
-              class="form-upload-item"
-            >
-              <img :src="src" class="form-upload-preview" />
-              <button class="form-upload-remove" @click="removeScreenshot(index)">×</button>
-            </div>
-            <div class="form-upload form-upload-add">
-              <input
-                ref="fileInput"
-                type="file"
-                accept="image/*"
-                multiple
-                class="form-file"
-                @change="handleFileChange"
-              />
-              <div class="form-upload-placeholder">+</div>
-            </div>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button class="form-btn form-btn-default" @click="closeSubmitModal">取消</button>
-          <button class="form-btn form-btn-primary" @click="handleSubmit">提交申报</button>
-        </div>
-      </div>
     </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { message } from 'ant-design-vue'
-import LeaderboardPanel from '@/components/LeaderboardPanel.vue'
-import { getRewardRecord } from '@/composables/useLeaderboard.js'
+import { UnorderedListOutlined, TrophyOutlined, CrownOutlined, RocketOutlined } from '@ant-design/icons-vue'
+import { getCoinLeaderboard } from '@/api/leaderboard.js'
 
 function getMonthOptions() {
   const options = []
@@ -240,555 +230,581 @@ function getMonthOptions() {
   return options
 }
 
-function getYearOptions() {
-  const options = []
-  const now = new Date()
-  for (let i = 0; i < 3; i++) {
-    options.push(String(now.getFullYear() - i))
-  }
-  return options
-}
-
 const monthOptions = getMonthOptions()
-const yearOptions = getYearOptions()
+const currentCoinMonth = monthOptions[0]
 
-const activeTab = ref('coin')
-const incomePeriodType = ref('month')
-const incomePeriodValue = ref(monthOptions[0])
-const rulesVisible = ref(false)
-const submitVisible = ref(false)
-const loading = ref(false)
-
-const incomePeriodLabel = computed(() => {
-  return incomePeriodType.value === 'month' ? currentIncomeMonth : currentIncomeYear
-})
-
-function setIncomePeriodType(type) {
-  incomePeriodType.value = type
-  incomePeriodValue.value = type === 'month' ? currentIncomeMonth : currentIncomeYear
-}
-
-const incomeList = ref([])
-const mySubmissions = ref([])
-
-async function loadIncomeLeaderboard() {
-  // 自媒体收入榜功能暂时隐藏
-  // try {
-  //   loading.value = true
-  //   incomeList.value = await getIncomeLeaderboard(incomePeriodType.value, incomePeriodValue.value)
-  // } catch (err) {
-  //   message.error(err.message || '自媒体收入榜加载失败')
-  // } finally {
-  //   loading.value = false
-  // }
-}
-
-async function loadMySubmissions() {
-  // 自媒体收入榜功能暂时隐藏
-  // try {
-  //   mySubmissions.value = await getMyIncomeSubmissions()
-  // } catch (err) {
-  //   message.error(err.message || '我的申报记录加载失败')
-  // }
-}
-
-watch([incomePeriodType, incomePeriodValue], () => {
-  // 自媒体收入榜功能暂时隐藏
-  // loadIncomeLeaderboard()
-})
-
-watch(activeTab, (tab) => {
-  // 自媒体收入榜功能暂时隐藏
-  // if (tab === 'income') {
-  //   loadIncomeLeaderboard()
-  // }
-})
-
-const incomeTop3 = computed(() => incomeList.value.slice(0, 3))
-const incomeListAfter3 = computed(() => incomeList.value.slice(3))
-
-const currentIncomeMonth = monthOptions[0]
-const currentIncomeYear = yearOptions[0]
-
-const myIncomeItem = computed(() => incomeList.value.find(i => i.isMe))
-
-const incomeRewardBanner = computed(() => {
-  const isCurrent = incomePeriodValue.value === currentIncomeMonth
-  return {
-    class: isCurrent ? 'is-current' : 'is-past',
-    title: isCurrent ? '本月度 TOP 10 当月可获 1000 创作币奖励' : '历史月榜单已结算',
-    desc: isCurrent
-      ? '当前榜单进行中，下月 1 日自动结算，奖励发放至账户余额'
-      : '该月榜单已结算，TOP 10 奖励已发放'
-  }
-})
-
-function myRewardStatus(item, type) {
-  if (!item || item.rank > 10) return null
-  if (item.rank <= 3) {
-    return {
-      label: `已锁定 TOP ${item.rank}`,
-      desc: '本月榜单进行中，结算后自动发放',
-      type: 'pending'
-    }
-  }
-  return {
-    label: `进入 TOP 10（第 ${item.rank} 名）`,
-    desc: '本月榜单进行中，结算后自动发放',
-    type: 'pending'
-  }
-}
-
-const myIncomeStatus = computed(() => {
-  if (!myIncomeItem.value) return null
-  if (!myIncomeItem.value.rank || myIncomeItem.value.rank > 10) return null
-  return myRewardStatus(myIncomeItem.value, 'income')
-})
-
-function incomeRewardLabel(item) {
-  const isCurrent =
-    (incomePeriodType.value === 'month' && incomePeriodValue.value === currentIncomeMonth) ||
-    (incomePeriodType.value === 'year' && incomePeriodValue.value === currentIncomeYear)
-  if (item.rank > 10) return null
-  const record = getRewardRecord('income', incomePeriodValue.value, item.userId)
-  if (record) return { text: '已获 1000 创作币', type: 'awarded' }
-  if (isCurrent) return { text: '榜单进行中，待结算', type: 'pending' }
-  return null
-}
-
-function statusText(status) {
-  const map = { pending: '审核中', approved: '已通过', rejected: '已拒绝' }
-  return map[status] || status
-}
-
-// 申报表单
-const currentMonth = monthOptions[0]
-const submitAmount = ref('')
-const submitPlatform = ref('other')
-const submitFiles = ref([])
-const submitPreviews = ref([])
-const fileInput = ref(null)
-
-const PLATFORM_OPTIONS = [
-  { value: 'wechat', label: '微信公众号' },
-  { value: 'xiaohongshu', label: '小红书' },
-  { value: 'douyin', label: '抖音' },
-  { value: 'other', label: '其他' }
+const periods = [
+  { label: '本月', value: 'current' },
+  { label: '上月', value: 'last' },
+  { label: '总榜', value: 'all' }
 ]
 
-function openSubmitModal() {
-  submitAmount.value = ''
-  submitPlatform.value = 'other'
-  submitFiles.value = []
-  submitPreviews.value = []
-  if (fileInput.value) fileInput.value.value = ''
-  submitVisible.value = true
-}
+const activePeriod = ref('current')
+const coinList = ref([])
+const loading = ref(false)
+const rulesVisible = ref(false)
 
-function closeSubmitModal() {
-  submitVisible.value = false
-  resetSubmitForm()
-}
-
-function resetSubmitForm() {
-  submitPreviews.value.forEach(url => URL.revokeObjectURL(url))
-  submitAmount.value = ''
-  submitPlatform.value = 'other'
-  submitFiles.value = []
-  submitPreviews.value = []
-  if (fileInput.value) fileInput.value.value = ''
-}
-
-function handleFileChange(e) {
-  const files = Array.from(e.target.files || [])
-  if (!files.length) return
-  files.forEach(file => {
-    submitFiles.value.push(file)
-    submitPreviews.value.push(URL.createObjectURL(file))
-  })
-  if (fileInput.value) fileInput.value.value = ''
-}
-
-function removeScreenshot(index) {
-  URL.revokeObjectURL(submitPreviews.value[index])
-  submitFiles.value.splice(index, 1)
-  submitPreviews.value.splice(index, 1)
-}
-
-async function handleSubmit() {
-  const amount = Number(submitAmount.value)
-  if (!Number.isFinite(amount) || amount <= 0) {
-    message.error('请输入有效的收入金额')
-    return
-  }
-  if (submitFiles.value.length === 0) {
-    message.error('请上传收益截图')
-    return
-  }
+async function loadCoinLeaderboard() {
   try {
     loading.value = true
-    const formData = new FormData()
-    formData.append('periodMonth', currentMonth)
-    formData.append('amount', amount)
-    formData.append('platform', submitPlatform.value)
-    submitFiles.value.forEach(file => formData.append('screenshots', file))
-    await submitIncomeSubmission(formData)
-    message.success('收入申报已提交，等待审核')
-    closeSubmitModal()
-    await loadMySubmissions()
-    await loadIncomeLeaderboard()
+    // 目前仅支持本月榜，后续可按 activePeriod 扩展
+    const res = await getCoinLeaderboard(currentCoinMonth)
+    const list = res?.data?.topList || []
+    const me = res?.data?.me
+    if (me && me.rank != null && !list.some(item => item.isMe)) {
+      list.push(me)
+    }
+    coinList.value = list
   } catch (err) {
-    message.error(err.message || '提交失败')
+    message.error(err.message || '创作币榜加载失败')
   } finally {
     loading.value = false
   }
 }
+
+onMounted(() => {
+  loadCoinLeaderboard()
+  nextTick(buildTocObserver)
+})
+
+const coinTop3 = computed(() => coinList.value.slice(0, 3))
+const coinListAfter3 = computed(() => coinList.value.slice(3))
+const myCoinItem = computed(() => coinList.value.find(i => i.isMe))
+const rankGap = computed(() => {
+  if (!myCoinItem.value || myCoinItem.value.rank <= 3) return 0
+  return myCoinItem.value.rank - 3
+})
+
+// ---- 目录 ----
+const tocItems = [
+  { id: 'toc-overview', text: '榜单概览' },
+  { id: 'toc-my-rank', text: '我的排名' },
+  { id: 'toc-top3', text: '荣耀榜 TOP3' },
+  { id: 'toc-full-list', text: '完整榜单' }
+]
+
+const activeHeading = ref('')
+const tocDrawerOpen = ref(false)
+let tocObserver = null
+
+function buildTocObserver() {
+  if (tocObserver) {
+    tocObserver.disconnect()
+    tocObserver = null
+  }
+  activeHeading.value = ''
+
+  const sections = document.querySelectorAll('.leaderboard-section, .leaderboard-hero')
+  if (!sections.length) return
+
+  tocObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) activeHeading.value = entry.target.id
+    }
+  }, { rootMargin: '-88px 0px -70% 0px' })
+
+  sections.forEach(el => tocObserver.observe(el))
+}
+
+function scrollToHeading(id) {
+  const el = document.getElementById(id)
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function onTocItemClick(id) {
+  scrollToHeading(id)
+  tocDrawerOpen.value = false
+}
+
+onUnmounted(() => {
+  if (tocObserver) tocObserver.disconnect()
+})
 </script>
 
 <style scoped>
 .leaderboard-page {
   width: 100%;
   height: 100%;
-  max-width: 1280px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 24px 32px;
+  padding: 20px 24px;
   overflow-y: auto;
   box-sizing: border-box;
 }
 
-.leaderboard-header {
-  margin-bottom: 20px;
-}
-
-.leaderboard-title {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.leaderboard-subtitle {
-  font-size: 13px;
-  color: #8c8c8c;
-  margin: 0;
-}
-
-.leaderboard-rules-link {
-  color: #ff2442;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 500;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-  margin-left: 8px;
-}
-
-.leaderboard-rules-link:hover {
-  color: #e61e3a;
-}
-
-.leaderboard-tabs {
+.leaderboard-layout {
   display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-  width: fit-content;
+  gap: 24px;
 }
 
-.leaderboard-tab {
-  padding: 8px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.leaderboard-tab.active {
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.leaderboard-section {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.leaderboard-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-}
-
-.leaderboard-toolbar-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.leaderboard-select {
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #fff;
-  color: #1a1a1a;
-  cursor: pointer;
-}
-
-.leaderboard-period-tabs {
-  display: flex;
-  gap: 4px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-}
-
-.leaderboard-period-tab {
-  padding: 6px 14px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.leaderboard-period-tab.active {
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
-.leaderboard-period-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.leaderboard-submit-btn {
-  height: 36px;
-  padding: 0 18px;
-  border: none;
-  border-radius: 8px;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.leaderboard-submit-btn:hover {
-  background: var(--color-primary-hover);
-}
-
-.reward-banner {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  border-radius: 12px;
-  border: 1px solid;
-}
-
-.reward-banner.is-current {
-  background: #fff5f7;
-  border-color: #ffd1d9;
-}
-
-.reward-banner.is-past {
-  background: #fafafa;
-  border-color: #e8e8e8;
-}
-
-.reward-banner-icon {
-  font-size: 32px;
-  flex-shrink: 0;
-}
-
-.reward-banner-text {
+.leaderboard-main {
   flex: 1;
   min-width: 0;
 }
 
-.reward-banner-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.reward-banner-desc {
-  font-size: 13px;
-  color: #595959;
-}
-
-.my-reward-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  background: #fff5f7;
-  border: 1px solid #ffd1d9;
-  border-radius: 12px;
-}
-
-.my-reward-rank {
-  font-size: 22px;
-  font-weight: 700;
-  color: #ff2442;
-  flex-shrink: 0;
-}
-
-.my-reward-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.my-reward-label {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.my-reward-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.my-reward-amount {
-  font-size: 18px;
-  font-weight: 700;
-  color: #ff2442;
-  flex-shrink: 0;
-}
-
-.leaderboard-top3 {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.leaderboard-top-card {
+/* Hero */
+.leaderboard-hero {
   position: relative;
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 16px;
-  padding: 24px 16px;
+  border-radius: 24px;
+  padding: 32px 24px;
+  margin-bottom: 20px;
+  overflow: hidden;
+  background: linear-gradient(135deg, #fff5e6 0%, #fff0f2 40%, #f3e8ff 100%);
+  box-shadow: 0 10px 40px rgba(255, 36, 66, 0.1);
+}
+
+.leaderboard-hero__copy {
+  position: relative;
+  z-index: 2;
   text-align: center;
 }
 
-.leaderboard-top-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-}
-
-.top-rank {
-  font-size: 28px;
+.leaderboard-hero__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
   font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-}
-
-.top-amount {
-  font-size: 20px;
-  font-weight: 700;
+  letter-spacing: 1px;
   color: #ff2442;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin-bottom: 14px;
+  backdrop-filter: blur(4px);
 }
 
-.top-nickname {
-  font-size: 15px;
+.leaderboard-hero__badge-icon {
+  font-size: 14px;
+}
+
+.leaderboard-hero__title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.leaderboard-hero__subtitle {
+  font-size: 14px;
+  color: #595959;
+  margin: 0 0 16px;
+}
+
+.leaderboard-hero__rules {
+  display: inline-block;
+  font-size: 13px;
+  color: #ff2442;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.leaderboard-hero__rules:hover {
+  color: #e61e3a;
+}
+
+.leaderboard-hero__glow {
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 200, 100, 0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.leaderboard-hero__sparkle {
+  position: absolute;
+  bottom: -40px;
+  left: -40px;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* 周期切换 */
+.leaderboard-period-bar {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  padding: 4px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.leaderboard-period-btn {
+  padding: 8px 24px;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  font-size: 14px;
   font-weight: 500;
   color: #595959;
-  margin-bottom: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-.top-me-tag {
+.leaderboard-period-btn.active {
+  background: #fff;
+  color: #ff2442;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  font-weight: 600;
+}
+
+/* Section 通用 */
+.leaderboard-section {
+  margin-bottom: 28px;
+}
+
+.leaderboard-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.leaderboard-section-tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(135deg, #ff2442 0%, #ff6b81 100%);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
+.leaderboard-section-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+/* 我的排名 */
+.leaderboard-my-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
+  border: 1px solid #ffd1d9;
+  box-shadow: 0 6px 20px rgba(255, 36, 66, 0.08);
+}
+
+.leaderboard-my-card--empty {
+  background: #fff;
+  border-color: #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+.leaderboard-my__rank {
+  text-align: center;
+  min-width: 60px;
+}
+
+.leaderboard-my__rank-num {
+  font-size: 34px;
+  font-weight: 800;
+  color: #ff2442;
+  line-height: 1;
+}
+
+.leaderboard-my__rank-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+
+.leaderboard-my__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.leaderboard-my__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.leaderboard-my__amount {
+  font-size: 14px;
+  color: #595959;
+}
+
+.leaderboard-my__reward {
+  text-align: right;
+}
+
+.leaderboard-my__reward-label {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-bottom: 2px;
+}
+
+.leaderboard-my__reward-value {
+  font-size: 24px;
+  font-weight: 800;
+  color: #ff2442;
+  line-height: 1;
+}
+
+.leaderboard-my__reward--no .leaderboard-my__reward-value {
+  color: #8c8c8c;
+  font-size: 18px;
+}
+
+.leaderboard-my__empty-icon {
+  font-size: 32px;
+}
+
+.leaderboard-my__empty-body {
+  flex: 1;
+}
+
+.leaderboard-my__empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.leaderboard-my__empty-desc {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+
+.leaderboard-my__empty-action {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ff2442;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+/* TOP3 领奖台 */
+.leaderboard-podium {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 12px;
+  padding: 12px 0 0;
+}
+
+.podium-card {
+  position: relative;
+  flex: 1;
+  max-width: 160px;
+  text-align: center;
+  border-radius: 20px;
+  padding: 20px 12px 16px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+}
+
+.podium-card--first {
+  order: 2;
+  padding-top: 28px;
+  padding-bottom: 24px;
+  background: linear-gradient(180deg, #fff9e6 0%, #fff 100%);
+  border-color: #ffe082;
+  box-shadow: 0 8px 28px rgba(255, 193, 7, 0.18);
+  z-index: 2;
+}
+
+.podium-card--second {
+  order: 1;
+  transform: translateY(14px);
+  background: linear-gradient(180deg, #f5f5f5 0%, #fff 100%);
+  border-color: #d9d9d9;
+}
+
+.podium-card--third {
+  order: 3;
+  transform: translateY(24px);
+  background: linear-gradient(180deg, #fff5e6 0%, #fff 100%);
+  border-color: #ffcc80;
+}
+
+.podium-card__crown,
+.podium-card__rank {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+}
+
+.podium-card__crown {
+  font-size: 24px;
+  color: #d48806;
+}
+
+.podium-card__rank {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+  background: #d9d9d9;
+}
+
+.podium-card--second .podium-card__rank {
+  background: linear-gradient(135deg, #bfc0c2 0%, #e8e8e8 100%);
+  color: #595959;
+}
+
+.podium-card--third .podium-card__rank {
+  background: linear-gradient(135deg, #cd7f32 0%, #eebb77 100%);
+}
+
+.podium-card--first .podium-card__crown {
+  font-size: 32px;
+  margin-top: -8px;
+  margin-bottom: 4px;
+  color: #d48806;
+}
+
+.podium-card__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #595959;
+  margin: 0 auto 10px;
+}
+
+.podium-card--first .podium-card__avatar {
+  width: 58px;
+  height: 58px;
+  font-size: 22px;
+  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 193, 7, 0.35);
+}
+
+.podium-card--second .podium-card__avatar {
+  background: linear-gradient(135deg, #bfc0c2 0%, #e8e8e8 100%);
+  color: #fff;
+}
+
+.podium-card--third .podium-card__avatar {
+  background: linear-gradient(135deg, #cd7f32 0%, #eebb77 100%);
+  color: #fff;
+}
+
+.podium-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.podium-card__amount {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ff2442;
+  line-height: 1;
+}
+
+.podium-card__unit {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 2px;
+}
+
+.podium-card__me {
   position: absolute;
   top: 10px;
   left: 10px;
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 600;
   padding: 2px 8px;
   background: #ff2442;
   color: #fff;
   border-radius: 10px;
 }
 
-.leaderboard-reward,
-.top-reward {
-  font-size: 12px;
-  padding: 3px 8px;
-  border-radius: 10px;
-  font-weight: 500;
-}
-
-.top-reward {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-}
-
-.leaderboard-reward.awarded,
-.top-reward.awarded {
-  background: #fff5f7;
-  color: #389e0d;
-}
-
-.leaderboard-reward.pending,
-.top-reward.pending {
-  background: #f5f5f5;
-  color: #8c8c8c;
-}
-
+/* 完整榜单 */
 .leaderboard-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-.leaderboard-item {
+.leaderboard-row {
   display: flex;
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
   background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
+  border-radius: 14px;
+  border: 1px solid #f5f5f5;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
 
-.leaderboard-item.is-me {
-  background: #fff5f7;
+.leaderboard-row.is-me {
+  background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
   border-color: #ffd1d9;
+  box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
 }
 
-.leaderboard-rank {
-  width: 28px;
+.leaderboard-row__rank {
+  width: 32px;
   text-align: center;
+  font-size: 15px;
   font-weight: 700;
   color: #8c8c8c;
+  flex-shrink: 0;
 }
 
-.leaderboard-item.rank-1 .leaderboard-rank { color: #cf1322; }
-.leaderboard-item.rank-2 .leaderboard-rank { color: #d48806; }
-.leaderboard-item.rank-3 .leaderboard-rank { color: #389e0d; }
+.leaderboard-row__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #fff5f7;
+  color: #ff2442;
+  font-size: 13px;
+  font-weight: 700;
+}
 
-.leaderboard-avatar {
-  width: 36px;
-  height: 36px;
+.leaderboard-row.rank-4 .leaderboard-row__badge,
+.leaderboard-row.rank-5 .leaderboard-row__badge,
+.leaderboard-row.rank-6 .leaderboard-row__badge,
+.leaderboard-row.rank-7 .leaderboard-row__badge,
+.leaderboard-row.rank-8 .leaderboard-row__badge,
+.leaderboard-row.rank-9 .leaderboard-row__badge,
+.leaderboard-row.rank-10 .leaderboard-row__badge {
+  background: #fff5f7;
+  color: #ff2442;
+}
+
+.leaderboard-row__avatar {
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: #f5f5f5;
   display: flex;
@@ -796,26 +812,58 @@ async function handleSubmit() {
   justify-content: center;
   font-size: 14px;
   color: #595959;
+  flex-shrink: 0;
 }
 
-.leaderboard-nickname {
+.leaderboard-row__info {
   flex: 1;
-  font-size: 15px;
-  color: #1a1a1a;
+  min-width: 0;
 }
 
-.leaderboard-me-tag {
-  font-size: 11px;
-  padding: 2px 8px;
+.leaderboard-row__name {
+  font-size: 15px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.leaderboard-row__me {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
   background: #ff2442;
   color: #fff;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
-.leaderboard-amount {
+.leaderboard-row__tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #ff2442;
+  background: #fff5f7;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.leaderboard-row__amount {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.leaderboard-row__num {
+  display: block;
   font-size: 16px;
   font-weight: 700;
   color: #ff2442;
+  line-height: 1;
+}
+
+.leaderboard-row__unit {
+  font-size: 11px;
+  color: #8c8c8c;
 }
 
 .leaderboard-empty {
@@ -824,82 +872,172 @@ async function handleSubmit() {
   color: #8c8c8c;
   font-size: 14px;
   background: #fff;
-  border: 1px dashed #d9d9d9;
-  border-radius: 12px;
+  border: 1px dashed #e8e8e8;
+  border-radius: 16px;
 }
 
-.leaderboard-submissions {
-  margin-top: 12px;
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 16px;
+/* PC 端目录侧边栏 */
+.leaderboard-toc-sidebar {
+  width: 200px;
+  flex-shrink: 0;
 }
 
-.leaderboard-submissions-header {
+.leaderboard-toc {
+  position: sticky;
+  top: 88px;
+  max-height: calc(100vh - 112px);
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.leaderboard-toc-title {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.leaderboard-submissions-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a1a;
-}
-
-.leaderboard-submissions-hint {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.leaderboard-submission-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.leaderboard-submission-item {
-  padding: 12px;
-  border-radius: 8px;
-  background: #fafafa;
-  border-left: 3px solid #d9d9d9;
-}
-
-.leaderboard-submission-item.approved {
-  border-left-color: #389e0d;
-  background: #fff5f7;
-}
-
-.leaderboard-submission-item.rejected {
-  border-left-color: #ff4d4f;
-  background: #fff1f0;
-}
-
-.leaderboard-submission-item.pending {
-  border-left-color: #faad14;
-  background: #fffbe6;
-}
-
-.submission-month {
+  gap: 6px;
   font-size: 14px;
   font-weight: 600;
   color: #1a1a1a;
+  margin-bottom: 12px;
+  padding-left: 16px;
 }
 
-.submission-meta {
+.leaderboard-toc-title-icon {
+  font-size: 16px;
+  color: #ff2442;
+}
+
+.leaderboard-toc-track {
+  position: relative;
+  padding-left: 20px;
+}
+
+.leaderboard-toc-track::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: #f0f0f0;
+  border-radius: 1px;
+}
+
+.leaderboard-toc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 5px 8px;
+  margin-left: -20px;
+  padding-left: 0;
+  text-decoration: none;
+  color: #8c8c8c;
   font-size: 13px;
+  line-height: 1.5;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: color 0.2s, background 0.2s;
+  position: relative;
+}
+
+.leaderboard-toc-item:hover {
+  color: #ff2442;
+  background: #fff5f7;
+}
+
+.leaderboard-toc-item.active {
+  color: #ff2442;
+  font-weight: 600;
+}
+
+.leaderboard-toc-item.active .leaderboard-toc-dot {
+  background: #ff2442;
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.15);
+}
+
+.leaderboard-toc-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-top: 5px;
+  transition: all 0.2s;
+}
+
+.leaderboard-toc-text {
+  flex: 1;
+}
+
+/* 移动端目录浮钮 */
+.mobile-toc-btn {
+  display: none;
+  position: fixed;
+  right: 16px;
+  bottom: 80px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  color: #ff2442;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  cursor: pointer;
+  z-index: 99;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mobile-toc-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+
+.mobile-toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mobile-toc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: 8px;
+  text-decoration: none;
   color: #595959;
-  margin-top: 2px;
+  font-size: 14px;
+  line-height: 1.5;
+  transition: background 0.2s, color 0.2s;
 }
 
-.submission-reason {
-  font-size: 12px;
-  color: #ff4d4f;
-  margin-top: 6px;
+.mobile-toc-item:hover,
+.mobile-toc-item.active {
+  background: #fff5f7;
+  color: #ff2442;
 }
 
+.mobile-toc-item.active .mobile-toc-dot {
+  background: #ff2442;
+}
+
+.mobile-toc-dot {
+  width: 8px;
+  height: 8px;
+  min-width: 8px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  margin-top: 5px;
+  transition: background 0.2s;
+}
+
+.mobile-toc-text {
+  flex: 1;
+}
+
+/* 规则说明 */
 .leaderboard-rules-list {
   padding-left: 18px;
   margin: 0;
@@ -925,480 +1063,329 @@ async function handleSubmit() {
   color: #8c8c8c;
 }
 
-.leaderboard-rules-guide-link {
-  margin-top: 12px;
-  font-size: 14px;
-  text-align: right;
-}
-
-.leaderboard-rules-guide-link a {
-  color: #ff2442;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.leaderboard-rules-guide-link a:hover {
-  color: #e61e3a;
-}
-
-.leaderboard-submit-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.form-row {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.form-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1a1a1a;
-}
-
-.form-select,
-.form-input {
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #fff;
-  color: #1a1a1a;
-  transition: border-color 0.2s, box-shadow 0.2s;
-}
-
-.form-input::placeholder {
-  color: #bfbfbf;
-}
-
-.form-input:focus,
-.form-select:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.form-static {
-  height: 40px;
-  padding: 0 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  background: #f5f5f5;
-  color: #595959;
-  display: flex;
-  align-items: center;
-}
-
-.form-label-hint {
-  font-size: 12px;
-  color: #8c8c8c;
-  font-weight: 400;
-  margin-left: 4px;
-}
-
-.form-upload-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.form-upload-item {
-  position: relative;
-  border: 1px dashed #d9d9d9;
-  border-radius: 8px;
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.form-upload {
-  position: relative;
-  border: 1px dashed #d9d9d9;
-  border-radius: 8px;
-  min-height: 100px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-.form-upload-add {
-  background: #fafafa;
-  transition: all 0.2s;
-}
-
-.form-upload-add:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.form-upload-add .form-upload-placeholder {
-  font-size: 28px;
-  font-weight: 300;
-  color: #bfbfbf;
-  transition: color 0.2s;
-}
-
-.form-upload-add:hover .form-upload-placeholder {
-  color: var(--color-primary);
-}
-
-.form-file {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
-  z-index: 1;
-}
-
-.form-upload-placeholder {
-  font-size: 13px;
-  color: #8c8c8c;
-  pointer-events: none;
-}
-
-.form-upload-preview {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.form-upload-remove {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 22px;
-  height: 22px;
-  border: none;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.5);
-  color: #fff;
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 2;
-}
-
-.form-upload-remove:hover {
-  background: rgba(0, 0, 0, 0.7);
-}
-
-.form-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-  margin-top: 4px;
-}
-
-.form-btn {
-  height: 36px;
-  padding: 0 18px;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-
-.form-btn-default {
-  background: #fff;
-  border-color: #d9d9d9;
-  color: #595959;
-}
-
-.form-btn-default:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.form-btn-primary {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-.form-btn-primary:hover {
-  background: var(--color-primary-hover);
-}
-
 /* 移动端适配 */
 @media (max-width: 768px) {
   .leaderboard-page {
-    padding: 16px 12px;
+    padding: 12px;
   }
 
-  .leaderboard-tabs {
+  .leaderboard-layout {
+    display: block;
+  }
+
+  .leaderboard-toc-sidebar {
+    display: none;
+  }
+
+  .mobile-toc-btn {
+    display: flex;
+  }
+
+  .leaderboard-hero {
+    padding: 24px 16px;
+    border-radius: 20px;
+  }
+
+  .leaderboard-hero__title {
+    font-size: 26px;
+  }
+
+  .leaderboard-hero__subtitle {
+    font-size: 13px;
+  }
+
+  .leaderboard-period-bar {
     width: 100%;
+    box-sizing: border-box;
   }
 
-  .leaderboard-tab {
+  .leaderboard-period-btn {
     flex: 1;
+    padding: 8px 0;
   }
 
-  .leaderboard-top3 {
-    grid-template-columns: 1fr;
+  .leaderboard-my-card {
+    padding: 16px;
+    gap: 12px;
   }
 
-  .leaderboard-toolbar {
-    flex-direction: column;
-    align-items: stretch;
+  .leaderboard-my__rank-num {
+    font-size: 28px;
   }
 
-  .leaderboard-toolbar-left {
-    justify-content: space-between;
+  .leaderboard-my__name {
+    font-size: 15px;
   }
 
-  .leaderboard-submit-btn {
-    width: 100%;
+  .leaderboard-my__reward-value {
+    font-size: 20px;
   }
 
-  .leaderboard-item {
-    flex-wrap: wrap;
+  .leaderboard-podium {
     gap: 8px;
+    padding-top: 8px;
   }
 
-  .leaderboard-amount {
-    margin-left: auto;
+  .podium-card {
+    max-width: none;
+    padding: 16px 8px 14px;
+    border-radius: 16px;
   }
 
-  .leaderboard-reward {
-    margin-left: 48px;
+  .podium-card--first {
+    padding-top: 22px;
+    padding-bottom: 20px;
   }
 
-  .leaderboard-submissions-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+  .podium-card--second {
+    transform: translateY(10px);
   }
 
-  .reward-banner {
-    padding: 12px 14px;
-    gap: 10px;
+  .podium-card--third {
+    transform: translateY(18px);
   }
 
-  .reward-banner-icon {
-    font-size: 24px;
+  .podium-card__crown {
+    font-size: 20px;
   }
 
-  .reward-banner-title {
-    font-size: 14px;
+  .podium-card--first .podium-card__crown {
+    font-size: 26px;
   }
 
-  .reward-banner-desc {
+  .podium-card__avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 15px;
+  }
+
+  .podium-card--first .podium-card__avatar {
+    width: 50px;
+    height: 50px;
+    font-size: 18px;
+  }
+
+  .podium-card__name {
     font-size: 12px;
   }
 
-  .my-reward-card {
-    flex-wrap: wrap;
-    padding: 12px 14px;
-    gap: 10px;
+  .podium-card__amount {
+    font-size: 16px;
   }
 
-  .my-reward-amount {
-    margin-left: auto;
+  .leaderboard-row {
+    padding: 12px 14px;
+  }
+
+  .leaderboard-row__rank {
+    width: 28px;
+    font-size: 13px;
+  }
+
+  .leaderboard-row__avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+  }
+
+  .leaderboard-row__name {
+    font-size: 14px;
+  }
+
+  .leaderboard-row__num {
+    font-size: 15px;
   }
 }
 </style>
 
 <style>
-/* 暗色主题：全局覆盖（弹框 teleport 到 body，需非 scoped） */
-
-/* 申报自媒体收入弹框外壳主题色 */
-.leaderboard-submit-modal .ant-modal-content {
-  border-radius: 12px;
-  overflow: hidden;
-  border-top: 3px solid var(--color-primary);
-}
-
-.leaderboard-submit-modal .ant-modal-close:hover {
-  color: var(--color-primary);
-}
+/* 暗色主题：全局覆盖 */
 body[data-theme="dark"] .leaderboard-page {
   background: #141414;
 }
 
-body[data-theme="dark"] .leaderboard-section {
-  background: #141414 !important;
+body[data-theme="dark"] .leaderboard-hero {
+  background: linear-gradient(135deg, #3a2a1a 0%, #3a1f2a 50%, #2a1f3d 100%);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
 }
 
-body[data-theme="dark"] .leaderboard-title,
-body[data-theme="dark"] .form-label,
-body[data-theme="dark"] .submission-month,
-body[data-theme="dark"] .leaderboard-submissions-title,
-body[data-theme="dark"] .top-nickname,
-body[data-theme="dark"] .leaderboard-nickname,
-body[data-theme="dark"] .leaderboard-period-label {
-  color: #e0e0e0;
+body[data-theme="dark"] .leaderboard-hero__badge {
+  background: rgba(30, 30, 30, 0.7);
+  color: #ff6b81;
 }
 
-body[data-theme="dark"] .leaderboard-subtitle,
-body[data-theme="dark"] .leaderboard-submissions-hint,
-body[data-theme="dark"] .submission-meta,
-body[data-theme="dark"] .form-upload-placeholder,
+body[data-theme="dark"] .leaderboard-hero__title,
+body[data-theme="dark"] .leaderboard-section-title,
+body[data-theme="dark"] .leaderboard-my__name,
+body[data-theme="dark"] .leaderboard-row__name,
+body[data-theme="dark"] .leaderboard-empty-title,
+body[data-theme="dark"] .leaderboard-toc-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .leaderboard-hero__subtitle,
+body[data-theme="dark"] .leaderboard-my__amount,
+body[data-theme="dark"] .leaderboard-my__rank-label,
+body[data-theme="dark"] .leaderboard-my__reward-label,
+body[data-theme="dark"] .leaderboard-my__empty-desc,
+body[data-theme="dark"] .podium-card__unit,
+body[data-theme="dark"] .leaderboard-row__unit,
+body[data-theme="dark"] .leaderboard-empty,
+body[data-theme="dark"] .leaderboard-rules-footer {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-hero__rules {
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .leaderboard-hero__rules:hover {
+  color: #ff9c9c;
+}
+
+body[data-theme="dark"] .leaderboard-period-bar {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .leaderboard-period-btn {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .leaderboard-period-btn.active {
+  background: #2a2a2a;
+  color: #ff6b81;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .leaderboard-my-card {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .leaderboard-my-card--empty {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .leaderboard-my__rank-num,
+body[data-theme="dark"] .leaderboard-my__reward-value,
+body[data-theme="dark"] .podium-card__amount,
+body[data-theme="dark"] .leaderboard-row__num {
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .leaderboard-my__reward--no .leaderboard-my__reward-value {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .podium-card {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .podium-card--first {
+  background: linear-gradient(180deg, #3a2a1a 0%, #1f1f1f 100%);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+
+body[data-theme="dark"] .podium-card--second {
+  background: linear-gradient(180deg, #2a2a2a 0%, #1f1f1f 100%);
+}
+
+body[data-theme="dark"] .podium-card--third {
+  background: linear-gradient(180deg, #3a2a1a 0%, #1f1f1f 100%);
+  border-color: rgba(205, 127, 50, 0.3);
+}
+
+body[data-theme="dark"] .leaderboard-row {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .leaderboard-row.is-me {
+  background: rgba(255, 36, 66, 0.08);
+  border-color: rgba(255, 36, 66, 0.25);
+}
+
+body[data-theme="dark"] .leaderboard-row__avatar,
+body[data-theme="dark"] .podium-card__avatar {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .podium-card--first .podium-card__avatar,
+body[data-theme="dark"] .podium-card--second .podium-card__avatar,
+body[data-theme="dark"] .podium-card--third .podium-card__avatar {
+  color: #fff;
+}
+
+body[data-theme="dark"] .leaderboard-row__badge {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .leaderboard-row__tag {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff6b81;
+}
+
 body[data-theme="dark"] .leaderboard-empty {
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .leaderboard-tabs,
-body[data-theme="dark"] .leaderboard-period-tabs {
   background: #1f1f1f;
+  border-color: #2a2a2a;
 }
 
-body[data-theme="dark"] .leaderboard-tab.active,
-body[data-theme="dark"] .leaderboard-period-tab.active {
+body[data-theme="dark"] .leaderboard-toc-track::before {
   background: #2a2a2a;
-  color: #e0e0e0;
-  box-shadow: none;
 }
 
-body[data-theme="dark"] .leaderboard-tab,
-body[data-theme="dark"] .leaderboard-period-tab {
+body[data-theme="dark"] .leaderboard-toc-item {
   color: #8c8c8c;
 }
 
-body[data-theme="dark"] .leaderboard-top-card,
-body[data-theme="dark"] .leaderboard-item,
-body[data-theme="dark"] .leaderboard-submissions,
-body[data-theme="dark"] .form-select,
-body[data-theme="dark"] .form-input,
-body[data-theme="dark"] .leaderboard-select {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .leaderboard-item.is-me {
-  background: rgba(255, 36, 66, 0.08);
-  border-color: rgba(255, 36, 66, 0.25);
-}
-
-body[data-theme="dark"] .leaderboard-top-card.top-1,
-body[data-theme="dark"] .leaderboard-top-card.top-2,
-body[data-theme="dark"] .leaderboard-top-card.top-3 {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-}
-
-body[data-theme="dark"] .leaderboard-top-card .top-rank {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .reward-banner.is-current {
-  background: rgba(255, 36, 66, 0.08);
-  border-color: rgba(255, 36, 66, 0.25);
-}
-
-body[data-theme="dark"] .reward-banner.is-past {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-}
-
-body[data-theme="dark"] .reward-banner-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .leaderboard-reward.pending,
-body[data-theme="dark"] .top-reward.pending {
-  background: #2a2a2a;
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .leaderboard-reward.awarded,
-body[data-theme="dark"] .top-reward.awarded {
-  background: rgba(56, 158, 13, 0.15);
-  color: #b7eb8f;
-}
-
-body[data-theme="dark"] .my-reward-label {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .reward-banner-desc,
-body[data-theme="dark"] .my-reward-desc {
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .my-reward-card {
-  background: rgba(255, 36, 66, 0.08);
-  border-color: rgba(255, 36, 66, 0.25);
-}
-
-body[data-theme="dark"] .top-amount,
-body[data-theme="dark"] .leaderboard-amount {
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .my-reward-rank,
-body[data-theme="dark"] .my-reward-amount {
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .leaderboard-avatar {
-  background: #2a2a2a;
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .leaderboard-empty {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-}
-
-body[data-theme="dark"] .leaderboard-submission-item {
-  background: #141414;
-}
-
-body[data-theme="dark"] .form-upload,
-body[data-theme="dark"] .form-upload-item,
-body[data-theme="dark"] .form-upload-add {
-  border-color: #2a2a2a;
-  background: #1f1f1f;
-}
-
-body[data-theme="dark"] .form-static {
-  background: #141414;
-  border-color: #2a2a2a;
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .form-label-hint {
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .form-btn-default {
-  background: #1f1f1f;
-  border-color: #2a2a2a;
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .form-btn-default:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .form-input:focus,
-body[data-theme="dark"] .form-select:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 77, 111, 0.2);
-}
-
-body[data-theme="dark"] .form-upload-add:hover {
-  border-color: var(--color-primary);
+body[data-theme="dark"] .leaderboard-toc-item:hover {
+  color: #ff6b81;
   background: rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .form-upload-add:hover .form-upload-placeholder {
+body[data-theme="dark"] .leaderboard-toc-item.active {
   color: #ff6b81;
+}
+
+body[data-theme="dark"] .leaderboard-toc-item.active .leaderboard-toc-dot {
+  background: #ff6b81;
+  box-shadow: 0 0 0 3px rgba(255, 77, 111, 0.2);
+}
+
+body[data-theme="dark"] .leaderboard-toc-dot {
+  background: #595959;
+}
+
+body[data-theme="dark"] .leaderboard-toc-title-icon {
+  color: #ff6b81;
+}
+
+body[data-theme="dark"] .mobile-toc-btn {
+  background: #1f1f1f;
+  color: #ff6b81;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body[data-theme="dark"] .mobile-toc-item {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+body[data-theme="dark"] .mobile-toc-item:hover,
+body[data-theme="dark"] .mobile-toc-item.active {
+  color: #ff6b81;
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .mobile-toc-item.active .mobile-toc-dot {
+  background: #ff6b81;
+}
+
+body[data-theme="dark"] .mobile-toc-dot {
+  background: #595959;
 }
 
 body[data-theme="dark"] .leaderboard-rules-list {
@@ -1406,42 +1393,28 @@ body[data-theme="dark"] .leaderboard-rules-list {
 }
 
 body[data-theme="dark"] .leaderboard-rules-highlight {
-  color: #ff4d6f;
+  color: #ff6b81;
 }
 
 body[data-theme="dark"] .leaderboard-rules-footer {
   border-top-color: #2a2a2a;
-  color: #8c8c8c;
-}
-
-body[data-theme="dark"] .leaderboard-rules-guide-link a {
-  color: #ff4d6f;
-}
-
-body[data-theme="dark"] .leaderboard-rules-guide-link a:hover {
-  color: #ff9c9c;
 }
 
 body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-content,
-body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-content,
-body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-header,
-body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-header {
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-header {
   background: #1f1f1f;
   border-color: #2a2a2a;
 }
 
-body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-title,
-body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-title {
-  color: #e0e0e0;
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-title {
+  color: #f0f0f0;
 }
 
-body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close,
-body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-close {
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close {
   color: #8c8c8c;
 }
 
-body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close:hover,
-body[data-theme="dark"] .leaderboard-submit-modal .ant-modal-close:hover {
+body[data-theme="dark"] .leaderboard-rules-modal .ant-modal-close:hover {
   color: #ff2442;
 }
 </style>

@@ -78,7 +78,7 @@
 
       <div class="skill-detail-footer">
         <div class="skill-detail-footer-meta">
-          <span v-if="skill.createdAt">发布于 {{ formatTimeAgo(skill.createdAt) }}</span>
+          <span v-if="skill.approvedAt || skill.createdAt">发布于 {{ formatTimeAgo(skill.approvedAt || skill.createdAt) }}</span>
           <span v-else>提示词市场</span>
         </div>
         <div class="skill-detail-footer-actions">

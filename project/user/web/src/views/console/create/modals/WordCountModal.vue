@@ -238,12 +238,14 @@ const cancelCustom = () => {
   position: absolute;
   top: 2px;
   right: 4px;
+  z-index: 10;
   padding: 1px 6px;
   border-radius: 10px;
   font-size: 10px;
   font-weight: 600;
   line-height: 1.4;
   pointer-events: none;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
 }
 
 .wc-badge.pro {
@@ -253,12 +255,13 @@ const cancelCustom = () => {
 
 .wc-badge.flagship {
   color: #fff;
-  background: linear-gradient(135deg, #ffd591, #ff7a45);
+  background: linear-gradient(135deg, #a05013, #db3708);
+  box-shadow: 0 2px 6px rgba(219, 55, 8, 0.45);
+  z-index: 11;
 }
 
 .wc-item.disabled,
 .wc-item-wide.disabled {
-  opacity: 0.55;
   cursor: not-allowed;
   background: #f5f5f5;
   border-color: #e8e8e8;
@@ -268,6 +271,15 @@ const cancelCustom = () => {
 .wc-item-wide.disabled:hover {
   border-color: #e8e8e8;
   background: #f5f5f5;
+}
+
+.wc-item.disabled .wc-count,
+.wc-item-wide.disabled .wc-count,
+.wc-item.disabled .wc-label,
+.wc-item-wide.disabled .wc-label,
+.wc-item.disabled .wc-desc,
+.wc-item-wide.disabled .wc-desc {
+  opacity: 0.55;
 }
 
 .wc-count {
@@ -525,6 +537,14 @@ body[data-theme="dark"] .wc-item.disabled,
 body[data-theme="dark"] .wc-item-wide.disabled {
   background: #2a2a2a;
   border-color: #303030;
+}
+
+body[data-theme="dark"] .wc-item.disabled .wc-count,
+body[data-theme="dark"] .wc-item-wide.disabled .wc-count,
+body[data-theme="dark"] .wc-item.disabled .wc-label,
+body[data-theme="dark"] .wc-item-wide.disabled .wc-label,
+body[data-theme="dark"] .wc-item.disabled .wc-desc,
+body[data-theme="dark"] .wc-item-wide.disabled .wc-desc {
   opacity: 0.45;
 }
 

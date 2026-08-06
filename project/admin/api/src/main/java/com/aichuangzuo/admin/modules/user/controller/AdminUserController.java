@@ -183,6 +183,16 @@ public class AdminUserController {
         return Result.success();
     }
 
+    @Operation(summary = "释放用户提示词市场发布额度")
+    @PostMapping("/{id}/published-skills/release-quota")
+    public Result<Void> releasePublishSkillQuota(
+            @PathVariable(name = "id") Long id,
+            @Valid @RequestBody ResetCustomSkillQuotaRequest request) {
+        checkSuperAdmin();
+        adminUserService.releasePublishSkillQuota(id, request);
+        return Result.success();
+    }
+
     @Operation(summary = "查询用户收藏的提示词列表")
     @GetMapping("/{id}/favorite-skills")
     public Result<List<AdminUserFavoriteSkillVO>> listUserFavoriteSkills(

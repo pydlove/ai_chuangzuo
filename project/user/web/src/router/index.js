@@ -70,11 +70,6 @@ const routes = [
         component: () => import('@/views/console/SkillMarketIndex.vue')
       },
       {
-        path: 'skill-market/rank',
-        name: 'ConsoleSkillMarketRank',
-        component: () => import('@/views/console/SkillMarketRankIndex.vue')
-      },
-      {
         path: 'earnings',
         name: 'ConsoleEarnings',
         component: () => import('@/views/console/EarningsIndex.vue')

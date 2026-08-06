@@ -7,11 +7,12 @@ import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
+import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
+import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
-import com.aichuangzuo.user.modules.skill.market.config.mapper.SkillMonthlyRewardConfigMapper;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
@@ -57,9 +58,6 @@ class UserSkillServiceImplTest {
     @Mock
     private SkillMarketMapper skillMarketMapper;
 
-    @Mock
-    private SkillMonthlyRewardConfigMapper rewardConfigMapper;
-
     @InjectMocks
     private UserSkillServiceImpl userSkillService;
 
@@ -85,7 +83,7 @@ class UserSkillServiceImplTest {
         existing.setAuditStatus(2);
         existing.setRejectReason("过于宽泛");
 
-        when(userSkillMapper.selectOne(any())).thenReturn(existing);
+        when(userSkillMapper.selectOne(any())).thenReturn(existing, (UserSkill) null);
 
         UpdateSkillRequest request = new UpdateSkillRequest();
         request.setSkillName("新名称");
@@ -118,7 +116,6 @@ class UserSkillServiceImplTest {
 
         when(userSkillMapper.selectOne(any())).thenReturn(existing);
         when(skillMarketMapper.selectByBizNoIncludeDeleted(any())).thenReturn(null);
-        when(rewardConfigMapper.selectById(any())).thenReturn(null);
 
         userSkillService.publishSkill("S123");
 
@@ -180,6 +177,53 @@ class UserSkillServiceImplTest {
         userSkillService.incrementUseCount(1L, "不存在");
 
         verify(userSkillMapper, never()).update(isNull(), any(UpdateWrapper.class));
+    }
+
+    @Test
+    void createSkill_duplicateNameGlobally_throwsSkillNameExists() {
+        UserSkill existing = new UserSkill();
+        existing.setId(1L);
+        existing.setUserId(10002L);
+        existing.setSkillName("重复名称");
+        existing.setSourceType(1);
+
+        when(userSkillMapper.selectOne(any())).thenReturn(existing);
+
+        CreateSkillRequest request = new CreateSkillRequest();
+        request.setSkillName("重复名称");
+        request.setPrompt("prompt");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> userSkillService.createSkill(request));
+        assertEquals(SkillErrorCode.SKILL_NAME_EXISTS.getCode(), ex.getCode());
+    }
+
+    @Test
+    void updateSkill_duplicateNameOwnedByAnotherUser_throwsSkillNameExists() {
+        UserSkill existing = new UserSkill();
+        existing.setId(1L);
+        existing.setBizNo("S123");
+        existing.setUserId(10001L);
+        existing.setSkillName("旧名称");
+        existing.setPrompt("旧提示词");
+        existing.setScope("旧标签");
+
+        UserSkill duplicate = new UserSkill();
+        duplicate.setId(2L);
+        duplicate.setUserId(10002L);
+        duplicate.setSkillName("新名称");
+        duplicate.setSourceType(1);
+
+        when(userSkillMapper.selectOne(any())).thenReturn(existing, duplicate);
+
+        UpdateSkillRequest request = new UpdateSkillRequest();
+        request.setSkillName("新名称");
+        request.setPrompt("新提示词");
+        request.setScope("新标签");
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> userSkillService.updateSkill("S123", request));
+        assertEquals(SkillErrorCode.SKILL_NAME_EXISTS.getCode(), ex.getCode());
     }
 
     @Test

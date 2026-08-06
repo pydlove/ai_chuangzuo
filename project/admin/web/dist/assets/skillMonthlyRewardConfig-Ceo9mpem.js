@@ -1,1 +1,0 @@
-import{r as t}from"./request-DA07OS_O.js";const l=()=>t.get("/skill-market/monthly-reward-config").then(e=>e.data),s=e=>t.put("/skill-market/monthly-reward-config",e).then(a=>a.data),i=()=>t.get("/skill-market/price-per-use").then(e=>e.data),n=e=>t.put("/skill-market/price-per-use",{pricePerUse:e}).then(a=>a.data);export{s as a,l as b,i as g,n as u};

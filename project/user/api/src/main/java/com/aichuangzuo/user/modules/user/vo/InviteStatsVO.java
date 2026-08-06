@@ -18,8 +18,8 @@ public class InviteStatsVO {
     /** 累计有效邀请人数。 */
     private Integer invitedCount;
 
-    /** 累计获得的会员天数奖励。 */
-    private Integer membershipDaysEarned;
+    /** 累计获得的邀请阶梯奖励创作币。 */
+    private Integer inviteCoinEarned;
 
     /** 累计获得的创作币返利（仅邀请人所得，不含被邀请人注册奖励）。 */
     private BigDecimal coinEarned;

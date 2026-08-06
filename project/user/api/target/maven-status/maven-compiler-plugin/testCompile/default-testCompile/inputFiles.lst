@@ -27,6 +27,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/membership/service/MembershipServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/message/service/MessageServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/market/controller/SkillUsageInternalControllerTest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/market/service/SkillMarketUsageServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/market/service/SkillUsageRecordServiceTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/service/SkillAnalyzeServiceImplTest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/test/java/com/aichuangzuo/user/modules/skill/service/UserSkillServiceTest.java

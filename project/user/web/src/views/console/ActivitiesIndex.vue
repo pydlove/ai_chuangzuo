@@ -72,6 +72,57 @@
             </svg>
           </div>
         </router-link>
+
+        <router-link to="/console/leaderboard" class="activity-card activity-card--leaderboard">
+          <div class="activity-card__bg" aria-hidden="true"></div>
+          <div class="activity-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
+              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+              <path d="M4 22h16"/>
+              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+            </svg>
+          </div>
+          <div class="activity-card__body">
+            <div class="activity-card__title">收益排行榜</div>
+            <p class="activity-card__desc">查看平台创作者收益排名，了解头部变现趋势</p>
+            <div class="activity-card__stats">
+              <span class="activity-card__stats-label">周榜 · 月榜 · 总榜</span>
+            </div>
+          </div>
+          <div class="activity-card__arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </router-link>
+
+        <router-link to="/console/invite" class="activity-card activity-card--invite">
+          <div class="activity-card__bg" aria-hidden="true"></div>
+          <div class="activity-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="10" rx="1"/>
+              <line x1="12" y1="11" x2="12" y2="21"/>
+              <path d="M6 11a3 3 0 0 1 3-3 3 3 0 0 1 3 3"/>
+              <path d="M18 11a3 3 0 0 0-3-3 3 3 0 0 0-3 3"/>
+              <line x1="3" y1="15" x2="21" y2="15"/>
+            </svg>
+          </div>
+          <div class="activity-card__body">
+            <div class="activity-card__title">邀请有礼</div>
+            <p class="activity-card__desc">邀请好友加入，双方均可获得会员天数和创作币返利</p>
+            <div class="activity-card__stats">
+              <span class="activity-card__stats-label">邀请 3 人得 3 天会员</span>
+            </div>
+          </div>
+          <div class="activity-card__arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </router-link>
       </div>
     </section>
 
@@ -298,6 +349,14 @@ onMounted(async () => {
   background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
 }
 
+.activity-card--leaderboard .activity-card__bg {
+  background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
+}
+
+.activity-card--invite .activity-card__bg {
+  background: linear-gradient(135deg, #fff7f0 0%, #fff0e6 100%);
+}
+
 .activity-card--academy .activity-card__bg {
   background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
 }
@@ -331,6 +390,16 @@ onMounted(async () => {
 .activity-card--market .activity-card__icon {
   background: linear-gradient(135deg, #fff0f2 0%, #ffe4e8 100%);
   color: #ff2442;
+}
+
+.activity-card--leaderboard .activity-card__icon {
+  background: linear-gradient(135deg, #fff0f2 0%, #ffe4e8 100%);
+  color: #ff2442;
+}
+
+.activity-card--invite .activity-card__icon {
+  background: linear-gradient(135deg, #fff7f0 0%, #ffe8d6 100%);
+  color: #fa8c16;
 }
 
 .activity-card--academy .activity-card__icon {
@@ -382,6 +451,16 @@ onMounted(async () => {
 .activity-card--market .activity-card__stats {
   background: rgba(255, 36, 66, 0.08);
   color: #ff2442;
+}
+
+.activity-card--leaderboard .activity-card__stats {
+  background: rgba(255, 36, 66, 0.08);
+  color: #ff2442;
+}
+
+.activity-card--invite .activity-card__stats {
+  background: rgba(250, 140, 22, 0.08);
+  color: #fa8c16;
 }
 
 .activity-card__stats-num {

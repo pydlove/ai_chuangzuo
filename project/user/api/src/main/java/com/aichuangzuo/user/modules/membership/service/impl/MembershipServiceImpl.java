@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.aichuangzuo.user.modules.membership.dto.request.SubscribePreviewRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.SubscribeRequest;
 import com.aichuangzuo.user.modules.membership.dto.request.UpgradePreviewRequest;
 import com.aichuangzuo.user.modules.membership.entity.Order;
@@ -23,6 +24,7 @@ import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
+import com.aichuangzuo.user.modules.membership.vo.SubscribePreviewVO;
 import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
@@ -52,6 +54,7 @@ public class MembershipServiceImpl implements MembershipService {
     private static final String TEST_PAY_CODE = "123456";
     private static final String ORDER_NO_PREFIX = "SUB";
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
+    private static final String COIN_BIZ_TYPE_SUBSCRIBE_DISCOUNT = "subscribe_coin_discount";
     private static final int EFFECTIVE_STATUS = 1;
 
     private static final BigDecimal FIRST_PURCHASE_RATE = new BigDecimal("0.10");
@@ -89,32 +92,54 @@ public class MembershipServiceImpl implements MembershipService {
             throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
         }
 
-        boolean upgrade = isUpgrade(userId, plan);
+        boolean upgrade = isUpgrade(userId, plan, cycle);
         if (upgrade) {
             validateUpgradeCycle(userId, request.getCycle());
         }
         BigDecimal expectedAmount = resolveExpectedAmount(userId, plan.getKey(), cycle.getCode(), upgrade);
+        BigDecimal requestedCoinAmount = request.getCoinAmount() == null ? BigDecimal.ZERO : request.getCoinAmount();
+        validateCoinAmount(requestedCoinAmount);
+
+        BigDecimal coinBalance = coinRecordService.getBalance(userId);
+        long maxCoinAmount = calculateMaxCoinAmount(expectedAmount, coinBalance);
+        if (requestedCoinAmount.compareTo(BigDecimal.valueOf(maxCoinAmount)) > 0) {
+            throw new BusinessException(MembershipErrorCode.INVALID_COIN_AMOUNT);
+        }
+
+        BigDecimal coinDiscountYuan = requestedCoinAmount.divide(COIN_TO_YUAN_RATIO, 2, RoundingMode.HALF_UP);
+        BigDecimal finalCashAmount = expectedAmount.subtract(coinDiscountYuan).max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
         if (request.getAmount() == null ||
-                request.getAmount().subtract(expectedAmount).abs().compareTo(AMOUNT_TOLERANCE) > 0) {
+                request.getAmount().subtract(finalCashAmount).abs().compareTo(AMOUNT_TOLERANCE) > 0) {
             throw new BusinessException(MembershipErrorCode.INVALID_AMOUNT);
         }
 
-        Order order = createPaidOrder(userId, plan, cycle, expectedAmount);
+        Order order = createPaidOrder(userId, plan, cycle, finalCashAmount,
+                requestedCoinAmount.longValue(), coinDiscountYuan);
         UserMembership membership = activateOrExtendMembership(userId, plan, cycle, upgrade);
+
+        if (requestedCoinAmount.compareTo(BigDecimal.ZERO) > 0) {
+            spendCoinDiscount(userId, order);
+        }
 
         sendSubscriptionNotification(userId, plan, membership);
         boolean rewarded = rewardInviter(userId, plan, order);
 
-        log.info("会员订阅成功 userId={}, orderNo={}, level={}, days={}",
-                userId, order.getOrderNo(), plan.getKey(), cycle.getDays());
+        log.info("会员订阅成功 userId={}, orderNo={}, level={}, days={}, coinAmount={}, cashAmount={}",
+                userId, order.getOrderNo(), plan.getKey(), cycle.getDays(),
+                order.getCoinAmount(), order.getAmount());
 
         SubscribeResultVO vo = new SubscribeResultVO();
         vo.setOrderNo(order.getOrderNo());
         vo.setLevel(plan.getKey());
+        vo.setCycle(cycle.getCode());
         vo.setDays(cycle.getDays());
         vo.setExpiresAt(membership.getExpiresAt().format(DateTimeFormatter.ISO_LOCAL_DATE));
         vo.setInviterRewarded(rewarded);
-        vo.setRewardAmount(rewarded ? calculateInviteReward(order.getAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
+        vo.setRewardAmount(rewarded ? calculateInviteReward(order.getTotalAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
+        vo.setCoinAmount(order.getCoinAmount());
+        vo.setCoinDiscountYuan(order.getCoinDiscount());
+        vo.setCashAmount(order.getAmount());
         return vo;
     }
 
@@ -147,6 +172,21 @@ public class MembershipServiceImpl implements MembershipService {
         return basePrice;
     }
 
+    private void validateCoinAmount(BigDecimal coinAmount) {
+        if (coinAmount == null) {
+            return;
+        }
+        if (coinAmount.compareTo(BigDecimal.ZERO) < 0 || coinAmount.stripTrailingZeros().scale() > 0) {
+            throw new BusinessException(MembershipErrorCode.INVALID_COIN_AMOUNT);
+        }
+    }
+
+    private long calculateMaxCoinAmount(BigDecimal cashAmount, BigDecimal coinBalance) {
+        long maxByCash = cashAmount.multiply(COIN_TO_YUAN_RATIO).setScale(0, RoundingMode.FLOOR).longValue();
+        long maxByBalance = coinBalance.setScale(0, RoundingMode.FLOOR).longValue();
+        return Math.min(Math.max(maxByCash, 0), Math.max(maxByBalance, 0));
+    }
+
     private BigDecimal resolveCyclePrice(Plan plan, String cycleCode) {
         BigDecimal basePrice;
         if ("month".equals(cycleCode)) {
@@ -175,14 +215,25 @@ public class MembershipServiceImpl implements MembershipService {
 
     /**
      * 判断目标套餐是否高于当前有效套餐（升级）。
+     * 套餐等级更高，或同套餐但周期更长，均视为升级。
      */
-    private boolean isUpgrade(Long userId, MembershipPlan targetPlan) {
+    private boolean isUpgrade(Long userId, MembershipPlan targetPlan, MembershipCycle targetCycle) {
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
         if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
             return false;
         }
         MembershipPlan currentPlan = MembershipPlan.of(membership.getLevel());
-        return currentPlan != null && targetPlan.getRank() > currentPlan.getRank();
+        if (currentPlan == null) {
+            return false;
+        }
+        if (targetPlan.getRank() > currentPlan.getRank()) {
+            return true;
+        }
+        if (targetPlan.getRank() == currentPlan.getRank()) {
+            MembershipCycle currentCycle = MembershipCycle.of(getCurrentMembershipCycle(userId));
+            return currentCycle != null && targetCycle.getRank() > currentCycle.getRank();
+        }
+        return false;
     }
 
     /**
@@ -275,8 +326,13 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     private void validateUpgradeCycle(Long userId, String requestCycle) {
-        String currentCycle = getCurrentMembershipCycle(userId);
-        if (currentCycle != null && !currentCycle.equals(requestCycle)) {
+        String currentCycleCode = getCurrentMembershipCycle(userId);
+        if (currentCycleCode == null) {
+            return;
+        }
+        MembershipCycle currentCycle = MembershipCycle.of(currentCycleCode);
+        MembershipCycle targetCycle = MembershipCycle.of(requestCycle);
+        if (currentCycle != null && targetCycle != null && targetCycle.getRank() < currentCycle.getRank()) {
             throw new BusinessException(MembershipErrorCode.UPGRADE_CYCLE_MISMATCH);
         }
     }
@@ -304,7 +360,7 @@ public class MembershipServiceImpl implements MembershipService {
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
         boolean hasActive = membership != null && !membership.getExpiresAt().isBefore(LocalDate.now());
         MembershipPlan currentPlan = hasActive ? MembershipPlan.of(membership.getLevel()) : null;
-        boolean upgrade = currentPlan != null && targetPlan.getRank() > currentPlan.getRank();
+        boolean upgrade = isUpgrade(userId, targetPlan, targetCycle);
 
         BigDecimal originalPrice = resolveCyclePrice(plan, targetCycle.getCode());
         BigDecimal creditAmount = upgrade ? calculateCredit(userId, membership) : BigDecimal.ZERO;
@@ -329,6 +385,51 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setTargetDays(targetCycle.getDays());
         vo.setNewExpiresAt(LocalDate.now().plusDays(targetCycle.getDays())
                 .format(DateTimeFormatter.ISO_LOCAL_DATE));
+
+        BigDecimal coinBalance = coinRecordService.getBalance(userId);
+        vo.setCoinBalance(coinBalance);
+        vo.setMaxCoinAmount(calculateMaxCoinAmount(finalPrice, coinBalance));
+        vo.setCoinToYuanRatio(COIN_TO_YUAN_RATIO.intValue());
+        return vo;
+    }
+
+    @Override
+    public SubscribePreviewVO previewSubscribe(Long userId, SubscribePreviewRequest request) {
+        MembershipPlan targetPlan = MembershipPlan.of(request.getPlanKey());
+        if (targetPlan == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
+        }
+        MembershipCycle targetCycle = MembershipCycle.of(request.getCycle());
+        if (targetCycle == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_CYCLE);
+        }
+
+        Plan plan = planMapper.selectOne(new LambdaQueryWrapper<Plan>()
+                .eq(Plan::getPlanKey, targetPlan.getKey())
+                .eq(Plan::getStatus, EFFECTIVE_STATUS));
+        if (plan == null) {
+            throw new BusinessException(MembershipErrorCode.INVALID_PLAN_KEY);
+        }
+
+        boolean upgrade = isUpgrade(userId, targetPlan, targetCycle);
+        if (upgrade) {
+            validateUpgradeCycle(userId, request.getCycle());
+        }
+        BigDecimal originalPrice = resolveCyclePrice(plan, targetCycle.getCode());
+        BigDecimal expectedAmount = resolveExpectedAmount(userId, targetPlan.getKey(), targetCycle.getCode(), upgrade);
+        BigDecimal creditAmount = upgrade ? calculateCredit(userId) : BigDecimal.ZERO;
+
+        SubscribePreviewVO vo = new SubscribePreviewVO();
+        vo.setPlanKey(targetPlan.getKey());
+        vo.setCycle(targetCycle.getCode());
+        vo.setOriginalPrice(originalPrice);
+        vo.setCreditAmount(creditAmount);
+        vo.setFinalPrice(expectedAmount);
+
+        BigDecimal coinBalance = coinRecordService.getBalance(userId);
+        vo.setCoinBalance(coinBalance);
+        vo.setMaxCoinAmount(calculateMaxCoinAmount(expectedAmount, coinBalance));
+        vo.setCoinToYuanRatio(COIN_TO_YUAN_RATIO.intValue());
         return vo;
     }
 
@@ -366,13 +467,17 @@ public class MembershipServiceImpl implements MembershipService {
         }
     }
 
-    private Order createPaidOrder(Long userId, MembershipPlan plan, MembershipCycle cycle, BigDecimal amount) {
+    private Order createPaidOrder(Long userId, MembershipPlan plan, MembershipCycle cycle,
+                                  BigDecimal cashAmount, Long coinAmount, BigDecimal coinDiscountYuan) {
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
         order.setPlanKey(plan.getKey());
         order.setCycle(cycle.getCode());
-        order.setAmount(amount);
+        order.setAmount(cashAmount);
+        order.setCoinAmount(coinAmount);
+        order.setCoinDiscount(coinDiscountYuan);
+        order.setTotalAmount(cashAmount.add(coinDiscountYuan));
         order.setStatus(1);
         order.setPaidAt(LocalDateTime.now());
         order.setTenantId(0L);
@@ -384,6 +489,28 @@ public class MembershipServiceImpl implements MembershipService {
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String random = String.format("%06d", ThreadLocalRandom.current().nextInt(1_000_000));
         return ORDER_NO_PREFIX + date + random;
+    }
+
+    private void spendCoinDiscount(Long userId, Order order) {
+        if (order.getCoinAmount() == null || order.getCoinAmount() <= 0) {
+            return;
+        }
+        Long existing = userCoinRecordMapper.selectCount(
+                new LambdaQueryWrapper<UserCoinRecord>()
+                        .eq(UserCoinRecord::getUserId, userId)
+                        .eq(UserCoinRecord::getBizType, COIN_BIZ_TYPE_SUBSCRIBE_DISCOUNT)
+                        .eq(UserCoinRecord::getRefId, order.getId().toString()));
+        if (existing != null && existing > 0) {
+            log.warn("订阅创作币抵扣已扣减，跳过 userId={}, orderId={}", userId, order.getId());
+            return;
+        }
+        String planName = planLookupService.getDisplayName(order.getPlanKey());
+        String remark = String.format("订阅 %s %s 抵扣 %d 创作币",
+                planName, order.getCycle(), order.getCoinAmount());
+        coinRecordService.spend(userId, COIN_BIZ_TYPE_SUBSCRIBE_DISCOUNT,
+                BigDecimal.valueOf(order.getCoinAmount()), order.getId().toString(), remark);
+        earningsService.recordCoinDiscountEarnings(userId, order.getId().toString(),
+                order.getPlanKey(), planName, order.getCycle(), BigDecimal.valueOf(order.getCoinAmount()));
     }
 
     private UserMembership activateOrExtendMembership(Long userId, MembershipPlan plan, MembershipCycle cycle, boolean upgrade) {
@@ -444,7 +571,7 @@ public class MembershipServiceImpl implements MembershipService {
 
         boolean firstPurchase = isFirstPurchase(userId, order.getId());
         BigDecimal rate = firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE;
-        BigDecimal reward = order.getAmount().multiply(rate).multiply(COIN_TO_YUAN_RATIO).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal reward = calculateInviteReward(order.getTotalAmount(), firstPurchase);
 
         User invitee = userMapper.selectById(userId);
         String inviteeName = invitee == null ? "好友" : (invitee.getNickname() == null ? "好友" : invitee.getNickname());
@@ -456,7 +583,7 @@ public class MembershipServiceImpl implements MembershipService {
 
         String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         earningsService.recordInviteRewardEarnings(inviterId, userId, plan.getKey(), planName,
-                order.getCycle(), order.getAmount(), firstPurchase, rate, reward, settlementMonth);
+                order.getCycle(), order.getTotalAmount(), firstPurchase, rate, reward, settlementMonth);
         return true;
     }
 

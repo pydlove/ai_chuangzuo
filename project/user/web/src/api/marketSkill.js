@@ -8,6 +8,7 @@ function normalizeRow(s) {
     name: s.name,
     sourceType: s.sourceType,
     description: s.description || s.desc || '',
+    desc: s.description || s.desc || '',
     promptSummary: s.promptSummary || '',
     creatorId: s.creatorId,
     creatorName: s.creatorName,
@@ -21,11 +22,9 @@ function normalizeRow(s) {
     totalUses: s.totalUses,
     weeklyEarnings: s.weeklyEarnings,
     milestoneBonus: s.milestoneBonus,
-    monthlyUses: s.monthlyUses,
-    monthlyEarnings: s.monthlyEarnings,
-    leaderboardReward: s.leaderboardReward,
     featured: s.featured === true,
     lastSettlementAt: s.lastSettlementAt,
+    approvedAt: s.approvedAt,
     createdAt: s.createdAt
   }
 }
@@ -36,17 +35,7 @@ function normalizeOverview(data) {
     approvedCount: data.approvedCount || 0,
     totalUses: data.totalUses || 0,
     totalEarnings: data.totalEarnings || 0,
-    featuredSkills: (data.featuredSkills || []).map(normalizeRow),
-    topCreators: (data.topCreators || []).map((c) => ({
-      creatorId: c.creatorId,
-      creatorName: c.creatorName,
-      weeklyEarnings: c.weeklyEarnings || 0,
-      weeklyUses: c.weeklyUses || 0,
-      monthlyEarnings: c.monthlyEarnings || 0,
-      monthlyUses: c.monthlyUses || 0,
-      totalEarnings: c.totalEarnings || 0,
-      bestSkill: c.bestSkill ? normalizeRow(c.bestSkill) : null
-    }))
+    featuredSkills: (data.featuredSkills || []).map(normalizeRow)
   }
 }
 
@@ -62,7 +51,7 @@ export function getMarketSkills() {
 }
 
 /**
- * 获取提示词市场概览（统计、官方精选、收益潜力榜）。
+ * 获取提示词市场概览（统计、官方精选）。
  * @returns {Promise<Object>}
  */
 export function getMarketSkillOverview() {
@@ -80,42 +69,6 @@ export function getFavoriteSkills() {
   return api.get('/market-skills/favorites').then((res) => {
     const data = res.data || res || []
     return Array.isArray(data) ? data.map(normalizeRow) : []
-  })
-}
-
-function normalizeRewardConfig(data) {
-  if (!data) return null
-  return {
-    firstAmount: Number(data.firstAmount || 0),
-    secondAmount: Number(data.secondAmount || 0),
-    thirdAmount: Number(data.thirdAmount || 0),
-    fourthAmount: Number(data.fourthAmount || 0),
-    fifthAmount: Number(data.fifthAmount || 0),
-    pricePerUse: Number(data.pricePerUse || 2),
-    enabled: data.enabled === 1
-  }
-}
-
-/**
- * 获取提示词市场月度排行榜奖励配置。
- * @returns {Promise<Object|null>}
- */
-export function getMarketSkillMonthlyRewardConfig() {
-  return api.get('/market-skills/monthly-reward-config').then((res) => {
-    const data = res.data || res
-    return normalizeRewardConfig(data)
-  })
-}
-
-/**
- * 获取提示词市场单次使用收益单价。
- * @returns {Promise<number>}
- */
-export function getMarketSkillPricePerUse() {
-  return api.get('/market-skills/price-per-use').then((res) => {
-    const data = res.data ?? res
-    const value = Number(data)
-    return Number.isFinite(value) && value > 0 ? value : 2
   })
 }
 

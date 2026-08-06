@@ -6,6 +6,26 @@ import { sendEmailCode, register as registerApi, login as loginApi } from '@/api
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+// 用户作用域的本地缓存：换账号时一并清空，避免上一个账号的草稿/会员/收益等残留
+const USER_ID_KEY = 'aichuangzuo_user_id'
+const USER_SCOPED_KEYS = [
+  'aichuangzuo_user_id',
+  'aichuangzuo_membership',
+  'aichuangzuo_newcomer_modal_dismissed',
+  'aichuangzuo_newcomer_banner_dismissed',
+  'aichuangzuo_invite_modal_dismissed',
+  'aichuangzuo_current_article',
+  'aichuangzuo_drafts',
+  'aichuangzuo_create_form',
+  'aichuangzuo_create_mode',
+  'aichuangzuo_create_last_skill',
+  'aichuangzuo_earnings_records',
+  'aichuangzuo_coin_balance',
+  'aichuangzuo_redeem_codes',
+  'aichuangzuo_redeem_history',
+  'aichuangzuo_withdraw_agreement_accepted'
+]
+
 export function useLogin() {
   const router = useRouter()
 
@@ -117,11 +137,17 @@ export function useLogin() {
   }
 
   const persistTokens = (data) => {
+    const prevUserId = localStorage.getItem(USER_ID_KEY)
+    const newUserId = data.user?.id != null ? String(data.user.id) : null
+    // 切换账号才清用户作用域缓存；同账号重登保留草稿/会员/收益等
+    if (newUserId && prevUserId && prevUserId !== newUserId) {
+      USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key))
+    }
     localStorage.setItem('aichuangzuo_access_token', data.accessToken)
     localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
-    localStorage.removeItem('aichuangzuo_membership')
-    localStorage.removeItem('aichuangzuo_newcomer_modal_dismissed')
-    localStorage.removeItem('aichuangzuo_invite_modal_dismissed')
+    if (newUserId) {
+      localStorage.setItem(USER_ID_KEY, newUserId)
+    }
   }
 
   const handleLogin = () => {

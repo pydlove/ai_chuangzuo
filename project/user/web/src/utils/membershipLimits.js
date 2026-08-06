@@ -15,45 +15,6 @@ export const MEMBERSHIP_QUEUE_LIMITS = {
   flagship: 10,
 }
 
-/**
- * 会员等级 → 「我的提示词」保存数量上限
- * 与后端 u_plan_benefit 中 skill_custom 的值保持一致。
- *   - basic 基础版:           1
- *   - pro 专业版:             2
- *   - flagship 旗舰版:        4
- */
-export const MEMBERSHIP_CUSTOM_STYLE_LIMIT = {
-  free: 0,
-  basic: 1,
-  pro: 2,
-  flagship: 4,
-}
-
-/**
- * 当前档位「我的提示词」保存数量上限。未开通或已过期 → 0。
- */
-export function getCustomStyleLimit() {
-  return MEMBERSHIP_CUSTOM_STYLE_LIMIT[getCurrentPlanKey()] ?? 0
-}
-
-/**
- * 会员等级 → 提示词最大长度
- * 基础版 600 / 专业版 800 / 旗舰版 1200。
- */
-export const MEMBERSHIP_SKILL_PROMPT_MAX_LENGTH = {
-  free: 600,
-  basic: 600,
-  pro: 800,
-  flagship: 1200,
-}
-
-/**
- * 当前档位提示词最大长度。未开通或已过期 → 600。
- */
-export function getSkillPromptMaxLength() {
-  return MEMBERSHIP_SKILL_PROMPT_MAX_LENGTH[getCurrentPlanKey()] ?? 600
-}
-
 export const PLAN_KEY_TO_NAME = {
   basic: '基础版',
   pro: '专业版',
@@ -146,14 +107,19 @@ export function getWordCountLimit() {
 }
 
 /**
- * 根据字数返回对应的套餐角标信息。
+ * 根据字数返回对应的套餐角标信息；若当前用户等级已解锁该字数，则不显示角标。
  *   - >1500 字: 旗舰版 (tier: flagship)
  *   - >500 字:  专业版 (tier: pro)
  *   - ≤500 字:  无角标
  */
 export function getWordCountBadge(count) {
-  if (count > 1500) return { text: '旗舰版', tier: 'flagship' }
-  if (count > 500) return { text: '专业版', tier: 'pro' }
+  const plan = getCurrentPlanKey()
+  if (count > 1500) {
+    return plan === 'flagship' ? null : { text: '旗舰版', tier: 'flagship' }
+  }
+  if (count > 500) {
+    return plan === 'flagship' || plan === 'pro' ? null : { text: '专业版', tier: 'pro' }
+  }
   return null
 }
 

@@ -54,72 +54,86 @@
           <button class="meta-btn primary" @click="copyDesc">复制描述</button>
         </div>
 
-        <div class="meta-section-title" style="margin-top: 24px;">
-          推荐标签
-          <a-popover
-            placement="topLeft"
-            :open="tagHelpOpen"
-            overlay-class-name="tag-help-popover"
-          >
-            <template #content>
-              <div
-                class="tag-help-panel"
+        <div class="meta-section-title with-badge" style="margin-top: 24px;" :class="{ disabled: !canUseSeoKeywords }">
+          <span class="meta-section-title-left">
+            <span>推荐标签</span>
+            <a-popover
+              placement="topLeft"
+              :open="tagHelpOpen"
+              overlay-class-name="tag-help-popover"
+            >
+              <template #content>
+                <div
+                  class="tag-help-panel"
+                  @mouseenter="openTagHelp"
+                  @mouseleave="scheduleCloseTagHelp"
+                >
+                  <div class="tag-help-tabs">
+                    <span
+                      v-for="p in tagPlatforms"
+                      :key="p.key"
+                      :class="['tag-help-tab', { active: p.key === activeTagPlatform }]"
+                      @click="selectTagPlatform(p.key)"
+                    >{{ p.name }}</span>
+                  </div>
+                  <ol class="tag-help-steps">
+                    <li v-for="(s, i) in currentTagTip.steps" :key="i">{{ s }}</li>
+                  </ol>
+                  <div
+                    v-if="currentTagTip.image"
+                    class="tag-help-img-wrap"
+                    @click="openTagImgPreview"
+                  >
+                    <img
+                      class="tag-help-img"
+                      :src="currentTagTip.image"
+                      :alt="`${currentTagTip.name}标签设置示意`"
+                    />
+                    <span class="tag-help-img-hint">点击放大查看</span>
+                  </div>
+                  <div class="tag-help-footer">标签贵精不贵多，挑 3~5 个和内容最匹配的即可。</div>
+                </div>
+              </template>
+              <QuestionCircleOutlined
+                class="tag-help-icon"
                 @mouseenter="openTagHelp"
                 @mouseleave="scheduleCloseTagHelp"
-              >
-                <div class="tag-help-tabs">
-                  <span
-                    v-for="p in tagPlatforms"
-                    :key="p.key"
-                    :class="['tag-help-tab', { active: p.key === activeTagPlatform }]"
-                    @click="selectTagPlatform(p.key)"
-                  >{{ p.name }}</span>
-                </div>
-                <ol class="tag-help-steps">
-                  <li v-for="(s, i) in currentTagTip.steps" :key="i">{{ s }}</li>
-                </ol>
-                <div
-                  v-if="currentTagTip.image"
-                  class="tag-help-img-wrap"
-                  @click="openTagImgPreview"
-                >
-                  <img
-                    class="tag-help-img"
-                    :src="currentTagTip.image"
-                    :alt="`${currentTagTip.name}标签设置示意`"
-                  />
-                  <span class="tag-help-img-hint">点击放大查看</span>
-                </div>
-                <div class="tag-help-footer">标签贵精不贵多，挑 3~5 个和内容最匹配的即可。</div>
-              </div>
-            </template>
-            <QuestionCircleOutlined
-              class="tag-help-icon"
-              @mouseenter="openTagHelp"
-              @mouseleave="scheduleCloseTagHelp"
-              @click.stop="toggleTagHelp"
-            />
-          </a-popover>
-        </div>
-        <div class="publish-tags">
-          <span
-            v-for="tag in publishTags"
-            :key="tag"
-            class="publish-tag"
-          >
-            {{ tag }}
+                @click.stop="toggleTagHelp"
+              />
+            </a-popover>
           </span>
+          <span v-if="!canUseSeoKeywords" class="pro-badge-mini">需{{ SEO_MIN_PLAN.name }}</span>
+        </div>
+        <div class="publish-tags" :class="{ disabled: !canUseSeoKeywords }">
+          <template v-if="canUseSeoKeywords">
+            <span
+              v-for="tag in publishTags"
+              :key="tag"
+              class="publish-tag"
+            >
+              {{ tag }}
+            </span>
+          </template>
+          <span v-else class="publish-tag-placeholder">升级{{ SEO_MIN_PLAN.name }}后，AI 将自动推荐标签</span>
         </div>
         <div class="meta-actions">
-          <button class="meta-btn primary" @click="copyTags">复制全部标签</button>
+          <button
+            class="meta-btn primary"
+            :disabled="!canUseSeoKeywords"
+            @click="copyTags"
+          >复制全部标签</button>
         </div>
       </div>
     </div>
 
     <!-- 浮动操作栏 -->
     <div v-if="article && !isEditing" class="floating-action-bar">
-      <button class="float-btn" @click="optimizeTitle">
+      <button
+        :class="['float-btn', 'title-opt-btn', { 'is-disabled': !canOptimizeTitle }]"
+        @click="handleOptimizeTitleClick"
+      >
         ✧ AI 优化标题
+        <span v-if="!canOptimizeTitle" class="pro-badge">专业版</span>
       </button>
       <button class="float-btn" @click="goToEditPage">
         编辑正文
@@ -165,7 +179,7 @@
                   {{ tab.label }}
                 </button>
               </div>
-              <div v-if="titleOptLoading" class="title-opt-loading">AI 生成中，请稍候…</div>
+              <div v-if="titleOptLoading" class="title-opt-loading">灵犀同学正在为您推荐，请稍等…</div>
               <div v-else class="title-opt-list">
                 <div
                   v-for="(title, index) in currentPlatformTitles"
@@ -216,10 +230,17 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const article = ref(null)
 const publishDesc = ref('')
 const publishTags = ref([])
+
+// 会员权益：AI 标题优化仅 pro/flagship 可用
+const { hasBenefit, loadBenefits, loaded } = useBenefits()
+const canOptimizeTitle = computed(() => hasBenefit('ai_title_optimize'))
+const canUseSeoKeywords = computed(() => hasBenefit('seo_keywords'))
+const SEO_MIN_PLAN = { key: 'pro', name: '专业版' }
 
 // 推荐标签用法：不同平台打标签的方式不一样，弹框按平台说明+操作示意图，默认选中当前文章平台
 const tagPlatforms = [
@@ -662,6 +683,10 @@ const copyDesc = () => {
 
 // 复制全部标签
 const copyTags = () => {
+  if (!canUseSeoKeywords.value) {
+    message.info(`推荐标签为${SEO_MIN_PLAN.name}功能，请升级套餐后使用`)
+    return
+  }
   navigator.clipboard.writeText(publishTags.value.join(' ')).then(() => {
     message.success('标签已复制')
   }).catch(() => {
@@ -670,6 +695,14 @@ const copyTags = () => {
 }
 
 // AI优化标题：首次点击调后端大模型生成，之后后端返回首次缓存结果
+const handleOptimizeTitleClick = () => {
+  if (!canOptimizeTitle.value) {
+    message.info('AI 标题优化为专业版功能，请升级套餐后使用')
+    return
+  }
+  optimizeTitle()
+}
+
 const optimizeTitle = async () => {
   if (!article.value) return
   titleOptVisible.value = true
@@ -718,6 +751,9 @@ const confirmTitle = async () => {
 onMounted(() => {
   loadExportTemplates()
   loadArticle()
+  if (!loaded.value) {
+    loadBenefits()
+  }
 })
 </script>
 
@@ -877,6 +913,26 @@ onMounted(() => {
   color: #1a1a1a;
   margin-bottom: 12px;
   font-size: 15px;
+}
+
+.meta-section-title.with-badge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.meta-section-title.disabled,
+.meta-section-title.disabled .tag-help-icon {
+  color: #8c8c8c;
+}
+
+.pro-badge-mini {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #fff1f0;
+  color: #ff4d4f;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .tag-help-icon {
@@ -1061,10 +1117,29 @@ onMounted(() => {
   background: #fff0f2;
 }
 
+.meta-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.meta-btn:disabled:hover {
+  border-color: #d9d9d9;
+  color: inherit;
+}
+
 .publish-tags {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.publish-tags.disabled {
+  opacity: 0.6;
+}
+
+.publish-tag-placeholder {
+  font-size: 13px;
+  color: #8c8c8c;
 }
 
 .publish-tag {
@@ -1137,6 +1212,50 @@ onMounted(() => {
 
 .float-btn.danger:hover {
   background: #fff2f0;
+}
+
+.float-btn.title-opt-btn {
+  position: relative;
+}
+
+.float-btn.title-opt-btn.is-disabled {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+  cursor: not-allowed;
+}
+
+.float-btn.title-opt-btn.is-disabled:hover {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+}
+
+.pro-badge {
+  position: absolute;
+  top: -7px;
+  right: -8px;
+  padding: 2px 7px;
+  background: linear-gradient(135deg, #ff4d4f, #ff2442);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 10px;
+  line-height: 1;
+  box-shadow: 0 2px 6px rgba(255, 36, 66, 0.35);
+  pointer-events: none;
+}
+
+body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #737373;
+}
+
+body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled:hover {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #737373;
 }
 
 /* AI 标题优化弹窗 */
@@ -1618,6 +1737,16 @@ body[data-theme="dark"] .publish-meta-card {
 
 body[data-theme="dark"] .meta-section-title {
   color: #f0f0f0;
+}
+
+body[data-theme="dark"] .meta-section-title.disabled,
+body[data-theme="dark"] .meta-section-title.disabled .tag-help-icon,
+body[data-theme="dark"] .publish-tag-placeholder {
+  color: #666;
+}
+
+body[data-theme="dark"] .meta-btn:disabled {
+  opacity: 0.4;
 }
 
 body[data-theme="dark"] .publish-desc-input {

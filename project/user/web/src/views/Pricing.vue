@@ -74,12 +74,6 @@
             >
               {{ getPlanButton(plan).text }}
             </button>
-            <ul class="plan-features">
-              <li v-for="feature in plan.features" :key="feature.code + '-' + feature.text" :class="{ disabled: !feature.included }">
-                <span class="feature-icon">{{ feature.included ? '✓' : '✗' }}</span>
-                {{ feature.text }}
-              </li>
-            </ul>
           </div>
         </div>
       </div>
@@ -162,6 +156,14 @@
       :confirm-loading="subscribeLoading"
     >
       <div class="subscribe-pay-panel">
+        <CoinDiscountPanel
+          v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
+          v-model:selectedCoinAmount="selectedCoinAmount"
+          :coinBalance="coinBalance"
+          :maxCoinAmount="getMaxCoinAmount()"
+          :coinToYuanRatio="COIN_TO_YUAN_RATIO"
+          :finalCash="getFinalCash()"
+        />
         <p class="subscribe-pay-tip">
           测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
         </p>
@@ -180,6 +182,7 @@
 <script setup>
 import NavBar from '@/components/layout/NavBar.vue'
 import MobilePricing from '@/views/MobilePricing.vue'
+import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { usePricing } from '@/composables/usePricing.js'
 
@@ -199,6 +202,7 @@ const {
   selectedPlan,
   payCode,
   subscribeLoading,
+  selectedCoinAmount,
   plans,
   compareRows,
   catalogLoading,
@@ -221,7 +225,11 @@ const {
   handleNewcomerSubscribe,
   confirmUpgrade,
   handlePay,
-  scrollToCompare
+  scrollToCompare,
+  coinBalance,
+  COIN_TO_YUAN_RATIO,
+  getMaxCoinAmount,
+  getFinalCash
 } = usePricing()
 </script>
 
@@ -553,24 +561,6 @@ const {
   text-align: left;
 }
 
-.plan-features {
-  list-style: none;
-  padding: 0;
-  margin: 0 0 12px 0;
-  color: #595959;
-  font-size: 14px;
-  line-height: 2;
-}
-
-.plan-features li.disabled {
-  color: #8c8c8c;
-}
-
-.feature-icon {
-  margin-right: 6px;
-  font-weight: 600;
-}
-
 .plan-btn {
   width: 100%;
   padding: 12px;
@@ -897,14 +887,6 @@ body[data-theme="dark"] .plan-period {
 body[data-theme="dark"] .plan-articles,
 body[data-theme="dark"] .plan-savings {
   color: #ff4d6f;
-}
-
-body[data-theme="dark"] .plan-features {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .plan-features li.disabled {
-  color: #666;
 }
 
 body[data-theme="dark"] .plan-btn {

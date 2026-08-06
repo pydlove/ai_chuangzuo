@@ -85,9 +85,6 @@
           <a-menu-item key="/console/market-skills">
             提示词市场
           </a-menu-item>
-          <a-menu-item key="/console/skill-monthly-rewards">
-            月度奖励配置
-          </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/learn">
           <template #icon>
@@ -228,7 +225,7 @@ const parentMenuKey = computed(() => {
   const p = route.path
   if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
-  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills' || p === '/console/skill-monthly-rewards') return '/console/skill-management'
+  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
@@ -251,7 +248,7 @@ const onOpenChange = (keys) => {
 }
 const currentMenuName = computed(() => {
   if (route.path === '/console/users') return '用户管理'
-  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills' || route.path === '/console/skill-monthly-rewards') return '提示词管理'
+  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills') return '提示词管理'
   if (route.path === '/console/model-configs') return '模型配置'
   if (route.path === '/console/prompt-templates' || route.path.startsWith('/console/prompt-templates/')) return '创作提示词'
   if (route.path === '/console/hot-search/platforms') return '平台管理'

@@ -34,6 +34,13 @@ public class PublishMetaStep extends AbstractAiStep {
         if (description.isEmpty()) {
             throw new RuntimeException("第 13 阶段返回缺少 description");
         }
+        ctx.setPublishDescription(description);
+
+        // 未开通 SEO 关键词建议权益时，只保留描述，不生成推荐标签
+        if (!isSeoKeywordsEnabled(ctx)) {
+            return;
+        }
+
         if (!root.path("tags").isArray() || root.path("tags").isEmpty()) {
             throw new RuntimeException("第 13 阶段返回缺少 tags 数组");
         }
@@ -45,7 +52,12 @@ public class PublishMetaStep extends AbstractAiStep {
         if (tags.isEmpty()) {
             throw new RuntimeException("第 13 阶段 tags 数组无有效标签");
         }
-        ctx.setPublishDescription(description);
         ctx.setPublishTags(tags);
+    }
+
+    private static boolean isSeoKeywordsEnabled(GenerationContext ctx) {
+        Object value = ctx.getInput() == null ? null : ctx.getInput().get("seoKeywords");
+        if (value instanceof Boolean b) return b;
+        return "true".equalsIgnoreCase(String.valueOf(value));
     }
 }

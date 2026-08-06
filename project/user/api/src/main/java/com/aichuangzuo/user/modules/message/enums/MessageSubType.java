@@ -8,7 +8,8 @@ import java.util.Arrays;
  * 消息子类型枚举。
  *
  * <p>用于在 msgType 之下做更细的区分,目前主要服务于 membership 类消息:
- * subscribed(订阅成功) / expiring(到期提醒) / invite_reward(邀请会员奖励到账)。
+ * subscribed(订阅成功) / expiring(到期提醒)，以及 coin 类消息:
+ * invite_reward(邀请奖励到账)。
  *
  * <p>code 只存后缀,msg_type 已经携带主分类信息,不冗余。
  */
@@ -21,8 +22,8 @@ public enum MessageSubType {
     /** 到期提醒(membership 类下)。 */
     EXPIRING("expiring", "到期提醒"),
 
-    /** 邀请奖励会员天数到账(membership 类下)。 */
-    INVITE_REWARD("invite_reward", "邀请会员奖励到账"),
+    /** 邀请奖励到账(coin 类下)。 */
+    INVITE_REWARD("invite_reward", "邀请奖励到账"),
 
     /** 文章生成完成(generation 类下)。 */
     GENERATION_COMPLETED("completed", "创作完成"),

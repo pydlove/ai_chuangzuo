@@ -179,7 +179,7 @@
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">3</div>
           <div class="mh-earn-card__name">排行榜奖金</div>
-          <div class="mh-earn-card__desc">月榜 TOP10 各奖 1000 创作币，写得好就上榜</div>
+          <div class="mh-earn-card__desc">月榜 TOP3 奖 500 创作币，写得好就上榜</div>
         </div>
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">4</div>

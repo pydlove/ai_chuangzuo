@@ -4,12 +4,14 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
+import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
+import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.leaderboard.entity.CoinDirection;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
-import com.aichuangzuo.user.modules.membership.entity.UserMembership;
-import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.message.entity.Message;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.mapper.MessageMapper;
@@ -22,7 +24,7 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +52,10 @@ class InviteRewardServiceTest {
     private UserCoinRecordMapper userCoinRecordMapper;
 
     @Autowired
-    private UserMembershipMapper userMembershipMapper;
+    private EarningsRecordMapper earningsRecordMapper;
+
+    @Autowired
+    private EarningsService earningsService;
 
     @Autowired
     private MessageMapper messageMapper;
@@ -73,6 +78,16 @@ class InviteRewardServiceTest {
         assertEquals(CoinDirection.INCOME.getCode(), record.getDirection());
         assertEquals(0, record.getAmount().compareTo(new BigDecimal("50")));
 
+        EarningsRecord earningsRecord = earningsRecordMapper.selectOne(
+                new LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, invitee.getId())
+                        .eq(EarningsRecord::getType, EarningsType.INVITE_REWARD.getCode())
+                        .eq(EarningsRecord::getSourceType, "invite_register"));
+        assertNotNull(earningsRecord);
+        assertEquals(0, earningsRecord.getAmount().compareTo(new BigDecimal("50")));
+        assertEquals(YearMonth.now().toString(), earningsRecord.getSettlementMonth());
+        assertEquals(inviter.getId().toString(), earningsRecord.getSourceId());
+
         List<UserInviteRelation> relations = userInviteRelationMapper.selectList(
                 new LambdaQueryWrapper<UserInviteRelation>()
                         .eq(UserInviteRelation::getInviterId, inviter.getId()));
@@ -81,7 +96,7 @@ class InviteRewardServiceTest {
     }
 
     @Test
-    void rewardAfterRegister_shouldExtendMembershipAtThirdFifthAndBeyond() {
+    void rewardAfterRegister_shouldGrantCoinsAtThirdFifthAndBeyond() {
         User inviter = createUser("ladder-inviter@test.com");
 
         for (int i = 1; i <= 6; i++) {
@@ -89,21 +104,45 @@ class InviteRewardServiceTest {
             inviteRewardService.rewardAfterRegister(invitee, inviter.getInviteCode());
         }
 
-        UserMembership membership = userMembershipMapper.selectByUserId(inviter.getId());
-        assertNotNull(membership);
-        assertEquals("pro", membership.getLevel());
-        assertEquals(LocalDate.now().plusDays(3 + 5 + 2), membership.getExpiresAt());
+        User inviterDb = userMapper.selectById(inviter.getId());
+        assertEquals(0, inviterDb.getCoinBalance().compareTo(new BigDecimal("100")));
+
+        List<UserCoinRecord> records = userCoinRecordMapper.selectList(
+                new LambdaQueryWrapper<UserCoinRecord>()
+                        .eq(UserCoinRecord::getUserId, inviter.getId())
+                        .eq(UserCoinRecord::getBizType, "invite_ladder_reward")
+                        .eq(UserCoinRecord::getDirection, CoinDirection.INCOME.getCode())
+                        .orderByAsc(UserCoinRecord::getCreatedAt));
+        assertEquals(3, records.size());
+        assertEquals(0, records.get(0).getAmount().compareTo(new BigDecimal("30")));
+        assertEquals(0, records.get(1).getAmount().compareTo(new BigDecimal("50")));
+        assertEquals(0, records.get(2).getAmount().compareTo(new BigDecimal("20")));
+
+        List<EarningsRecord> earningsRecords = earningsRecordMapper.selectList(
+                new LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, inviter.getId())
+                        .eq(EarningsRecord::getType, EarningsType.INVITE_REWARD.getCode())
+                        .eq(EarningsRecord::getSourceType, "invite_ladder")
+                        .orderByAsc(EarningsRecord::getCreatedAt));
+        assertEquals(3, earningsRecords.size());
+        assertEquals(0, earningsRecords.get(0).getAmount().compareTo(new BigDecimal("30")));
+        assertEquals(0, earningsRecords.get(1).getAmount().compareTo(new BigDecimal("50")));
+        assertEquals(0, earningsRecords.get(2).getAmount().compareTo(new BigDecimal("20")));
+        assertEquals(YearMonth.now().toString(), earningsRecords.get(0).getSettlementMonth());
+        assertEquals(records.get(0).getBizNo(), earningsRecords.get(0).getSourceId());
+        assertEquals(0, earningsService.getSummary(inviter.getId()).getTotalEarnings()
+                .compareTo(new BigDecimal("100")));
 
         List<Message> messages = messageMapper.selectList(
                 new LambdaQueryWrapper<Message>()
                         .eq(Message::getTargetUserId, inviter.getId())
-                        .eq(Message::getMsgType, "membership")
+                        .eq(Message::getMsgType, "coin")
                         .eq(Message::getSubType, MessageSubType.INVITE_REWARD.getCode())
                         .orderByAsc(Message::getCreatedAt));
         assertEquals(3, messages.size());
-        assertTrue(messages.get(0).getSummary().contains("3 天专业版会员"));
-        assertTrue(messages.get(1).getSummary().contains("5 天专业版会员"));
-        assertTrue(messages.get(2).getSummary().contains("2 天专业版会员"));
+        assertTrue(messages.get(0).getSummary().contains("30"));
+        assertTrue(messages.get(1).getSummary().contains("50"));
+        assertTrue(messages.get(2).getSummary().contains("20"));
     }
 
     @Test
@@ -119,7 +158,7 @@ class InviteRewardServiceTest {
 
         assertEquals(inviter.getInviteCode(), stats.getInviteCode());
         assertEquals(1, stats.getInvitedCount());
-        assertEquals(0, stats.getMembershipDaysEarned());
+        assertEquals(0, stats.getInviteCoinEarned());
         assertEquals(0, stats.getCoinEarned().compareTo(new BigDecimal("12.50")));
         assertNotNull(stats.getFriends());
         assertEquals(1, stats.getFriends().size());

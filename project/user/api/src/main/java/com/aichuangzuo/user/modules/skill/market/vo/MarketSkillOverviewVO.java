@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 用户端 - 风格市场概览数据。
  *
- * <p>包含平台统计、官方精选、收益潜力榜，供首页非分页区域展示。
+ * <p>包含平台统计、官方精选，供首页非分页区域展示。
  */
 @Data
 public class MarketSkillOverviewVO {
@@ -24,7 +24,4 @@ public class MarketSkillOverviewVO {
 
     /** 官方精选（按总使用次数降序）。 */
     private List<MarketSkillVO> featuredSkills;
-
-    /** 收益潜力榜（按本月收益降序）。 */
-    private List<TopCreatorVO> topCreators;
 }

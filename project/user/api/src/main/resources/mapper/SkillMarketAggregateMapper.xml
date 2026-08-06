@@ -16,11 +16,9 @@
                s.weekly_uses     AS weeklyUses,
                s.weekly_earnings AS weeklyEarnings,
                s.milestone_bonus AS milestoneBonus,
-               s.monthly_uses    AS monthlyUses,
-               s.monthly_earnings AS monthlyEarnings,
-               s.leaderboard_reward AS leaderboardReward,
                s.featured        AS featured,
                s.last_settlement_at AS lastSettlementAt,
+               s.approved_at     AS approvedAt,
                s.created_at      AS createdAt
         FROM u_skill_market s
         LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
@@ -39,13 +37,13 @@
         ORDER BY
         <choose>
             <when test="sortType == 'week-hot'">
-                s.monthly_uses DESC, s.id DESC
+                s.weekly_uses DESC, s.id DESC
             </when>
             <when test="sortType == 'all-hot'">
                 s.total_uses DESC, s.id DESC
             </when>
             <when test="sortType == 'new'">
-                s.created_at DESC, s.id DESC
+                s.approved_at DESC, s.id DESC
             </when>
             <when test="sortType == 'featured'">
                 s.total_uses DESC, s.id DESC

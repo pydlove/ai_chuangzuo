@@ -46,6 +46,7 @@ admin:
 hot-search:
   crawl-enabled: true
   cron: "0 0 2 * * ?"
+  chrome-path: ${HOT_SEARCH_CHROME_PATH:}
   platforms:
     - douyin
     - toutiao

@@ -29,10 +29,8 @@ public class MarketSkillVO {
     private Integer totalUses;
     private BigDecimal weeklyEarnings;
     private BigDecimal milestoneBonus;
-    private Integer monthlyUses;
-    private BigDecimal monthlyEarnings;
-    private BigDecimal leaderboardReward;
     private Boolean featured;
     private LocalDateTime lastSettlementAt;
+    private LocalDateTime approvedAt;
     private LocalDateTime createdAt;
 }

@@ -36,6 +36,10 @@ export function releaseCustomSkillQuota(id, count) {
   return request.post(`/users/${id}/custom-skill-quota/release`, { count }).then((res) => res.data)
 }
 
+export function releasePublishSkillQuota(id, count) {
+  return request.post(`/users/${id}/published-skills/release-quota`, { count }).then((res) => res.data)
+}
+
 export function createUser(data) {
   return request.post('/users', data).then((res) => res.data)
 }

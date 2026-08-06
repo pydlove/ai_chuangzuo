@@ -72,6 +72,14 @@ public interface AdminUserService {
     void releaseCustomSkillQuota(Long userId, ResetCustomSkillQuotaRequest request);
 
     /**
+     * 释放用户提示词市场发布额度指定数量。
+     *
+     * @param userId 用户ID
+     * @param request 释放数量
+     */
+    void releasePublishSkillQuota(Long userId, ResetCustomSkillQuotaRequest request);
+
+    /**
      * 查询用户已发布/审核中的提示词列表（来自提示词市场）。
      *
      * @param userId 用户ID

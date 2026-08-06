@@ -181,7 +181,8 @@ export const isSkillNameExists = (name, excludeName = null) => {
   if (excludeName && target === excludeName.trim().toLowerCase()) return false
   const inSystem = systemSkills.value.some(s => s.name.trim().toLowerCase() === target)
   const inCustom = mySkills.value.some(s => s.name.trim().toLowerCase() === target)
-  return inSystem || inCustom
+  const inLearned = learnedSkills.value.some(s => s.name.trim().toLowerCase() === target)
+  return inSystem || inCustom || inLearned
 }
 
 // ============ 学习的 skills（后端 u_user_style source_type=2） ============
@@ -229,14 +230,6 @@ export async function analyzeArticleSkill(text, meta) {
   } finally {
     isLearning.value = false
   }
-}
-
-// 命名去重（在学习 skills 列表内检查；与 mySkills 共用 isSkillNameExists）
-export function isLearnedSkillNameExists(name, excludeName = null) {
-  const target = name.trim().toLowerCase()
-  if (!target) return false
-  if (excludeName && target === excludeName.trim().toLowerCase()) return false
-  return learnedSkills.value.some(s => s.name.trim().toLowerCase() === target)
 }
 
 export async function addLearnedSkill(style) {

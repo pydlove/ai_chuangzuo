@@ -29,9 +29,6 @@
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
-        <a-button type="primary" @click="openPriceModal">
-          提示词单价设置
-        </a-button>
         <a-button
           v-if="activeTab === 'pending'"
           type="primary"
@@ -211,39 +208,14 @@
         </div>
       </div>
     </a-modal>
-    <!-- 提示词单价设置弹框 -->
-    <a-modal
-      v-model:open="priceVisible"
-      title="提示词单价设置"
-      ok-text="保存"
-      cancel-text="取消"
-      :confirm-loading="priceSubmitting"
-      @ok="confirmPriceSubmit"
-    >
-      <p style="color: #595959; margin-bottom: 16px">
-        设置后，所有提示词被他人使用一次，创作者均获得该数量的创作币。
-      </p>
-      <a-form :label-col="{ span: 6 }" :wrapper-col="{ span: 18 }">
-        <a-form-item label="单次收益" required>
-          <a-input-number
-            v-model:value="priceForm.pricePerUse"
-            :min="1"
-            :precision="0"
-            style="width: 160px"
-          />
-          <span style="margin-left: 8px; color: #8c8c8c">创作币</span>
-        </a-form-item>
-      </a-form>
-    </a-modal>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { ReloadOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useSkillReview } from '@/composables/useSkillReview.js'
-import { getSkillPricePerUse, updateSkillPricePerUse } from '@/api/skillMonthlyRewardConfig.js'
 
 const {
   skills,
@@ -292,12 +264,6 @@ const detailVisible = ref(false)
 const detailTarget = ref(null)
 
 const selectedRowKeys = ref([])
-
-const priceVisible = ref(false)
-const priceSubmitting = ref(false)
-const priceForm = reactive({
-  pricePerUse: 2
-})
 
 const canBatchApprove = computed(() => {
   return selectedRowKeys.value.length > 0
@@ -378,35 +344,6 @@ const openReasonModal = (skill) => {
 const openDetailModal = (skill) => {
   detailTarget.value = skill
   detailVisible.value = true
-}
-
-const openPriceModal = async () => {
-  try {
-    const value = await getSkillPricePerUse()
-    priceForm.pricePerUse = value != null ? Number(value) : 2
-  } catch (error) {
-    message.error(error.message || '加载单价失败')
-    priceForm.pricePerUse = 2
-  }
-  priceVisible.value = true
-}
-
-const confirmPriceSubmit = async () => {
-  const value = Number(priceForm.pricePerUse)
-  if (!Number.isFinite(value) || value < 1) {
-    message.error('单价必须是大于 0 的整数')
-    return
-  }
-  priceSubmitting.value = true
-  try {
-    await updateSkillPricePerUse(value)
-    message.success('已保存')
-    priceVisible.value = false
-  } catch (error) {
-    message.error(error.message || '保存失败')
-  } finally {
-    priceSubmitting.value = false
-  }
 }
 
 onMounted(() => {

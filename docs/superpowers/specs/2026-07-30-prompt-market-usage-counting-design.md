@@ -57,7 +57,7 @@
 | 表 | 用途 |
 |---|---|
 | `a_message_notify_outbox` | admin 异步计数事件队列 |
-| `u_skill_market` | 市场提示词累计/月度使用次数与收益 |
+| `u_skill_market` | 市场提示词累计使用次数 `total_uses` |
 | `u_user_skill` | 个人提示词累计使用次数 `use_count` |
 | `u_earnings_record` | 市场提示词产生的 `USAGE` 收益记录 |
 
@@ -81,9 +81,9 @@ user-api 内部接口收到 `{ taskId, userId, skillRef }` 后按以下顺序判
 调用现有 `SkillMarketUsageService.recordUsage(bizNo, consumerUserId)`：
 
 - `u_skill_market.total_uses + 1`
-- `u_skill_market.monthly_uses + 1`
-- `u_skill_market.monthly_earnings + price`
 - 插入一条 `u_earnings_record`，`type = USAGE`，`source_type = skill_market`，`status = 0`（未结算）
+
+> 注：原设计中的 `monthly_uses`、`monthly_earnings` 及月度结算/榜单奖励已随「收益潜力榜」功能移除，不再维护。
 
 ### 5.2 个人提示词
 

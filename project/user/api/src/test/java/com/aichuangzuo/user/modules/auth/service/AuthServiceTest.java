@@ -8,11 +8,15 @@ import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
+import com.aichuangzuo.user.modules.earnings.entity.EarningsRecord;
+import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
+import com.aichuangzuo.user.modules.earnings.mapper.EarningsRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.UUID;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -37,6 +41,9 @@ class AuthServiceTest {
 
     @Autowired
     private UserCoinRecordMapper userCoinRecordMapper;
+
+    @Autowired
+    private EarningsRecordMapper earningsRecordMapper;
 
     @MockBean
     private EmailCodeService emailCodeService;
@@ -142,5 +149,15 @@ class AuthServiceTest {
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord>()
                         .eq(com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord::getUserId, invitee.getId())
                         .eq(com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord::getBizType, "invite_register_reward")));
+
+        EarningsRecord earningsRecord = earningsRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, invitee.getId())
+                        .eq(EarningsRecord::getType, EarningsType.INVITE_REWARD.getCode())
+                        .eq(EarningsRecord::getSourceType, "invite_register"));
+        assertNotNull(earningsRecord);
+        assertEquals(0, earningsRecord.getAmount().compareTo(new BigDecimal("50")));
+        assertEquals(YearMonth.now().toString(), earningsRecord.getSettlementMonth());
+        assertEquals(inviter.getId().toString(), earningsRecord.getSourceId());
     }
 }

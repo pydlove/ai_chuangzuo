@@ -301,6 +301,21 @@
 
           <a-spin :spinning="publishedLoading">
             <div class="skill-section-title">发布的提示词</div>
+            <div class="skill-tab-toolbar">
+              <a-space>
+                <span>释放发布额度：</span>
+                <a-input-number
+                  v-model:value="publishReleaseCount"
+                  :min="1"
+                  :max="100"
+                  style="width: 120px"
+                  placeholder="数量"
+                />
+                <a-button type="primary" :loading="publishReleaseLoading" @click="handleReleasePublishQuota">
+                  释放额度
+                </a-button>
+              </a-space>
+            </div>
             <a-table
               :columns="publishedSkillColumns"
               :data-source="publishedSkills"
@@ -397,6 +412,34 @@
                   >
                     重置当月额度
                   </a-button>
+                </template>
+              </template>
+            </a-table>
+          </a-spin>
+
+          <a-spin :spinning="learnedSkillsLoading">
+            <div class="skill-section-title">学习产生的提示词</div>
+            <a-table
+              :columns="learnedSkillColumns"
+              :data-source="learnedSkills"
+              :pagination="false"
+              size="small"
+              row-key="bizNo"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'auditStatus'">
+                  <a-tag :color="auditStatusColor(record.auditStatus)">
+                    {{ auditStatusLabel(record.auditStatus) }}
+                  </a-tag>
+                </template>
+                <template v-else-if="column.key === 'prompt'">
+                  <span :title="record.prompt">{{ record.prompt || '—' }}</span>
+                </template>
+                <template v-else-if="column.key === 'scope'">
+                  {{ record.scope || '—' }}
+                </template>
+                <template v-else-if="column.key === 'createdAt'">
+                  {{ formatDateTime(record.createdAt) }}
                 </template>
               </template>
             </a-table>
@@ -624,7 +667,8 @@ import { onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
-import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
+import { copyToClipboard } from '@/utils/clipboard.js'
+import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
 
 const {
@@ -677,12 +721,16 @@ const userSkills = ref([])
 const skillsLoading = ref(false)
 const releaseCount = ref(1)
 const releaseLoading = ref(false)
+const publishReleaseCount = ref(1)
+const publishReleaseLoading = ref(false)
 const publishedSkills = ref([])
 const publishedLoading = ref(false)
 const favoriteSkills = ref([])
 const favoriteLoading = ref(false)
 const learnedMonths = ref([])
 const learnedLoading = ref(false)
+const learnedSkills = ref([])
+const learnedSkillsLoading = ref(false)
 const resettingPeriod = ref(null)
 
 const articles = ref([])
@@ -727,6 +775,16 @@ const learnedColumns = [
   { title: '预扣次数', dataIndex: 'preUsedCount', key: 'preUsedCount', width: 100 },
   { title: '产生提示词数', key: 'skillCount', width: 120 },
   { title: '操作', key: 'action', width: 140 }
+]
+
+const learnedSkillColumns = [
+  { title: '业务编号', dataIndex: 'bizNo', key: 'bizNo', width: 150 },
+  { title: '提示词名称', dataIndex: 'skillName', key: 'skillName', width: 150 },
+  { title: '提示词内容', dataIndex: 'prompt', key: 'prompt', ellipsis: true, width: 320 },
+  { title: '适用范围', key: 'scope', width: 120 },
+  { title: '使用次数', dataIndex: 'useCount', key: 'useCount', width: 90 },
+  { title: '审核状态', key: 'auditStatus', width: 100 },
+  { title: '创建时间', key: 'createdAt', width: 170 }
 ]
 
 const favoriteSkillColumns = [
@@ -824,7 +882,7 @@ const formatDateTime = (s) => {
 
 const copyEmail = async (email) => {
   try {
-    await navigator.clipboard.writeText(email)
+    await copyToClipboard(email)
     message.success('邮箱已复制')
   } catch (error) {
     message.error('复制失败')
@@ -833,7 +891,7 @@ const copyEmail = async (email) => {
 
 const copyInviteCode = async (inviteCode) => {
   try {
-    await navigator.clipboard.writeText(inviteCode)
+    await copyToClipboard(inviteCode)
     message.success('邀请码已复制')
   } catch (error) {
     message.error('复制失败')
@@ -950,10 +1008,12 @@ const confirmResetPassword = async () => {
 const openDetailDrawer = async (user) => {
   detailTabKey.value = 'basic'
   releaseCount.value = 1
+  publishReleaseCount.value = 1
   userSkills.value = []
   publishedSkills.value = []
   favoriteSkills.value = []
   learnedMonths.value = []
+  learnedSkills.value = []
   articles.value = []
   articleKeyword.value = ''
   articlePage.value = 1
@@ -970,6 +1030,7 @@ const openDetailDrawer = async (user) => {
   loadUserPublishedSkillsTab()
   loadUserFavoriteSkillsTab()
   loadLearnedSkillsTab()
+  loadLearnedSkillsListTab()
   loadUserArticles()
 }
 
@@ -1028,6 +1089,19 @@ const loadLearnedSkillsTab = async () => {
     learnedMonths.value = []
   } finally {
     learnedLoading.value = false
+  }
+}
+
+const loadLearnedSkillsListTab = async () => {
+  if (!detailUser.value?.id) return
+  learnedSkillsLoading.value = true
+  try {
+    learnedSkills.value = await listUserSkills(detailUser.value.id, 2)
+  } catch (error) {
+    message.error(error.message || '加载学习产生的提示词失败')
+    learnedSkills.value = []
+  } finally {
+    learnedSkillsLoading.value = false
   }
 }
 
@@ -1108,6 +1182,31 @@ const handleReleaseCustomQuota = () => {
         message.error(error.message || '释放额度失败')
       } finally {
         releaseLoading.value = false
+      }
+    }
+  })
+}
+
+const handleReleasePublishQuota = () => {
+  if (!detailUser.value?.id) return
+  if (!publishReleaseCount.value || publishReleaseCount.value < 1) {
+    message.warning('请输入有效的释放数量')
+    return
+  }
+  Modal.confirm({
+    title: '确定释放提示词市场发布额度？',
+    content: `将为用户「${detailUser.value.nickname || detailUser.value.email}」释放 ${publishReleaseCount.value} 个提示词市场发布额度。`,
+    okText: '确认释放',
+    cancelText: '取消',
+    onOk: async () => {
+      publishReleaseLoading.value = true
+      try {
+        await releasePublishSkillQuota(detailUser.value.id, publishReleaseCount.value)
+        message.success('发布额度已释放')
+      } catch (error) {
+        message.error(error.message || '释放发布额度失败')
+      } finally {
+        publishReleaseLoading.value = false
       }
     }
   })

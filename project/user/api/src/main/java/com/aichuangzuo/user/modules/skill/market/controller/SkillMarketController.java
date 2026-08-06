@@ -2,8 +2,6 @@ package com.aichuangzuo.user.modules.skill.market.controller;
 
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
-import com.aichuangzuo.user.modules.skill.market.config.service.SkillMonthlyRewardConfigService;
-import com.aichuangzuo.user.modules.skill.market.config.vo.SkillMonthlyRewardConfigVO;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketCommandService;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketQueryService;
 import com.aichuangzuo.user.modules.skill.market.service.UserMarketFavoriteService;
@@ -21,7 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -36,7 +33,6 @@ public class SkillMarketController {
     private final SkillMarketQueryService skillMarketQueryService;
     private final SkillMarketCommandService skillMarketCommandService;
     private final UserMarketFavoriteService userMarketFavoriteService;
-    private final SkillMonthlyRewardConfigService monthlyRewardConfigService;
 
     @Operation(summary = "获取全部已上架的风格市场列表")
     @GetMapping
@@ -58,18 +54,6 @@ public class SkillMarketController {
     @GetMapping("/overview")
     public Result<MarketSkillOverviewVO> overview() {
         return Result.success(skillMarketQueryService.getOverview());
-    }
-
-    @Operation(summary = "获取提示词市场月度排行榜奖励配置")
-    @GetMapping("/monthly-reward-config")
-    public Result<SkillMonthlyRewardConfigVO> monthlyRewardConfig() {
-        return Result.success(monthlyRewardConfigService.getEnabledConfig());
-    }
-
-    @Operation(summary = "获取提示词市场单次使用收益单价")
-    @GetMapping("/price-per-use")
-    public Result<BigDecimal> pricePerUse() {
-        return Result.success(monthlyRewardConfigService.getPricePerUse());
     }
 
     /**

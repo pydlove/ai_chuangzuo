@@ -107,12 +107,17 @@ onMounted(async () => {
   if (marketSkillId) {
     const s = marketSkills.value.find(x => x.id === marketSkillId)
     if (s) {
-      applySkillShared({
-        id: s.id,
-        name: s.name,
-        prompt: s.prompt,
-        scope: s.scope
-      })
+      if (s.status !== 'approved') {
+        message.warning('该提示词已下架或不可用，已为你取消自动选用')
+      } else {
+        applySkillShared({
+          id: s.id,
+          name: s.name,
+          prompt: s.prompt,
+          scope: s.scope,
+          status: s.status
+        })
+      }
       router.replace({ path: route.path })
     }
   }

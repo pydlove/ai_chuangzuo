@@ -8,6 +8,10 @@ export function previewUpgrade(data) {
   return request.post('/membership/upgrade-preview', data)
 }
 
+export function previewSubscribe(data) {
+  return request.post('/membership/subscribe-preview', data)
+}
+
 export function getMyMembership() {
   return request.get('/membership/me')
 }

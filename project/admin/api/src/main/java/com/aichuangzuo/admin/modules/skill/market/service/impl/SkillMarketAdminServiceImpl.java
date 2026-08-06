@@ -37,6 +37,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
 
     private static final int AUDIT_STATUS_APPROVED = 1;
     private static final int SOURCE_TYPE_PLATFORM = 3;
+    private static final java.math.BigDecimal DEFAULT_PRICE_PER_USE = new java.math.BigDecimal("2.00");
 
     private final SkillMarketMapper skillMarketMapper;
     private final SkillMarketAggregateMapper aggregateMapper;
@@ -78,6 +79,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setPublisherUserId(request.getPublisherUserId());
         market.setTotalUses(request.getTotalUses() != null ? request.getTotalUses() : 0);
         market.setWeeklyUses(0);
+        market.setPrice(DEFAULT_PRICE_PER_USE);
         market.setWeeklyEarnings(BigDecimal.ZERO);
         market.setMilestoneBonus(BigDecimal.ZERO);
         market.setEnableStatus(request.getEnableStatus());

@@ -47,13 +47,13 @@
 ├────────────────────────────────────────────────────────────────┤
 │  ③ 官方精选大卡    — 横滑 4-5 张「官方精选」                    │
 ├────────────────────────────────────────────────────────────────┤
-│  ④ 收益潜力榜      — Top 5 创作者横向条                        │
-├────────────────────────────────────────────────────────────────┤
-│  ⑤ 全部风格区      — tab + 卡片网格（升级视觉）                │
+│  ④ 全部提示词区    — tab + 卡片网格（升级视觉）                │
 └────────────────────────────────────────────────────────────────┘
 ```
 
-区块 ① ⑤ 是旧有（升级版），② ③ ④ 是新增。
+区块 ① ④ 是旧有（升级版），② ③ 是新增。
+
+> **注**：原设计的「④ 收益潜力榜」已移除，相关 Top 5 创作者聚合、创作者详情弹框、月度奖励配置页面及后台结算 Job 均已清理。
 
 ---
 
@@ -97,20 +97,7 @@
 - 横滑使用原生 `overflow-x: auto + scroll-snap-type: x mandatory`，移动端 touch 友好。
 - 取数：`featuredStyles` —— `marketStyles` 中 `status === 'approved' && totalUses >= 5`，按 `totalUses desc`，取前 8 做池，横滑展示前 5（移动端展示前 3）。
 
-### 4.4 ④ 收益潜力榜
-
-- 区块标题 `H2 收益潜力榜`(可附副标 `看看谁在用风格赚到币` `font-body / text-secondary`)。
-- **横向 Top 5 创作者小卡**：
-  - 卡片宽 200，高 200，圆角 `radius-xl` 12，背景 `--color-bg-card`，阴影 `shadow-sm2`，padding 16。
-  - 顶部：圆形 56 头像（背景 `--color-primary`、姓名首字白、`font-h3`）
-  - 中部：姓名 `font-body / 700 / text-primary`
-  - 「本周 +42 币」`font-h2 / 700 / color-primary`
-  - 副标 `代表风格 · 名` `font-small / text-secondary`
-  - 「使用」主按钮，置底，宽度 100%
-- 取数：`topCreators` —— 按 creatorId 聚合 `marketStyles` 的 `weeklyEarnings`，降序，前 5 名。
-- 排版：横向 flex 横向滑动 + 右侧「完整榜单 →」次按钮。
-
-### 4.5 ⑤ 全部风格区
+### 4.4 ④ 全部风格区
 
 - 区块标题 `H2 全部风格`，右侧 `H2 font-body text-secondary` 显示 `共 X 款`。
 - **tab 改为胶囊式分段控件**（受 `2026-07-26-commission-center-visual-design.md` 启发）：
@@ -164,34 +151,7 @@ export const marketStats = computed(() => {
   }
 })
 
-// ② Top 5 创作者（按 weeklyEarnings 降序；总收益用 earningsRecords 实时聚合）
-export const topCreators = computed(() => {
-  const map = new Map()
-  marketStyles.value
-    .filter((s) => s.status === 'approved')
-    .forEach((s) => {
-      const cur = map.get(s.creatorId) || {
-        creatorId: s.creatorId,
-        creatorName: s.creatorName || '匿名用户',
-        weeklyEarnings: 0,
-        weeklyUses: 0,
-        bestStyle: null
-      }
-      cur.weeklyEarnings += s.weeklyEarnings || 0
-      cur.weeklyUses += s.weeklyUses || 0
-      if (!cur.bestStyle || (s.totalUses || 0) > (cur.bestStyle.totalUses || 0)) {
-        cur.bestStyle = s
-      }
-      map.set(s.creatorId, cur)
-    })
-  const tbm = totalEarningsByCreator.value
-  return Array.from(map.values())
-    .map((c) => ({ ...c, totalEarnings: tbm[c.creatorId] || 0 }))
-    .sort((a, b) => b.weeklyEarnings - a.weeklyEarnings)
-    .slice(0, 5)
-})
-
-// ③ 官方精选池（approved 且 totalUses >= 5，按 totalUses 降序，取 8）
+// ② 官方精选池（approved 且 totalUses >= 5，按 totalUses 降序，取 8）
 export const featuredStyles = computed(() =>
   marketStyles.value
     .filter((s) => s.status === 'approved' && (s.totalUses || 0) >= 5)

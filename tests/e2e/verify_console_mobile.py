@@ -2,10 +2,9 @@
 控制台移动端 app-style 验证
 
 覆盖：
-- 移动端 (375×812)：侧边栏隐藏，header 隐藏，底部 TabBar 显示 4 个 tab（创作/活动/排行榜/我的）
+- 移动端 (375×812)：侧边栏隐藏，header 隐藏，底部 TabBar 显示 4 个 tab（创作/活动/消息/我的）
 - 创作页使用独立 MobileCreate 布局
 - 活动页包含约稿中心和提示词市场入口
-- 提示词市场内可进入独立的收益潜力榜页面
 - 创作学院控制台页独立移动端样式，支持分类切换、文章详情与目录浮钮
 - 桌面端 (1280×800) 回归：侧边栏 + header 仍可见，TabBar 隐藏
 """
@@ -156,54 +155,6 @@ def _mock_api(page):
                     "totalUses": 3456,
                     "totalEarnings": 6912.0,
                     "featuredSkills": [],
-                    "topCreators": [
-                        {
-                            "creatorId": "u_1",
-                            "creatorName": "创作达人",
-                            "weeklyEarnings": 120,
-                            "weeklyUses": 60,
-                            "monthlyEarnings": 480,
-                            "monthlyUses": 240,
-                            "totalEarnings": 1200,
-                            "bestSkill": {
-                                "id": "s1",
-                                "name": "小红书爆款笔记",
-                                "description": "小红书风格爆款笔记提示词",
-                                "creatorId": "u_1",
-                                "creatorName": "创作达人",
-                                "featured": True,
-                                "scope": "小红书",
-                                "weeklyUses": 60,
-                                "totalUses": 300,
-                                "weeklyEarnings": 120,
-                                "status": "approved",
-                                "createdAt": "2026-07-01T10:00:00",
-                            },
-                        },
-                        {
-                            "creatorId": "u_2",
-                            "creatorName": "职场写手",
-                            "weeklyEarnings": 80,
-                            "weeklyUses": 40,
-                            "monthlyEarnings": 320,
-                            "monthlyUses": 160,
-                            "totalEarnings": 800,
-                            "bestSkill": {
-                                "id": "s2",
-                                "name": "职场干货",
-                                "description": "职场效率与沟通技巧提示词",
-                                "creatorId": "u_2",
-                                "creatorName": "职场写手",
-                                "featured": False,
-                                "scope": "公众号",
-                                "weeklyUses": 40,
-                                "totalUses": 200,
-                                "weeklyEarnings": 80,
-                                "status": "approved",
-                                "createdAt": "2026-07-05T10:00:00",
-                            },
-                        },
-                    ],
                 },
                 "message": "ok",
             }
@@ -251,23 +202,6 @@ def _mock_api(page):
         # 收藏 ID 列表
         if "/market-skills/favorites" in path:
             return {"code": 0, "data": [], "message": "ok"}
-        # 单价
-        if "/market-skills/price-per-use" in path:
-            return {"code": 0, "data": 2, "message": "ok"}
-        # 月度奖励配置
-        if "/market-skills/monthly-reward-config" in path:
-            return {
-                "code": 0,
-                "data": {
-                    "enabled": 1,
-                    "firstAmount": 500,
-                    "secondAmount": 300,
-                    "thirdAmount": 200,
-                    "fourthAmount": 100,
-                    "fifthAmount": 50,
-                },
-                "message": "ok",
-            }
         # 灵感选题
         if "/topics/random" in path:
             return {
@@ -480,27 +414,9 @@ def test_console_mobile():
         expect(page.locator(".market-page")).to_be_visible()
         expect(page.locator(".market-banner")).to_be_visible()
         expect(page.locator(".market-upload-card")).to_be_visible()
-        expect(page.locator(".market-rank-entry")).to_be_visible()
         expect(page.locator(".market-grid-section")).to_be_visible()
         expect(page.locator(".skill-card")).to_have_count(2)
         page.screenshot(path=f"{OUT}/console_mobile_skill_market.png", full_page=True)
-
-        # 进入收益潜力榜独立页面
-        page.locator(".market-rank-entry").click()
-        page.wait_for_timeout(800)
-        assert re.search(r"/console/skill-market/rank$", page.url), f"未跳转到收益潜力榜: {page.url}"
-        expect(page.locator(".creator-rank-page")).to_be_visible()
-        expect(page.locator(".creator-rank-header")).to_be_visible()
-        expect(page.locator(".creator-rank-card")).to_have_count(2)
-        page.screenshot(path=f"{OUT}/console_mobile_skill_market_rank.png", full_page=True)
-
-        # 点击榜首查看创作者详情弹框
-        page.locator(".creator-rank-card").first.click()
-        page.wait_for_timeout(600)
-        expect(page.locator(".creator-modal")).to_be_visible()
-        page.screenshot(path=f"{OUT}/console_mobile_skill_market_rank_creator.png", full_page=True)
-        page.keyboard.press("Escape")
-        page.wait_for_timeout(400)
 
         # 从活动页进入约稿中心
         page.goto(f"{BASE_URL}/console/activities", wait_until="domcontentloaded", timeout=20000)

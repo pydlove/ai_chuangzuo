@@ -76,6 +76,9 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_WORD_LIMIT_EXCEEDS_PLAN);
         }
 
+        // 3.5 校验所选提示词是否可用（尤其是提示词市场中的 skill）
+        validateSkillRef(req.getSkillRef());
+
         // 4. 选模型
         Long modelConfigId = req.getModelConfigId();
         if (modelConfigId == null) {
@@ -247,6 +250,8 @@ public class GenerationTaskService {
         map.put("wordCount", req.getWordCount());
         map.put("template", req.getTemplate());
         map.put("toneTags", defaultToneTags(req.getPlatform()));
+        // 快照 SEO 关键词建议权益：admin worker 生成推荐标签时按此过滤
+        map.put("seoKeywords", benefitService.getPlanBenefitValue(userId, "seo_keywords", "false"));
         // 快照用户风格 prompt：worker 端无需跨表查 u_user_skill
         map.put("userSkillPrompt", resolveUserSkillPrompt(userId, req.getSkillRef()));
         try {
@@ -306,6 +311,33 @@ public class GenerationTaskService {
 
     private static String nullToEmpty(String s) {
         return s == null ? "" : s;
+    }
+
+    /**
+     * 校验 skillRef 是否指向一个已下架/不可用的提示词市场 skill。
+     *
+     * <p>如果是市场 skill（bizNo 匹配）但已删除、未启用或未审核通过，则直接阻断。
+     * 非市场 skill（用户自定义/系统预设）不做强校验，按原有逻辑走。
+     */
+    private void validateSkillRef(String skillRef) {
+        if (skillRef == null || skillRef.isBlank()) {
+            return;
+        }
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getBizNo, skillRef).last("LIMIT 1");
+        SkillMarket marketSkill = skillMarketMapper.selectOne(wrapper);
+        if (marketSkill == null) {
+            return;
+        }
+        if (marketSkill.getIsDeleted() != null && marketSkill.getIsDeleted() == 1) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_SKILL_NOT_AVAILABLE);
+        }
+        if (marketSkill.getEnableStatus() == null || marketSkill.getEnableStatus() != 1) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_SKILL_NOT_AVAILABLE);
+        }
+        if (marketSkill.getAuditStatus() == null || marketSkill.getAuditStatus() != 1) {
+            throw new BusinessException(UserGenerationErrorCode.GENERATION_SKILL_NOT_AVAILABLE);
+        }
     }
 
     private static List<String> defaultToneTags(String platform) {

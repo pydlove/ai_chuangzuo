@@ -81,9 +81,16 @@ public class ContentRuleStep implements GenerationStep {
             ObjectNode obj = (ObjectNode) root;
             if (obj.has("draft") && obj.get("draft").isArray()) {
                 for (JsonNode para : obj.get("draft")) {
-                    if (para instanceof ObjectNode p && p.has("content")) {
-                        p.put("content", applyPostProcessRules(p.path("content").asText(""),
-                                replaceSingleQuotes, replaceCornerBrackets));
+                    if (para instanceof ObjectNode p) {
+                        if (p.has("content")) {
+                            p.put("content", applyPostProcessRules(p.path("content").asText(""),
+                                    replaceSingleQuotes, replaceCornerBrackets));
+                        }
+                        // 小标题（responsibility）中的引号也要处理
+                        if (p.has("responsibility")) {
+                            p.put("responsibility", applyPostProcessRules(p.path("responsibility").asText(""),
+                                    replaceSingleQuotes, replaceCornerBrackets));
+                        }
                     }
                 }
             }

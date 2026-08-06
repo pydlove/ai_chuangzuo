@@ -1,7 +1,15 @@
 import { ref, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { subscribe, getPlanCatalog, getNewcomerOffer, getMyMembership, previewUpgrade } from '@/api/membership'
+import {
+  subscribe,
+  getPlanCatalog,
+  getNewcomerOffer,
+  getMyMembership,
+  previewUpgrade,
+  previewSubscribe
+} from '@/api/membership'
+import { useInviteStats } from '@/composables/useInviteStats'
 
 const PLAN_RANK = {
   free: 0,
@@ -10,14 +18,24 @@ const PLAN_RANK = {
   flagship: 3
 }
 
+const CYCLE_RANK = {
+  month: 0,
+  quarter: 1,
+  year: 2
+}
+
 export function usePricing() {
   const router = useRouter()
   const route = useRoute()
 
+  const { coinBalance, loadInviteStats, adjustCoinBalance } = useInviteStats()
+
+  const COIN_TO_YUAN_RATIO = 10
   const modalVisible = ref(false)
   const selectedPlan = ref(null)
   const payCode = ref('')
   const subscribeLoading = ref(false)
+  const selectedCoinAmount = ref(0)
 
   const plans = ref([])
   const compareRows = ref([])
@@ -63,12 +81,7 @@ export function usePricing() {
       const CARD_BENEFIT_CODE = 'sticker_quota'
       const SKILL_CUSTOM_CODE = 'skill_custom'
       const SKILL_CUSTOM_LABEL = '我的提示词'
-      plans.value = rawPlans.map(plan => ({
-        ...plan,
-        features: (plan.features || [])
-          .filter(f => f.code !== CARD_BENEFIT_CODE)
-          .map(f => f.code === SKILL_CUSTOM_CODE ? { ...f, text: `${SKILL_CUSTOM_LABEL} ${f.text}` } : f)
-      }))
+      plans.value = rawPlans
       compareRows.value = rawRows
         .filter(row => row.code !== CARD_BENEFIT_CODE)
         .map(row => {
@@ -97,7 +110,8 @@ export function usePricing() {
       try {
         const [membershipRes, newcomerRes] = await Promise.all([
           getMyMembership(),
-          getNewcomerOffer()
+          getNewcomerOffer(),
+          loadInviteStats()
         ])
         const membershipData = membershipRes.data || membershipRes
         if (membershipData?.hasMembership) {
@@ -129,15 +143,10 @@ export function usePricing() {
   }
 
   const cycleLocked = () => {
-    return !!currentMembership.value?.cycle
+    return false
   }
 
   const currentCycle = () => {
-    const membershipCycle = currentMembership.value?.cycle
-    if (membershipCycle) {
-      activeCycle.value = membershipCycle
-      return membershipCycle
-    }
     return activeCycle.value
   }
 
@@ -148,15 +157,31 @@ export function usePricing() {
 
   const getPlanButton = (plan) => {
     const currentKey = currentPlanKey()
+    const currentCycleKey = currentMembership.value?.cycle
+    const targetCycleKey = activeCycle.value
+
     if (currentKey === plan.key) {
-      return { text: '当前订阅', action: 'current', disabled: true }
+      if (currentCycleKey === targetCycleKey) {
+        return { text: '当前订阅', action: 'current', disabled: true }
+      }
+      if (CYCLE_RANK[targetCycleKey] > CYCLE_RANK[currentCycleKey]) {
+        return { text: '升级套餐', action: 'upgrade', disabled: false, primary: true }
+      }
+      return { text: '立即订阅', action: 'disabled', disabled: true }
     }
+
+    if (currentKey === 'free') {
+      return { text: '立即订阅', action: 'subscribe', disabled: false, primary: plan.recommended }
+    }
+
     if (PLAN_RANK[plan.key] > PLAN_RANK[currentKey]) {
       return { text: '升级套餐', action: 'upgrade', disabled: false, primary: true }
     }
+
     if (PLAN_RANK[plan.key] < PLAN_RANK[currentKey]) {
       return { text: '立即订阅', action: 'disabled', disabled: true }
     }
+
     return { text: '立即订阅', action: 'subscribe', disabled: false }
   }
 
@@ -174,11 +199,17 @@ export function usePricing() {
     upgradePreview.value = null
 
     const currentKey = currentPlanKey()
-    if (PLAN_RANK[plan.key] > PLAN_RANK[currentKey]) {
+    const currentCycleKey = currentMembership.value?.cycle
+    const isUpgrade = currentKey !== 'free' && (
+      PLAN_RANK[plan.key] > PLAN_RANK[currentKey] ||
+      (plan.key === currentKey && CYCLE_RANK[activeCycle.value] > CYCLE_RANK[currentCycleKey])
+    )
+    if (isUpgrade) {
       upgradeLoading.value = true
       try {
         const res = await previewUpgrade({ planKey: plan.key, cycle: currentCycle() })
         upgradePreview.value = res.data || res
+        syncCoinSelection()
         upgradeModalVisible.value = true
       } catch (err) {
         message.error(err.message || '升级预览失败')
@@ -188,6 +219,7 @@ export function usePricing() {
       return
     }
 
+    syncCoinSelection()
     modalVisible.value = true
   }
 
@@ -204,12 +236,47 @@ export function usePricing() {
     activeCycle.value = 'year'
     payCode.value = ''
     upgradePreview.value = null
+    syncCoinSelection()
     modalVisible.value = true
   }
 
   const confirmUpgrade = () => {
     upgradeModalVisible.value = false
+    syncCoinSelection()
     modalVisible.value = true
+  }
+
+  const getExpectedCash = () => {
+    const cycle = currentCycle()
+    const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
+    const plan = selectedPlan.value
+    const isNewcomerDeal = newcomerOffer.value &&
+      plan.key === newcomerOffer.value.planKey &&
+      cycle === newcomerOffer.value.cycle
+    if (upgradePreview.value && upgradePreview.value.targetPlanKey === plan.key && upgradePreview.value.targetCycle === cycle) {
+      return Number(upgradePreview.value.finalPrice) || 0
+    }
+    if (isNewcomerDeal) {
+      return Number(newcomerOffer.value.finalPrice) || 0
+    }
+    return Number(plan[keyMap[cycle]]?.current) || 0
+  }
+
+  const getMaxCoinAmount = () => {
+    const maxByCash = Math.floor(getExpectedCash() * COIN_TO_YUAN_RATIO)
+    return Math.min(Math.floor(coinBalance.value), maxByCash)
+  }
+
+  const getCoinDiscountYuan = () => {
+    return selectedCoinAmount.value / COIN_TO_YUAN_RATIO
+  }
+
+  const getFinalCash = () => {
+    return Number(Math.max(0, getExpectedCash() - getCoinDiscountYuan()).toFixed(2))
+  }
+
+  const syncCoinSelection = () => {
+    selectedCoinAmount.value = getMaxCoinAmount()
   }
 
   const handlePay = async () => {
@@ -220,19 +287,6 @@ export function usePricing() {
 
     const plan = selectedPlan.value
     const cycle = currentCycle()
-    const isNewcomerDeal = newcomerOffer.value &&
-      plan.key === newcomerOffer.value.planKey &&
-      cycle === newcomerOffer.value.cycle
-      cycle === newcomerOffer.value.cycle
-
-    let price
-    if (upgradePreview.value && upgradePreview.value.targetPlanKey === plan.key && upgradePreview.value.targetCycle === cycle) {
-      price = { current: upgradePreview.value.finalPrice }
-    } else if (isNewcomerDeal) {
-      price = { current: newcomerOffer.value.finalPrice }
-    } else {
-      price = plan[cycle === 'month' ? 'monthly' : cycle]
-    }
 
     subscribeLoading.value = true
     try {
@@ -240,10 +294,13 @@ export function usePricing() {
         planKey: plan.key,
         cycle,
         payCode: payCode.value,
-        amount: price.current
+        amount: getFinalCash(),
+        coinAmount: selectedCoinAmount.value
       })
       const data = res.data
       message.success(upgradePreview.value ? '升级成功' : '订阅成功')
+      adjustCoinBalance(-(data.coinAmount || selectedCoinAmount.value))
+      selectedCoinAmount.value = 0
       localStorage.setItem('aichuangzuo_membership', JSON.stringify({
         level: planKeyToName[data.level] || plan.name,
         expiresAt: data.expiresAt
@@ -255,6 +312,7 @@ export function usePricing() {
         hasMembership: true,
         level: data.level,
         levelName: planKeyToName[data.level] || plan.name,
+        cycle: data.cycle || cycle,
         expiresAt: data.expiresAt
       }
       router.push('/console/create')
@@ -306,6 +364,7 @@ export function usePricing() {
     selectedPlan,
     payCode,
     subscribeLoading,
+    selectedCoinAmount,
     plans,
     compareRows,
     catalogLoading,
@@ -333,6 +392,11 @@ export function usePricing() {
     handleNewcomerSubscribe,
     confirmUpgrade,
     handlePay,
-    scrollToCompare
+    scrollToCompare,
+    coinBalance,
+    COIN_TO_YUAN_RATIO,
+    getMaxCoinAmount,
+    getCoinDiscountYuan,
+    getFinalCash
   }
 }

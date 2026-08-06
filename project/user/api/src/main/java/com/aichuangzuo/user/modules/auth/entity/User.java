@@ -29,6 +29,12 @@ public class User {
     private String passwordHash;
     /** 头像 URL；可为空，UI 层空时回退到昵称首字母。 */
     private String avatarUrl;
+    /** 真实姓名；提现实名认证时填写。 */
+    private String realName;
+    /** 身份证号；提现实名认证时填写。 */
+    private String idCard;
+    /** 是否实名认证：0-否 / 1-是。 */
+    private Integer realNameVerified;
     /** 个人邀请码 6 位；唯一约束由 uk_u_user_invite_code 保证；注册时生成。 */
     private String inviteCode;
     /** 创作币余额。 */

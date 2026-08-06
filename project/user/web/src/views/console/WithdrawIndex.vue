@@ -216,11 +216,11 @@ import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInviteStats } from '@/composables/useInviteStats'
+import { useWithdraw } from '@/composables/useWithdraw'
 
 const { coinBalance, inviteStats, loadInviteStats } = useInviteStats()
+const { realNameInfo, withdrawRecords, loadRealName, submitRealName: submitRealNameApi, loadWithdrawals, applyWithdraw } = useWithdraw()
 
-const WITHDRAW_REQUESTS_KEY = 'aichuangzuo_withdraw_requests'
-const REAL_NAME_KEY = 'aichuangzuo_real_name_info'
 const WITHDRAW_AGREEMENT_KEY = 'aichuangzuo_withdraw_agreement_accepted'
 
 const router = useRouter()
@@ -228,8 +228,6 @@ const route = useRoute()
 
 const realName = ref('')
 const idCard = ref('')
-const realNameVerified = ref(false)
-const withdrawRecords = ref([])
 const applyVisible = ref(false)
 const applyAmount = ref(null)
 const applyAccount = ref('')
@@ -237,10 +235,12 @@ const rulesVisible = ref(false)
 const agreementModalVisible = ref(false)
 const agreementAccepted = ref(false)
 
+const realNameVerified = computed(() => realNameInfo.value.verified)
+
 const totalEarned = computed(() => inviteStats.value.coinEarned || 0)
 
 const maskedIdCard = computed(() => {
-  const v = idCard.value || ''
+  const v = idCard.value || realNameInfo.value.idCard || ''
   if (v.length < 8) return v
   return v.slice(0, 4) + '**********' + v.slice(-4)
 })
@@ -316,33 +316,6 @@ const statusText = (status) => {
   }
 }
 
-const loadRealName = () => {
-  const raw = localStorage.getItem(REAL_NAME_KEY)
-  if (raw) {
-    try {
-      const info = JSON.parse(raw)
-      realName.value = info.realName || ''
-      idCard.value = info.idCard || ''
-      realNameVerified.value = true
-    } catch (e) {
-      realNameVerified.value = false
-    }
-  }
-}
-
-const loadWithdrawRecords = () => {
-  const raw = localStorage.getItem(WITHDRAW_REQUESTS_KEY)
-  if (raw) {
-    try {
-      withdrawRecords.value = JSON.parse(raw)
-    } catch (e) {
-      withdrawRecords.value = []
-    }
-  } else {
-    withdrawRecords.value = []
-  }
-}
-
 const loadAgreement = () => {
   const raw = localStorage.getItem(WITHDRAW_AGREEMENT_KEY)
   agreementAccepted.value = raw === 'true'
@@ -352,19 +325,20 @@ const saveAgreement = () => {
   localStorage.setItem(WITHDRAW_AGREEMENT_KEY, String(agreementAccepted.value))
 }
 
-const submitRealName = () => {
+const submitRealName = async () => {
   if (!canSubmitRealName.value) {
     message.warning('请填写真实姓名和 18 位身份证号')
     return
   }
-  const info = {
-    realName: realName.value.trim(),
-    idCard: idCard.value.trim(),
-    verifiedAt: new Date().toISOString()
+  try {
+    await submitRealNameApi({
+      realName: realName.value.trim(),
+      idCard: idCard.value.trim()
+    })
+    message.success('实名认证成功')
+  } catch (err) {
+    message.error(err?.response?.data?.message || '实名认证失败')
   }
-  localStorage.setItem(REAL_NAME_KEY, JSON.stringify(info))
-  realNameVerified.value = true
-  message.success('实名认证成功')
 }
 
 const openApplyModal = () => {
@@ -386,7 +360,7 @@ const openApplyModal = () => {
   applyVisible.value = true
 }
 
-const submitApply = () => {
+const submitApply = async () => {
   if (!agreementAccepted.value) {
     message.warning('请先阅读并同意《提现服务协议》')
     return
@@ -395,24 +369,16 @@ const submitApply = () => {
     message.warning('请完整填写提现信息')
     return
   }
-  const amount = Number(applyAmount.value)
-  const record = {
-    id: 'WD' + Date.now(),
-    amount,
-    account: applyAccount.value.trim(),
-    name: realName.value.trim(),
-    status: 'pending',
-    createdAt: new Date().toISOString()
+  try {
+    await applyWithdraw({
+      amount: Number(applyAmount.value),
+      account: applyAccount.value.trim()
+    })
+    applyVisible.value = false
+    message.success('提现申请已提交，预计 7 天内到账')
+  } catch (err) {
+    message.error(err?.response?.data?.message || '提现申请失败')
   }
-  const list = [...withdrawRecords.value]
-  list.unshift(record)
-  localStorage.setItem(WITHDRAW_REQUESTS_KEY, JSON.stringify(list))
-  withdrawRecords.value = list
-
-  coinBalance.value = Math.max(0, coinBalance.value - amount)
-
-  applyVisible.value = false
-  message.success('提现申请已提交，预计 7 天内到账')
 }
 
 const backText = computed(() => {
@@ -430,7 +396,7 @@ const goBack = () => {
 onMounted(() => {
   loadRealName()
   loadInviteStats()
-  loadWithdrawRecords()
+  loadWithdrawals()
   loadAgreement()
 })
 </script>

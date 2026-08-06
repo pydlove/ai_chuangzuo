@@ -89,29 +89,22 @@
           :key="plan.key"
           :class="['mp-card', { recommended: plan.recommended }]"
         >
-          <div v-if="plan.recommended" class="mp-card__badge">最受欢迎</div>
+          <div v-if="plan.recommended" class="mp-card__badge">推荐</div>
           <div class="mp-card__name">{{ plan.name }}</div>
           <div v-if="getPrice(plan).original" class="mp-card__original">¥{{ getPrice(plan).original }}</div>
           <div class="mp-card__price">
             ¥{{ getPrice(plan).current }}
             <span>/{{ getPeriodLabel() }}</span>
           </div>
-          <div class="mp-card__articles">{{ getArticles(plan) }}</div>
-          <div v-if="getSavings(plan)" class="mp-card__savings">年付立省 ¥{{ getSavings(plan) }}</div>
+          <div class="mp-card__meta">
+            <span>{{ getArticles(plan) }}</span>
+            <span v-if="getSavings(plan)">· 省¥{{ getSavings(plan) }}</span>
+          </div>
           <button
             :class="['mp-card__btn', { primary: getPlanButton(plan).primary || plan.recommended, disabled: getPlanButton(plan).disabled }]"
             :disabled="getPlanButton(plan).disabled"
             @click="handleSubscribe(plan)"
           >{{ getPlanButton(plan).text }}</button>
-          <ul class="mp-card__features">
-            <li
-              v-for="feature in plan.features"
-              :key="feature.code + '-' + feature.text"
-              :class="{ disabled: !feature.included }"
-            >
-              <span>{{ feature.included ? '✓' : '✗' }}</span> {{ feature.text }}
-            </li>
-          </ul>
         </div>
       </div>
 
@@ -126,7 +119,7 @@
           <button
             v-for="key in ['basic', 'pro', 'flagship']"
             :key="key"
-            :class="['mp-compare__tab', { active: activeComparePlan === key, recommended: key === 'pro' }]"
+            :class="['mp-compare__tab', { active: activeComparePlan === key }]"
             @click="activeComparePlan = key"
           >
             {{ planNames[key] }}
@@ -203,6 +196,14 @@
       :confirm-loading="subscribeLoading"
     >
       <div class="mp-pay-panel">
+        <CoinDiscountPanel
+          v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
+          v-model:selectedCoinAmount="selectedCoinAmount"
+          :coinBalance="coinBalance"
+          :maxCoinAmount="getMaxCoinAmount()"
+          :coinToYuanRatio="COIN_TO_YUAN_RATIO"
+          :finalCash="getFinalCash()"
+        />
         <p class="mp-pay-tip">
           测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
         </p>
@@ -221,6 +222,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
+import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
 import { usePricing } from '@/composables/usePricing.js'
 
 const route = useRoute()
@@ -245,6 +247,7 @@ const {
   selectedPlan,
   payCode,
   subscribeLoading,
+  selectedCoinAmount,
   plans,
   compareRows,
   catalogLoading,
@@ -266,7 +269,11 @@ const {
   handleNewcomerSubscribe,
   confirmUpgrade,
   handlePay,
-  scrollToCompare
+  scrollToCompare,
+  coinBalance,
+  COIN_TO_YUAN_RATIO,
+  getMaxCoinAmount,
+  getFinalCash
 } = usePricing()
 </script>
 
@@ -613,108 +620,99 @@ const {
 /* 套餐卡片 */
 .mp-cards {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  flex-direction: row;
+  gap: 8px;
   margin-bottom: 40px;
 }
 .mp-card {
   position: relative;
+  flex: 1 1 0;
+  min-width: 0;
   background: #fff;
-  border-radius: 16px;
-  padding: 24px 20px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+  border-radius: 14px;
+  padding: 14px 6px 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   border: 2px solid transparent;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 .mp-card.recommended {
   border-color: #FF2442;
-  box-shadow: 0 4px 24px rgba(255, 36, 66, 0.12);
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.12);
 }
+
 .mp-card__badge {
   position: absolute;
-  top: -11px;
+  top: -8px;
   left: 50%;
   transform: translateX(-50%);
   background: #FF2442;
   color: #fff;
-  padding: 4px 14px;
-  border-radius: 12px;
-  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 8px;
+  font-size: 10px;
   font-weight: 600;
   white-space: nowrap;
 }
+
 .mp-card__name {
-  font-size: 18px;
+  font-size: 13px;
   font-weight: 700;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #1a1a1a;
 }
 .mp-card__original {
-  font-size: 14px;
+  font-size: 10px;
   color: #8c8c8c;
   text-decoration: line-through;
   margin-bottom: 2px;
 }
 .mp-card__price {
-  font-size: 32px;
+  font-size: 20px;
   font-weight: 800;
   color: #1a1a1a;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
+  line-height: 1.2;
 }
 .mp-card__price span {
-  font-size: 14px;
+  font-size: 10px;
   color: #8c8c8c;
   font-weight: 400;
 }
-.mp-card__articles {
-  font-size: 13px;
+.mp-card__meta {
+  font-size: 10px;
   color: #FF2442;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
+  line-height: 1.3;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.mp-card__savings {
-  font-size: 13px;
-  color: #FF2442;
-  margin-bottom: 14px;
-}
+
 .mp-card__btn {
   width: 100%;
-  padding: 13px 0;
-  border-radius: 24px;
-  font-size: 15px;
+  padding: 7px 0;
+  border-radius: 16px;
+  font-size: 11px;
   font-weight: 600;
   background: #fff;
   color: #FF2442;
-  border: 1.5px solid #FF2442;
-  margin-bottom: 18px;
+  border: 1px solid #FF2442;
+  margin-top: auto;
 }
+
 .mp-card__btn.primary {
   background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
   color: #fff;
   border: none;
-  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.25);
 }
 .mp-card__btn.disabled {
   background: #f5f5f5;
   color: #8c8c8c;
   border-color: #d9d9d9;
-}
-.mp-card__features {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 14px;
-  color: #595959;
-  line-height: 2;
-}
-.mp-card__features li.disabled {
-  color: #bfbfbf;
-}
-.mp-card__features span {
-  font-weight: 600;
-  margin-right: 4px;
-  color: #FF2442;
-}
-.mp-card__features li.disabled span {
-  color: #bfbfbf;
 }
 
 /* 权益对比 */
@@ -769,9 +767,6 @@ const {
 }
 .mp-compare__tab.active span {
   color: rgba(255, 255, 255, 0.85);
-}
-.mp-compare__tab.recommended.active {
-  background: #FF2442;
 }
 .mp-compare__list {
   display: flex;
@@ -870,7 +865,6 @@ body[data-theme="dark"] .mp-newcomer__title {
 }
 body[data-theme="dark"] .mp-hero__desc,
 body[data-theme="dark"] .mp-compare-link,
-body[data-theme="dark"] .mp-card__features,
 body[data-theme="dark"] .mp-compare__label,
 body[data-theme="dark"] .mp-pay-tip {
   color: #a6a6a6;
@@ -891,6 +885,7 @@ body[data-theme="dark"] .mp-card__btn {
   color: #ff4d6f;
   border-color: #ff4d6f;
 }
+
 body[data-theme="dark"] .mp-card__btn.primary {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
   color: #fff;
@@ -901,8 +896,6 @@ body[data-theme="dark"] .mp-card__btn.disabled {
   color: #666;
   border-color: #434343;
 }
-body[data-theme="dark"] .mp-card__features li.disabled { color: #666; }
-body[data-theme="dark"] .mp-card__features li.disabled span { color: #666; }
 body[data-theme="dark"] .mp-compare__tab {
   background: #2a2a2a;
   color: #a6a6a6;
@@ -927,8 +920,7 @@ body[data-theme="dark"] .mp-newcomer__period {
 }
 body[data-theme="dark"] .mp-newcomer__final,
 body[data-theme="dark"] .mp-newcomer__savings,
-body[data-theme="dark"] .mp-card__articles,
-body[data-theme="dark"] .mp-card__savings,
+body[data-theme="dark"] .mp-card__meta,
 body[data-theme="dark"] .mp-compare__value .yes,
 body[data-theme="dark"] .mp-pay-tip strong {
   color: #ff4d6f;

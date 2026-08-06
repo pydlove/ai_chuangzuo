@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.skill.service;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
 import com.aichuangzuo.user.modules.skill.analyze.service.SkillAnalyzeDailyLimiter;
 import com.aichuangzuo.user.modules.skill.service.impl.SkillAnalyzeServiceImpl;
@@ -58,10 +60,21 @@ class SkillAnalyzeServiceImplTest {
         return limiter;
     }
 
+    private BenefitService mockBenefitService() {
+        BenefitService benefitService = mock(BenefitService.class);
+        BenefitCheckVO vo = new BenefitCheckVO();
+        vo.setAllowed(true);
+        vo.setCode("skill_learn_analyze");
+        vo.setType("boolean");
+        vo.setValue("true");
+        when(benefitService.check(anyLong(), anyString())).thenReturn(vo);
+        return benefitService;
+    }
+
     private SkillAnalyzeServiceImpl serviceWith(String aiResponse) {
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(aiResponse);
-        return new SkillAnalyzeServiceImpl(aiService, mockConfigService(), mockDailyLimiter(), new ObjectMapper());
+        return new SkillAnalyzeServiceImpl(aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), new ObjectMapper());
     }
 
     @Test
@@ -174,7 +187,7 @@ class SkillAnalyzeServiceImplTest {
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
         SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(
-                aiService, mockConfigService(), mockDailyLimiter(), new ObjectMapper());
+                aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), new ObjectMapper());
         svc.analyze(USER_ID, longText);
 
         ArgumentCaptor<String> userMsgCaptor = ArgumentCaptor.forClass(String.class);

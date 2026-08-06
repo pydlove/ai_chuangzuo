@@ -42,6 +42,8 @@ CHROME_PATH=""
 for candidate in \
     /usr/bin/google-chrome \
     /usr/bin/google-chrome-stable \
+    /usr/bin/microsoft-edge \
+    /usr/bin/microsoft-edge-stable \
     /usr/bin/chromium \
     /usr/bin/chromium-browser \
     /usr/local/bin/google-chrome \
@@ -91,6 +93,10 @@ else
     fi
     if [ ! -f "$CACERTS" ]; then
         CACERTS="/usr/lib/jvm/java-17/lib/security/cacerts"
+    fi
+    if [ ! -f "$CACERTS" ]; then
+        # 自动探测任意 JDK/JRE 的 cacerts（兼容 Oracle JDK、不同版本号）
+        CACERTS=$(find /usr/lib/jvm -name cacerts -path '*/lib/security/cacerts' 2>/dev/null | head -1)
     fi
 
     if [ ! -f "$CACERTS" ]; then

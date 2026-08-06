@@ -18,8 +18,8 @@
         <div class="invite-stat-label">已邀请</div>
       </div>
       <div class="invite-stat-item">
-        <div class="invite-stat-value">{{ inviteStats.membershipDaysEarned }}</div>
-        <div class="invite-stat-label">奖励会员天数</div>
+        <div class="invite-stat-value">{{ inviteStats.inviteCoinEarned }}</div>
+        <div class="invite-stat-label">奖励创作币</div>
       </div>
       <div class="invite-stat-item invite-stat-item-coin">
         <div class="invite-stat-value">{{ coinBalance }}</div>
@@ -35,7 +35,7 @@
       </div>
       <div class="invite-rule-item">
         <span class="invite-rule-label">🎁 邀请奖励</span>
-        <span class="invite-rule-text">累计邀请 3 人 +3 天会员、5 人 +5 天，超过 5 人后每多 1 人 +2 天专业版会员。</span>
+        <span class="invite-rule-text">累计邀请 3 人 +30 创作币、5 人 +50，超过 5 人后每多 1 人 +20 创作币。</span>
       </div>
       <div class="invite-rule-item">
         <span class="invite-rule-label">💰 创作币返利</span>
@@ -59,6 +59,7 @@
       <div class="invite-link-value">{{ inviteLink }}</div>
       <div class="invite-link-actions">
         <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
+        <button class="invite-btn invite-btn-primary" @click="downloadPoster">下载海报</button>
       </div>
     </div>
 
@@ -79,7 +80,7 @@
           <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 3) * 100) + '%' }"></div>
         </div>
         <div class="invite-progress-text">
-          {{ inviteStats.invitedCount >= 3 ? '+3 天' : `${inviteStats.invitedCount}/3` }}
+          {{ inviteStats.invitedCount >= 3 ? '+30 币' : `${inviteStats.invitedCount}/3` }}
         </div>
       </div>
       <div class="invite-progress-item">
@@ -87,13 +88,13 @@
           <div class="invite-progress-fill" :style="{ width: Math.min(100, (inviteStats.invitedCount / 5) * 100) + '%' }"></div>
         </div>
         <div class="invite-progress-text">
-          {{ inviteStats.invitedCount >= 5 ? '+5 天' : `${inviteStats.invitedCount}/5` }}
+          {{ inviteStats.invitedCount >= 5 ? '+50 币' : `${inviteStats.invitedCount}/5` }}
         </div>
       </div>
       <div class="invite-progress-item">
-        <div class="invite-progress-desc">超过 5 人后，每多 1 人 +2 天专业版会员</div>
+        <div class="invite-progress-desc">超过 5 人后，每多 1 人 +20 创作币</div>
         <div class="invite-progress-text">
-          {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 2} 天` : '—' }}
+          {{ inviteStats.invitedCount > 5 ? `+${(inviteStats.invitedCount - 5) * 20} 币` : '—' }}
         </div>
       </div>
     </div>
@@ -121,8 +122,9 @@
 <script setup>
 import { computed, onMounted, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { useInviteStats } from '@/composables/useInviteStats'
-import { useUserProfile } from '@/composables/useUserProfile'
+import QRCode from 'qrcode'
+import { useInviteStats } from '@/composables/useInviteStats.js'
+import { useUserProfile } from '@/composables/useUserProfile.js'
 
 const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
 const { profile, loadProfile } = useUserProfile()
@@ -139,6 +141,10 @@ const inviteLink = computed(() => {
   return `${window.location.origin}/login?ref=${inviteCode.value}`
 })
 
+const inviteShareText = computed(() => {
+  return `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n${inviteLink.value}`
+})
+
 const copyUserId = () => {
   navigator.clipboard.writeText(userId.value).then(() => {
     message.success('ID 已复制')
@@ -152,9 +158,121 @@ const copyInviteCode = () => {
 }
 
 const copyInviteLink = () => {
-  navigator.clipboard.writeText(inviteLink.value).then(() => {
-    message.success('邀请链接已复制')
+  navigator.clipboard.writeText(inviteShareText.value).then(() => {
+    message.success('邀请文案已复制')
   })
+}
+
+const roundRect = (ctx, x, y, w, h, r) => {
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.arcTo(x + w, y, x + w, y + h, r)
+  ctx.arcTo(x + w, y + h, x, y + h, r)
+  ctx.arcTo(x, y + h, x, y, r)
+  ctx.arcTo(x, y, x + w, y, r)
+  ctx.closePath()
+}
+
+const downloadPoster = async () => {
+  const canvas = document.createElement('canvas')
+  const W = 750
+  const H = 1200
+  canvas.width = W
+  canvas.height = H
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+
+  // 背景
+  const gradient = ctx.createLinearGradient(0, 0, W, H)
+  gradient.addColorStop(0, '#fff5f7')
+  gradient.addColorStop(1, '#ffffff')
+  ctx.fillStyle = gradient
+  ctx.fillRect(0, 0, W, H)
+
+  // 装饰
+  ctx.fillStyle = 'rgba(255, 36, 66, 0.06)'
+  ctx.beginPath()
+  ctx.arc(W - 80, 120, 160, 0, Math.PI * 2)
+  ctx.fill()
+  ctx.beginPath()
+  ctx.arc(80, H - 120, 120, 0, Math.PI * 2)
+  ctx.fill()
+
+  // 品牌名
+  ctx.textAlign = 'center'
+  ctx.fillStyle = '#ff2442'
+  ctx.font = 'bold 70px sans-serif'
+  ctx.fillText('爱创作', W / 2, 220)
+
+  ctx.fillStyle = '#595959'
+  ctx.font = '36px sans-serif'
+  ctx.fillText('邀请你一起 AI 创作', W / 2, 290)
+
+  // 主标题
+  ctx.fillStyle = '#1a1a1a'
+  ctx.font = 'bold 52px sans-serif'
+  ctx.fillText('一次邀请 终身返佣', W / 2, 420)
+
+  // 邀请码卡片
+  const cardX = 110
+  const cardY = 500
+  const cardW = 530
+  const cardH = 200
+  ctx.fillStyle = '#ffffff'
+  roundRect(ctx, cardX, cardY, cardW, cardH, 16)
+  ctx.fill()
+  ctx.strokeStyle = '#ffd1d9'
+  ctx.lineWidth = 3
+  ctx.stroke()
+
+  ctx.fillStyle = '#8c8c8c'
+  ctx.font = '34px sans-serif'
+  ctx.fillText('我的邀请码', W / 2, cardY + 70)
+
+  ctx.fillStyle = '#ff2442'
+  ctx.font = 'bold 80px sans-serif'
+  ctx.fillText(inviteCode.value || '', W / 2, cardY + 155)
+
+  // 二维码
+  const qrSize = 300
+  const qrX = (W - qrSize) / 2
+  const qrY = 760
+  try {
+    const qrDataUrl = await QRCode.toDataURL(inviteLink.value, {
+      errorCorrectionLevel: 'H',
+      margin: 1,
+      width: 320,
+      color: { dark: '#1a1a1a', light: '#ffffff' }
+    })
+    const qrImg = new Image()
+    await new Promise((resolve) => {
+      qrImg.onload = resolve
+      qrImg.onerror = resolve
+      qrImg.src = qrDataUrl
+    })
+    ctx.fillStyle = '#ffffff'
+    roundRect(ctx, qrX - 16, qrY - 16, qrSize + 32, qrSize + 32, 16)
+    ctx.fill()
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize)
+  } catch (e) {
+    message.error('二维码生成失败')
+    return
+  }
+
+  // 底部文案
+  ctx.fillStyle = '#1a1a1a'
+  ctx.font = 'bold 38px sans-serif'
+  ctx.fillText('扫码 / 输入邀请码 立即加入', W / 2, 1140)
+
+  ctx.fillStyle = '#ff2442'
+  ctx.font = '32px sans-serif'
+  ctx.fillText('注册即得 50 创作币 + 阶梯奖励', W / 2, 1190)
+
+  // 下载
+  const link = document.createElement('a')
+  link.download = `爱创作邀请海报-${inviteCode.value || 'invite'}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
 }
 </script>
 
