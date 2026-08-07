@@ -121,7 +121,7 @@ import { useIsMobile } from '@/composables/useMobile.js'
 
 const router = useRouter()
 const isMobile = useIsMobile()
-const { tasks, mySubmissions, loading, page, pageSize, total, loadTasks, loadMySubmissions } = useCommission()
+const { tasks, mySubmissions, stats, loading, page, pageSize, total, loadTasks, loadMySubmissions, loadStats } = useCommission()
 const tab = ref('all')
 const status = ref(null)
 const rulesExpanded = ref(!isMobile.value)
@@ -134,13 +134,9 @@ const filters = [
 
 const visibleItems = computed(() => tab.value === 'mine' ? mySubmissions.value : tasks.value)
 
-const activeTaskCount = computed(() => tasks.value.filter(task => task.status === 0).length)
-const mySubmissionCount = computed(() => mySubmissions.value.length)
-const earnedCoinTotal = computed(() =>
-  mySubmissions.value
-    .filter(submission => submission.status === 1)
-    .reduce((total, submission) => total + (Number(submission.rewardCoin) || 0), 0)
-)
+const activeTaskCount = computed(() => Number(stats.value?.activeTaskCount) || 0)
+const mySubmissionCount = computed(() => Number(stats.value?.mySubmissionCount) || 0)
+const earnedCoinTotal = computed(() => Number(stats.value?.earnedCoinTotal) || 0)
 
 async function refresh() {
   try {
@@ -151,7 +147,9 @@ async function refresh() {
   }
 }
 
-onMounted(refresh)
+onMounted(async () => {
+  await Promise.all([refresh(), loadStats()])
+})
 watch([tab, status], () => {
   page.value = 1
   refresh()

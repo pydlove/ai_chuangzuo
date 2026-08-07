@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
@@ -69,4 +70,20 @@ public interface CommissionSubmissionMapper extends BaseMapper<CommissionSubmiss
             "ORDER BY s.adopted_at DESC"
     })
     List<CommissionSubmitterVO> selectAdoptersByTaskId(@Param("taskId") Long taskId);
+
+    /**
+     * 统计用户已采纳投稿的奖励总额。
+     *
+     * @param submitterId 投稿人ID
+     * @return 奖励总额
+     */
+    @Select({
+            "SELECT COALESCE(SUM(reward_coin), 0)",
+            "FROM u_commission_submission",
+            "WHERE submitter_id = #{submitterId}",
+            "AND status = 1",
+            "AND is_deleted = 0"
+    })
+    BigDecimal selectSumRewardCoinBySubmitterId(@Param("submitterId") Long submitterId);
+
 }

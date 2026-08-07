@@ -20,6 +20,7 @@ com/aichuangzuo/user/modules/earnings/entity/EarningsRecord.class
 com/aichuangzuo/user/modules/skill/controller/UserSkillController.class
 com/aichuangzuo/user/modules/user/service/impl/UserInviteBindingServiceImpl.class
 com/aichuangzuo/user/modules/commission/dto/request/CommissionSubmitRequest.class
+com/aichuangzuo/user/modules/audit/dto/request/AuditLogCleanupRequest.class
 com/aichuangzuo/user/modules/article/service/TitleOptimizeAiService.class
 com/aichuangzuo/user/infrastructure/security/InternalKeyAuthenticationFilter.class
 com/aichuangzuo/user/modules/skill/market/entity/SkillMarket.class
@@ -54,6 +55,7 @@ com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketMapper.class
 com/aichuangzuo/user/modules/user/converter/UserConverter.class
 com/aichuangzuo/user/modules/article/service/impl/ArticleServiceImpl$1.class
 com/aichuangzuo/user/modules/benefit/vo/NewcomerOfferVO.class
+com/aichuangzuo/user/modules/earnings/controller/WithdrawInternalController.class
 com/aichuangzuo/user/modules/benefit/controller/PlanCatalogController.class
 com/aichuangzuo/user/modules/auth/service/impl/EmailCodeServiceImpl.class
 com/aichuangzuo/user/modules/hotsearch/entity/HotSearchDaily.class
@@ -93,6 +95,7 @@ com/aichuangzuo/user/modules/message/enums/MessageErrorCode.class
 com/aichuangzuo/user/modules/skill/market/service/UserMarketFavoriteService.class
 com/aichuangzuo/user/modules/skill/market/mapper/UserMarketFavoriteMapper.class
 com/aichuangzuo/user/modules/learn/vo/LearnArticleVO.class
+com/aichuangzuo/user/modules/audit/service/UserAuditLogService.class
 com/aichuangzuo/user/modules/topic/service/TopicTitleService.class
 com/aichuangzuo/user/modules/auth/dto/request/RefreshTokenRequest.class
 com/aichuangzuo/user/config/AuthProperties$Register.class
@@ -111,6 +114,7 @@ com/aichuangzuo/user/modules/feedback/vo/FeedbackVO.class
 com/aichuangzuo/user/modules/membership/enums/MembershipCycle.class
 com/aichuangzuo/user/modules/message/vo/MessageVO.class
 com/aichuangzuo/user/modules/learn/vo/LearnRecommendedArticleVO.class
+com/aichuangzuo/user/modules/audit/mapper/UserAuditLogMapper.class
 com/aichuangzuo/user/modules/article/service/TitleOptimizeService.class
 com/aichuangzuo/user/config/CaffeineConfig$1.class
 com/aichuangzuo/user/modules/generation/service/GenerationRateLimiter.class
@@ -165,6 +169,7 @@ com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
 com/aichuangzuo/user/modules/auth/controller/AuthController.class
 com/aichuangzuo/user/modules/earnings/mapper/WithdrawRequestMapper.class
 com/aichuangzuo/user/modules/commission/vo/CommissionSubmitterVO.class
+com/aichuangzuo/user/modules/audit/service/impl/UserAuditLogServiceImpl.class
 com/aichuangzuo/user/modules/generation/service/GenerationRateLimiter$Counter.class
 com/aichuangzuo/user/modules/benefit/mapper/PlanBenefitMapper.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardService.class
@@ -185,6 +190,7 @@ com/aichuangzuo/user/modules/feedback/dto/request/SubmitFeedbackRequest.class
 com/aichuangzuo/user/modules/topic/vo/TopicTitleVO.class
 com/aichuangzuo/user/modules/user/converter/UserConverterImpl.class
 com/aichuangzuo/user/config/SecurityConfig.class
+com/aichuangzuo/user/modules/audit/interceptor/UserAuditLogInterceptor.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchService.class
 com/aichuangzuo/user/modules/membership/enums/MembershipErrorCode.class
 com/aichuangzuo/user/modules/article/dto/request/UpdateDraftRequest.class
@@ -218,6 +224,7 @@ com/aichuangzuo/user/modules/feedback/mapper/FeedbackMapper.class
 com/aichuangzuo/user/modules/article/dto/request/SaveArticleRequest.class
 com/aichuangzuo/user/config/AuthProperties.class
 com/aichuangzuo/user/modules/user/service/impl/InviteRewardServiceImpl.class
+com/aichuangzuo/user/modules/audit/controller/UserAuditLogInternalController.class
 com/aichuangzuo/user/modules/earnings/service/impl/WithdrawServiceImpl.class
 com/aichuangzuo/user/infrastructure/security/JwtUtil.class
 com/aichuangzuo/user/modules/earnings/vo/EarningsRecordPageVO.class
@@ -225,6 +232,7 @@ com/aichuangzuo/user/modules/learn/vo/LearnCategoryDetailVO.class
 com/aichuangzuo/user/modules/commission/service/impl/CommissionServiceImpl.class
 com/aichuangzuo/user/modules/auth/mapper/IpRegisterLimitMapper.class
 com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO$PriceBlock.class
+com/aichuangzuo/user/modules/commission/vo/CommissionStatsVO.class
 com/aichuangzuo/user/modules/exporttemplate/entity/ExportTemplate.class
 com/aichuangzuo/user/modules/user/service/impl/UserProfileServiceImpl.class
 com/aichuangzuo/user/modules/hotsearch/enums/HotSearchErrorCode.class
@@ -236,6 +244,7 @@ com/aichuangzuo/user/modules/auth/service/EmailCodeService.class
 com/aichuangzuo/user/modules/feedback/controller/FeedbackController.class
 com/aichuangzuo/user/modules/auth/mapper/UserInviteRelationMapper.class
 com/aichuangzuo/user/modules/membership/mapper/OrderMapper.class
+com/aichuangzuo/user/modules/earnings/dto/request/WithdrawProcessRequest.class
 com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO$CompareRowVO.class
 com/aichuangzuo/user/modules/learn/entity/LearnBannerEntity.class
 com/aichuangzuo/user/modules/skill/analyze/config/entity/SkillAnalyzeConfig.class
@@ -253,6 +262,7 @@ com/aichuangzuo/user/modules/learn/entity/LearnArticleEntity.class
 com/aichuangzuo/user/modules/skill/vo/SystemSkillVO.class
 com/aichuangzuo/user/modules/article/vo/ArticlePageVO.class
 com/aichuangzuo/user/modules/user/vo/UserProfileVO.class
+com/aichuangzuo/user/modules/audit/entity/UserAuditLog.class
 com/aichuangzuo/user/modules/skill/dto/request/CreateSkillRequest.class
 com/aichuangzuo/user/modules/message/service/impl/MessageServiceImpl.class
 com/aichuangzuo/user/modules/skill/vo/SkillAnalyzeVO.class
@@ -299,6 +309,7 @@ com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceImpl.class
 com/aichuangzuo/user/infrastructure/cache/CacheUtil.class
 com/aichuangzuo/user/modules/topic/controller/TopicTitleController.class
 com/aichuangzuo/user/modules/learn/mapper/LearnBannerMapper.class
+com/aichuangzuo/user/modules/audit/vo/UserAuditLogPageVO.class
 com/aichuangzuo/user/infrastructure/security/JwtAuthenticationFilter.class
 com/aichuangzuo/user/modules/learn/mapper/LearnArticleMapper.class
 com/aichuangzuo/user/modules/auth/converter/AuthConverter.class

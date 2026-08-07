@@ -30,14 +30,23 @@
         <button class="mh-menu__close" aria-label="关闭" @click="menuOpen = false">×</button>
       </div>
       <nav class="mh-menu__nav">
-        <router-link
-          v-for="link in navLinks"
-          :key="link.to"
-          :to="link.to"
-          class="mh-menu__link"
-          :class="{ active: route.path === link.to }"
-          @click="menuOpen = false"
-        >{{ link.label }}</router-link>
+        <template v-for="link in navLinks" :key="link.to || link.href">
+          <a
+            v-if="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            class="mh-menu__link"
+            @click="menuOpen = false"
+          >{{ link.label }}</a>
+          <router-link
+            v-else
+            :to="link.to"
+            class="mh-menu__link"
+            :class="{ active: route.path === link.to }"
+            @click="menuOpen = false"
+          >{{ link.label }}</router-link>
+        </template>
       </nav>
     </div>
 
@@ -242,7 +251,8 @@ const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
   { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
+  { to: '/learn', label: '创作学院' },
+  { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
 ]
 
 const banners = ref([])
@@ -504,13 +514,10 @@ onUnmounted(() => {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
-  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  background: #f5f5f5;
   box-shadow: 0 8px 24px rgba(255, 36, 66, 0.18);
 }
 .mh-hero__banner {
-  position: absolute;
-  inset: 0;
   opacity: 0;
   transition: opacity 0.5s ease;
   pointer-events: none;
@@ -518,11 +525,16 @@ onUnmounted(() => {
 .mh-hero__banner.active {
   opacity: 1;
   pointer-events: auto;
+  position: relative;
+}
+.mh-hero__banner:not(.active) {
+  position: absolute;
+  inset: 0;
 }
 .mh-hero__banner img {
   width: 100%;
-  height: 100%;
-  object-fit: contain;
+  height: auto;
+  display: block;
 }
 .mh-hero__dots {
   position: absolute;

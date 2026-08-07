@@ -40,7 +40,7 @@
             v-for="(article, idx) in recommendedArticles"
             :key="article.id"
             class="article-card"
-            @click="loadArticle(article.id)"
+            @click="handleArticleClick(article)"
           >
             <span class="article-rank">{{ idx + 1 }}</span>
             <img
@@ -60,7 +60,8 @@
               <h3 class="article-title">{{ article.title }}</h3>
               <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
             </div>
-            <span class="article-arrow">›</span>
+            <span v-if="shouldShowPaidBadge(article)" class="article-badge">{{ article.requiredPlanName }}</span>
+            <span v-else class="article-arrow">›</span>
           </article>
         </div>
 
@@ -80,15 +81,34 @@
             <span class="category-breadcrumb-active">{{ currentCategory.name }}</span>
           </nav>
           <h2 class="category-detail-title">{{ currentCategory.name }}</h2>
-          <p class="category-detail-count">共 {{ currentCategory.total || currentCategory.articles?.length || 0 }} 篇文章</p>
+          <p class="category-detail-count">
+            <template v-if="hasSubcategories">该分类下包含 {{ currentCategory.children.length }} 个子分类</template>
+            <template v-else>共 {{ currentCategory.total || currentCategory.articles?.length || 0 }} 篇文章</template>
+          </p>
         </header>
 
-        <div v-if="currentCategory.articles?.length" class="article-list">
+        <!-- 有子分类：展示子分类列表，引导用户继续下钻 -->
+        <div v-if="hasSubcategories" class="subcategory-list">
+          <button
+            v-for="sub in currentCategory.children"
+            :key="sub.id"
+            class="subcategory-card"
+            @click="onSelectCategory(sub.id)"
+          >
+            <div class="subcategory-info">
+              <span class="subcategory-name">{{ sub.name }}</span>
+              <span v-if="sub.children?.length" class="subcategory-hint">含 {{ sub.children.length }} 个子分类</span>
+            </div>
+            <span class="subcategory-arrow">›</span>
+          </button>
+        </div>
+
+        <div v-else-if="currentCategory.articles?.length" class="article-list">
           <article
             v-for="(article, idx) in currentCategory.articles"
             :key="article.id"
             class="article-card"
-            @click="loadArticle(article.id)"
+            @click="handleArticleClick(article)"
           >
             <span class="article-rank">{{ idx + 1 }}</span>
             <img
@@ -111,7 +131,8 @@
               <h3 class="article-title">{{ article.title }}</h3>
               <p v-if="article.summary" class="article-summary">{{ article.summary }}</p>
             </div>
-            <span class="article-arrow">›</span>
+            <span v-if="shouldShowPaidBadge(article)" class="article-badge">{{ article.requiredPlanName }}</span>
+            <span v-else class="article-arrow">›</span>
           </article>
         </div>
 
@@ -164,7 +185,9 @@ const {
   recommendedArticles,
   onSelectCategory,
   loadArticle,
-  goHome
+  goHome,
+  handleArticleClick,
+  shouldShowPaidBadge
 } = useLearn('/console/learn')
 
 const loading = computed(() => {
@@ -174,6 +197,11 @@ const loading = computed(() => {
   if (currentArticle.value) return false
   return true
 })
+
+// 当前分类是否含有可下钻的子分类（仅含直接子分类，不再递归）
+const hasSubcategories = computed(() =>
+  Array.isArray(currentCategory.value?.children) && currentCategory.value.children.length > 0
+)
 
 function readingMinutes(content) {
   if (!content) return 1
@@ -458,6 +486,99 @@ function formatDate(d) {
   transition: all 0.2s;
 }
 
+/* 付费文章右上角徽章 */
+.article-badge {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF6B1A;
+  background: #FFF3E0;
+  border: 1px solid #FFD8A8;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  z-index: 1;
+  flex-shrink: 0;
+}
+@media (max-width: 768px) {
+  .article-badge {
+    top: 10px;
+    right: 12px;
+    font-size: 11px;
+    padding: 1px 8px;
+  }
+}
+body[data-theme="dark"] .article-badge {
+  background: rgba(255, 107, 26, 0.15);
+  border-color: rgba(255, 107, 26, 0.35);
+  color: #FF9F4D;
+}
+
+/* Subcategory list（父分类无直接文章，含子分类时下钻展示） */
+.subcategory-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+
+.subcategory-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px;
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.subcategory-card:hover {
+  border-color: transparent;
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.08);
+  transform: translateY(-2px);
+}
+
+.subcategory-card:hover .subcategory-name {
+  color: #FF2442;
+}
+
+.subcategory-card:hover .subcategory-arrow {
+  color: #FF2442;
+  transform: translateX(3px);
+}
+
+.subcategory-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.subcategory-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+  transition: color 0.2s;
+}
+
+.subcategory-hint {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.subcategory-arrow {
+  font-size: 20px;
+  color: #d9d9d9;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
 /* Empty & loading */
 .console-learn-empty,
 .console-learn-loading {
@@ -529,6 +650,27 @@ body[data-theme="dark"] .article-card {
 
 body[data-theme="dark"] .article-card:hover {
   box-shadow: 0 4px 16px rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .subcategory-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .subcategory-card:hover {
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .subcategory-name {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body[data-theme="dark"] .subcategory-hint {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+body[data-theme="dark"] .subcategory-arrow {
+  color: #595959;
 }
 
 body[data-theme="dark"] .article-rank {
@@ -706,6 +848,37 @@ body[data-theme="dark"] .article-category {
     min-height: 260px;
     box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   }
+
+  /* 子分类列表：单列、卡片化 */
+  .subcategory-list {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .subcategory-card {
+    border: 0;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+    padding: 16px 18px;
+  }
+
+  .subcategory-card:hover {
+    transform: none;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  }
+
+  .subcategory-name {
+    font-size: 15px;
+  }
+
+  .subcategory-hint {
+    font-size: 11px;
+  }
+
+  .subcategory-arrow {
+    font-size: 18px;
+  }
 }
 
 /* 移动端暗色 */
@@ -713,6 +886,7 @@ body[data-theme="dark"] .article-category {
   body[data-theme="dark"] .category-tabs-bar { background: #141414; }
   body[data-theme="dark"] .category-detail-head,
   body[data-theme="dark"] .article-card,
+  body[data-theme="dark"] .subcategory-card,
   body[data-theme="dark"] .console-learn-empty,
   body[data-theme="dark"] .console-learn-loading {
     background: #1f1f1f;

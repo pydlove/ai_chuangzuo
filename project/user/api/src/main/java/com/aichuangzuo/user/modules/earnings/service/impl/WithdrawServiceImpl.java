@@ -5,6 +5,7 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.earnings.dto.request.RealNameRequest;
 import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawApplyRequest;
+import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawProcessRequest;
 import com.aichuangzuo.user.modules.earnings.entity.WithdrawRequest;
 import com.aichuangzuo.user.modules.earnings.enums.WithdrawErrorCode;
 import com.aichuangzuo.user.modules.earnings.mapper.WithdrawRequestMapper;
@@ -20,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -35,6 +37,8 @@ public class WithdrawServiceImpl implements WithdrawService {
     private static final String BIZ_NO_PREFIX = "WD";
     private static final BigDecimal MIN_WITHDRAW_AMOUNT = new BigDecimal("1000");
     private static final int STATUS_PENDING = 1;
+    private static final int STATUS_APPROVED = 2;
+    private static final int STATUS_REJECTED = 3;
 
     private final UserMapper userMapper;
     private final WithdrawRequestMapper withdrawRequestMapper;
@@ -122,6 +126,41 @@ public class WithdrawServiceImpl implements WithdrawService {
         return bizNo;
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void processWithdraw(String bizNo, Long adminUserId, WithdrawProcessRequest request) {
+        if (request.getStatus() == null || (request.getStatus() != STATUS_APPROVED && request.getStatus() != STATUS_REJECTED)) {
+            throw new BusinessException(WithdrawErrorCode.WITHDRAW_AMOUNT_INVALID);
+        }
+
+        WithdrawRequest record = withdrawRequestMapper.selectOne(
+                new LambdaQueryWrapper<WithdrawRequest>()
+                        .eq(WithdrawRequest::getBizNo, bizNo)
+                        .eq(WithdrawRequest::getIsDeleted, 0));
+        if (record == null) {
+            throw new BusinessException(WithdrawErrorCode.WITHDRAW_NOT_FOUND);
+        }
+        if (record.getStatus() == null || record.getStatus() != STATUS_PENDING) {
+            throw new BusinessException(WithdrawErrorCode.WITHDRAW_ALREADY_PROCESSED);
+        }
+
+        if (request.getStatus() == STATUS_REJECTED) {
+            if (!StringUtils.hasText(request.getRemark())) {
+                throw new BusinessException(WithdrawErrorCode.WITHDRAW_REJECT_REASON_EMPTY);
+            }
+            coinRecordService.grant(record.getUserId(), "withdraw_refund", record.getAmount(),
+                    record.getBizNo(), "提现被拒绝退回");
+        }
+
+        record.setStatus(request.getStatus());
+        record.setProcessedAt(LocalDateTime.now());
+        record.setProcessedBy(adminUserId);
+        record.setResultRemark(request.getRemark());
+        withdrawRequestMapper.updateById(record);
+
+        log.info("管理员处理提现申请 bizNo={}, status={}, adminUserId={}", bizNo, request.getStatus(), adminUserId);
+    }
+
     private WithdrawRequestVO toVo(WithdrawRequest record) {
         WithdrawRequestVO vo = new WithdrawRequestVO();
         vo.setBizNo(record.getBizNo());
@@ -129,6 +168,9 @@ public class WithdrawServiceImpl implements WithdrawService {
         vo.setAccount(record.getAccount());
         vo.setName(record.getName());
         vo.setStatus(statusText(record.getStatus()));
+        vo.setProcessedAt(record.getProcessedAt());
+        vo.setProcessedBy(record.getProcessedBy());
+        vo.setResultRemark(record.getResultRemark());
         vo.setCreatedAt(record.getCreatedAt());
         return vo;
     }

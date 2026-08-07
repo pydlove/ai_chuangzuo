@@ -13,7 +13,8 @@ const props = defineProps({
 })
 
 const md = new MarkdownIt({
-  html: false,
+  // 允许行内 HTML 标签（如 <u>/<sub>/<sup>），对齐 md-editor-v3 工具栏（underline/sub/sup）的输出格式
+  html: true,
   linkify: true,
   typographer: true,
   highlight(str, lang) {
@@ -53,4 +54,10 @@ const rendered = computed(() => md.render(props.source || ''))
 .learn-md :deep(th) { background: #fafafa; }
 .learn-md :deep(ul), .learn-md :deep(ol) { padding-left: 1.5em; }
 .learn-md :deep(img) { max-width: 100%; }
+/* 行内 HTML 标签（来自 md-editor-v3 工具栏） */
+.learn-md :deep(u) { text-decoration: underline; text-underline-offset: 2px; }
+.learn-md :deep(sub) { font-size: 0.75em; vertical-align: sub; }
+.learn-md :deep(sup) { font-size: 0.75em; vertical-align: super; }
+.learn-md :deep(del) { color: #8c8c8c; }
+.learn-md :deep(mark) { background: #FFF3E0; color: inherit; padding: 0 2px; border-radius: 2px; }
 </style>

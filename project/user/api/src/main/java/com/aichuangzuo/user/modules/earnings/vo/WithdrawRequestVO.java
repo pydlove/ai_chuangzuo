@@ -21,5 +21,11 @@ public class WithdrawRequestVO {
 
     private String status;
 
+    private LocalDateTime processedAt;
+
+    private Long processedBy;
+
+    private String resultRemark;
+
     private LocalDateTime createdAt;
 }

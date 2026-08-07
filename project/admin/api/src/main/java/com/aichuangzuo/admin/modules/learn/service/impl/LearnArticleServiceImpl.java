@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +29,9 @@ public class LearnArticleServiceImpl implements LearnArticleService {
 
     private static final int MAX_MARKDOWN_BYTES = 200 * 1024;
     private static final int MAX_HTML_BYTES = 500 * 1024;
+
+    /** 合法的最低套餐 key，与用户端 MembershipPlan#getKey() 一致。 */
+    private static final Set<String> VALID_PLAN_KEYS = Set.of("basic", "pro", "flagship");
 
     private final LearnArticleMapper articleMapper;
     private final LearnCategoryMapper categoryMapper;
@@ -62,6 +66,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
     public Long create(LearnArticleReq req) {
         requireCategoryExists(req.getCategoryId());
         validateContentSize(req.getContentType(), req.getContent());
+        normalizeAccessControl(req);
         LearnArticleEntity e = new LearnArticleEntity();
         copyFromReq(e, req);
         // 初次创建：用 req.status 作为初始状态（DRAFT 或 PUBLISHED），缺省回退 DRAFT。
@@ -85,6 +90,7 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         }
         requireCategoryExists(req.getCategoryId());
         validateContentSize(req.getContentType(), req.getContent());
+        normalizeAccessControl(req);
         // 不允许通过 update 改 status（状态机由 publish/unpublish 显式控制）
         LearnArticleEntity beforeStatus = new LearnArticleEntity();
         ArticleStatus originalStatus = exist.getStatus();
@@ -158,6 +164,9 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         e.setContent(req.getContent());
         if (req.getSort() != null) e.setSort(req.getSort());
         e.setIsRecommended(req.getIsRecommended() != null ? req.getIsRecommended() : 0);
+        e.setIsFree(req.getIsFree() != null ? req.getIsFree() : 1);
+        // 付费时 normalizeAccessControl 已保证 requiredPlanKey 非空且合法；免费时强制 null
+        e.setRequiredPlanKey(Integer.valueOf(1).equals(e.getIsFree()) ? null : req.getRequiredPlanKey());
         // 不通过 copyFromReq 设 status — 由显式 publish/unpublish 控制
     }
 
@@ -166,6 +175,23 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         int max = type == ContentType.MARKDOWN ? MAX_MARKDOWN_BYTES : MAX_HTML_BYTES;
         if (bytes > max) {
             throw new BusinessException(LearnErrorCode.CONTENT_TOO_LARGE);
+        }
+    }
+
+    /**
+     * 校验并归一化 isFree / requiredPlanKey：
+     * - 付费时 requiredPlanKey 必填且必须在合法套餐集合内
+     * - 免费时强制把 requiredPlanKey 置 null
+     */
+    private void normalizeAccessControl(LearnArticleReq req) {
+        boolean free = req.getIsFree() == null || req.getIsFree() == 1;
+        if (free) {
+            req.setRequiredPlanKey(null);
+            return;
+        }
+        String key = req.getRequiredPlanKey();
+        if (key == null || key.isBlank() || !VALID_PLAN_KEYS.contains(key)) {
+            throw new BusinessException(LearnErrorCode.INVALID_REQUIRED_PLAN_KEY);
         }
     }
 
@@ -195,6 +221,8 @@ public class LearnArticleServiceImpl implements LearnArticleService {
         v.setStatus(e.getStatus());
         v.setSort(e.getSort());
         v.setIsRecommended(e.getIsRecommended());
+        v.setIsFree(e.getIsFree());
+        v.setRequiredPlanKey(e.getRequiredPlanKey());
         v.setAuthorId(e.getAuthorId());
         v.setPublishedAt(e.getPublishedAt());
         v.setCreatedAt(e.getCreatedAt());

@@ -43,7 +43,7 @@
       <div v-else class="coin-auth-display">
         <div class="coin-auth-display-row">
           <span class="coin-auth-display-label">真实姓名</span>
-          <span class="coin-auth-display-value">{{ realName }}</span>
+          <span class="coin-auth-display-value">{{ verifiedRealName }}</span>
         </div>
         <div class="coin-auth-display-row">
           <span class="coin-auth-display-label">身份证号</span>
@@ -67,11 +67,6 @@
           <div class="coin-stat-label">已提现金额</div>
           <div class="coin-stat-value">{{ withdrawnTotal }} <span class="coin-stat-unit">创作币</span></div>
           <div class="coin-stat-hint">含已成功到账与审核中金额</div>
-        </div>
-        <div class="coin-stat-card">
-          <div class="coin-stat-label">累计获得</div>
-          <div class="coin-stat-value">{{ totalEarned }} <span class="coin-stat-unit">创作币</span></div>
-          <div class="coin-stat-hint">来自好友下单返佣</div>
         </div>
       </div>
 
@@ -107,6 +102,7 @@
           <div class="coin-records-cell coin-records-amount">提现金额</div>
           <div class="coin-records-cell coin-records-account">收款账号</div>
           <div class="coin-records-cell coin-records-status">状态</div>
+          <div class="coin-records-cell coin-records-result">处理结果</div>
         </div>
         <div v-for="r in withdrawRecords" :key="r.id" class="coin-records-row">
           <div class="coin-records-cell coin-records-time">{{ formatTime(r.createdAt) }}</div>
@@ -114,6 +110,14 @@
           <div class="coin-records-cell coin-records-account">{{ r.account }}</div>
           <div class="coin-records-cell coin-records-status">
             <span :class="['coin-records-status-tag', r.status]">{{ statusText(r.status) }}</span>
+          </div>
+          <div class="coin-records-cell coin-records-result">
+            <div v-if="r.status === 'pending'" class="coin-records-result-text">—</div>
+            <div v-else class="coin-records-result-stack">
+              <div class="coin-records-result-status">{{ resultStatusText(r.status) }}</div>
+              <div v-if="r.resultRemark" class="coin-records-result-remark" :title="r.resultRemark">{{ r.resultRemark }}</div>
+              <div class="coin-records-result-time">{{ formatTime(r.processedAt) }}</div>
+            </div>
           </div>
         </div>
       </div>
@@ -135,15 +139,21 @@
         </div>
         <div class="coin-apply-item">
           <label class="coin-apply-label">提现金额</label>
-          <input
-            v-model.number="applyAmount"
-            class="coin-apply-input"
-            type="number"
-            min="1000"
-            :max="coinBalance"
-            placeholder="最低 1000"
-          />
-          <div class="coin-apply-hint">10 创作币 = 1 元，满 1000 可提现</div>
+          <div class="coin-apply-amount-row">
+            <input
+              v-model.number="applyAmount"
+              class="coin-apply-input coin-apply-amount-input"
+              type="number"
+              min="1000"
+              :max="coinBalance"
+              placeholder="最低 1000"
+            />
+            <button class="invite-btn invite-btn-secondary coin-apply-max-btn" @click="setMaxAmount">
+              全部提现
+            </button>
+          </div>
+          <div v-if="amountError" class="coin-apply-error">{{ amountError }}</div>
+          <div v-else class="coin-apply-hint">10 创作币 = 1 元，满 1000 可提现</div>
         </div>
         <div class="coin-apply-item">
           <label class="coin-apply-label">支付宝账号</label>
@@ -155,7 +165,7 @@
             v-model="applyName"
             class="coin-apply-input coin-apply-input-disabled"
             :disabled="true"
-            :placeholder="realNameVerified ? realName : '请先完成实名认证'"
+            :placeholder="realNameVerified ? verifiedRealName : '请先完成实名认证'"
           />
         </div>
         <div class="coin-apply-agreement">
@@ -218,7 +228,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { useWithdraw } from '@/composables/useWithdraw'
 
-const { coinBalance, inviteStats, loadInviteStats } = useInviteStats()
+const { coinBalance, loadInviteStats } = useInviteStats()
 const { realNameInfo, withdrawRecords, loadRealName, submitRealName: submitRealNameApi, loadWithdrawals, applyWithdraw } = useWithdraw()
 
 const WITHDRAW_AGREEMENT_KEY = 'aichuangzuo_withdraw_agreement_accepted'
@@ -231,13 +241,14 @@ const idCard = ref('')
 const applyVisible = ref(false)
 const applyAmount = ref(null)
 const applyAccount = ref('')
+const applyName = ref('')
 const rulesVisible = ref(false)
 const agreementModalVisible = ref(false)
 const agreementAccepted = ref(false)
 
 const realNameVerified = computed(() => realNameInfo.value.verified)
 
-const totalEarned = computed(() => inviteStats.value.coinEarned || 0)
+const verifiedRealName = computed(() => realNameInfo.value.realName || realName.value || '')
 
 const maskedIdCard = computed(() => {
   const v = idCard.value || realNameInfo.value.idCard || ''
@@ -291,6 +302,18 @@ const applyButtonText = computed(() => {
   return '申请提现'
 })
 
+const amountError = computed(() => {
+  const amount = Number(applyAmount.value)
+  if (!applyAmount.value) return ''
+  if (amount < 1000) return '提现金额最低 1000 创作币'
+  if (amount > coinBalance.value) return `提现金额不能超过可提现余额 ${coinBalance.value} 创作币`
+  return ''
+})
+
+const setMaxAmount = () => {
+  applyAmount.value = coinBalance.value
+}
+
 const canSubmitApply = computed(() => {
   const amount = Number(applyAmount.value)
   if (!amount || amount < 1000 || amount > coinBalance.value) return false
@@ -310,7 +333,15 @@ const formatTime = (iso) => {
 const statusText = (status) => {
   switch (status) {
     case 'pending': return '审核中'
-    case 'approved': return '已到账'
+    case 'approved': return '已打款'
+    case 'rejected': return '已拒绝'
+    default: return status
+  }
+}
+
+const resultStatusText = (status) => {
+  switch (status) {
+    case 'approved': return '已通过'
     case 'rejected': return '已拒绝'
     default: return status
   }
@@ -357,6 +388,7 @@ const openApplyModal = () => {
   loadAgreement()
   applyAmount.value = null
   applyAccount.value = ''
+  applyName.value = verifiedRealName.value
   applyVisible.value = true
 }
 
@@ -595,7 +627,7 @@ body[data-theme="dark"] .coin-rules-highlight {
 
 .coin-stat-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
   margin-bottom: 14px;
 }
@@ -698,7 +730,7 @@ body[data-theme="dark"] .coin-rules-highlight {
 .coin-records-head,
 .coin-records-row {
   display: grid;
-  grid-template-columns: 1.4fr 1fr 1.2fr 0.9fr;
+  grid-template-columns: 1.4fr 1fr 1.2fr 0.9fr 1.4fr;
   align-items: center;
   padding: 12px 14px;
 }
@@ -745,6 +777,36 @@ body[data-theme="dark"] .coin-rules-highlight {
 .coin-records-status-tag.rejected {
   background: rgba(255, 77, 79, 0.14);
   color: #cf1322;
+}
+
+.coin-records-result-text {
+  color: #8c8c8c;
+}
+
+.coin-records-result-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.coin-records-result-status {
+  font-size: 12px;
+  font-weight: 500;
+  color: #1f1f1f;
+}
+
+.coin-records-result-remark {
+  font-size: 11px;
+  color: #595959;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 160px;
+}
+
+.coin-records-result-time {
+  font-size: 11px;
+  color: #8c8c8c;
 }
 
 /* 申请提现弹框 */
@@ -808,11 +870,56 @@ body[data-theme="dark"] .coin-rules-highlight {
   margin-top: 4px;
 }
 
+.coin-apply-amount-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.coin-apply-amount-input {
+  flex: 1;
+  min-width: 0;
+}
+
+.coin-apply-max-btn {
+  height: 36px;
+  padding: 0 14px;
+  font-size: 13px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.coin-apply-error {
+  font-size: 11px;
+  color: #ff4d4f;
+  margin-top: 4px;
+}
+
+body[data-theme="dark"] .coin-apply-error {
+  color: #ff7875;
+}
+
 .coin-apply-actions {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
   margin-top: 18px;
+}
+
+body[data-theme="dark"] .coin-records-result-text {
+  color: rgba(255, 255, 255, 0.35);
+}
+
+body[data-theme="dark"] .coin-records-result-status {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+body[data-theme="dark"] .coin-records-result-remark {
+  color: rgba(255, 255, 255, 0.55);
+}
+
+body[data-theme="dark"] .coin-records-result-time {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 /* 暗色主题 */
@@ -1048,7 +1155,7 @@ body[data-theme="dark"] .coin-section-header .invite-btn-secondary:hover {
     font-size: 14px;
   }
 
-  /* 账户概览：3 列 → 单列堆叠 */
+  /* 账户概览：2 列 → 单列堆叠 */
   .coin-stat-grid {
     grid-template-columns: 1fr;
     gap: 10px;

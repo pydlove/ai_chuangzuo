@@ -28,6 +28,9 @@ function normalizeRecord(raw) {
     account: raw.account || '',
     name: raw.name || '',
     status: raw.status || 'pending',
+    processedAt: raw.processedAt,
+    processedBy: raw.processedBy,
+    resultRemark: raw.resultRemark || '',
     createdAt: raw.createdAt
   }
 }

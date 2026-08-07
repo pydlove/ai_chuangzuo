@@ -261,7 +261,7 @@ const confirmLogout = () => {
 }
 
 const openOfficialSite = () => {
-  window.open('http://localhost:28585/.superpowers/brainstorm/6491-1782131242/content/index.html', '_blank')
+  router.push('/')
 }
 </script>
 

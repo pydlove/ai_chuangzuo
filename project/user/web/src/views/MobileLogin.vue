@@ -169,7 +169,7 @@
       </div>
     </main>
 
-    <!-- 注册滑块弹框 -->
+    <!-- 注册人机验证弹框 -->
     <a-modal
       v-model:open="sliderModalVisible"
       title="人机验证"
@@ -180,14 +180,14 @@
       class="ml-slider-modal"
     >
       <p class="ml-slider-tip">
-        拖动滑块完成验证后将向
+        按顺序点击下方成语中的汉字完成验证后将向
         <b>{{ registerForm.email || '当前邮箱' }}</b>
         发送 6 位邮箱验证码
       </p>
-      <SliderCaptcha v-model="sliderModalPassed" />
+      <GridClickCaptcha v-model="sliderModalPassed" />
     </a-modal>
 
-    <!-- 登录滑块弹框 -->
+    <!-- 登录人机验证弹框 -->
     <a-modal
       v-model:open="loginSliderModalVisible"
       title="人机验证"
@@ -198,17 +198,17 @@
       class="ml-slider-modal"
     >
       <p class="ml-slider-tip">
-        拖动滑块完成验证后将登录账号
+        按顺序点击下方成语中的汉字完成验证后将登录账号
         <b v-if="loginForm.email">「{{ loginForm.email }}」</b>
       </p>
-      <SliderCaptcha v-model="loginModalPassed" />
+      <GridClickCaptcha v-model="loginModalPassed" />
     </a-modal>
   </div>
 </template>
 
 <script setup>
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
-import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
 import { useLogin } from '@/composables/useLogin.js'
 

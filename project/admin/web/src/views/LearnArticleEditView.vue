@@ -41,6 +41,27 @@
         <a-form-item label="推荐">
           <a-switch v-model:checked="form.isRecommended" :checked-value="1" :un-checked-value="0" />
         </a-form-item>
+        <a-form-item label="访问权限">
+          <a-space direction="vertical" style="width: 100%">
+            <a-switch
+              v-model:checked="form.isFree"
+              :checked-value="1"
+              :un-checked-value="0"
+              checked-children="免费"
+              un-checked-children="付费"
+            />
+            <a-select
+              v-if="form.isFree === 0"
+              v-model:value="form.requiredPlanKey"
+              :options="planOptions"
+              placeholder="选择最低所需套餐"
+              style="max-width: 240px"
+            />
+            <span v-if="form.isFree === 0" style="color: #8c8c8c; font-size: 12px">
+              等级低于该套餐的用户将看到锁屏，未登录用户点击会跳登录页
+            </span>
+          </a-space>
+        </a-form-item>
         <a-form-item label="正文类型">
           <a-radio-group v-model:value="form.contentType" :disabled="contentTypeLocked">
             <a-radio value="markdown">Markdown</a-radio>
@@ -116,9 +137,17 @@ const form = reactive({
   coverImageUrl: '',
   sort: 0,
   isRecommended: 0,
+  isFree: 1,
+  requiredPlanKey: undefined,
   contentType: 'markdown',
   content: ''
 })
+
+const planOptions = [
+  { value: 'basic', label: '基础版' },
+  { value: 'pro', label: '专业版' },
+  { value: 'flagship', label: '旗舰版' }
+]
 const dirty = ref(false)
 const saving = ref(false)
 const importing = ref(false)
@@ -142,6 +171,8 @@ async function load() {
       coverImageUrl: a.coverImageUrl || '',
       sort: a.sort,
       isRecommended: a.isRecommended ?? 0,
+      isFree: a.isFree ?? 1,
+      requiredPlanKey: a.requiredPlanKey || undefined,
       contentType: a.contentType,
       content: a.content
     })
@@ -177,6 +208,8 @@ function buildPayload(target) {
     coverImageUrl: form.coverImageUrl,
     sort: form.sort,
     isRecommended: form.isRecommended ? 1 : 0,
+    isFree: form.isFree ? 1 : 0,
+    requiredPlanKey: form.isFree === 0 ? (form.requiredPlanKey || null) : null,
     contentType: form.contentType,
     content: form.content,
     status: target
@@ -285,6 +318,9 @@ async function onSave(target) {
   if (!form.title?.trim()) { message.error('标题不能为空'); return }
   if (!form.categoryId) { message.error('请选择分类'); return }
   if (!form.content?.trim()) { message.error('正文不能为空'); return }
+  if (form.isFree === 0 && !form.requiredPlanKey) {
+    message.error('付费文章必须选择最低套餐'); return
+  }
   saving.value = true
   try {
     if (!isEdit.value) {

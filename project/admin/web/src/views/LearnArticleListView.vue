@@ -56,6 +56,10 @@
             <a-tag v-if="record.isRecommended === 1" color="red">推荐</a-tag>
             <span v-else style="color: #bfbfbf">—</span>
           </template>
+          <template v-else-if="column.key === 'access'">
+            <a-tag v-if="isFreeArticle(record)" color="green">免费</a-tag>
+            <a-tag v-else color="orange">{{ planLabel(record.requiredPlanKey) }}</a-tag>
+          </template>
           <template v-else-if="column.key === 'contentType'">
             <a-tag>{{ record.contentType === 'markdown' ? 'Markdown' : '富文本' }}</a-tag>
           </template>
@@ -127,11 +131,23 @@ const columns = [
   { title: '分类', key: 'category', customRender: ({ record }) => categoryNameMap.value[record.categoryId] || record.categoryId },
   { title: '类型', key: 'contentType', width: 100 },
   { title: '状态', key: 'status', width: 90 },
+  { title: '访问', key: 'access', width: 90 },
   { title: '推荐', key: 'isRecommended', width: 80 },
   { title: '排序', dataIndex: 'sort', key: 'sort', width: 70 },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
   { title: '操作', key: 'actions', width: 240, fixed: 'right' }
 ]
+
+const PLAN_LABELS = { basic: '基础版', pro: '专业版', flagship: '旗舰版' }
+
+function isFreeArticle(record) {
+  return record.isFree == null || record.isFree === 1
+}
+
+function planLabel(key) {
+  if (!key) return '付费'
+  return PLAN_LABELS[key] || key
+}
 
 async function load() {
   loading.value = true

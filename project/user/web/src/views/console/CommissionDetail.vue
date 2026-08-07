@@ -91,6 +91,7 @@
               </div>
               <p class="action-desc">只能选择你在爱创作中已经生成完成、且字数符合要求的文章。投递期内可随时撤回并改投其它文章。</p>
               <button class="primary-btn" @click="openPicker">选择文章投稿</button>
+              <button class="secondary-btn generate-btn" @click="goCreateFromTask">根据任务生成文章</button>
             </template>
 
             <!-- 评选中且未投稿 -->
@@ -134,7 +135,7 @@
       </div>
 
       <div v-if="canSubmit" class="mobile-submit-bar">
-        <span>仅支持平台生成文章</span>
+        <button class="secondary-btn" @click="goCreateFromTask">根据任务生成</button>
         <button class="primary-btn" @click="openPicker">选择文章投稿</button>
       </div>
 
@@ -310,6 +311,19 @@ function openPicker() {
   searchKeyword.value = ''
   pickerPage.value = 1
   pickerVisible.value = true
+}
+function goCreateFromTask() {
+  if (!task.value) return
+  router.push({
+    path: '/console/create',
+    query: {
+      commissionTaskId: task.value.id,
+      title: task.value.title,
+      requirement: task.value.description,
+      minWordCount: task.value.minWordCount,
+      maxWordCount: task.value.maxWordCount
+    }
+  })
 }
 function articleIcon(article) {
   if (article.platformName) return firstChar(article.platformName)
@@ -609,6 +623,7 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 
 .primary-btn:disabled { opacity: .45; cursor: not-allowed; }
 .secondary-btn { background: #f2f2f2; color: #555; }
 .secondary-btn:disabled { opacity: .55; cursor: not-allowed; }
+.generate-btn { margin-top: 10px; }
 
 .empty-block {
   padding: 72px 20px;
@@ -953,7 +968,7 @@ body[data-theme="dark"] .reward-result {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     position: fixed;
     left: 12px;
     right: 12px;
@@ -965,14 +980,9 @@ body[data-theme="dark"] .reward-result {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
     z-index: 50;
   }
-  .mobile-submit-bar > span {
-    flex: 1;
-    color: #8c8c8c;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .mobile-submit-bar .primary-btn {
-    flex: 0 1 180px;
+  .mobile-submit-bar .primary-btn,
+  .mobile-submit-bar .secondary-btn {
+    flex: 1 1 0;
     width: auto;
     max-width: 100%;
     min-height: 44px;

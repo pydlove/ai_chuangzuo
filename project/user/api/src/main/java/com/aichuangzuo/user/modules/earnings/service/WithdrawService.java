@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.earnings.service;
 
 import com.aichuangzuo.user.modules.earnings.dto.request.RealNameRequest;
 import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawApplyRequest;
+import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawProcessRequest;
 import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;
 import com.aichuangzuo.user.modules.earnings.vo.WithdrawRequestVO;
 
@@ -44,4 +45,13 @@ public interface WithdrawService {
      * @return 提现业务编号
      */
     String applyWithdraw(Long userId, WithdrawApplyRequest request);
+
+    /**
+     * 处理提现申请（管理端）。
+     *
+     * @param bizNo       提现业务编号
+     * @param adminUserId 管理员用户ID
+     * @param request     处理请求
+     */
+    void processWithdraw(String bizNo, Long adminUserId, WithdrawProcessRequest request);
 }

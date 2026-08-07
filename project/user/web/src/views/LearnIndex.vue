@@ -69,7 +69,7 @@
                 v-for="article in recommendedArticles"
                 :key="article.id"
                 class="learn-recommend-card learn-recommend-article"
-                @click.prevent="loadArticle(article.id)"
+                @click.prevent="handleArticleClick(article)"
                 href="#"
               >
                 <img
@@ -83,7 +83,8 @@
                   <h3 class="learn-recommend-article-title">{{ article.title }}</h3>
                   <p v-if="article.summary" class="learn-recommend-summary">{{ article.summary }}</p>
                 </div>
-                <span class="learn-recommend-arrow">›</span>
+                <span v-if="shouldShowPaidBadge(article)" class="learn-article-badge">{{ article.requiredPlanName }}</span>
+                <span v-else class="learn-recommend-arrow">›</span>
               </a>
             </div>
           </div>
@@ -157,7 +158,9 @@ const {
   recommendedArticles,
   onSelectCategory,
   loadArticle,
-  goHome
+  goHome,
+  handleArticleClick,
+  shouldShowPaidBadge
 } = useLearn()
 
 const mobileSheetOpen = ref(false)
@@ -486,6 +489,32 @@ body[data-theme="dark"] .learn-banner-carousel :deep(.slick-dots li button) {
   transform: translateX(3px);
 }
 
+/* 付费文章右上角徽章 */
+.learn-article-badge {
+  position: absolute;
+  top: 12px; right: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #FF6B1A;
+  background: #FFF3E0;
+  border: 1px solid #FFD8A8;
+  border-radius: 9999px;
+  padding: 2px 10px;
+  z-index: 1;
+}
+@media (max-width: 991px) {
+  .learn-article-badge {
+    top: 8px; right: 8px;
+    font-size: 11px;
+    padding: 1px 8px;
+  }
+}
+body[data-theme="dark"] .learn-article-badge {
+  background: rgba(255, 107, 26, 0.15);
+  border-color: rgba(255, 107, 26, 0.35);
+  color: #FF9F4D;
+}
+
 /* 兜底空状态 */
 .learn-content-empty {
   text-align: center; padding: 48px 16px;
@@ -552,5 +581,32 @@ body[data-theme="dark"] .learn-recommend-category {
 
 @media (max-width: 991px) {
   .learn-banner-section { margin-bottom: 16px; }
+}
+
+/* PC：推荐文章改用「左图右文」横向卡片，对齐分类列表的 .learn-article-card 风格 */
+@media (min-width: 992px) {
+  .learn-recommend-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .learn-recommend-article {
+    flex-direction: row;
+    align-items: stretch;
+  }
+  .learn-recommend-cover {
+    width: 140px;
+    height: 100%;
+    min-height: 120px;
+    border-radius: 0;
+    flex-shrink: 0;
+  }
+  .learn-recommend-body {
+    flex: 1;
+    min-width: 0;
+    padding: 16px 20px;
+    justify-content: center;
+  }
+  .learn-recommend-article .learn-recommend-arrow {
+    display: none;
+  }
 }
 </style>

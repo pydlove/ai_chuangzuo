@@ -17,7 +17,8 @@ public enum LearnErrorCode implements ErrorCode {
     ARTICLE_NOT_FOUND(270004, "文章不存在或已下线"),
     PUBLISHED_CONTENT_TYPE_LOCKED(270005, "已发布文章不允许切换正文类型"),
     CATEGORY_NOT_FOUND(270006, "分类不存在"),
-    BANNER_NOT_FOUND(270007, "Banner 不存在");
+    BANNER_NOT_FOUND(270007, "Banner 不存在"),
+    INVALID_REQUIRED_PLAN_KEY(270008, "最低所需套餐不合法");
 
     private final int code;
     private final String message;

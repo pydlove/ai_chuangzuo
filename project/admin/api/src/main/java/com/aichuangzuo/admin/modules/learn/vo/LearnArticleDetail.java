@@ -19,6 +19,10 @@ public class LearnArticleDetail {
     private ArticleStatus status;
     private Integer sort;
     private Integer isRecommended;
+    /** 是否免费：1=免费，0=付费 */
+    private Integer isFree;
+    /** 最低所需套餐 key（仅付费时有值） */
+    private String requiredPlanKey;
     private Long authorId;
     private LocalDateTime publishedAt;
     private LocalDateTime createdAt;

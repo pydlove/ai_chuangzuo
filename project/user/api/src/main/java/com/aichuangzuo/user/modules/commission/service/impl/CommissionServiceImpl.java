@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.commission.enums.CommissionTaskStatus;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionSubmissionMapper;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionTaskMapper;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
+import com.aichuangzuo.user.modules.commission.vo.CommissionStatsVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionSubmitterVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
@@ -22,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -187,6 +189,22 @@ public class CommissionServiceImpl implements CommissionService {
         IPage<CommissionSubmissionMineVO> result = new Page<>(submissionPage.getCurrent(), submissionPage.getSize(), submissionPage.getTotal());
         result.setRecords(voList);
         return result;
+    }
+
+    @Override
+    public CommissionStatsVO stats(Long userId) {
+        reconcilePhases();
+        Long activeTaskCount = taskMapper.selectCount(new LambdaQueryWrapper<CommissionTask>()
+                .eq(CommissionTask::getIsDeleted, 0)
+                .eq(CommissionTask::getStatus, SUBMISSION));
+        Long mySubmissionCount = submissionMapper.selectCount(new LambdaQueryWrapper<CommissionSubmission>()
+                .eq(CommissionSubmission::getSubmitterId, userId));
+        BigDecimal earnedCoinTotal = submissionMapper.selectSumRewardCoinBySubmitterId(userId);
+        CommissionStatsVO vo = new CommissionStatsVO();
+        vo.setActiveTaskCount(activeTaskCount);
+        vo.setMySubmissionCount(mySubmissionCount);
+        vo.setEarnedCoinTotal(earnedCoinTotal);
+        return vo;
     }
 
     private Map<Long, Long> countSubmissionsByTaskIds(List<CommissionTask> tasks) {

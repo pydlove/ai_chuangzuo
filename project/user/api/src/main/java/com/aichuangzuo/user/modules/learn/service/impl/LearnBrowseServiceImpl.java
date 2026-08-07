@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.modules.learn.service.impl;
 
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.learn.entity.LearnArticleEntity;
 import com.aichuangzuo.user.modules.learn.entity.LearnBannerEntity;
 import com.aichuangzuo.user.modules.learn.entity.LearnCategoryEntity;
@@ -15,6 +16,9 @@ import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnRecommendedArticleVO;
+import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
+import com.aichuangzuo.user.modules.membership.service.MembershipService;
+import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +33,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
     private final LearnCategoryMapper categoryMapper;
     private final LearnArticleMapper articleMapper;
     private final LearnBannerMapper bannerMapper;
+    private final MembershipService membershipService;
 
     @Override
     public List<LearnCategoryTreeVO> tree() {
@@ -98,7 +103,8 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
                 .eq("category_id", id)
                 .orderByAsc("sort")
                 .orderByDesc("updated_at"));
-        vo.setArticles(res.getRecords().stream().map(this::toVo).toList());
+        Integer currentRank = currentUserPlanRank();
+        vo.setArticles(res.getRecords().stream().map(e -> toVo(e, currentRank)).toList());
         vo.setTotal(res.getTotal());
         return vo;
     }
@@ -110,7 +116,13 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
                 .eq("status", ArticleStatus.PUBLISHED.getCode()));
         if (current == null) return null;
 
-        LearnArticleVO vo = toVo(current);
+        Integer currentRank = currentUserPlanRank();
+        LearnArticleVO vo = toVo(current, currentRank);
+        // 不可读时不返回正文，避免内容泄漏
+        if (Boolean.FALSE.equals(vo.getCanRead())) {
+            vo.setContent(null);
+            vo.setContentType(null);
+        }
 
         List<LearnArticleEntity> chain = buildReadingChain();
         Map<Long, String> catNames = loadCategoryNames();
@@ -149,6 +161,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
                         .orderByAsc("sort")
                         .orderByDesc("updated_at"));
         Map<Long, String> catNames = loadCategoryNames();
+        Integer currentRank = currentUserPlanRank();
         return list.stream().map(e -> {
             LearnRecommendedArticleVO v = new LearnRecommendedArticleVO();
             v.setId(e.getId());
@@ -156,6 +169,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
             v.setSummary(e.getSummary());
             v.setCoverImageUrl(e.getCoverImageUrl());
             v.setCategoryName(catNames.get(e.getCategoryId()));
+            applyAccessFields(v, e, currentRank);
             return v;
         }).toList();
     }
@@ -208,7 +222,7 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
         return r;
     }
 
-    private LearnArticleVO toVo(LearnArticleEntity e) {
+    private LearnArticleVO toVo(LearnArticleEntity e, Integer currentRank) {
         LearnArticleVO v = new LearnArticleVO();
         v.setId(e.getId());
         v.setCategoryId(e.getCategoryId());
@@ -219,6 +233,69 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
         v.setContent(e.getContent());
         v.setPublishedAt(e.getPublishedAt());
         v.setUpdatedAt(e.getUpdatedAt());
+        applyAccessFields(v, e, currentRank);
         return v;
+    }
+
+    // -------- 访问决策 --------
+
+    /**
+     * 当前登录用户的套餐等级 rank，未登录返回 null。
+     */
+    private Integer currentUserPlanRank() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        if (userId == null) return null;
+        try {
+            MembershipStatusVO s = membershipService.getMyMembership(userId);
+            if (s == null || !s.isHasMembership()) return null;
+            MembershipPlan plan = MembershipPlan.of(s.getLevel());
+            return plan == null ? null : plan.getRank();
+        } catch (Exception ignore) {
+            // 会员查询失败按未登录处理，避免文章列表直接 5xx
+            return null;
+        }
+    }
+
+    /**
+     * 推荐列表 VO：填全部访问字段（与详情 VO 规则一致，单一来源）。
+     */
+    private void applyAccessFields(LearnRecommendedArticleVO v, LearnArticleEntity e, Integer currentRank) {
+        boolean free = e.getIsFree() == null || e.getIsFree() == 1;
+        v.setIsFree(free ? 1 : 0);
+        String key = e.getRequiredPlanKey();
+        v.setRequiredPlanKey(key);
+        MembershipPlan plan = MembershipPlan.of(key);
+        v.setRequiredPlanName(plan == null ? null : plan.getDisplayName());
+        if (free) {
+            v.setCanRead(true);
+            return;
+        }
+        if (currentRank == null || plan == null) {
+            v.setCanRead(false);
+            return;
+        }
+        v.setCanRead(currentRank >= plan.getRank());
+    }
+
+    /**
+     * 详情 VO：填全部访问字段并计算 canRead。
+     * <p>canRead 规则：免费 → true；付费 → 当前用户已登录且套餐 rank ≥ 最低所需 rank。</p>
+     */
+    private void applyAccessFields(LearnArticleVO v, LearnArticleEntity e, Integer currentRank) {
+        boolean free = e.getIsFree() == null || e.getIsFree() == 1;
+        v.setIsFree(free ? 1 : 0);
+        String key = e.getRequiredPlanKey();
+        v.setRequiredPlanKey(key);
+        MembershipPlan plan = MembershipPlan.of(key);
+        v.setRequiredPlanName(plan == null ? null : plan.getDisplayName());
+        if (free) {
+            v.setCanRead(true);
+            return;
+        }
+        if (currentRank == null || plan == null) {
+            v.setCanRead(false);
+            return;
+        }
+        v.setCanRead(currentRank >= plan.getRank());
     }
 }

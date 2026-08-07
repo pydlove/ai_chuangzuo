@@ -35,4 +35,11 @@ public class LearnArticleReq {
 
     /** 是否推荐：0=否 1=是 */
     private Integer isRecommended = 0;
+
+    /** 是否免费：1=免费，0=付费。默认免费。 */
+    private Integer isFree = 1;
+
+    /** 最低所需套餐 key（仅付费时必填），值见 MembershipPlan#getKey() */
+    @Size(max = 32)
+    private String requiredPlanKey;
 }

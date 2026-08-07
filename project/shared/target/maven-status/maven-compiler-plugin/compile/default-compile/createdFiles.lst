@@ -12,6 +12,7 @@ com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.class
 com/aichuangzuo/shared/exception/BusinessException.class
 com/aichuangzuo/shared/entity/GenerationHistory.class
 com/aichuangzuo/shared/exception/NotFoundException.class
+com/aichuangzuo/shared/enums/error/AdminAuditErrorCode.class
 com/aichuangzuo/shared/enums/error/SystemErrorCode.class
 com/aichuangzuo/shared/entity/PromptTemplate.class
 com/aichuangzuo/shared/result/Result.class

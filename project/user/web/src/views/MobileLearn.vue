@@ -95,14 +95,15 @@
             v-for="article in recommendedArticles"
             :key="article.id"
             class="ml-article-card"
-            @click="loadArticle(article.id)"
+            @click="handleArticleClick(article)"
           >
             <img v-if="article.coverImageUrl" :src="article.coverImageUrl" class="ml-article-card__cover" alt="" />
             <div class="ml-article-card__body">
               <div class="ml-article-card__title">{{ article.title }}</div>
-              <p v-if="article.summary" class="ml-article-card__summary">{{ plainExcerpt(article) }}</p>
+              <p v-if="plainExcerpt(article)" class="ml-article-card__summary">{{ plainExcerpt(article) }}</p>
               <div class="ml-article-card__meta">{{ article.categoryName || '' }}</div>
             </div>
+            <span v-if="shouldShowPaidBadge(article)" class="ml-article-card__badge">{{ article.requiredPlanName }}</span>
           </div>
         </div>
       </section>
@@ -154,7 +155,7 @@
             v-for="a in currentCategory.articles"
             :key="a.id"
             class="ml-article-card"
-            @click="loadArticle(a.id)"
+            @click="handleArticleClick(a)"
           >
             <img v-if="a.coverImageUrl" :src="a.coverImageUrl" class="ml-article-card__cover" alt="" />
             <div class="ml-article-card__body">
@@ -162,6 +163,7 @@
               <p v-if="plainExcerpt(a)" class="ml-article-card__summary">{{ plainExcerpt(a) }}</p>
               <div class="ml-article-card__meta">{{ formatDate(a.publishedAt || a.updatedAt) }}</div>
             </div>
+            <span v-if="shouldShowPaidBadge(a)" class="ml-article-card__badge">{{ a.requiredPlanName }}</span>
           </div>
         </div>
 
@@ -202,9 +204,18 @@
             alt=""
           />
 
-          <div class="ml-article__content">
+          <!-- 正文 / 锁屏卡：isFree=1（免费）或 canRead=true 时渲染正文，其余（付费且不可读）渲染锁屏卡 -->
+          <div v-if="currentArticle.isFree === 1 || currentArticle.canRead === true" class="ml-article__content">
             <LearnMarkdown v-if="currentArticle.contentType === 'markdown'" :source="currentArticle.content" />
             <LearnRichText v-else :html="currentArticle.content" />
+          </div>
+          <div v-else class="ml-locked">
+            <div class="ml-locked__icon">
+              <LockOutlined />
+            </div>
+            <div class="ml-locked__title">需要 {{ currentArticle.requiredPlanName || '更高' }} 套餐</div>
+            <div class="ml-locked__sub">升级套餐即可阅读完整内容</div>
+            <button class="ml-locked__btn" @click="$router.push('/pricing')">立即升级</button>
           </div>
         </article>
 
@@ -245,6 +256,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { LockOutlined } from '@ant-design/icons-vue'
 import { useLearn } from '@/composables/useLearn.js'
 import LearnMarkdown from '@/components/learn/LearnMarkdown.vue'
 import LearnRichText from '@/components/learn/LearnRichText.vue'
@@ -275,7 +287,9 @@ const {
   recommendedArticles,
   onSelectCategory,
   loadArticle,
-  goHome
+  goHome,
+  handleArticleClick,
+  shouldShowPaidBadge
 } = useLearn()
 
 const showBack = computed(() => !isEmptyState.value)
@@ -308,8 +322,19 @@ function formatDate(date) {
 }
 
 function plainExcerpt(article) {
-  const raw = article.summary || article.excerpt || ''
-  return raw.replace(/<[^\u003e]*>/g, '').slice(0, 80) + (raw.length > 80 ? '…' : '')
+  const raw = (article.content && article.content.trim()) ? article.content : (article.summary || article.excerpt || '')
+  if (!raw) return ''
+  const text = raw
+    .replace(/```[\s\S]*?```/g, ' ')          // 代码块
+    .replace(/<[^>]+>/g, ' ')                 // HTML 标签
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')    // 图片
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')  // 链接保留文字
+    .replace(/^[#>\-\s]+/gm, ' ')             // 标题/引用/列表行首标记
+    .replace(/[*_`~|]/g, ' ')                 // 行内标记与表格分隔
+    .replace(/\s+/g, ' ')
+    .trim()
+  const deduped = text.startsWith(article.title) ? text.slice(article.title.length).trim() : text
+  return deduped.length > 80 ? deduped.slice(0, 80) + '…' : deduped
 }
 
 function startBannerCarousel() {
@@ -534,7 +559,7 @@ onUnmounted(() => {
 .ml-banner__slide img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 .ml-banner__dots {
   display: flex;
@@ -731,6 +756,7 @@ onUnmounted(() => {
   gap: 12px;
 }
 .ml-article-card {
+  position: relative;
   display: flex;
   gap: 14px;
   padding: 16px;
@@ -739,12 +765,31 @@ onUnmounted(() => {
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   cursor: pointer;
 }
+.ml-article-card__badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #FF6B1A;
+  background: #FFF3E0;
+  border: 1px solid #FFD8A8;
+  border-radius: 9999px;
+  padding: 1px 8px;
+  z-index: 1;
+}
+body[data-theme="dark"] .ml-article-card__badge {
+  background: rgba(255, 107, 26, 0.15);
+  border-color: rgba(255, 107, 26, 0.35);
+  color: #FF9F4D;
+}
 .ml-article-card__cover {
-  width: 88px;
-  height: 88px;
+  width: 120px;
+  height: 73px;
   border-radius: 10px;
   object-fit: cover;
   flex-shrink: 0;
+  background: #f5f5f5;
 }
 .ml-article-card__body {
   flex: 1;
@@ -828,6 +873,59 @@ onUnmounted(() => {
   line-height: 1.75;
   color: #262626;
 }
+
+/* 付费锁定卡（移动端） */
+.ml-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 36px 20px;
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFF1E0 100%);
+  border: 1px solid #FFE0B2;
+  border-radius: 14px;
+  text-align: center;
+}
+.ml-locked__icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #FFF3E0;
+  color: #FF6B1A;
+  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.ml-locked__title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+.ml-locked__sub {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+.ml-locked__btn {
+  margin-top: 4px;
+  padding: 9px 24px;
+  background: #FF6B1A;
+  color: #fff;
+  border: 0;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.ml-locked__btn:active { background: #E55A0B; }
+body[data-theme="dark"] .ml-locked {
+  background: rgba(255, 107, 26, 0.08);
+  border-color: rgba(255, 107, 26, 0.25);
+}
+body[data-theme="dark"] .ml-locked__icon { background: rgba(255, 107, 26, 0.15); }
+body[data-theme="dark"] .ml-locked__title { color: rgba(255, 255, 255, 0.92); }
+body[data-theme="dark"] .ml-locked__sub { color: rgba(255, 255, 255, 0.55); }
 
 /* 文章导航 */
 .ml-article-nav {

@@ -104,6 +104,11 @@ const routes = [
         name: 'AdminEarningsAccounts',
         component: () => import('@/views/AccountQueryView.vue')
       },
+      {
+        path: 'earnings/withdrawals',
+        name: 'AdminEarningsWithdrawals',
+        component: () => import('@/views/WithdrawAdminView.vue')
+      },
       // 自媒体收入榜功能暂时隐藏
       // {
       //   path: 'earnings/self-media-review',
@@ -179,6 +184,11 @@ const routes = [
         path: 'security-settings',
         name: 'AdminSecuritySettings',
         component: () => import('@/views/SecuritySettingsView.vue')
+      },
+      {
+        path: 'audit-logs',
+        name: 'AdminAuditLogList',
+        component: () => import('@/views/AuditLogListView.vue')
       }
     ]
   },

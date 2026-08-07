@@ -12,13 +12,21 @@
     </div>
 
     <nav class="navbar-links">
-      <router-link
-        v-for="link in links"
-        :key="link.to"
-        :to="link.to"
-        class="navbar-link navbar-link-desktop"
-        :class="{ active: resolvedActive === link.to }"
-      >{{ link.label }}</router-link>
+      <template v-for="link in links" :key="link.to || link.href">
+        <a
+          v-if="link.href"
+          :href="link.href"
+          target="_blank"
+          rel="noopener"
+          class="navbar-link navbar-link-desktop"
+        >{{ link.label }}</a>
+        <router-link
+          v-else
+          :to="link.to"
+          class="navbar-link navbar-link-desktop"
+          :class="{ active: resolvedActive === link.to }"
+        >{{ link.label }}</router-link>
+      </template>
 
       <button
         class="theme-toggle theme-toggle-desktop"
@@ -68,14 +76,23 @@
       <button class="mobile-drawer-close" aria-label="关闭菜单" @click="mobileMenuOpen = false">×</button>
     </div>
     <nav class="mobile-drawer-nav">
-      <router-link
-        v-for="link in links"
-        :key="link.to"
-        :to="link.to"
-        class="mobile-drawer-link"
-        :class="{ active: resolvedActive === link.to }"
-        @click="mobileMenuOpen = false"
-      >{{ link.label }}</router-link>
+      <template v-for="link in links" :key="link.to || link.href">
+        <a
+          v-if="link.href"
+          :href="link.href"
+          target="_blank"
+          rel="noopener"
+          class="mobile-drawer-link"
+          @click="mobileMenuOpen = false"
+        >{{ link.label }}</a>
+        <router-link
+          v-else
+          :to="link.to"
+          class="mobile-drawer-link"
+          :class="{ active: resolvedActive === link.to }"
+          @click="mobileMenuOpen = false"
+        >{{ link.label }}</router-link>
+      </template>
     </nav>
     <div class="mobile-drawer-footer">
       <button class="mobile-drawer-theme" @click="toggleTheme">

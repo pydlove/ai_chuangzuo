@@ -1,5 +1,6 @@
 import { ref } from 'vue'
 import {
+  getCommissionStats,
   getCommissionTask,
   listCommissionTasks,
   listMyCommissionSubmissions,
@@ -10,6 +11,7 @@ import {
 const tasks = ref([])
 const taskDetail = ref(null)
 const mySubmissions = ref([])
+const stats = ref({ activeTaskCount: 0, mySubmissionCount: 0, earnedCoinTotal: 0 })
 const loading = ref(false)
 const page = ref(1)
 const pageSize = ref(10)
@@ -50,6 +52,16 @@ export function useCommission() {
     }
   }
 
+  async function loadStats() {
+    try {
+      stats.value = await getCommissionStats()
+      return stats.value
+    } catch (error) {
+      stats.value = { activeTaskCount: 0, mySubmissionCount: 0, earnedCoinTotal: 0 }
+      throw error
+    }
+  }
+
   async function submitArticle(taskId, articleBizNo) {
     await submitCommissionArticle(taskId, articleBizNo)
     return loadTask(taskId)
@@ -64,6 +76,7 @@ export function useCommission() {
     tasks,
     taskDetail,
     mySubmissions,
+    stats,
     loading,
     page,
     pageSize,
@@ -71,6 +84,7 @@ export function useCommission() {
     loadTasks,
     loadTask,
     loadMySubmissions,
+    loadStats,
     submitArticle,
     withdrawSubmission
   }

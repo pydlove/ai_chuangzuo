@@ -16,6 +16,10 @@ export function withdrawCommissionSubmission(submissionId) {
   return api.delete(`/commission/submissions/${submissionId}`)
 }
 
+export function getCommissionStats() {
+  return api.get('/commission/stats').then((res) => res.data)
+}
+
 export function listMyCommissionSubmissions(params = {}) {
   return api.get('/commission/submissions/mine', { params }).then((res) => res.data || { records: [], total: 0 })
 }

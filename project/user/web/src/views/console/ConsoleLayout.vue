@@ -742,13 +742,13 @@
             </button>
           </a-tooltip>
           <a-tooltip title="官网">
-            <a href="http://localhost:28585/.superpowers/brainstorm/6491-1782131242/content/index.html" target="_blank" class="console-icon-btn">
+            <router-link to="/" class="console-icon-btn">
               <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
                 <path d="M2 12h20"/>
               </svg>
-            </a>
+            </router-link>
           </a-tooltip>
           <!-- 主题切换 -->
           <a-tooltip :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'">
@@ -1565,10 +1565,13 @@ const displayNotifTitle = (n) => {
 // ---------- 教程 ----------
 const tutorialVisible = ref(false)
 
+const HELP_DOC_URL = 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink'
+
 const handleTutorial = (type) => {
   tutorialVisible.value = false
-  // TODO: 跳转对应页面
-  console.log('教程入口:', type)
+  if (type === 'doc') {
+    window.open(HELP_DOC_URL, '_blank')
+  }
 }
 
 // ---------- 反馈 ----------

@@ -34,6 +34,12 @@ public class LearnArticleEntity extends BaseEntity {
     /** 是否推荐：0=否 1=是 */
     private Integer isRecommended;
 
+    /** 是否免费：1=免费，0=付费。历史数据默认 1。 */
+    private Integer isFree;
+
+    /** 最低所需套餐 key（仅付费时有值），值见 MembershipPlan#getKey() */
+    private String requiredPlanKey;
+
     private Long authorId;
     private LocalDateTime publishedAt;
 }

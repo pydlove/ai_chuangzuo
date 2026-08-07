@@ -2,6 +2,23 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners, fetchRecommendedArticles } from '@/api/learn'
 
+const ACCESS_TOKEN_KEY = 'aichuangzuo_access_token'
+
+function isLoggedIn() {
+  return !!localStorage.getItem(ACCESS_TOKEN_KEY)
+}
+
+/**
+ * 是否需要展示「付费」徽章。
+ * 规则：付费文章 + 当前用户不可读（未登录 / 等级不足）→ 展示。
+ * 服务端 isFree / canRead 是单一来源，客户端不做等级推算。
+ */
+function shouldShowPaidBadge(article) {
+  if (!article) return false
+  if (article.isFree === 1 || article.isFree == null) return false
+  return article.canRead === false
+}
+
 export function useLearn(basePath = '/learn') {
   const route = useRoute()
   const router = useRouter()
@@ -60,6 +77,28 @@ export function useLearn(basePath = '/learn') {
   const onSelectCategory = id => router.replace({ path: basePath, query: { cat: id } })
   const loadArticle = id => router.push(`${basePath}/article/${id}`)
   const goHome = () => router.replace({ path: basePath })
+
+  /**
+   * 文章卡片点击：
+   * - 免费 / 等级足够 → 进详情
+   * - 未登录 + 付费 → 跳登录（带 redirect 回来）
+   * - 已登录 + 等级不够 → 进详情（详情页显示锁屏）
+   */
+  const handleArticleClick = article => {
+    if (!article) return
+    const free = article.isFree === 1 || article.isFree == null
+    const canRead = article.canRead === true
+    if (free || canRead) {
+      loadArticle(article.id)
+      return
+    }
+    if (!isLoggedIn()) {
+      const redirect = encodeURIComponent(route.fullPath)
+      router.push(`/login?redirect=${redirect}`)
+      return
+    }
+    loadArticle(article.id)
+  }
 
   async function loadRecommendedArticles() {
     try {
@@ -132,6 +171,8 @@ export function useLearn(basePath = '/learn') {
     recommendedArticles,
     onSelectCategory,
     loadArticle,
-    goHome
+    goHome,
+    handleArticleClick,
+    shouldShowPaidBadge
   }
 }

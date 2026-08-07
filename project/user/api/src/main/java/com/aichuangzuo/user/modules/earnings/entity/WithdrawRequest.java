@@ -37,6 +37,15 @@ public class WithdrawRequest {
     /** 状态：1-审核中，2-已通过，3-已拒绝。 */
     private Integer status;
 
+    /** 处理时间。 */
+    private LocalDateTime processedAt;
+
+    /** 处理人ID（管理员）。 */
+    private Long processedBy;
+
+    /** 处理结果备注（如拒绝原因）。 */
+    private String resultRemark;
+
     /** 租户ID。 */
     private Long tenantId;
 

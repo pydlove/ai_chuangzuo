@@ -84,9 +84,6 @@ const observerArticles = () => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           activeArticleId.value = entry.target.id
-          if (route.hash !== `#${entry.target.id}`) {
-            router.replace({ hash: `#${entry.target.id}` })
-          }
         }
       })
     },

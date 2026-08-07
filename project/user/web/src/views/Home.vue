@@ -284,7 +284,8 @@ const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
   { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
+  { to: '/learn', label: '创作学院' },
+  { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
 ]
 const ctaTo = '/login'
 const ctaLabel = '开始创作'

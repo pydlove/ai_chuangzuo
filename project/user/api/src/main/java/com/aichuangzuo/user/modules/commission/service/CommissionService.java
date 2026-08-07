@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.modules.commission.service;
 
+import com.aichuangzuo.user.modules.commission.vo.CommissionStatsVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
@@ -11,4 +12,5 @@ public interface CommissionService {
     Long submit(Long userId, Long taskId, String articleBizNo);
     void withdraw(Long userId, Long submissionId);
     IPage<CommissionSubmissionMineVO> mySubmissions(Long userId, int page, int pageSize);
+    CommissionStatsVO stats(Long userId);
 }

@@ -4,6 +4,7 @@ import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.commission.dto.request.CommissionSubmitRequest;
 import com.aichuangzuo.user.modules.commission.service.CommissionService;
+import com.aichuangzuo.user.modules.commission.vo.CommissionStatsVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionSubmissionMineVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskDetailVO;
 import com.aichuangzuo.user.modules.commission.vo.CommissionTaskVO;
@@ -49,6 +50,12 @@ public class CommissionController {
     public Result<Void> withdraw(@PathVariable Long submissionId) {
         commissionService.withdraw(SecurityUserContext.getCurrentUserId(), submissionId);
         return Result.success();
+    }
+
+    @Operation(summary = "我的约稿统计")
+    @GetMapping("/stats")
+    public Result<CommissionStatsVO> stats() {
+        return Result.success(commissionService.stats(SecurityUserContext.getCurrentUserId()));
     }
 
     @Operation(summary = "我的投稿")

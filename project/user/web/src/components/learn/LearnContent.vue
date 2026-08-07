@@ -27,14 +27,16 @@
                 <CalendarOutlined class="learn-meta-icon" />
                 {{ formatDate(article.publishedAt || article.updatedAt) }}
               </span>
-              <span class="learn-meta-item">
-                <ClockCircleOutlined class="learn-meta-icon" />
-                约 {{ readingMinutes }} 分钟
-              </span>
-              <span class="learn-meta-item">
-                <FileTextOutlined class="learn-meta-icon" />
-                {{ wordCount }} 字
-              </span>
+              <template v-if="article.isFree === 1 || article.canRead === true">
+                <span class="learn-meta-item">
+                  <ClockCircleOutlined class="learn-meta-icon" />
+                  约 {{ readingMinutes }} 分钟
+                </span>
+                <span class="learn-meta-item">
+                  <FileTextOutlined class="learn-meta-icon" />
+                  {{ wordCount }} 字
+                </span>
+              </template>
               <router-link
                 v-if="currentCategoryName"
                 :to="`${basePath}?cat=${article.categoryId}`"
@@ -53,10 +55,21 @@
             alt=""
           />
 
-          <article ref="contentRef" class="learn-content-body">
+          <!-- 正文 / 锁屏卡：isFree=1（免费）或 canRead=true 时渲染正文，其余（付费且不可读）渲染锁屏卡 -->
+          <article v-if="article.isFree === 1 || article.canRead === true" ref="contentRef" class="learn-content-body">
             <LearnMarkdown v-if="article.contentType === 'markdown'" :source="article.content" />
             <LearnRichText v-else :html="article.content" />
           </article>
+
+          <!-- 付费锁定：封面 + 摘要照常展示，正文位置渲染锁屏卡 -->
+          <div v-else class="learn-locked">
+            <div class="learn-locked__icon">
+              <LockOutlined />
+            </div>
+            <div class="learn-locked__title">需要 {{ article.requiredPlanName || '更高' }} 套餐</div>
+            <div class="learn-locked__sub">升级套餐即可阅读完整内容</div>
+            <button class="learn-locked__btn" @click="$router.push('/pricing')">立即升级</button>
+          </div>
 
           <!-- 移动端目录浮钮 -->
           <button
@@ -237,6 +250,7 @@ import {
   FileTextOutlined,
   TagOutlined,
   BulbOutlined,
+  LockOutlined,
   ReadOutlined,
   UnorderedListOutlined
 } from '@ant-design/icons-vue'
@@ -686,6 +700,64 @@ onUnmounted(() => {
   border-top: none;
   padding-top: 0;
   text-align: left;
+}
+
+/* 付费锁定卡 */
+.learn-locked {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 56px 24px;
+  background: linear-gradient(135deg, #FFF8F0 0%, #FFF1E0 100%);
+  border: 1px solid #FFE0B2;
+  border-radius: 14px;
+  margin-bottom: 36px;
+  text-align: center;
+}
+.learn-locked__icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #FFF3E0;
+  color: #FF6B1A;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.learn-locked__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+.learn-locked__sub {
+  font-size: 13px;
+  color: #8c8c8c;
+}
+.learn-locked__btn {
+  margin-top: 4px;
+  padding: 10px 28px;
+  background: #FF6B1A;
+  color: #fff;
+  border: 0;
+  border-radius: 9999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.learn-locked__btn:hover { background: #E55A0B; }
+body[data-theme="dark"] .learn-locked {
+  background: rgba(255, 107, 26, 0.08);
+  border-color: rgba(255, 107, 26, 0.25);
+}
+body[data-theme="dark"] .learn-locked__icon { background: rgba(255, 107, 26, 0.15); }
+body[data-theme="dark"] .learn-locked__title { color: rgba(255, 255, 255, 0.92); }
+body[data-theme="dark"] .learn-locked__sub { color: rgba(255, 255, 255, 0.55); }
+@media (max-width: 991px) {
+  .learn-locked { padding: 36px 20px; }
 }
 .learn-cta-card {
   display: flex;

@@ -120,6 +120,7 @@
           </template>
           <template #title>收益管理</template>
           <a-menu-item key="/console/earnings/accounts">账户明细</a-menu-item>
+          <a-menu-item key="/console/earnings/withdrawals">创作币提现</a-menu-item>
           <!-- 自媒体收入榜功能暂时隐藏
           <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
           <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
@@ -174,6 +175,12 @@
             </template>
             安全设置
           </a-menu-item>
+          <a-menu-item key="/console/audit-logs">
+            <template #icon>
+              <FileSearchOutlined />
+            </template>
+            操作审计
+          </a-menu-item>
         </a-sub-menu>
       </a-menu>
     </a-layout-sider>
@@ -206,7 +213,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -231,7 +238,7 @@ const parentMenuKey = computed(() => {
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings') return '/console/settings'
+  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings' || p === '/console/audit-logs') return '/console/settings'
   return null
 })
 
@@ -258,6 +265,7 @@ const currentMenuName = computed(() => {
   // if (route.path === '/console/leaderboard/review') return '收入审核'
   if (route.path === '/console/leaderboard/award') return '奖励发放'
   if (route.path === '/console/earnings/accounts') return '账户明细'
+  if (route.path === '/console/earnings/withdrawals') return '创作币提现'
   if (route.path === '/console/earnings/settlements') return '结算中心'
   // 自媒体收入榜功能暂时隐藏
   // if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
@@ -278,6 +286,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/home-banner') return '首页 Banner'
   if (route.path === '/console/plans') return '套餐管理'
   if (route.path === '/console/security-settings') return '安全设置'
+  if (route.path === '/console/audit-logs') return '操作审计'
   return ''
 })
 

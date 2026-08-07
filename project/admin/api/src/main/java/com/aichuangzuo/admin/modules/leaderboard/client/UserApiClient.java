@@ -1,8 +1,10 @@
 package com.aichuangzuo.admin.modules.leaderboard.client;
 
 import com.aichuangzuo.admin.infrastructure.security.JwtUtil;
+import com.aichuangzuo.admin.modules.leaderboard.dto.request.ProcessWithdrawRequest;
 import com.aichuangzuo.admin.modules.leaderboard.dto.request.RecordEarningsRequest;
 import com.aichuangzuo.admin.modules.leaderboard.dto.request.UserCoinGrantRequest;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -54,6 +56,34 @@ public class UserApiClient {
         if (response == null) {
             throw new RuntimeException("record earnings failed: empty response");
         }
+        if (response.getCode() == null || response.getCode() != 0) {
+            throw new BusinessException(response.getCode(), "record earnings failed: " + response.getMessage());
+        }
+    }
+
+    /**
+     * 调用用户端处理提现申请。
+     */
+    public void processWithdraw(String bizNo, Long adminUserId, Integer status, String remark) {
+        String token = jwtUtil.generateAccessToken(adminUserId);
+
+        ProcessWithdrawRequest request = new ProcessWithdrawRequest();
+        request.setStatus(status);
+        request.setRemark(remark);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(token);
+        HttpEntity<ProcessWithdrawRequest> entity = new HttpEntity<>(request, headers);
+
+        String url = userApiBaseUrl + "/api/v1/user/internal/withdrawals/" + bizNo + "/process";
+        Result<Void> response = restTemplate.postForObject(url, entity, Result.class);
+        if (response == null) {
+            throw new RuntimeException("process withdraw failed: empty response");
+        }
+        if (response.getCode() == null || response.getCode() != 0) {
+            throw new BusinessException(response.getCode(), "process withdraw failed: " + response.getMessage());
+        }
     }
 
     /**
@@ -81,6 +111,9 @@ public class UserApiClient {
         Result<String> response = restTemplate.postForObject(url, entity, Result.class);
         if (response == null || response.getData() == null) {
             throw new RuntimeException("grant coin failed: empty response");
+        }
+        if (response.getCode() == null || response.getCode() != 0) {
+            throw new BusinessException(response.getCode(), "grant coin failed: " + response.getMessage());
         }
         return response.getData();
     }

@@ -193,6 +193,7 @@ function typeLabel(type) {
     generation: '创作',
     membership: '会员',
     style: '提示词',
+    coin: '创作币',
     reward: '奖励'
   }
   return map[type] || '通知'
@@ -201,6 +202,7 @@ function typeLabel(type) {
 function iconSvg(type) {
   const icons = {
     announcement: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
+    coin: '<circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4"/><path d="M9 16h6"/><path d="M12 12v4"/>',
     feature: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
     promotion: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
     generation: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
@@ -383,6 +385,7 @@ function iconSvg(type) {
 }
 
 .message-card__icon--announcement,
+.message-card__icon--coin,
 .message-card__icon--feature,
 .message-card__icon--promotion,
 .message-card__icon--generation,
@@ -555,6 +558,7 @@ function iconSvg(type) {
 }
 
 .message-detail__icon--announcement,
+.message-detail__icon--coin,
 .message-detail__icon--feature,
 .message-detail__icon--promotion,
 .message-detail__icon--generation,

@@ -85,7 +85,8 @@ export function useLogin() {
       persistTokens(res.data)
       message.success('登录成功')
       loginSliderModalVisible.value = false
-      router.push('/console')
+      const redirect = router.currentRoute.value.query.redirect
+      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console')
     } catch (err) {
       message.error(err?.message || '登录失败')
       loginSliderModalVisible.value = false
@@ -210,7 +211,8 @@ export function useLogin() {
       })
       persistTokens(res.data)
       message.success('注册成功')
-      router.push('/console')
+      const redirect = router.currentRoute.value.query.redirect
+      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console')
     } catch (err) {
       message.error(err?.message || '注册失败')
     }
