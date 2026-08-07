@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.earnings.mapper.WithdrawRequestMapper">
+
+    <select id="selectWithdrawAdminPage" resultType="com.aichuangzuo.admin.modules.earnings.vo.WithdrawAdminVO">
+        SELECT
+            w.id,
+            w.biz_no AS bizNo,
+            w.user_id AS userId,
+            u.nickname,
+            u.email,
+            w.amount,
+            w.account,
+            w.name,
+            w.status,
+            w.processed_at AS processedAt,
+            w.processed_by AS processedBy,
+            w.result_remark AS resultRemark,
+            w.created_at AS createdAt
+        FROM u_withdraw_request w
+        LEFT JOIN u_user u ON u.id = w.user_id AND u.is_deleted = 0
+        WHERE w.is_deleted = 0
+        <if test="userId != null">
+            AND w.user_id = #{userId}
+        </if>
+        <if test="bizNo != null and bizNo != ''">
+            AND w.biz_no = #{bizNo}
+        </if>
+        <if test="status != null">
+            AND w.status = #{status}
+        </if>
+        ORDER BY w.created_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countWithdrawAdminPage" resultType="long">
+        SELECT COUNT(*)
+        FROM u_withdraw_request w
+        WHERE w.is_deleted = 0
+        <if test="userId != null">
+            AND w.user_id = #{userId}
+        </if>
+        <if test="bizNo != null and bizNo != ''">
+            AND w.biz_no = #{bizNo}
+        </if>
+        <if test="status != null">
+            AND w.status = #{status}
+        </if>
+    </select>
+</mapper>
