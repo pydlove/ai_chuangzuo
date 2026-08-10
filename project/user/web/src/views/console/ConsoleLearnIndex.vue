@@ -796,7 +796,7 @@ body[data-theme="dark"] .article-category {
   .article-cover {
     display: block;
     width: 100%;
-    height: 140px;
+    aspect-ratio: 2 / 1;
     object-fit: cover;
     border-radius: 12px;
   }

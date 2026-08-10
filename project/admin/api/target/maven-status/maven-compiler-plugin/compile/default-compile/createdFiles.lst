@@ -118,6 +118,7 @@ com/aichuangzuo/admin/modules/generation/dto/request/PromptTemplateSaveRequest.c
 com/aichuangzuo/admin/modules/earnings/service/impl/AccountAdminServiceImpl.class
 com/aichuangzuo/admin/modules/skill/preset/mapper/GlobalSkillMapper.class
 com/aichuangzuo/admin/modules/generation/pipeline/DefaultAiGateway.class
+com/aichuangzuo/admin/modules/generation/service/GenerationTaskAdminService$1.class
 com/aichuangzuo/admin/config/MybatisPlusConfig.class
 com/aichuangzuo/admin/modules/homebanner/exception/HomeBannerErrorCode.class
 com/aichuangzuo/admin/modules/skill/analyze/config/vo/SkillAnalyzeConfigVO.class

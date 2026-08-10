@@ -50,3 +50,4 @@ config/ssl/*.p12
 /project/user/web/dist/
 # Local worktrees
 /.worktrees/
+/tests/load/report/

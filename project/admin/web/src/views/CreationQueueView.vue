@@ -38,7 +38,7 @@
         :data-source="list"
         :loading="loading"
         :pagination="false"
-        :scroll="{ x: 1440 }"
+        :scroll="{ x: 1200 }"
         row-key="id"
         size="middle"
       >
@@ -67,6 +67,11 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-space>
+              <a-button
+                type="link"
+                size="small"
+                @click="openDetail(record)"
+              >详情</a-button>
               <a-button
                 type="link"
                 size="small"
@@ -231,6 +236,65 @@
         </a-spin>
       </a-modal>
 
+      <!-- 任务详情弹窗：集中展示标题、创作要求、字数、平台、提示词、导出模板等 -->
+      <a-modal
+        v-model:open="detailModal.open"
+        :title="`任务详情 · ${detailModal.record?.bizNo || ''}`"
+        :width="960"
+        :footer="null"
+        @cancel="onDetailClose"
+      >
+        <div v-if="detailModal.record" class="detail-body">
+          <div class="detail-section">
+            <div class="detail-row">
+              <span class="detail-label">业务号</span>
+              <span class="detail-value mono">{{ detailModal.record.bizNo || '-' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">用户</span>
+              <span class="detail-value">{{ detailModal.record.userNickname || '-' }} <span class="user-id">ID: {{ detailModal.record.userId }}</span></span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">状态</span>
+              <span class="detail-value">{{ statusTag(detailModal.record.status) }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">提交时间</span>
+              <span class="detail-value">{{ detailModal.record.createdAt || '-' }}</span>
+            </div>
+          </div>
+
+          <a-divider class="detail-divider" />
+
+          <div class="detail-section">
+            <div class="detail-row block">
+              <span class="detail-label">标题</span>
+              <div class="detail-value pre">{{ detailModal.record.title || '-' }}</div>
+            </div>
+            <div class="detail-row block">
+              <span class="detail-label">创作要求</span>
+              <div class="detail-value pre">{{ detailModal.record.description || '-' }}</div>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">平台</span>
+              <span class="detail-value">{{ detailModal.record.platform || '-' }}</span>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">目标字数</span>
+              <span class="detail-value">{{ detailModal.record.wordLimitTarget ?? '-' }}</span>
+            </div>
+            <div class="detail-row block">
+              <span class="detail-label">提示词</span>
+              <div class="detail-value pre">{{ detailModal.record.userSkillPrompt || detailModal.record.skillRef || '-' }}</div>
+            </div>
+            <div class="detail-row">
+              <span class="detail-label">导出模板</span>
+              <span class="detail-value">{{ detailModal.record.template || '-' }}</span>
+            </div>
+          </div>
+        </div>
+      </a-modal>
+
       <div class="pagination">
         <a-pagination
           :current="page"
@@ -308,6 +372,12 @@ const previewModal = reactive({
   loading: false,
   task: null,
   article: null
+})
+
+// ===== 任务详情弹窗 =====
+const detailModal = reactive({
+  open: false,
+  record: null
 })
 
 const fetchCallLogs = async () => {
@@ -391,6 +461,15 @@ const openArticlePreview = async (record) => {
 const onPreviewClose = () => {
   previewModal.task = null
   previewModal.article = null
+}
+
+const openDetail = (record) => {
+  detailModal.record = record
+  detailModal.open = true
+}
+
+const onDetailClose = () => {
+  detailModal.record = null
 }
 
 const downloadArticle = async (record) => {
@@ -493,15 +572,14 @@ const onTabChange = (key) => switchTab(key)
 const columns = computed(() => {
   const base = [
     { title: '业务号', dataIndex: 'bizNo', key: 'bizNo', width: 180 },
-    { title: '用户', key: 'user', width: 180 },
+    { title: '用户', key: 'user', width: 160 },
     { title: '状态', key: 'status', width: 100,
       customRender: ({ record }) => statusTag(record.status) },
-    { title: '目标字数', dataIndex: 'wordLimitTarget', key: 'wordLimitTarget', width: 90 },
-    { title: '已等待 / 已耗时', key: 'waiting', width: 130 },
-    { title: 'tokens', key: 'tokens', width: 110 },
-    { title: '失败原因', key: 'failedReason', width: 200 },
-    { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-    { title: '操作', key: 'actions', fixed: 'right', width: 360 }
+    { title: '已等待 / 已耗时', key: 'waiting', width: 120 },
+    { title: 'tokens', key: 'tokens', width: 100 },
+    { title: '失败原因', key: 'failedReason', width: 180 },
+    { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 160 },
+    { title: '操作', key: 'actions', fixed: 'right', width: 320 }
   ]
   return base
 })
@@ -590,6 +668,14 @@ onBeforeUnmount(() => {
 }
 .text-muted {
   color: #bfbfbf;
+}
+.ellipsis-cell {
+  display: inline-block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 .pagination {
   margin-top: 16px;
@@ -741,5 +827,66 @@ onBeforeUnmount(() => {
   border-radius: 4px;
   max-height: 600px;
   overflow-y: auto;
+}
+
+/* ===== 任务详情弹窗 ===== */
+.detail-body {
+  height: 520px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.detail-divider {
+  margin: 16px 0;
+}
+.detail-row {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.detail-row.block {
+  flex-direction: column;
+  gap: 6px;
+}
+.detail-label {
+  flex-shrink: 0;
+  width: 80px;
+  color: #8c8c8c;
+  font-size: 13px;
+  line-height: 22px;
+  text-align: right;
+}
+.detail-row.block .detail-label {
+  text-align: left;
+  width: auto;
+}
+.detail-value {
+  flex: 1;
+  color: #262626;
+  font-size: 13px;
+  line-height: 22px;
+  word-break: break-all;
+}
+.detail-value.pre {
+  white-space: pre-wrap;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  padding: 12px;
+  line-height: 1.6;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.detail-value.mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.detail-value .user-id {
+  margin-left: 6px;
+  color: #8c8c8c;
+  font-size: 12px;
 }
 </style>

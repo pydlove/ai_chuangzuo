@@ -867,9 +867,13 @@ body[data-theme="dark"] .learn-locked__sub { color: rgba(255, 255, 255, 0.55); }
   }
   .learn-article-card-cover {
     width: 100%;
-    height: 140px;
-    object-fit: cover;
+    aspect-ratio: 2 / 1;
+    object-fit: contain;
+    background: #f5f5f5;
     border-radius: 12px;
+  }
+  body[data-theme="dark"] .learn-article-card-cover {
+    background: #2a2a2a;
   }
   .learn-article-card-title { font-size: 15px; }
   .learn-article-card-summary { font-size: 12px; -webkit-line-clamp: 2; }

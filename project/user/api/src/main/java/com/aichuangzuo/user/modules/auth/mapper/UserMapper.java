@@ -7,8 +7,18 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.time.LocalDateTime;
+
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
+
+    /**
+     * 同步 u_user 会员到期时间和套餐字段（管理端用户列表读取的缓存列）。
+     */
+    @Update("UPDATE u_user SET membership_expire_at = #{expireAt}, membership_plan = #{plan}, updated_at = NOW(3) WHERE id = #{userId} AND is_deleted = 0")
+    int updateMembershipFields(@Param("userId") Long userId,
+                               @Param("expireAt") LocalDateTime expireAt,
+                               @Param("plan") String plan);
 
     /**
      * 按邮箱精确查询未被软删的用户。

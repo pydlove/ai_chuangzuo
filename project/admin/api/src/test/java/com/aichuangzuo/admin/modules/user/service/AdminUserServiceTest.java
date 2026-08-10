@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.user.service;
 
+import com.aichuangzuo.admin.modules.plan.mapper.PlanMapper;
 import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
@@ -59,6 +60,9 @@ class AdminUserServiceTest {
 
     @Mock
     private UserMarketFavoriteMapper userMarketFavoriteMapper;
+
+    @Mock
+    private PlanMapper planMapper;
 
     @InjectMocks
     private AdminUserServiceImpl adminUserService;

@@ -1,0 +1,1 @@
+import{r as e}from"./request-BgNA_QmO.js";const s="/benefits";function r(){return e.get(s).then(t=>t.data||[])}const n="/plan-benefits";function i(){return e.get(n).then(t=>t.data||[])}function o(t){return e.post(n,t).then(a=>a.data)}export{i as a,r as f,o as u};

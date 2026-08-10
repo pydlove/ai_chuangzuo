@@ -531,8 +531,9 @@ body[data-theme="dark"] .learn-article-badge {
 }
 .learn-recommend-cover {
   width: 100%;
-  height: 120px;
-  object-fit: cover;
+  aspect-ratio: 2 / 1;
+  object-fit: contain;
+  background: #f5f5f5;
   display: block;
 }
 .learn-recommend-body {
@@ -572,6 +573,9 @@ body[data-theme="dark"] .learn-article-badge {
 }
 
 /* 暗色主题 — 推荐文章 */
+body[data-theme="dark"] .learn-recommend-cover {
+  background: #2a2a2a;
+}
 body[data-theme="dark"] .learn-recommend-article-title { color: #e0e0e0; }
 body[data-theme="dark"] .learn-recommend-summary { color: #a6a6a6; }
 body[data-theme="dark"] .learn-recommend-category {
@@ -583,27 +587,23 @@ body[data-theme="dark"] .learn-recommend-category {
   .learn-banner-section { margin-bottom: 16px; }
 }
 
-/* PC：推荐文章改用「左图右文」横向卡片，对齐分类列表的 .learn-article-card 风格 */
+/* PC：推荐文章使用横向卡片，封面按 2:1 比例完整展示 */
 @media (min-width: 992px) {
   .learn-recommend-grid {
     grid-template-columns: repeat(2, 1fr);
   }
   .learn-recommend-article {
-    flex-direction: row;
+    flex-direction: column;
     align-items: stretch;
   }
   .learn-recommend-cover {
-    width: 140px;
-    height: 100%;
-    min-height: 120px;
     border-radius: 0;
-    flex-shrink: 0;
   }
   .learn-recommend-body {
     flex: 1;
     min-width: 0;
-    padding: 16px 20px;
-    justify-content: center;
+    padding: 16px;
+    justify-content: flex-start;
   }
   .learn-recommend-article .learn-recommend-arrow {
     display: none;

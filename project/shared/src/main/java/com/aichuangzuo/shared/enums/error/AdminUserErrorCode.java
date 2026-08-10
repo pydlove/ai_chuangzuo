@@ -16,7 +16,8 @@ public enum AdminUserErrorCode implements ErrorCode {
     PERIOD_FORMAT_ERROR(220009, "周期格式不正确，应为 yyyy-MM"),
     EXCEL_FILE_INVALID(220010, "Excel 文件无效，请使用正确的模板"),
     EXCEL_PARSE_ERROR(220011, "Excel 解析失败"),
-    EXCEL_IMPORT_EMPTY(220012, "Excel 数据为空");
+    EXCEL_IMPORT_EMPTY(220012, "Excel 数据为空"),
+    MEMBERSHIP_PLAN_INVALID(220013, "套餐不存在或已停用");
 
     private final int code;
     private final String message;

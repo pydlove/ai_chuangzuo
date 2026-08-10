@@ -116,6 +116,33 @@
         </div>
       </div>
     </div>
+
+    <!-- 微信环境海报保存提示弹框 -->
+    <a-modal
+      v-model:open="posterPreviewVisible"
+      :footer="null"
+      :width="400"
+      centered
+      class="poster-preview-modal"
+    >
+      <div class="poster-preview-panel">
+        <div class="poster-preview-tip">
+          <span class="poster-preview-tip-icon">💡</span>
+          <span>长按下方图片，选择“保存到手机”</span>
+        </div>
+        <div class="poster-preview-image-wrap">
+          <img
+            v-if="posterPreviewUrl"
+            :src="posterPreviewUrl"
+            alt="邀请海报"
+            class="poster-preview-image"
+          />
+        </div>
+        <button class="invite-btn invite-btn-primary poster-preview-close" @click="posterPreviewVisible = false">
+          知道了
+        </button>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -125,9 +152,14 @@ import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import { useInviteStats } from '@/composables/useInviteStats.js'
 import { useUserProfile } from '@/composables/useUserProfile.js'
+import { copyToClipboard } from '@/utils/copy.js'
+import { isWechatBrowser } from '@/utils/env.js'
 
 const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
 const { profile, loadProfile } = useUserProfile()
+
+const posterPreviewVisible = ref(false)
+const posterPreviewUrl = ref('')
 
 const userId = computed(() => profile.value?.userId || '')
 const inviteCode = computed(() => profile.value?.inviteCode || '')
@@ -145,22 +177,31 @@ const inviteShareText = computed(() => {
   return `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n${inviteLink.value}`
 })
 
-const copyUserId = () => {
-  navigator.clipboard.writeText(userId.value).then(() => {
+const copyUserId = async () => {
+  try {
+    await copyToClipboard(userId.value)
     message.success('ID 已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
-const copyInviteCode = () => {
-  navigator.clipboard.writeText(inviteCode.value).then(() => {
+const copyInviteCode = async () => {
+  try {
+    await copyToClipboard(inviteCode.value)
     message.success('邀请码已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
-const copyInviteLink = () => {
-  navigator.clipboard.writeText(inviteShareText.value).then(() => {
+const copyInviteLink = async () => {
+  try {
+    await copyToClipboard(inviteShareText.value)
     message.success('邀请文案已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
 const roundRect = (ctx, x, y, w, h, r) => {
@@ -268,10 +309,17 @@ const downloadPoster = async () => {
   ctx.font = '32px sans-serif'
   ctx.fillText('注册即得 50 创作币 + 阶梯奖励', W / 2, 1190)
 
-  // 下载
+  // 下载或预览
+  const dataUrl = canvas.toDataURL('image/png')
+  if (isWechatBrowser()) {
+    posterPreviewUrl.value = dataUrl
+    posterPreviewVisible.value = true
+    return
+  }
+
   const link = document.createElement('a')
   link.download = `爱创作邀请海报-${inviteCode.value || 'invite'}.png`
-  link.href = canvas.toDataURL('image/png')
+  link.href = dataUrl
   link.click()
 }
 </script>
@@ -715,5 +763,63 @@ body[data-theme="dark"] .invite-rules-detail-btn {
 
 body[data-theme="dark"] .invite-rules-detail-btn:hover {
   background: rgba(255, 36, 66, 0.15);
+}
+
+/* 微信环境海报预览弹框 */
+.poster-preview-modal .ant-modal-body {
+  padding: 0;
+}
+
+.poster-preview-panel {
+  padding: 20px;
+  text-align: center;
+}
+
+.poster-preview-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #595959;
+  margin-bottom: 16px;
+}
+
+.poster-preview-tip-icon {
+  font-size: 16px;
+}
+
+.poster-preview-image-wrap {
+  width: 100%;
+  max-height: 460px;
+  overflow: auto;
+  border-radius: 12px;
+  background: #f5f5f5;
+  margin-bottom: 16px;
+}
+
+.poster-preview-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  -webkit-touch-callout: default;
+  user-select: none;
+}
+
+.poster-preview-close {
+  width: 100%;
+}
+
+body[data-theme="dark"] .poster-preview-panel {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .poster-preview-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .poster-preview-image-wrap {
+  background: #141414;
 }
 </style>

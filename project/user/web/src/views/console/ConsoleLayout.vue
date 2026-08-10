@@ -381,6 +381,33 @@
             </div>
           </a-modal>
 
+          <!-- 微信环境海报保存提示弹框 -->
+          <a-modal
+            v-model:open="posterPreviewVisible"
+            :footer="null"
+            :width="400"
+            centered
+            class="poster-preview-modal"
+          >
+            <div class="poster-preview-panel">
+              <div class="poster-preview-tip">
+                <span class="poster-preview-tip-icon">💡</span>
+                <span>长按下方图片，选择“保存到手机”</span>
+              </div>
+              <div class="poster-preview-image-wrap">
+                <img
+                  v-if="posterPreviewUrl"
+                  :src="posterPreviewUrl"
+                  alt="邀请海报"
+                  class="poster-preview-image"
+                />
+              </div>
+              <button class="invite-btn invite-btn-primary poster-preview-close" @click="posterPreviewVisible = false">
+                知道了
+              </button>
+            </div>
+          </a-modal>
+
           <!-- 邀请有礼按钮 -->
           <a-tooltip title="邀请有礼">
             <button class="console-icon-btn console-invite-btn" @click="openInviteModal">
@@ -1249,6 +1276,8 @@ import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/au
 import { useUserProfile } from '@/composables/useUserProfile'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { useWithdraw } from '@/composables/useWithdraw'
+import { copyToClipboard } from '@/utils/copy.js'
+import { isWechatBrowser } from '@/utils/env.js'
 import { useBenefits } from '@/composables/useBenefits'
 import { useMessages } from '@/composables/useMessages'
 import { getMyMembership } from '@/api/membership'
@@ -2180,6 +2209,8 @@ const inviteVisible = ref(false)
 const withdrawVisible = ref(false)
 const inviteRulesVisible = ref(false)
 const posterVisible = ref(false)
+const posterPreviewVisible = ref(false)
+const posterPreviewUrl = ref('')
 const posterSelectedId = ref('classic-red')
 const posterPreviewRefs = ref({})
 const withdrawAmount = ref(null)
@@ -2498,9 +2529,17 @@ const downloadSelectedPoster = async () => {
   canvas.width = 750
   canvas.height = 1000
   await drawPoster(canvas, template, inviteCode.value, inviteLink.value)
+  const dataUrl = canvas.toDataURL('image/png')
+
+  if (isWechatBrowser()) {
+    posterPreviewUrl.value = dataUrl
+    posterPreviewVisible.value = true
+    return
+  }
+
   const link = document.createElement('a')
   link.download = `invite-poster-${template.id}.png`
-  link.href = canvas.toDataURL()
+  link.href = dataUrl
   link.click()
   message.success(`${template.name} 海报已保存`)
 }
@@ -2515,22 +2554,31 @@ const openInviteRulesDrawer = () => {
   inviteRulesVisible.value = true
 }
 
-const copyInviteCode = () => {
-  navigator.clipboard.writeText(inviteCode.value).then(() => {
+const copyInviteCode = async () => {
+  try {
+    await copyToClipboard(inviteCode.value)
     message.success('邀请码已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
-const copyInviteLink = () => {
-  navigator.clipboard.writeText(inviteShareText.value).then(() => {
+const copyInviteLink = async () => {
+  try {
+    await copyToClipboard(inviteShareText.value)
     message.success('邀请文案已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
-const copyUserId = () => {
-  navigator.clipboard.writeText(userId.value).then(() => {
+const copyUserId = async () => {
+  try {
+    await copyToClipboard(userId.value)
     message.success('ID 已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
 const openWithdrawModal = () => {
@@ -5526,6 +5574,64 @@ body[data-theme="dark"] .password-input::placeholder {
   gap: 10px;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
+}
+
+/* 微信环境海报预览弹框 */
+.poster-preview-modal .ant-modal-body {
+  padding: 0;
+}
+
+.poster-preview-panel {
+  padding: 20px;
+  text-align: center;
+}
+
+.poster-preview-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #595959;
+  margin-bottom: 16px;
+}
+
+.poster-preview-tip-icon {
+  font-size: 16px;
+}
+
+.poster-preview-image-wrap {
+  width: 100%;
+  max-height: 460px;
+  overflow: auto;
+  border-radius: 12px;
+  background: #f5f5f5;
+  margin-bottom: 16px;
+}
+
+.poster-preview-image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 12px;
+  -webkit-touch-callout: default;
+  user-select: none;
+}
+
+.poster-preview-close {
+  width: 100%;
+}
+
+body[data-theme="dark"] .poster-preview-panel {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .poster-preview-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .poster-preview-image-wrap {
+  background: #141414;
 }
 
 body[data-theme="dark"] .poster-panel-title {

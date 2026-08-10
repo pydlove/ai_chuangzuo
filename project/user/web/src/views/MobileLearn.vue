@@ -758,12 +758,14 @@ onUnmounted(() => {
 .ml-article-card {
   position: relative;
   display: flex;
-  gap: 14px;
-  padding: 16px;
+  flex-direction: column;
+  gap: 0;
+  padding: 0;
   background: #fff;
   border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
   cursor: pointer;
+  overflow: hidden;
 }
 .ml-article-card__badge {
   position: absolute;
@@ -783,17 +785,18 @@ body[data-theme="dark"] .ml-article-card__badge {
   border-color: rgba(255, 107, 26, 0.35);
   color: #FF9F4D;
 }
+body[data-theme="dark"] .ml-article-card__cover {
+  background: #2a2a2a;
+}
 .ml-article-card__cover {
-  width: 120px;
-  height: 73px;
-  border-radius: 10px;
-  object-fit: cover;
-  flex-shrink: 0;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  object-fit: contain;
   background: #f5f5f5;
+  display: block;
 }
 .ml-article-card__body {
-  flex: 1;
-  min-width: 0;
+  padding: 16px;
   display: flex;
   flex-direction: column;
 }

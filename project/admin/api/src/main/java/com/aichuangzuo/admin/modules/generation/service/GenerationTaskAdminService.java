@@ -12,6 +12,8 @@ import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -36,6 +38,7 @@ public class GenerationTaskAdminService {
     private final GenerationCallLogMapper callLogMapper;
     private final QuotaRefundInternalClient refundClient;
     private final ArticleReadInternalClient articleReadClient;
+    private final ObjectMapper objectMapper;
 
     public GenerationTaskAdminPageVO list(GenerationTaskQueryRequest req) {
         long page = Math.max(1, req.getPage());
@@ -155,6 +158,15 @@ public class GenerationTaskAdminService {
         BeanUtils.copyProperties(r, vo);
         vo.setStatus(r.getStatus());
         vo.setStatusLabel(statusLabel(r.getStatus()));
+
+        Map<String, Object> input = parseInputParam(r.getInputParam());
+        vo.setTitle(nullToEmpty(input.get("title")));
+        vo.setDescription(nullToEmpty(input.get("description")));
+        vo.setPlatform(nullToEmpty(input.get("platform")));
+        vo.setSkillRef(nullToEmpty(input.get("skillRef")));
+        vo.setTemplate(nullToEmpty(input.get("template")));
+        vo.setUserSkillPrompt(nullToEmpty(input.get("userSkillPrompt")));
+
         // waitingSeconds: queued / processing 算「从 created_at 起到现在等了多久」；
         // completed / failed 任务已结束，按 completed_at - created_at 算实际耗时，避免已完成任务耗时继续增长。
         if (r.getCreatedAt() != null) {
@@ -166,6 +178,23 @@ public class GenerationTaskAdminService {
         }
         vo.setTotalTokens(totalTokens == null ? 0L : totalTokens);
         return vo;
+    }
+
+    private Map<String, Object> parseInputParam(String json) {
+        if (json == null || json.isBlank()) {
+            return Map.of();
+        }
+        try {
+            Map<String, Object> parsed = objectMapper.readValue(json, new TypeReference<>() {});
+            return parsed == null ? Map.of() : parsed;
+        } catch (Exception e) {
+            log.warn("解析 task input_param 失败: {}", e.getMessage());
+            return Map.of();
+        }
+    }
+
+    private static String nullToEmpty(Object value) {
+        return value == null ? "" : value.toString();
     }
 
     private static String statusLabel(Integer status) {

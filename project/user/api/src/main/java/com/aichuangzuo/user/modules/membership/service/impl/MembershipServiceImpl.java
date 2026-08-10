@@ -39,8 +39,10 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
 /**
@@ -536,7 +538,14 @@ public class MembershipServiceImpl implements MembershipService {
             membership.setExpiresAt(newExpiresAt);
             userMembershipMapper.updateById(membership);
         }
+        syncUserMembershipFields(userId, newExpiresAt, plan.getKey());
         return membership;
+    }
+
+    private void syncUserMembershipFields(Long userId, LocalDate expiresAt, String planKey) {
+        LocalDateTime expireDateTime = expiresAt.atTime(LocalTime.MAX);
+        String plan = expiresAt.isBefore(LocalDate.now()) ? null : planKey;
+        userMapper.updateMembershipFields(userId, expireDateTime, plan);
     }
 
     private void sendSubscriptionNotification(Long userId, MembershipPlan plan, UserMembership membership) {

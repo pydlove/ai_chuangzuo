@@ -1,5 +1,7 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
+import com.aichuangzuo.admin.modules.plan.entity.Plan;
+import com.aichuangzuo.admin.modules.plan.mapper.PlanMapper;
 import com.aichuangzuo.admin.modules.benefit.entity.BenefitUsageAggregate;
 import com.aichuangzuo.admin.modules.benefit.mapper.BenefitUsageAdminMapper;
 import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
@@ -68,6 +70,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final SkillMarketMapper skillMarketMapper;
     private final UserMarketFavoriteMapper userMarketFavoriteMapper;
     private final BenefitUsageAdminMapper benefitUsageAdminMapper;
+    private final PlanMapper planMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -378,7 +381,19 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
         user.setUserType(request.getUserType());
         user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
-        user.setMembershipPlan(request.getMembershipPlan());
+
+        String membershipPlan = request.getMembershipPlan();
+        if (StringUtils.hasText(membershipPlan)) {
+            LambdaQueryWrapper<Plan> planWrapper = new LambdaQueryWrapper<>();
+            planWrapper.eq(Plan::getPlanKey, membershipPlan.trim());
+            if (planMapper.selectCount(planWrapper) == 0) {
+                throw new BusinessException(AdminUserErrorCode.MEMBERSHIP_PLAN_INVALID);
+            }
+            user.setMembershipPlan(membershipPlan.trim());
+        } else {
+            user.setMembershipPlan(null);
+        }
+
         platformUserMapper.updateById(user);
         return toAdminUserVO(user);
     }

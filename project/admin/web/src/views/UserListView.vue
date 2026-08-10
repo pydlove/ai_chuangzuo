@@ -198,9 +198,9 @@
         </a-form-item>
         <a-form-item label="会员套餐" name="membershipPlan">
           <a-select v-model:value="editForm.membershipPlan" allow-clear placeholder="选择会员套餐（清空=无套餐）" style="width: 100%">
-            <a-select-option value="monthly">月度会员</a-select-option>
-            <a-select-option value="quarterly">季度会员</a-select-option>
-            <a-select-option value="yearly">年度会员</a-select-option>
+            <a-select-option v-for="plan in plans" :key="plan.planKey" :value="plan.planKey">
+              {{ plan.displayName || plan.planKey }}<span v-if="plan.status === 0" style="color: #8c8c8c">（已停用）</span>
+            </a-select-option>
           </a-select>
         </a-form-item>
         <a-form-item label="会员到期" name="expireDate">
@@ -670,6 +670,7 @@ import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
 import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
+import { fetchPlans } from '@/api/plan.js'
 
 const {
   users,
@@ -742,6 +743,8 @@ const articleTotal = ref(0)
 const articleDetail = ref(null)
 const articleDetailVisible = ref(false)
 const articleDetailLoading = ref(false)
+
+const plans = ref([])
 
 const currentPeriod = (() => {
   const d = new Date()
@@ -871,8 +874,8 @@ const createRules = {
 }
 
 const planLabel = (code) => {
-  const map = { monthly: '月度会员', quarterly: '季度会员', yearly: '年度会员' }
-  return map[code] || code
+  const plan = plans.value.find((p) => p.planKey === code)
+  return plan ? (plan.displayName || plan.planKey) : code
 }
 
 const formatDateTime = (s) => {
@@ -1325,8 +1328,17 @@ const closeImportResultModal = () => {
   importResult.value = null
 }
 
+const loadPlans = async () => {
+  try {
+    plans.value = await fetchPlans()
+  } catch (error) {
+    plans.value = []
+  }
+}
+
 onMounted(() => {
   fetchUsers()
+  loadPlans()
 })
 </script>
 

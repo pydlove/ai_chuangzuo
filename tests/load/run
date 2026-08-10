@@ -1,0 +1,26 @@
+#!/bin/bash
+# k6 压测包装脚本
+# 用法：./run <脚本名> [并发用户数]
+# 例子：
+#   ./run users.js 100
+#   ./run users.js 1000
+#   ./run smoke.js
+
+set -e
+
+if [ $# -lt 1 ]; then
+  echo "Usage: ./run <script.js> [number_of_users]"
+  echo "Example: ./run users.js 1000"
+  exit 1
+fi
+
+SCRIPT=$1
+VUS=${2:-100}
+
+# 兼容 ./run smoke.js 和 ./run case/creation/smoke.js 两种写法
+if [[ "$SCRIPT" != case/* ]]; then
+  SCRIPT="case/creation/$SCRIPT"
+fi
+
+echo "[RUN] 脚本: $SCRIPT, 并发用户数: $VUS"
+TARGET_VUS=$VUS k6 run "$SCRIPT"

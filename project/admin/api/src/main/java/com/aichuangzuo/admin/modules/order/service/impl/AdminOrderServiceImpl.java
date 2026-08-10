@@ -148,7 +148,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             membershipMapper.updateMembership(membership);
         }
 
-        syncUserMembershipFields(request.getUserId(), request.getExpiresAt(), null);
+        syncUserMembershipFields(request.getUserId(), request.getExpiresAt(), request.getLevel());
         log.info("管理员调整会员 userId={}, level={}, expiresAt={}, operatorId={}",
                 request.getUserId(), request.getLevel(), request.getExpiresAt(), operatorId);
     }
@@ -258,12 +258,13 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             membershipMapper.updateMembership(membership);
         }
 
-        syncUserMembershipFields(userId, newExpiresAt, cycle);
+        syncUserMembershipFields(userId, newExpiresAt, planKey);
     }
 
-    private void syncUserMembershipFields(Long userId, LocalDate expiresAt, String cycle) {
+    private void syncUserMembershipFields(Long userId, LocalDate expiresAt, String planKey) {
         LocalDateTime expireDateTime = expiresAt.atTime(LocalTime.MAX);
-        membershipMapper.updateUserMembershipFields(userId, expireDateTime, cycle);
+        String plan = expiresAt.isBefore(LocalDate.now()) ? null : planKey;
+        membershipMapper.updateUserMembershipFields(userId, expireDateTime, plan);
     }
 
     private String generateOrderNo() {

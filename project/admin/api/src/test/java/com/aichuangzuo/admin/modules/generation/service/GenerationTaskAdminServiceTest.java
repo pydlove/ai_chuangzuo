@@ -9,6 +9,7 @@ import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +47,9 @@ class GenerationTaskAdminServiceTest {
 
     @Mock
     private ArticleReadInternalClient articleReadClient;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     @InjectMocks
     private GenerationTaskAdminService service;
@@ -225,6 +229,32 @@ class GenerationTaskAdminServiceTest {
 
         assertThrows(BusinessException.class, () -> service.previewArticle(32L));
         verify(articleReadClient, never()).getArticle(any());
+    }
+
+    @Test
+    void toVo_shouldParseInputParamFields() throws Exception {
+        String json = "{\"title\":\"测试标题\",\"description\":\"要求\",\"platform\":\"wechat\",\"skillRef\":\"skill-1\",\"template\":\"t1\",\"userSkillPrompt\":\"prompt\"}";
+        GenerationTaskListRow r = sampleRow();
+        r.setInputParam(json);
+
+        java.util.Map<String, Object> parsed = new java.util.HashMap<>();
+        parsed.put("title", "测试标题");
+        parsed.put("description", "要求");
+        parsed.put("platform", "wechat");
+        parsed.put("skillRef", "skill-1");
+        parsed.put("template", "t1");
+        parsed.put("userSkillPrompt", "prompt");
+        when(objectMapper.readValue(eq(json), any(com.fasterxml.jackson.core.type.TypeReference.class)))
+                .thenReturn(parsed);
+
+        GenerationTaskAdminVO vo = service.toVo(r, LocalDateTime.now(), 0L);
+
+        assertEquals("测试标题", vo.getTitle());
+        assertEquals("要求", vo.getDescription());
+        assertEquals("wechat", vo.getPlatform());
+        assertEquals("skill-1", vo.getSkillRef());
+        assertEquals("t1", vo.getTemplate());
+        assertEquals("prompt", vo.getUserSkillPrompt());
     }
 
     @Test

@@ -17,6 +17,8 @@ public class GenerationTaskListRow {
     private Long modelConfigId;
     private Integer wordLimitTarget;
     private Integer retryCount;
+    /** 任务提交时的输入参数（JSON）。 */
+    private String inputParam;
     private String lockedBy;
     private LocalDateTime lockedAt;
     private LocalDateTime leaseUntil;

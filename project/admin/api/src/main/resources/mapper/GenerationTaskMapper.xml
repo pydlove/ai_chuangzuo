@@ -65,6 +65,7 @@
                t.locked_by     AS lockedBy,
                t.locked_at     AS lockedAt,
                t.lease_until   AS leaseUntil,
+               t.input_param   AS inputParam,
                t.failed_reason AS failedReason,
                t.completed_at  AS completedAt,
                t.article_biz_no AS articleBizNo,

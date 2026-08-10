@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -151,12 +152,15 @@ public class AuditLogAdminController {
         }
     }
 
+    private static final DateTimeFormatter CREATED_AT_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+
     private LocalDateTime parseTime(Object value) {
         if (value == null) return null;
         if (value instanceof LocalDateTime t) return t;
         if (value instanceof String s) {
             try {
-                return LocalDateTime.parse(s);
+                return LocalDateTime.parse(s, CREATED_AT_FORMATTER);
             } catch (Exception e) {
                 return null;
             }

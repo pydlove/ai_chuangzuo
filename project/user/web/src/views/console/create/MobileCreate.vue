@@ -19,7 +19,7 @@
 
     <section class="mc-hero">
       <h1 class="mc-hero__title">今天想写什么？</h1>
-      <p class="mc-hero__subtitle">输入标题和想法，AI 帮你生成完整文章</p>
+      <p class="mc-hero__subtitle">输入标题和想法，AI 3分钟帮你生成高质量文章</p>
     </section>
 
     <section class="mc-card" :class="{ focused: heroFocused }">
@@ -37,7 +37,7 @@
           v-model="customRequirement"
           class="mc-textarea"
           rows="4"
-          placeholder="补充要求：语气、案例、重点…"
+          placeholder="补充要求：观点、案例、情节..."
           :maxlength="REQUIREMENT_MAX"
           @input="autoGrow"
           @focus="heroFocused = true"
@@ -116,7 +116,7 @@
             ref="fullRequirementEl"
             v-model="fullRequirement"
             class="mc-fullscreen__textarea"
-            placeholder="补充要求：语气、案例、重点…"
+            placeholder="补充要求：观点、案例、情节..."
             :maxlength="REQUIREMENT_MAX"
           />
         </div>
@@ -764,6 +764,15 @@ body[data-theme="dark"] .mc-hero__title {
 
 body[data-theme="dark"] .mc-quick-item__label {
   color: #d9d9d9;
+}
+
+body[data-theme="dark"] .mc-quick-item {
+  background: transparent;
+}
+
+body[data-theme="dark"] .mc-quick-item__icon {
+  background: transparent !important;
+  box-shadow: none;
 }
 
 body[data-theme="dark"] .mc-expand-btn,

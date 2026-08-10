@@ -16,6 +16,18 @@ public class GenerationTaskAdminVO {
     private Long modelConfigId;
     private Integer wordLimitTarget;
     private Integer retryCount;
+    /** 用户提交的标题。 */
+    private String title;
+    /** 创作要求 / 描述。 */
+    private String description;
+    /** 目标平台。 */
+    private String platform;
+    /** 用户选择的 skill / 提示词引用。 */
+    private String skillRef;
+    /** 导出模板。 */
+    private String template;
+    /** 快照后的用户风格提示词。 */
+    private String userSkillPrompt;
     private String lockedBy;
     private LocalDateTime lockedAt;
     private LocalDateTime leaseUntil;

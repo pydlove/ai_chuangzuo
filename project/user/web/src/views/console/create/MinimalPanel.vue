@@ -21,7 +21,7 @@
           v-model="customRequirement"
           class="hero-textarea"
           rows="4"
-          placeholder="补充要求：语气、案例、重点…"
+          placeholder="补充要求：观点、案例、情节..."
           :maxlength="REQUIREMENT_MAX"
           @input="autoGrow"
           @focus="heroFocused = true"
@@ -92,7 +92,7 @@
           ref="fullRequirementEl"
           v-model="fullRequirement"
           class="requirement-fullscreen-textarea"
-          placeholder="补充要求：语气、案例、重点…"
+          placeholder="补充要求：观点、案例、情节..."
           :maxlength="REQUIREMENT_MAX"
         ></textarea>
         <div class="requirement-fullscreen-footer">
