@@ -15,7 +15,10 @@
             <span v-else-if="column.key === 'action'">
               <a-space>
                 <a-button v-if="record.status === 0 || record.status === 1" size="small" type="link" @click="openCampaignModal(record)">编辑</a-button>
-                <a-button v-if="record.status === 0" size="small" type="link" @click="openCampaign(record.id)">开启</a-button>
+                <a-button v-if="record.status === 0 && !hasOpenCampaign" size="small" type="link" @click="openCampaign(record.id)">开启</a-button>
+                <a-tooltip v-else-if="record.status === 0" title="已有其他活动开启，不能同时开启多个活动">
+                  <a-button size="small" type="link" disabled>开启</a-button>
+                </a-tooltip>
                 <a-button v-if="record.status === 1" size="small" type="link" @click="closeCampaign(record.id)">关闭</a-button>
                 <a-popconfirm title="确认删除？" @confirm="removeCampaign(record.id)">
                   <a-button size="small" type="link" danger>删除</a-button>
@@ -33,16 +36,21 @@
         <div v-else>
           <div class="section-bar">
             <span class="section-title">{{ selectedCampaign.name }} - 奖项配置</span>
-            <a-button type="primary" @click="openTierModal()">新增奖项</a-button>
+            <a-space>
+              <a-tag :color="tierTotalProbability > 1 ? 'red' : 'blue'">累计概率 {{ (tierTotalProbability * 100).toFixed(2) }}%</a-tag>
+              <a-button type="primary" @click="openTierModal()">新增奖项</a-button>
+            </a-space>
           </div>
           <a-table :columns="tierColumns" :data-source="tiers" :loading="tierLoading" row-key="id"
                    :pagination="false">
             <template #bodyCell="{ column, record }">
-              <span v-if="column.key === 'rewardType'">
-                <a-tag>{{ record.rewardType }}</a-tag>
+              <span v-if="column.key === 'prizeLevel'">{{ prizeLevelText(record.prizeLevel) }}</span>
+              <span v-else-if="column.key === 'rewardType'">
+                <a-tag>{{ rewardTypeText(record.rewardType) }}</a-tag>
               </span>
-              <span v-else-if="column.key === 'probability'">{{ record.probability }}</span>
+              <span v-else-if="column.key === 'probability'">{{ (record.probability * 100).toFixed(2) }}%</span>
               <span v-else-if="column.key === 'remaining'">{{ record.remainingWinCount ?? '-' }}/{{ record.maxWinCount ?? '-' }}</span>
+              <span v-else-if="column.key === 'displayRemaining'">{{ record.displayRemaining === 1 ? (record.displayRemainingCount != null ? record.displayRemainingCount : '真实剩余') : '不显示' }}</span>
               <span v-else-if="column.key === 'action'">
                 <a-space>
                   <a-button size="small" type="link" @click="openTierModal(record)">编辑</a-button>
@@ -134,7 +142,6 @@
             </a-space>
           </a-form-item>
         </a-form>
-        <a-button type="primary" class="add-btn" @click="openResetChanceModal()">重置抽奖次数</a-button>
         <a-table :columns="recordColumns" :data-source="drawRecords" :loading="recordLoading" :pagination="recordPagination"
                  row-key="id" @change="handleRecordTableChange">
           <template #bodyCell="{ column, record }">
@@ -142,6 +149,9 @@
               <a-tag>{{ record.drawType === 'invite' ? '邀请' : '免费' }}</a-tag>
             </span>
             <span v-else-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
+            <span v-else-if="column.key === 'action'">
+              <a-button size="small" type="link" @click="openResetChanceModal(record.campaignId, record.userId)">重置次数</a-button>
+            </span>
             <span v-else>{{ record[column.key] }}</span>
           </template>
         </a-table>
@@ -173,7 +183,7 @@
     </a-tabs>
 
     <!-- 活动弹窗 -->
-    <a-modal v-model:open="campaignModalVisible" title="活动配置" :confirm-loading="saving" @ok="saveCampaignForm"
+    <a-modal v-model:open="campaignModalVisible" title="活动配置" width="1280px" :confirm-loading="saving" @ok="saveCampaignForm"
                @cancel="campaignModalVisible = false">
       <a-form :model="campaignForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="活动名称" required>
@@ -183,7 +193,7 @@
           <a-textarea v-model:value="campaignForm.description" :rows="2" />
         </a-form-item>
         <a-form-item label="活动规则">
-          <md-editor v-model="campaignForm.rules" placeholder="可填写奖项说明、参与方式等，支持 Markdown" />
+          <md-editor v-model="campaignForm.rules" @onChange="v => campaignForm.rules = v" placeholder="可填写奖项说明、参与方式等，支持 Markdown" />
         </a-form-item>
         <a-form-item label="开始时间" required>
           <a-date-picker v-model:value="campaignForm.startTime" show-time format="YYYY-MM-DD HH:mm:ss" style="width: 100%" />
@@ -204,14 +214,35 @@
         <a-form-item v-show="false" label="奖项标识" required>
           <a-input v-model:value="tierForm.tierKey" />
         </a-form-item>
+        <a-form-item label="奖项等级" required>
+          <a-select v-model:value="tierForm.prizeLevel" style="width: 100%" placeholder="请选择奖项等级">
+            <a-select-option :value="1">特等奖</a-select-option>
+            <a-select-option :value="2">一等奖</a-select-option>
+            <a-select-option :value="3">二等奖</a-select-option>
+            <a-select-option :value="4">三等奖</a-select-option>
+            <a-select-option :value="5">四等奖</a-select-option>
+            <a-select-option :value="6">五等奖</a-select-option>
+            <a-select-option :value="7">六等奖</a-select-option>
+            <a-select-option :value="8">七等奖</a-select-option>
+            <a-select-option :value="9">八等奖</a-select-option>
+          </a-select>
+        </a-form-item>
         <a-form-item label="奖项名称" required>
           <a-input v-model:value="tierForm.tierName" placeholder="如：100 创作币、7 天会员、9 折券" />
         </a-form-item>
-        <a-form-item label="概率" required extra="0 ~ 1 之间的小数，所有奖项概率之和不能超过 1">
-          <a-input-number v-model:value="tierForm.probability" :min="0" :max="1" :step="0.0001" style="width: 100%" placeholder="0.0500" />
+        <a-form-item label="概率(%)" required :extra="`填写 0~100 之间的数字，如 5 表示 5%；所有奖项概率之和不能超过 100%（当前已用 ${(tierProbabilityInfo.used * 100).toFixed(2)}%，保存后预计 ${(tierProbabilityInfo.projected * 100).toFixed(2)}%）`">
+          <a-input-number v-model:value="tierForm.probability" :min="0" :max="1" :step="0.0001" style="width: 100%" placeholder="5"
+                          :formatter="value => `${(Number(value || 0) * 100).toFixed(2)}%`"
+                          :parser="value => { const n = parseFloat(String(value).replace(/[^0-9.]/g, '')); return isNaN(n) ? 0 : n / 100 }" />
         </a-form-item>
         <a-form-item label="上限" extra="该奖项最多可被抽中几次，留空表示不限量">
           <a-input-number v-model:value="tierForm.maxWinCount" :min="1" style="width: 100%" placeholder="100" />
+        </a-form-item>
+        <a-form-item label="前端显示剩余" extra="开启后用户端奖品卡片会展示剩余数量">
+          <a-switch v-model:checked="tierForm.displayRemaining" :checkedValue="1" :unCheckedValue="0" />
+        </a-form-item>
+        <a-form-item v-if="tierForm.displayRemaining === 1" label="显示剩余数量" extra="留空则展示真实剩余数量">
+          <a-input-number v-model:value="tierForm.displayRemainingCount" :min="0" style="width: 100%" placeholder="不填则使用真实剩余" />
         </a-form-item>
         <a-form-item label="奖励类型" required>
           <a-select v-model:value="tierForm.rewardType" @change="onRewardTypeChange">
@@ -303,16 +334,16 @@
           </a-select>
         </a-form-item>
         <a-form-item label="奖项">
-          <a-select v-model:value="winnerForm.tierId" placeholder="选择奖项" allow-clear>
+          <a-select v-model:value="winnerForm.tierId" placeholder="选择奖项" allow-clear @change="onWinnerTierChange">
             <a-select-option v-for="t in winnerTierOptions" :key="t.id" :value="t.id">{{ t.tierName }}</a-select-option>
           </a-select>
+        </a-form-item>
+        <a-form-item label="奖品名">
+          <a-input v-model:value="winnerForm.prizeName" disabled placeholder="选择奖项后自动填充" />
         </a-form-item>
         <a-form-item label="用户">
           <a-select v-model:value="winnerForm.userId" placeholder="搜索选择用户" show-search allow-clear
                     :filter-option="false" :options="userOptions" @search="fetchUserOptions" @change="onWinnerUserChange" />
-        </a-form-item>
-        <a-form-item label="奖品名" required>
-          <a-input v-model:value="winnerForm.prizeName" />
         </a-form-item>
         <a-form-item label="昵称" required>
           <a-input v-model:value="winnerForm.nickname" />
@@ -331,12 +362,14 @@
                @cancel="resetChanceModalVisible = false">
       <a-form :model="resetChanceForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
         <a-form-item label="活动" required>
-          <a-select v-model:value="resetChanceForm.campaignId" placeholder="选择活动">
+          <a-select v-if="!resetChanceForm.preSet" v-model:value="resetChanceForm.campaignId" placeholder="选择活动">
             <a-select-option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
           </a-select>
+          <a-input v-else :value="campaignName(resetChanceForm.campaignId)" disabled />
         </a-form-item>
         <a-form-item label="用户ID" required>
-          <a-input-number v-model:value="resetChanceForm.userId" style="width: 100%" />
+          <a-input-number v-if="!resetChanceForm.preSet" v-model:value="resetChanceForm.userId" style="width: 100%" />
+          <a-input v-else :value="resetChanceForm.userId" disabled />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -344,7 +377,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import { MdEditor } from 'md-editor-v3'
@@ -361,6 +394,7 @@ const campaigns = ref([])
 const loading = ref(false)
 const pagination = ref({ current: 1, pageSize: 20, total: 0 })
 const selectedCampaign = ref(null)
+const hasOpenCampaign = computed(() => campaigns.value.some(c => c.status === 1))
 
 const campaignColumns = [
   { title: 'ID', dataIndex: 'id', key: 'id' },
@@ -382,8 +416,10 @@ const tierColumns = [
   { title: 'ID', dataIndex: 'id', key: 'id' },
   { title: '标识', dataIndex: 'tierKey', key: 'tierKey' },
   { title: '名称', dataIndex: 'tierName', key: 'tierName' },
-  { title: '概率', key: 'probability' },
+  { title: '等级', key: 'prizeLevel' },
+  { title: '概率(%)', key: 'probability' },
   { title: '剩余/上限', key: 'remaining' },
+  { title: '前端显示剩余', key: 'displayRemaining' },
   { title: '奖励类型', key: 'rewardType' },
   { title: '排序', dataIndex: 'sortOrder', key: 'sortOrder' },
   { title: '操作', key: 'action' }
@@ -391,7 +427,20 @@ const tierColumns = [
 
 const tierModalVisible = ref(false)
 const tierSaving = ref(false)
-const tierForm = ref({ tierKey: '', tierName: '', probability: 0, maxWinCount: null, rewardType: 'coin', rewardValueJson: '{}', codePrefix: '', codeLength: null, codeValidityDays: 30, sortOrder: 0 })
+const tierForm = ref({ tierKey: '', tierName: '', prizeLevel: null, probability: 0, maxWinCount: null, displayRemaining: 0, displayRemainingCount: null, rewardType: 'coin', rewardValueJson: '{}', codePrefix: '', codeLength: null, codeValidityDays: 30, sortOrder: 0 })
+
+const tierProbabilityInfo = computed(() => {
+  const currentProb = Number(tierForm.value.probability) || 0
+  const editingId = tierForm.value.id
+  const oldProb = editingId ? Number(tiers.value.find(t => t.id === editingId)?.probability) || 0 : 0
+  const used = tiers.value.reduce((sum, t) => sum + (Number(t.probability) || 0), 0)
+  const projected = used - oldProb + currentProb
+  return { used, projected }
+})
+
+const tierTotalProbability = computed(() => {
+  return tiers.value.reduce((sum, t) => sum + (Number(t.probability) || 0), 0)
+})
 
 const rewardParams = ref({
   coin: { amount: 100 },
@@ -441,12 +490,12 @@ const resetChanceForm = ref({ campaignId: null, userId: null })
 const recordColumns = [
   { title: '业务号', dataIndex: 'bizNo', key: 'bizNo' },
   { title: '活动', dataIndex: 'campaignName', key: 'campaignName' },
-  { title: '用户ID', dataIndex: 'userId', key: 'userId' },
   { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
   { title: '邮箱', dataIndex: 'email', key: 'email' },
   { title: '奖项', dataIndex: 'tierName', key: 'tierName' },
   { title: '类型', key: 'drawType' },
-  { title: '时间', key: 'createdAt' }
+  { title: '时间', key: 'createdAt' },
+  { title: '操作', key: 'action' }
 ]
 
 const winners = ref([])
@@ -653,7 +702,7 @@ function openCampaignModal(record) {
       id: record.id,
       name: record.name,
       description: record.description,
-      rules: record.rules,
+      rules: record.rules || '',
       startTime: dayjs(record.startTime),
       endTime: dayjs(record.endTime),
       freeDrawsPerUser: record.freeDrawsPerUser
@@ -785,7 +834,7 @@ function openTierModal(record) {
     tierForm.value = { ...record }
     parseRewardValueJson(record.rewardType, record.rewardValueJson)
   } else {
-    tierForm.value = { tierKey: generateTierKey(), tierName: '', probability: 0, maxWinCount: null, rewardType: 'coin', rewardValueJson: '{}', codePrefix: '', codeLength: null, codeValidityDays: 30, sortOrder: 0 }
+    tierForm.value = { tierKey: generateTierKey(), tierName: '', prizeLevel: null, probability: 0, maxWinCount: null, displayRemaining: 0, displayRemainingCount: null, rewardType: 'coin', rewardValueJson: '{}', codePrefix: '', codeLength: null, codeValidityDays: 30, sortOrder: 0 }
     resetRewardParams()
     tierForm.value.rewardValueJson = buildRewardValueJson('coin')
   }
@@ -796,6 +845,10 @@ async function saveTierForm() {
   tierSaving.value = true
   try {
     tierForm.value.rewardValueJson = buildRewardValueJson(tierForm.value.rewardType)
+    if (tierProbabilityInfo.value.projected > 1) {
+      message.error(`累计概率不能超过 100%（保存后预计 ${(tierProbabilityInfo.value.projected * 100).toFixed(2)}%）`)
+      return
+    }
     await saveTier(selectedCampaign.value.id, tierForm.value)
     message.success('保存成功')
     tierModalVisible.value = false
@@ -826,9 +879,7 @@ async function openWinnerModal(record) {
   winnerTierOptions.value = []
   userOptions.value = []
   await loadWinnerTierOptions(winnerForm.value.campaignId)
-  if (winnerForm.value.userId) {
-    fetchUserOptions('')
-  }
+  await fetchUserOptions('')
   winnerModalVisible.value = true
 }
 
@@ -845,7 +896,13 @@ async function loadWinnerTierOptions(campaignId) {
 
 async function onWinnerCampaignChange(campaignId) {
   winnerForm.value.tierId = null
+  winnerForm.value.prizeName = ''
   await loadWinnerTierOptions(campaignId)
+}
+
+function onWinnerTierChange(tierId) {
+  const tier = winnerTierOptions.value.find(t => t.id === tierId)
+  winnerForm.value.prizeName = tier ? tier.tierName : ''
 }
 
 async function fetchUserOptions(keyword) {
@@ -870,6 +927,10 @@ async function saveWinnerForm() {
   winnerSaving.value = true
   try {
     const payload = { ...winnerForm.value }
+    if (payload.tierId && !payload.prizeName) {
+      const tier = winnerTierOptions.value.find(t => t.id === payload.tierId)
+      if (tier) payload.prizeName = tier.tierName
+    }
     payload.winTime = payload.winTime.format('YYYY-MM-DDTHH:mm:ss')
     await saveDisplayWinner(payload)
     message.success('保存成功')
@@ -902,8 +963,17 @@ async function removeWinner(id) {
   }
 }
 
-function openResetChanceModal() {
-  resetChanceForm.value = { campaignId: selectedCampaign.value ? selectedCampaign.value.id : null, userId: null }
+function campaignName(campaignId) {
+  const c = campaigns.value.find(x => x.id === campaignId)
+  return c ? c.name : campaignId
+}
+
+function openResetChanceModal(campaignId, userId) {
+  if (campaignId != null && userId != null) {
+    resetChanceForm.value = { campaignId, userId, preSet: true }
+  } else {
+    resetChanceForm.value = { campaignId: selectedCampaign.value ? selectedCampaign.value.id : null, userId: null, preSet: false }
+  }
   resetChanceModalVisible.value = true
 }
 
@@ -938,6 +1008,16 @@ function statusColor(status) {
 function statusTextCode(status) {
   const map = { unused: '未使用', used: '已使用', expired: '已过期' }
   return map[status] || status
+}
+
+function rewardTypeText(type) {
+  const map = { coin: '创作币', membership: '会员', coupon: '折扣券', none: '谢谢回顾' }
+  return map[type] || type
+}
+
+function prizeLevelText(level) {
+  const map = { 1: '特等奖', 2: '一等奖', 3: '二等奖', 4: '三等奖', 5: '四等奖', 6: '五等奖', 7: '六等奖', 8: '七等奖', 9: '八等奖' }
+  return map[level] || '-'
 }
 
 function formatTime(t) {

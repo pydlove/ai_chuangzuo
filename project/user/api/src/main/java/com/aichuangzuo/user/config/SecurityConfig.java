@@ -35,6 +35,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/user/home/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/user/lottery/campaigns/current").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/v1/user/lottery/display-winners").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/user/share-config/**").permitAll()
                 .requestMatchers("/api/v1/user/internal/**").permitAll()
                 .requestMatchers("/__test/**").permitAll()
                 .requestMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()

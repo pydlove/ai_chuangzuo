@@ -131,6 +131,11 @@ const routes = [
         component: () => import('@/views/LotteryAdminView.vue')
       },
       {
+        path: 'share-config',
+        name: 'AdminShareConfig',
+        component: () => import('@/views/ShareConfigView.vue')
+      },
+      {
         path: 'messages',
         name: 'AdminMessageManagement',
         component: () => import('@/views/MessageAdminView.vue')

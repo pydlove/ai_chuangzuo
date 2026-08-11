@@ -154,12 +154,14 @@ import { useInviteStats } from '@/composables/useInviteStats.js'
 import { useUserProfile } from '@/composables/useUserProfile.js'
 import { copyToClipboard } from '@/utils/copy.js'
 import { isWechatBrowser } from '@/utils/env.js'
+import { getShareConfig } from '@/api/shareConfig.js'
 
 const { inviteStats, coinBalance, loadInviteStats } = useInviteStats()
 const { profile, loadProfile } = useUserProfile()
 
 const posterPreviewVisible = ref(false)
 const posterPreviewUrl = ref('')
+const shareConfig = ref(null)
 
 const userId = computed(() => profile.value?.userId || '')
 const inviteCode = computed(() => profile.value?.inviteCode || '')
@@ -167,14 +169,30 @@ const inviteCode = computed(() => profile.value?.inviteCode || '')
 onMounted(() => {
   loadProfile()
   loadInviteStats()
+  loadShareConfig()
 })
+
+const loadShareConfig = async () => {
+  try {
+    const res = await getShareConfig('invite')
+    shareConfig.value = res.data
+  } catch (e) {
+    // ignore
+  }
+}
 
 const inviteLink = computed(() => {
   return `${window.location.origin}/login?ref=${inviteCode.value}`
 })
 
 const inviteShareText = computed(() => {
-  return `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n${inviteLink.value}`
+  const url = inviteLink.value
+  const code = inviteCode.value
+  let text = shareConfig.value?.content
+  if (!text) {
+    text = `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
+  }
+  return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
 
 const copyUserId = async () => {

@@ -94,4 +94,10 @@ public class GenerationTask extends BaseEntity {
 
     /** 租户 ID（=0）。 */
     private Long tenantId;
+
+    /**
+     * 任务提交时用户套餐优先级：0=免费/基础版，1=专业版，2=旗舰版。
+     * worker 按此字段降序 + created_at 升序拉取任务。
+     */
+    private Integer planPriority;
 }

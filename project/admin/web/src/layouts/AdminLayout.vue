@@ -140,6 +140,18 @@
           <a-menu-item key="/console/orders/list">订单列表</a-menu-item>
           <a-menu-item key="/console/orders/stats">数据统计</a-menu-item>
         </a-sub-menu>
+        <a-sub-menu key="/console/operations">
+          <template #icon>
+            <RocketOutlined />
+          </template>
+          <template #title>运营管理</template>
+          <a-menu-item key="/console/share-config">
+            <template #icon>
+              <ShareAltOutlined />
+            </template>
+            分享管理
+          </a-menu-item>
+        </a-sub-menu>
         <a-sub-menu key="/console/settings">
           <template #icon>
             <SettingOutlined />
@@ -219,7 +231,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -245,6 +257,7 @@ const parentMenuKey = computed(() => {
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
+  if (p === '/console/share-config') return '/console/operations'
   if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings' || p === '/console/audit-logs') return '/console/settings'
   return null
 })
@@ -291,6 +304,7 @@ const currentMenuName = computed(() => {
   if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'
   if (route.path === '/console/orders/list') return '订单列表'
   if (route.path === '/console/orders/stats') return '数据统计'
+  if (route.path === '/console/share-config') return '分享管理'
   if (route.path === '/console/home-banner') return '首页 Banner'
   if (route.path === '/console/plans') return '套餐管理'
   if (route.path === '/console/security-settings') return '安全设置'

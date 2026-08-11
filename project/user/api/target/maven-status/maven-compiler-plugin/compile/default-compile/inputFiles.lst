@@ -216,6 +216,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/controller/LotteryController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/controller/LotteryDisplayController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/controller/LotteryRedemptionController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/controller/UserCouponController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/dto/request/LotteryDrawRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/dto/request/LotteryRedeemRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/entity/LotteryCampaign.java
@@ -254,6 +255,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/vo/LotteryPrizeTierVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/vo/LotteryRedemptionCodeVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/vo/LotteryRedemptionResultVO.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/lottery/vo/UserCouponVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/membership/controller/MembershipController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/membership/dto/request/SubscribePreviewRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/membership/dto/request/SubscribeRequest.java
@@ -289,6 +291,11 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/security/ratelimit/entity/RateLimitConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/security/ratelimit/mapper/RateLimitConfigMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/security/ratelimit/service/RateLimitConfigService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/share/controller/ShareConfigController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/share/mapper/ShareConfigMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/share/service/ShareConfigService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/share/service/impl/ShareConfigServiceImpl.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/share/vo/ShareConfigVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/analyze/config/entity/SkillAnalyzeConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/analyze/config/mapper/SkillAnalyzeConfigMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/skill/analyze/config/service/SkillAnalyzeConfigService.java

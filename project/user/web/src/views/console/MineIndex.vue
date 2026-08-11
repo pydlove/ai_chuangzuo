@@ -82,6 +82,10 @@
           <div class="mine-grid-icon mine-grid-icon--hot"><FireOutlined /></div>
           <span class="mine-grid-label">热搜榜</span>
         </div>
+        <div class="mine-grid-item" @click="$router.push('/console/coupons')">
+          <div class="mine-grid-icon mine-grid-icon--coupon"><TagsOutlined /></div>
+          <span class="mine-grid-label">我的优惠券</span>
+        </div>
         <div class="mine-grid-item" @click="actions.openRedeemModal">
           <div class="mine-grid-icon mine-grid-icon--redeem"><TagOutlined /></div>
           <span class="mine-grid-label">兑换码</span>
@@ -124,17 +128,6 @@
     <section class="mine-block">
       <h3 class="mine-section-title">设置</h3>
       <ul class="mine-list">
-        <li class="mine-list-item" @click="actions.toggleTheme">
-          <component
-            :is="actions.currentTheme.value === 'light' ? BulbOutlined : BulbFilled"
-            class="mine-list-icon"
-          />
-          <span class="mine-list-label">主题切换</span>
-          <span class="mine-list-extra">
-            {{ actions.currentTheme.value === 'light' ? '浅色' : '深色' }}
-          </span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
         <li class="mine-list-item" @click="actions.openPasswordModal">
           <LockOutlined class="mine-list-icon" />
           <span class="mine-list-label">修改密码</span>
@@ -204,10 +197,9 @@ import {
   FireOutlined,
   GiftOutlined,
   TagOutlined,
+  TagsOutlined,
   BookOutlined,
   MessageOutlined,
-  BulbOutlined,
-  BulbFilled,
   LockOutlined,
   MailOutlined,
   InfoCircleOutlined,
@@ -550,6 +542,7 @@ const openOfficialSite = () => {
 .mine-grid-icon--skills { background: #F0F9FF; color: #1890ff; }
 .mine-grid-icon--market { background: #F0F9FF; color: #1890ff; }
 .mine-grid-icon--hot { background: #FFF5F7; color: #FF2442; }
+.mine-grid-icon--coupon { background: #FFF7F0; color: #fa8c16; }
 .mine-grid-icon--redeem { background: #F6FFED; color: #52c41a; }
 
 .mine-grid-label {
@@ -741,6 +734,7 @@ body[data-theme="dark"] .mine-grid-gift-badge {
 }
 body[data-theme="dark"] .mine-grid-icon--skills { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
 body[data-theme="dark"] .mine-grid-icon--market { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
+body[data-theme="dark"] .mine-grid-icon--coupon { background: rgba(250, 140, 22, 0.12); color: #ffc53d; }
 body[data-theme="dark"] .mine-grid-icon--redeem { background: rgba(82, 196, 26, 0.12); color: #95de64; }
 
 body[data-theme="dark"] .mine-list-item + .mine-list-item {

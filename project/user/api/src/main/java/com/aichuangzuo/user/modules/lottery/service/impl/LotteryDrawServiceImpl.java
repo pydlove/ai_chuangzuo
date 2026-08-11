@@ -7,6 +7,8 @@ import com.aichuangzuo.user.modules.lottery.mapper.*;
 import com.aichuangzuo.user.modules.lottery.service.LotteryChanceService;
 import com.aichuangzuo.user.modules.lottery.service.LotteryDrawService;
 import com.aichuangzuo.user.modules.lottery.util.LotteryCodeGenerator;
+import com.aichuangzuo.user.modules.message.enums.MessageSubType;
+import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryDrawResultVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -33,6 +35,7 @@ public class LotteryDrawServiceImpl implements LotteryDrawService {
     private final LotteryDisplayWinnerMapper displayWinnerMapper;
     private final LotteryChanceService lotteryChanceService;
     private final LotteryCodeGenerator codeGenerator;
+    private final MessageService messageService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -82,10 +85,53 @@ public class LotteryDrawServiceImpl implements LotteryDrawService {
             saveDisplayWinner(campaignId, hitTier, userId, code);
         }
 
+        pushLotteryResultMessage(userId, campaign.getName(), hitTier, code);
+
         log.info("用户抽奖 userId={}, campaignId={}, tierId={}, tierName={}",
                 userId, campaignId, hitTier.getId(), hitTier.getTierName());
 
         return buildResultVO(hitTier, code);
+    }
+
+    private void pushLotteryResultMessage(Long userId, String campaignName, LotteryPrizeTier tier,
+                                          LotteryRedemptionCode code) {
+        try {
+            if ("none".equals(tier.getRewardType())) {
+                messageService.pushPersonal(
+                        userId,
+                        "promotion",
+                        "本次未中奖",
+                        "感谢参与，祝您下次好运",
+                        "/console/lottery",
+                        "您在「" + campaignName + "」抽奖未中奖，再接再厉，更多精彩活动敬请期待。",
+                        MessageSubType.LOTTERY_RESULT.getCode()
+                );
+                return;
+            }
+
+            String summary = "您在「" + campaignName + "」抽中了" + tier.getTierName();
+            StringBuilder content = new StringBuilder();
+            content.append("恭喜您在「").append(campaignName).append("」获得 ").append(tier.getTierName()).append("。\n\n");
+            if (code != null) {
+                content.append("兑换码：").append(code.getCode()).append("\n");
+                content.append("有效期至：").append(code.getExpiresAt()).append("\n\n");
+                content.append("请尽快前往抽奖页面兑换您的奖品。");
+            } else {
+                content.append("奖品已发放到您的账户，请前往查看。");
+            }
+
+            messageService.pushPersonal(
+                    userId,
+                    "promotion",
+                    "恭喜中奖",
+                    summary,
+                    "/console/lottery",
+                    content.toString(),
+                    MessageSubType.LOTTERY_RESULT.getCode()
+            );
+        } catch (Exception e) {
+            log.error("推送抽奖结果消息失败 userId={}, campaignName={}, tierId={}", userId, campaignName, tier.getId(), e);
+        }
     }
 
     private LotteryCampaign validateCampaign(Long campaignId) {

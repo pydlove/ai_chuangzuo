@@ -1,6 +1,6 @@
 <template>
   <div class="lottery-page">
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar v-if="showNavBar" :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 活动头图 -->
     <section class="lottery-hero" :style="heroStyle">
@@ -23,24 +23,21 @@
             <span class="section-title__tag" />
             <span>丰厚奖品</span>
           </div>
-          <div class="prize-grid">
-            <div v-for="tier in campaign.tiers" :key="tier.id" class="prize-card">
-              <div class="prize-card__icon"><component :is="prizeIcon(tier.rewardType)" /></div>
-              <div class="prize-card__name">{{ tier.tierName }}</div>
-              <div class="prize-card__type">{{ prizeTypeLabel(tier.rewardType) }}</div>
+          <div class="prize-preview-grid">
+            <div v-for="tier in previewTiers" :key="tier.id" class="prize-preview-card">
+              <div v-if="tier.prizeLevel" class="prize-preview-card__badge" :class="levelClass(tier.prizeLevel)">{{ prizeLevelText(tier.prizeLevel) }}</div>
+              <div class="prize-preview-card__icon"><component :is="prizeIcon(tier.rewardType)" /></div>
+              <div class="prize-preview-card__info">
+                <div class="prize-preview-card__name">{{ tier.tierName }}</div>
+                <div class="prize-preview-card__remaining">
+                  剩余 {{ tier.displayRemainingCount != null ? tier.displayRemainingCount : (tier.remainingWinCount != null ? tier.remainingWinCount : '充足') }}
+                </div>
+              </div>
             </div>
           </div>
-        </section>
-
-        <!-- 规则 -->
-        <section v-if="campaign.rules" class="rules-section">
-          <div class="section-title">
-            <span class="section-title__tag" />
-            <span>活动规则</span>
-          </div>
-          <div class="rules-card">
-            <pre class="rules-text">{{ campaign.rules }}</pre>
-          </div>
+          <button v-if="hasMoreTiers" class="prize-view-all" @click="prizeModalVisible = true">
+            查看全部 {{ campaign.tiers.length }} 个奖品
+          </button>
         </section>
 
         <!-- 盲盒抽奖 -->
@@ -95,7 +92,23 @@
             {{ drawButtonText }}
           </button>
 
+          <button class="share-action-btn" @click="handleShare">
+            <ShareAltOutlined /> 分享活动
+          </button>
+
           <p class="wheel-hint">{{ wheelHintText }}</p>
+        </section>
+
+        <!-- 活动规则 -->
+        <section v-if="campaign.rules" class="rules-section">
+          <div class="section-title rules-section__header" @click="rulesExpanded = !rulesExpanded">
+            <span class="section-title__tag" />
+            <span>活动规则</span>
+            <span class="rules-toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
+          </div>
+          <div v-show="rulesExpanded" class="rules-card">
+            <div class="rules-content" v-html="renderedRules" />
+          </div>
         </section>
 
         <!-- 我的兑换码 -->
@@ -182,7 +195,36 @@
           <a-button size="small" type="primary" @click="copyCode">复制</a-button>
         </div>
         <p class="result-tip">{{ resultCode ? '兑换码可在“我的兑换码”中查看' : '感谢参与，下次好运' }}</p>
-        <a-button type="primary" shape="round" block size="large" @click="resultVisible = false">知道了</a-button>
+        <div class="result-actions">
+          <a-button v-if="resultCode" type="primary" shape="round" size="large" @click="handleRedeem(resultCode)">立即兑换</a-button>
+          <a-button shape="round" size="large" :block="!resultCode" @click="resultVisible = false">知道了</a-button>
+        </div>
+      </div>
+    </a-modal>
+
+    <!-- 全部奖品弹窗 -->
+    <a-modal
+      v-model:open="prizeModalVisible"
+      title="丰厚奖品"
+      :footer="null"
+      :closable="true"
+      width="92vw"
+      centered
+      class="prize-modal"
+    >
+      <div class="prize-modal-list">
+        <div v-for="tier in sortedTiers" :key="tier.id" class="prize-modal-item">
+          <div class="prize-modal-item__icon"><component :is="prizeIcon(tier.rewardType)" /></div>
+          <div class="prize-modal-item__info">
+            <div class="prize-modal-item__name">
+              <span v-if="tier.prizeLevel" class="prize-modal-item__badge" :class="levelClass(tier.prizeLevel)">{{ prizeLevelText(tier.prizeLevel) }}</span>
+              <span class="prize-modal-item__name-text">{{ tier.tierName }}</span>
+            </div>
+            <div class="prize-modal-item__meta">
+              {{ prizeTypeLabel(tier.rewardType) }} · 剩余 {{ tier.displayRemainingCount != null ? tier.displayRemainingCount : (tier.remainingWinCount != null ? tier.remainingWinCount : '充足') }}
+            </div>
+          </div>
+        </div>
       </div>
     </a-modal>
   </div>
@@ -190,13 +232,17 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { GiftOutlined, CrownOutlined, MoneyCollectOutlined, TagsOutlined, SmileOutlined } from '@ant-design/icons-vue'
+import MarkdownIt from 'markdown-it'
+import { GiftOutlined, CrownOutlined, MoneyCollectOutlined, TagsOutlined, SmileOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
 import { getCurrentCampaign, getChances, draw, getDisplayWinners, getMyCodes, redeem } from '@/api/lottery'
+import { getShareConfig } from '@/api/shareConfig'
 import NavBar from '@/components/layout/NavBar.vue'
 
 const router = useRouter()
+const route = useRoute()
+const md = new MarkdownIt()
 
 const campaign = ref(null)
 const chances = ref(null)
@@ -210,7 +256,10 @@ const resultIcon = ref(GiftOutlined)
 const selectedBox = ref(null)
 const highlightedBox = ref(null)
 const boxState = ref('idle')
+const rulesExpanded = ref(false)
+const prizeModalVisible = ref(false)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
+const shareConfig = ref(null)
 
 const BOX_COUNT = 10
 const boxes = Array.from({ length: BOX_COUNT }, (_, i) => i + 1)
@@ -228,11 +277,29 @@ const ctaLabel = '开始创作'
 
 const isLoggedIn = computed(() => !!localStorage.getItem('aichuangzuo_access_token'))
 
+const showNavBar = computed(() => route.name !== 'ConsoleLottery')
+
+const PREVIEW_COUNT = 4
+const previewTiers = computed(() => {
+  const sorted = [...(campaign.value?.tiers || [])].sort((a, b) => (a.prizeLevel ?? 99) - (b.prizeLevel ?? 99))
+  return sorted.slice(0, PREVIEW_COUNT)
+})
+const sortedTiers = computed(() => {
+  return [...(campaign.value?.tiers || [])].sort((a, b) => (a.prizeLevel ?? 99) - (b.prizeLevel ?? 99))
+})
+const hasMoreTiers = computed(() => (campaign.value?.tiers?.length || 0) > PREVIEW_COUNT)
+
 const heroStyle = computed(() => {
+  const style = {}
   if (campaign.value?.imageUrl) {
-    return { backgroundImage: `url(${campaign.value.imageUrl})` }
+    style.backgroundImage = `url(${campaign.value.imageUrl})`
+  } else {
+    style.backgroundImage = 'linear-gradient(180deg, #FFE5EB 0%, #fff 100%)'
   }
-  return { backgroundImage: 'linear-gradient(180deg, #FFE5EB 0%, #fff 100%)' }
+  if (!showNavBar.value) {
+    style.paddingTop = '40px'
+  }
+  return style
 })
 
 const maskStyle = computed(() => {
@@ -240,6 +307,11 @@ const maskStyle = computed(() => {
     return { background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%)' }
   }
   return { background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 100%)' }
+})
+
+const renderedRules = computed(() => {
+  if (!campaign.value?.rules) return ''
+  return md.render(campaign.value.rules)
 })
 
 const canDraw = computed(() => {
@@ -274,8 +346,23 @@ function prizeTypeLabel(type) {
   return map[type] || type
 }
 
+const prizeLevelMap = { 1: '特等奖', 2: '一等奖', 3: '二等奖', 4: '三等奖', 5: '四等奖', 6: '五等奖', 7: '六等奖', 8: '七等奖', 9: '八等奖' }
+
+function prizeLevelText(level) {
+  return prizeLevelMap[level] || ''
+}
+
+function levelClass(level) {
+  return level != null ? `level-${level}` : ''
+}
+
+function isHighPrizeLevel(level) {
+  return level != null && level <= 2
+}
+
 onMounted(() => {
   loadCampaign()
+  loadShareConfig()
 })
 
 watch(campaign, (val) => {
@@ -457,6 +544,30 @@ function copyCode() {
   })
 }
 
+async function loadShareConfig() {
+  try {
+    const res = await getShareConfig('lottery')
+    shareConfig.value = res.data
+  } catch (e) {
+    // ignore
+  }
+}
+
+function handleShare() {
+  const campaignName = campaign.value?.name || '幸运大抽奖'
+  const url = window.location.href
+  let text = shareConfig.value?.content
+  if (!text) {
+    text = `🎁 ${campaignName}来啦！我在爱创作发现了超多好礼，会员、创作币、折扣券等你来抽～\n快来一起参与：${url}`
+  }
+  text = text.replace(/{title}/g, campaignName).replace(/{url}/g, url)
+  navigator.clipboard.writeText(text).then(() => {
+    message.success('文案已复制，快去粘贴给好友吧~')
+  }).catch(() => {
+    message.error('复制失败，请手动复制链接')
+  })
+}
+
 function statusText(status) {
   const map = { unused: '未使用', used: '已使用', expired: '已过期' }
   return map[status] || status
@@ -578,6 +689,18 @@ function formatTime(t) {
   border-radius: 2px;
 }
 
+.rules-section__header {
+  cursor: pointer;
+  user-select: none;
+}
+
+.rules-toggle {
+  margin-left: auto;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
 .prize-section,
 .rules-section,
 .wheel-section,
@@ -586,50 +709,230 @@ function formatTime(t) {
   margin-bottom: 36px;
 }
 
-.prize-grid {
+.prize-preview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
-.prize-card {
+.prize-preview-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
   background: #fff;
-  border-radius: 18px;
-  padding: 22px 12px;
-  text-align: center;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-  transition: transform 0.2s ease;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-.prize-card:hover {
-  transform: translateY(-4px);
+.prize-preview-card__badge {
+  position: absolute;
+  top: -6px;
+  right: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #bfbfbf;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
 }
 
-.prize-card__icon {
+.prize-preview-card__badge.level-1 {
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.3);
+}
+
+.prize-preview-card__badge.level-2 {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF5E3A 100%);
+  box-shadow: 0 2px 6px rgba(255, 94, 58, 0.25);
+}
+
+.prize-preview-card__badge.level-3 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 6px rgba(118, 75, 162, 0.25);
+}
+
+.prize-preview-card__badge.level-4 {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 2px 6px rgba(17, 153, 142, 0.2);
+}
+
+.prize-preview-card__badge.level-5 {
+  background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
+  box-shadow: 0 2px 6px rgba(0, 131, 176, 0.2);
+}
+
+.prize-preview-card__badge.level-6,
+.prize-preview-card__badge.level-7,
+.prize-preview-card__badge.level-8,
+.prize-preview-card__badge.level-9 {
+  color: #fff;
+  background: #8c8c8c;
+}
+
+.prize-preview-card__icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
-  margin: 0 auto 10px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: rgba(255, 36, 66, 0.08);
   color: var(--color-primary);
+  flex-shrink: 0;
 }
 
-.prize-card__icon :deep(svg) {
-  width: 28px;
-  height: 28px;
+.prize-preview-card__icon :deep(svg) {
+  width: 18px;
+  height: 18px;
 }
 
-.prize-card__name {
-  font-size: 15px;
+.prize-preview-card__info {
+  min-width: 0;
+}
+
+.prize-preview-card__name {
+  font-size: 13px;
   font-weight: 600;
   color: #1a1a1a;
-  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 2px;
 }
 
-.prize-card__type {
+.prize-preview-card__remaining {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--color-primary);
+}
+
+.prize-view-all {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 0;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+}
+
+.prize-modal :deep(.ant-modal) {
+  width: 92vw !important;
+  max-width: 420px;
+}
+
+.prize-modal :deep(.ant-modal-body) {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.prize-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.prize-modal-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  background: #fafafa;
+  border-radius: 12px;
+}
+
+.prize-modal-item__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 36, 66, 0.08);
+  color: var(--color-primary);
+  flex-shrink: 0;
+}
+
+.prize-modal-item__icon :deep(svg) {
+  width: 20px;
+  height: 20px;
+}
+
+.prize-modal-item__info {
+  min-width: 0;
+  flex: 1;
+}
+
+.prize-modal-item__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.prize-modal-item__badge {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: #bfbfbf;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.prize-modal-item__badge.level-1 {
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.3);
+}
+
+.prize-modal-item__badge.level-2 {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF5E3A 100%);
+  box-shadow: 0 2px 6px rgba(255, 94, 58, 0.25);
+}
+
+.prize-modal-item__badge.level-3 {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 6px rgba(118, 75, 162, 0.25);
+}
+
+.prize-modal-item__badge.level-4 {
+  background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+  box-shadow: 0 2px 6px rgba(17, 153, 142, 0.2);
+}
+
+.prize-modal-item__badge.level-5 {
+  background: linear-gradient(135deg, #00b4db 0%, #0083b0 100%);
+  box-shadow: 0 2px 6px rgba(0, 131, 176, 0.2);
+}
+
+.prize-modal-item__badge.level-6,
+.prize-modal-item__badge.level-7,
+.prize-modal-item__badge.level-8,
+.prize-modal-item__badge.level-9 {
+  color: #fff;
+  background: #8c8c8c;
+}
+
+.prize-modal-item__name-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.prize-modal-item__meta {
   font-size: 12px;
   color: #8c8c8c;
 }
@@ -643,13 +946,36 @@ function formatTime(t) {
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
 
-.rules-text {
-  margin: 0;
-  white-space: pre-wrap;
-  font-family: inherit;
+.rules-content {
   font-size: 14px;
   line-height: 1.8;
   color: #595959;
+}
+
+.rules-content :deep(h2) {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0 0 12px;
+}
+
+.rules-content :deep(p) {
+  margin: 0 0 10px;
+}
+
+.rules-content :deep(ol),
+.rules-content :deep(ul) {
+  padding-left: 20px;
+  margin: 0 0 10px;
+}
+
+.rules-content :deep(li) {
+  margin-bottom: 6px;
+}
+
+.rules-content :deep(strong) {
+  color: #1a1a1a;
+  font-weight: 600;
 }
 
 .chest-stage {
@@ -780,6 +1106,33 @@ function formatTime(t) {
 
 .draw-action-btn.drawing {
   cursor: wait;
+}
+
+.share-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 14px auto 0;
+  padding: 10px 28px;
+  border: 1px solid var(--color-primary);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.share-action-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.share-action-btn :deep(svg) {
+  width: 16px;
+  height: 16px;
 }
 
 .prize-fly {
@@ -1075,6 +1428,15 @@ function formatTime(t) {
   margin: 0 0 20px;
 }
 
+.result-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.result-actions .ant-btn {
+  flex: 1;
+}
+
 .lottery-result-modal .ant-btn-primary,
 .code-row__actions .ant-btn-primary {
   background: var(--color-primary);
@@ -1108,6 +1470,69 @@ function formatTime(t) {
     padding: 48px 24px 64px;
   }
 
+  .prize-preview-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+  }
+
+  .prize-preview-card {
+    padding: 12px 14px;
+  }
+
+  .prize-preview-card__icon {
+    width: 40px;
+    height: 40px;
+  }
+
+  .prize-preview-card__icon :deep(svg) {
+    width: 20px;
+    height: 20px;
+  }
+
+  .prize-preview-card__name {
+    font-size: 14px;
+  }
+
+  .prize-preview-card__remaining {
+    font-size: 12px;
+  }
+
+  .prize-modal :deep(.ant-modal) {
+    max-width: 720px;
+  }
+
+  .prize-modal :deep(.ant-modal-body) {
+    padding: 20px;
+  }
+
+  .prize-modal-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+
+  .prize-modal-item {
+    padding: 12px 14px;
+  }
+
+  .prize-modal-item__icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .prize-modal-item__icon :deep(svg) {
+    width: 22px;
+    height: 22px;
+  }
+
+  .prize-modal-item__name-text {
+    font-size: 15px;
+  }
+
+  .prize-modal-item__meta {
+    font-size: 13px;
+  }
+
   .chest-stage {
     grid-template-columns: repeat(5, 1fr);
     gap: 24px;
@@ -1134,21 +1559,16 @@ function formatTime(t) {
     padding: 24px 16px;
   }
 
-  .prize-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-  }
-
   .chest-stage {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    max-width: 360px;
-    padding: 24px 0 32px;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    max-width: 320px;
+    padding: 20px 0 28px;
   }
 
   .chest-label {
-    font-size: 12px;
-    margin-top: 6px;
+    font-size: 11px;
+    margin-top: 4px;
   }
 
   .draw-action-btn {

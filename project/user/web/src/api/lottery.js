@@ -23,3 +23,7 @@ export function getDisplayWinners(campaignId, limit = 20) {
 export function getMyCodes() {
   return request({ url: '/lottery/my-codes', method: 'get' })
 }
+
+export function getMyCoupons() {
+  return request({ url: '/coupons', method: 'get' })
+}

@@ -160,6 +160,12 @@ const routes = [
         path: 'commission/:id',
         name: 'ConsoleCommissionDetail',
         component: () => import('@/views/console/CommissionDetail.vue')
+      },
+      {
+        path: 'coupons',
+        name: 'ConsoleCoupons',
+        component: () => import('@/views/console/CouponIndex.vue'),
+        meta: { title: '我的优惠券' }
       }
     ]
   }

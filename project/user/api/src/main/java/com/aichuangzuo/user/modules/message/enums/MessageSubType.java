@@ -29,7 +29,10 @@ public enum MessageSubType {
     GENERATION_COMPLETED("completed", "创作完成"),
 
     /** 文章生成失败(generation 类下，已退还次数)。 */
-    GENERATION_FAILED("failed", "创作失败");
+    GENERATION_FAILED("failed", "创作失败"),
+
+    /** 抽奖结果(promotion 类下)。 */
+    LOTTERY_RESULT("lottery_result", "抽奖结果");
 
     private final String code;
     private final String description;

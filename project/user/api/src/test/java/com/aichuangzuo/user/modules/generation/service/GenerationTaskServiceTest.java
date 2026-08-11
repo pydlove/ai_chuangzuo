@@ -13,6 +13,8 @@ import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,6 +64,9 @@ class GenerationTaskServiceTest {
     @Mock
     private SkillMarketMapper skillMarketMapper;
 
+    @Mock
+    private UserMembershipMapper userMembershipMapper;
+
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
 
@@ -89,12 +94,21 @@ class GenerationTaskServiceTest {
         when(benefitService.getPlanBenefitValue(userId, "generation_word_limit", "500")).thenReturn("1500");
         when(benefitService.getPlanBenefitValue(userId, "queue_max_tasks", "1")).thenReturn("1");
         when(taskMapper.countUserTasks(any(), any())).thenReturn(0L);
+        when(userMembershipMapper.selectByUserId(userId)).thenReturn(activeBasicMembership());
         // 唯一已发布模板 id=1，latestPublishedVersion=1（submit 路径需要）
         PromptTemplate tpl = new PromptTemplate();
         tpl.setId(com.aichuangzuo.shared.creative.CreativeTemplateConstants.DEFAULT_TEMPLATE_ID);
         tpl.setTemplateStatus(com.aichuangzuo.shared.creative.TemplateStatus.PUBLISHED.code);
         tpl.setLatestPublishedVersion(1);
         when(promptTemplateMapper.selectPublished()).thenReturn(List.of(tpl));
+    }
+
+    private UserMembership activeBasicMembership() {
+        UserMembership m = new UserMembership();
+        m.setUserId(0L);
+        m.setLevel("basic");
+        m.setExpiresAt(java.time.LocalDate.now().plusDays(30));
+        return m;
     }
 
     private void stubPreSkillValidation(Long userId) {
@@ -277,6 +291,37 @@ class GenerationTaskServiceTest {
 
         verify(benefitService).consume(userId, "ai_article_quota");
         verify(taskMapper).insert(any(GenerationTask.class));
+    }
+
+    @Test
+    void submit_shouldSetPlanPriorityFromCurrentMembership() {
+        Long flagshipUserId = 31L;
+        stubCommonFlow(flagshipUserId);
+        UserMembership flagship = activeBasicMembership();
+        flagship.setLevel("flagship");
+        when(userMembershipMapper.selectByUserId(flagshipUserId)).thenReturn(flagship);
+
+        service.submit(sampleRequest(""), flagshipUserId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).insert(captor.capture());
+        assertEquals(2, captor.getValue().getPlanPriority());
+    }
+
+    @Test
+    void submit_shouldSetPlanPriorityZeroWhenMembershipExpired() {
+        Long expiredUserId = 32L;
+        stubCommonFlow(expiredUserId);
+        UserMembership expired = activeBasicMembership();
+        expired.setLevel("flagship");
+        expired.setExpiresAt(java.time.LocalDate.now().minusDays(1));
+        when(userMembershipMapper.selectByUserId(expiredUserId)).thenReturn(expired);
+
+        service.submit(sampleRequest(""), expiredUserId);
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).insert(captor.capture());
+        assertEquals(0, captor.getValue().getPlanPriority());
     }
 
     @Test

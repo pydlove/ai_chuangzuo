@@ -777,43 +777,6 @@
               </svg>
             </router-link>
           </a-tooltip>
-          <!-- 主题切换 -->
-          <a-tooltip :title="currentTheme === 'light' ? '切换深色主题' : '切换浅色主题'">
-            <button class="console-icon-btn" @click="toggleTheme">
-              <svg
-                v-if="currentTheme === 'light'"
-                class="console-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-              <svg
-                v-else
-                class="console-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="1.5"
-                stroke-linecap="round"
-                stroke-linejoin="round"
-              >
-                <circle cx="12" cy="12" r="5" />
-                <line x1="12" y1="1" x2="12" y2="3" />
-                <line x1="12" y1="21" x2="12" y2="23" />
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-                <line x1="1" y1="12" x2="3" y2="12" />
-                <line x1="21" y1="12" x2="23" y2="12" />
-                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
-              </svg>
-            </button>
-          </a-tooltip>
 
           <a-popover
             v-if="hasMembership"
@@ -1344,7 +1307,8 @@ const pageTitleMap = {
   '/console/preview': '预览文章',
   '/console/coin': '创作币',
   '/console/commission': '约稿中心',
-  '/console/commission/:id': '约稿详情'
+  '/console/commission/:id': '约稿详情',
+  '/console/coupons': '我的优惠券'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')
 const goBack = () => router.back()
@@ -1487,63 +1451,6 @@ const isActive = (path) => {
 // ---------- 主题切换 ----------
 const THEME_KEY = 'aichuangzuo_theme'
 const currentTheme = ref('light')
-const isThemeTransitioning = ref(false)
-
-const toggleTheme = (event) => {
-  if (isThemeTransitioning.value) return
-
-  const btn = event?.currentTarget
-  const rect = btn?.getBoundingClientRect()
-  // 兜底：若触发源不可见（例如从手机端列表行触发），从屏幕中心扩散
-  const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2
-  const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2
-  const vw = window.innerWidth
-  const vh = window.innerHeight
-  const maxR = Math.hypot(Math.max(cx, vw - cx), Math.max(cy, vh - cy))
-
-  const next = currentTheme.value === 'light' ? 'dark' : 'light'
-  // 多段 radial-gradient：中心 = 当前主题，过渡到中间灰，外圈 = 新主题
-  const maskBg = next === 'dark'
-    ? 'radial-gradient(circle, #f8f9fa 0%, #d8d8d8 25%, #8a8a8a 55%, #3a3a3a 80%, #141414 100%)'
-    : 'radial-gradient(circle, #141414 0%, #3a3a3a 25%, #8a8a8a 55%, #d8d8d8 80%, #f8f9fa 100%)'
-
-  const mask = document.createElement('div')
-  Object.assign(mask.style, {
-    position: 'fixed',
-    left: cx + 'px',
-    top: cy + 'px',
-    width: '0px',
-    height: '0px',
-    borderRadius: '50%',
-    background: maskBg,
-    transform: 'translate(-50%, -50%)',
-    zIndex: '9999',
-    pointerEvents: 'none',
-    willChange: 'width, height'
-  })
-  document.body.appendChild(mask)
-
-  // 强制 reflow，确保动画从 0 开始
-  void mask.offsetWidth
-  mask.style.transition = 'width 0.75s cubic-bezier(0.4, 0, 0.2, 1), height 0.75s cubic-bezier(0.4, 0, 0.2, 1)'
-  mask.style.width = (maxR * 2) + 'px'
-  mask.style.height = (maxR * 2) + 'px'
-
-  isThemeTransitioning.value = true
-
-  // 动画 60% 时切换主题，新主题从圆形内透出来
-  setTimeout(() => {
-    currentTheme.value = next
-    document.body.setAttribute('data-theme', next)
-    localStorage.setItem(THEME_KEY, next)
-  }, 450)
-
-  // 动画结束后移除遮罩
-  setTimeout(() => {
-    if (mask.parentNode) mask.parentNode.removeChild(mask)
-    isThemeTransitioning.value = false
-  }, 800)
-}
 
 const loadTheme = () => {
   const saved = localStorage.getItem(THEME_KEY) || 'light'
@@ -1552,7 +1459,7 @@ const loadTheme = () => {
 }
 
 // ---------- 消息通知 ----------
-const { messages: notifications, unreadCount, loadMessages: loadNotifications, refreshUnreadCount, startUnreadPolling, stopUnreadPolling, markRead, markAllRead } = useMessages()
+const { messages: notifications, unreadCount, unreadCountByType, loadMessages: loadNotifications, refreshUnreadCount, startUnreadPolling, stopUnreadPolling, markRead, markAllRead } = useMessages()
 const notifVisible = ref(false)
 const activeTab = ref('all')
 
@@ -2740,10 +2647,8 @@ provide('consoleActions', {
   openPasswordModal,
   openProfileModal,
   openEmailModal,
-  toggleTheme,
   handleLogout,
   // 用户状态（响应式，子页面读它会跟着变）
-  currentTheme,
   profileForm,
   emailForm,
   coinBalance,

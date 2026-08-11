@@ -13,6 +13,9 @@ import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.user.modules.generation.mapper.UserPromptTemplateMapper;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskPageVO;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
@@ -26,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -57,6 +61,7 @@ public class GenerationTaskService {
     private final BenefitService benefitService;
     private final UserSkillMapper userSkillMapper;
     private final SkillMarketMapper skillMarketMapper;
+    private final UserMembershipMapper userMembershipMapper;
     private final ObjectMapper objectMapper;
 
     /**
@@ -103,6 +108,7 @@ public class GenerationTaskService {
         Integer retentionDays = benefitResolver.retentionDays(userId);
         String inputParam = buildInputParam(userId, req);
         String bizNo = generateBizNo();
+        int planPriority = resolvePlanPriority(userId);
         benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
 
         GenerationTask task = new GenerationTask();
@@ -116,6 +122,7 @@ public class GenerationTaskService {
         task.setWordLimitTarget(req.getWordCount());
         task.setRetryCount(0);
         task.setRetentionDays(retentionDays);
+        task.setPlanPriority(planPriority);
         task.setTenantId(0L);
         task.setIsDeleted(0);
         task.setCreatedBy(userId);
@@ -152,6 +159,7 @@ public class GenerationTaskService {
 
         // 扣 1 次文章额度
         String bizNo = generateBizNo();
+        int planPriority = resolvePlanPriority(userId);
         benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
 
         // 新 task：沿用 source 输入参数，可选覆盖 wordCount
@@ -171,6 +179,7 @@ public class GenerationTaskService {
         task.setWordLimitTarget(source.getWordLimitTarget());
         task.setRetryCount(0);
         task.setRetentionDays(source.getRetentionDays());
+        task.setPlanPriority(planPriority);
         task.setTenantId(0L);
         task.setIsDeleted(0);
         task.setCreatedBy(userId);
@@ -222,6 +231,22 @@ public class GenerationTaskService {
     }
 
     // ---------- helpers ----------
+
+    /**
+     * 解析当前用户有效套餐对应的优先级。
+     *
+     * <p>无会员或已过期按免费版处理（优先级 0）。
+     *
+     * @return 套餐优先级：0=免费/基础版，1=专业版，2=旗舰版
+     */
+    private int resolvePlanPriority(Long userId) {
+        UserMembership membership = userMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return 0;
+        }
+        MembershipPlan plan = MembershipPlan.of(membership.getLevel());
+        return plan == null ? 0 : plan.getRank();
+    }
 
     private GenerationTask requireOwnedTask(Long taskId, Long userId) {
         GenerationTask task = taskMapper.selectById(taskId);

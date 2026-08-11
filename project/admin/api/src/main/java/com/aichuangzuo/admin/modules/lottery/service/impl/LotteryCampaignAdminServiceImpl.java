@@ -92,6 +92,15 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
     @Transactional(rollbackFor = Exception.class)
     public void openCampaign(Long id, Long adminUserId) {
         LotteryCampaign campaign = getAndCheck(id);
+        long openCount = campaignMapper.selectCount(
+                new LambdaQueryWrapper<LotteryCampaign>()
+                        .eq(LotteryCampaign::getIsDeleted, 0)
+                        .eq(LotteryCampaign::getStatus, 1)
+                        .ne(LotteryCampaign::getId, id));
+        if (openCount > 0) {
+            throw new BusinessException(AdminLotteryErrorCode.CAMPAIGN_ALREADY_OPEN);
+        }
+        validateProbabilitySum(id);
         campaign.setStatus(1);
         campaign.setUpdatedBy(adminUserId);
         campaignMapper.updateById(campaign);
@@ -121,7 +130,8 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
                 new LambdaQueryWrapper<LotteryPrizeTier>()
                         .eq(LotteryPrizeTier::getCampaignId, campaignId)
                         .eq(LotteryPrizeTier::getIsDeleted, 0)
-                        .orderByAsc(LotteryPrizeTier::getSortOrder));
+                        .orderByAsc(LotteryPrizeTier::getSortOrder)
+                        .orderByAsc(LotteryPrizeTier::getPrizeLevel));
         return tiers.stream().map(this::buildTierVO).collect(Collectors.toList());
     }
 
@@ -155,8 +165,11 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
         }
         entity.setTierKey(request.getTierKey());
         entity.setTierName(request.getTierName());
+        entity.setPrizeLevel(request.getPrizeLevel());
         entity.setProbability(request.getProbability());
         syncRemainingWinCount(entity, request.getMaxWinCount());
+        entity.setDisplayRemaining(request.getDisplayRemaining() == null ? 0 : request.getDisplayRemaining());
+        entity.setDisplayRemainingCount(request.getDisplayRemainingCount());
         entity.setRewardType(request.getRewardType());
         entity.setRewardValueJson(request.getRewardValueJson());
         entity.setCodePrefix(request.getCodePrefix());
@@ -248,9 +261,12 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
         vo.setCampaignId(tier.getCampaignId());
         vo.setTierKey(tier.getTierKey());
         vo.setTierName(tier.getTierName());
+        vo.setPrizeLevel(tier.getPrizeLevel());
         vo.setProbability(tier.getProbability());
         vo.setMaxWinCount(tier.getMaxWinCount());
         vo.setRemainingWinCount(tier.getRemainingWinCount());
+        vo.setDisplayRemaining(tier.getDisplayRemaining());
+        vo.setDisplayRemainingCount(tier.getDisplayRemainingCount());
         vo.setRewardType(tier.getRewardType());
         vo.setRewardValueJson(tier.getRewardValueJson());
         vo.setCodePrefix(tier.getCodePrefix());

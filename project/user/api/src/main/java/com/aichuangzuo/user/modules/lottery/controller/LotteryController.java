@@ -42,6 +42,7 @@ public class LotteryController {
     public Result<LotteryCampaignVO> currentCampaign() {
         LotteryCampaign campaign = campaignMapper.selectOne(
                 new LambdaQueryWrapper<LotteryCampaign>()
+                        .eq(LotteryCampaign::getIsDeleted, 0)
                         .eq(LotteryCampaign::getStatus, 1)
                         .le(LotteryCampaign::getStartTime, LocalDateTime.now())
                         .ge(LotteryCampaign::getEndTime, LocalDateTime.now())
@@ -87,8 +88,10 @@ public class LotteryController {
         List<LotteryPrizeTier> tiers = prizeTierMapper.selectList(
                 new LambdaQueryWrapper<LotteryPrizeTier>()
                         .eq(LotteryPrizeTier::getCampaignId, campaign.getId())
+                        .eq(LotteryPrizeTier::getIsDeleted, 0)
                         .eq(LotteryPrizeTier::getStatus, 1)
-                        .orderByAsc(LotteryPrizeTier::getSortOrder));
+                        .orderByAsc(LotteryPrizeTier::getSortOrder)
+                        .orderByAsc(LotteryPrizeTier::getPrizeLevel));
         vo.setTiers(tiers.stream().map(this::buildTierVO).collect(Collectors.toList()));
         return vo;
     }
@@ -98,9 +101,13 @@ public class LotteryController {
         vo.setId(tier.getId());
         vo.setTierKey(tier.getTierKey());
         vo.setTierName(tier.getTierName());
+        vo.setPrizeLevel(tier.getPrizeLevel());
         vo.setRewardType(tier.getRewardType());
         vo.setRewardValueJson(tier.getRewardValueJson());
         vo.setSortOrder(tier.getSortOrder());
+        vo.setDisplayRemaining(tier.getDisplayRemaining());
+        vo.setDisplayRemainingCount(tier.getDisplayRemainingCount());
+        vo.setRemainingWinCount(tier.getRemainingWinCount());
         return vo;
     }
 }

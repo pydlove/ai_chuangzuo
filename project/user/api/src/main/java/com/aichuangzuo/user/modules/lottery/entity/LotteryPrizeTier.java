@@ -18,9 +18,12 @@ public class LotteryPrizeTier {
     private Long campaignId;
     private String tierKey;
     private String tierName;
+    private Integer prizeLevel;
     private BigDecimal probability;
     private Integer maxWinCount;
     private Integer remainingWinCount;
+    private Integer displayRemaining;
+    private Integer displayRemainingCount;
     private String rewardType;
     private String rewardValueJson;
     private String codePrefix;

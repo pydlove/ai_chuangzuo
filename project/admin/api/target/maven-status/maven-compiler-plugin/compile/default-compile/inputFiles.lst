@@ -425,6 +425,14 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/security/ratelimit/mapper/RateLimitConfigMapper.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/security/ratelimit/service/RateLimitConfigService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/security/ratelimit/vo/RateLimitConfigVO.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/controller/ShareConfigAdminController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/dto/request/ShareConfigQueryRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/dto/request/ShareConfigSaveRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/enums/AdminShareErrorCode.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/mapper/ShareConfigMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/service/ShareConfigAdminService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/service/impl/ShareConfigAdminServiceImpl.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/share/vo/ShareConfigAdminVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/analyze/config/controller/SkillAnalyzeConfigAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/analyze/config/dto/request/SkillAnalyzeConfigUpdateRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/analyze/config/entity/SkillAnalyzeConfig.java

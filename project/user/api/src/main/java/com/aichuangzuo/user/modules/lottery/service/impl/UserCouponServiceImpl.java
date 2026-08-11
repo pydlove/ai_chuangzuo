@@ -12,15 +12,50 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import com.aichuangzuo.user.modules.lottery.vo.UserCouponVO;
+
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class UserCouponServiceImpl implements UserCouponService {
 
     private final UserCouponMapper userCouponMapper;
+
+    @Override
+    public List<UserCouponVO> listUserCoupons(Long userId) {
+        List<UserCoupon> entities = userCouponMapper.selectList(
+                new LambdaQueryWrapper<UserCoupon>()
+                        .eq(UserCoupon::getUserId, userId)
+                        .orderByDesc(UserCoupon::getCreatedAt));
+        LocalDateTime now = LocalDateTime.now();
+        return entities.stream()
+                .map(e -> toVO(e, now))
+                .collect(Collectors.toList());
+    }
+
+    private UserCouponVO toVO(UserCoupon e, LocalDateTime now) {
+        UserCouponVO vo = new UserCouponVO();
+        vo.setId(e.getId());
+        vo.setCouponCode(e.getCouponCode());
+        vo.setCouponType(e.getCouponType());
+        vo.setDiscountValue(e.getDiscountValue());
+        vo.setApplicableCycle(e.getApplicableCycle());
+        vo.setApplicablePlan(e.getApplicablePlan());
+        String status = e.getStatus();
+        if ("unused".equals(status) && e.getValidEnd() != null && e.getValidEnd().isBefore(now)) {
+            status = "expired";
+        }
+        vo.setStatus(status);
+        vo.setValidStart(e.getValidStart());
+        vo.setValidEnd(e.getValidEnd());
+        vo.setUsedOrderId(e.getUsedOrderId());
+        return vo;
+    }
 
     @Override
     public BigDecimal applyCoupon(Long userId, String couponCode, BigDecimal amount, String planKey, String cycle) {

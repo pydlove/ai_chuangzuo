@@ -99,6 +99,31 @@
           </div>
         </router-link>
 
+        <router-link to="/console/lottery" class="activity-card activity-card--lottery">
+          <div class="activity-card__bg" aria-hidden="true"></div>
+          <div class="activity-card__icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="20 12 20 22 4 22 4 12"/>
+              <rect x="2" y="7" width="20" height="5" rx="1"/>
+              <line x1="12" y1="22" x2="12" y2="7"/>
+              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5H12v5z"/>
+              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5H12v5z"/>
+            </svg>
+          </div>
+          <div class="activity-card__body">
+            <div class="activity-card__title">幸运抽奖</div>
+            <p class="activity-card__desc">开启宝箱，赢取会员、创作币、折扣券等惊喜好礼</p>
+            <div class="activity-card__stats">
+              <span class="activity-card__stats-label">限时活动 · 立即参与</span>
+            </div>
+          </div>
+          <div class="activity-card__arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </router-link>
+
         <router-link to="/console/invite" class="activity-card activity-card--invite">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
@@ -357,6 +382,10 @@ onMounted(async () => {
   background: linear-gradient(135deg, #fff7f0 0%, #fff0e6 100%);
 }
 
+.activity-card--lottery .activity-card__bg {
+  background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
+}
+
 .activity-card--academy .activity-card__bg {
   background: linear-gradient(135deg, #fff5f7 0%, #fff0f2 100%);
 }
@@ -400,6 +429,11 @@ onMounted(async () => {
 .activity-card--invite .activity-card__icon {
   background: linear-gradient(135deg, #fff7f0 0%, #ffe8d6 100%);
   color: #fa8c16;
+}
+
+.activity-card--lottery .activity-card__icon {
+  background: linear-gradient(135deg, #fff0f2 0%, #ffe4e8 100%);
+  color: #ff2442;
 }
 
 .activity-card--academy .activity-card__icon {
@@ -461,6 +495,11 @@ onMounted(async () => {
 .activity-card--invite .activity-card__stats {
   background: rgba(250, 140, 22, 0.08);
   color: #fa8c16;
+}
+
+.activity-card--lottery .activity-card__stats {
+  background: rgba(255, 36, 66, 0.08);
+  color: #ff2442;
 }
 
 .activity-card__stats-num {

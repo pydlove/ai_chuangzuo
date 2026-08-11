@@ -254,7 +254,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { LockOutlined } from '@ant-design/icons-vue'
 import { useLearn } from '@/composables/useLearn.js'
@@ -272,6 +272,7 @@ let bannerTimer = null
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
+  { to: '/lottery', label: '活动' },
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
@@ -357,6 +358,14 @@ watch(banners, (newBanners) => {
   if (newBanners.length > 1) startBannerCarousel()
   else stopBannerCarousel()
 }, { flush: 'post' })
+
+// 文章切换后滚动到顶部，避免上一篇/下一篇导航后停留在底部
+watch(() => currentArticle.value?.id, async (newId, oldId) => {
+  if (newId && newId !== oldId) {
+    await nextTick()
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }
+})
 
 onMounted(() => {
   if (banners.value.length > 1) startBannerCarousel()

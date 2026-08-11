@@ -3,16 +3,17 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper">
 
-    <!-- 抢占一批待处理任务：FIFO 按 created_at ASC，lease 过期的不抢 -->
+    <!-- 抢占一批待处理任务：按套餐优先级降序，同优先级按 created_at ASC，lease 过期的不抢 -->
     <select id="claimBatch" resultType="com.aichuangzuo.shared.entity.GenerationTask">
         SELECT id, biz_no, target_user_id, status, model_config_id, prompt_template_id,
                input_param, word_limit_target, retry_count,
                locked_at, locked_by, lease_until, failed_reason, completed_at,
-               retention_days, tenant_id, is_deleted, created_at, updated_at, created_by, updated_by
+               retention_days, tenant_id, is_deleted, created_at, updated_at, created_by, updated_by,
+               plan_priority
         FROM a_generation_task
         WHERE status = 0
           AND (lease_until IS NULL OR lease_until &lt; NOW(3))
-        ORDER BY created_at ASC
+        ORDER BY plan_priority DESC, created_at ASC
         LIMIT #{limit}
         FOR UPDATE SKIP LOCKED
     </select>

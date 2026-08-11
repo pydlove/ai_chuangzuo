@@ -17,10 +17,17 @@ public class LotteryPrizeTierSaveRequest {
     @NotBlank(message = "奖项名称不能为空")
     private String tierName;
 
+    @NotNull(message = "奖项等级不能为空")
+    private Integer prizeLevel;
+
     @NotNull(message = "概率不能为空")
     private BigDecimal probability;
 
     private Integer maxWinCount;
+
+    private Integer displayRemaining;
+
+    private Integer displayRemainingCount;
 
     @NotBlank(message = "奖励类型不能为空")
     private String rewardType;

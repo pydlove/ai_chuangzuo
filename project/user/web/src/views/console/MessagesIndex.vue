@@ -120,6 +120,7 @@ const detailMessage = ref(null)
 const tabs = computed(() => [
   { type: 'all', label: '全部', count: unreadCountByType('all') },
   { type: 'announcement', label: '公告', count: unreadCountByType('announcement') },
+  { type: 'promotion', label: '活动', count: unreadCountByType('promotion') },
   { type: 'generation', label: '创作', count: unreadCountByType('generation') },
   { type: 'membership', label: '会员', count: unreadCountByType('membership') }
 ])
@@ -133,6 +134,7 @@ const emptyTitle = computed(() => {
   const map = {
     all: '暂无消息',
     announcement: '暂无公告',
+    promotion: '暂无活动消息',
     generation: '暂无创作通知',
     membership: '暂无会员消息'
   }
