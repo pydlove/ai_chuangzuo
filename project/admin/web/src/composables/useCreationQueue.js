@@ -2,7 +2,8 @@ import { reactive, ref, onBeforeUnmount } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   listGenerationTasks,
-  stopGenerationTask
+  stopGenerationTask,
+  batchStopGenerationTasks
 } from '@/api/creationQueue.js'
 
 /**
@@ -18,6 +19,8 @@ export function useCreationQueue() {
   const page = ref(1)
   const pageSize = ref(20)
   const keyword = ref('')
+  const selectedRowKeys = ref([])
+  const selectedRows = ref([])
 
   const STATUS_TAB = {
     processing: 1,
@@ -48,27 +51,36 @@ export function useCreationQueue() {
   const switchTab = (key) => {
     activeStatus.value = STATUS_TAB[key] ?? null
     page.value = 1
+    clearSelection()
     fetch()
   }
 
   const handleSearch = () => {
     page.value = 1
+    clearSelection()
     fetch()
   }
 
   const handleReset = () => {
     keyword.value = ''
     page.value = 1
+    clearSelection()
     fetch()
   }
 
   const handlePageChange = (p, ps) => {
     page.value = p
     pageSize.value = ps
+    clearSelection()
     fetch()
   }
 
   const refresh = () => fetch()
+
+  const clearSelection = () => {
+    selectedRowKeys.value = []
+    selectedRows.value = []
+  }
 
   const handleStop = async (id) => {
     try {
@@ -77,6 +89,26 @@ export function useCreationQueue() {
       fetch()
     } catch (e) {
       message.error(e.message || '操作失败')
+    }
+  }
+
+  const handleBatchStop = async () => {
+    if (selectedRowKeys.value.length === 0) {
+      message.warning('请先选择要停止的任务')
+      return
+    }
+    try {
+      const result = await batchStopGenerationTasks(selectedRowKeys.value)
+      const parts = []
+      if (result.successCount > 0) parts.push(`成功 ${result.successCount} 个`)
+      if (result.missingIds?.length > 0) parts.push(`不存在 ${result.missingIds.length} 个`)
+      if (result.invalidIds?.length > 0) parts.push(`状态不允许 ${result.invalidIds.length} 个`)
+      if (result.failedIds?.length > 0) parts.push(`失败 ${result.failedIds.length} 个`)
+      message.success(parts.join('，') || '操作完成')
+      clearSelection()
+      fetch()
+    } catch (e) {
+      message.error(e.message || '批量停止失败')
     }
   }
 
@@ -104,6 +136,8 @@ export function useCreationQueue() {
     pageSize,
     keyword,
     activeStatus,
+    selectedRowKeys,
+    selectedRows,
     STATUS_TAB,
     fetch,
     switchTab,
@@ -112,6 +146,8 @@ export function useCreationQueue() {
     handlePageChange,
     refresh,
     handleStop,
+    handleBatchStop,
+    clearSelection,
     startAutoRefresh,
     stopAutoRefresh
   }

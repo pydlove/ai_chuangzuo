@@ -33,4 +33,7 @@ public class SubscribeRequest {
     /** 创作币抵扣数量（10 创作币 = 1 元）。 */
     @DecimalMin(value = "0", inclusive = true, message = "创作币抵扣数量不能为负数")
     private BigDecimal coinAmount;
+
+    /** 优惠券码（可选）。 */
+    private String couponCode;
 }

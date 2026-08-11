@@ -4,10 +4,12 @@ import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.UnauthorizedException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.AdminJwtUtil;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.leaderboard.dto.request.CoinRecordGrantRequest;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -16,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/user/internal/coin-records")
 @RequiredArgsConstructor
+@Slf4j
 public class CoinRecordInternalController {
 
     private final CoinRecordService coinRecordService;
@@ -24,6 +27,9 @@ public class CoinRecordInternalController {
     @PostMapping("/grant")
     public Result<String> grant(@RequestHeader("Authorization") String authHeader,
                                   @Valid @RequestBody CoinRecordGrantRequest request) {
+        Long currentUserId = SecurityUserContext.getCurrentUserId();
+        log.info("Grant coin record, currentUserId={}, userId={}, amount={}, bizType={}, refId={}",
+                currentUserId, request.getUserId(), request.getAmount(), request.getBizType(), request.getRefId());
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
         }

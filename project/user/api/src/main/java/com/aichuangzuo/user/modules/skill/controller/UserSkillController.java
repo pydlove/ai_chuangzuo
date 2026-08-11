@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +25,7 @@ import java.util.List;
  *
  * <p>路径前缀：/api/v1/user/skills，鉴权由 SecurityConfig 统一拦截。
  */
+@Slf4j
 @Tag(name = "用户风格")
 @RestController
 @RequestMapping("/api/v1/user/skills")
@@ -44,6 +46,8 @@ public class UserSkillController {
     @GetMapping
     public Result<List<UserSkillVO>> listMySkills(
             @RequestParam(name = "sourceType", required = false, defaultValue = "1") Integer sourceType) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取我的风格列表 userId={} sourceType={}", userId, sourceType);
         return Result.success(userSkillService.listMySkills(sourceType));
     }
 
@@ -56,6 +60,8 @@ public class UserSkillController {
     @Operation(summary = "创建风格")
     @PostMapping
     public Result<UserSkillVO> createSkill(@Valid @RequestBody CreateSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("创建风格 userId={} skillName={} sourceType={}", userId, request.getSkillName(), request.getSourceType());
         return Result.success(userSkillService.createSkill(request));
     }
 
@@ -71,6 +77,8 @@ public class UserSkillController {
     public Result<UserSkillVO> updateSkill(
             @PathVariable String bizNo,
             @Valid @RequestBody UpdateSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改风格 userId={} bizNo={} skillName={}", userId, bizNo, request.getSkillName());
         return Result.success(userSkillService.updateSkill(bizNo, request));
     }
 
@@ -83,6 +91,8 @@ public class UserSkillController {
     @Operation(summary = "删除风格")
     @DeleteMapping("/{bizNo}")
     public Result<Void> deleteSkill(@PathVariable String bizNo) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("删除风格 userId={} bizNo={}", userId, bizNo);
         userSkillService.deleteSkill(bizNo);
         return Result.success();
     }
@@ -95,6 +105,8 @@ public class UserSkillController {
     @Operation(summary = "发布风格到市场")
     @PostMapping("/{bizNo}/publish")
     public Result<Void> publishSkill(@PathVariable String bizNo) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("发布风格到市场 userId={} bizNo={}", userId, bizNo);
         userSkillService.publishSkill(bizNo);
         return Result.success();
     }
@@ -106,6 +118,8 @@ public class UserSkillController {
     @GetMapping("/system-skills")
     public Result<List<SystemSkillVO>> listSystemSkills(
             @RequestParam(name = "keyword", required = false) String keyword) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取系统预设风格 userId={} keyword={}", userId, keyword);
         return Result.success(systemSkillService.listEnabled(keyword));
     }
 
@@ -121,6 +135,7 @@ public class UserSkillController {
     @PostMapping("/analyze")
     public Result<SkillAnalyzeVO> analyzeSkill(@Valid @RequestBody AnalyzeSkillRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("AI 分析参考文章写作风格 userId={} textLength={}", userId, request.getText() == null ? 0 : request.getText().length());
         return Result.success(skillAnalyzeService.analyze(userId, request.getText()));
     }
 }

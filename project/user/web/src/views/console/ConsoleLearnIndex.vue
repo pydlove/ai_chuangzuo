@@ -13,36 +13,86 @@
       </div>
     </div>
 
+    <!-- 推荐文章 Banner：仅空状态展示，2:1 尺寸，点击进文章 -->
+    <div v-if="isEmptyState && recommendedArticles.length" class="learn-banner">
+      <div
+        class="learn-banner__carousel"
+        @touchstart="handleBannerTouchStart"
+        @touchend="handleBannerTouchEnd"
+      >
+        <div
+          v-for="(article, index) in recommendedArticles"
+          :key="article.id"
+          :class="['learn-banner__slide', { active: index === activeBannerIndex }]"
+          @click="handleArticleClick(article)"
+        >
+          <img
+            v-if="article.coverImageUrl"
+            :src="article.coverImageUrl"
+            :alt="article.title"
+            class="learn-banner__img"
+          />
+          <div class="learn-banner__info">
+            <div class="learn-banner__title">{{ article.title }}</div>
+          </div>
+        </div>
+      </div>
+      <div v-if="recommendedArticles.length > 1 && isMobile" class="learn-banner__dots">
+        <span
+          v-for="(_, index) in recommendedArticles"
+          :key="index"
+          :class="['learn-banner__dot', { active: index === activeBannerIndex }]"
+          @click.stop="activeBannerIndex = index"
+        />
+      </div>
+    </div>
+
     <!-- 分类标签 -->
-    <div v-if="categoryTree.length" class="category-tabs-bar">
-      <button
-        :class="['category-tab', { active: isEmptyState }]"
-        @click="goHome"
+    <div class="category-tabs-wrapper">
+      <div
+        v-if="categoryTree.length"
+        ref="tabBarRef"
+        class="category-tabs-bar"
+        @scroll="checkTabOverflow"
       >
-        全部
-      </button>
-      <button
-        v-for="cat in categoryTree"
-        :key="cat.id"
-        :class="['category-tab', { active: activeCategoryId === cat.id }]"
-        @click="onSelectCategory(cat.id)"
+        <button
+          :class="['category-tab', { active: isEmptyState }]"
+          @click="goHome"
+        >
+          全部
+        </button>
+        <button
+          v-for="cat in categoryTree"
+          :key="cat.id"
+          :class="['category-tab', { active: activeCategoryId === cat.id }]"
+          @click="onSelectCategory(cat.id)"
+        >
+          {{ cat.name }}
+        </button>
+      </div>
+      <div
+        v-if="showTabFade"
+        class="category-tabs-fade"
+        aria-hidden="true"
       >
-        {{ cat.name }}
-      </button>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </div>
     </div>
 
     <!-- 内容区 -->
     <div class="console-learn-content">
-      <!-- 全部：推荐文章 -->
+      <!-- 全部：推荐文章 Banner + 全部文章列表 -->
       <template v-if="isEmptyState">
-        <div v-if="recommendedArticles.length" class="article-list">
+        <div v-if="allArticles.length" class="article-list">
           <article
-            v-for="(article, idx) in recommendedArticles"
+            v-for="(article, idx) in allArticles"
             :key="article.id"
             class="article-card"
             @click="handleArticleClick(article)"
           >
-            <span class="article-rank">{{ idx + 1 }}</span>
+            <span class="article-rank">{{ (allArticlesPage - 1) * allArticlesSize + idx + 1 }}</span>
             <img
               v-if="article.coverImageUrl"
               :src="article.coverImageUrl"
@@ -65,10 +115,20 @@
           </article>
         </div>
 
-        <div v-else-if="!loading" class="console-learn-empty">
+        <div v-if="allArticles.length && allArticlesTotal > allArticlesSize" class="all-articles-pagination">
+          <a-pagination
+            :current="allArticlesPage"
+            :page-size="allArticlesSize"
+            :total="allArticlesTotal"
+            show-less-items
+            @change="handleAllPageChange"
+          />
+        </div>
+
+        <div v-if="!allArticles.length && !loading" class="console-learn-empty">
           <ReadOutlined class="console-learn-empty-icon" />
           <div class="console-learn-empty-title">欢迎来到创作学院</div>
-          <div class="console-learn-empty-subtitle">推荐内容正在准备中，请先选择一个分类</div>
+          <div class="console-learn-empty-subtitle">全部内容正在准备中，请先选择一个分类</div>
         </div>
       </template>
 
@@ -163,7 +223,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import {
   BookOutlined,
   ReadOutlined,
@@ -172,6 +232,7 @@ import {
 } from '@ant-design/icons-vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
 import { useLearn } from '@/composables/useLearn.js'
+import { useDevice } from '@/composables/useDevice.js'
 
 const {
   categoryTree,
@@ -183,29 +244,101 @@ const {
   topCategories,
   isEmptyState,
   recommendedArticles,
+  allArticles,
+  allArticlesPage,
+  allArticlesSize,
+  allArticlesTotal,
+  loading,
+  loadAllArticles,
   onSelectCategory,
   loadArticle,
   goHome,
   handleArticleClick,
   shouldShowPaidBadge
-} = useLearn('/console/learn')
+} = useLearn('/console/learn', { loadAll: true })
 
-const loading = computed(() => {
-  // 空状态等待推荐文章，分类状态等待分类数据，文章状态等待文章数据
-  if (isEmptyState.value) return recommendedArticles.value === null || recommendedArticles.value === undefined
-  if (currentCategory.value) return false
-  if (currentArticle.value) return false
-  return true
-})
-
-// 当前分类是否含有可下钻的子分类（仅含直接子分类，不再递归）
 const hasSubcategories = computed(() =>
   Array.isArray(currentCategory.value?.children) && currentCategory.value.children.length > 0
 )
 
+// Banner 轮播
+const activeBannerIndex = ref(0)
+let bannerTimer = null
+let bannerTouchStartX = 0
+const { isMobile } = useDevice()
+
+function startBannerCarousel() {
+  stopBannerCarousel()
+  // 桌面端一屏展示多张卡片，不需要自动轮播
+  if (!isMobile.value) return
+  if (recommendedArticles.value.length <= 1) return
+  bannerTimer = setInterval(() => {
+    activeBannerIndex.value = (activeBannerIndex.value + 1) % recommendedArticles.value.length
+  }, 5000)
+}
+
+function stopBannerCarousel() {
+  if (bannerTimer) {
+    clearInterval(bannerTimer)
+    bannerTimer = null
+  }
+}
+
+function handleBannerTouchStart(e) {
+  bannerTouchStartX = e.changedTouches[0]?.clientX || 0
+}
+
+function handleBannerTouchEnd(e) {
+  const endX = e.changedTouches[0]?.clientX || 0
+  const diff = bannerTouchStartX - endX
+  const total = recommendedArticles.value.length
+  if (total <= 1) return
+  if (diff > 40) {
+    activeBannerIndex.value = (activeBannerIndex.value + 1) % total
+  } else if (diff < -40) {
+    activeBannerIndex.value = (activeBannerIndex.value - 1 + total) % total
+  }
+}
+
+watch(recommendedArticles, () => {
+  activeBannerIndex.value = 0
+  nextTick(startBannerCarousel)
+}, { immediate: true, flush: 'post' })
+
+// Tab 栏溢出提示
+const tabBarRef = ref(null)
+const showTabFade = ref(false)
+
+function checkTabOverflow() {
+  const el = tabBarRef.value
+  if (!el) return
+  showTabFade.value = el.scrollWidth > el.clientWidth + 2
+}
+
+watch(categoryTree, () => nextTick(checkTabOverflow), { flush: 'post' })
+
+onMounted(() => {
+  checkTabOverflow()
+  window.addEventListener('resize', checkTabOverflow, { passive: true })
+})
+
+onUnmounted(() => {
+  stopBannerCarousel()
+  window.removeEventListener('resize', checkTabOverflow)
+})
+
 function readingMinutes(content) {
   if (!content) return 1
   return Math.max(1, Math.ceil(content.length / 300))
+}
+
+async function handleAllPageChange(page) {
+  await loadAllArticles(page, allArticlesSize.value)
+  // 翻页后滚动到列表顶部（Banner 下方）
+  const contentEl = document.querySelector('.console-learn-content')
+  if (contentEl) {
+    contentEl.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 }
 
 function formatDate(d) {
@@ -306,6 +439,171 @@ function formatDate(d) {
   background: var(--color-primary, #FF2442);
   border-color: var(--color-primary, #FF2442);
   color: #fff;
+}
+
+/* 推荐文章 Banner */
+.learn-banner {
+  margin-bottom: 16px;
+}
+.learn-banner__carousel {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  aspect-ratio: 2 / 1;
+  background: #f0f0f0;
+  touch-action: pan-y;
+}
+.learn-banner__slide {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+  cursor: pointer;
+}
+.learn-banner__slide.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+.learn-banner__img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.learn-banner__info {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 32px 14px 12px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+}
+.learn-banner__title {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.learn-banner__dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding-top: 10px;
+}
+.learn-banner__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d9d9d9;
+  cursor: pointer;
+}
+.learn-banner__dot.active {
+  background: #FF2442;
+}
+
+/* 桌面端：Banner 改成横向多卡片滚动，每排 3~4 个，2:1 比例 */
+@media (min-width: 769px) {
+  .learn-banner {
+    margin-bottom: 20px;
+  }
+  .learn-banner__carousel {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    aspect-ratio: auto;
+    max-height: none;
+    background: transparent;
+    border-radius: 0;
+    padding-bottom: 4px;
+  }
+  .learn-banner__carousel::-webkit-scrollbar {
+    height: 4px;
+  }
+  .learn-banner__carousel::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .learn-banner__carousel::-webkit-scrollbar-thumb {
+    background: #d9d9d9;
+    border-radius: 2px;
+  }
+  .learn-banner__slide {
+    position: relative;
+    flex: 0 0 calc(25% - 9px);
+    min-width: 220px;
+    aspect-ratio: 2 / 1;
+    opacity: 1;
+    pointer-events: auto;
+    scroll-snap-align: start;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #f0f0f0;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .learn-banner__slide:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+  .learn-banner__slide.active {
+    opacity: 1;
+  }
+  .learn-banner__info {
+    padding: 24px 14px 10px;
+  }
+  .learn-banner__title {
+    font-size: 14px;
+  }
+  .learn-banner__dots {
+    display: none;
+  }
+}
+
+/* Category tabs */
+.category-tabs-wrapper {
+  position: relative;
+}
+
+.category-tabs-fade {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 4px;
+  width: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, #fafafa 70%);
+  color: #8c8c8c;
+  opacity: 0.95;
+}
+
+.category-tabs-fade svg {
+  width: 14px;
+  height: 14px;
+}
+
+.category-tabs-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+
+.category-tabs-bar::-webkit-scrollbar {
+  display: none;
 }
 
 /* Content card */
@@ -486,6 +784,12 @@ function formatDate(d) {
   transition: all 0.2s;
 }
 
+.all-articles-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 8px;
+}
+
 /* 付费文章右上角徽章 */
 .article-badge {
   position: absolute;
@@ -643,6 +947,23 @@ body[data-theme="dark"] .category-tab:hover {
   color: rgba(255, 255, 255, 0.85);
 }
 
+body[data-theme="dark"] .learn-banner__carousel {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .learn-banner__dot {
+  background: #595959;
+}
+
+body[data-theme="dark"] .learn-banner__dot.active {
+  background: #ff4d6f;
+}
+
+body[data-theme="dark"] .category-tabs-fade {
+  background: linear-gradient(to right, transparent, #141414 70%);
+  color: #8c8c8c;
+}
+
 body[data-theme="dark"] .article-card {
   background: #1f1f1f;
   border-color: #303030;
@@ -735,13 +1056,37 @@ body[data-theme="dark"] .article-category {
     min-height: auto;
   }
 
-  .category-tabs-bar {
+  .category-tabs-wrapper {
     position: sticky;
     top: 0;
     z-index: 10;
+  }
+
+  .category-tabs-bar {
     background: #fafafa;
     padding: 10px 0;
     margin: 0 0 12px;
+  }
+
+  .category-tabs-fade {
+    background: linear-gradient(to right, transparent, #fafafa 70%);
+    bottom: 16px;
+  }
+
+  .learn-banner {
+    margin: 0 0 12px;
+  }
+
+  .learn-banner__carousel {
+    border-radius: 18px;
+  }
+
+  .learn-banner__info {
+    padding: 28px 12px 10px;
+  }
+
+  .learn-banner__title {
+    font-size: 14px;
   }
 
   .category-tab {
@@ -883,7 +1228,15 @@ body[data-theme="dark"] .article-category {
 
 /* 移动端暗色 */
 @media (max-width: 768px) {
+  body[data-theme="dark"] .category-tabs-wrapper { background: #141414; }
   body[data-theme="dark"] .category-tabs-bar { background: #141414; }
+  body[data-theme="dark"] .category-tabs-fade {
+    background: linear-gradient(to right, transparent, #141414 70%);
+    color: #8c8c8c;
+  }
+  body[data-theme="dark"] .learn-banner__carousel { background: #2a2a2a; }
+  body[data-theme="dark"] .learn-banner__dot { background: #595959; }
+  body[data-theme="dark"] .learn-banner__dot.active { background: #ff4d6f; }
   body[data-theme="dark"] .category-detail-head,
   body[data-theme="dark"] .article-card,
   body[data-theme="dark"] .subcategory-card,

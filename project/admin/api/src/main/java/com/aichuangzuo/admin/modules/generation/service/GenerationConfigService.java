@@ -110,7 +110,9 @@ public class GenerationConfigService {
     }
 
     public GenerationConfigVO detail() {
-        return toVo(requireById(CACHE_ID));
+        GenerationConfig config = requireById(CACHE_ID);
+        log.info("管理端查询创作配置详情完成, configId={}", config.getId());
+        return toVo(config);
     }
 
     private GenerationConfig requireById(Long id) {

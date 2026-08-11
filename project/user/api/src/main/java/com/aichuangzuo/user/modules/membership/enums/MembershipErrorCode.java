@@ -12,7 +12,9 @@ public enum MembershipErrorCode implements ErrorCode {
     INVALID_CYCLE(116003, "订阅周期不存在"),
     INVALID_AMOUNT(116004, "支付金额与系统计算不符"),
     UPGRADE_CYCLE_MISMATCH(116005, "升级不能缩短当前订阅周期"),
-    INVALID_COIN_AMOUNT(116006, "创作币抵扣金额不正确");
+    INVALID_COIN_AMOUNT(116006, "创作币抵扣金额不正确"),
+    INVALID_COUPON(116007, "优惠券无效或已过期"),
+    COUPON_NOT_APPLICABLE(116008, "优惠券不适用于当前套餐或周期");
 
     private final int code;
     private final String message;

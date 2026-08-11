@@ -11,6 +11,7 @@ import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -23,6 +24,7 @@ import java.util.List;
  * 管理端：u_plan 维护（套餐价格/邀请奖励/推荐位/上下架）。
  */
 @Tag(name = "管理端-套餐元数据")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/plans")
 @RequiredArgsConstructor
@@ -33,21 +35,24 @@ public class PlanAdminController {
 
     @GetMapping
     public Result<List<PlanVO>> list() {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询套餐列表, adminUserId={}", adminUserId);
         return Result.success(planAdminService.list());
     }
 
     @PostMapping
     public Result<PlanVO> upsert(@Valid @RequestBody PlanUpsertRequest request) {
-        checkSuperAdmin();
-        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员保存套餐, adminUserId={}, planKey={}, displayName={}",
+                adminUserId, request.getPlanKey(), request.getDisplayName());
         return Result.success(planAdminService.upsert(request, adminUserId));
     }
 
-    private void checkSuperAdmin() {
+    private Long checkSuperAdmin() {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminUserId == null || !adminUserPermissionService.isSuperAdmin(adminUserId)) {
             throw new BusinessException(AdminUserErrorCode.NO_PERMISSION);
         }
+        return adminUserId;
     }
 }

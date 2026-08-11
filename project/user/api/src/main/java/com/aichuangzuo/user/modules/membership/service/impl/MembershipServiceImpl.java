@@ -21,6 +21,7 @@ import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.mapper.PlanMapper;
 import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.earnings.service.EarningsService;
+import com.aichuangzuo.user.modules.lottery.service.UserCouponService;
 import com.aichuangzuo.user.modules.membership.service.MembershipService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.MembershipStatusVO;
@@ -78,6 +79,7 @@ public class MembershipServiceImpl implements MembershipService {
     private final EarningsService earningsService;
     private final PlanLookupService planLookupService;
     private final PlanMapper planMapper;
+    private final UserCouponService userCouponService;
 
     @Override
     @Transactional
@@ -99,6 +101,8 @@ public class MembershipServiceImpl implements MembershipService {
             validateUpgradeCycle(userId, request.getCycle());
         }
         BigDecimal expectedAmount = resolveExpectedAmount(userId, plan.getKey(), cycle.getCode(), upgrade);
+        BigDecimal couponDiscount = calculateCouponDiscount(userId, request.getCouponCode(), expectedAmount, plan.getKey(), cycle.getCode());
+        expectedAmount = expectedAmount.subtract(couponDiscount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
         BigDecimal requestedCoinAmount = request.getCoinAmount() == null ? BigDecimal.ZERO : request.getCoinAmount();
         validateCoinAmount(requestedCoinAmount);
 
@@ -117,11 +121,14 @@ public class MembershipServiceImpl implements MembershipService {
         }
 
         Order order = createPaidOrder(userId, plan, cycle, finalCashAmount,
-                requestedCoinAmount.longValue(), coinDiscountYuan);
+                requestedCoinAmount.longValue(), coinDiscountYuan, request.getCouponCode(), couponDiscount);
         UserMembership membership = activateOrExtendMembership(userId, plan, cycle, upgrade);
 
         if (requestedCoinAmount.compareTo(BigDecimal.ZERO) > 0) {
             spendCoinDiscount(userId, order);
+        }
+        if (couponDiscount.compareTo(BigDecimal.ZERO) > 0) {
+            userCouponService.markCouponUsed(userId, request.getCouponCode(), order.getId());
         }
 
         sendSubscriptionNotification(userId, plan, membership);
@@ -141,6 +148,7 @@ public class MembershipServiceImpl implements MembershipService {
         vo.setRewardAmount(rewarded ? calculateInviteReward(order.getTotalAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
         vo.setCoinAmount(order.getCoinAmount());
         vo.setCoinDiscountYuan(order.getCoinDiscount());
+        vo.setCouponDiscount(order.getCouponDiscount());
         vo.setCashAmount(order.getAmount());
         return vo;
     }
@@ -172,6 +180,14 @@ public class MembershipServiceImpl implements MembershipService {
                     .setScale(2, RoundingMode.HALF_UP);
         }
         return basePrice;
+    }
+
+    private BigDecimal calculateCouponDiscount(Long userId, String couponCode, BigDecimal amount, String planKey, String cycle) {
+        if (!org.springframework.util.StringUtils.hasText(couponCode)) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal afterCoupon = userCouponService.applyCoupon(userId, couponCode, amount, planKey, cycle);
+        return amount.subtract(afterCoupon).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
     }
 
     private void validateCoinAmount(BigDecimal coinAmount) {
@@ -420,13 +436,16 @@ public class MembershipServiceImpl implements MembershipService {
         BigDecimal originalPrice = resolveCyclePrice(plan, targetCycle.getCode());
         BigDecimal expectedAmount = resolveExpectedAmount(userId, targetPlan.getKey(), targetCycle.getCode(), upgrade);
         BigDecimal creditAmount = upgrade ? calculateCredit(userId) : BigDecimal.ZERO;
+        BigDecimal couponDiscount = calculateCouponDiscount(userId, request.getCouponCode(), expectedAmount, targetPlan.getKey(), targetCycle.getCode());
+        BigDecimal finalPrice = expectedAmount.subtract(couponDiscount).max(BigDecimal.ZERO).setScale(2, RoundingMode.HALF_UP);
 
         SubscribePreviewVO vo = new SubscribePreviewVO();
         vo.setPlanKey(targetPlan.getKey());
         vo.setCycle(targetCycle.getCode());
         vo.setOriginalPrice(originalPrice);
         vo.setCreditAmount(creditAmount);
-        vo.setFinalPrice(expectedAmount);
+        vo.setCouponDiscount(couponDiscount);
+        vo.setFinalPrice(finalPrice);
 
         BigDecimal coinBalance = coinRecordService.getBalance(userId);
         vo.setCoinBalance(coinBalance);
@@ -470,7 +489,8 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     private Order createPaidOrder(Long userId, MembershipPlan plan, MembershipCycle cycle,
-                                  BigDecimal cashAmount, Long coinAmount, BigDecimal coinDiscountYuan) {
+                                  BigDecimal cashAmount, Long coinAmount, BigDecimal coinDiscountYuan,
+                                  String couponCode, BigDecimal couponDiscount) {
         Order order = new Order();
         order.setOrderNo(generateOrderNo());
         order.setUserId(userId);
@@ -479,7 +499,9 @@ public class MembershipServiceImpl implements MembershipService {
         order.setAmount(cashAmount);
         order.setCoinAmount(coinAmount);
         order.setCoinDiscount(coinDiscountYuan);
-        order.setTotalAmount(cashAmount.add(coinDiscountYuan));
+        order.setCouponCode(couponCode);
+        order.setCouponDiscount(couponDiscount);
+        order.setTotalAmount(cashAmount.add(coinDiscountYuan).add(couponDiscount == null ? BigDecimal.ZERO : couponDiscount));
         order.setStatus(1);
         order.setPaidAt(LocalDateTime.now());
         order.setTenantId(0L);

@@ -126,6 +126,11 @@ const routes = [
         component: () => import('@/views/CommissionTaskView.vue')
       },
       {
+        path: 'lottery',
+        name: 'AdminLottery',
+        component: () => import('@/views/LotteryAdminView.vue')
+      },
+      {
         path: 'messages',
         name: 'AdminMessageManagement',
         component: () => import('@/views/MessageAdminView.vue')

@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -31,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "用户作品")
 @RestController
 @RequestMapping("/api/v1/user/articles")
+@Slf4j
 @RequiredArgsConstructor
 public class ArticleController {
 
@@ -51,6 +53,7 @@ public class ArticleController {
             @RequestParam(name = "page", defaultValue = "1") long page,
             @RequestParam(name = "pageSize", defaultValue = "20") long pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询作品列表, userId={}, keyword={}, page={}, pageSize={}", userId, keyword, page, pageSize);
         return Result.success(articleService.list(userId, keyword, page, pageSize));
     }
 
@@ -61,6 +64,7 @@ public class ArticleController {
     @GetMapping("/{bizNo}")
     public Result<ArticleVO> get(@PathVariable("bizNo") String bizNo) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询作品详情, userId={}, bizNo={}", userId, bizNo);
         return Result.success(articleService.get(userId, bizNo));
     }
 
@@ -73,6 +77,7 @@ public class ArticleController {
     @PostMapping
     public Result<String> save(@Valid @RequestBody SaveArticleRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("保存作品, userId={}, title={}, platform={}, wordCount={}", userId, request.getTitle(), request.getPlatform(), request.getWordCount());
         return Result.success(articleService.save(userId, request));
     }
 
@@ -84,6 +89,7 @@ public class ArticleController {
     public Result<Void> update(@PathVariable("bizNo") String bizNo,
                                 @Valid @RequestBody UpdateArticleRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改作品, userId={}, bizNo={}, title={}", userId, bizNo, request.getTitle());
         articleService.update(userId, bizNo, request);
         return Result.success();
     }
@@ -95,6 +101,7 @@ public class ArticleController {
     @DeleteMapping("/{bizNo}")
     public Result<Void> delete(@PathVariable("bizNo") String bizNo) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("删除作品, userId={}, bizNo={}", userId, bizNo);
         articleService.delete(userId, bizNo);
         return Result.success();
     }
@@ -106,6 +113,7 @@ public class ArticleController {
     @PostMapping("/{bizNo}/title-optimize")
     public Result<TitleOptimizeVO> titleOptimize(@PathVariable("bizNo") String bizNo) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("AI标题优化, userId={}, bizNo={}", userId, bizNo);
         return Result.success(titleOptimizeService.optimize(userId, bizNo));
     }
 
@@ -116,6 +124,7 @@ public class ArticleController {
     @GetMapping("/monthly-count")
     public Result<Long> monthlyCount() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询本月已生成作品数, userId={}", userId);
         return Result.success(articleService.monthlyCount(userId));
     }
 }

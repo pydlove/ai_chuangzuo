@@ -16,6 +16,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.List;
 /**
  * 收益排行榜管理端接口。
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/leaderboards")
 @RequiredArgsConstructor
@@ -55,12 +57,18 @@ public class LeaderboardAdminController {
     @GetMapping("/rewards/preview")
     public Result<List<LeaderboardTop10VO>> previewTop10(@RequestParam(name = "leaderboardType") Integer leaderboardType,
                                                          @RequestParam(name = "periodMonth") String periodMonth) {
+        Long adminUserId = currentAdminId();
+        log.info("管理员预览收益排行榜 Top10, adminUserId={}, leaderboardType={}, periodMonth={}",
+                adminUserId, leaderboardType, periodMonth);
         return Result.success(awardService.previewTop10(leaderboardType, periodMonth));
     }
 
     @PostMapping("/rewards/actions/grant")
     public Result<LeaderboardGrantResultVO> grant(@Valid @RequestBody LeaderboardGrantRequest request) {
-        return Result.success(awardService.grant(request.getLeaderboardType(), request.getPeriodMonth(), currentAdminId()));
+        Long adminUserId = currentAdminId();
+        log.info("管理员发放收益排行榜奖励, adminUserId={}, leaderboardType={}, periodMonth={}",
+                adminUserId, request.getLeaderboardType(), request.getPeriodMonth());
+        return Result.success(awardService.grant(request.getLeaderboardType(), request.getPeriodMonth(), adminUserId));
     }
 
     @GetMapping("/rewards")
@@ -68,6 +76,9 @@ public class LeaderboardAdminController {
                                                          @RequestParam(name = "periodMonth", required = false) String periodMonth,
                                                          @RequestParam(name = "page", defaultValue = "1") int page,
                                                          @RequestParam(name = "size", defaultValue = "20") int size) {
+        Long adminUserId = currentAdminId();
+        log.info("管理员查询收益排行榜发放记录, adminUserId={}, leaderboardType={}, periodMonth={}, page={}, size={}",
+                adminUserId, leaderboardType, periodMonth, page, size);
         return Result.success(awardService.rewardHistory(leaderboardType, periodMonth, new Page<>(page, size)));
     }
 

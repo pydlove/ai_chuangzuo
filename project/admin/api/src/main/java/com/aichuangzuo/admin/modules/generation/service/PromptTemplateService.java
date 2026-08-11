@@ -71,11 +71,14 @@ public class PromptTemplateService {
         vo.setTotal(result.getTotal());
         vo.setPage(result.getCurrent());
         vo.setPageSize(result.getSize());
+        log.info("管理端查询创作提示词模板列表完成, keyword={}, page={}, pageSize={}, total={}",
+                kw, req.getPage(), req.getPageSize(), result.getTotal());
         return vo;
     }
 
     public PromptTemplateAdminVO detail(Long id) {
         PromptTemplate t = requireById(id);
+        log.info("管理端查询创作提示词模板详情完成, templateId={}, name={}", id, t.getName());
         return toVo(t);
     }
 
@@ -293,7 +296,7 @@ public class PromptTemplateService {
      */
     public List<PromptTemplateVersionVO> listVersions(Long id) {
         requireById(id);
-        return versionMapper.selectByTemplateId(id).stream().map(v -> {
+        List<PromptTemplateVersionVO> versions = versionMapper.selectByTemplateId(id).stream().map(v -> {
             PromptTemplateVersionVO vo = new PromptTemplateVersionVO();
             BeanUtils.copyProperties(v, vo);
             TemplateStatus st = TemplateStatus.fromCode(v.getVersionStatus());
@@ -301,6 +304,8 @@ public class PromptTemplateService {
             vo.setVersionStatusLabel(st.label);
             return vo;
         }).toList();
+        log.info("管理端查询创作提示词模板版本列表完成, templateId={}, versionCount={}", id, versions.size());
+        return versions;
     }
 
     /**

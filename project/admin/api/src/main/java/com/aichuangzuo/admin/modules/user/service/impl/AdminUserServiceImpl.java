@@ -1,5 +1,8 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
+import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.order.entity.AdminMembership;
+import com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper;
 import com.aichuangzuo.admin.modules.plan.entity.Plan;
 import com.aichuangzuo.admin.modules.plan.mapper.PlanMapper;
 import com.aichuangzuo.admin.modules.benefit.entity.BenefitUsageAggregate;
@@ -39,6 +42,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -58,6 +62,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminUserServiceImpl implements AdminUserService {
@@ -71,6 +76,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMarketFavoriteMapper userMarketFavoriteMapper;
     private final BenefitUsageAdminMapper benefitUsageAdminMapper;
     private final PlanMapper planMapper;
+    private final AdminMembershipMapper adminMembershipMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -122,6 +128,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setIsDeleted(0);
         platformUserMapper.insert(user);
 
+        log.info("管理员创建用户成功, adminUserId={}, userId={}, email={}",
+                SecurityAdminContext.getCurrentAdminUserId(), user.getId(), email);
+
         return toAdminUserVO(user);
     }
 
@@ -153,6 +162,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         for (PlatformUser user : users) {
             platformUserMapper.insert(user);
         }
+        log.info("管理员批量导入用户成功, adminUserId={}, total={}, success={}",
+                SecurityAdminContext.getCurrentAdminUserId(), rows.size(), users.size());
         return new AdminUserImportResultVO(true, rows.size(), users.size(), List.of());
     }
 
@@ -340,6 +351,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         int status = "enabled".equals(request.getStatus()) ? 1 : 0;
         user.setUserStatus(status);
         platformUserMapper.updateById(user);
+        log.info("管理员修改用户状态成功, adminUserId={}, userId={}, status={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id, request.getStatus());
     }
 
     @Override
@@ -351,6 +364,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
         user.setPasswordHash(passwordEncoder.encode(RESET_PASSWORD));
         platformUserMapper.updateById(user);
+        log.info("管理员重置用户密码成功, adminUserId={}, userId={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id);
         AdminUserResetPasswordVO vo = new AdminUserResetPasswordVO();
         vo.setNewPassword(RESET_PASSWORD);
         return vo;
@@ -395,6 +410,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         platformUserMapper.updateById(user);
+
+        // 同步 u_user_membership：用户端权益校验读的是这张表，不能只更新 u_user 缓存列
+        syncUserMembership(user.getId(), user.getMembershipPlan(), user.getMembershipExpireAt());
+
+        log.info("管理员更新用户成功, adminUserId={}, userId={}, email={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id, email);
         return toAdminUserVO(user);
     }
 
@@ -406,6 +427,8 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
         }
         platformUserMapper.deleteById(id);
+        log.info("管理员删除用户成功, adminUserId={}, userId={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id);
     }
 
     @Override
@@ -647,6 +670,31 @@ public class AdminUserServiceImpl implements AdminUserService {
         PlatformUser user = platformUserMapper.selectById(userId);
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+    }
+
+    private void syncUserMembership(Long userId, String planKey, LocalDateTime expireAt) {
+        if (!StringUtils.hasText(planKey) || expireAt == null) {
+            return;
+        }
+        LocalDate expireDate = expireAt.toLocalDate();
+        if (expireDate.isBefore(LocalDate.now())) {
+            return;
+        }
+
+        AdminMembership membership = adminMembershipMapper.selectByUserId(userId);
+        if (membership == null) {
+            membership = new AdminMembership();
+            membership.setUserId(userId);
+            membership.setLevel(planKey);
+            membership.setStartedAt(LocalDate.now());
+            membership.setExpiresAt(expireDate);
+            adminMembershipMapper.insertMembership(membership);
+        } else {
+            membership.setLevel(planKey);
+            membership.setStartedAt(LocalDate.now());
+            membership.setExpiresAt(expireDate);
+            adminMembershipMapper.updateMembership(membership);
         }
     }
 }

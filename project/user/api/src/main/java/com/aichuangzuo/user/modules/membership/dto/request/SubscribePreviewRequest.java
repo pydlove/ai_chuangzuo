@@ -16,4 +16,7 @@ public class SubscribePreviewRequest {
     /** 周期：month / quarter / year。 */
     @NotBlank(message = "订阅周期不能为空")
     private String cycle;
+
+    /** 优惠券码（可选）。 */
+    private String couponCode;
 }

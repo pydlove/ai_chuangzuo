@@ -3,6 +3,7 @@ package com.aichuangzuo.user.common.interceptor;
 import com.aichuangzuo.shared.enums.error.SystemErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
+import com.aichuangzuo.user.modules.security.ratelimit.service.RateLimitConfigService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -17,9 +18,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class RateLimitInterceptor implements HandlerInterceptor {
 
     private final CacheUtil cacheUtil;
+    private final RateLimitConfigService rateLimitConfigService;
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (!rateLimitConfigService.isLoginRateLimitEnabled()) {
+            return true;
+        }
+
         String path = request.getRequestURI();
         String ip = getClientIp(request);
         String key = "user:rate-limit:" + path + ":" + ip;

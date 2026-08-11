@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @Tag(name = "管理端-用户反馈")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/feedbacks")
 @RequiredArgsConstructor
@@ -34,6 +36,9 @@ public class AdminFeedbackController {
     public Result<Map<String, Object>> list(@RequestParam(required = false) Integer status,
                                             @RequestParam(defaultValue = "1") long page,
                                             @RequestParam(defaultValue = "20") long size) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询用户反馈列表, adminUserId={}, status={}, page={}, size={}",
+                adminUserId, status, page, size);
         List<AdminFeedbackVO> rows = feedbackService.page(status, page, size);
         long total = feedbackService.count(status);
         Map<String, Object> data = new HashMap<>();
@@ -47,6 +52,8 @@ public class AdminFeedbackController {
     @Operation(summary = "反馈详情")
     @GetMapping("/{id}")
     public Result<AdminFeedbackVO> detail(@PathVariable("id") Long id) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询用户反馈详情, adminUserId={}, feedbackId={}", adminUserId, id);
         return Result.success(feedbackService.detail(id));
     }
 
@@ -55,6 +62,7 @@ public class AdminFeedbackController {
     public Result<Void> reply(@PathVariable("id") Long id,
                               @Valid @RequestBody AdminReplyFeedbackRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员回复用户反馈, adminUserId={}, feedbackId={}", adminId, id);
         feedbackService.reply(id, adminId, request.getContent());
         return Result.success();
     }

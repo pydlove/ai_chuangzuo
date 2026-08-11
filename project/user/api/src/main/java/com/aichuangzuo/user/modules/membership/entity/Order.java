@@ -40,7 +40,13 @@ public class Order {
     /** 创作币抵扣金额（元）。 */
     private BigDecimal coinDiscount;
 
-    /** 订单名义总金额（现金+创作币抵扣）。 */
+    /** 使用的优惠券码。 */
+    private String couponCode;
+
+    /** 优惠券抵扣金额（元）。 */
+    private BigDecimal couponDiscount;
+
+    /** 订单名义总金额（现金+创作币抵扣+优惠券抵扣）。 */
     private BigDecimal totalAmount;
 
     /** 状态：0-待支付，1-已支付。 */

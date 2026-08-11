@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Tag(name = "审计日志")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/audit-logs")
 @RequiredArgsConstructor
@@ -49,6 +51,10 @@ public class AuditLogAdminController {
             @RequestParam(name = "endDate", required = false) String endDate,
             @RequestParam(name = "page", defaultValue = "1") long page,
             @RequestParam(name = "pageSize", defaultValue = "20") long pageSize) {
+
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询操作审计日志, adminUserId={}, userId={}, keyword={}, startDate={}, endDate={}, page={}, pageSize={}",
+                adminUserId, userId, keyword, startDate, endDate, page, pageSize);
 
         Long targetUserId = userId;
         if (targetUserId == null && keyword != null && !keyword.isBlank()) {
@@ -119,6 +125,8 @@ public class AuditLogAdminController {
     @Operation(summary = "获取审计日志配置")
     @GetMapping("/config")
     public Result<AuditConfigVO> getConfig() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询审计日志配置, adminUserId={}", adminUserId);
         AuditConfig config = auditConfigService.getConfig();
         return Result.success(toVO(config));
     }
@@ -127,6 +135,8 @@ public class AuditLogAdminController {
     @PutMapping("/config")
     public Result<AuditConfigVO> updateConfig(@Valid @RequestBody AuditConfigRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员更新审计日志配置, adminUserId={}, retentionDays={}, cleanupCron={}",
+                adminId, request.getRetentionDays(), request.getCleanupCron());
         AuditConfig config = auditConfigService.saveConfig(request, adminId);
         return Result.success(toVO(config));
     }

@@ -11,6 +11,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -20,6 +21,7 @@ import java.util.stream.Collectors;
 /**
  * 管理端用户作品服务实现。
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminArticleServiceImpl implements AdminArticleService {
@@ -48,6 +50,8 @@ public class AdminArticleServiceImpl implements AdminArticleService {
         AdminArticlePageVO vo = new AdminArticlePageVO();
         vo.setList(list);
         vo.setTotal(result.getTotal());
+        log.info("管理端查询用户作品列表完成, userId={}, keyword={}, page={}, pageSize={}, total={}",
+                userId, keyword, page, pageSize, result.getTotal());
         return vo;
     }
 
@@ -58,8 +62,10 @@ public class AdminArticleServiceImpl implements AdminArticleService {
                 .eq(Article::getIsDeleted, 0);
         Article article = articleMapper.selectOne(wrapper);
         if (article == null) {
+            log.warn("管理端查询作品详情未找到, bizNo={}", bizNo);
             throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
         }
+        log.info("管理端查询作品详情完成, bizNo={}, userId={}", bizNo, article.getUserId());
         return toDetailVO(article);
     }
 

@@ -37,6 +37,9 @@ public class SubscribeResultVO {
     /** 创作币抵扣金额（元）。 */
     private BigDecimal coinDiscountYuan;
 
+    /** 优惠券抵扣金额（元）。 */
+    private BigDecimal couponDiscount;
+
     /** 现金实付金额（元）。 */
     private BigDecimal cashAmount;
 }

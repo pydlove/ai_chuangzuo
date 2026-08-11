@@ -4,10 +4,12 @@ import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.UnauthorizedException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.AdminJwtUtil;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.earnings.dto.request.RecordEarningsRequest;
 import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/user/internal/earnings")
 @RequiredArgsConstructor
+@Slf4j
 public class EarningsInternalController {
 
     private final EarningsService earningsService;
@@ -28,6 +31,10 @@ public class EarningsInternalController {
     @PostMapping("/record")
     public Result<Void> record(@RequestHeader("Authorization") String authHeader,
                                @Valid @RequestBody RecordEarningsRequest request) {
+        Long currentUserId = SecurityUserContext.getCurrentUserId();
+        log.info("Record earnings, currentUserId={}, userId={}, type={}, sourceType={}, sourceId={}, title={}, amount={}, settlementMonth={}",
+                currentUserId, request.getUserId(), request.getType(), request.getSourceType(),
+                request.getSourceId(), request.getTitle(), request.getAmount(), request.getSettlementMonth());
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
         }

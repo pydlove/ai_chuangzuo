@@ -28,6 +28,7 @@ public class SkillUsageInternalController {
         Long taskId = asLong(payload.get("taskId"));
         Long userId = asLong(payload.get("userId"));
         String skillRef = asString(payload.get("skillRef"));
+        log.info("记录提示词使用 taskId={} userId={} skillRef={}", taskId, userId, skillRef);
         if (userId == null || skillRef == null || skillRef.isBlank()) {
             log.warn("记录提示词使用入参缺失 taskId={} userId={} skillRef={}", taskId, userId, skillRef);
             return Result.success();

@@ -72,6 +72,12 @@ public class CaffeineConfig {
                         .maximumSize(10)
                         .expireAfterWrite(1, TimeUnit.MINUTES)
                         .build());
+        // 登录限流配置：1 分钟 TTL（管理端改动后较快生效）
+        manager.registerCustomCache("rateLimitConfig",
+                Caffeine.newBuilder()
+                        .maximumSize(10)
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .build());
         return manager;
     }
 }

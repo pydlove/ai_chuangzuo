@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.user.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.user.dto.request.BindInviteCodeRequest;
 import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
@@ -12,6 +13,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -30,6 +32,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/user/me")
 @RequiredArgsConstructor
+@Slf4j
 public class UserProfileController {
 
     private final UserProfileService userProfileService;
@@ -43,6 +46,8 @@ public class UserProfileController {
     @Operation(summary = "获取我的个人资料")
     @GetMapping
     public Result<UserProfileVO> getMyProfile() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取我的个人资料, userId={}", userId);
         return Result.success(userProfileService.getMyProfile());
     }
 
@@ -55,6 +60,8 @@ public class UserProfileController {
     @Operation(summary = "修改昵称")
     @PutMapping("/nickname")
     public Result<UserProfileVO> updateNickname(@Valid @RequestBody UpdateNicknameRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改昵称, userId={}, nickname={}", userId, request.getNickname());
         return Result.success(userProfileService.updateNickname(request));
     }
 
@@ -67,6 +74,8 @@ public class UserProfileController {
     @Operation(summary = "修改邮箱")
     @PutMapping("/email")
     public Result<UserProfileVO> updateEmail(@Valid @RequestBody UpdateEmailRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改邮箱, userId={}, newEmail={}", userId, request.getNewEmail());
         return Result.success(userProfileService.updateEmail(request));
     }
 
@@ -79,6 +88,8 @@ public class UserProfileController {
     @Operation(summary = "修改密码")
     @PutMapping("/password")
     public Result<Void> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改密码, userId={}", userId);
         userProfileService.changePassword(request);
         return Result.success();
     }
@@ -92,6 +103,8 @@ public class UserProfileController {
     @Operation(summary = "绑定邀请人")
     @PostMapping("/invite-binding")
     public Result<Void> bindInviteCode(@Valid @RequestBody BindInviteCodeRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("绑定邀请人, userId={}, inviteCode={}", userId, request.getInviteCode());
         userInviteBindingService.bindInviteCode(request);
         return Result.success();
     }

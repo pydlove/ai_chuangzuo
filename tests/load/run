@@ -18,8 +18,13 @@ SCRIPT=$1
 VUS=${2:-100}
 
 # 兼容 ./run smoke.js 和 ./run case/creation/smoke.js 两种写法
+# 如果路径里带 /，认为已经在 case/ 下，直接拼接
 if [[ "$SCRIPT" != case/* ]]; then
-  SCRIPT="case/creation/$SCRIPT"
+  if [[ "$SCRIPT" == */* ]]; then
+    SCRIPT="case/$SCRIPT"
+  else
+    SCRIPT="case/creation/$SCRIPT"
+  fi
 fi
 
 echo "[RUN] 脚本: $SCRIPT, 并发用户数: $VUS"

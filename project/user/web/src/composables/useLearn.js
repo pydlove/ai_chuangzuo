@@ -1,6 +1,6 @@
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners, fetchRecommendedArticles } from '@/api/learn'
+import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners, fetchRecommendedArticles, fetchAllArticles } from '@/api/learn'
 
 const ACCESS_TOKEN_KEY = 'aichuangzuo_access_token'
 
@@ -19,7 +19,8 @@ function shouldShowPaidBadge(article) {
   return article.canRead === false
 }
 
-export function useLearn(basePath = '/learn') {
+export function useLearn(basePath = '/learn', options = {}) {
+  const { loadAll = false } = options
   const route = useRoute()
   const router = useRouter()
 
@@ -28,6 +29,11 @@ export function useLearn(basePath = '/learn') {
   const currentCategory = ref(null)
   const banners = ref([])
   const recommendedArticles = ref([])
+  const allArticles = ref([])
+  const allArticlesPage = ref(1)
+  const allArticlesSize = ref(20)
+  const allArticlesTotal = ref(0)
+  const loading = ref(false)
 
   const activeCategoryId = computed(() => {
     if (route.params.id) return currentArticle.value?.categoryId ?? null
@@ -108,53 +114,85 @@ export function useLearn(basePath = '/learn') {
       recommendedArticles.value = []
     }
   }
-  async function bootstrap() {
-    try {
-      const tree = await fetchCategoryTree()
-      categoryTree.value = tree.data || []
-    } catch (e) {
-      categoryTree.value = []
-    }
 
-    if (route.params.id) {
+  async function loadAllArticles(page = 1, size = 20) {
+    try {
+      const res = await fetchAllArticles(page, size)
+      const data = res.data || {}
+      allArticles.value = data.records || []
+      allArticlesPage.value = data.current || page
+      allArticlesSize.value = data.size || size
+      allArticlesTotal.value = data.total || 0
+    } catch (e) {
+      allArticles.value = []
+      allArticlesPage.value = page
+      allArticlesSize.value = size
+      allArticlesTotal.value = 0
+    }
+  }
+
+  async function bootstrap() {
+    loading.value = true
+    try {
       try {
-        const res = await fetchArticle(route.params.id)
-        currentArticle.value = res.data || null
+        const tree = await fetchCategoryTree()
+        categoryTree.value = tree.data || []
       } catch (e) {
+        categoryTree.value = []
+      }
+
+      if (route.params.id) {
+        try {
+          const res = await fetchArticle(route.params.id)
+          currentArticle.value = res.data || null
+        } catch (e) {
+          currentArticle.value = null
+        }
+        currentCategory.value = null
+      } else if (route.query.cat) {
+        try {
+          const detail = await fetchCategoryDetail(route.query.cat, 1, 50)
+          currentCategory.value = detail.data || null
+        } catch (e) {
+          currentCategory.value = null
+        }
+        currentArticle.value = null
+      } else {
+        currentCategory.value = null
         currentArticle.value = null
       }
-      currentCategory.value = null
-    } else if (route.query.cat) {
-      try {
-        const detail = await fetchCategoryDetail(route.query.cat, 1, 50)
-        currentCategory.value = detail.data || null
-      } catch (e) {
-        currentCategory.value = null
-      }
-      currentArticle.value = null
-    } else {
-      currentCategory.value = null
-      currentArticle.value = null
-    }
 
-    if (!route.params.id && !route.query.cat) {
-      try {
-        const bannerRes = await fetchBanners()
-        banners.value = bannerRes.data || []
-      } catch (e) {
-        banners.value = []
+      if (!route.params.id && !route.query.cat) {
+        try {
+          const bannerRes = await fetchBanners()
+          banners.value = bannerRes.data || []
+        } catch (e) {
+          banners.value = []
+        }
+        await loadRecommendedArticles()
+        if (loadAll) {
+          await loadAllArticles(1, allArticlesSize.value)
+        }
+      } else {
+        recommendedArticles.value = []
+        allArticles.value = []
+        allArticlesPage.value = 1
+        allArticlesTotal.value = 0
       }
-      await loadRecommendedArticles()
-    } else {
-      recommendedArticles.value = []
+    } finally {
+      loading.value = false
     }
   }
 
   onMounted(bootstrap)
-  watch(() => route.fullPath, (newPath, oldPath) => {
-    bootstrap()
-    if (route.params.id && newPath !== oldPath) {
-      window.scrollTo({ top: 0, behavior: 'smooth' })
+  watch(() => route.fullPath, async (newPath, oldPath) => {
+    const isArticleNav = route.params.id && newPath !== oldPath
+    if (isArticleNav) {
+      await bootstrap()
+      await nextTick()
+      window.scrollTo({ top: 0, behavior: 'auto' })
+    } else {
+      bootstrap()
     }
   })
 
@@ -169,6 +207,12 @@ export function useLearn(basePath = '/learn') {
     topCategories,
     isEmptyState,
     recommendedArticles,
+    allArticles,
+    allArticlesPage,
+    allArticlesSize,
+    allArticlesTotal,
+    loading,
+    loadAllArticles,
     onSelectCategory,
     loadArticle,
     goHome,

@@ -22,6 +22,9 @@ public class SubscribePreviewVO {
     /** 升级抵扣金额（非升级时为 0）。 */
     private BigDecimal creditAmount;
 
+    /** 优惠券抵扣金额（元）。 */
+    private BigDecimal couponDiscount;
+
     /** 抵扣后应付现金（创作币抵扣前）。 */
     private BigDecimal finalPrice;
 

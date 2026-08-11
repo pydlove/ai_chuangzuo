@@ -10,6 +10,7 @@ import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -23,6 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
  * 管理端-标题管理 API。
  */
 @Tag(name = "管理端-标题管理")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/topic-titles")
 @RequiredArgsConstructor
@@ -35,6 +37,8 @@ public class TopicTitleAdminController {
      */
     @GetMapping
     public Result<TopicTitlePageVO> list(@ModelAttribute TopicTitleQueryRequest request) {
+        log.info("管理端查询标题列表, keyword={}, usedStatus={}, page={}, pageSize={}",
+                request.getKeyword(), request.getUsedStatus(), request.getPage(), request.getPageSize());
         return Result.success(topicTitleService.list(request));
     }
 
@@ -44,6 +48,8 @@ public class TopicTitleAdminController {
      */
     @PostMapping("/generate")
     public Result<Long> generate(@Valid @RequestBody TopicTitleGenerateRequest request) {
+        log.info("管理端提交 AI 标题生成任务, count={}, direction={}",
+                request.getCount(), request.getDirection());
         Long taskId = topicTitleService.submitTask(request.getCount(), request.getDirection());
         return Result.success(taskId);
     }
@@ -53,6 +59,7 @@ public class TopicTitleAdminController {
      */
     @GetMapping("/tasks/{taskId}")
     public Result<TopicTitleTaskVO> getTask(@PathVariable Long taskId) {
+        log.info("管理端查询标题生成任务状态, taskId={}", taskId);
         TopicTitleTask task = topicTitleService.getTask(taskId);
         return Result.success(TopicTitleTaskVO.from(task));
     }
@@ -62,6 +69,7 @@ public class TopicTitleAdminController {
      */
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
+        log.info("管理端删除标题, titleId={}", id);
         topicTitleService.delete(id);
         return Result.success();
     }

@@ -12,6 +12,7 @@ import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.aichuangzuo.user.modules.membership.vo.UpgradePreviewVO;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/user/membership")
 @RequiredArgsConstructor
+@Slf4j
 public class MembershipController {
 
     private final MembershipService membershipService;
@@ -34,6 +36,8 @@ public class MembershipController {
     @PostMapping("/subscribe")
     public Result<SubscribeResultVO> subscribe(@Valid @RequestBody SubscribeRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("User subscribe membership, userId={}, planKey={}, cycle={}, amount={}, coinAmount={}",
+                userId, request.getPlanKey(), request.getCycle(), request.getAmount(), request.getCoinAmount());
         return Result.success(membershipService.subscribe(userId, request));
     }
 
@@ -43,6 +47,8 @@ public class MembershipController {
     @PostMapping("/subscribe-preview")
     public Result<SubscribePreviewVO> previewSubscribe(@Valid @RequestBody SubscribePreviewRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Preview membership subscribe, userId={}, planKey={}, cycle={}",
+                userId, request.getPlanKey(), request.getCycle());
         return Result.success(membershipService.previewSubscribe(userId, request));
     }
 
@@ -52,6 +58,7 @@ public class MembershipController {
     @GetMapping("/me")
     public Result<MembershipStatusVO> getMyMembership() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get my membership, userId={}", userId);
         return Result.success(membershipService.getMyMembership(userId));
     }
 
@@ -61,6 +68,8 @@ public class MembershipController {
     @PostMapping("/upgrade-preview")
     public Result<UpgradePreviewVO> previewUpgrade(@Valid @RequestBody UpgradePreviewRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Preview membership upgrade, userId={}, planKey={}, cycle={}",
+                userId, request.getPlanKey(), request.getCycle());
         return Result.success(membershipService.previewUpgrade(userId, request));
     }
 }

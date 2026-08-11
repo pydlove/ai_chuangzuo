@@ -34,6 +34,15 @@ export function fetchRecommendedArticles() {
 }
 
 /**
+ * 创作学院 - 全部文章分页列表。
+ * @param {number} page
+ * @param {number} size
+ */
+export function fetchAllArticles(page = 1, size = 20) {
+  return request.get('/learn/article/all', { params: { page, size } })
+}
+
+/**
  * 创作学院 - Banner 列表。
  * @returns {Promise<{code:number, data:Array, message:string}>}
  */

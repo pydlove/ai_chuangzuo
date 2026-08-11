@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "管理端提现管理")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/withdrawals")
 @RequiredArgsConstructor
@@ -28,13 +30,19 @@ public class WithdrawAdminController {
     @Operation(summary = "查询提现申请列表")
     @GetMapping
     public Result<WithdrawAdminPageVO> list(WithdrawQueryRequest request) {
+        Long adminUserId = currentAdminId();
+        log.info("管理员查询提现申请列表, adminUserId={}, userId={}, bizNo={}, status={}, page={}, size={}",
+                adminUserId, request.getUserId(), request.getBizNo(), request.getStatus(),
+                request.getPage(), request.getSize());
         return Result.success(withdrawAdminService.listWithdrawRequests(request));
     }
 
     @Operation(summary = "通过提现申请")
     @PostMapping("/{bizNo}/approve")
     public Result<Void> approve(@PathVariable("bizNo") String bizNo) {
-        withdrawAdminService.approve(bizNo, currentAdminId());
+        Long adminUserId = currentAdminId();
+        log.info("管理员通过提现申请, adminUserId={}, bizNo={}", adminUserId, bizNo);
+        withdrawAdminService.approve(bizNo, adminUserId);
         return Result.success();
     }
 
@@ -42,7 +50,10 @@ public class WithdrawAdminController {
     @PostMapping("/{bizNo}/reject")
     public Result<Void> reject(@PathVariable("bizNo") String bizNo,
                                 @Valid @RequestBody WithdrawRejectRequest request) {
-        withdrawAdminService.reject(bizNo, currentAdminId(), request.getRemark());
+        Long adminUserId = currentAdminId();
+        log.info("管理员拒绝提现申请, adminUserId={}, bizNo={}, remark={}",
+                adminUserId, bizNo, request.getRemark());
+        withdrawAdminService.reject(bizNo, adminUserId, request.getRemark());
         return Result.success();
     }
 

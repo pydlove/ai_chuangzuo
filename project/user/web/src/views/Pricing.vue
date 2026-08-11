@@ -14,8 +14,8 @@
           <button
             v-for="cycle in cycles"
             :key="cycle.key"
-            :class="['toggle-btn', { active: activeCycle === cycle.key, disabled: cycleLocked() && activeCycle !== cycle.key }]"
-            :disabled="cycleLocked() && activeCycle !== cycle.key"
+            :class="['toggle-btn', { active: activeCycle === cycle.key, disabled: isCycleDisabled(cycle.key) }]"
+            :disabled="isCycleDisabled(cycle.key)"
             @click="setCycle(cycle.key)"
           >
             {{ cycle.label }}
@@ -116,7 +116,7 @@
     <a-modal
       v-model:open="upgradeModalVisible"
       :title="`确认升级 ${selectedPlan ? selectedPlan.name : ''}`"
-      :width="420"
+      :width="480"
       centered
       class="upgrade-modal"
       @ok="confirmUpgrade"
@@ -131,13 +131,17 @@
           <span class="upgrade-label">抵扣金额</span>
           <span class="upgrade-value credit">-¥{{ upgradePreview.creditAmount }}</span>
         </div>
+        <div v-if="selectedCoinAmount > 0" class="upgrade-row">
+          <span class="upgrade-label">创作币抵扣</span>
+          <span class="upgrade-value credit">-{{ selectedCoinAmount }} 创作币（-¥{{ (selectedCoinAmount / COIN_TO_YUAN_RATIO).toFixed(2) }}）</span>
+        </div>
         <div class="upgrade-row">
           <span class="upgrade-label">{{ upgradePreview.targetPlanName }} {{ cycleLabel[upgradePreview.targetCycle] }}价</span>
           <span class="upgrade-value">¥{{ upgradePreview.originalPrice }}</span>
         </div>
         <div class="upgrade-row total">
           <span class="upgrade-label">实付金额</span>
-          <span class="upgrade-value final">¥{{ upgradePreview.finalPrice }}</span>
+          <span class="upgrade-value final">¥{{ getFinalCash() }}</span>
         </div>
         <p class="upgrade-tip">
           升级后新套餐立即生效，有效期 {{ upgradePreview.targetDays }} 天至 {{ upgradePreview.newExpiresAt }}；当前订阅剩余价值已折算为抵扣金额。
@@ -149,7 +153,7 @@
     <a-modal
       v-model:open="modalVisible"
       :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
-      :width="420"
+      :width="520"
       centered
       class="subscribe-modal"
       @ok="handlePay"
@@ -191,6 +195,7 @@ const { isMobile } = useDevice()
 const navLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
+  { to: '/lottery', label: '活动' },
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
@@ -211,6 +216,7 @@ const {
   cycles,
   cycleLocked,
   setCycle,
+  isCycleDisabled,
   upgradeModalVisible,
   upgradePreview,
   upgradeLoading,

@@ -18,6 +18,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,6 +30,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/user/account")
 @RequiredArgsConstructor
+@Slf4j
 public class AccountController {
 
     private final EarningsService earningsService;
@@ -39,6 +41,7 @@ public class AccountController {
     @GetMapping("/summary")
     public Result<AccountSummaryVO> summary() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get account summary, userId={}", userId);
         return Result.success(earningsService.getSummary(userId));
     }
 
@@ -51,6 +54,7 @@ public class AccountController {
     @GetMapping("/invite-stats")
     public Result<InviteStatsVO> inviteStats() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get invite stats, userId={}", userId);
         return Result.success(inviteRewardService.getInviteStats(userId));
     }
 
@@ -58,6 +62,7 @@ public class AccountController {
     @GetMapping("/monthly-summary")
     public Result<List<MonthlySettlementVO>> monthlySummary() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get monthly summary, userId={}", userId);
         return Result.success(earningsService.getMonthlySummary(userId));
     }
 
@@ -65,6 +70,8 @@ public class AccountController {
     @GetMapping("/earnings")
     public Result<EarningsRecordPageVO> earnings(@Valid ListEarningsRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("List earnings records, userId={}, month={}, page={}, pageSize={}",
+                userId, request.getMonth(), request.getPage(), request.getPageSize());
         return Result.success(earningsService.listEarnings(userId, request));
     }
 
@@ -72,6 +79,7 @@ public class AccountController {
     @GetMapping("/real-name")
     public Result<RealNameVO> getRealName() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get real name info, userId={}", userId);
         return Result.success(withdrawService.getRealName(userId));
     }
 
@@ -79,6 +87,7 @@ public class AccountController {
     @PostMapping("/real-name")
     public Result<Void> submitRealName(@Valid @RequestBody RealNameRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Submit real name, userId={}, realName={}", userId, request.getRealName());
         withdrawService.submitRealName(userId, request);
         return Result.success();
     }
@@ -87,6 +96,7 @@ public class AccountController {
     @GetMapping("/withdrawals")
     public Result<List<WithdrawRequestVO>> listWithdrawals() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("List withdrawals, userId={}", userId);
         return Result.success(withdrawService.listWithdrawRequests(userId));
     }
 
@@ -94,6 +104,8 @@ public class AccountController {
     @PostMapping("/withdrawals")
     public Result<String> applyWithdraw(@Valid @RequestBody WithdrawApplyRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Apply withdraw, userId={}, amount={}, accountLength={}",
+                userId, request.getAmount(), request.getAccount() == null ? 0 : request.getAccount().length());
         return Result.success(withdrawService.applyWithdraw(userId, request));
     }
 }

@@ -30,6 +30,14 @@
           <template #icon><ReloadOutlined /></template>
           刷新
         </a-button>
+        <a-button
+          danger
+          :disabled="selectedRowKeys.length === 0"
+          @click="confirmBatchStop"
+        >
+          批量停止
+          <span v-if="selectedRowKeys.length > 0" class="batch-count">({{ selectedRowKeys.length }})</span>
+        </a-button>
         <span class="auto-refresh-tip">5s 自动刷新中</span>
       </div>
 
@@ -41,6 +49,7 @@
         :scroll="{ x: 1200 }"
         row-key="id"
         size="middle"
+        :row-selection="rowSelection"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'bizNo'">
@@ -313,7 +322,7 @@
 
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive } from 'vue'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import { ReloadOutlined, EyeOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import { useCreationQueue } from '@/composables/useCreationQueue.js'
 import { getGenerationCallLogsGrouped, previewGenerationTaskArticle, downloadGenerationTaskArticle } from '@/api/creationQueue.js'
@@ -326,6 +335,9 @@ const {
   pageSize,
   keyword,
   activeStatus,
+  selectedRowKeys,
+  selectedRows,
+  STATUS_TAB,
   fetch,
   switchTab,
   handleSearch,
@@ -333,6 +345,8 @@ const {
   handlePageChange,
   refresh,
   handleStop,
+  handleBatchStop,
+  clearSelection,
   startAutoRefresh
 } = useCreationQueue()
 
@@ -569,6 +583,29 @@ const activeTabKey = computed(() => {
 
 const onTabChange = (key) => switchTab(key)
 
+const rowSelection = {
+  selectedRowKeys,
+  onChange: (keys, rows) => {
+    selectedRowKeys.value = keys
+    selectedRows.value = rows
+  }
+}
+
+const confirmBatchStop = () => {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请先选择要停止的任务')
+    return
+  }
+  Modal.confirm({
+    title: '确定批量停止所选任务？',
+    content: `已选 ${selectedRowKeys.value.length} 个任务，仅状态为「排队中」和「执行中」的任务会被停止，已消耗的文章额度将退回用户。`,
+    okText: '停止',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: handleBatchStop
+  })
+}
+
 const columns = computed(() => {
   const base = [
     { title: '业务号', dataIndex: 'bizNo', key: 'bizNo', width: 180 },
@@ -650,6 +687,10 @@ onBeforeUnmount(() => {
 .auto-refresh-tip {
   margin-left: auto;
   color: #52c41a;
+  font-size: 12px;
+}
+.batch-count {
+  margin-left: 4px;
   font-size: 12px;
 }
 .biz-no {
@@ -836,25 +877,24 @@ onBeforeUnmount(() => {
   padding-right: 4px;
 }
 .detail-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 12px 16px;
+  align-items: start;
 }
 .detail-divider {
   margin: 16px 0;
 }
 .detail-row {
-  display: flex;
-  gap: 16px;
-  align-items: flex-start;
+  display: contents;
 }
 .detail-row.block {
+  display: flex;
   flex-direction: column;
   gap: 6px;
+  grid-column: 1 / -1;
 }
 .detail-label {
-  flex-shrink: 0;
-  width: 80px;
   color: #8c8c8c;
   font-size: 13px;
   line-height: 22px;
@@ -862,10 +902,8 @@ onBeforeUnmount(() => {
 }
 .detail-row.block .detail-label {
   text-align: left;
-  width: auto;
 }
 .detail-value {
-  flex: 1;
   color: #262626;
   font-size: 13px;
   line-height: 22px;

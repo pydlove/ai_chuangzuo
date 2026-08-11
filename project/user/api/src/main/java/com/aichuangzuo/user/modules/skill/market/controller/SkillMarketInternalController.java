@@ -6,6 +6,7 @@ import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.skill.market.service.SkillMarketUsageService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,6 +20,7 @@ import java.util.Map;
  * 用户端内部接口：供管理端（生成 pipeline / 审核 worker）调用，记录市场提示词使用及释放发布额度。
  * <p>由 {@code InternalKeyAuthenticationFilter} 校验 {@code X-Internal-Key}。
  */
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/user/internal/market-skills")
 @RequiredArgsConstructor
@@ -32,6 +34,7 @@ public class SkillMarketInternalController {
     @PostMapping("/{bizNo}/use")
     public Result<Void> recordUsage(@PathVariable String bizNo,
                                        @RequestParam Long consumerUserId) {
+        log.info("记录市场提示词使用 bizNo={} consumerUserId={}", bizNo, consumerUserId);
         usageService.recordUsage(bizNo, consumerUserId);
         return Result.success();
     }
@@ -47,6 +50,7 @@ public class SkillMarketInternalController {
     @PostMapping("/refund-publish-quota")
     public Result<Void> refundPublishQuota(@RequestBody Map<String, Object> payload) {
         Long userId = asLong(payload.get("userId"));
+        log.info("退回提示词市场发布额度 userId={}", userId);
         if (userId == null) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }

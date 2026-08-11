@@ -71,6 +71,12 @@
           </template>
           约稿管理
         </a-menu-item>
+        <a-menu-item key="/console/lottery">
+          <template #icon>
+            <FireOutlined />
+          </template>
+          抽奖活动
+        </a-menu-item>
         <a-sub-menu key="/console/skill-management">
           <template #icon>
             <BookOutlined />
@@ -232,6 +238,7 @@ const parentMenuKey = computed(() => {
   const p = route.path
   if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
+  if (p === '/console/lottery') return null
   if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
@@ -271,6 +278,7 @@ const currentMenuName = computed(() => {
   // if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
   // if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
   if (route.path === '/console/commission-tasks') return '约稿管理'
+  if (route.path === '/console/lottery') return '抽奖活动'
   if (route.path === '/console/messages') return '消息管理'
   if (route.path === '/console/feedbacks') return '用户反馈'
   if (route.path === '/console/expire-reminder') return '到期提醒'

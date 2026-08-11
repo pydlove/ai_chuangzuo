@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 @Tag(name = "用户端-创作任务")
 @RestController
 @RequestMapping("/api/v1/user/generation-tasks")
+@Slf4j
 @RequiredArgsConstructor
 public class GenerationTaskController {
 
@@ -27,6 +29,7 @@ public class GenerationTaskController {
     @PostMapping
     public Result<GenerationTaskVO> submit(@Valid @RequestBody GenerationSubmitRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("提交创作任务, userId={}, title={}, platform={}, wordCount={}", userId, request.getTitle(), request.getPlatform(), request.getWordCount());
         return Result.success(service.submit(request, userId));
     }
 
@@ -34,6 +37,7 @@ public class GenerationTaskController {
     @GetMapping("/{id}")
     public Result<GenerationTaskVO> progress(@PathVariable Long id) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询创作任务进度, userId={}, taskId={}", userId, id);
         return Result.success(service.getProgress(id, userId));
     }
 
@@ -42,6 +46,7 @@ public class GenerationTaskController {
     public Result<GenerationTaskVO> retry(@PathVariable Long id,
                                           @RequestBody(required = false) GenerationRetryRequest req) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("重新生成创作任务, userId={}, taskId={}, sourceTaskId={}", userId, id, req == null ? null : req.getSourceTaskId());
         return Result.success(service.retry(id, req, userId));
     }
 
@@ -49,6 +54,7 @@ public class GenerationTaskController {
     @PostMapping("/{id}/stop")
     public Result<Void> stop(@PathVariable Long id) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("停止创作任务, userId={}, taskId={}", userId, id);
         service.stop(id, userId);
         return Result.success();
     }
@@ -58,6 +64,7 @@ public class GenerationTaskController {
     public Result<GenerationTaskPageVO> listMine(@RequestParam(defaultValue = "1") long page,
                                                 @RequestParam(defaultValue = "20") long pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询我的创作任务列表, userId={}, page={}, pageSize={}", userId, page, pageSize);
         return Result.success(service.listMine(userId, page, pageSize));
     }
 }

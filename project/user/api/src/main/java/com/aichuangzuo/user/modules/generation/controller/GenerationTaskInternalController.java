@@ -9,6 +9,7 @@ import com.aichuangzuo.user.modules.article.vo.ArticleVO;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.service.MessageService;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -45,6 +46,8 @@ public class GenerationTaskInternalController {
         String title = asString(payload.get("title"));
         String body = asString(payload.get("body"));
 
+        log.info("内部保存生成文章, userId={}, taskId={}, title={}", SecurityUserContext.getCurrentUserId(), taskId, title);
+
         if (taskId == null || userId == null || title.isEmpty() || body.isEmpty()) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }
@@ -71,6 +74,7 @@ public class GenerationTaskInternalController {
      */
     @GetMapping("/article/{articleBizNo}")
     public Result<ArticleVO> getArticle(@PathVariable String articleBizNo) {
+        log.info("内部查询文章, userId={}, articleBizNo={}", SecurityUserContext.getCurrentUserId(), articleBizNo);
         return Result.success(articleService.getInternal(articleBizNo));
     }
 
@@ -81,6 +85,7 @@ public class GenerationTaskInternalController {
     public Result<Void> refundQuota(@RequestBody Map<String, Object> payload) {
         Long taskId = asLong(payload.get("taskId"));
         Long userId = asLong(payload.get("userId"));
+        log.info("内部退回文章额度, userId={}, taskId={}", SecurityUserContext.getCurrentUserId(), taskId);
         if (taskId == null || userId == null) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }
@@ -110,6 +115,7 @@ public class GenerationTaskInternalController {
         Long taskId = asLong(payload.get("taskId"));
         Long userId = asLong(payload.get("userId"));
         String status = asString(payload.get("status"));
+        log.info("内部通知任务完成, userId={}, taskId={}, status={}", SecurityUserContext.getCurrentUserId(), taskId, status);
         if (taskId == null || userId == null || status.isEmpty()) {
             log.warn("notifyCompletion 入参缺失 taskId={} userId={} status={}", taskId, userId, status);
             return Result.success();

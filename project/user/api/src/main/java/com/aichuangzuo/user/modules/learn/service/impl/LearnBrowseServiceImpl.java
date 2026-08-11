@@ -174,6 +174,29 @@ public class LearnBrowseServiceImpl implements LearnBrowseService {
         }).toList();
     }
 
+    @Override
+    public Page<LearnRecommendedArticleVO> allArticles(int page, int size) {
+        Page<LearnArticleEntity> p = new Page<>(page, size);
+        Page<LearnArticleEntity> res = articleMapper.selectPage(p, new QueryWrapper<LearnArticleEntity>()
+                .eq("status", ArticleStatus.PUBLISHED.getCode())
+                .orderByDesc("updated_at"));
+        Map<Long, String> catNames = loadCategoryNames();
+        Integer currentRank = currentUserPlanRank();
+        List<LearnRecommendedArticleVO> records = res.getRecords().stream().map(e -> {
+            LearnRecommendedArticleVO v = new LearnRecommendedArticleVO();
+            v.setId(e.getId());
+            v.setTitle(e.getTitle());
+            v.setSummary(e.getSummary());
+            v.setCoverImageUrl(e.getCoverImageUrl());
+            v.setCategoryName(catNames.get(e.getCategoryId()));
+            applyAccessFields(v, e, currentRank);
+            return v;
+        }).toList();
+        Page<LearnRecommendedArticleVO> voPage = new Page<>(res.getCurrent(), res.getSize(), res.getTotal());
+        voPage.setRecords(records);
+        return voPage;
+    }
+
     /**
      * 构建全学院阅读链：分类按 DFS 前序展开（sort ASC），分类内文章按 sort ASC, updated_at DESC。
      * <p>NULL 行为对齐 MySQL：sort ASC NULL 在前，updated_at DESC NULL 在后。</p>

@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.generation.dto.TaskTokenSum;
 import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryRequest;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
+import com.aichuangzuo.admin.modules.generation.vo.BatchStopGenerationTaskResultVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
 import com.aichuangzuo.admin.modules.generation.vo.GeneratedArticleVO;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -68,6 +70,8 @@ public class GenerationTaskAdminService {
         vo.setTotal(total);
         vo.setPage(page);
         vo.setPageSize(pageSize);
+        log.info("管理端查询创作任务列表完成, status={}, keyword={}, page={}, pageSize={}, total={}",
+                status, keyword, page, pageSize, total);
         return vo;
     }
 
@@ -85,6 +89,60 @@ public class GenerationTaskAdminService {
                 && task.getStatus() != GenerationTaskStatus.PROCESSING) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
         }
+        doStopTask(task);
+        log.info("admin 手动停止任务 task={}", taskId);
+    }
+
+    /**
+     * 批量停止任务：仅处理 status=QUEUED/PROCESSING 的任务；不存在或状态不允许的任务返回在结果中，
+     * 不影响其他任务。每个任务的停止独立提交，单任务失败不会回滚已成功停止的任务。
+     *
+     * @param ids 任务 ID 列表，单次最多 100 个
+     */
+    public BatchStopGenerationTaskResultVO batchStop(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
+        if (ids.size() > 100) {
+            throw new BusinessException(AdminGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
+        }
+
+        BatchStopGenerationTaskResultVO result = new BatchStopGenerationTaskResultVO();
+        result.setTotal(ids.size());
+        result.setSuccessCount(0);
+        result.setMissingIds(new ArrayList<>());
+        result.setInvalidIds(new ArrayList<>());
+        result.setFailedIds(new ArrayList<>());
+
+        for (Long id : ids) {
+            GenerationTask task = taskMapper.selectById(id);
+            if (task == null) {
+                result.getMissingIds().add(id);
+                continue;
+            }
+            if (task.getStatus() != GenerationTaskStatus.QUEUED
+                    && task.getStatus() != GenerationTaskStatus.PROCESSING) {
+                result.getInvalidIds().add(id);
+                continue;
+            }
+            try {
+                doStopTask(task);
+                result.setSuccessCount(result.getSuccessCount() + 1);
+            } catch (Exception e) {
+                result.getFailedIds().add(id);
+                log.error("批量停止任务失败 task={}: {}", id, e.getMessage());
+            }
+        }
+        log.info("admin 批量停止任务完成, total={}, success={}, missing={}, invalid={}, failed={}",
+                result.getTotal(), result.getSuccessCount(), result.getMissingIds().size(),
+                result.getInvalidIds().size(), result.getFailedIds().size());
+        return result;
+    }
+
+    /**
+     * 停止任务核心逻辑（无事务注解，由调用方控制事务边界）。
+     */
+    private void doStopTask(GenerationTask task) {
         task.setStatus(GenerationTaskStatus.FAILED);
         task.setFailedReason("管理员手动停止");
         task.setCompletedAt(LocalDateTime.now());
@@ -92,12 +150,11 @@ public class GenerationTaskAdminService {
         task.setLockedBy(null);
         task.setLeaseUntil(null);
         taskMapper.updateById(task);
-        log.info("admin 手动停止任务 task={}", taskId);
 
         try {
-            refundClient.refund(taskId, task.getTargetUserId());
+            refundClient.refund(task.getId(), task.getTargetUserId());
         } catch (Exception e) {
-            log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", taskId, e.getMessage());
+            log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", task.getId(), e.getMessage());
         }
     }
 

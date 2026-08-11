@@ -34,14 +34,17 @@ public class ExportTemplateServiceImpl implements ExportTemplateService {
     public List<ExportTemplateVO> listAll() {
         LambdaQueryWrapper<ExportTemplate> wrapper = new LambdaQueryWrapper<>();
         wrapper.orderByAsc(ExportTemplate::getSortOrder);
-        return exportTemplateMapper.selectList(wrapper).stream()
+        List<ExportTemplateVO> list = exportTemplateMapper.selectList(wrapper).stream()
                 .map(this::toTemplateVO)
                 .collect(Collectors.toList());
+        log.info("管理端查询导出模板列表完成, count={}", list.size());
+        return list;
     }
 
     @Override
     public ExportTemplateVO getById(Long id) {
         ExportTemplate entity = exportTemplateMapper.selectById(id);
+        log.info("管理端查询导出模板详情完成, templateId={}", id);
         return entity == null ? null : toTemplateVO(entity);
     }
 

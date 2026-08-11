@@ -57,14 +57,23 @@ export default function (data) {
     const payload = JSON.stringify({
       title: `压测文章 ${Date.now()}`,
       platform: 'wechat',
-      wordCount: 1000,
+      wordCount: 500,
     });
     const res = http.post(`${BASE_URL}${ENDPOINTS.createTask}`, payload, {
       headers,
     });
+    const bodyCode = res.json()?.code;
+
     check(res, {
-      'create status 200': (r) => r.status === 200,
+      'create accepted or queued': (r) => {
+        if (r.status !== 200) return false;
+        return bodyCode === 0 || bodyCode === 200 || bodyCode === 212005;
+      },
     });
+
+    if (bodyCode === 212005) {
+      console.log('[QUEUE FULL] 当前用户队列任务数已达上限，跳过本次写入');
+    }
   }
 
   sleep(randomIntBetween(1, 3));

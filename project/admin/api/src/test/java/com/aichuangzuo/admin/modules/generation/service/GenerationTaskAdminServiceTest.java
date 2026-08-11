@@ -4,6 +4,7 @@ import com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow;
 import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryRequest;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationCallLogMapper;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
+import com.aichuangzuo.admin.modules.generation.vo.BatchStopGenerationTaskResultVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminPageVO;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationTaskAdminVO;
 import com.aichuangzuo.shared.entity.GenerationTask;
@@ -18,6 +19,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,7 +31,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -356,6 +360,104 @@ class GenerationTaskAdminServiceTest {
         assertEquals("GA20260701.md", download.getFilename());
         String content = new String(download.getContent(), java.nio.charset.StandardCharsets.UTF_8);
         assertNotNull(content);
-        assertEquals("# 标题\n\n\u003e 描述\n\n正文", content);
+        assertEquals("# 标题\n\n> 描述\n\n正文", content);
+    }
+
+    @Test
+    void batchStop_shouldThrowWhenIdsEmpty() {
+        assertThrows(BusinessException.class, () -> service.batchStop(List.of()));
+    }
+
+    @Test
+    void batchStop_shouldThrowWhenIdsExceedLimit() {
+        List<Long> ids = new ArrayList<>();
+        for (long i = 1; i <= 101; i++) {
+            ids.add(i);
+        }
+        assertThrows(BusinessException.class, () -> service.batchStop(ids));
+    }
+
+    @Test
+    void batchStop_shouldStopOnlyQueuedAndProcessingTasks() {
+        GenerationTask queued = new GenerationTask();
+        queued.setId(1L);
+        queued.setTargetUserId(10L);
+        queued.setStatus(GenerationTaskStatus.QUEUED);
+
+        GenerationTask processing = new GenerationTask();
+        processing.setId(2L);
+        processing.setTargetUserId(11L);
+        processing.setStatus(GenerationTaskStatus.PROCESSING);
+
+        GenerationTask completed = new GenerationTask();
+        completed.setId(3L);
+        completed.setStatus(GenerationTaskStatus.COMPLETED);
+
+        when(taskMapper.selectById(1L)).thenReturn(queued);
+        when(taskMapper.selectById(2L)).thenReturn(processing);
+        when(taskMapper.selectById(3L)).thenReturn(completed);
+        when(taskMapper.selectById(4L)).thenReturn(null);
+
+        BatchStopGenerationTaskResultVO result = service.batchStop(List.of(1L, 2L, 3L, 4L));
+
+        assertEquals(4, result.getTotal());
+        assertEquals(2, result.getSuccessCount());
+        assertEquals(1, result.getInvalidIds().size());
+        assertTrue(result.getInvalidIds().contains(3L));
+        assertEquals(1, result.getMissingIds().size());
+        assertTrue(result.getMissingIds().contains(4L));
+        assertTrue(result.getFailedIds().isEmpty());
+
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper, times(2)).updateById(captor.capture());
+        List<GenerationTask> updated = captor.getAllValues();
+        assertEquals(2, updated.size());
+        assertTrue(updated.stream().allMatch(t -> t.getStatus() == GenerationTaskStatus.FAILED));
+        verify(refundClient).refund(1L, 10L);
+        verify(refundClient).refund(2L, 11L);
+    }
+
+    @Test
+    void batchStop_shouldRecordFailedIdsWhenUpdateThrows() {
+        GenerationTask task1 = new GenerationTask();
+        task1.setId(1L);
+        task1.setTargetUserId(10L);
+        task1.setStatus(GenerationTaskStatus.QUEUED);
+
+        GenerationTask task2 = new GenerationTask();
+        task2.setId(2L);
+        task2.setTargetUserId(11L);
+        task2.setStatus(GenerationTaskStatus.QUEUED);
+
+        when(taskMapper.selectById(1L)).thenReturn(task1);
+        when(taskMapper.selectById(2L)).thenReturn(task2);
+        doThrow(new RuntimeException("db error")).when(taskMapper).updateById(task1);
+
+        BatchStopGenerationTaskResultVO result = service.batchStop(List.of(1L, 2L));
+
+        assertEquals(2, result.getTotal());
+        assertEquals(1, result.getSuccessCount());
+        assertEquals(1, result.getFailedIds().size());
+        assertTrue(result.getFailedIds().contains(1L));
+        verify(refundClient).refund(2L, 11L);
+    }
+
+    @Test
+    void batchStop_shouldStillStopWhenRefundFails() {
+        GenerationTask task = new GenerationTask();
+        task.setId(1L);
+        task.setTargetUserId(10L);
+        task.setStatus(GenerationTaskStatus.QUEUED);
+        when(taskMapper.selectById(1L)).thenReturn(task);
+        doThrow(new RuntimeException("user-api down")).when(refundClient).refund(1L, 10L);
+
+        BatchStopGenerationTaskResultVO result = service.batchStop(List.of(1L));
+
+        assertEquals(1, result.getTotal());
+        assertEquals(1, result.getSuccessCount());
+        assertTrue(result.getFailedIds().isEmpty());
+        ArgumentCaptor<GenerationTask> captor = ArgumentCaptor.forClass(GenerationTask.class);
+        verify(taskMapper).updateById(captor.capture());
+        assertEquals(GenerationTaskStatus.FAILED, captor.getValue().getStatus());
     }
 }

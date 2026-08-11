@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.audit.controller;
 
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.audit.dto.request.AuditLogCleanupRequest;
 import com.aichuangzuo.user.modules.audit.entity.UserAuditLog;
 import com.aichuangzuo.user.modules.audit.mapper.UserAuditLogMapper;
@@ -9,6 +10,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -26,6 +28,7 @@ import java.time.LocalDateTime;
 @RestController
 @RequestMapping("/api/v1/user/internal/audit-logs")
 @RequiredArgsConstructor
+@Slf4j
 public class UserAuditLogInternalController {
 
     private final UserAuditLogMapper userAuditLogMapper;
@@ -37,6 +40,10 @@ public class UserAuditLogInternalController {
             @RequestParam(name = "endDate", required = false) String endDate,
             @RequestParam(name = "page", defaultValue = "1") long page,
             @RequestParam(name = "pageSize", defaultValue = "20") long pageSize) {
+
+        Long currentUserId = SecurityUserContext.getCurrentUserId();
+        log.info("List user audit logs, currentUserId={}, queryUserId={}, startDate={}, endDate={}, page={}, pageSize={}",
+                currentUserId, userId, startDate, endDate, page, pageSize);
 
         LambdaQueryWrapper<UserAuditLog> wrapper = new LambdaQueryWrapper<>();
         if (userId != null) {
@@ -62,7 +69,9 @@ public class UserAuditLogInternalController {
 
     @PostMapping("/cleanup")
     public Result<Void> cleanup(@RequestBody AuditLogCleanupRequest request) {
+        Long currentUserId = SecurityUserContext.getCurrentUserId();
         Integer retentionDays = request.getRetentionDays();
+        log.info("Cleanup user audit logs, currentUserId={}, retentionDays={}", currentUserId, retentionDays);
         if (retentionDays == null || retentionDays < 1) {
             retentionDays = 30;
         }

@@ -1,10 +1,12 @@
 package com.aichuangzuo.user.modules.auth.controller;
 
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.icegreen.greenmail.util.GreenMail;
 import jakarta.mail.BodyPart;
 import jakarta.mail.internet.MimeMessage;
 import jakarta.mail.internet.MimeMultipart;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,6 +28,7 @@ import java.util.regex.Pattern;
 @RequestMapping("/__test")
 @Profile("test")
 @RequiredArgsConstructor
+@Slf4j
 public class TestEmailCodeController {
 
     private static final Pattern SIX_DIGITS = Pattern.compile("(?<!\\d)\\d{6}(?!\\d)");
@@ -34,6 +37,7 @@ public class TestEmailCodeController {
 
     @GetMapping("/email-code")
     public Map<String, Object> emailCode(@RequestParam("email") String email) {
+        log.info("测试抓取邮箱验证码, userId={}, email={}", SecurityUserContext.getCurrentUserId(), email);
         if (greenMail == null) {
             return Map.of("found", false, "email", email);
         }

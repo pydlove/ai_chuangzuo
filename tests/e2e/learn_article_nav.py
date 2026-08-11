@@ -99,17 +99,35 @@ def main():
 
         ctx.close()
 
-        # ---------- Mobile：上下堆叠 ----------
+        # ---------- Mobile：点击下一篇滚回顶部 ----------
         ctx2 = browser.new_context(viewport={"width": 390, "height": 800})
         page2 = ctx2.new_page()
         goto_article(page2, mid)
         time.sleep(0.5)
-        page2.screenshot(path=SCREENSHOTS_DIR / "06-mobile-stacked.png", full_page=True)
-        prev_box = page2.locator('.learn-nav-prev').bounding_box()
-        next_box = page2.locator('.learn-nav-next').bounding_box()
-        if prev_box and next_box:
-            assert prev_box["y"] + prev_box["height"] <= next_box["y"] + 5, \
-                f"cards should stack on mobile, prev bottom={prev_box['y']+prev_box['height']}, next top={next_box['y']}"
+        page2.screenshot(path=SCREENSHOTS_DIR / "06-mobile-article.png", full_page=True)
+
+        mobile_nav_cards = page2.locator('.ml-article-nav__card')
+        assert mobile_nav_cards.count() == 2, "mobile article nav should have both prev and next cards"
+
+        # 滚动到底部后点击「下一篇」，应回到顶部
+        page2.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(0.3)
+        mobile_nav_cards.nth(1).click()
+        time.sleep(1.0)
+        mobile_scroll_y = page2.evaluate("window.scrollY")
+        assert mobile_scroll_y < 50, f"after mobile click next, scrollY should be near 0, got {mobile_scroll_y}"
+        page2.screenshot(path=SCREENSHOTS_DIR / "07-mobile-after-click-next-scroll-top.png", full_page=True)
+
+        # 末篇：点击「上一篇」也应回到顶部
+        goto_article(page2, last)
+        time.sleep(0.5)
+        page2.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+        time.sleep(0.3)
+        page2.locator('.ml-article-nav__card').first.click()
+        time.sleep(1.0)
+        mobile_scroll_y_prev = page2.evaluate("window.scrollY")
+        assert mobile_scroll_y_prev < 50, f"after mobile click prev, scrollY should be near 0, got {mobile_scroll_y_prev}"
+        page2.screenshot(path=SCREENSHOTS_DIR / "08-mobile-after-click-prev-scroll-top.png", full_page=True)
 
         ctx2.close()
         browser.close()

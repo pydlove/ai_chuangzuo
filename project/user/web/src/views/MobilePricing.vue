@@ -53,8 +53,8 @@
         <button
           v-for="cycle in cycles"
           :key="cycle.key"
-          :class="['mp-cycle__btn', { active: activeCycle === cycle.key, disabled: cycleLocked() && activeCycle !== cycle.key }]"
-          :disabled="cycleLocked() && activeCycle !== cycle.key"
+          :class="['mp-cycle__btn', { active: activeCycle === cycle.key, disabled: isCycleDisabled(cycle.key) }]"
+          :disabled="isCycleDisabled(cycle.key)"
           @click="setCycle(cycle.key)"
         >
           {{ cycle.label }}
@@ -173,13 +173,17 @@
           <span class="mp-upgrade-label">抵扣金额</span>
           <span class="mp-upgrade-value credit">-¥{{ upgradePreview.creditAmount }}</span>
         </div>
+        <div v-if="selectedCoinAmount > 0" class="mp-upgrade-row">
+          <span class="mp-upgrade-label">创作币抵扣</span>
+          <span class="mp-upgrade-value credit">-{{ selectedCoinAmount }} 创作币（-¥{{ (selectedCoinAmount / COIN_TO_YUAN_RATIO).toFixed(2) }}）</span>
+        </div>
         <div class="mp-upgrade-row">
           <span class="mp-upgrade-label">新套餐价格</span>
           <span class="mp-upgrade-value">¥{{ upgradePreview.originalPrice }}</span>
         </div>
         <div class="mp-upgrade-row total">
           <span class="mp-upgrade-label">实付金额</span>
-          <span class="mp-upgrade-value final">¥{{ upgradePreview.finalPrice }}</span>
+          <span class="mp-upgrade-value final">¥{{ getFinalCash() }}</span>
         </div>
         <p class="mp-upgrade-tip">升级后立即生效，有效期 {{ upgradePreview.targetDays }} 天至 {{ upgradePreview.newExpiresAt }}。</p>
       </div>
@@ -256,6 +260,7 @@ const {
   cycles,
   cycleLocked,
   setCycle,
+  isCycleDisabled,
   upgradeModalVisible,
   upgradePreview,
   upgradeLoading,

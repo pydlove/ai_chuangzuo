@@ -12,6 +12,9 @@ import com.aichuangzuo.user.modules.leaderboard.entity.CoinDirection;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.aichuangzuo.user.modules.lottery.entity.LotteryCampaign;
+import com.aichuangzuo.user.modules.lottery.mapper.LotteryCampaignMapper;
+import com.aichuangzuo.user.modules.lottery.service.LotteryChanceService;
 import com.aichuangzuo.user.modules.membership.entity.Order;
 import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
@@ -27,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +60,8 @@ public class InviteRewardServiceImpl implements InviteRewardService {
     private final CoinRecordService coinRecordService;
     private final EarningsService earningsService;
     private final MessageService messageService;
+    private final LotteryCampaignMapper lotteryCampaignMapper;
+    private final LotteryChanceService lotteryChanceService;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -74,6 +80,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
         userInviteRelationMapper.insert(relation);
 
         grantRegisterReward(invitee, inviter);
+        createLotteryInviteChance(invitee, inviter, relation.getId());
     }
 
     @Override
@@ -111,6 +118,20 @@ public class InviteRewardServiceImpl implements InviteRewardService {
             sendInviteRewardMessage(inviter, count, rewardCoins);
             log.info("邀请人 {} 累计有效邀请达到阶梯，获得 {} 创作币", inviter.getEmail(), rewardCoins.toPlainString());
         }
+    }
+
+    private void createLotteryInviteChance(User invitee, User inviter, Long relationId) {
+        LotteryCampaign activeCampaign = lotteryCampaignMapper.selectOne(
+                new LambdaQueryWrapper<LotteryCampaign>()
+                        .eq(LotteryCampaign::getStatus, 1)
+                        .le(LotteryCampaign::getStartTime, LocalDateTime.now())
+                        .ge(LotteryCampaign::getEndTime, LocalDateTime.now())
+                        .last("LIMIT 1"));
+        if (activeCampaign == null) {
+            return;
+        }
+        lotteryChanceService.createInviteChance(activeCampaign.getId(), inviter.getId(), relationId);
+        log.info("邀请人 {} 因被邀请人 {} 注册获得抽奖次数", inviter.getId(), invitee.getId());
     }
 
     private void sendInviteRewardMessage(User inviter, long count, BigDecimal rewardCoins) {

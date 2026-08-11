@@ -13,6 +13,12 @@ tests/load/
 │   ├── summary.js         # 报告生成（内部使用）
 │   └── fetch_users.js     # 从管理端拉取用户到 accounts.json
 ├── case/                  # 按业务域划分的压测脚本
+│   ├── auth/              # 认证业务压测脚本
+│   │   ├── login.js           # 登录压测
+│   │   ├── register.js        # 注册压测（依赖 test profile 抓取验证码）
+│   │   ├── forgot_password.js # 忘记密码压测（依赖 test profile 抓取验证码）
+│   │   ├── send_email_code.js # 发送邮箱验证码压测
+│   │   └── auth_mix.js        # 认证混合场景
 │   └── creation/          # 创作业务压测脚本
 │       ├── smoke.js           # 冒烟测试
 │       ├── loadtest.js        # 阶梯负载测试
@@ -69,6 +75,16 @@ USER_COUNT=100 node config/fetch_users.js
 # 100 并发只读
 ./run users.js 100
 
+# 认证压测
+./run case/auth/login.js 100
+./run case/auth/send_email_code.js 100
+./run case/auth/register.js 50
+./run case/auth/forgot_password.js 50
+./run case/auth/auth_mix.js 100
+
+# 创作压测
+./run mixed_read_write.js 50
+
 # 阶梯加压到 100 并发
 ./run loadtest.js
 ```
@@ -90,6 +106,12 @@ cat report/report-latest.md
 | `case/creation/users.js` | 指定并发数，简单直接 | `./run users.js 500` |
 | `case/creation/api_mix.js` | 多接口混合：列表/详情/创作 | `./run api_mix.js 100` |
 | `case/creation/mixed_read_write.js` | 70% 读 + 30% 写，用真实标题生成文章 | `./run mixed_read_write.js 100` |
+| `case/auth/login.js` | 多账号循环登录 | `./run case/auth/login.js 100` |
+| `case/auth/login_capacity.js` | 登录阶梯容量测试：5→10→20→30→50 | `k6 run case/auth/login_capacity.js` |
+| `case/auth/send_email_code.js` | 发送邮箱验证码 | `./run case/auth/send_email_code.js 100` |
+| `case/auth/register.js` | 发送验证码 + 注册完整流程（依赖 test profile） | `./run case/auth/register.js 50` |
+| `case/auth/forgot_password.js` | 发送验证码 + 重置密码完整流程（依赖 test profile） | `./run case/auth/forgot_password.js 50` |
+| `case/auth/auth_mix.js` | 登录/注册/忘记密码混合场景 | `./run case/auth/auth_mix.js 100` |
 
 ## 命令行传并发数
 
@@ -136,7 +158,13 @@ report/report-smoke-2026-08-07T...json  # 归档原始数据
 - 确认 `config/config.js` 里 `SERVER_PORT` 是用户端端口（22345），不是管理端
 - 确认账号密码是用户端账号
 
-### 2. 创作任务提交后后端生成不了文章
+### 2. 注册/忘记密码压测报错「验证码错误」
+
+- `register.js` 和 `forgot_password.js` 依赖 `/__test/email-code` 抓取 GreenMail 里的验证码
+- 该端点只在 `test` profile 启用；生产/预发环境没有，这两个脚本无法直接跑通
+- 如需在部署环境压测完整注册链路，需要服务端临时开启 test profile 或提供验证码 bypass 能力
+
+### 3. 创作任务提交后后端生成不了文章
 
 - 说明任务队列积压，worker 处理不过来
 - 降低 `mixed_read_write.js` 里的写比例（默认 30%）

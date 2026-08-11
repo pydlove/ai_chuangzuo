@@ -5,6 +5,7 @@ import com.aichuangzuo.user.modules.learn.vo.LearnBannerVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryDetailVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnCategoryTreeVO;
 import com.aichuangzuo.user.modules.learn.vo.LearnRecommendedArticleVO;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 
 import java.util.List;
 
@@ -24,4 +25,7 @@ public interface LearnBrowseService {
 
     /** 推荐文章列表（仅已发布且 isRecommended=1） */
     List<LearnRecommendedArticleVO> recommendedArticles();
+
+    /** 全部已发布文章分页列表（按 updated_at DESC） */
+    Page<LearnRecommendedArticleVO> allArticles(int page, int size);
 }

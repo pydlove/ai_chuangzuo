@@ -542,7 +542,7 @@ onUnmounted(() => {
   position: relative;
   border-radius: 16px;
   overflow: hidden;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 2 / 1;
   background: #f0f0f0;
 }
 .ml-banner__slide {

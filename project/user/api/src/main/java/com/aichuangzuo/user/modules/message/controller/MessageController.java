@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.aichuangzuo.user.modules.message.vo.MessageVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/user/messages")
 @RequiredArgsConstructor
+@Slf4j
 public class MessageController {
 
     private final MessageService messageService;
@@ -26,6 +28,7 @@ public class MessageController {
     @GetMapping
     public Result<List<MessageVO>> list() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("消息列表, userId={}", userId);
         LocalDateTime registerAt = getRegisterAt(userId);
         return Result.success(messageService.listVisibleMessages(userId, registerAt));
     }
@@ -33,6 +36,7 @@ public class MessageController {
     @GetMapping("/unread-count")
     public Result<Long> unreadCount() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("未读消息数, userId={}", userId);
         LocalDateTime registerAt = getRegisterAt(userId);
         return Result.success(messageService.countUnread(userId, registerAt));
     }
@@ -40,6 +44,7 @@ public class MessageController {
     @PutMapping("/{id}/read")
     public Result<Void> markRead(@PathVariable("id") Long messageId) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("标记消息已读, userId={}, messageId={}", userId, messageId);
         LocalDateTime registerAt = getRegisterAt(userId);
         messageService.markRead(userId, registerAt, messageId);
         return Result.success();
@@ -48,6 +53,7 @@ public class MessageController {
     @PutMapping("/read-all")
     public Result<Void> markAllRead() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("标记全部消息已读, userId={}", userId);
         LocalDateTime registerAt = getRegisterAt(userId);
         messageService.markAllRead(userId, registerAt);
         return Result.success();

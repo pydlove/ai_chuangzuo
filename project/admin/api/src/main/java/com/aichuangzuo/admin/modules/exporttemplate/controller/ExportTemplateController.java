@@ -14,11 +14,13 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @Tag(name = "管理端导出模板")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/export-templates")
 @RequiredArgsConstructor
@@ -32,21 +34,25 @@ public class ExportTemplateController {
     @Operation(summary = "查询模板列表")
     @GetMapping
     public Result<List<ExportTemplateVO>> list() {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端查询导出模板列表, adminUserId={}", adminUserId);
         return Result.success(exportTemplateService.listAll());
     }
 
     @Operation(summary = "查看模板详情")
     @GetMapping("/{id}")
     public Result<ExportTemplateVO> get(@PathVariable Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端查询导出模板详情, adminUserId={}, templateId={}", adminUserId, id);
         return Result.success(exportTemplateService.getById(id));
     }
 
     @Operation(summary = "新增模板")
     @PostMapping
     public Result<Void> save(@Valid @RequestBody ExportTemplateSaveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端新增导出模板, adminUserId={}, templateKey={}, name={}",
+                adminUserId, request.getTemplateKey(), request.getName());
         exportTemplateService.save(request);
         return Result.success();
     }
@@ -55,7 +61,8 @@ public class ExportTemplateController {
     @PutMapping("/{id}")
     public Result<Void> update(@PathVariable Long id,
                                @Valid @RequestBody ExportTemplateSaveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端更新导出模板, adminUserId={}, templateId={}", adminUserId, id);
         exportTemplateService.update(id, request);
         return Result.success();
     }
@@ -63,7 +70,8 @@ public class ExportTemplateController {
     @Operation(summary = "删除模板")
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端删除导出模板, adminUserId={}, templateId={}", adminUserId, id);
         exportTemplateService.delete(id);
         return Result.success();
     }
@@ -73,14 +81,17 @@ public class ExportTemplateController {
     @Operation(summary = "查询参数定义列表")
     @GetMapping("/params")
     public Result<List<ExportTemplateParamVO>> listParams() {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端查询导出模板参数列表, adminUserId={}", adminUserId);
         return Result.success(exportTemplateService.listParams());
     }
 
     @Operation(summary = "新增参数定义")
     @PostMapping("/params")
     public Result<Void> saveParam(@Valid @RequestBody ExportTemplateParamSaveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端新增导出模板参数, adminUserId={}, paramKey={}, fieldType={}",
+                adminUserId, request.getParamKey(), request.getFieldType());
         exportTemplateService.saveParam(request);
         return Result.success();
     }
@@ -89,7 +100,8 @@ public class ExportTemplateController {
     @PutMapping("/params/{id}")
     public Result<Void> updateParam(@PathVariable Long id,
                                     @Valid @RequestBody ExportTemplateParamSaveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端更新导出模板参数, adminUserId={}, paramId={}", adminUserId, id);
         exportTemplateService.updateParam(id, request);
         return Result.success();
     }
@@ -97,15 +109,18 @@ public class ExportTemplateController {
     @Operation(summary = "删除参数定义")
     @DeleteMapping("/params/{id}")
     public Result<Void> deleteParam(@PathVariable Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理端删除导出模板参数, adminUserId={}, paramId={}", adminUserId, id);
         exportTemplateService.deleteParam(id);
         return Result.success();
     }
 
-    private void checkSuperAdmin() {
+    private Long checkSuperAdmin() {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminUserId == null || !adminUserPermissionService.isSuperAdmin(adminUserId)) {
+            log.warn("管理端导出模板权限校验失败, adminUserId={}", adminUserId);
             throw new BusinessException(AdminUserErrorCode.NO_PERMISSION);
         }
+        return adminUserId;
     }
 }

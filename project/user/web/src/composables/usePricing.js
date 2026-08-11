@@ -142,16 +142,23 @@ export function usePricing() {
     return currentMembership.value.level || 'free'
   }
 
-  const cycleLocked = () => {
-    return false
+  const currentCycleKey = () => currentMembership.value?.cycle
+
+  const isCycleDisabled = (cycleKey) => {
+    const currentKey = currentPlanKey()
+    const memberCycle = currentCycleKey()
+    if (currentKey === 'free' || !memberCycle) return false
+    return CYCLE_RANK[cycleKey] < CYCLE_RANK[memberCycle]
   }
+
+  const cycleLocked = () => cycles.some(c => isCycleDisabled(c.key))
 
   const currentCycle = () => {
     return activeCycle.value
   }
 
   const setCycle = (key) => {
-    if (cycleLocked()) return
+    if (isCycleDisabled(key)) return
     activeCycle.value = key
   }
 
@@ -175,6 +182,9 @@ export function usePricing() {
     }
 
     if (PLAN_RANK[plan.key] > PLAN_RANK[currentKey]) {
+      if (CYCLE_RANK[targetCycleKey] < CYCLE_RANK[currentCycleKey]) {
+        return { text: '立即订阅', action: 'disabled', disabled: true }
+      }
       return { text: '升级套餐', action: 'upgrade', disabled: false, primary: true }
     }
 
@@ -381,6 +391,7 @@ export function usePricing() {
     cycles,
     cycleLocked,
     setCycle,
+    isCycleDisabled,
     getPeriodLabel,
     getPrice,
     getArticles,

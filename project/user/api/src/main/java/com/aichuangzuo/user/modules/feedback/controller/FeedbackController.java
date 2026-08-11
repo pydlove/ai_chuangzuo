@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,6 +25,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/user/feedback")
 @RequiredArgsConstructor
+@Slf4j
 public class FeedbackController {
 
     private final FeedbackService feedbackService;
@@ -32,6 +34,8 @@ public class FeedbackController {
     @PostMapping("/submit")
     public Result<Long> submit(@Valid @RequestBody SubmitFeedbackRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("提交反馈, userId={}, type={}, contentLength={}", userId, request.getType(),
+                request.getContent() == null ? 0 : request.getContent().length());
         Long id = feedbackService.submit(userId, request);
         return Result.success(id);
     }
@@ -43,6 +47,7 @@ public class FeedbackController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "20") int size) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("我的反馈历史, userId={}, status={}, page={}, size={}", userId, status, page, size);
         int safePage = Math.max(1, page);
         int safeSize = Math.min(Math.max(1, size), 100);
         List<FeedbackVO> rows = feedbackService.pageByUser(userId, status, safePage, safeSize);

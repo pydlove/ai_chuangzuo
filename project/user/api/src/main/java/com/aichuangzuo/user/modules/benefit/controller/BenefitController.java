@@ -6,6 +6,7 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.benefit.vo.UserBenefitVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/user/benefits")
 @RequiredArgsConstructor
+@Slf4j
 public class BenefitController {
 
     private final BenefitService benefitService;
@@ -28,6 +30,7 @@ public class BenefitController {
     @GetMapping("/me")
     public Result<UserBenefitVO> getMyBenefits() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询当前用户权益, userId={}", userId);
         return Result.success(benefitService.getMyBenefits(userId));
     }
 
@@ -37,6 +40,7 @@ public class BenefitController {
     @PostMapping("/check/{code}")
     public Result<BenefitCheckVO> check(@PathVariable String code) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("校验单项权益, userId={}, code={}", userId, code);
         return Result.success(benefitService.check(userId, code));
     }
 
@@ -46,6 +50,7 @@ public class BenefitController {
     @PostMapping("/consume/{code}")
     public Result<BenefitCheckVO> consume(@PathVariable String code) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("消费一次配额, userId={}, code={}", userId, code);
         return Result.success(benefitService.consume(userId, code));
     }
 }

@@ -9,6 +9,13 @@ export const stopGenerationTask = (id) =>
   request.post(`/generation/tasks/${id}/stop`).then((res) => res.data)
 
 /**
+ * 批量停止任务：仅处理 QUEUED / PROCESSING 的任务。
+ * 返回 { total, successCount, missingIds, invalidIds, failedIds }。
+ */
+export const batchStopGenerationTasks = (ids) =>
+  request.post('/generation/tasks/batch/stop', { ids }).then((res) => res.data)
+
+/**
  * 查某任务的 AI 调用日志（按 stage 分组）+ 任务当前 status。
  * 返回 { taskStatus, grouped }，其中 grouped 是 { "2": [log, ...], ... }，key 为 stageIndex。
  * taskStatus=2（已完成）时前端应停止轮询。仅 AI 阶段（2,3,4,6,7,8,9,11）有日志。

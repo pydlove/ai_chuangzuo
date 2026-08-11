@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.hotsearch.vo.HotSearchPlatformVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,6 +20,7 @@ import java.util.List;
 /**
  * 热搜榜单查询接口。
  */
+@Slf4j
 @Tag(name = "热搜榜单")
 @RestController
 @RequestMapping("/api/v1/user/hot-search")
@@ -30,6 +32,7 @@ public class HotSearchController {
     @Operation(summary = "获取热搜平台列表")
     @GetMapping("/platforms")
     public Result<List<HotSearchPlatformVO>> listPlatforms() {
+        log.info("获取热搜平台列表");
         return Result.success(hotSearchService.listPlatforms());
     }
 
@@ -39,6 +42,7 @@ public class HotSearchController {
             @RequestParam("platform") String platformCode,
             @RequestParam(name = "date", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        log.info("查询热搜榜单 platformCode={} date={}", platformCode, date);
         return Result.success(hotSearchService.listByPlatformAndDate(platformCode, date));
     }
 }

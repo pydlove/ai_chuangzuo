@@ -277,6 +277,7 @@
               :columns="skillColumns"
               :data-source="userSkills"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="bizNo"
             >
@@ -320,6 +321,7 @@
               :columns="publishedSkillColumns"
               :data-source="publishedSkills"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="bizNo"
             >
@@ -354,6 +356,7 @@
               :columns="favoriteSkillColumns"
               :data-source="favoriteSkills"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="bizNo"
             >
@@ -390,6 +393,7 @@
               :columns="learnedColumns"
               :data-source="learnedMonths"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="period"
             >
@@ -423,6 +427,7 @@
               :columns="learnedSkillColumns"
               :data-source="learnedSkills"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="bizNo"
             >
@@ -462,6 +467,7 @@
               :columns="articleColumns"
               :data-source="articles"
               :pagination="false"
+              :scroll="{ x: 'max-content' }"
               size="small"
               row-key="bizNo"
             >

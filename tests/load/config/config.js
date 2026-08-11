@@ -66,6 +66,13 @@ export const ENDPOINTS = {
   topicRandom: '/api/v1/user/topics/random',
   // 用户端提交创作任务（需要登录）
   createTask: '/api/v1/user/generation-tasks',
+  // 认证相关
+  sendEmailCode: '/api/v1/user/auth/email-codes',
+  register: '/api/v1/user/auth/register',
+  resetPassword: '/api/v1/user/auth/reset-password',
+  refreshToken: '/api/v1/user/auth/refresh-token',
+  // 仅 test profile 可用，用于抓取 GreenMail 里的 6 位验证码
+  testEmailCode: '/__test/email-code',
 };
 
 // 通用阈值：P95 < 500ms，错误率 < 1%

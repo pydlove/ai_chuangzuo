@@ -15,9 +15,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "管理端订单管理")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
@@ -35,12 +37,17 @@ public class AdminOrderController {
             @RequestParam(name = "endDate", required = false) String endDate,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询订单列表, adminUserId={}, keyword={}, planKey={}, status={}, startDate={}, endDate={}, page={}, pageSize={}",
+                adminUserId, keyword, planKey, status, startDate, endDate, page, pageSize);
         return Result.success(orderService.listOrders(keyword, planKey, status, startDate, endDate, page, pageSize));
     }
 
     @Operation(summary = "订单详情")
     @GetMapping("/orders/{id}")
     public Result<OrderDetailVO> getOrderDetail(@PathVariable(name = "id") Long id) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询订单详情, adminUserId={}, orderId={}", adminUserId, id);
         return Result.success(orderService.getOrderDetail(id));
     }
 
@@ -48,6 +55,7 @@ public class AdminOrderController {
     @PostMapping("/orders/{id}/mark-paid")
     public Result<Void> markPaid(@PathVariable(name = "id") Long id) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员标记订单已支付, adminUserId={}, orderId={}", adminId, id);
         orderService.markPaid(id, adminId);
         return Result.success();
     }
@@ -57,6 +65,7 @@ public class AdminOrderController {
     public Result<Void> refund(@PathVariable(name = "id") Long id,
                                @Valid @RequestBody OrderRefundRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员退款订单, adminUserId={}, orderId={}, reason={}", adminId, id, request.getReason());
         orderService.refund(id, request.getReason(), adminId);
         return Result.success();
     }
@@ -65,6 +74,7 @@ public class AdminOrderController {
     @PostMapping("/orders/{id}/cancel")
     public Result<Void> cancel(@PathVariable(name = "id") Long id) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员取消订单, adminUserId={}, orderId={}", adminId, id);
         orderService.cancel(id, adminId);
         return Result.success();
     }
@@ -73,6 +83,8 @@ public class AdminOrderController {
     @PostMapping("/membership/adjust")
     public Result<Void> adjustMembership(@Valid @RequestBody MembershipAdjustRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员手动调整会员, adminUserId={}, userId={}, level={}, expiresAt={}",
+                adminId, request.getUserId(), request.getLevel(), request.getExpiresAt());
         orderService.adjustMembership(request, adminId);
         return Result.success();
     }
@@ -81,6 +93,8 @@ public class AdminOrderController {
     @PostMapping("/membership/grant")
     public Result<Void> grantMembership(@Valid @RequestBody MembershipGrantRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员手动发放会员, adminUserId={}, userId={}, planKey={}, cycle={}",
+                adminId, request.getUserId(), request.getPlanKey(), request.getCycle());
         orderService.grantMembership(request, adminId);
         return Result.success();
     }
@@ -88,18 +102,24 @@ public class AdminOrderController {
     @Operation(summary = "统计概览")
     @GetMapping("/orders/stats/overview")
     public Result<OrderStatsOverviewVO> statsOverview() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询订单统计概览, adminUserId={}", adminUserId);
         return Result.success(orderService.getStatsOverview());
     }
 
     @Operation(summary = "收入趋势")
     @GetMapping("/orders/stats/trend")
     public Result<OrderTrendVO> statsTrend(@RequestParam(name = "days", defaultValue = "7") int days) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询订单收入趋势, adminUserId={}, days={}", adminUserId, days);
         return Result.success(orderService.getStatsTrend(days));
     }
 
     @Operation(summary = "套餐分布")
     @GetMapping("/orders/stats/plan-distribution")
     public Result<PlanDistributionVO> planDistribution() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询订单套餐分布, adminUserId={}", adminUserId);
         return Result.success(orderService.getPlanDistribution());
     }
 }

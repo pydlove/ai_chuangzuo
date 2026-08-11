@@ -83,6 +83,8 @@ public class TopicTitleService {
         vo.setTotal(p.getTotal());
         vo.setPage(page);
         vo.setPageSize(pageSize);
+        log.info("管理端查询标题列表完成, keyword={}, usedStatus={}, page={}, pageSize={}, total={}",
+                keyword, usedStatus, page, pageSize, p.getTotal());
         return vo;
     }
 

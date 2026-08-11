@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "用户草稿")
 @RestController
 @RequestMapping("/api/v1/user/drafts")
+@Slf4j
 @RequiredArgsConstructor
 public class DraftController {
 
@@ -48,6 +50,7 @@ public class DraftController {
             @RequestParam(name = "page", defaultValue = "1") long page,
             @RequestParam(name = "pageSize", defaultValue = "20") long pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询草稿列表, userId={}, keyword={}, page={}, pageSize={}", userId, keyword, page, pageSize);
         return Result.success(draftService.list(userId, keyword, page, pageSize));
     }
 
@@ -58,6 +61,7 @@ public class DraftController {
     @GetMapping("/{bizNo}")
     public Result<DraftVO> get(@PathVariable("bizNo") String bizNo) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询草稿详情, userId={}, bizNo={}", userId, bizNo);
         return Result.success(draftService.get(userId, bizNo));
     }
 
@@ -70,6 +74,7 @@ public class DraftController {
     @PostMapping
     public Result<String> save(@Valid @RequestBody SaveDraftRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("保存草稿, userId={}, customTitle={}, platform={}, wordCount={}", userId, request.getCustomTitle(), request.getPlatform(), request.getWordCount());
         return Result.success(draftService.save(userId, request));
     }
 
@@ -81,6 +86,7 @@ public class DraftController {
     public Result<Void> update(@PathVariable("bizNo") String bizNo,
                                 @Valid @RequestBody UpdateDraftRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改草稿, userId={}, bizNo={}, customTitle={}", userId, bizNo, request.getCustomTitle());
         draftService.update(userId, bizNo, request);
         return Result.success();
     }
@@ -92,6 +98,7 @@ public class DraftController {
     @DeleteMapping("/{bizNo}")
     public Result<Void> delete(@PathVariable("bizNo") String bizNo) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("删除草稿, userId={}, bizNo={}", userId, bizNo);
         draftService.delete(userId, bizNo);
         return Result.success();
     }

@@ -37,6 +37,12 @@ const routes = [
     component: () => import('@/views/GuideIndex.vue')
   },
   {
+    path: '/lottery',
+    name: 'Lottery',
+    component: () => import('@/views/console/LotteryPage.vue'),
+    meta: { title: '抽奖活动' }
+  },
+  {
     path: '/console',
     name: 'Console',
     component: () => import('@/views/console/ConsoleLayout.vue'),
@@ -140,6 +146,12 @@ const routes = [
         component: () => import('@/views/console/ActivitiesIndex.vue')
       },
       {
+        path: 'lottery',
+        name: 'ConsoleLottery',
+        component: () => import('@/views/console/LotteryPage.vue'),
+        meta: { title: '抽奖活动' }
+      },
+      {
         path: 'commission',
         name: 'ConsoleCommission',
         component: () => import('@/views/console/CommissionIndex.vue')
@@ -169,8 +181,8 @@ router.beforeEach((to) => {
   if (token && to.path === '/login') {
     return { path: '/console' }
   }
-  if (!token && to.path.startsWith('/console')) {
-    return { path: '/login' }
+  if (!token && (to.path.startsWith('/console') || to.meta?.requireAuth)) {
+    return { path: '/login', query: { redirect: to.fullPath } }
   }
 })
 

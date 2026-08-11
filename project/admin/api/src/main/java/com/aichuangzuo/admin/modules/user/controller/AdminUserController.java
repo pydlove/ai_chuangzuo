@@ -31,11 +31,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = "管理端用户管理")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/users")
 @RequiredArgsConstructor
@@ -51,21 +53,25 @@ public class AdminUserController {
             @RequestParam(name = "inviteCode", required = false) String inviteCode,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询用户列表, adminUserId={}, keyword={}, inviteCode={}, page={}, pageSize={}",
+                adminUserId, keyword, inviteCode, page, pageSize);
         return Result.success(adminUserService.listUsers(keyword, inviteCode, page, pageSize));
     }
 
     @Operation(summary = "手动创建用户")
     @PostMapping
     public Result<AdminUserVO> createUser(@Valid @RequestBody AdminUserCreateRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员手动创建用户, adminUserId={}, email={}", adminUserId, request.getEmail());
         return Result.success(adminUserService.createUser(request));
     }
 
     @Operation(summary = "下载用户导入模板")
     @GetMapping("/import-template")
     public void downloadImportTemplate(HttpServletResponse response) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员下载用户导入模板, adminUserId={}", adminUserId);
         response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         response.setCharacterEncoding("utf-8");
         String filename = URLEncoder.encode("用户导入模板.xlsx", StandardCharsets.UTF_8).replace("+", "%20");
@@ -80,21 +86,25 @@ public class AdminUserController {
     @Operation(summary = "从 Excel 批量导入用户")
     @PostMapping(value = "/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<AdminUserImportResultVO> importExcel(@RequestParam("file") MultipartFile file) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员批量导入用户, adminUserId={}, fileName={}, fileSize={}",
+                adminUserId, file.getOriginalFilename(), file.getSize());
         return Result.success(adminUserService.importUsersFromExcel(file));
     }
 
     @Operation(summary = "查看用户详情")
     @GetMapping("/{id}")
     public Result<AdminUserVO> getUser(@PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查看用户详情, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.getUser(id));
     }
 
     @Operation(summary = "查看用户邀请关系详情")
     @GetMapping("/{id}/invites")
     public Result<AdminUserInviteDetailVO> getUserInvites(@PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查看用户邀请关系详情, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.getUserInviteDetail(id));
     }
 
@@ -102,7 +112,9 @@ public class AdminUserController {
     @PatchMapping("/{id}/status")
     public Result<Void> updateStatus(@PathVariable(name = "id") Long id,
                                      @Valid @RequestBody AdminUserStatusRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员修改用户状态, adminUserId={}, userId={}, status={}",
+                adminUserId, id, request.getStatus());
         adminUserService.updateStatus(id, request);
         return Result.success();
     }
@@ -110,7 +122,8 @@ public class AdminUserController {
     @Operation(summary = "重置用户密码")
     @PostMapping("/{id}/reset-password")
     public Result<AdminUserResetPasswordVO> resetPassword(@PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员重置用户密码, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.resetPassword(id));
     }
 
@@ -118,14 +131,17 @@ public class AdminUserController {
     @PutMapping("/{id}")
     public Result<AdminUserVO> updateUser(@PathVariable(name = "id") Long id,
                                           @Valid @RequestBody AdminUserUpdateRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员编辑用户, adminUserId={}, userId={}, email={}",
+                adminUserId, id, request.getEmail());
         return Result.success(adminUserService.updateUser(id, request));
     }
 
     @Operation(summary = "删除用户")
     @DeleteMapping("/{id}")
     public Result<Void> deleteUser(@PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员删除用户, adminUserId={}, userId={}", adminUserId, id);
         adminUserService.deleteUser(id);
         return Result.success();
     }
@@ -135,6 +151,9 @@ public class AdminUserController {
     public Result<List<AdminUserOptionVO>> listUserOptions(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "limit", defaultValue = "20") int limit) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询用户下拉选项, adminUserId={}, keyword={}, limit={}",
+                adminUserId, keyword, limit);
         return Result.success(adminUserService.listUserOptions(keyword, limit));
     }
 
@@ -143,7 +162,9 @@ public class AdminUserController {
     public Result<List<AdminUserSkillVO>> listUserSkills(
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "sourceType", defaultValue = "1") Integer sourceType) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询用户提示词列表, adminUserId={}, userId={}, sourceType={}",
+                adminUserId, id, sourceType);
         return Result.success(adminUserService.listUserSkills(id, sourceType));
     }
 
@@ -151,7 +172,8 @@ public class AdminUserController {
     @GetMapping("/{id}/published-skills")
     public Result<List<AdminUserPublishedSkillVO>> listUserPublishedSkills(
             @PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询用户已发布/审核中提示词列表, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.listUserPublishedSkills(id));
     }
 
@@ -159,7 +181,8 @@ public class AdminUserController {
     @GetMapping("/{id}/learned-skills")
     public Result<List<AdminLearnedSkillMonthVO>> listUserLearnedSkillsByMonth(
             @PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询用户学习提示词按月统计, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.listUserLearnedSkillsByMonth(id));
     }
 
@@ -168,7 +191,9 @@ public class AdminUserController {
     public Result<Void> resetLearnedSkillQuota(
             @PathVariable(name = "id") Long id,
             @RequestParam(name = "period") String period) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员重置用户学习提示词额度, adminUserId={}, userId={}, period={}",
+                adminUserId, id, period);
         adminUserService.resetLearnedSkillQuota(id, period);
         return Result.success();
     }
@@ -178,7 +203,9 @@ public class AdminUserController {
     public Result<Void> releaseCustomSkillQuota(
             @PathVariable(name = "id") Long id,
             @Valid @RequestBody ResetCustomSkillQuotaRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员释放用户自定义提示词额度, adminUserId={}, userId={}, count={}",
+                adminUserId, id, request.getCount());
         adminUserService.releaseCustomSkillQuota(id, request);
         return Result.success();
     }
@@ -188,7 +215,9 @@ public class AdminUserController {
     public Result<Void> releasePublishSkillQuota(
             @PathVariable(name = "id") Long id,
             @Valid @RequestBody ResetCustomSkillQuotaRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员释放用户提示词市场发布额度, adminUserId={}, userId={}, count={}",
+                adminUserId, id, request.getCount());
         adminUserService.releasePublishSkillQuota(id, request);
         return Result.success();
     }
@@ -197,14 +226,16 @@ public class AdminUserController {
     @GetMapping("/{id}/favorite-skills")
     public Result<List<AdminUserFavoriteSkillVO>> listUserFavoriteSkills(
             @PathVariable(name = "id") Long id) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询用户收藏提示词列表, adminUserId={}, userId={}", adminUserId, id);
         return Result.success(adminUserService.listUserFavoriteSkills(id));
     }
 
-    private void checkSuperAdmin() {
+    private Long checkSuperAdmin() {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminUserId == null || !adminUserPermissionService.isSuperAdmin(adminUserId)) {
             throw new BusinessException(AdminUserErrorCode.NO_PERMISSION);
         }
+        return adminUserId;
     }
 }

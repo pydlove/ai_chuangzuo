@@ -8,6 +8,7 @@ import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
  * Admin 端-创作运行时配置 API。
  */
 @Tag(name = "管理端-创作设置")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/generation/config")
 @RequiredArgsConstructor
@@ -27,12 +29,14 @@ public class GenerationConfigAdminController {
 
     @GetMapping
     public Result<GenerationConfigVO> detail() {
+        log.info("管理端查询创作配置详情");
         return Result.success(service.detail());
     }
 
     @PutMapping
     public Result<GenerationConfigVO> update(@Valid @RequestBody GenerationConfigUpdateRequest request) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理端更新创作配置, adminUserId={}", adminUserId);
         return Result.success(service.update(request, adminUserId));
     }
 }

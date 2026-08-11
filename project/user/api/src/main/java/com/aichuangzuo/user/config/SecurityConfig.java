@@ -5,6 +5,7 @@ import com.aichuangzuo.user.infrastructure.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -32,6 +33,8 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/user/plans/newcomer-offer").authenticated()
                 .requestMatchers("/api/v1/user/export-templates").permitAll()
                 .requestMatchers("/api/v1/user/home/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/user/lottery/campaigns/current").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/v1/user/lottery/display-winners").permitAll()
                 .requestMatchers("/api/v1/user/internal/**").permitAll()
                 .requestMatchers("/__test/**").permitAll()
                 .requestMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()

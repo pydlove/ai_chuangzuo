@@ -11,6 +11,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -24,6 +25,7 @@ import java.util.List;
 /**
  * 用户端 - 风格市场接口。
  */
+@Slf4j
 @Tag(name = "风格市场")
 @RestController
 @RequestMapping("/api/v1/user/market-skills")
@@ -37,6 +39,8 @@ public class SkillMarketController {
     @Operation(summary = "获取全部已上架的风格市场列表")
     @GetMapping
     public Result<List<MarketSkillVO>> listEnabled() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取全部已上架的风格市场列表 userId={}", userId);
         return Result.success(skillMarketQueryService.listEnabled());
     }
 
@@ -47,12 +51,16 @@ public class SkillMarketController {
             @RequestParam(defaultValue = "15") int pageSize,
             @RequestParam(required = false) String keyword,
             @RequestParam(required = false, defaultValue = "all") String sortType) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("分页查询已上架的风格市场列表 userId={} page={} pageSize={} keyword={} sortType={}", userId, page, pageSize, keyword, sortType);
         return Result.success(skillMarketQueryService.pageEnabled(page, pageSize, keyword, sortType));
     }
 
     @Operation(summary = "获取提示词市场概览")
     @GetMapping("/overview")
     public Result<MarketSkillOverviewVO> overview() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取提示词市场概览 userId={}", userId);
         return Result.success(skillMarketQueryService.getOverview());
     }
 
@@ -63,6 +71,7 @@ public class SkillMarketController {
     @GetMapping("/favorites")
     public Result<List<MarketSkillVO>> listFavoriteSkills() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("获取收藏的市场 skill 详情列表 userId={}", userId);
         return Result.success(userMarketFavoriteService.listFavoriteSkills(userId));
     }
 
@@ -73,6 +82,7 @@ public class SkillMarketController {
     @PostMapping("/favorites/{marketSkillId}")
     public Result<Void> addFavorite(@PathVariable String marketSkillId) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("收藏市场 skill userId={} marketSkillId={}", userId, marketSkillId);
         userMarketFavoriteService.addFavorite(userId, marketSkillId);
         return Result.success();
     }
@@ -84,6 +94,7 @@ public class SkillMarketController {
     @DeleteMapping("/favorites/{marketSkillId}")
     public Result<Void> removeFavorite(@PathVariable String marketSkillId) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("取消收藏市场 skill userId={} marketSkillId={}", userId, marketSkillId);
         userMarketFavoriteService.removeFavorite(userId, marketSkillId);
         return Result.success();
     }
@@ -95,6 +106,7 @@ public class SkillMarketController {
     @DeleteMapping("/{marketSkillId}")
     public Result<Void> deleteOwnMarketSkill(@PathVariable String marketSkillId) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("下架自己的市场 skill userId={} marketSkillId={}", userId, marketSkillId);
         skillMarketCommandService.deleteOwnMarketSkill(marketSkillId, userId);
         return Result.success();
     }
@@ -106,6 +118,7 @@ public class SkillMarketController {
     @GetMapping("/my-submissions")
     public Result<List<MarketSkillVO>> listMySubmissions() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("我的市场提交记录 userId={}", userId);
         return Result.success(skillMarketQueryService.listMySubmissions(userId));
     }
 }

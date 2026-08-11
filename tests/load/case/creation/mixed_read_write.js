@@ -8,10 +8,12 @@ import { randomIntBetween } from 'https://jslib.k6.io/k6-utils/1.2.0/index.js';
 import { BASE_URL, getHeaders, ENDPOINTS } from '../../config/config.js';
 import { loginWithAccount } from '../../config/auth.js';
 import { generateReport } from '../../config/summary.js';
-import accountsRaw from '../../config/accounts.json';
 
-// k6 导入 JSON 可能是数组或 { default: 数组 }
+// k6 直接 import JSON 有时读不到，用 open() 更稳定（路径相对于脚本文件）
+const accountsFile = __ENV.ACCOUNTS_FILE || '../../config/accounts.json';
+const accountsRaw = JSON.parse(open(accountsFile));
 const accounts = Array.isArray(accountsRaw) ? accountsRaw : (accountsRaw.default || []);
+console.log(`[ACCOUNTS] 文件: ${accountsFile}, 数量: ${accounts.length}`);
 
 const targetVus = parseInt(__ENV.TARGET_VUS || '100', 10);
 const rampDuration = Math.max(30, Math.floor(targetVus / 10));
@@ -124,16 +126,25 @@ function submitTask(headers, topics) {
   const payload = JSON.stringify({
     title,
     platform: PLATFORMS[randomIntBetween(0, PLATFORMS.length - 1)],
-    wordCount: randomIntBetween(500, 2000),
+    wordCount: 500,
     description,
   });
 
   const res = http.post(`${BASE_URL}${ENDPOINTS.createTask}`, payload, { headers });
+  const bodyCode = res.json()?.code;
 
   check(res, {
-    'create status 200': (r) => r.status === 200,
+    'create accepted or queued': (r) => {
+      if (r.status !== 200) return false;
+      // 212005 = 队列已满，按套餐限制属于正常拒绝，不算压测失败
+      return bodyCode === 0 || bodyCode === 200 || bodyCode === 212005;
+    },
     'create response < 2s': (r) => r.timings.duration < 2000,
   });
+
+  if (bodyCode === 212005) {
+    console.log(`[QUEUE FULL] 当前用户队列任务数已达上限，跳过本次写入`);
+  }
 }
 
 function readArticles(headers) {

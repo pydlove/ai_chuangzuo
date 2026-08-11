@@ -9,6 +9,7 @@ import com.aichuangzuo.user.modules.leaderboard.vo.CoinLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeSubmissionVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +23,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/user/leaderboards")
 @RequiredArgsConstructor
+@Slf4j
 public class LeaderboardController {
 
     private final LeaderboardService leaderboardService;
@@ -30,6 +32,7 @@ public class LeaderboardController {
     @GetMapping("/coin")
     public Result<CoinLeaderboardVO> coin(@RequestParam(name = "month") String month) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get coin leaderboard, userId={}, month={}", userId, month);
         return Result.success(leaderboardService.getCoinLeaderboard(userId, month));
     }
 
@@ -37,6 +40,8 @@ public class LeaderboardController {
     public Result<IncomeLeaderboardVO> income(@RequestParam(name = "periodType") String periodType,
                                                  @RequestParam(name = "periodValue") String periodValue) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get income leaderboard, userId={}, periodType={}, periodValue={}",
+                userId, periodType, periodValue);
         return Result.success(leaderboardService.getIncomeLeaderboard(userId, periodType, periodValue));
     }
 
@@ -46,6 +51,8 @@ public class LeaderboardController {
                                               @RequestParam(name = "platform") String platform,
                                               @RequestParam("screenshots") List<MultipartFile> screenshots) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Submit income leaderboard, userId={}, periodMonth={}, amount={}, platform={}, screenshotCount={}",
+                userId, periodMonth, amount, platform, screenshots == null ? 0 : screenshots.size());
         List<String> paths = incomeSubmissionService.uploadScreenshots(userId, screenshots);
 
         IncomeSubmissionUploadRequest request = new IncomeSubmissionUploadRequest();
@@ -60,6 +67,7 @@ public class LeaderboardController {
     @GetMapping("/income-submissions/me")
     public Result<List<IncomeSubmissionVO>> mySubmissions() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("List my income submissions, userId={}", userId);
         return Result.success(incomeSubmissionService.listByUser(userId, null));
     }
 }

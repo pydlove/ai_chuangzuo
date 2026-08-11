@@ -17,12 +17,14 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
 
 @Tag(name = "管理端模型配置")
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/admin/model-configs")
 @RequiredArgsConstructor
@@ -34,14 +36,16 @@ public class ModelConfigController {
     @Operation(summary = "查询模型配置列表")
     @GetMapping
     public Result<List<ModelConfigVO>> list() {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询模型配置列表, adminUserId={}", adminUserId);
         return Result.success(modelConfigService.listConfigs());
     }
 
     @Operation(summary = "查看模型配置详情")
     @GetMapping("/{providerType}")
     public Result<ModelConfigVO> get(@PathVariable(name = "providerType") String providerType) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查看模型配置详情, adminUserId={}, providerType={}", adminUserId, providerType);
         return Result.success(modelConfigService.getConfig(providerType));
     }
 
@@ -49,7 +53,9 @@ public class ModelConfigController {
     @PutMapping("/{providerType}")
     public Result<Void> save(@PathVariable(name = "providerType") String providerType,
                              @Valid @RequestBody ModelConfigSaveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员保存模型配置, adminUserId={}, providerType={}, modelCode={}",
+                adminUserId, providerType, request.getModelCode());
         modelConfigService.saveConfig(providerType, request);
         return Result.success();
     }
@@ -57,7 +63,8 @@ public class ModelConfigController {
     @Operation(summary = "删除模型配置")
     @DeleteMapping("/{providerType}")
     public Result<Void> delete(@PathVariable(name = "providerType") String providerType) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员删除模型配置, adminUserId={}, providerType={}", adminUserId, providerType);
         modelConfigService.deleteConfig(providerType);
         return Result.success();
     }
@@ -67,7 +74,8 @@ public class ModelConfigController {
     public Result<List<ModelOptionVO>> fetchModels(
             @PathVariable(name = "providerType") String providerType,
             @Valid @RequestBody ModelConfigConnectionRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员拉取厂商模型列表, adminUserId={}, providerType={}", adminUserId, providerType);
         return Result.success(modelConfigService.fetchModels(providerType, request));
     }
 
@@ -76,7 +84,8 @@ public class ModelConfigController {
     public Result<Map<String, Boolean>> testConnection(
             @PathVariable(name = "providerType") String providerType,
             @Valid @RequestBody ModelConfigConnectionRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员测试模型连接, adminUserId={}, providerType={}", adminUserId, providerType);
         boolean success = modelConfigService.testConnection(providerType, request);
         return Result.success(Map.of("success", success));
     }
@@ -86,7 +95,9 @@ public class ModelConfigController {
     public Result<Void> toggleActive(
             @PathVariable(name = "providerType") String providerType,
             @Valid @RequestBody ModelConfigActiveRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员切换模型配置状态, adminUserId={}, providerType={}, isActive={}",
+                adminUserId, providerType, request.getIsActive());
         modelConfigService.toggleActive(providerType, request);
         return Result.success();
     }
@@ -96,14 +107,17 @@ public class ModelConfigController {
     public Result<ModelConfigChatTestVO> chatTest(
             @PathVariable(name = "providerType") String providerType,
             @Valid @RequestBody ModelConfigChatTestRequest request) {
-        checkSuperAdmin();
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员进行模型问答测试, adminUserId={}, providerType={}, modelCode={}",
+                adminUserId, providerType, request.getModelCode());
         return Result.success(modelConfigService.chatTest(providerType, request));
     }
 
-    private void checkSuperAdmin() {
+    private Long checkSuperAdmin() {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminUserId == null || !adminUserPermissionService.isSuperAdmin(adminUserId)) {
             throw new BusinessException(AdminUserErrorCode.NO_PERMISSION);
         }
+        return adminUserId;
     }
 }

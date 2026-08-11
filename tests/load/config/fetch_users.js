@@ -9,6 +9,7 @@
 
 const fs = require('fs');
 const http = require('http');
+const path = require('path');
 
 // 默认走管理端 Nginx 入口（22347），不直连后端 26060
 const ADMIN_BASE_URL = process.env.ADMIN_BASE_URL || 'http://101.126.15.58:22347';
@@ -86,8 +87,12 @@ async function listUsers(token) {
     throw new Error('获取用户列表失败');
   }
 
+  const total = res.body?.data?.total || 0;
   const list = res.body?.data?.list || [];
-  console.log(`[LIST USERS] 共 ${list.length} 个用户`);
+  console.log(`[LIST USERS] 总数: ${total}, 本页返回: ${list.length}`);
+  if (list.length > 0) {
+    console.log(`[LIST USERS] 前几条: ${list.slice(0, 3).map(u => u.email).join(', ')}`);
+  }
   return list;
 }
 
@@ -113,8 +118,31 @@ async function updateMembership(token, user) {
   return true;
 }
 
+async function ensurePlanBenefit(token) {
+  const body = {
+    planKey: MEMBERSHIP_PLAN,
+    benefitCode: 'ai_article_quota',
+    benefitValue: '10000',
+  };
+  console.log(`[ENSURE PLAN BENEFIT] ${MEMBERSHIP_PLAN} -> ai_article_quota = 10000`);
+  const res = await request('POST', '/api/v1/admin/plan-benefits', body, {
+    Authorization: `Bearer ${token}`,
+  });
+
+  if (res.status !== 200) {
+    console.error('[ENSURE PLAN BENEFIT ERROR]', res.status, res.body);
+    throw new Error('确保套餐权益失败');
+  }
+
+  console.log('[ENSURE PLAN BENEFIT] 成功');
+}
+
 async function main() {
   const token = await login();
+
+  // 确保当前套餐有生成文章的权益，否则创作任务会报 118002
+  await ensurePlanBenefit(token);
+
   const users = await listUsers(token);
 
   if (users.length === 0) {
@@ -123,8 +151,12 @@ async function main() {
   }
 
   const accounts = [];
+  let skipped = 0;
   for (const user of users) {
-    if (!user.email) continue;
+    if (!user.email) {
+      skipped++;
+      continue;
+    }
 
     if (SET_MEMBERSHIP) {
       await updateMembership(token, user);
@@ -136,12 +168,16 @@ async function main() {
     });
   }
 
+  const outputPath = path.join(__dirname, 'accounts.json');
   fs.writeFileSync(
-    './accounts.json',
+    outputPath,
     JSON.stringify(accounts, null, 2)
   );
 
-  console.log(`[DONE] 已写入 ${accounts.length} 个用户到 accounts.json`);
+  console.log(`[DONE] 已写入 ${accounts.length} 个用户到 ${outputPath}`);
+  if (skipped > 0) {
+    console.log(`[WARN] 跳过了 ${skipped} 个没有 email 的用户`);
+  }
 }
 
 main().catch((err) => {

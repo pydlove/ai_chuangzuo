@@ -81,6 +81,26 @@
               </a-button>
             </a-space>
           </a-form-item>
+
+          <a-divider orientation="left">登录频率限制</a-divider>
+          <p class="section-tip">
+            关闭后同一 IP 在用户端登录不再受 60 秒 10 次的频率限制，方便压测。生产环境建议保持开启。
+            修改后约 1 分钟内在用户端生效。
+          </p>
+
+          <a-form-item>
+            <a-switch
+              v-model:checked="loginRateLimitEnabled"
+              checked-children="开启"
+              un-checked-children="关闭"
+            />
+          </a-form-item>
+
+          <a-form-item>
+            <a-space>
+              <a-button type="primary" :loading="submittingRateLimit" @click="onSubmitRateLimit">保存</a-button>
+            </a-space>
+          </a-form-item>
         </a-form>
       </a-spin>
     </a-card>
@@ -92,7 +112,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { fetchBenefits } from '@/api/benefit.js'
 import { fetchPlanBenefits, upsertPlanBenefit } from '@/api/planBenefit.js'
-import { getSkillAnalyzeConfig, updateSkillAnalyzeConfig } from '@/api/security.js'
+import { getSkillAnalyzeConfig, updateSkillAnalyzeConfig, getRateLimitConfig, updateRateLimitConfig } from '@/api/security.js'
 
 const BENEFIT_CODE = 'generation_rate_limit'
 const PLAN_KEYS = ['basic', 'pro', 'flagship']
@@ -105,14 +125,18 @@ const values = reactive({ ...DEFAULT_VALUES })
 const originalValues = reactive({ ...DEFAULT_VALUES })
 const skillAnalyzeDailyLimit = ref(5)
 const originalSkillAnalyzeDailyLimit = ref(5)
+const loginRateLimitEnabled = ref(true)
+const originalLoginRateLimitEnabled = ref(true)
+const submittingRateLimit = ref(false)
 
 async function load() {
   loading.value = true
   try {
-    const [benefitList, planBenefitList, skillAnalyzeConfig] = await Promise.all([
+    const [benefitList, planBenefitList, skillAnalyzeConfig, rateLimitConfig] = await Promise.all([
       fetchBenefits(),
       fetchPlanBenefits(),
-      getSkillAnalyzeConfig()
+      getSkillAnalyzeConfig(),
+      getRateLimitConfig()
     ])
 
     const benefit = benefitList.find((b) => b.code === BENEFIT_CODE)
@@ -136,6 +160,10 @@ async function load() {
     )
     skillAnalyzeDailyLimit.value = parsedDailyLimit
     originalSkillAnalyzeDailyLimit.value = parsedDailyLimit
+
+    const parsedEnabled = rateLimitConfig?.isLoginRateLimitEnabled === 1
+    loginRateLimitEnabled.value = parsedEnabled
+    originalLoginRateLimitEnabled.value = parsedEnabled
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {
@@ -182,6 +210,24 @@ async function onSubmitSkillAnalyze() {
     message.error(e?.message || '保存失败')
   } finally {
     submittingSkillAnalyze.value = false
+  }
+}
+
+async function onSubmitRateLimit() {
+  if (loginRateLimitEnabled.value === originalLoginRateLimitEnabled.value) {
+    return
+  }
+  submittingRateLimit.value = true
+  try {
+    await updateRateLimitConfig({
+      isLoginRateLimitEnabled: loginRateLimitEnabled.value ? 1 : 0
+    })
+    message.success('保存成功')
+    originalLoginRateLimitEnabled.value = loginRateLimitEnabled.value
+  } catch (e) {
+    message.error(e?.message || '保存失败')
+  } finally {
+    submittingRateLimit.value = false
   }
 }
 

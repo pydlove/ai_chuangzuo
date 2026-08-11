@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.exporttemplate.vo.ExportTemplateVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,6 +24,7 @@ import java.util.List;
 @Tag(name = "用户端导出模板")
 @RestController
 @RequestMapping("/api/v1/user/export-templates")
+@Slf4j
 @RequiredArgsConstructor
 public class ExportTemplateController {
 
@@ -32,6 +34,7 @@ public class ExportTemplateController {
     @GetMapping
     public Result<List<ExportTemplateVO>> list() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询启用的导出模板列表, userId={}", userId);
         return Result.success(exportTemplateService.listEnabled(userId));
     }
 }
