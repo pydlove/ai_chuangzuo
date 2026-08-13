@@ -16,6 +16,7 @@ export function useMarketStyleManagement() {
   const pageSize = ref(20)
   const keyword = ref('')
   const status = ref('')
+  const featured = ref('')
 
   const fetch = async () => {
     loading.value = true
@@ -24,7 +25,8 @@ export function useMarketStyleManagement() {
         keyword: keyword.value,
         pageNum: page.value,
         pageSize: pageSize.value,
-        enableStatus: status.value === '' || status.value === null ? undefined : status.value
+        enableStatus: status.value === '' || status.value === null ? undefined : status.value,
+        featured: featured.value === '' || featured.value === null ? undefined : featured.value
       })
       list.value = res.list
       total.value = res.total
@@ -43,6 +45,7 @@ export function useMarketStyleManagement() {
   const handleReset = () => {
     keyword.value = ''
     status.value = ''
+    featured.value = ''
     page.value = 1
     fetch()
   }
@@ -104,6 +107,7 @@ export function useMarketStyleManagement() {
     pageSize,
     keyword,
     status,
+    featured,
     fetch,
     handleSearch,
     handleReset,

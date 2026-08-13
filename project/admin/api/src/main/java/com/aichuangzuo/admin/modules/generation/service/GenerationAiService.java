@@ -16,10 +16,12 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
@@ -82,14 +84,25 @@ public class GenerationAiService {
         // 请求体改用 LinkedHashMap，允许覆盖默认值；Map.of() 不允许 null 值
         Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("model", cfg.getModelCode());
-        body.put("messages", List.of(
-                Map.of("role", "system", "content", systemMessage),
-                Map.of("role", "user", "content", userMessage)
-        ));
-        body.put("temperature", pickDouble(modelParams, "temperature", temperatureDefault));
-        body.put("max_tokens", pickInt(modelParams, "max_tokens", maxTokensDefault));
-        body.put("top_p", pickDouble(modelParams, "top_p", topPDefault));
+        List<Map<String, String>> messages = new java.util.ArrayList<>();
+        if (StringUtils.hasText(systemMessage)) {
+            messages.add(Map.of("role", "system", "content", systemMessage));
+        }
+        messages.add(Map.of("role", "user", "content", userMessage));
+        body.put("messages", messages);
+        int maxTokens = pickInt(modelParams, "max_tokens", maxTokensDefault);
+        // kimi-for-coding 在 max_tokens 过大时生成极慢，常被上游网关 504；限制在 8192 避免超时。
+        if ("kimi".equalsIgnoreCase(cfg.getProviderType())) {
+            maxTokens = Math.min(maxTokens, 8192);
+        }
+        body.put("max_tokens", maxTokens);
         body.put("stream", false);
+        // kimi-for-coding 等模型限制 temperature/top_p 只能为 1，传默认值 0.7 会 400；
+        // 对 kimi 直接不传这两个参数，让服务端使用自身默认值（通常为 1）。
+        if (!"kimi".equalsIgnoreCase(cfg.getProviderType())) {
+            body.put("temperature", pickDouble(modelParams, "temperature", temperatureDefault));
+            body.put("top_p", pickDouble(modelParams, "top_p", topPDefault));
+        }
         // API 层强制 JSON 模式：让模型必须输出合法 JSON，不再裸 prose。
         // 多数 OpenAI 兼容厂商（含 chatcompletion_v2）支持；不支持时会静默忽略，
         // 不至于报错崩任务。配合解析器侧开启 ALLOW_UNQUOTED_FIELD_NAMES 等
@@ -99,16 +112,20 @@ public class GenerationAiService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
+        headers.set("User-Agent", "claude-cli/2.1.161");
 
         try {
             ResponseEntity<String> response = getRestTemplate().exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
             return extractResult(response.getBody(), cfg.getProviderType());
         } catch (HttpClientErrorException e) {
-            log.warn("AI 调用 client error provider={} status={}", cfg.getProviderType(), e.getStatusCode());
+            String responseBody = e.getResponseBodyAsString(StandardCharsets.UTF_8);
+            log.warn("AI 调用 client error provider={} status={} url={} request={} response={}",
+                    cfg.getProviderType(), e.getStatusCode(), url, toJson(body), responseBody);
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
         } catch (RestClientException e) {
-            log.warn("AI 调用 transport error provider={} msg={}", cfg.getProviderType(), e.getMessage());
+            log.warn("AI 调用 transport error provider={} url={} msg={}",
+                    cfg.getProviderType(), url, e.getMessage());
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
         }
     }
@@ -156,17 +173,39 @@ public class GenerationAiService {
     }
 
     private String resolveUrl(ModelConfig cfg) {
-        String base = cfg.getBaseUrl() == null ? "" : cfg.getBaseUrl().trim().replaceAll("/+$", "");
-        int schemeEnd = base.indexOf("://");
-        if (schemeEnd >= 0) {
-            int pathStart = base.indexOf('/', schemeEnd + 3);
-            if (pathStart > 0) base = base.substring(0, pathStart);
-        }
+        String base = trimBaseUrl(cfg.getBaseUrl());
         String suffix = switch (cfg.getProviderType() == null ? "" : cfg.getProviderType().toLowerCase()) {
             case "minimax" -> "/v1/text/chatcompletion_v2";
             default -> "/v1/chat/completions"; // kimi 等 OpenAI 兼容
         };
-        return base + suffix;
+        String url = base + suffix;
+        log.debug("AI request url provider={} url={}", cfg.getProviderType(), url);
+        return url;
+    }
+
+    /**
+     * 与 {@link com.aichuangzuo.admin.infrastructure.ai.AiProviderClient} 保持一致：
+     * 仅去掉末尾的 /v1 或 /v1/，保留其它代理路径，避免测试连接时能用、实际生成时 404。
+     */
+    private String trimBaseUrl(String baseUrl) {
+        if (baseUrl == null) return "";
+        String s = baseUrl.trim();
+        if (s.endsWith("/v1/")) {
+            s = s.substring(0, s.length() - 4);
+        } else if (s.endsWith("/v1")) {
+            s = s.substring(0, s.length() - 3);
+        }
+        s = s.replaceAll("/+$", "");
+        return s;
+    }
+
+    private String toJson(Object obj) {
+        try {
+            String json = objectMapper.writeValueAsString(obj);
+            return json.length() > 2000 ? json.substring(0, 2000) + "..." : json;
+        } catch (Exception e) {
+            return String.valueOf(obj);
+        }
     }
 
     private AiCallResult extractResult(String responseBody, String providerType) {

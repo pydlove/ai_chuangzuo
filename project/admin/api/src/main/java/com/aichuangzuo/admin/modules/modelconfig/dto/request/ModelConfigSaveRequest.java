@@ -8,6 +8,12 @@ import lombok.Data;
 public class ModelConfigSaveRequest {
 
     @NotBlank
+    private String providerType;
+
+    @NotBlank
+    private String name;
+
+    @NotBlank
     private String baseUrl;
 
     private String apiKey;
@@ -16,6 +22,9 @@ public class ModelConfigSaveRequest {
     private String modelCode;
 
     private String modelName;
+
+    @NotNull
+    private Integer priority;
 
     @NotNull
     private Integer isActive;

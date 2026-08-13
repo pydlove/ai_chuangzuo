@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.skill.preset.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.skill.preset.dto.request.BatchDeleteGlobalSkillRequest;
 import com.aichuangzuo.admin.modules.skill.preset.dto.request.CreateGlobalSkillRequest;
 import com.aichuangzuo.admin.modules.skill.preset.dto.request.GlobalSkillPageRequest;
 import com.aichuangzuo.admin.modules.skill.preset.dto.request.UpdateGlobalSkillRequest;
@@ -63,12 +64,21 @@ public class GlobalSkillAdminController {
         return Result.success();
     }
 
-    @Operation(summary = "软删除预设风格")
+    @Operation(summary = "删除预设风格")
     @DeleteMapping("/{bizNo}")
     public Result<Void> delete(@PathVariable String bizNo) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员删除预设提示词, adminUserId={}, bizNo={}", adminUserId, bizNo);
         globalSkillService.delete(bizNo);
         return Result.success();
+    }
+
+    @Operation(summary = "批量删除预设风格")
+    @PostMapping("/batch/delete")
+    public Result<Integer> batchDelete(@Valid @RequestBody BatchDeleteGlobalSkillRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量删除预设提示词, adminUserId={}, count={}, bizNos={}",
+                adminUserId, request.getBizNos().size(), request.getBizNos());
+        return Result.success(globalSkillService.deleteBatch(request.getBizNos()));
     }
 }

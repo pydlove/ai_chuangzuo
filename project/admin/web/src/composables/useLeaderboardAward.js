@@ -8,8 +8,32 @@ export function useLeaderboardAward() {
     periodMonth: '',
     top10: [],
     rewards: { items: [], total: 0, page: 1, size: 20 },
-    loading: false
+    loading: false,
+    rewardConfig: { topLimit: 3, rewardAmount: 500 }
   })
+
+  const fetchConfig = async () => {
+    try {
+      state.rewardConfig = await api.getRewardConfig()
+    } catch (err) {
+      message.error(err.message || '加载奖励配置失败')
+    }
+  }
+
+  const saveConfig = async () => {
+    state.loading = true
+    try {
+      state.rewardConfig = await api.updateRewardConfig({
+        topLimit: Number(state.rewardConfig.topLimit),
+        rewardAmount: Number(state.rewardConfig.rewardAmount)
+      })
+      message.success('保存成功')
+    } catch (err) {
+      message.error(err.message || '保存失败')
+    } finally {
+      state.loading = false
+    }
+  }
 
   const fetchTop10 = async () => {
     if (!state.periodMonth) return
@@ -58,6 +82,8 @@ export function useLeaderboardAward() {
 
   return {
     state,
+    fetchConfig,
+    saveConfig,
     fetchTop10,
     grant,
     fetchRewards

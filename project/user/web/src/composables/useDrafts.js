@@ -34,7 +34,7 @@ export function useDrafts() {
     try {
       const data = await listDrafts({
         page: 1,
-        pageSize: 100,
+        pageSize: 10,
         ...params
       })
       drafts.value = (data.list || []).map(normalizeDraft)

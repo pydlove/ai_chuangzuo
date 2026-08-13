@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
+import com.aichuangzuo.admin.modules.user.dto.request.BatchDeleteUserRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.ResetCustomSkillQuotaRequest;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
 import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
@@ -102,10 +103,14 @@ public class AdminUserController {
 
     @Operation(summary = "查看用户邀请关系详情")
     @GetMapping("/{id}/invites")
-    public Result<AdminUserInviteDetailVO> getUserInvites(@PathVariable(name = "id") Long id) {
+    public Result<AdminUserInviteDetailVO> getUserInvites(
+            @PathVariable(name = "id") Long id,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
         Long adminUserId = checkSuperAdmin();
-        log.info("管理员查看用户邀请关系详情, adminUserId={}, userId={}", adminUserId, id);
-        return Result.success(adminUserService.getUserInviteDetail(id));
+        log.info("管理员查看用户邀请关系详情, adminUserId={}, userId={}, page={}, pageSize={}",
+                adminUserId, id, page, pageSize);
+        return Result.success(adminUserService.getUserInviteDetail(id, page, pageSize));
     }
 
     @Operation(summary = "修改用户状态")
@@ -144,6 +149,14 @@ public class AdminUserController {
         log.info("管理员删除用户, adminUserId={}, userId={}", adminUserId, id);
         adminUserService.deleteUser(id);
         return Result.success();
+    }
+
+    @Operation(summary = "批量删除用户")
+    @PostMapping("/batch/delete")
+    public Result<Integer> batchDeleteUsers(@Valid @RequestBody BatchDeleteUserRequest request) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员批量删除用户, adminUserId={}, ids={}", adminUserId, request.getIds());
+        return Result.success(adminUserService.deleteBatch(request.getIds()));
     }
 
     @Operation(summary = "用户下拉选项（发布者选择）")

@@ -67,12 +67,13 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
         }
 
-        User user = userMapper.selectByEmail(request.getEmail());
+        String email = request.getEmail().trim().toLowerCase();
+        User user = userMapper.selectByEmail(email);
         if (user == null) {
             throw new BusinessException(UserAuthErrorCode.RESET_PASSWORD_FAILED);
         }
 
-        if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {
+        if (!emailCodeService.validateEmailCode(email, request.getEmailCode())) {
             throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
         }
 
@@ -201,14 +202,15 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokenVO login(LoginRequest request, String clientIp, String userAgent) {
-        String failKey = "user:auth:login-fail:" + request.getEmail();
-        String lockKey = "user:auth:account-lock:" + request.getEmail();
+        String email = request.getEmail().trim().toLowerCase();
+        String failKey = "user:auth:login-fail:" + email;
+        String lockKey = "user:auth:account-lock:" + email;
 
         if (cacheUtil.get(lockKey) != null) {
             throw new BusinessException(UserAuthErrorCode.OPERATION_TOO_FREQUENT);
         }
 
-        User user = userMapper.selectByEmail(request.getEmail());
+        User user = userMapper.selectByEmail(email);
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             saveLoginLog(0L, 1, clientIp, userAgent, 0, "账号或密码错误");
             incrementLoginFail(failKey, lockKey);
@@ -225,15 +227,17 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private void incrementLoginFail(String failKey, String lockKey) {
-        Integer count = cacheUtil.get(failKey);
-        if (count == null) {
-            count = 0;
-        }
-        count++;
-        cacheUtil.set(failKey, count, LOGIN_FAIL_WINDOW_MINUTES, TimeUnit.MINUTES);
-        if (count >= MAX_LOGIN_FAIL) {
-            cacheUtil.set(lockKey, true, ACCOUNT_LOCK_MINUTES, TimeUnit.MINUTES);
-            cacheUtil.delete(failKey);
+        synchronized (failKey.intern()) {
+            Integer count = cacheUtil.get(failKey);
+            if (count == null) {
+                count = 0;
+            }
+            count++;
+            cacheUtil.set(failKey, count, LOGIN_FAIL_WINDOW_MINUTES, TimeUnit.MINUTES);
+            if (count >= MAX_LOGIN_FAIL) {
+                cacheUtil.set(lockKey, true, ACCOUNT_LOCK_MINUTES, TimeUnit.MINUTES);
+                cacheUtil.delete(failKey);
+            }
         }
     }
 

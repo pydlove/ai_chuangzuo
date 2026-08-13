@@ -6,6 +6,7 @@ com/aichuangzuo/user/modules/hotsearch/service/HotSearchServiceTest.class
 com/aichuangzuo/user/modules/learn/service/LearnBrowseServiceImplTest.class
 com/aichuangzuo/user/modules/skill/market/service/SkillUsageRecordServiceTest.class
 com/aichuangzuo/user/modules/user/service/UserInviteBindingServiceTest.class
+com/aichuangzuo/user/modules/lottery/service/LotteryChanceServiceTest.class
 com/aichuangzuo/user/modules/skill/service/UserSkillServiceTest.class
 com/aichuangzuo/user/modules/user/service/UserProfileServiceNicknameTest.class
 com/aichuangzuo/user/modules/article/service/ArticleServiceTest.class

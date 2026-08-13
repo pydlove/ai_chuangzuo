@@ -38,13 +38,13 @@
       <div class="works-tabs">
         <button
           :class="['works-tab', { active: activeTab === 'works' }]"
-          @click="activeTab = 'works'"
+          @click="switchTab('works')"
         >
           已生成
         </button>
         <button
           :class="['works-tab', { active: activeTab === 'drafts' }]"
-          @click="activeTab = 'drafts'"
+          @click="switchTab('drafts')"
         >
           草稿箱
         </button>
@@ -53,9 +53,14 @@
 
     <!-- 已生成列表 -->
     <div v-if="activeTab === 'works'" class="works-list">
-      <div v-if="worksList.length === 0" class="works-empty">
+      <div v-if="worksList.length === 0 && !searchKeyword.trim()" class="works-empty">
         <a-empty description="还没有生成的文章">
           <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        </a-empty>
+      </div>
+      <div v-else-if="worksList.length === 0 && searchKeyword.trim()" class="works-empty">
+        <a-empty description="未找到匹配的作品">
+          <button class="empty-btn" @click="clearFilters">清空筛选</button>
         </a-empty>
       </div>
       <div v-else-if="filteredWorks.length === 0" class="works-empty">
@@ -81,13 +86,30 @@
           </div>
         </div>
       </div>
+      <div v-if="worksTotal > 0" class="works-pagination">
+        <a-pagination
+          :current="worksPage"
+          :page-size="worksPageSize"
+          :total="worksTotal"
+          show-size-changer
+          show-total
+          :page-size-options="['10', '20', '50']"
+          @change="onWorksPageChange"
+          @showSizeChange="onWorksPageSizeChange"
+        />
+      </div>
     </div>
 
     <!-- 草稿箱 -->
     <div v-if="activeTab === 'drafts'" class="drafts-list">
-      <div v-if="draftsList.length === 0" class="works-empty">
+      <div v-if="draftsList.length === 0 && !searchKeyword.trim()" class="works-empty">
         <a-empty description="草稿箱是空的">
           <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+        </a-empty>
+      </div>
+      <div v-else-if="draftsList.length === 0 && searchKeyword.trim()" class="works-empty">
+        <a-empty description="未找到匹配的草稿">
+          <button class="empty-btn" @click="clearFilters">清空筛选</button>
         </a-empty>
       </div>
       <div v-else-if="filteredDrafts.length === 0" class="works-empty">
@@ -111,12 +133,24 @@
           </div>
         </div>
       </div>
+      <div v-if="draftsTotal > 0" class="works-pagination">
+        <a-pagination
+          :current="draftsPage"
+          :page-size="draftsPageSize"
+          :total="draftsTotal"
+          show-size-changer
+          show-total
+          :page-size-options="['10', '20', '50']"
+          @change="onDraftsPageChange"
+          @showSizeChange="onDraftsPageSizeChange"
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
@@ -162,8 +196,55 @@ const selectedPlatforms = ref([])
 const selectedStyles = ref([])
 const timeRange = ref('all')
 
-const { articles: worksList, load: loadWorks } = useWorks()
-const { drafts: draftsList, load: loadDrafts } = useDrafts()
+const { articles: worksList, total: worksTotal, load: loadWorks } = useWorks()
+const { drafts: draftsList, total: draftsTotal, load: loadDrafts } = useDrafts()
+
+const worksPage = ref(1)
+const worksPageSize = ref(10)
+const draftsPage = ref(1)
+const draftsPageSize = ref(10)
+
+const buildListParams = () => ({
+  keyword: searchKeyword.value.trim() || undefined
+})
+
+const loadWorksList = async () => {
+  await loadWorks({
+    page: worksPage.value,
+    pageSize: worksPageSize.value,
+    ...buildListParams()
+  })
+}
+
+const loadDraftsList = async () => {
+  await loadDrafts({
+    page: draftsPage.value,
+    pageSize: draftsPageSize.value,
+    ...buildListParams()
+  })
+}
+
+const onWorksPageChange = (page) => {
+  worksPage.value = page
+  loadWorksList()
+}
+
+const onWorksPageSizeChange = (_, size) => {
+  worksPageSize.value = size
+  worksPage.value = 1
+  loadWorksList()
+}
+
+const onDraftsPageChange = (page) => {
+  draftsPage.value = page
+  loadDraftsList()
+}
+
+const onDraftsPageSizeChange = (_, size) => {
+  draftsPageSize.value = size
+  draftsPage.value = 1
+  loadDraftsList()
+}
 
 const normalizeItems = (items, type) => {
   return items.map(item => {
@@ -210,24 +291,21 @@ const platformMap = {
 }
 
 onMounted(async () => {
-  try {
-    await Promise.all([loadWorks(), loadDrafts()])
-  } catch (e) {
-    console.warn('加载作品/草稿失败', e)
-  }
   if (route.query.tab === 'drafts') {
     activeTab.value = 'drafts'
+  }
+  try {
+    if (activeTab.value === 'works') {
+      await loadWorksList()
+    } else {
+      await loadDraftsList()
+    }
+  } catch (e) {
+    console.warn('加载作品/草稿失败', e)
   }
 })
 
 const matchesFilters = (item) => {
-  if (searchKeyword.value.trim()) {
-    const kw = searchKeyword.value.trim().toLowerCase()
-    if (!item.title.toLowerCase().includes(kw)) {
-      return false
-    }
-  }
-
   if (selectedPlatforms.value.length > 0) {
     const selectedLabels = selectedPlatforms.value.map(k => platformMap[k])
     if (!selectedLabels.includes(item.platformName)) {
@@ -259,11 +337,46 @@ const filteredDrafts = computed(() => {
   return normalizeItems(draftsList.value, 'draft').filter(matchesFilters)
 })
 
-const clearFilters = () => {
+const clearFilters = async () => {
   searchKeyword.value = ''
   selectedPlatforms.value = []
   selectedStyles.value = []
   timeRange.value = 'all'
+  if (activeTab.value === 'works') {
+    worksPage.value = 1
+    await loadWorksList()
+  } else {
+    draftsPage.value = 1
+    await loadDraftsList()
+  }
+}
+
+let searchTimer = null
+const debouncedSearch = () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(async () => {
+    if (activeTab.value === 'works') {
+      worksPage.value = 1
+      await loadWorksList()
+    } else {
+      draftsPage.value = 1
+      await loadDraftsList()
+    }
+  }, 300)
+}
+
+watch(searchKeyword, debouncedSearch)
+
+const switchTab = async (tab) => {
+  if (activeTab.value === tab) return
+  activeTab.value = tab
+  if (tab === 'works') {
+    worksPage.value = 1
+    await loadWorksList()
+  } else {
+    draftsPage.value = 1
+    await loadDraftsList()
+  }
 }
 
 const formatDate = (dateStr) => {
@@ -516,6 +629,18 @@ const editWork = (bizNo) => {
 .work-actions {
   display: flex;
   gap: 8px;
+}
+
+.works-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+body[data-theme="dark"] .works-pagination {
+  border-top-color: #303030;
 }
 
 .work-action-btn {

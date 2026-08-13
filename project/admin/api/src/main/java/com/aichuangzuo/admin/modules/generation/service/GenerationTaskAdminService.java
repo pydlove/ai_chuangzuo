@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.service;
 
+import com.aichuangzuo.admin.infrastructure.ai.AiProvider;
 import com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow;
 import com.aichuangzuo.admin.modules.generation.dto.TaskTokenSum;
 import com.aichuangzuo.admin.modules.generation.dto.request.GenerationTaskQueryRequest;
@@ -215,6 +216,7 @@ public class GenerationTaskAdminService {
         BeanUtils.copyProperties(r, vo);
         vo.setStatus(r.getStatus());
         vo.setStatusLabel(statusLabel(r.getStatus()));
+        vo.setModelConfigDisplay(buildModelConfigDisplay(r.getModelConfigName(), r.getProviderType()));
 
         Map<String, Object> input = parseInputParam(r.getInputParam());
         vo.setTitle(nullToEmpty(input.get("title")));
@@ -263,5 +265,15 @@ public class GenerationTaskAdminService {
             case 3 -> "failed";
             default -> "-";
         };
+    }
+
+    private static String buildModelConfigDisplay(String configName, String providerType) {
+        String providerName = AiProvider.fromCode(providerType)
+                .map(AiProvider::getName)
+                .orElse(providerType != null ? providerType : "-");
+        if (configName == null || configName.isBlank()) {
+            return providerName;
+        }
+        return configName + "/" + providerName;
     }
 }

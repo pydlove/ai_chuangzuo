@@ -21,6 +21,30 @@ class ExpireReminderServiceTest {
     }
 
     @Test
+    void shouldReturn1DayForLegacyEndOfDayStorage() {
+        // 旧数据：8/14 23:59:59 表示 8/14 到期。今天 8/13，应剩 1 天。
+        int days = service.calcRemainingDays(
+                LocalDateTime.of(2026, 8, 14, 23, 59, 59), LocalDate.of(2026, 8, 13));
+        assertEquals(1, days);
+    }
+
+    @Test
+    void shouldReturn0ForLegacyEndOfDayOnExpirationDay() {
+        // 旧数据：8/14 23:59:59 表示 8/14 到期。今天 8/14，应剩 0 天。
+        int days = service.calcRemainingDays(
+                LocalDateTime.of(2026, 8, 14, 23, 59, 59), LocalDate.of(2026, 8, 14));
+        assertEquals(0, days);
+    }
+
+    @Test
+    void shouldReturn1DayWhenTodayIsDayBeforeExpiration() {
+        // 8/14 到期 → 存 8/15 00:00。今天 8/13，应剩 1 天。
+        int days = service.calcRemainingDays(
+                LocalDateTime.of(2026, 8, 15, 0, 0), LocalDate.of(2026, 8, 13));
+        assertEquals(1, days);
+    }
+
+    @Test
     void shouldReturn0WhenExpireIsNextDay00AfterToday() {
         // 今天 7/10 24:00 结束（存 7/11 00:00），今天 7/10，应剩 0 天。
         int days = service.calcRemainingDays(

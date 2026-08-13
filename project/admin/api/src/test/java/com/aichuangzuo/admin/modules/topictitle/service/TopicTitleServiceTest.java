@@ -20,6 +20,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -208,6 +210,26 @@ class TopicTitleServiceTest {
         // @TableLogic：selectById 自动过滤 is_deleted=1，用户端随机池同样不可见
         assertNull(topicTitleMapper.selectById(t.getId()));
         assertEquals(0, topicTitleService.list(new TopicTitleQueryRequest()).getTotal());
+    }
+
+    @Test
+    void deleteBatch_logicalDelete_existingRowsOnly() {
+        TopicTitle t1 = insertTitle("批量删除标题一");
+        TopicTitle t2 = insertTitle("批量删除标题二");
+        TopicTitle t3 = insertTitle("保留标题");
+
+        int deleted = topicTitleService.deleteBatch(List.of(t1.getId(), t2.getId(), 99999L));
+
+        assertEquals(2, deleted);
+        assertNull(topicTitleMapper.selectById(t1.getId()));
+        assertNull(topicTitleMapper.selectById(t2.getId()));
+        assertNotNull(topicTitleMapper.selectById(t3.getId()));
+        assertEquals(1, topicTitleService.list(new TopicTitleQueryRequest()).getTotal());
+    }
+
+    @Test
+    void deleteBatch_emptyList_returnsZero() {
+        assertEquals(0, topicTitleService.deleteBatch(List.of()));
     }
 
     /**

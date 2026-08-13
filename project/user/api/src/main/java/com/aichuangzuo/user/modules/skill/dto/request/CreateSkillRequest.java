@@ -31,6 +31,10 @@ public class CreateSkillRequest {
     @Size(max = 256, message = "适用范围过长")
     private String scope;
 
+    /** 结构化提示词 JSON（templateBased/role/audience/requirements/tone/restrictions）。 */
+    @Size(max = 4000, message = "结构化提示词过长")
+    private String promptExtra;
+
     /** 简短描述，一句话方便创作者快速了解该提示词。 */
     @Size(max = 100, message = "简短描述不能超过 100 字符")
     private String description;

@@ -8,6 +8,7 @@ com/aichuangzuo/shared/enums/error/AdminUserErrorCode.class
 com/aichuangzuo/shared/enums/error/AdminModelConfigErrorCode.class
 com/aichuangzuo/shared/exception/SystemException.class
 com/aichuangzuo/shared/entity/PromptTemplateVersion.class
+com/aichuangzuo/shared/entity/ShareConfig.class
 com/aichuangzuo/shared/utils/AesUtil.class
 com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.class
 com/aichuangzuo/shared/exception/BusinessException.class

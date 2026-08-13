@@ -1,9 +1,8 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.auth.entity.User;
-import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
+import com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.entity.UserMarketFavorite;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
@@ -11,6 +10,8 @@ import com.aichuangzuo.user.modules.skill.market.mapper.UserMarketFavoriteMapper
 import com.aichuangzuo.user.modules.skill.market.service.UserMarketFavoriteService;
 import com.aichuangzuo.user.modules.skill.market.vo.MarketSkillVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,12 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -36,81 +32,61 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
 
     private static final int ENABLE_ENABLED = 1;
     private static final int AUDIT_APPROVED = 1;
+    private static final int MAX_PAGE_SIZE = 100;
 
     private final UserMarketFavoriteMapper favoriteMapper;
     private final SkillMarketMapper skillMarketMapper;
-    private final UserMapper userMapper;
 
     @Override
-    public List<MarketSkillVO> listFavoriteSkills(Long userId) {
-        LambdaQueryWrapper<UserMarketFavorite> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(UserMarketFavorite::getUserId, userId)
-                .orderByDesc(UserMarketFavorite::getCreatedAt);
-        List<UserMarketFavorite> favorites = favoriteMapper.selectList(wrapper);
-        if (favorites.isEmpty()) {
-            return Collections.emptyList();
-        }
+    public IPage<MarketSkillVO> listFavoriteSkills(Long userId, String keyword, int page, int pageSize) {
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+        String safeKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
 
-        List<MarketSkillVO> vos = new ArrayList<>(favorites.size());
-        for (UserMarketFavorite favorite : favorites) {
-            vos.add(buildFavoriteSkillVo(favorite.getMarketSkillId()));
-        }
+        Page<MarketSkillRow> rowPage = new Page<>(safePage, safeSize);
+        IPage<MarketSkillRow> result = favoriteMapper.selectFavoriteSkillsPage(rowPage, userId, safeKeyword);
 
-        Set<Long> creatorIds = vos.stream()
-                .map(MarketSkillVO::getCreatorId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        if (!creatorIds.isEmpty()) {
-            Map<Long, String> creatorNameMap = userMapper.selectBatchIds(creatorIds).stream()
-                    .collect(Collectors.toMap(
-                            User::getId,
-                            u -> StringUtils.hasText(u.getNickname()) ? u.getNickname() : "用户" + u.getId()
-                    ));
-            for (MarketSkillVO vo : vos) {
-                if (vo.getCreatorId() != null && creatorNameMap.containsKey(vo.getCreatorId())) {
-                    vo.setCreatorName(creatorNameMap.get(vo.getCreatorId()));
-                }
-            }
-        }
-
-        return vos.stream().filter(Objects::nonNull).collect(Collectors.toList());
+        List<MarketSkillVO> records = result.getRecords().stream()
+                .map(this::toVo)
+                .collect(Collectors.toList());
+        Page<MarketSkillVO> voPage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        voPage.setRecords(records);
+        return voPage;
     }
 
-    private MarketSkillVO buildFavoriteSkillVo(String marketSkillId) {
-        SkillMarket market = skillMarketMapper.selectByBizNoIncludeDeleted(marketSkillId);
-        if (market == null) {
+    private MarketSkillVO toVo(MarketSkillRow row) {
+        if (row == null || row.getSkillName() == null) {
             // 数据已被物理删除，保留占位 VO 让前端显示“已下架”
             MarketSkillVO vo = new MarketSkillVO();
-            vo.setId(marketSkillId);
+            vo.setId(row == null ? null : row.getBizNo());
             vo.setName("该提示词已下架");
             vo.setStatus("offline");
             vo.setSourceType("admin");
             vo.setPrice(BigDecimal.ZERO);
             return vo;
         }
-        return toVo(market);
-    }
 
-    private MarketSkillVO toVo(SkillMarket market) {
         MarketSkillVO vo = new MarketSkillVO();
-        vo.setId(market.getBizNo());
-        vo.setName(market.getSkillName());
-        vo.setDescription(market.getDescription());
-        vo.setSourceType(toSourceTypeString(market.getSourceType()));
-        vo.setCreatorId(market.getPublisherUserId());
-        vo.setPrompt(market.getPrompt());
-        vo.setScope(market.getScope());
+        vo.setId(row.getBizNo());
+        vo.setName(row.getSkillName());
+        vo.setDescription(row.getDescription());
+        vo.setSourceType(toSourceTypeString(row.getSourceType()));
+        vo.setCreatorId(row.getPublisherUserId());
+        vo.setCreatorName(row.getPublisherName());
+        vo.setPrompt(row.getPrompt());
+        vo.setScope(row.getScope());
         vo.setExcerpt1(null);
         vo.setExcerpt2(null);
-        vo.setStatus(resolveStatus(market));
-        vo.setPrice(market.getPrice());
-        vo.setWeeklyUses(market.getWeeklyUses());
-        vo.setTotalUses(market.getTotalUses());
-        vo.setWeeklyEarnings(market.getWeeklyEarnings());
-        vo.setMilestoneBonus(market.getMilestoneBonus());
-        vo.setFeatured(Boolean.FALSE);
-        vo.setLastSettlementAt(market.getLastSettlementAt());
-        vo.setCreatedAt(market.getCreatedAt());
+        vo.setStatus(resolveStatus(row.getEnableStatus(), row.getAuditStatus(), row.getIsDeleted()));
+        vo.setPrice(row.getPrice());
+        vo.setWeeklyUses(row.getWeeklyUses());
+        vo.setTotalUses(row.getTotalUses());
+        vo.setWeeklyEarnings(row.getWeeklyEarnings());
+        vo.setMilestoneBonus(row.getMilestoneBonus());
+        vo.setFeatured(row.getFeatured() != null && row.getFeatured() == 1);
+        vo.setLastSettlementAt(row.getLastSettlementAt());
+        vo.setApprovedAt(row.getApprovedAt());
+        vo.setCreatedAt(row.getCreatedAt());
         return vo;
     }
 
@@ -118,17 +94,17 @@ public class UserMarketFavoriteServiceImpl implements UserMarketFavoriteService 
         return code != null && code == 1 ? "my" : "learned";
     }
 
-    private String resolveStatus(SkillMarket market) {
-        if (market.getIsDeleted() != null && market.getIsDeleted() == 1) {
+    private String resolveStatus(Integer enableStatus, Integer auditStatus, Integer isDeleted) {
+        if (isDeleted != null && isDeleted == 1) {
             return "offline";
         }
-        if (market.getEnableStatus() == null || market.getEnableStatus() != ENABLE_ENABLED) {
+        if (enableStatus == null || enableStatus != ENABLE_ENABLED) {
             return "offline";
         }
-        if (market.getAuditStatus() == null) {
+        if (auditStatus == null) {
             return "pending";
         }
-        return switch (market.getAuditStatus()) {
+        return switch (auditStatus) {
             case 1 -> "approved";
             case 2 -> "rejected";
             default -> "pending";

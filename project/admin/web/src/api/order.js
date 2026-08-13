@@ -39,3 +39,27 @@ export function getOrderTrend(days = 7) {
 export function getPlanDistribution() {
   return request.get('/orders/stats/plan-distribution').then((res) => res.data)
 }
+
+export function getRenewalOverview() {
+  return request.get('/orders/stats/renewal/overview').then((res) => res.data)
+}
+
+export function getRenewalTrend(days = 7) {
+  return request.get('/orders/stats/renewal/trend', { params: { days } }).then((res) => res.data)
+}
+
+export function getRenewalDistribution() {
+  return request.get('/orders/stats/renewal/distribution').then((res) => res.data)
+}
+
+export function getRenewalUserList(params = {}) {
+  return request.get('/orders/stats/renewal/users', { params }).then((res) => res.data)
+}
+
+export function getRenewalPaidUsers(params = {}) {
+  return request.get('/orders/stats/renewal/paid-users', { params }).then((res) => res.data)
+}
+
+export function getRenewalOrderList(params = {}) {
+  return request.get('/orders/stats/renewal/orders', { params }).then((res) => res.data)
+}

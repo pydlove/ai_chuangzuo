@@ -1238,11 +1238,13 @@ import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
 import { useInviteStats } from '@/composables/useInviteStats'
+import { getShareConfig } from '@/api/shareConfig.js'
 import { useWithdraw } from '@/composables/useWithdraw'
 import { copyToClipboard } from '@/utils/copy.js'
 import { isWechatBrowser } from '@/utils/env.js'
 import { useBenefits } from '@/composables/useBenefits'
 import { useMessages } from '@/composables/useMessages'
+import { normalizeMessageLink } from '@/utils/messageLink'
 import { getMyMembership } from '@/api/membership'
 import { getNewcomerOffer } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
@@ -1264,7 +1266,8 @@ import {
   CaretRightOutlined,
   GiftOutlined,
   MessageOutlined,
-  BookOutlined
+  BookOutlined,
+  TagsOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1430,7 +1433,8 @@ const navItems = [
       { path: '/console/works', label: '我的作品', icon: FolderOutlined },
       { path: '/console/skills', label: '我的提示词', icon: SmileOutlined },
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
-      { path: '/console/benefits', label: '我的权益', icon: CrownOutlined }
+      { path: '/console/benefits', label: '我的权益', icon: CrownOutlined },
+      { path: '/console/coupons', label: '我的优惠券', icon: TagsOutlined }
     ]
   }
 ]
@@ -2123,6 +2127,7 @@ const posterPreviewRefs = ref({})
 const withdrawAmount = ref(null)
 const withdrawAccount = ref('')
 const withdrawName = ref('')
+const shareConfig = ref(null)
 const userId = computed(() => userProfile.profile.value?.userId || '88886666')
 
 const inviteCode = computed(() => userProfile.profile.value?.inviteCode || '')
@@ -2132,8 +2137,23 @@ const inviteLink = computed(() => {
 })
 
 const inviteShareText = computed(() => {
-  return `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n${inviteLink.value}`
+  const url = inviteLink.value
+  const code = inviteCode.value
+  let text = shareConfig.value?.content
+  if (!text) {
+    text = `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
+  }
+  return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
+
+const loadShareConfig = async () => {
+  try {
+    const res = await getShareConfig('invite')
+    shareConfig.value = res.data
+  } catch (e) {
+    // ignore
+  }
+}
 
 // ---------- 海报样式 ----------
 const posterTemplates = [
@@ -2453,6 +2473,7 @@ const downloadSelectedPoster = async () => {
 
 const openInviteModal = () => {
   loadInviteStats()
+  loadShareConfig()
   inviteFriendPage.value = 1
   inviteVisible.value = true
 }
@@ -2582,7 +2603,7 @@ const handleNotifClick = async (n) => {
   notifVisible.value = false
 
   if (n.link) {
-    router.push(n.link)
+    router.push(normalizeMessageLink(n.link))
     return
   }
   if (n.type === 'generation') {

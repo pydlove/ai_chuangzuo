@@ -8,6 +8,7 @@
                s.description    AS description,
                s.prompt_summary AS promptSummary,
                s.prompt         AS prompt,
+               s.prompt_extra   AS promptExtra,
                s.scope          AS scope,
                s.source_type    AS sourceType,
                s.enable_status  AS enableStatus,

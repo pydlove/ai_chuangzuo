@@ -33,6 +33,7 @@ public class MinimaxProviderClient implements AiProviderClient {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
             headers.setBearerAuth(apiKey);
+            headers.set("User-Agent", "claude-cli/2.1.161");
 
             Map<String, Object> body = Map.of(
                     "model", "abab6.5s-chat",
@@ -82,6 +83,7 @@ public class MinimaxProviderClient implements AiProviderClient {
     public List<ModelOptionVO> fetchModels(String baseUrl, String apiKey) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
+        headers.set("User-Agent", "claude-cli/2.1.161");
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         try {
@@ -132,6 +134,7 @@ public class MinimaxProviderClient implements AiProviderClient {
         org.springframework.web.client.RequestCallback requestCallback = req -> {
             req.getHeaders().setContentType(MediaType.APPLICATION_JSON);
             req.getHeaders().setBearerAuth(apiKey);
+            req.getHeaders().set("User-Agent", "claude-cli/2.1.161");
             req.getHeaders().setAccept(java.util.Collections.singletonList(
                     stream ? MediaType.TEXT_EVENT_STREAM : MediaType.APPLICATION_JSON));
             req.getBody().write(requestJson.getBytes(java.nio.charset.StandardCharsets.UTF_8));
@@ -181,13 +184,15 @@ public class MinimaxProviderClient implements AiProviderClient {
 
     private String trim(String baseUrl) {
         if (baseUrl == null) return "";
-        String s = baseUrl.trim().replaceAll("/+$", "");
-        // 仅保留 scheme://host[:port]，去掉路径（避免 baseUrl 自带 /v1 时路径重复）
-        int schemeEnd = s.indexOf("://");
-        if (schemeEnd >= 0) {
-            int pathStart = s.indexOf('/', schemeEnd + 3);
-            if (pathStart > 0) s = s.substring(0, pathStart);
+        String s = baseUrl.trim();
+        // 仅去掉末尾的 /v1 或 /v1/，避免用户填写带版本号的 Base URL 时路径重复；
+        // 保留其它代理路径（如 https://api.kimi.com/coding）。
+        if (s.endsWith("/v1/")) {
+            s = s.substring(0, s.length() - 4);
+        } else if (s.endsWith("/v1")) {
+            s = s.substring(0, s.length() - 3);
         }
+        s = s.replaceAll("/+$", "");
         return s;
     }
 }

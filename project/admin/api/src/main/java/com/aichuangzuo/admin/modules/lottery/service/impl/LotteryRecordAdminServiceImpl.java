@@ -18,6 +18,7 @@ import com.aichuangzuo.admin.modules.lottery.vo.LotteryRedemptionCodeAdminVO;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -127,13 +128,13 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
 
     @Override
     public void resetDrawChance(Long campaignId, Long userId) {
-        LotteryDrawChance chance = new LotteryDrawChance();
-        chance.setCampaignId(campaignId);
-        chance.setUserId(userId);
-        chance.setChanceType("invite");
-        chance.setStatus("available");
-        chance.setTenantId(0L);
-        drawChanceMapper.insert(chance);
+        drawChanceMapper.update(null,
+                new UpdateWrapper<LotteryDrawChance>()
+                        .eq("campaign_id", campaignId)
+                        .eq("user_id", userId)
+                        .eq("status", "used")
+                        .set("status", "available")
+                        .set("used_at", null));
     }
 
     private Map<Long, String> tierNameMap(List<Long> campaignIds) {

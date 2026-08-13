@@ -27,3 +27,7 @@ export function updateGlobalSkill(bizNo, data) {
 export function deleteGlobalSkill(bizNo) {
   return request.delete(`/global-skills/${bizNo}`)
 }
+
+export function batchDeleteGlobalSkills(bizNos) {
+  return request.post('/global-skills/batch/delete', { bizNos }).then((body) => body.data)
+}

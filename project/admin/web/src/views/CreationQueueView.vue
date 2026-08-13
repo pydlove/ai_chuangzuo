@@ -59,6 +59,9 @@
             <span>{{ record.userNickname || '-' }}</span>
             <span class="user-id">ID: {{ record.userId }}</span>
           </template>
+          <template v-else-if="column.key === 'modelConfig'">
+            <span class="ellipsis-cell">{{ record.modelConfigDisplay || '-' }}</span>
+          </template>
           <template v-else-if="column.key === 'waiting'">
             <span>{{ formatSeconds(record.waitingSeconds) }}</span>
           </template>
@@ -245,60 +248,103 @@
         </a-spin>
       </a-modal>
 
-      <!-- 任务详情弹窗：集中展示标题、创作要求、字数、平台、提示词、导出模板等 -->
+      <!-- 任务详情弹窗：固定高度、分区展示任务输入 / 生成设置 / 任务信息 -->
       <a-modal
         v-model:open="detailModal.open"
         :title="`任务详情 · ${detailModal.record?.bizNo || ''}`"
-        :width="960"
+        :width="900"
         :footer="null"
+        :body-style="{ padding: 0 }"
         @cancel="onDetailClose"
       >
         <div v-if="detailModal.record" class="detail-body">
-          <div class="detail-section">
-            <div class="detail-row">
-              <span class="detail-label">业务号</span>
-              <span class="detail-value mono">{{ detailModal.record.bizNo || '-' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">用户</span>
-              <span class="detail-value">{{ detailModal.record.userNickname || '-' }} <span class="user-id">ID: {{ detailModal.record.userId }}</span></span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">状态</span>
-              <span class="detail-value">{{ statusTag(detailModal.record.status) }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">提交时间</span>
-              <span class="detail-value">{{ detailModal.record.createdAt || '-' }}</span>
-            </div>
+          <div class="detail-header">
+            <a-space size="large">
+              <a-tag :color="statusColor(detailModal.record.status)">
+                {{ statusTag(detailModal.record.status) }}
+              </a-tag>
+              <span class="detail-header-item">
+                <span class="detail-header-label">提交时间</span>
+                <span class="detail-header-value">{{ detailModal.record.createdAt || '-' }}</span>
+              </span>
+              <span class="detail-header-item">
+                <span class="detail-header-label">执行 Key</span>
+                <span class="detail-header-value">{{ detailModal.record.modelConfigDisplay || '-' }}</span>
+              </span>
+            </a-space>
           </div>
 
-          <a-divider class="detail-divider" />
+          <div class="detail-scroll">
+            <div class="detail-panel">
+              <div class="panel-title">任务输入</div>
+              <div class="detail-grid">
+                <div class="detail-item full">
+                  <span class="detail-item-label">标题</span>
+                  <div class="detail-item-value detail-title">{{ detailModal.record.title || '-' }}</div>
+                </div>
+                <div class="detail-item full">
+                  <span class="detail-item-label">创作要求</span>
+                  <pre class="detail-pre">{{ detailModal.record.description || '-' }}</pre>
+                </div>
+                <div class="detail-item full">
+                  <span class="detail-item-label">提示词 / 风格</span>
+                  <pre class="detail-pre">{{ detailModal.record.userSkillPrompt || detailModal.record.skillRef || '-' }}</pre>
+                </div>
+              </div>
+            </div>
 
-          <div class="detail-section">
-            <div class="detail-row block">
-              <span class="detail-label">标题</span>
-              <div class="detail-value pre">{{ detailModal.record.title || '-' }}</div>
+            <div class="detail-panel">
+              <div class="panel-title">生成设置</div>
+              <div class="detail-grid cols-3">
+                <div class="detail-item">
+                  <span class="detail-item-label">目标平台</span>
+                  <div class="detail-item-value">
+                    <a-tag v-if="detailModal.record.platform" color="blue">{{ detailModal.record.platform }}</a-tag>
+                    <span v-else class="text-muted">-</span>
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-item-label">目标字数</span>
+                  <div class="detail-item-value">{{ detailModal.record.wordLimitTarget ?? '-' }}</div>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-item-label">导出模板</span>
+                  <div class="detail-item-value">{{ detailModal.record.template || '-' }}</div>
+                </div>
+              </div>
             </div>
-            <div class="detail-row block">
-              <span class="detail-label">创作要求</span>
-              <div class="detail-value pre">{{ detailModal.record.description || '-' }}</div>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">平台</span>
-              <span class="detail-value">{{ detailModal.record.platform || '-' }}</span>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">目标字数</span>
-              <span class="detail-value">{{ detailModal.record.wordLimitTarget ?? '-' }}</span>
-            </div>
-            <div class="detail-row block">
-              <span class="detail-label">提示词</span>
-              <div class="detail-value pre">{{ detailModal.record.userSkillPrompt || detailModal.record.skillRef || '-' }}</div>
-            </div>
-            <div class="detail-row">
-              <span class="detail-label">导出模板</span>
-              <span class="detail-value">{{ detailModal.record.template || '-' }}</span>
+
+            <div class="detail-panel">
+              <div class="panel-title">任务信息</div>
+              <div class="detail-grid cols-3">
+                <div class="detail-item">
+                  <span class="detail-item-label">业务号</span>
+                  <div class="detail-item-value mono">{{ detailModal.record.bizNo || '-' }}</div>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-item-label">用户</span>
+                  <div class="detail-item-value">
+                    {{ detailModal.record.userNickname || '-' }}
+                    <span class="text-muted">ID:{{ detailModal.record.userId }}</span>
+                  </div>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-item-label">重试次数</span>
+                  <div class="detail-item-value">{{ detailModal.record.retryCount ?? 0 }}</div>
+                </div>
+                <div v-if="detailModal.record.status === 2" class="detail-item">
+                  <span class="detail-item-label">完成时间</span>
+                  <div class="detail-item-value">{{ detailModal.record.completedAt || '-' }}</div>
+                </div>
+                <div v-if="detailModal.record.status === 2 && detailModal.record.articleBizNo" class="detail-item">
+                  <span class="detail-item-label">文章业务号</span>
+                  <div class="detail-item-value mono">{{ detailModal.record.articleBizNo }}</div>
+                </div>
+                <div v-if="detailModal.record.status === 3" class="detail-item full">
+                  <span class="detail-item-label">失败原因</span>
+                  <div class="detail-item-value error">{{ detailModal.record.failedReason || '-' }}</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -612,6 +658,7 @@ const columns = computed(() => {
     { title: '用户', key: 'user', width: 160 },
     { title: '状态', key: 'status', width: 100,
       customRender: ({ record }) => statusTag(record.status) },
+    { title: '执行 Key', key: 'modelConfig', width: 160 },
     { title: '已等待 / 已耗时', key: 'waiting', width: 120 },
     { title: 'tokens', key: 'tokens', width: 100 },
     { title: '失败原因', key: 'failedReason', width: 180 },
@@ -627,6 +674,14 @@ const statusTag = (s) => {
   if (s === 2) return '已完成'
   if (s === 3) return '未执行'
   return '-'
+}
+
+const statusColor = (s) => {
+  if (s === 0) return 'warning'
+  if (s === 1) return 'processing'
+  if (s === 2) return 'success'
+  if (s === 3) return 'error'
+  return 'default'
 }
 
 const formatSeconds = (sec) => {
@@ -872,59 +927,96 @@ onBeforeUnmount(() => {
 
 /* ===== 任务详情弹窗 ===== */
 .detail-body {
-  height: 520px;
-  overflow-y: auto;
-  padding-right: 4px;
-}
-.detail-section {
-  display: grid;
-  grid-template-columns: 80px 1fr;
-  gap: 12px 16px;
-  align-items: start;
-}
-.detail-divider {
-  margin: 16px 0;
-}
-.detail-row {
-  display: contents;
-}
-.detail-row.block {
   display: flex;
   flex-direction: column;
+  height: 480px;
+}
+.detail-header {
+  flex: none;
+  padding: 14px 24px;
+  background: #fafafa;
+  border-bottom: 1px solid #f0f0f0;
+}
+.detail-header-item {
+  display: inline-flex;
+  align-items: center;
   gap: 6px;
+  font-size: 13px;
+}
+.detail-header-label {
+  color: #8c8c8c;
+}
+.detail-header-value {
+  color: #262626;
+}
+.detail-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 20px 24px;
+}
+.detail-panel {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.detail-panel:last-child {
+  margin-bottom: 0;
+}
+.panel-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #262626;
+  margin-bottom: 12px;
+}
+.detail-grid {
+  display: grid;
+  gap: 16px 24px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.detail-grid .full {
   grid-column: 1 / -1;
 }
-.detail-label {
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.detail-item-label {
   color: #8c8c8c;
-  font-size: 13px;
-  line-height: 22px;
-  text-align: right;
+  font-size: 12px;
+  line-height: 20px;
 }
-.detail-row.block .detail-label {
-  text-align: left;
-}
-.detail-value {
+.detail-item-value {
   color: #262626;
   font-size: 13px;
   line-height: 22px;
   word-break: break-all;
 }
-.detail-value.pre {
-  white-space: pre-wrap;
-  background: #fafafa;
-  border: 1px solid #f0f0f0;
-  border-radius: 4px;
-  padding: 12px;
-  line-height: 1.6;
-  max-height: 160px;
-  overflow-y: auto;
+.detail-item-value.detail-title {
+  font-size: 15px;
+  font-weight: 600;
 }
-.detail-value.mono {
+.detail-item-value.mono {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
-.detail-value .user-id {
-  margin-left: 6px;
-  color: #8c8c8c;
-  font-size: 12px;
+.detail-item-value.error {
+  color: #cf1322;
+}
+.detail-pre {
+  margin: 0;
+  padding: 12px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 6px;
+  color: #262626;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 180px;
+  overflow-y: auto;
 }
 </style>

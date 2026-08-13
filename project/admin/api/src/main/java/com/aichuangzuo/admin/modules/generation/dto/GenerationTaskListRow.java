@@ -15,6 +15,8 @@ public class GenerationTaskListRow {
     private String userNickname;
     private Integer status;
     private Long modelConfigId;
+    private String modelConfigName;
+    private String providerType;
     private Integer wordLimitTarget;
     private Integer retryCount;
     /** 任务提交时的输入参数（JSON）。 */

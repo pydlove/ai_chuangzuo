@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.lottery.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.auth.entity.User;
+import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.lottery.entity.*;
 import com.aichuangzuo.user.modules.lottery.enums.LotteryErrorCode;
 import com.aichuangzuo.user.modules.lottery.mapper.*;
@@ -33,6 +35,7 @@ public class LotteryDrawServiceImpl implements LotteryDrawService {
     private final LotteryDrawRecordMapper drawRecordMapper;
     private final LotteryRedemptionCodeMapper redemptionCodeMapper;
     private final LotteryDisplayWinnerMapper displayWinnerMapper;
+    private final UserMapper userMapper;
     private final LotteryChanceService lotteryChanceService;
     private final LotteryCodeGenerator codeGenerator;
     private final MessageService messageService;
@@ -203,10 +206,13 @@ public class LotteryDrawServiceImpl implements LotteryDrawService {
 
     private void saveDisplayWinner(Long campaignId, LotteryPrizeTier tier, Long userId,
                                    LotteryRedemptionCode code) {
+        User user = userMapper.selectById(userId);
         LotteryDisplayWinner winner = new LotteryDisplayWinner();
         winner.setCampaignId(campaignId);
         winner.setTierId(tier.getId());
         winner.setUserId(userId);
+        winner.setNickname(user != null ? user.getNickname() : null);
+        winner.setAvatarUrl(user != null ? user.getAvatarUrl() : null);
         winner.setPrizeName(tier.getTierName());
         winner.setWinTime(LocalDateTime.now());
         winner.setIsReal(1);

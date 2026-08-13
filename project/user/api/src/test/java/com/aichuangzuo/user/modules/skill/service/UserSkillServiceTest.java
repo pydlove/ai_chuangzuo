@@ -85,8 +85,8 @@ class UserSkillServiceTest {
         assertNotNull(vo.getBizNo());
         assertEquals(2, vo.getSourceType());
         // sourceType=2 只出现在学习列表，不出现在自定义列表
-        assertEquals(1, userSkillService.listMySkills(2).size());
-        assertEquals(0, userSkillService.listMySkills(1).size());
+        assertEquals(1, userSkillService.listMySkills(2, null, 1, 10).getRecords().size());
+        assertEquals(0, userSkillService.listMySkills(1, null, 1, 10).getRecords().size());
     }
 
     @Test
@@ -131,7 +131,7 @@ class UserSkillServiceTest {
         createSkillDirectly(userB.getId(), "B 的风格");
 
         SecurityUserContext.setCurrentUserId(userA.getId());
-        List<UserSkillVO> list = userSkillService.listMySkills(1);
+        List<UserSkillVO> list = userSkillService.listMySkills(1, null, 1, 10).getRecords();
 
         assertEquals(1, list.size());
         assertEquals("A 的风格", list.get(0).getSkillName());

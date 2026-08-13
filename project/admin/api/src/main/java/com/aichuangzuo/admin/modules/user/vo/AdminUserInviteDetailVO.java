@@ -23,4 +23,13 @@ public class AdminUserInviteDetailVO {
 
     /** 被邀请人列表。 */
     private List<AdminUserInviteeVO> invitees = new ArrayList<>();
+
+    /** 被邀请人总条数。 */
+    private long total;
+
+    /** 当前页码。 */
+    private int page;
+
+    /** 每页条数。 */
+    private int pageSize;
 }

@@ -16,6 +16,7 @@ public interface SkillMarketAggregateMapper {
      * 分页查询风格市场列表（含启用状态过滤和关键词搜索）。
      */
     List<SkillMarketRow> selectMarketStylePage(@Param("enableStatus") Integer enableStatus,
+                                               @Param("featured") Integer featured,
                                                @Param("keyword") String keyword,
                                                @Param("offset") long offset,
                                                @Param("limit") long limit);
@@ -24,5 +25,6 @@ public interface SkillMarketAggregateMapper {
      * 同条件下的总数。
      */
     long countMarketStylePage(@Param("enableStatus") Integer enableStatus,
+                              @Param("featured") Integer featured,
                               @Param("keyword") String keyword);
 }

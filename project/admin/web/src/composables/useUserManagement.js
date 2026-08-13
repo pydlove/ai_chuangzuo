@@ -1,6 +1,6 @@
 import { reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listUsers, updateUserStatus, resetUserPassword, createUser, deleteUser } from '@/api/user.js'
+import { listUsers, updateUserStatus, resetUserPassword, createUser, deleteUser, batchDeleteUsers } from '@/api/user.js'
 
 export function useUserManagement() {
   const users = ref([])
@@ -85,6 +85,12 @@ export function useUserManagement() {
     fetchUsers()
   }
 
+  const handleBatchDeleteUsers = async (ids) => {
+    await batchDeleteUsers(ids)
+    message.success(`已删除 ${ids.length} 个用户`)
+    fetchUsers()
+  }
+
   return {
     users,
     total,
@@ -100,6 +106,7 @@ export function useUserManagement() {
     handleStatusChange,
     handleResetPassword,
     handleCreateUser,
-    handleDeleteUser
+    handleDeleteUser,
+    handleBatchDeleteUsers
   }
 }

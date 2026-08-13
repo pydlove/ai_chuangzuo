@@ -7,6 +7,9 @@ import lombok.Data;
 public class ModelConfigChatTestRequest {
 
     @NotBlank
+    private String providerType;
+
+    @NotBlank
     private String baseUrl;
 
     @NotBlank

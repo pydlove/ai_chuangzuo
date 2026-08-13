@@ -8,6 +8,10 @@ export function getIncomeLeaderboard(periodType, periodValue) {
   return request.get('/leaderboards/income', { params: { periodType, periodValue } })
 }
 
+export function getLeaderboardRewardConfig() {
+  return request.get('/leaderboards/reward-config')
+}
+
 export function submitIncomeSubmission(data) {
   return request.post('/leaderboards/income-submissions', data, {
     headers: { 'Content-Type': 'multipart/form-data' }

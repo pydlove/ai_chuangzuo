@@ -3,6 +3,8 @@ package com.aichuangzuo.admin.modules.message.job;
 import com.aichuangzuo.admin.modules.message.entity.NotifyOutbox;
 import com.aichuangzuo.admin.modules.message.handler.MessageNotifyHandler;
 import com.aichuangzuo.admin.modules.message.mapper.NotifyOutboxMapper;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,56 +44,60 @@ public class NotifyOutboxDispatcherJob {
 
     private final NotifyOutboxMapper outboxMapper;
     private final List<MessageNotifyHandler> handlers;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     private Map<String, MessageNotifyHandler> handlerMap;
 
+    @ScheduledTask(key = "notify_outbox_dispatch", name = "消息通知 Outbox 派发", description = "每 5 秒扫描待派发的消息通知 outbox，按 biz_type 路由派发到 user-api", triggerType = "fixed_delay", expression = "5000", sortOrder = 20)
     @Scheduled(fixedDelayString = "${notify.outbox.dispatcher.interval-ms:5000}")
     @Transactional(rollbackFor = Exception.class)
     public void dispatch() {
-        LocalDateTime now = LocalDateTime.now();
-        List<NotifyOutbox> pending = outboxMapper.selectPending(now, BATCH_SIZE);
-        if (pending.isEmpty()) {
-            return;
-        }
-
-        Map<String, MessageNotifyHandler> map = getHandlerMap();
-        int sent = 0;
-        int failed = 0;
-        int scheduled = 0;
-
-        for (NotifyOutbox row : pending) {
-            MessageNotifyHandler handler = map.get(row.getBizType());
-            if (handler == null) {
-                log.warn("未找到 biz_type={} 的消息通知 handler，outboxId={} 置为 FAILED", row.getBizType(), row.getId());
-                outboxMapper.markFailed(row.getId(), "未知 biz_type: " + row.getBizType());
-                failed++;
-                continue;
+        scheduledTaskExecutor.executeAuto("notify_outbox_dispatch", () -> {
+            LocalDateTime now = LocalDateTime.now();
+            List<NotifyOutbox> pending = outboxMapper.selectPending(now, BATCH_SIZE);
+            if (pending.isEmpty()) {
+                return;
             }
 
-            try {
-                handler.dispatch(row);
-                outboxMapper.markSent(row.getId(), LocalDateTime.now());
-                sent++;
-            } catch (Exception e) {
-                int nextRetry = row.getRetryCount() == null ? 0 : row.getRetryCount() + 1;
-                if (nextRetry >= MAX_RETRY) {
-                    outboxMapper.markFailed(row.getId(), truncate(e.getMessage()));
+            Map<String, MessageNotifyHandler> map = getHandlerMap();
+            int sent = 0;
+            int failed = 0;
+            int scheduled = 0;
+
+            for (NotifyOutbox row : pending) {
+                MessageNotifyHandler handler = map.get(row.getBizType());
+                if (handler == null) {
+                    log.warn("未找到 biz_type={} 的消息通知 handler，outboxId={} 置为 FAILED", row.getBizType(), row.getId());
+                    outboxMapper.markFailed(row.getId(), "未知 biz_type: " + row.getBizType());
                     failed++;
-                    log.error("outboxId={} bizType={} 达到最大重试次数，置为 FAILED", row.getId(), row.getBizType(), e);
-                } else {
-                    LocalDateTime nextRetryAt = now.plus(
-                            BASE_RETRY_SECONDS * (1L << nextRetry), ChronoUnit.SECONDS);
-                    outboxMapper.scheduleRetry(row.getId(), nextRetryAt, truncate(e.getMessage()));
-                    scheduled++;
-                    log.warn("outboxId={} bizType={} 第 {} 次派发失败，下次重试 {}: {}",
-                            row.getId(), row.getBizType(), nextRetry, nextRetryAt, e.getMessage());
+                    continue;
+                }
+
+                try {
+                    handler.dispatch(row);
+                    outboxMapper.markSent(row.getId(), LocalDateTime.now());
+                    sent++;
+                } catch (Exception e) {
+                    int nextRetry = row.getRetryCount() == null ? 0 : row.getRetryCount() + 1;
+                    if (nextRetry >= MAX_RETRY) {
+                        outboxMapper.markFailed(row.getId(), truncate(e.getMessage()));
+                        failed++;
+                        log.error("outboxId={} bizType={} 达到最大重试次数，置为 FAILED", row.getId(), row.getBizType(), e);
+                    } else {
+                        LocalDateTime nextRetryAt = now.plus(
+                                BASE_RETRY_SECONDS * (1L << nextRetry), ChronoUnit.SECONDS);
+                        outboxMapper.scheduleRetry(row.getId(), nextRetryAt, truncate(e.getMessage()));
+                        scheduled++;
+                        log.warn("outboxId={} bizType={} 第 {} 次派发失败，下次重试 {}: {}",
+                                row.getId(), row.getBizType(), nextRetry, nextRetryAt, e.getMessage());
+                    }
                 }
             }
-        }
 
-        if (sent > 0 || failed > 0 || scheduled > 0) {
-            log.info("消息通知派发完成 sent={} scheduled={} failed={}", sent, scheduled, failed);
-        }
+            if (sent > 0 || failed > 0 || scheduled > 0) {
+                log.info("消息通知派发完成 sent={} scheduled={} failed={}", sent, scheduled, failed);
+            }
+        });
     }
 
     private synchronized Map<String, MessageNotifyHandler> getHandlerMap() {

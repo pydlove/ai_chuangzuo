@@ -18,9 +18,12 @@ import com.aichuangzuo.user.modules.skill.service.UserSkillService;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -58,16 +61,37 @@ public class UserSkillServiceImpl implements UserSkillService {
     private final SkillMarketMapper skillMarketMapper;
     private final BenefitService benefitService;
 
+    private static final int MAX_PAGE_SIZE = 100;
+    private static final int DEFAULT_PAGE_SIZE = 12;
+
     @Override
-    public List<UserSkillVO> listMySkills(Integer sourceType) {
+    public IPage<UserSkillVO> listMySkills(Integer sourceType, String keyword, int page, int pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
+
         LambdaQueryWrapper<UserSkill> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(UserSkill::getUserId, userId)
                 .eq(UserSkill::getSourceType, sourceType == null ? SOURCE_TYPE_CUSTOM : sourceType)
                 .orderByDesc(UserSkill::getUpdatedAt);
-        return userSkillMapper.selectList(wrapper).stream()
+        if (StringUtils.hasText(keyword)) {
+            String q = keyword.trim();
+            wrapper.and(w -> w.like(UserSkill::getSkillName, q)
+                    .or()
+                    .like(UserSkill::getScope, q)
+                    .or()
+                    .like(UserSkill::getPrompt, q)
+                    .or()
+                    .like(UserSkill::getDescription, q));
+        }
+        Page<UserSkill> rowPage = new Page<>(safePage, safeSize);
+        IPage<UserSkill> result = userSkillMapper.selectPage(rowPage, wrapper);
+        List<UserSkillVO> records = result.getRecords().stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+        Page<UserSkillVO> voPage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        voPage.setRecords(records);
+        return voPage;
     }
 
     @Override

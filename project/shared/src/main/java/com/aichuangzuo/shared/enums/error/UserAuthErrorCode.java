@@ -25,7 +25,9 @@ public enum UserAuthErrorCode implements ErrorCode {
     INVITE_SELF_NOT_ALLOWED(111018, "不能绑定自己为邀请人"),
     INVITE_CIRCULAR_NOT_ALLOWED(111019, "不能形成循环邀请关系"),
     INVITE_BINDING_EXPIRED(111020, "邀请人绑定已过期"),
-    RESET_PASSWORD_FAILED(111021, "重置失败，请检查邮箱或验证码");
+    RESET_PASSWORD_FAILED(111021, "重置失败，请检查邮箱或验证码"),
+    TOKEN_INVALID(111022, "token 无效或已过期"),
+    TOKEN_BLACKLISTED(111023, "token 已被登出");
 
     private final int code;
     private final String message;

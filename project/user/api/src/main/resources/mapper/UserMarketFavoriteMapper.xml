@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.skill.market.mapper.UserMarketFavoriteMapper">
+
+    <select id="selectFavoriteSkillsPage" resultType="com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow">
+        SELECT COALESCE(s.biz_no, f.market_skill_id) AS bizNo,
+               s.skill_name      AS skillName,
+               s.description     AS description,
+               s.prompt_summary  AS promptSummary,
+               s.prompt          AS prompt,
+               s.scope           AS scope,
+               s.source_type     AS sourceType,
+               s.publisher_user_id AS publisherUserId,
+               COALESCE(u.nickname, CONCAT('用户', u.id)) AS publisherName,
+               s.price           AS price,
+               s.total_uses      AS totalUses,
+               s.weekly_uses     AS weeklyUses,
+               s.weekly_earnings AS weeklyEarnings,
+               s.milestone_bonus AS milestoneBonus,
+               s.featured        AS featured,
+               s.enable_status   AS enableStatus,
+               s.audit_status    AS auditStatus,
+               s.is_deleted      AS isDeleted,
+               s.last_settlement_at AS lastSettlementAt,
+               s.approved_at     AS approvedAt,
+               s.created_at      AS createdAt
+        FROM u_user_market_favorite f
+        LEFT JOIN u_skill_market s ON f.market_skill_id = s.biz_no
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE f.user_id = #{userId}
+        <if test="keyword != null and keyword != ''">
+            AND (
+                s.skill_name LIKE CONCAT('%', #{keyword}, '%')
+                OR s.description LIKE CONCAT('%', #{keyword}, '%')
+                OR s.scope LIKE CONCAT('%', #{keyword}, '%')
+                OR s.prompt LIKE CONCAT('%', #{keyword}, '%')
+            )
+        </if>
+        ORDER BY f.created_at DESC
+    </select>
+
+</mapper>

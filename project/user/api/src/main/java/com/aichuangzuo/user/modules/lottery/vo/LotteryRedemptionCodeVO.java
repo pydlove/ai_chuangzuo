@@ -11,6 +11,7 @@ public class LotteryRedemptionCodeVO {
     private String code;
     private String tierName;
     private String rewardType;
+    private String rewardSummary;
     private String status;
     private LocalDateTime expiresAt;
     private LocalDateTime usedAt;

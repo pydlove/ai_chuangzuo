@@ -262,9 +262,9 @@ class SkillMarketAdminServiceTest {
         disabledRow.setPrice(new java.math.BigDecimal("0.20"));
         disabledRow.setTotalUses(20);
 
-        when(aggregateMapper.selectMarketStylePage(any(), any(), anyLong(), anyLong()))
+        when(aggregateMapper.selectMarketStylePage(any(), any(), any(), anyLong(), anyLong()))
                 .thenReturn(List.of(enabledRow, disabledRow));
-        when(aggregateMapper.countMarketStylePage(any(), any())).thenReturn(2L);
+        when(aggregateMapper.countMarketStylePage(any(), any(), any())).thenReturn(2L);
 
         SkillMarketPageRequest req = new SkillMarketPageRequest();
         IPage<SkillMarketVO> page = service.page(req);

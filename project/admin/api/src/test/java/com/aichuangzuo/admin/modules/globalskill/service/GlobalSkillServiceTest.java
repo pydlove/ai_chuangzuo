@@ -167,14 +167,14 @@ class GlobalSkillServiceTest {
     // -------- delete --------
 
     @Test
-    void delete_softDeletesBySettingIsDeleted() {
+    void delete_physicallyDeletesById() {
         UserSkillAggregate existing = newStyle("GS0009", "测试");
         when(globalSkillMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
         service.delete("GS0009");
 
-        assertEquals(1, existing.getIsDeleted());
-        verify(globalSkillMapper).updateById((UserSkillAggregate) existing);
+        verify(globalSkillMapper).deleteByIdPhysical(1L);
+        verify(globalSkillMapper, never()).updateById((UserSkillAggregate) any());
     }
 
     @Test

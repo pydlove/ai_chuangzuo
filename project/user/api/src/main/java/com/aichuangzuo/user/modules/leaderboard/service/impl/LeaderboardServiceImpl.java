@@ -5,9 +5,11 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.LeaderboardAggregateMapper;
+import com.aichuangzuo.user.modules.leaderboard.mapper.LeaderboardRewardConfigMapper;
 import com.aichuangzuo.user.modules.leaderboard.vo.CoinLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO;
+import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardRewardConfigVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
@@ -35,18 +37,30 @@ public class LeaderboardServiceImpl implements LeaderboardService {
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
     private static final int TOP_LIMIT = 20;
+    private static final int DEFAULT_REWARD_TOP_LIMIT = 3;
+    private static final BigDecimal DEFAULT_REWARD_AMOUNT = new BigDecimal("500.0000");
 
     private final LeaderboardAggregateMapper aggregateMapper;
     private final UserMapper userMapper;
+    private final LeaderboardRewardConfigMapper rewardConfigMapper;
 
     @Override
     @Cacheable(value = "leaderboard", key = "'coin:' + #month + ':' + #currentUserId")
     public CoinLeaderboardVO getCoinLeaderboard(Long currentUserId, String month) {
-        YearMonth ym = parseMonth(month);
-        LocalDateTime start = ym.atDay(1).atStartOfDay();
-        LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+        List<LeaderboardEntryVO> topList;
+        Function<Long, LeaderboardEntryVO> meSupplier;
 
-        List<LeaderboardEntryVO> topList = aggregateMapper.selectCoinRanking(start, end, TOP_LIMIT);
+        if ("all".equalsIgnoreCase(month)) {
+            topList = aggregateMapper.selectCoinRankingAll(TOP_LIMIT);
+            meSupplier = userId -> aggregateMapper.selectCoinAmountByUserAll(userId);
+        } else {
+            YearMonth ym = parseMonth(month);
+            LocalDateTime start = ym.atDay(1).atStartOfDay();
+            LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
+            topList = aggregateMapper.selectCoinRanking(start, end, TOP_LIMIT);
+            meSupplier = userId -> aggregateMapper.selectCoinAmountByUser(userId, start, end);
+        }
+
         fillUserInfo(topList);
         rank(topList);
         markMe(topList, currentUserId);
@@ -54,7 +68,7 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         CoinLeaderboardVO vo = new CoinLeaderboardVO();
         vo.setMonth(month);
         vo.setTopList(topList);
-        vo.setMe(findMe(topList, currentUserId, userId -> aggregateMapper.selectCoinAmountByUser(userId, start, end)));
+        vo.setMe(findMe(topList, currentUserId, meSupplier));
         return vo;
     }
 
@@ -153,5 +167,19 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         me.setIsMe(true);
         me.setRank(null);
         return me;
+    }
+
+    @Override
+    public LeaderboardRewardConfigVO getRewardConfig() {
+        com.aichuangzuo.user.modules.leaderboard.entity.LeaderboardRewardConfig config = rewardConfigMapper.selectById(1L);
+        LeaderboardRewardConfigVO vo = new LeaderboardRewardConfigVO();
+        if (config == null) {
+            vo.setTopLimit(DEFAULT_REWARD_TOP_LIMIT);
+            vo.setRewardAmount(DEFAULT_REWARD_AMOUNT);
+        } else {
+            vo.setTopLimit(config.getRewardTopLimit());
+            vo.setRewardAmount(config.getRewardAmount());
+        }
+        return vo;
     }
 }

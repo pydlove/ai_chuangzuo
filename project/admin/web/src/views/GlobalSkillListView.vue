@@ -29,13 +29,27 @@
         </a-button>
       </div>
 
+      <!-- 批量操作 -->
+      <div v-if="selectedRowKeys.length > 0" class="global-style-batch-bar">
+        <span>已选 {{ selectedRowKeys.length }} 项</span>
+        <a-popconfirm
+          title="确定批量删除选中的预设提示词？"
+          ok-text="删除"
+          cancel-text="取消"
+          @confirm="confirmBatchDelete"
+        >
+          <a-button type="primary" danger size="small">批量删除</a-button>
+        </a-popconfirm>
+      </div>
+
       <!-- 表格 -->
       <a-table
         :columns="columns"
         :data-source="list"
         :loading="loading"
         :pagination="false"
-        :scroll="{ x: 1050 }"
+        :scroll="{ x: 1200 }"
+        :row-selection="rowSelection"
         row-key="id"
         size="middle"
       >
@@ -47,6 +61,11 @@
           </template>
           <template v-else-if="column.key === 'description'">
             <span class="cell-ellipsis">{{ record.description || '—' }}</span>
+          </template>
+          <template v-else-if="column.key === 'prompt'">
+            <a-tooltip :title="record.prompt">
+              <span class="cell-ellipsis">{{ record.prompt || '—' }}</span>
+            </a-tooltip>
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
@@ -92,7 +111,7 @@
       ok-text="保存"
       cancel-text="取消"
       :confirm-loading="submitting"
-      :width="640"
+      :width="720"
       @ok="confirmSubmit"
     >
       <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
@@ -111,19 +130,99 @@
             :maxlength="256"
           />
         </a-form-item>
-        <a-form-item label="提示词" required>
-          <a-textarea
-            v-model:value="form.prompt"
-            placeholder="喂给 AI 的完整提示词"
-            :rows="6"
+
+        <a-form-item label="基于模版创建">
+          <a-switch
+            v-model:checked="form.templateBased"
+            checked-children="是"
+            un-checked-children="否"
           />
+          <span class="form-hint">开启后按「角色 / 受众 / 写作要求 / 语气 / 禁区」五部分填写，保存时自动拼接为完整提示词</span>
         </a-form-item>
+
+        <!-- 自由编辑模式 -->
+        <template v-if="!form.templateBased">
+          <a-form-item label="提示词" required>
+            <a-textarea
+              v-model:value="form.prompt"
+              placeholder="喂给 AI 的完整提示词"
+              :rows="8"
+            />
+          </a-form-item>
+        </template>
+
+        <!-- 模版编辑模式 -->
+        <template v-else>
+          <a-form-item label="角色" required>
+            <a-textarea
+              v-model:value="form.promptExtra.role"
+              placeholder="例如：你是一位擅长把专业知识翻译成大白话的科普作者"
+              :rows="2"
+            />
+          </a-form-item>
+          <a-form-item label="受众">
+            <a-textarea
+              v-model:value="form.promptExtra.audience"
+              placeholder="例如：对行业术语不熟悉但想快速理解的普通读者"
+              :rows="2"
+            />
+          </a-form-item>
+          <a-form-item label="写作要求" required>
+            <a-textarea
+              v-model:value="form.promptExtra.requirements"
+              placeholder="例如：1. 开篇从生活场景入手\n2. 必须使用至少一个比喻或类比\n3. 按「是什么→为什么→会怎样」推进"
+              :rows="8"
+            />
+          </a-form-item>
+          <a-form-item label="语气">
+            <a-textarea
+              v-model:value="form.promptExtra.tone"
+              placeholder="例如：耐心、亲切，像在给朋友讲一件有趣的事情"
+              :rows="2"
+            />
+          </a-form-item>
+          <a-form-item label="禁区">
+            <a-textarea
+              v-model:value="form.promptExtra.restrictions"
+              placeholder="例如：不要堆砌专业术语；不要给出无法验证的数据"
+              :rows="3"
+            />
+          </a-form-item>
+          <a-form-item label="拼接预览">
+            <a-textarea
+              :value="displayPrompt"
+              :rows="8"
+              readonly
+              class="prompt-preview"
+            />
+          </a-form-item>
+        </template>
+
         <a-form-item label="适用范围">
-          <a-input
-            v-model:value="form.scope"
-            placeholder="例如：公众号情感文（可选）"
-            :maxlength="256"
-          />
+          <div class="global-style-scope-tags">
+            <a-tag
+              v-for="tag in scopeTags"
+              :key="tag"
+              closable
+              :disable="!editingBizNo && scopeTags.length >= MAX_SCOPE_TAGS"
+              @close.prevent="removeTag(tag)"
+            >
+              {{ tag }}
+            </a-tag>
+            <input
+              v-if="scopeTags.length < MAX_SCOPE_TAGS"
+              v-model="scopeInput"
+              type="text"
+              class="global-style-scope-input"
+              placeholder="输入标签后按 Tab 或回车"
+              :maxlength="MAX_SCOPE_TAG_LENGTH"
+              @keydown.enter.prevent="addTag"
+              @keydown.tab="handleScopeTab"
+            />
+          </div>
+          <div class="global-style-scope-hint">
+            最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字（可选）
+          </div>
         </a-form-item>
         <a-form-item label="上架状态">
           <a-switch
@@ -138,10 +237,11 @@
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useGlobalStyleManagement } from '@/composables/useGlobalStyleManagement.js'
+import { useScopeTags } from '@/composables/useScopeTags.js'
 
 const {
   list,
@@ -158,7 +258,8 @@ const {
   handlePageChange,
   handleCreate,
   handleUpdate,
-  handleDelete
+  handleDelete,
+  handleBatchDelete
 } = useGlobalStyleManagement()
 
 const statusOptions = [
@@ -171,6 +272,7 @@ const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 140 },
   { title: '提示词名称', dataIndex: 'name', key: 'name', width: 140 },
   { title: '描述', dataIndex: 'description', key: 'description', width: 180 },
+  { title: '提示词内容', dataIndex: 'prompt', key: 'prompt', width: 320, ellipsis: true },
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 80 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
@@ -179,20 +281,87 @@ const columns = [
 
 const editorVisible = ref(false)
 const editingBizNo = ref(null)
+const selectedRowKeys = ref([])
+const selectedRows = ref([])
+
+const rowSelection = {
+  selectedRowKeys,
+  onChange: (keys, rows) => {
+    selectedRowKeys.value = keys
+    selectedRows.value = rows
+  }
+}
+
+const scopeRef = ref('')
+const {
+  scopeInput,
+  scopeTags,
+  scopeError,
+  addTag,
+  removeTag,
+  MAX_SCOPE_TAGS,
+  MAX_SCOPE_TAG_LENGTH
+} = useScopeTags(scopeRef)
+
+const DEFAULT_PROMPT_EXTRA = {
+  role: '',
+  audience: '',
+  requirements: '',
+  tone: '',
+  restrictions: ''
+}
+
 const form = reactive({
   skillName: '',
   description: '',
   prompt: '',
-  scope: '',
+  templateBased: false,
+  promptExtra: { ...DEFAULT_PROMPT_EXTRA },
   enableStatus: true
 })
+
+const displayPrompt = computed(() => {
+  if (!form.templateBased) return form.prompt
+  return buildPromptFromExtra(form.promptExtra)
+})
+
+function buildPromptFromExtra(extra) {
+  const parts = []
+  if (extra.role?.trim()) parts.push(`- 角色：${extra.role.trim()}`)
+  if (extra.audience?.trim()) parts.push(`- 受众：${extra.audience.trim()}`)
+  if (extra.requirements?.trim()) parts.push(`- 写作要求：\n${extra.requirements.trim()}`)
+  if (extra.tone?.trim()) parts.push(`- 语气：${extra.tone.trim()}`)
+  if (extra.restrictions?.trim()) parts.push(`- 禁区：${extra.restrictions.trim()}`)
+  return parts.join('\n\n')
+}
+
+function parsePromptExtra(raw) {
+  if (!raw) return null
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return obj && obj.templateBased === true ? obj : null
+  } catch (e) {
+    return null
+  }
+}
 
 function resetForm() {
   form.skillName = ''
   form.description = ''
   form.prompt = ''
-  form.scope = ''
+  form.templateBased = false
+  form.promptExtra = { ...DEFAULT_PROMPT_EXTRA }
+  scopeRef.value = ''
+  scopeInput.value = ''
   form.enableStatus = true
+}
+
+function handleScopeTab(e) {
+  const raw = scopeInput.value?.trim()
+  if (raw) {
+    e.preventDefault()
+    addTag()
+  }
 }
 
 const openCreateModal = () => {
@@ -206,21 +375,56 @@ const openEditModal = (record) => {
   form.skillName = record.name || ''
   form.description = record.description || ''
   form.prompt = record.prompt || ''
-  form.scope = record.scope || ''
+  const extra = parsePromptExtra(record.promptExtra)
+  if (extra) {
+    form.templateBased = true
+    form.promptExtra = {
+      role: extra.role || '',
+      audience: extra.audience || '',
+      requirements: extra.requirements || '',
+      tone: extra.tone || '',
+      restrictions: extra.restrictions || ''
+    }
+  } else {
+    form.templateBased = false
+    form.promptExtra = { ...DEFAULT_PROMPT_EXTRA }
+  }
+  scopeRef.value = record.scope || ''
+  scopeInput.value = ''
   form.enableStatus = record.status === 'enabled'
   editorVisible.value = true
 }
 
 const confirmSubmit = async () => {
-  if (!form.skillName.trim() || !form.prompt.trim()) {
-    message.error('请填写提示词名称和提示词')
+  if (!form.skillName.trim()) {
+    message.error('请输入提示词名称')
+    return
+  }
+  if (form.templateBased) {
+    if (!form.promptExtra.role.trim()) {
+      message.error('请填写角色')
+      return
+    }
+    if (!form.promptExtra.requirements.trim()) {
+      message.error('请填写写作要求')
+      return
+    }
+  } else {
+    if (!form.prompt.trim()) {
+      message.error('请填写提示词')
+      return
+    }
+  }
+  if (scopeError.value) {
+    message.error(scopeError.value)
     return
   }
   const payload = {
     skillName: form.skillName.trim(),
     description: form.description || '',
-    prompt: form.prompt.trim(),
-    scope: form.scope || '',
+    prompt: form.templateBased ? displayPrompt.value : form.prompt.trim(),
+    promptExtra: form.templateBased ? JSON.stringify({ templateBased: true, ...form.promptExtra }) : null,
+    scope: scopeRef.value || '',
     enableStatus: form.enableStatus ? 1 : 0
   }
   const ok = editingBizNo.value
@@ -235,12 +439,21 @@ const confirmDelete = async (record) => {
   await handleDelete(record.id)
 }
 
+const confirmBatchDelete = async () => {
+  const ok = await handleBatchDelete(selectedRowKeys.value)
+  if (ok) {
+    selectedRowKeys.value = []
+    selectedRows.value = []
+  }
+}
+
 const toggleStatus = async (record) => {
   const nextStatus = record.status === 'enabled' ? 0 : 1
   const payload = {
     skillName: record.name,
     description: record.description || '',
     prompt: record.prompt || '',
+    promptExtra: record.promptExtra || null,
     promptSummary: record.promptSummary || '',
     scope: record.scope || '',
     enableStatus: nextStatus
@@ -285,6 +498,19 @@ onMounted(() => {
   align-items: center;
 }
 
+.global-style-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #fff2f0;
+  border: 1px solid #ffccc7;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #434343;
+}
+
 .global-style-pagination {
   margin-top: 16px;
   display: flex;
@@ -298,5 +524,47 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
+}
+
+.global-style-scope-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.global-style-scope-input {
+  min-width: 160px;
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.global-style-scope-input:focus {
+  border-color: #ff2442;
+}
+
+.global-style-scope-input::placeholder {
+  color: #bfbfbf;
+}
+
+.global-style-scope-hint {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.form-hint {
+  margin-left: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.prompt-preview {
+  background: #f6ffed;
 }
 </style>

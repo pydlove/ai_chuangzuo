@@ -45,6 +45,11 @@
         <div class="mine-stat-value">{{ inviteStats.invitedCount }}</div>
         <div class="mine-stat-label">已邀请</div>
       </div>
+      <div class="mine-stat-divider"></div>
+      <div class="mine-stat-item mine-stat-item-coupon" @click="router.push('/console/coupons')">
+        <div class="mine-stat-value">{{ couponCount }}</div>
+        <div class="mine-stat-label">优惠券</div>
+      </div>
     </section>
 
     <!-- 常用功能 -->
@@ -81,10 +86,6 @@
         <div class="mine-grid-item" @click="$router.push('/console/hot-search')">
           <div class="mine-grid-icon mine-grid-icon--hot"><FireOutlined /></div>
           <span class="mine-grid-label">热搜榜</span>
-        </div>
-        <div class="mine-grid-item" @click="$router.push('/console/coupons')">
-          <div class="mine-grid-icon mine-grid-icon--coupon"><TagsOutlined /></div>
-          <span class="mine-grid-label">我的优惠券</span>
         </div>
         <div class="mine-grid-item" @click="actions.openRedeemModal">
           <div class="mine-grid-icon mine-grid-icon--redeem"><TagOutlined /></div>
@@ -197,7 +198,6 @@ import {
   FireOutlined,
   GiftOutlined,
   TagOutlined,
-  TagsOutlined,
   BookOutlined,
   MessageOutlined,
   LockOutlined,
@@ -212,6 +212,7 @@ import {
   UserAddOutlined
 } from '@ant-design/icons-vue'
 import { getMonthlyCount } from '@/api/article'
+import { getMyCoupons } from '@/api/lottery'
 
 const router = useRouter()
 const actions = inject('consoleActions')
@@ -232,11 +233,19 @@ const avatarLetter = computed(() => {
 
 // 本月已生成：从后端统计接口读取
 const monthlyWorks = ref(0)
+// 优惠券数量
+const couponCount = ref(0)
 onMounted(async () => {
   try {
     monthlyWorks.value = await getMonthlyCount()
   } catch {
     monthlyWorks.value = 0
+  }
+  try {
+    const coupons = await getMyCoupons()
+    couponCount.value = (coupons.data || []).length
+  } catch {
+    couponCount.value = 0
   }
 })
 
@@ -422,7 +431,7 @@ const openOfficialSite = () => {
   align-items: stretch;
   background: #fff;
   border-radius: 18px;
-  padding: 18px 8px;
+  padding: 18px 6px;
   margin-top: 12px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
 }
@@ -436,6 +445,7 @@ const openOfficialSite = () => {
   cursor: pointer;
   transition: opacity 0.15s;
   -webkit-tap-highlight-color: transparent;
+  min-width: 0;
 }
 
 .mine-stat-item:active {
@@ -443,7 +453,7 @@ const openOfficialSite = () => {
 }
 
 .mine-stat-value {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 700;
   color: #1a1a1a;
   line-height: 1.1;
@@ -453,8 +463,12 @@ const openOfficialSite = () => {
   color: #FF2442;
 }
 
+.mine-stat-item-coupon .mine-stat-value {
+  color: #fa8c16;
+}
+
 .mine-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: #8c8c8c;
 }
 
@@ -462,6 +476,7 @@ const openOfficialSite = () => {
   width: 1px;
   background: #f0f0f0;
   margin: 4px 0;
+  flex-shrink: 0;
 }
 
 /* ========== 通用 section ========== */
@@ -670,7 +685,7 @@ const openOfficialSite = () => {
   }
 
   .mine-grid {
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(7, 1fr);
     padding: 18px 16px;
   }
 
@@ -700,6 +715,10 @@ body[data-theme="dark"] .mine-stat-value {
 
 body[data-theme="dark"] .mine-stat-item-coin .mine-stat-value {
   color: #ff6b81;
+}
+
+body[data-theme="dark"] .mine-stat-item-coupon .mine-stat-value {
+  color: #ffc53d;
 }
 
 body[data-theme="dark"] .mine-stat-divider {

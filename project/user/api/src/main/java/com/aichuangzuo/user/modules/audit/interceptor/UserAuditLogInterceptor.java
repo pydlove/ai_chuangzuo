@@ -8,6 +8,8 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +19,8 @@ public class UserAuditLogInterceptor implements HandlerInterceptor {
 
     private static final String START_TIME_ATTR = "audit.startTime";
     private static final int MAX_PARAMS_LENGTH = 1024;
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(UserAuditLogInterceptor.class);
 
     private final UserAuditLogService userAuditLogService;
 
@@ -56,7 +60,11 @@ public class UserAuditLogInterceptor implements HandlerInterceptor {
         log.setDurationMs(durationMs);
         log.setCreatedAt(LocalDateTime.now());
 
-        userAuditLogService.save(log);
+        try {
+            userAuditLogService.save(log);
+        } catch (Exception e) {
+            LOGGER.warn("审计日志保存失败，不影响主请求: {}", e.getMessage());
+        }
     }
 
     private String resolveModule(String uri) {

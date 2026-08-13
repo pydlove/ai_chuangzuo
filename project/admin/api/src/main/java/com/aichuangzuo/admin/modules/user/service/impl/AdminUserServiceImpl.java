@@ -297,7 +297,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public AdminUserInviteDetailVO getUserInviteDetail(Long id) {
+    public AdminUserInviteDetailVO getUserInviteDetail(Long id, int page, int pageSize) {
         PlatformUser user = platformUserMapper.selectById(id);
         if (user == null || user.getIsDeleted() == 1) {
             throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
@@ -306,6 +306,8 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserInviteDetailVO detail = new AdminUserInviteDetailVO();
         detail.setUserId(user.getId());
         detail.setInviteCode(user.getInviteCode());
+        detail.setPage(page);
+        detail.setPageSize(pageSize);
 
         UserInviteRelation inviterRelation = userInviteRelationMapper.selectByInviteeId(id);
         if (inviterRelation != null) {
@@ -315,18 +317,23 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
         }
 
-        List<Long> inviteeIds = userInviteRelationMapper.selectInviteeIdsByInviterId(id);
-        if (!inviteeIds.isEmpty()) {
-            List<PlatformUser> invitees = platformUserMapper.selectBatchIds(inviteeIds);
-            Map<Long, PlatformUser> inviteeMap = invitees.stream()
-                    .filter(u -> u.getIsDeleted() == 0)
-                    .collect(Collectors.toMap(PlatformUser::getId, u -> u));
-            List<AdminUserInviteeVO> inviteeVOs = inviteeIds.stream()
-                    .map(inviteeMap::get)
-                    .filter(Objects::nonNull)
-                    .map(u -> toAdminUserInviteeVO(u, null))
-                    .collect(Collectors.toList());
-            detail.setInvitees(inviteeVOs);
+        int total = userInviteRelationMapper.countEffectiveByInviterId(id);
+        detail.setTotal(total);
+        if (total > 0 && pageSize > 0) {
+            int offset = (page - 1) * pageSize;
+            List<Long> inviteeIds = userInviteRelationMapper.selectEffectiveInviteeIdsByInviterId(id, offset, pageSize);
+            if (!inviteeIds.isEmpty()) {
+                List<PlatformUser> invitees = platformUserMapper.selectBatchIds(inviteeIds);
+                Map<Long, PlatformUser> inviteeMap = invitees.stream()
+                        .filter(u -> u.getIsDeleted() == 0)
+                        .collect(Collectors.toMap(PlatformUser::getId, u -> u));
+                List<AdminUserInviteeVO> inviteeVOs = inviteeIds.stream()
+                        .map(inviteeMap::get)
+                        .filter(Objects::nonNull)
+                        .map(u -> toAdminUserInviteeVO(u, null))
+                        .collect(Collectors.toList());
+                detail.setInvitees(inviteeVOs);
+            }
         }
 
         return detail;
@@ -429,6 +436,18 @@ public class AdminUserServiceImpl implements AdminUserService {
         platformUserMapper.deleteById(id);
         log.info("管理员删除用户成功, adminUserId={}, userId={}",
                 SecurityAdminContext.getCurrentAdminUserId(), id);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+        int deleted = platformUserMapper.deleteBatchIds(ids);
+        log.info("管理员批量删除用户成功, adminUserId={}, count={}, ids={}",
+                SecurityAdminContext.getCurrentAdminUserId(), deleted, ids);
+        return deleted;
     }
 
     @Override
@@ -677,7 +696,9 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (!StringUtils.hasText(planKey) || expireAt == null) {
             return;
         }
-        LocalDate expireDate = expireAt.toLocalDate();
+        // PlatformUser.membership_expire_at 存的是“到期日次日 00:00”，
+        // u_user_membership.expires_at 存的是实际到期日，需要减一天。
+        LocalDate expireDate = expireAt.toLocalDate().minusDays(1);
         if (expireDate.isBefore(LocalDate.now())) {
             return;
         }

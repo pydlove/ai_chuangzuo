@@ -28,6 +28,8 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Value("${spring.mail.username}")
     private String mailFrom;
+    @Value("${app.home-url:https://aichuangzuo.com/pricing}")
+    private String homeUrl;
 
     private static final String EMAIL_CODE_PREFIX = "user:auth:email-code:";
     private static final String EMAIL_CODE_COUNT_PREFIX = "user:auth:email-code-count:";
@@ -38,20 +40,21 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     @Override
     public void sendEmailCode(String email) {
-        checkEmailCodeLimit(email);
+        String normalizedEmail = email.trim().toLowerCase();
+        checkEmailCodeLimit(normalizedEmail);
         String code = generateCode();
-        cacheUtil.set(EMAIL_CODE_PREFIX + email, code, EMAIL_CODE_TTL_MINUTES, TimeUnit.MINUTES);
-        incrementEmailCodeCount(email);
+        cacheUtil.set(EMAIL_CODE_PREFIX + normalizedEmail, code, EMAIL_CODE_TTL_MINUTES, TimeUnit.MINUTES);
+        incrementEmailCodeCount(normalizedEmail);
 
         try {
             MimeMessage msg = mailSender.createMimeMessage();
-            EmailMessageFactory.populateCodeEmail(msg, mailFrom, email, code);
+            EmailMessageFactory.populateCodeEmail(msg, mailFrom, normalizedEmail, code, homeUrl);
             mailSender.send(msg);
         } catch (MailException | MessagingException ex) {
-            log.warn("邮箱发送失败 email={}, reason={}", email, ex.getMessage());
+            log.warn("邮箱发送失败 email={}, reason={}", normalizedEmail, ex.getMessage());
             throw new BusinessException(UserAuthErrorCode.EMAIL_SEND_FAILED);
         }
-        log.info("邮箱验证码已发送 email={}, code={}", email, code);
+        log.info("邮箱验证码已发送 email={}, code={}", normalizedEmail, code);
     }
 
     /**
@@ -67,7 +70,8 @@ public class EmailCodeServiceImpl implements EmailCodeService {
      */
     @Override
     public boolean validateEmailCode(String email, String emailCode) {
-        String key = EMAIL_CODE_PREFIX + email;
+        String normalizedEmail = email.trim().toLowerCase();
+        String key = EMAIL_CODE_PREFIX + normalizedEmail;
         String cachedCode = cacheUtil.get(key);
         if (cachedCode == null) {
             return false;
@@ -85,12 +89,14 @@ public class EmailCodeServiceImpl implements EmailCodeService {
 
     private void incrementEmailCodeCount(String email) {
         String key = EMAIL_CODE_COUNT_PREFIX + email;
-        AtomicInteger count = cacheUtil.get(key);
-        if (count == null) {
-            count = new AtomicInteger(0);
-            cacheUtil.set(key, count, EMAIL_CODE_COUNT_TTL_HOURS, TimeUnit.HOURS);
+        synchronized (key.intern()) {
+            AtomicInteger count = cacheUtil.get(key);
+            if (count == null) {
+                count = new AtomicInteger(0);
+                cacheUtil.set(key, count, EMAIL_CODE_COUNT_TTL_HOURS, TimeUnit.HOURS);
+            }
+            count.incrementAndGet();
         }
-        count.incrementAndGet();
     }
 
     private String generateCode() {

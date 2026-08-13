@@ -108,6 +108,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message as antMessage } from 'ant-design-vue'
 import { useMessages } from '@/composables/useMessages'
+import { normalizeMessageLink } from '@/utils/messageLink'
 
 const router = useRouter()
 
@@ -164,7 +165,7 @@ async function handleClick(msg) {
   }
 
   if (msg.link) {
-    router.push(msg.link)
+    router.push(normalizeMessageLink(msg.link))
     return
   }
   if (msg.type === 'generation') {

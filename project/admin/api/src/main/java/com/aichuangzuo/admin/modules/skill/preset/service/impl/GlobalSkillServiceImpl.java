@@ -69,6 +69,7 @@ public class GlobalSkillServiceImpl implements GlobalSkillService {
         skill.setDescription(StringUtils.trimWhitespace(request.getDescription()));
         skill.setPromptSummary(StringUtils.trimWhitespace(request.getPromptSummary()));
         skill.setPrompt(request.getPrompt().trim());
+        skill.setPromptExtra(StringUtils.trimWhitespace(request.getPromptExtra()));
         skill.setScope(normalizeScope(request.getScope()));
         skill.setSourceType(SOURCE_TYPE_SYSTEM);
         skill.setAuditStatus(AUDIT_STATUS_APPROVED);
@@ -103,6 +104,7 @@ public class GlobalSkillServiceImpl implements GlobalSkillService {
         skill.setDescription(StringUtils.trimWhitespace(request.getDescription()));
         skill.setPromptSummary(StringUtils.trimWhitespace(request.getPromptSummary()));
         skill.setPrompt(request.getPrompt().trim());
+        skill.setPromptExtra(StringUtils.trimWhitespace(request.getPromptExtra()));
         skill.setScope(normalizeScope(request.getScope()));
         skill.setEnableStatus(request.getEnableStatus());
 
@@ -115,9 +117,21 @@ public class GlobalSkillServiceImpl implements GlobalSkillService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(String bizNo) {
         UserSkillAggregate skill = loadByBizNo(bizNo);
-        skill.setIsDeleted(1);
-        globalSkillMapper.updateById(skill);
-        log.info("软删预设风格 bizNo={}", bizNo);
+        globalSkillMapper.deleteByIdPhysical(skill.getId());
+        log.info("物理删除预设风格 bizNo={}", bizNo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteBatch(List<String> bizNos) {
+        int count = 0;
+        for (String bizNo : bizNos) {
+            UserSkillAggregate skill = loadByBizNo(bizNo);
+            globalSkillMapper.deleteByIdPhysical(skill.getId());
+            count++;
+        }
+        log.info("批量物理删除预设风格完成, count={}, bizNos={}", count, bizNos);
+        return count;
     }
 
     // -------- helpers --------
@@ -175,6 +189,7 @@ public class GlobalSkillServiceImpl implements GlobalSkillService {
         vo.setDescription(row.getDescription());
         vo.setPromptSummary(row.getPromptSummary());
         vo.setPrompt(row.getPrompt());
+        vo.setPromptExtra(row.getPromptExtra());
         vo.setScope(row.getScope());
         vo.setStatus(row.getEnableStatus() != null && row.getEnableStatus() == 1 ? "enabled" : "disabled");
         vo.setCreatorName("系统");

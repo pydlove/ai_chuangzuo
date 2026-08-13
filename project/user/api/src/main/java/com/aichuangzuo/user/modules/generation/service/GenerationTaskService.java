@@ -201,6 +201,8 @@ public class GenerationTaskService {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_TASK_INVALID_STATUS);
         }
 
+        benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
+
         task.setStatus(GenerationTaskStatus.FAILED);
         task.setFailedReason(USER_STOP_REASON);
         task.setCompletedAt(LocalDateTime.now());
@@ -209,12 +211,6 @@ public class GenerationTaskService {
         task.setLeaseUntil(null);
         taskMapper.updateById(task);
         log.info("user={} 手动停止任务 task={}", userId, taskId);
-
-        try {
-            benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
-        } catch (Exception e) {
-            log.error("task={} 手动停止后退文章额度失败，需人工介入: {}", taskId, e.getMessage());
-        }
     }
 
     /** 我提交过的任务列表（FIFO 反序：最新在前）。 */

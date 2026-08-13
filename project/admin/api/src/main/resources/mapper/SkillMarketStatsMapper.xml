@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketStatsMapper">
+
+    <select id="selectOverview" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketOverviewDTO">
+        SELECT
+            COUNT(*) AS totalSkills,
+            COALESCE(SUM(CASE WHEN enable_status = 1 THEN 1 ELSE 0 END), 0) AS enabledSkills,
+            COALESCE(SUM(CASE WHEN enable_status = 0 THEN 1 ELSE 0 END), 0) AS disabledSkills,
+            COALESCE(SUM(CASE WHEN featured = 1 THEN 1 ELSE 0 END), 0) AS featuredSkills,
+            COALESCE(SUM(total_uses), 0) AS totalUses,
+            COALESCE(SUM(weekly_uses), 0) AS weeklyUses,
+            COALESCE(SUM(total_uses * price), 0) AS totalEarnings,
+            COALESCE(SUM(weekly_earnings), 0) AS weeklyEarnings,
+            COALESCE(SUM(milestone_bonus), 0) AS milestoneBonus
+        FROM u_skill_market
+        WHERE is_deleted = 0
+    </select>
+
+    <select id="selectTopSkillsByTotalUses" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopSkillDTO">
+        SELECT
+            s.skill_name AS skillName,
+            u.nickname AS publisherName,
+            s.publisher_user_id AS publisherUserId,
+            s.total_uses AS totalUses,
+            s.weekly_uses AS weeklyUses,
+            s.weekly_earnings AS weeklyEarnings,
+            s.milestone_bonus AS milestoneBonus
+        FROM u_skill_market s
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+        ORDER BY s.total_uses DESC, s.id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectTopPublishersByWeeklyEarnings" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopPublisherDTO">
+        SELECT
+            s.publisher_user_id AS publisherUserId,
+            COALESCE(NULLIF(u.nickname, ''), u.email) AS publisherName,
+            COUNT(*) AS skillCount,
+            COALESCE(SUM(s.total_uses), 0) AS totalUses,
+            COALESCE(SUM(s.weekly_earnings), 0) AS weeklyEarnings
+        FROM u_skill_market s
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+        GROUP BY s.publisher_user_id
+        ORDER BY weeklyEarnings DESC, s.publisher_user_id DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectUsageTrend" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTrendDTO">
+        SELECT
+            DATE(t.completed_at) AS date,
+            COUNT(*) AS uses,
+            COALESCE(SUM(s.price), 0) AS earnings
+        FROM a_generation_task t
+        LEFT JOIN u_skill_market s ON s.biz_no = t.skill_ref AND s.is_deleted = 0
+        WHERE t.is_deleted = 0
+          AND t.status = 2
+          AND t.skill_ref IS NOT NULL
+          AND t.completed_at >= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+        GROUP BY DATE(t.completed_at)
+        ORDER BY date ASC
+    </select>
+
+    <select id="selectUsageRecords" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketUsageRecordDTO">
+        SELECT
+            t.target_user_id AS userId,
+            COALESCE(NULLIF(u.nickname, ''), u.email) AS userNickname,
+            t.biz_no AS taskBizNo,
+            t.article_biz_no AS articleBizNo,
+            t.completed_at AS completedAt
+        FROM a_generation_task t
+        LEFT JOIN u_user u ON u.id = t.target_user_id AND u.is_deleted = 0
+        WHERE t.is_deleted = 0
+          AND t.status = 2
+          AND t.skill_ref = #{skillRef}
+        ORDER BY t.completed_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countUsageRecords" resultType="long">
+        SELECT COUNT(*)
+        FROM a_generation_task t
+        WHERE t.is_deleted = 0
+          AND t.status = 2
+          AND t.skill_ref = #{skillRef}
+    </select>
+
+</mapper>

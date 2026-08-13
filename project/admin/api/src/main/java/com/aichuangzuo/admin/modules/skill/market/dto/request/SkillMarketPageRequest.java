@@ -15,6 +15,9 @@ public class SkillMarketPageRequest {
     /** 启用状态过滤：0-禁用，1-启用，null-全部。 */
     private Integer enableStatus;
 
+    /** 官方精选过滤：0-普通，1-精选，null-全部。 */
+    private Integer featured;
+
     /** 搜索关键词（按风格名或发布者昵称模糊匹配）。 */
     private String keyword;
 

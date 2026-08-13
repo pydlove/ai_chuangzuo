@@ -174,6 +174,27 @@ public class TopicTitleService {
     }
 
     /**
+     * 批量逻辑删除。
+     *
+     * <p>只处理仍然存在的记录；不存在的 ID 静默跳过（前端批量勾选后列表刷新，
+     * 部分记录可能已被其它管理员删除）。返回实际删除条数。
+     */
+    public int deleteBatch(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        List<TopicTitle> titles = topicTitleMapper.selectBatchIds(ids);
+        if (titles == null || titles.isEmpty()) {
+            return 0;
+        }
+        for (TopicTitle title : titles) {
+            topicTitleMapper.deleteById(title);
+        }
+        log.info("管理端批量删除标题完成, ids={}, deleted={}", ids, titles.size());
+        return titles.size();
+    }
+
+    /**
      * 实际调 AI + 解析 + 入库。复用原 generate() 的核心逻辑。
      *
      * @return 实际入库条数

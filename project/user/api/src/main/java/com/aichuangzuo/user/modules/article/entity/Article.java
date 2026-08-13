@@ -24,6 +24,8 @@ public class Article {
 
     private String bizNo;
 
+    private Long taskId;
+
     private Long userId;
 
     private String title;

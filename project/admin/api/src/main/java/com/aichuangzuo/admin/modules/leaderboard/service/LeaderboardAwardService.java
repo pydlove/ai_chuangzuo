@@ -3,7 +3,7 @@ package com.aichuangzuo.admin.modules.leaderboard.service;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardGrantResultVO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.RewardRecordAdminVO;
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 
 import java.util.List;
 
@@ -25,5 +25,5 @@ public interface LeaderboardAwardService {
     /**
      * 分页查询奖励发放记录。
      */
-    IPage<RewardRecordAdminVO> rewardHistory(Integer leaderboardType, String periodMonth, IPage<RewardRecordAdminVO> pageParam);
+    PageResult<RewardRecordAdminVO> rewardHistory(Integer leaderboardType, String periodMonth, long page, long size);
 }

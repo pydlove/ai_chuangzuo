@@ -1,6 +1,8 @@
 package com.aichuangzuo.admin.modules.leaderboard.service.impl;
 
 import com.aichuangzuo.admin.modules.leaderboard.client.UserApiClient;
+import com.aichuangzuo.admin.modules.leaderboard.config.entity.LeaderboardRewardConfig;
+import com.aichuangzuo.admin.modules.leaderboard.config.service.LeaderboardRewardConfigService;
 import com.aichuangzuo.admin.modules.leaderboard.entity.LeaderboardType;
 import com.aichuangzuo.admin.modules.leaderboard.entity.RewardRecord;
 import com.aichuangzuo.admin.modules.leaderboard.enums.AdminLeaderboardErrorCode;
@@ -12,15 +14,15 @@ import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.RewardRecordAdminVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
@@ -36,33 +38,34 @@ import java.util.UUID;
 public class LeaderboardAwardServiceImpl implements LeaderboardAwardService {
 
     private static final DateTimeFormatter MONTH_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM");
-    private static final int TOP_LIMIT = 10;
-    private static final BigDecimal DEFAULT_REWARD = new BigDecimal("100.0000");
 
     private final LeaderboardAggregateMapper aggregateMapper;
     private final RewardRecordMapper rewardRecordMapper;
     private final UserApiClient userApiClient;
+    private final LeaderboardRewardConfigService rewardConfigService;
 
     @Override
     public List<LeaderboardTop10VO> previewTop10(Integer leaderboardType, String periodMonth) {
         validateLeaderboardType(leaderboardType);
         parseMonth(periodMonth);
+        LeaderboardRewardConfig config = rewardConfigService.getEffectiveConfig();
+        int topLimit = config.getRewardTopLimit();
 
         List<LeaderboardTop10VO> list = switch (leaderboardType) {
             case 1 -> {
                 YearMonth ym = YearMonth.parse(periodMonth, MONTH_FORMATTER);
                 LocalDateTime start = ym.atDay(1).atStartOfDay();
                 LocalDateTime end = ym.plusMonths(1).atDay(1).atStartOfDay();
-                yield aggregateMapper.selectCoinRankingMonth(start, end, TOP_LIMIT);
+                yield aggregateMapper.selectCoinRankingMonth(start, end, topLimit);
             }
-            case 2 -> aggregateMapper.selectIncomeRankingMonth(periodMonth, TOP_LIMIT);
+            case 2 -> aggregateMapper.selectIncomeRankingMonth(periodMonth, topLimit);
             default -> throw new BusinessException(AdminLeaderboardErrorCode.SUBMISSION_NOT_FOUND);
         };
 
         for (int i = 0; i < list.size(); i++) {
             LeaderboardTop10VO item = list.get(i);
             item.setRank(i + 1);
-            item.setRewardAmount(DEFAULT_REWARD);
+            item.setRewardAmount(config.getRewardAmount());
         }
         return list;
     }
@@ -103,7 +106,7 @@ public class LeaderboardAwardServiceImpl implements LeaderboardAwardService {
     }
 
     @Override
-    public IPage<RewardRecordAdminVO> rewardHistory(Integer leaderboardType, String periodMonth, IPage<RewardRecordAdminVO> pageParam) {
+    public PageResult<RewardRecordAdminVO> rewardHistory(Integer leaderboardType, String periodMonth, long page, long size) {
         LambdaQueryWrapper<RewardRecord> wrapper = Wrappers.lambdaQuery();
         wrapper.eq(RewardRecord::getIsDeleted, 0);
         if (leaderboardType != null) {
@@ -113,9 +116,10 @@ public class LeaderboardAwardServiceImpl implements LeaderboardAwardService {
             wrapper.eq(RewardRecord::getPeriodMonth, periodMonth);
         }
         wrapper.orderByDesc(RewardRecord::getGrantedAt);
-        Page<RewardRecord> entityPage = new Page<>(pageParam.getCurrent(), pageParam.getSize());
+        Page<RewardRecord> entityPage = new Page<>(page, size);
         rewardRecordMapper.selectPage(entityPage, wrapper);
-        return entityPage.convert(this::toRewardRecordVo);
+        IPage<RewardRecordAdminVO> voPage = entityPage.convert(this::toRewardRecordVo);
+        return new PageResult<>(voPage.getRecords(), voPage.getTotal(), voPage.getCurrent(), voPage.getSize());
     }
 
     private RewardRecordAdminVO toRewardRecordVo(RewardRecord entity) {

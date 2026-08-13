@@ -27,9 +27,7 @@ public class InternalKeyAuthenticationFilter extends OncePerRequestFilter {
         String path = request.getRequestURI();
         // 兼容老路径 + 新增 generation 内部接口，统一用 X-Internal-Key 校验
         boolean isInternal = path.startsWith("/api/v1/user/coin-records/internal-grant")
-                || path.startsWith("/api/v1/user/internal/generation/")
-                || path.startsWith("/api/v1/user/internal/market-skills/")
-                || path.startsWith("/api/v1/user/internal/audit-logs");
+                || path.startsWith("/api/v1/user/internal/");
         if (!isInternal) {
             filterChain.doFilter(request, response);
             return;

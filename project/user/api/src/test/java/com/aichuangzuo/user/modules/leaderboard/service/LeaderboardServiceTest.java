@@ -66,6 +66,26 @@ class LeaderboardServiceTest {
     }
 
     @Test
+    void coinLeaderboardAllTime_shouldIncludeRecordsAcrossMonths() {
+        User u1 = createUser("lb-all-1@test.com");
+        User u2 = createUser("lb-all-2@test.com");
+
+        createCoinRecord(u1.getId(), BigDecimal.valueOf(10));
+        createCoinRecord(u2.getId(), BigDecimal.valueOf(5));
+        createCoinRecordAt(u1.getId(), BigDecimal.valueOf(20), LocalDateTime.of(2025, 3, 15, 0, 0));
+
+        CoinLeaderboardVO vo = leaderboardService.getCoinLeaderboard(u2.getId(), "all");
+
+        assertEquals(2, vo.getTopList().size());
+        assertEquals(u1.getId(), vo.getTopList().get(0).getUserId());
+        assertEquals(0, vo.getTopList().get(0).getAmount().compareTo(BigDecimal.valueOf(30)));
+        assertEquals(1, vo.getTopList().get(0).getRank());
+        assertEquals(2, vo.getTopList().get(1).getRank());
+        assertTrue(vo.getMe().getIsMe());
+        assertEquals(0, vo.getMe().getAmount().compareTo(BigDecimal.valueOf(5)));
+    }
+
+    @Test
     void incomeLeaderboardMonth_shouldOnlyCountApproved() {
         User u1 = createUser("lb-inc-1@test.com");
         User u2 = createUser("lb-inc-2@test.com");
@@ -95,6 +115,10 @@ class LeaderboardServiceTest {
     }
 
     private void createCoinRecord(Long userId, BigDecimal amount) {
+        createCoinRecordAt(userId, amount, LocalDateTime.of(2026, 6, 15, 0, 0));
+    }
+
+    private void createCoinRecordAt(Long userId, BigDecimal amount, LocalDateTime bizTime) {
         UserCoinRecord record = new UserCoinRecord();
         record.setBizNo("CR" + System.nanoTime());
         record.setUserId(userId);
@@ -102,7 +126,7 @@ class LeaderboardServiceTest {
         record.setDirection(CoinDirection.INCOME.getCode());
         record.setAmount(amount);
         record.setBalanceAfter(amount);
-        record.setBizTime(LocalDateTime.of(2026, 6, 15, 0, 0));
+        record.setBizTime(bizTime);
         record.setTenantId(0L);
         userCoinRecordMapper.insert(record);
     }

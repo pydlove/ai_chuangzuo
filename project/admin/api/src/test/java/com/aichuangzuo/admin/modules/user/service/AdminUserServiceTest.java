@@ -273,16 +273,20 @@ class AdminUserServiceTest {
         when(platformUserMapper.selectById(1L)).thenReturn(user);
         when(userInviteRelationMapper.selectByInviteeId(1L)).thenReturn(relation);
         when(platformUserMapper.selectById(2L)).thenReturn(inviter);
-        when(userInviteRelationMapper.selectInviteeIdsByInviterId(1L)).thenReturn(Arrays.asList(3L));
+        when(userInviteRelationMapper.countEffectiveByInviterId(1L)).thenReturn(1);
+        when(userInviteRelationMapper.selectEffectiveInviteeIdsByInviterId(1L, 0, 10)).thenReturn(Arrays.asList(3L));
         when(platformUserMapper.selectBatchIds(Arrays.asList(3L))).thenReturn(Arrays.asList(invitee));
 
-        AdminUserInviteDetailVO result = adminUserService.getUserInviteDetail(1L);
+        AdminUserInviteDetailVO result = adminUserService.getUserInviteDetail(1L, 1, 10);
 
         assertEquals("ABC123", result.getInviteCode());
         assertNotNull(result.getInviter());
         assertEquals("inviter@example.com", result.getInviter().getEmail());
         assertEquals(1, result.getInvitees().size());
         assertEquals("invitee@example.com", result.getInvitees().get(0).getEmail());
+        assertEquals(1, result.getTotal());
+        assertEquals(1, result.getPage());
+        assertEquals(10, result.getPageSize());
     }
 
     @Test

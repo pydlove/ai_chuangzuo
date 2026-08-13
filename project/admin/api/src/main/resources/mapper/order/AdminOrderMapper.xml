@@ -112,8 +112,8 @@
     </update>
 
     <insert id="insertGrantOrder">
-        INSERT INTO u_order (order_no, user_id, plan_key, cycle, amount, status, paid_at, admin_remark, operator_id, tenant_id)
-        VALUES (#{orderNo}, #{userId}, #{planKey}, #{cycle}, 0, 1, #{now}, #{adminRemark}, #{operatorId}, 0)
+        INSERT INTO u_order (order_no, user_id, plan_key, cycle, started_at, expires_at, amount, status, paid_at, admin_remark, operator_id, tenant_id)
+        VALUES (#{orderNo}, #{userId}, #{planKey}, 'custom', #{startDate}, #{endDate}, 0, 1, #{now}, #{adminRemark}, #{operatorId}, 0)
     </insert>
 
     <select id="statsOverview" resultType="com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO">
@@ -171,5 +171,278 @@
         WHERE status = 1
         GROUP BY cycle
         ORDER BY count DESC
+    </select>
+
+    <select id="selectRenewalOverview" resultType="com.aichuangzuo.admin.modules.order.vo.RenewalOverviewVO">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT
+            COUNT(DISTINCT user_id) AS totalPaidUsers,
+            COUNT(DISTINCT CASE WHEN rn > 1 THEN user_id END) AS renewalUsers,
+            COUNT(CASE WHEN rn > 1 THEN 1 END) AS renewalOrders,
+            COALESCE(SUM(CASE WHEN rn > 1 THEN amount ELSE 0 END), 0) AS renewalRevenue,
+            COUNT(CASE WHEN rn = 1 THEN 1 END) AS firstOrders,
+            COALESCE(SUM(CASE WHEN rn = 1 THEN amount ELSE 0 END), 0) AS firstRevenue
+        FROM paid_orders
+    </select>
+
+    <select id="selectRenewalTrend" resultType="java.util.LinkedHashMap">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        ),
+        renewal_daily AS (
+            SELECT DATE(o.paid_at) AS payDate,
+                   SUM(o.amount) AS revenue,
+                   COUNT(*) AS orderCount,
+                   COUNT(DISTINCT o.user_id) AS userCount
+            FROM paid_orders o
+            WHERE o.rn > 1
+              AND o.paid_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+            GROUP BY DATE(o.paid_at)
+        )
+        SELECT DATE_FORMAT(d.dt, '%m-%d') AS dateLabel,
+               COALESCE(rd.revenue, 0) AS revenue,
+               COALESCE(rd.orderCount, 0) AS orderCount,
+               COALESCE(rd.userCount, 0) AS userCount
+        FROM (
+            SELECT DATE_SUB(CURDATE(), INTERVAL n DAY) AS dt
+            FROM (
+                SELECT 0 AS n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4
+                UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9
+                UNION SELECT 10 UNION SELECT 11 UNION SELECT 12 UNION SELECT 13 UNION SELECT 14
+                UNION SELECT 15 UNION SELECT 16 UNION SELECT 17 UNION SELECT 18 UNION SELECT 19
+                UNION SELECT 20 UNION SELECT 21 UNION SELECT 22 UNION SELECT 23 UNION SELECT 24
+                UNION SELECT 25 UNION SELECT 26 UNION SELECT 27 UNION SELECT 28 UNION SELECT 29
+            ) nums
+            WHERE n &lt; #{days}
+        ) d
+        LEFT JOIN renewal_daily rd ON rd.payDate = d.dt
+        ORDER BY d.dt ASC
+    </select>
+
+    <select id="selectRenewalPlanDistribution" resultType="java.util.LinkedHashMap">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT plan_key AS planKey,
+               COUNT(*) AS count,
+               COALESCE(SUM(amount), 0) AS revenue
+        FROM paid_orders
+        WHERE rn > 1
+        GROUP BY plan_key
+        ORDER BY count DESC
+    </select>
+
+    <select id="selectRenewalCycleDistribution" resultType="java.util.LinkedHashMap">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT cycle,
+               COUNT(*) AS count,
+               COALESCE(SUM(amount), 0) AS revenue
+        FROM paid_orders
+        WHERE rn > 1
+        GROUP BY cycle
+        ORDER BY count DESC
+    </select>
+
+    <select id="selectRenewalUsers" resultType="com.aichuangzuo.admin.modules.order.vo.RenewalUserVO">
+
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        ),
+        user_stats AS (
+            SELECT user_id,
+                   MIN(paid_at) AS firstPaidAt,
+                   MAX(CASE WHEN rn > 1 THEN paid_at END) AS lastRenewalAt,
+                   CAST(SUM(CASE WHEN rn > 1 THEN 1 ELSE 0 END) AS SIGNED) AS renewalCount,
+                   SUM(CASE WHEN rn > 1 THEN amount ELSE 0 END) AS renewalAmount
+            FROM paid_orders
+            GROUP BY user_id
+            <if test="renewalOnly">HAVING renewalCount > 0</if>
+        )
+        SELECT
+            us.user_id AS userId,
+            u.nickname AS nickname,
+            u.email AS email,
+            us.firstPaidAt AS firstPaidAt,
+            us.lastRenewalAt AS lastRenewalAt,
+            us.renewalCount AS renewalCount,
+            us.renewalAmount AS renewalAmount,
+            m.level AS currentLevel,
+            m.expires_at AS expiresAt
+        FROM user_stats us
+        JOIN u_user u ON u.id = us.user_id AND u.is_deleted = 0
+        LEFT JOIN u_user_membership m ON m.user_id = us.user_id
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="startDate != null and startDate != ''">
+            <choose>
+                <when test="renewalOnly">AND us.lastRenewalAt &gt;= CONCAT(#{startDate}, ' 00:00:00')</when>
+                <otherwise>AND us.firstPaidAt &gt;= CONCAT(#{startDate}, ' 00:00:00')</otherwise>
+            </choose>
+        </if>
+        <if test="endDate != null and endDate != ''">
+            <choose>
+                <when test="renewalOnly">AND us.lastRenewalAt &lt;= CONCAT(#{endDate}, ' 23:59:59')</when>
+                <otherwise>AND us.firstPaidAt &lt;= CONCAT(#{endDate}, ' 23:59:59')</otherwise>
+            </choose>
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND EXISTS (
+                SELECT 1 FROM paid_orders po
+                WHERE po.user_id = us.user_id
+                <if test="renewalOnly">AND po.rn > 1</if>
+                AND po.plan_key = #{planKey}
+            )
+        </if>
+        <if test="cycle != null and cycle != ''">
+            AND EXISTS (
+                SELECT 1 FROM paid_orders po
+                WHERE po.user_id = us.user_id
+                <if test="renewalOnly">AND po.rn > 1</if>
+                AND po.cycle = #{cycle}
+            )
+        </if>
+        <choose>
+            <when test="renewalOnly">ORDER BY us.lastRenewalAt DESC</when>
+            <otherwise>ORDER BY us.firstPaidAt DESC</otherwise>
+        </choose>
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countRenewalUsers" resultType="long">
+
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        ),
+        user_stats AS (
+            SELECT user_id,
+                   MIN(paid_at) AS firstPaidAt,
+                   MAX(CASE WHEN rn > 1 THEN paid_at END) AS lastRenewalAt,
+                   CAST(SUM(CASE WHEN rn > 1 THEN 1 ELSE 0 END) AS SIGNED) AS renewalCount
+            FROM paid_orders
+            GROUP BY user_id
+            <if test="renewalOnly">HAVING renewalCount > 0</if>
+        )
+        SELECT COUNT(*)
+        FROM user_stats us
+        JOIN u_user u ON u.id = us.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="startDate != null and startDate != ''">
+            <choose>
+                <when test="renewalOnly">AND us.lastRenewalAt &gt;= CONCAT(#{startDate}, ' 00:00:00')</when>
+                <otherwise>AND us.firstPaidAt &gt;= CONCAT(#{startDate}, ' 00:00:00')</otherwise>
+            </choose>
+        </if>
+        <if test="endDate != null and endDate != ''">
+            <choose>
+                <when test="renewalOnly">AND us.lastRenewalAt &lt;= CONCAT(#{endDate}, ' 23:59:59')</when>
+                <otherwise>AND us.firstPaidAt &lt;= CONCAT(#{endDate}, ' 23:59:59')</otherwise>
+            </choose>
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND EXISTS (
+                SELECT 1 FROM paid_orders po
+                WHERE po.user_id = us.user_id
+                <if test="renewalOnly">AND po.rn > 1</if>
+                AND po.plan_key = #{planKey}
+            )
+        </if>
+        <if test="cycle != null and cycle != ''">
+            AND EXISTS (
+                SELECT 1 FROM paid_orders po
+                WHERE po.user_id = us.user_id
+                <if test="renewalOnly">AND po.rn > 1</if>
+                AND po.cycle = #{cycle}
+            )
+        </if>
+    </select>
+
+    <select id="selectRenewalOrderPage" resultMap="orderMap">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT o.id, o.order_no, o.user_id, u.nickname, u.email, o.plan_key, o.cycle, o.amount, o.status,
+               o.paid_at, o.refunded_at, o.refund_reason, o.admin_remark, o.operator_id, o.created_at
+        FROM paid_orders o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="type != null and type != ''">
+            <choose>
+                <when test="type == 'first'">AND o.rn = 1</when>
+                <when test="type == 'renewal'">AND o.rn > 1</when>
+            </choose>
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%') OR o.order_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="cycle != null and cycle != ''">
+            AND o.cycle = #{cycle}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.paid_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.paid_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+        ORDER BY o.paid_at DESC
+        LIMIT #{offset}, #{size}
+    </select>
+
+    <select id="countRenewalOrderPage" resultType="long">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT COUNT(*)
+        FROM paid_orders o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="type != null and type != ''">
+            <choose>
+                <when test="type == 'first'">AND o.rn = 1</when>
+                <when test="type == 'renewal'">AND o.rn > 1</when>
+            </choose>
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%') OR o.order_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="cycle != null and cycle != ''">
+            AND o.cycle = #{cycle}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.paid_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.paid_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
     </select>
 </mapper>

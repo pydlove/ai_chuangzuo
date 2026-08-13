@@ -13,6 +13,7 @@ public interface AccountAdminMapper {
                                           @Param("nickname") String nickname,
                                           @Param("phone") String phone,
                                           @Param("email") String email,
+                                          @Param("sortBy") String sortBy,
                                           @Param("offset") long offset,
                                           @Param("size") long size);
 

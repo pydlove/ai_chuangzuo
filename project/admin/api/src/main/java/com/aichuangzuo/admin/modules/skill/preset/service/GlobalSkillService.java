@@ -6,6 +6,8 @@ import com.aichuangzuo.admin.modules.skill.preset.dto.request.UpdateGlobalSkillR
 import com.aichuangzuo.admin.modules.skill.preset.vo.GlobalSkillVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import java.util.List;
+
 /**
  * 预设风格服务。
  */
@@ -27,7 +29,12 @@ public interface GlobalSkillService {
     void update(String bizNo, UpdateGlobalSkillRequest request);
 
     /**
-     * 软删除（is_deleted=1）。
+     * 物理删除。
      */
     void delete(String bizNo);
+
+    /**
+     * 批量物理删除。
+     */
+    int deleteBatch(List<String> bizNos);
 }

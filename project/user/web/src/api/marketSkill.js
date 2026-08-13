@@ -62,13 +62,26 @@ export function getMarketSkillOverview() {
 }
 
 /**
- * 获取当前用户收藏的市场 skill 详情列表（含已下架）。
- * @returns {Promise<Array>}
+ * 分页获取当前用户收藏的市场 skill 详情列表（含已下架）。
+ * @param {string} [keyword]
+ * @param {number} [page=1]
+ * @param {number} [pageSize=12]
+ * @returns {Promise<{list: Array, total: number, current: number, size: number}>}
  */
-export function getFavoriteSkills() {
-  return api.get('/market-skills/favorites').then((res) => {
-    const data = res.data || res || []
-    return Array.isArray(data) ? data.map(normalizeRow) : []
+export function getFavoriteSkills(keyword = '', page = 1, pageSize = 12) {
+  const params = { page, pageSize }
+  if (keyword && keyword.trim()) {
+    params.keyword = keyword.trim()
+  }
+  return api.get('/market-skills/favorites', { params }).then((res) => {
+    const data = res.data || res || {}
+    const records = data.records || []
+    return {
+      list: records.map(normalizeRow),
+      total: data.total || 0,
+      current: data.current || page,
+      size: data.size || pageSize
+    }
   })
 }
 

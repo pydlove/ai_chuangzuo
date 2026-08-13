@@ -22,13 +22,21 @@ import java.util.List;
 public interface AdminUserService {
     AdminUserPageVO listUsers(String keyword, String inviteCode, int page, int pageSize);
     AdminUserVO getUser(Long id);
-    AdminUserInviteDetailVO getUserInviteDetail(Long id);
+    AdminUserInviteDetailVO getUserInviteDetail(Long id, int page, int pageSize);
     void updateStatus(Long id, AdminUserStatusRequest request);
     AdminUserResetPasswordVO resetPassword(Long id);
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserVO createUser(AdminUserCreateRequest request);
     AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
     void deleteUser(Long id);
+
+    /**
+     * 批量删除用户。
+     *
+     * @param ids 用户 ID 列表
+     * @return 实际删除数量
+     */
+    int deleteBatch(List<Long> ids);
 
     /**
      * 从 Excel 批量导入用户。

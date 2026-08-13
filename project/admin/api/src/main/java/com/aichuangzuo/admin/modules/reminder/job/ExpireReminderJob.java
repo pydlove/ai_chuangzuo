@@ -5,6 +5,8 @@ import com.aichuangzuo.admin.modules.reminder.event.ReminderConfigChangedEvent;
 import com.aichuangzuo.admin.modules.reminder.service.ExpireReminderService;
 import com.aichuangzuo.admin.modules.reminder.service.ReminderConfigService;
 import com.aichuangzuo.admin.modules.reminder.vo.ExpiringUserVO;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -29,15 +31,18 @@ public class ExpireReminderJob {
     private final ReminderConfigService configService;
     private final ExpireReminderService reminderService;
     private final ThreadPoolTaskScheduler taskScheduler;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     private volatile ScheduledFuture<?> scheduledFuture;
 
     public ExpireReminderJob(ReminderConfigService configService,
                              ExpireReminderService reminderService,
-                             ThreadPoolTaskScheduler reminderTaskScheduler) {
+                             ThreadPoolTaskScheduler reminderTaskScheduler,
+                             ScheduledTaskExecutor scheduledTaskExecutor) {
         this.configService = configService;
         this.reminderService = reminderService;
         this.taskScheduler = reminderTaskScheduler;
+        this.scheduledTaskExecutor = scheduledTaskExecutor;
     }
 
     @EventListener
@@ -84,34 +89,37 @@ public class ExpireReminderJob {
     /**
      * 定时任务入口：分页扫描命中用户，逐个调 remindUser("auto")。
      */
+    @ScheduledTask(key = "expire_reminder", name = "会员到期提醒", description = "每天按配置时间点扫描即将到期用户并发送提醒", triggerType = "cron", expression = "0 0 9 * * ?", sortOrder = 60)
     public void run() {
-        try {
-            int advanceDays = configService.getConfig().getAdvanceDays();
-            long page = 1;
-            while (true) {
-                ExpiringUserPageQuery query = new ExpiringUserPageQuery();
-                query.setAdvanceDays(advanceDays);
-                query.setPage(page);
-                query.setSize((long) SCAN_PAGE_SIZE);
-                ExpireReminderService.PageResult pr = reminderService.pageExpiringUsers(query);
-                if (pr.items().isEmpty()) break;
-                for (ExpiringUserVO vo : pr.items()) {
-                    try {
-                        reminderService.remindUser(vo.getUserId(), "auto");
-                    } catch (Exception e) {
-                        log.warn("自动提醒失败 userId={}, reason={}", vo.getUserId(), e.getMessage());
+        scheduledTaskExecutor.executeAuto("expire_reminder", () -> {
+            try {
+                int advanceDays = configService.getConfig().getAdvanceDays();
+                long page = 1;
+                while (true) {
+                    ExpiringUserPageQuery query = new ExpiringUserPageQuery();
+                    query.setAdvanceDays(advanceDays);
+                    query.setPage(page);
+                    query.setSize((long) SCAN_PAGE_SIZE);
+                    ExpireReminderService.PageResult pr = reminderService.pageExpiringUsers(query);
+                    if (pr.items().isEmpty()) break;
+                    for (ExpiringUserVO vo : pr.items()) {
+                        try {
+                            reminderService.remindUser(vo.getUserId(), "auto");
+                        } catch (Exception e) {
+                            log.warn("自动提醒失败 userId={}, reason={}", vo.getUserId(), e.getMessage());
+                        }
+                    }
+                    if (pr.items().size() < SCAN_PAGE_SIZE) break;
+                    page++;
+                    if (page > 100) {
+                        log.warn("到期提醒扫描超过 100 页，强制结束");
+                        break;
                     }
                 }
-                if (pr.items().size() < SCAN_PAGE_SIZE) break;
-                page++;
-                if (page > 100) {
-                    log.warn("到期提醒扫描超过 100 页，强制结束");
-                    break;
-                }
+                log.info("到期提醒定时扫描完成，advanceDays={}", advanceDays);
+            } catch (Exception e) {
+                log.error("到期提醒定时任务异常", e);
             }
-            log.info("到期提醒定时扫描完成，advanceDays={}", advanceDays);
-        } catch (Exception e) {
-            log.error("到期提醒定时任务异常", e);
-        }
+        });
     }
 }

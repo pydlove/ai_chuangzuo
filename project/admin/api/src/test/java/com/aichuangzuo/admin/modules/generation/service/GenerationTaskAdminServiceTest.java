@@ -262,6 +262,41 @@ class GenerationTaskAdminServiceTest {
     }
 
     @Test
+    void toVo_withModelConfig_shouldBuildDisplay() {
+        GenerationTaskListRow r = sampleRow();
+        r.setModelConfigId(5L);
+        r.setModelConfigName("默认key");
+        r.setProviderType("minimax");
+
+        GenerationTaskAdminVO vo = service.toVo(r, LocalDateTime.now(), 0L);
+
+        assertEquals("默认key/MiniMax", vo.getModelConfigDisplay());
+    }
+
+    @Test
+    void toVo_withoutModelConfig_shouldShowDash() {
+        GenerationTaskListRow r = sampleRow();
+        r.setModelConfigId(null);
+        r.setModelConfigName(null);
+        r.setProviderType(null);
+
+        GenerationTaskAdminVO vo = service.toVo(r, LocalDateTime.now(), 0L);
+
+        assertEquals("-", vo.getModelConfigDisplay());
+    }
+
+    @Test
+    void toVo_unknownProvider_shouldUseProviderType() {
+        GenerationTaskListRow r = sampleRow();
+        r.setModelConfigName("测试key");
+        r.setProviderType("openai");
+
+        GenerationTaskAdminVO vo = service.toVo(r, LocalDateTime.now(), 0L);
+
+        assertEquals("测试key/openai", vo.getModelConfigDisplay());
+    }
+
+    @Test
     void toVo_completedTask_shouldUseCompletedAtAsEndTime() {
         LocalDateTime now = LocalDateTime.of(2026, 7, 28, 12, 0, 0);
         LocalDateTime createdAt = now.minusHours(2);

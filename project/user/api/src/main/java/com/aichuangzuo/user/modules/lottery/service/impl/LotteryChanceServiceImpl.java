@@ -74,6 +74,17 @@ public class LotteryChanceServiceImpl implements LotteryChanceService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void createInviteChance(Long campaignId, Long userId, Long inviteRelationId) {
+        LotteryDrawChance existing = drawChanceMapper.selectOne(
+                new LambdaQueryWrapper<LotteryDrawChance>()
+                        .eq(LotteryDrawChance::getCampaignId, campaignId)
+                        .eq(LotteryDrawChance::getUserId, userId)
+                        .eq(LotteryDrawChance::getChanceType, "invite")
+                        .eq(LotteryDrawChance::getSourceInviteRelationId, inviteRelationId));
+        if (existing != null) {
+            log.warn("邀请抽奖次数已存在，跳过创建 campaignId={}, userId={}, inviteRelationId={}",
+                    campaignId, userId, inviteRelationId);
+            return;
+        }
         LotteryDrawChance chance = new LotteryDrawChance();
         chance.setCampaignId(campaignId);
         chance.setUserId(userId);

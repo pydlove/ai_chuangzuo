@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -47,7 +48,7 @@ class GenerationAiServiceModelParamsTest {
         ModelConfig cfg = new ModelConfig();
         cfg.setId(1L);
         cfg.setModelCode("test-model");
-        cfg.setProviderType("kimi");
+        cfg.setProviderType("minimax");
         cfg.setBaseUrl("https://api.example.com/");
         // 用 AES 真实加密 fake-key，方便 AesUtil.decrypt 还原
         cfg.setApiKeyEncrypted(AesUtil.encrypt("fake-key", "test-secret-1234"));
@@ -170,6 +171,104 @@ class GenerationAiServiceModelParamsTest {
         @SuppressWarnings("unchecked")
         Map<String, Object> rf = (Map<String, Object>) body.get("response_format");
         assertEquals("json_object", rf.get("type"));
+    }
+
+    @Test
+    void call_shouldOmitEmptySystemMessage() {
+        service.call(1L, "", "user", null);
+
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                any(String.class), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        @SuppressWarnings("unchecked")
+        List<Map<String, String>> messages = (List<Map<String, String>>) body.get("messages");
+        assertEquals(1, messages.size());
+        assertEquals("user", messages.get(0).get("role"));
+    }
+
+    @Test
+    void call_shouldOmitTemperatureAndTopPForKimi() {
+        ModelConfig cfg = modelConfigMapper.selectById(1L);
+        cfg.setProviderType("kimi");
+
+        service.call(1L, "sys", "user", null);
+
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                any(String.class), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        assertEquals(false, body.containsKey("temperature"));
+        assertEquals(false, body.containsKey("top_p"));
+        assertEquals(8192, body.get("max_tokens"));
+    }
+
+    @Test
+    void call_shouldCapMaxTokensForKimi() {
+        ModelConfig cfg = modelConfigMapper.selectById(1L);
+        cfg.setProviderType("kimi");
+
+        GenerationConfig customCfg = new GenerationConfig();
+        customCfg.setDefaultMaxTokens(32768);
+        when(generationConfigService.getCurrent()).thenReturn(customCfg);
+
+        service.call(1L, "sys", "user", null);
+
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                any(String.class), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        assertEquals(8192, body.get("max_tokens"));
+    }
+
+    @Test
+    void call_shouldAllowLowerMaxTokensFromModelParamsForKimi() {
+        ModelConfig cfg = modelConfigMapper.selectById(1L);
+        cfg.setProviderType("kimi");
+
+        service.call(1L, "sys", "user", Map.of("max_tokens", 2048));
+
+        ArgumentCaptor<HttpEntity> captor = ArgumentCaptor.forClass(HttpEntity.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                any(String.class), eq(HttpMethod.POST), captor.capture(), eq(String.class));
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> body = (Map<String, Object>) captor.getValue().getBody();
+        assertEquals(2048, body.get("max_tokens"));
+    }
+
+    @Test
+    void call_shouldResolveKimiUrlPreservingProxyPath() {
+        ModelConfig cfg = modelConfigMapper.selectById(1L);
+        cfg.setProviderType("kimi");
+        cfg.setBaseUrl("https://api.example.com/kimi/");
+
+        service.call(1L, "sys", "user", null);
+
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                urlCaptor.capture(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class));
+        assertEquals("https://api.example.com/kimi/v1/chat/completions", urlCaptor.getValue());
+    }
+
+    @Test
+    void call_shouldStripTrailingV1FromBaseUrl() {
+        ModelConfig cfg = modelConfigMapper.selectById(1L);
+        cfg.setProviderType("kimi");
+        cfg.setBaseUrl("https://api.moonshot.cn/v1");
+
+        service.call(1L, "sys", "user", null);
+
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        org.mockito.Mockito.verify(restTemplate).exchange(
+                urlCaptor.capture(), eq(HttpMethod.POST), any(HttpEntity.class), eq(String.class));
+        assertEquals("https://api.moonshot.cn/v1/chat/completions", urlCaptor.getValue());
     }
 
     /**

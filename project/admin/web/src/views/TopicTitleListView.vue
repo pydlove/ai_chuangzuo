@@ -23,6 +23,18 @@
             :options="usedStatusOptions"
             @change="onSearch"
           />
+          <a-popconfirm
+            v-if="selectedRowKeys.length > 0"
+            title="确定删除选中的标题？"
+            ok-text="删除"
+            cancel-text="取消"
+            @confirm="onBatchDelete"
+          >
+            <a-button danger :loading="batchDeleting">
+              <template #icon><DeleteOutlined /></template>
+              批量删除 ({{ selectedRowKeys.length }})
+            </a-button>
+          </a-popconfirm>
         </div>
         <a-button type="primary" :disabled="submitting" @click="openGenerateModal">
           <template #icon><ThunderboltOutlined /></template>
@@ -37,6 +49,7 @@
         :pagination="pagination"
         row-key="id"
         size="middle"
+        :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
         @change="onTableChange"
       >
         <template #bodyCell="{ column, record }">
@@ -111,8 +124,8 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { ThunderboltOutlined, CopyOutlined } from '@ant-design/icons-vue'
-import { listTopicTitles, submitTopicTitleTask, getTopicTitleTask, deleteTopicTitle } from '@/api/topicTitle.js'
+import { ThunderboltOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { listTopicTitles, submitTopicTitleTask, getTopicTitleTask, deleteTopicTitle, batchDeleteTopicTitles } from '@/api/topicTitle.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
 import { useAsyncTasksStore } from '@/stores/asyncTasks.js'
 import { useTaskPolling, notifyTaskResult } from '@/composables/useTaskPolling.js'
@@ -135,6 +148,8 @@ const generateModalOpen = ref(false)
 const submitting = ref(false)
 const generateCount = ref(10)
 const generateDirection = ref('')
+const selectedRowKeys = ref([])
+const batchDeleting = ref(false)
 
 const asyncTasksStore = useAsyncTasksStore()
 
@@ -256,6 +271,25 @@ const onDelete = async (record) => {
     await reload()
   } catch (e) {
     message.error(e?.message || '删除失败')
+  }
+}
+
+const onSelectChange = (keys) => {
+  selectedRowKeys.value = keys
+}
+
+const onBatchDelete = async () => {
+  if (selectedRowKeys.value.length === 0) return
+  batchDeleting.value = true
+  try {
+    await batchDeleteTopicTitles(selectedRowKeys.value)
+    message.success(`已删除 ${selectedRowKeys.value.length} 条标题`)
+    selectedRowKeys.value = []
+    await reload()
+  } catch (e) {
+    message.error(e?.message || '批量删除失败')
+  } finally {
+    batchDeleting.value = false
   }
 }
 

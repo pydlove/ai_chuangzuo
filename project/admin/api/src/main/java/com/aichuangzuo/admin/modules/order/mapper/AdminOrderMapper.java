@@ -2,9 +2,13 @@ package com.aichuangzuo.admin.modules.order.mapper;
 
 import com.aichuangzuo.admin.modules.order.entity.AdminOrderView;
 import com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalOverviewVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalTrendVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +47,8 @@ public interface AdminOrderMapper {
     int insertGrantOrder(@Param("orderNo") String orderNo,
                          @Param("userId") Long userId,
                          @Param("planKey") String planKey,
-                         @Param("cycle") String cycle,
+                         @Param("startDate") LocalDate startDate,
+                         @Param("endDate") LocalDate endDate,
                          @Param("adminRemark") String adminRemark,
                          @Param("operatorId") Long operatorId,
                          @Param("now") LocalDateTime now);
@@ -55,4 +60,44 @@ public interface AdminOrderMapper {
     List<Map<String, Object>> statsPlanDistribution();
 
     List<Map<String, Object>> statsCycleDistribution();
+
+    RenewalOverviewVO selectRenewalOverview();
+
+    List<Map<String, Object>> selectRenewalTrend(@Param("days") int days);
+
+    List<Map<String, Object>> selectRenewalPlanDistribution();
+
+    List<Map<String, Object>> selectRenewalCycleDistribution();
+
+    List<RenewalUserVO> selectRenewalUsers(@Param("keyword") String keyword,
+                                            @Param("planKey") String planKey,
+                                            @Param("cycle") String cycle,
+                                            @Param("startDate") String startDate,
+                                            @Param("endDate") String endDate,
+                                            @Param("renewalOnly") boolean renewalOnly,
+                                            @Param("offset") long offset,
+                                            @Param("size") long size);
+
+    long countRenewalUsers(@Param("keyword") String keyword,
+                          @Param("planKey") String planKey,
+                          @Param("cycle") String cycle,
+                          @Param("startDate") String startDate,
+                          @Param("endDate") String endDate,
+                          @Param("renewalOnly") boolean renewalOnly);
+
+    List<AdminOrderView> selectRenewalOrderPage(@Param("type") String type,
+                                                @Param("keyword") String keyword,
+                                                @Param("planKey") String planKey,
+                                                @Param("cycle") String cycle,
+                                                @Param("startDate") String startDate,
+                                                @Param("endDate") String endDate,
+                                                @Param("offset") long offset,
+                                                @Param("size") long size);
+
+    long countRenewalOrderPage(@Param("type") String type,
+                               @Param("keyword") String keyword,
+                               @Param("planKey") String planKey,
+                               @Param("cycle") String cycle,
+                               @Param("startDate") String startDate,
+                               @Param("endDate") String endDate);
 }

@@ -10,6 +10,7 @@ import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigSelector;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -54,6 +55,7 @@ public class GenerationTaskWorker {
     private final GenerationConfigService configService;
     private final QuotaRefundInternalClient refundClient;
     private final com.aichuangzuo.admin.modules.generation.service.GenerationCallLogService callLogService;
+    private final ModelConfigSelector modelConfigSelector;
     private final ObjectMapper objectMapper;
 
     private volatile int currentPoolSize = -1;
@@ -140,10 +142,23 @@ public class GenerationTaskWorker {
     }
 
     /**
-     * 处理单个任务：跑 13 阶段 pipeline → 标完成 / 失败 + 退文章额度。
+     * 处理单个任务：动态选择 modelConfigId → 跑 13 阶段 pipeline → 标完成 / 失败 + 退文章额度。
      */
     private void processOne(GenerationTask task) {
         Long taskId = task.getId();
+
+        // 1. 从 key 池动态选择当前任务使用的模型配置，覆盖提交时锁定的配置
+        Long modelConfigId = modelConfigSelector.nextActiveConfigId();
+        if (modelConfigId == null) {
+            log.warn("task={} 无可用模型配置，标记失败", taskId);
+            taskService.markFailed(taskId, AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage(),
+                    false, task.getLockedBy(), buildFailedPayload(taskId, task.getTargetUserId(),
+                            AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage()));
+            return;
+        }
+        task.setModelConfigId(modelConfigId);
+        taskService.assignModelConfigId(taskId, modelConfigId, task.getLockedBy());
+
         // 续约心跳参数：用任务自身的 lockedBy（抢占者），lease 时长取当前配置
         GenerationConfig cfg = configService.getCurrent();
         int leaseMin = cfg.getLeaseMinutes() == null ? 5 : cfg.getLeaseMinutes();

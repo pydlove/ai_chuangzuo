@@ -44,4 +44,7 @@ public class SaveArticleRequest {
     private List<String> tags;
 
     private LocalDateTime completedAt;
+
+    /** 关联生成任务ID，用于幂等保存。 */
+    private Long taskId;
 }

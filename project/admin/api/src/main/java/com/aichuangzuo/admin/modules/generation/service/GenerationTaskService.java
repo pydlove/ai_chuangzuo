@@ -215,6 +215,21 @@ public class GenerationTaskService {
     }
 
     /**
+     * 为已抢占任务重新分配实际使用的模型配置 ID（worker 侧 key 池轮询）。
+     *
+     * <p>仅更新 model_config_id 字段；任务必须已被当前 worker 锁定，否则不更新。
+     */
+    @Transactional
+    public void assignModelConfigId(Long taskId, Long modelConfigId, String expectedLockedBy) {
+        if (taskId == null || modelConfigId == null || expectedLockedBy == null) return;
+        GenerationTask task = mapper.selectById(taskId);
+        if (task == null || !expectedLockedBy.equals(task.getLockedBy())) return;
+        task.setModelConfigId(modelConfigId);
+        mapper.updateById(task);
+        log.debug("task={} 分配 modelConfigId={}", taskId, modelConfigId);
+    }
+
+    /**
      * 按 ID 查询任务（不抛异常，不存在返回 null）。
      *
      * <p>给 worker 的协作式取消检查用：每 stage 前调一次，看任务是否还在

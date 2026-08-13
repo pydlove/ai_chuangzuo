@@ -14,7 +14,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
@@ -35,12 +34,15 @@ public class SkillAnalyzeAiService {
     private final ArticleModelConfigMapper modelConfigMapper;
     private final String apiKeySecret;
     private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate;
 
     public SkillAnalyzeAiService(ArticleModelConfigMapper modelConfigMapper,
-                                 @Value("${user.model.api-key-secret}") String apiKeySecret) {
+                                 @Value("${user.model.api-key-secret}") String apiKeySecret,
+                                 RestTemplate restTemplate) {
         this.modelConfigMapper = modelConfigMapper;
         this.apiKeySecret = apiKeySecret;
         this.objectMapper = new ObjectMapper();
+        this.restTemplate = restTemplate;
     }
 
     /**
@@ -80,12 +82,8 @@ public class SkillAnalyzeAiService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
-        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
-        factory.setConnectTimeout(10_000);
-        factory.setReadTimeout(60_000);
-
         try {
-            ResponseEntity<String> response = new RestTemplate(factory).exchange(
+            ResponseEntity<String> response = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
             return extractContent(response.getBody(), cfg.getProviderType());
         } catch (RestClientException e) {

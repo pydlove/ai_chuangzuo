@@ -10,7 +10,8 @@
             u.email,
             u.created_at AS registeredAt,
             u.coin_balance AS coinBalance,
-            COALESCE(SUM(er.amount), 0) AS totalEarnings
+            COALESCE(SUM(er.amount), 0) AS totalEarnings,
+            COALESCE((SELECT SUM(wr.amount) FROM u_withdraw_request wr WHERE wr.user_id = u.id AND wr.status = 2 AND wr.is_deleted = 0), 0) AS withdrawnAmount
         FROM u_user u
         LEFT JOIN u_earnings_record er ON er.user_id = u.id AND er.is_deleted = 0
         WHERE u.is_deleted = 0
@@ -24,7 +25,11 @@
             AND u.email LIKE CONCAT('%', #{email}, '%')
         </if>
         GROUP BY u.id, u.nickname, u.email, u.created_at, u.coin_balance
-        ORDER BY u.id DESC
+        <choose>
+            <when test="sortBy == 'totalEarnings'">ORDER BY totalEarnings DESC, u.id DESC</when>
+            <when test="sortBy == 'coinBalance'">ORDER BY u.coin_balance DESC, u.id DESC</when>
+            <otherwise>ORDER BY u.id DESC</otherwise>
+        </choose>
         LIMIT #{offset}, #{size}
     </select>
 

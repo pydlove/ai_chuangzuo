@@ -83,18 +83,20 @@
             </div>
           </div>
 
-          <button
-            class="draw-action-btn"
-            :class="{ disabled: !canDraw, drawing: drawing }"
-            :disabled="!canDraw"
-            @click="handleRollDraw"
-          >
-            {{ drawButtonText }}
-          </button>
+          <div class="draw-actions">
+            <button
+              class="draw-action-btn"
+              :class="{ disabled: !canDraw, drawing: drawing }"
+              :disabled="!canDraw"
+              @click="handleRollDraw"
+            >
+              {{ drawButtonText }}
+            </button>
 
-          <button class="share-action-btn" @click="handleShare">
-            <ShareAltOutlined /> 分享活动
-          </button>
+            <button class="share-action-btn" @click="handleShare">
+              <ShareAltOutlined /> 分享活动
+            </button>
+          </div>
 
           <p class="wheel-hint">{{ wheelHintText }}</p>
         </section>
@@ -121,9 +123,14 @@
             <a-empty v-if="!myCodes.length" description="还没有兑换码" />
             <div v-else class="code-list">
               <div v-for="item in myCodes" :key="item.id" class="code-row">
-                <div class="code-row__info">
-                  <a-tag color="green">{{ prizeTypeLabel(item.rewardType) }}</a-tag>
-                  <span class="code-row__value">{{ item.code }}</span>
+                <div class="code-row__main">
+                  <div class="code-row__prize-line">
+                    <a-tag color="green">{{ prizeTypeLabel(item.rewardType) }}</a-tag>
+                    <span class="code-row__prize">{{ prizeSummary(item) }}</span>
+                  </div>
+                  <div class="code-row__code-line">
+                    <span class="code-row__value">{{ item.code }}</span>
+                  </div>
                 </div>
                 <div class="code-row__actions">
                   <span class="code-row__status" :class="item.status">{{ statusText(item.status) }}</span>
@@ -148,7 +155,7 @@
               <div v-for="w in displayWinners" :key="w.id" class="winner-row">
                 <a-avatar :src="w.avatarUrl || defaultAvatar" />
                 <div class="winner-row__meta">
-                  <span class="winner-row__name">{{ maskName(w.nickname) }}</span>
+                  <span class="winner-row__name">{{ w.nickname || '幸运用户' }}</span>
                   <span class="winner-row__prize">{{ w.prizeName }}</span>
                 </div>
                 <span class="winner-row__time">{{ formatTime(w.winTime) }}</span>
@@ -233,16 +240,19 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { message, Modal } from 'ant-design-vue'
 import MarkdownIt from 'markdown-it'
 import { GiftOutlined, CrownOutlined, MoneyCollectOutlined, TagsOutlined, SmileOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
 import { getCurrentCampaign, getChances, draw, getDisplayWinners, getMyCodes, redeem } from '@/api/lottery'
 import { getShareConfig } from '@/api/shareConfig'
+import { copyToClipboard } from '@/utils/copy.js'
+import { useUserProfile } from '@/composables/useUserProfile.js'
 import NavBar from '@/components/layout/NavBar.vue'
 
 const router = useRouter()
 const route = useRoute()
 const md = new MarkdownIt()
+const { profile, loadProfile } = useUserProfile()
 
 const campaign = ref(null)
 const chances = ref(null)
@@ -276,6 +286,8 @@ const ctaTo = '/console'
 const ctaLabel = '开始创作'
 
 const isLoggedIn = computed(() => !!localStorage.getItem('aichuangzuo_access_token'))
+
+const inviteCode = computed(() => profile.value?.inviteCode || '')
 
 const showNavBar = computed(() => route.name !== 'ConsoleLottery')
 
@@ -363,6 +375,9 @@ function isHighPrizeLevel(level) {
 onMounted(() => {
   loadCampaign()
   loadShareConfig()
+  if (isLoggedIn.value) {
+    loadProfile()
+  }
 })
 
 watch(campaign, (val) => {
@@ -537,11 +552,14 @@ async function handleRedeem(code) {
   }
 }
 
-function copyCode() {
+async function copyCode() {
   if (!resultCode.value) return
-  navigator.clipboard.writeText(resultCode.value).then(() => {
+  try {
+    await copyToClipboard(resultCode.value)
     message.success('已复制')
-  })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
 async function loadShareConfig() {
@@ -553,19 +571,31 @@ async function loadShareConfig() {
   }
 }
 
-function handleShare() {
+async function handleShare() {
   const campaignName = campaign.value?.name || '幸运大抽奖'
   const url = window.location.href
+  const inviteUrl = inviteCode.value
+    ? `${window.location.origin}/login?ref=${inviteCode.value}`
+    : url
   let text = shareConfig.value?.content
   if (!text) {
-    text = `🎁 ${campaignName}来啦！我在爱创作发现了超多好礼，会员、创作币、折扣券等你来抽～\n快来一起参与：${url}`
+    text = `🎁 ${campaignName}来啦！我在爱创作发现了超多好礼，会员、创作币、折扣券等你来抽～\n快来一起参与：{inviteUrl}`
   }
-  text = text.replace(/{title}/g, campaignName).replace(/{url}/g, url)
-  navigator.clipboard.writeText(text).then(() => {
-    message.success('文案已复制，快去粘贴给好友吧~')
-  }).catch(() => {
-    message.error('复制失败，请手动复制链接')
-  })
+  text = text
+    .replace(/{title}/g, campaignName)
+    .replace(/{inviteUrl}/g, inviteUrl)
+    .replace(/{url}/g, url)
+    .replace(/{code}/g, inviteCode.value || '')
+  try {
+    await copyToClipboard(text)
+    Modal.success({
+      title: '文案已复制',
+      content: '快去粘贴给好友吧～好友使用你的邀请码注册，还能额外获得一次抽奖机会！',
+      okText: '知道了'
+    })
+  } catch {
+    message.error('复制失败，请长按手动复制')
+  }
 }
 
 function statusText(status) {
@@ -573,10 +603,10 @@ function statusText(status) {
   return map[status] || status
 }
 
-function maskName(name) {
-  if (!name) return '幸运用户'
-  if (name.length <= 2) return name.charAt(0) + '*'
-  return name.charAt(0) + '**' + name.charAt(name.length - 1)
+function prizeSummary(item) {
+  if (!item.tierName) return item.rewardSummary || ''
+  if (!item.rewardSummary) return item.tierName
+  return `${item.tierName} · ${item.rewardSummary}`
 }
 
 function formatTime(t) {
@@ -1074,8 +1104,9 @@ function formatTime(t) {
 }
 
 .draw-action-btn {
-  display: block;
-  margin: 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-width: 180px;
   padding: 12px 32px;
   border: none;
@@ -1087,6 +1118,7 @@ function formatTime(t) {
   cursor: pointer;
   box-shadow: 0 6px 20px rgba(255, 36, 66, 0.3);
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .draw-action-btn:hover:not(:disabled) {
@@ -1108,13 +1140,21 @@ function formatTime(t) {
   cursor: wait;
 }
 
-.share-action-btn {
+.draw-actions {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+
+.share-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   gap: 6px;
-  margin: 14px auto 0;
-  padding: 10px 28px;
+  padding: 10px 24px;
   border: 1px solid var(--color-primary);
   border-radius: 999px;
   background: #fff;
@@ -1123,6 +1163,7 @@ function formatTime(t) {
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .share-action-btn:hover {
@@ -1238,10 +1279,33 @@ function formatTime(t) {
   border-radius: 12px;
 }
 
-.code-row__info {
+.code-row__main {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+}
+
+.code-row__prize-line {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  min-width: 0;
+}
+
+.code-row__code-line {
+  min-width: 0;
+}
+
+.code-row__prize {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .code-row__value {
@@ -1255,6 +1319,7 @@ function formatTime(t) {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 .code-row__status {
@@ -1571,10 +1636,24 @@ function formatTime(t) {
     margin-top: 4px;
   }
 
+  .draw-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    max-width: 320px;
+    margin: 0 auto;
+  }
+
   .draw-action-btn {
-    min-width: 160px;
-    padding: 10px 28px;
+    width: 100%;
+    min-width: auto;
+    padding: 12px 28px;
     font-size: 15px;
+  }
+
+  .share-action-btn {
+    width: 100%;
+    padding: 10px 24px;
   }
 
   .code-row {
@@ -1586,6 +1665,14 @@ function formatTime(t) {
   .code-row__actions {
     width: 100%;
     justify-content: space-between;
+  }
+
+  .code-row__prize {
+    font-size: 13px;
+  }
+
+  .code-row__value {
+    font-size: 14px;
   }
 }
 

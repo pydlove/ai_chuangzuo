@@ -1,17 +1,24 @@
 import { api } from '@/api/auth'
 
 /**
- * 获取当前登录用户的 skills 列表。
+ * 分页获取当前登录用户的 skills 列表。
  * @param {number} sourceType 来源类型：1-自定义（默认），2-学习
- * @returns {Promise<{code:number, data:Array<{bizNo:string, skillName:string, prompt:string, scope:string, sourceType:number, useCount:number, createdAt:string, updatedAt:string}>}>}
+ * @param {string} [keyword] 搜索关键词，匹配名称/适用范围/提示词/描述
+ * @param {number} [page] 页码，默认 1
+ * @param {number} [pageSize] 每页条数，默认 999（不传则返回完整列表保持兼容）
+ * @returns {Promise<{code:number, data:{records:Array<...>, total:number, current:number, size:number}}>}
  */
-export function getMySkills(sourceType = 1) {
-  return api.get('/skills', { params: { sourceType } })
+export function getMySkills(sourceType = 1, keyword = '', page = 1, pageSize = 999) {
+  const params = { sourceType, page, pageSize }
+  if (keyword && keyword.trim()) {
+    params.keyword = keyword.trim()
+  }
+  return api.get('/skills', { params })
 }
 
 /**
  * 创建自定义 skills。
- * @param {{skillName:string, prompt:string, scope:string}} data
+ * @param {{skillName:string, prompt:string, scope:string, description?:string, promptExtra?:string|null}} data
  */
 export function createSkill(data) {
   return api.post('/skills', data)
@@ -20,7 +27,7 @@ export function createSkill(data) {
 /**
  * 修改 skills。
  * @param {string} bizNo
- * @param {{skillName:string, prompt:string, scope:string}} data
+ * @param {{skillName:string, prompt:string, scope:string, description?:string, promptExtra?:string|null}} data
  */
 export function updateSkill(bizNo, data) {
   return api.put(`/skills/${bizNo}`, data)
@@ -43,11 +50,16 @@ export function publishSkill(bizNo) {
 }
 
 /**
- * 获取系统预设 skills（启用中的 source_type=3）。
+ * 获取系统预设 skills（启用中的 source_type=3），支持分页。
  * @param {string} [keyword]
+ * @param {number} [page]
+ * @param {number} [pageSize]
  */
-export function getSystemSkills(keyword = '') {
-  const params = keyword ? { keyword } : {}
+export function getSystemSkills(keyword = '', page = 1, pageSize = 999) {
+  const params = { page, pageSize }
+  if (keyword && keyword.trim()) {
+    params.keyword = keyword.trim()
+  }
   return api.get('/skills/system-skills', { params })
 }
 

@@ -10,7 +10,7 @@
               创作激励榜
             </div>
             <h1 class="leaderboard-hero__title">收益排行榜</h1>
-            <p class="leaderboard-hero__subtitle">创作赚币，上榜有礼 · 每月 TOP 3 瓜分创作币奖励</p>
+            <p class="leaderboard-hero__subtitle">创作赚币，上榜有礼 · 每月 TOP {{ rewardConfig.topLimit }} 瓜分创作币奖励</p>
             <span class="leaderboard-hero__rules" @click="rulesVisible = true">规则说明</span>
           </div>
           <div class="leaderboard-hero__glow" aria-hidden="true"></div>
@@ -40,12 +40,12 @@
               <div class="leaderboard-my__name">{{ myCoinItem.nickname || '匿名用户' }}</div>
               <div class="leaderboard-my__amount">{{ myCoinItem.amount.toFixed(2) }} 创作币</div>
             </div>
-            <div v-if="myCoinItem.rank <= 3" class="leaderboard-my__reward">
+            <div v-if="myCoinItem.rank <= rewardConfig.topLimit" class="leaderboard-my__reward">
               <div class="leaderboard-my__reward-label">预计奖励</div>
-              <div class="leaderboard-my__reward-value">+500</div>
+              <div class="leaderboard-my__reward-value">+{{ rewardConfig.rewardAmount }}</div>
             </div>
             <div v-else class="leaderboard-my__reward leaderboard-my__reward--no">
-              <div class="leaderboard-my__reward-label">距 TOP 3</div>
+              <div class="leaderboard-my__reward-label">距 TOP {{ rewardConfig.topLimit }}</div>
               <div class="leaderboard-my__reward-value">差 {{ rankGap }} 名</div>
             </div>
           </div>
@@ -53,7 +53,7 @@
             <RocketOutlined class="leaderboard-my__empty-icon" />
             <div class="leaderboard-my__empty-body">
               <div class="leaderboard-my__empty-title">暂未上榜</div>
-              <div class="leaderboard-my__empty-desc">本月再创作几篇，就有机会进入 TOP 3</div>
+              <div class="leaderboard-my__empty-desc">本月再创作几篇，就有机会进入 TOP {{ rewardConfig.topLimit }}</div>
             </div>
             <router-link to="/console/create" class="leaderboard-my__empty-action">去创作 →</router-link>
           </div>
@@ -128,7 +128,7 @@
                   {{ item.nickname || '匿名用户' }}
                   <span v-if="item.isMe" class="leaderboard-row__me">我</span>
                 </div>
-                <div v-if="item.rank <= 3" class="leaderboard-row__tag">TOP 3 奖励</div>
+                <div v-if="item.rank <= rewardConfig.topLimit" class="leaderboard-row__tag">TOP {{ rewardConfig.topLimit }} 奖励</div>
               </div>
               <div class="leaderboard-row__amount">
                 <span class="leaderboard-row__num">{{ item.amount.toFixed(2) }}</span>
@@ -206,7 +206,7 @@
     >
       <ol class="leaderboard-rules-list">
         <li><span class="leaderboard-rules-highlight">创作币榜</span>按自然月统计平台创作币收益，数据自动汇总，无需手动申报。</li>
-        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP 3</span> 均可获得 <span class="leaderboard-rules-highlight">500 创作币</span>奖励。</li>
+        <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP {{ rewardConfig.topLimit }}</span> 均可获得 <span class="leaderboard-rules-highlight">{{ rewardConfig.rewardAmount }} 创作币</span>奖励。</li>
         <li>奖励在榜单结算后自动发放至账户余额，同一人同一周期只发放一次。</li>
       </ol>
       <div class="leaderboard-rules-footer">* 活动最终解释权归平台所有。</div>
@@ -215,23 +215,22 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { UnorderedListOutlined, TrophyOutlined, CrownOutlined, RocketOutlined } from '@ant-design/icons-vue'
-import { getCoinLeaderboard } from '@/api/leaderboard.js'
+import { getCoinLeaderboard, getLeaderboardRewardConfig } from '@/api/leaderboard.js'
 
-function getMonthOptions() {
-  const options = []
+function getMonthLabel(period) {
   const now = new Date()
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
-    options.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`)
+  if (period === 'current') {
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   }
-  return options
+  if (period === 'last') {
+    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+  }
+  return 'all'
 }
-
-const monthOptions = getMonthOptions()
-const currentCoinMonth = monthOptions[0]
 
 const periods = [
   { label: '本月', value: 'current' },
@@ -243,12 +242,28 @@ const activePeriod = ref('current')
 const coinList = ref([])
 const loading = ref(false)
 const rulesVisible = ref(false)
+const rewardConfig = ref({ topLimit: 3, rewardAmount: 500 })
+
+async function loadRewardConfig() {
+  try {
+    const res = await getLeaderboardRewardConfig()
+    const data = res?.data
+    if (data) {
+      rewardConfig.value = {
+        topLimit: data.topLimit ?? 3,
+        rewardAmount: data.rewardAmount ?? 500
+      }
+    }
+  } catch (err) {
+    // 使用默认值，不阻断页面
+    console.error('加载奖励配置失败', err)
+  }
+}
 
 async function loadCoinLeaderboard() {
   try {
     loading.value = true
-    // 目前仅支持本月榜，后续可按 activePeriod 扩展
-    const res = await getCoinLeaderboard(currentCoinMonth)
+    const res = await getCoinLeaderboard(getMonthLabel(activePeriod.value))
     const list = res?.data?.topList || []
     const me = res?.data?.me
     if (me && me.rank != null && !list.some(item => item.isMe)) {
@@ -263,16 +278,21 @@ async function loadCoinLeaderboard() {
 }
 
 onMounted(() => {
+  loadRewardConfig()
   loadCoinLeaderboard()
   nextTick(buildTocObserver)
+})
+
+watch(activePeriod, () => {
+  loadCoinLeaderboard()
 })
 
 const coinTop3 = computed(() => coinList.value.slice(0, 3))
 const coinListAfter3 = computed(() => coinList.value.slice(3))
 const myCoinItem = computed(() => coinList.value.find(i => i.isMe))
 const rankGap = computed(() => {
-  if (!myCoinItem.value || myCoinItem.value.rank <= 3) return 0
-  return myCoinItem.value.rank - 3
+  if (!myCoinItem.value || myCoinItem.value.rank <= rewardConfig.value.topLimit) return 0
+  return myCoinItem.value.rank - rewardConfig.value.topLimit
 })
 
 // ---- 目录 ----

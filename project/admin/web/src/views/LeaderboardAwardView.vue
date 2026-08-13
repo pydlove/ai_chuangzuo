@@ -1,5 +1,29 @@
 <template>
   <div class="leaderboard-award">
+    <a-card title="奖励规则配置" style="margin-bottom: 16px">
+      <a-form layout="inline" :model="state.rewardConfig" class="config-bar">
+        <a-form-item label="TOP 几">
+          <a-input-number
+            v-model:value="state.rewardConfig.topLimit"
+            :min="1"
+            :max="100"
+            style="width: 120px"
+          />
+        </a-form-item>
+        <a-form-item label="奖励创作币">
+          <a-input-number
+            v-model:value="state.rewardConfig.rewardAmount"
+            :min="0.01"
+            :precision="2"
+            style="width: 160px"
+          />
+        </a-form-item>
+        <a-form-item>
+          <a-button type="primary" :loading="state.loading" @click="saveConfig">保存设置</a-button>
+        </a-form-item>
+      </a-form>
+    </a-card>
+
     <a-card title="奖励发放">
       <a-form layout="inline" :model="state" class="filter-bar">
         <a-form-item label="榜单">
@@ -37,6 +61,21 @@
     </a-card>
 
     <a-card title="发放记录" style="margin-top: 16px">
+      <template #extra>
+        <a-form layout="inline" class="record-filter">
+          <a-form-item label="月份">
+            <a-date-picker v-model:value="recordMonth" value-format="YYYY-MM" picker="month" style="width: 140px" />
+          </a-form-item>
+          <a-form-item>
+            <a-button type="primary" @click="handleRecordQuery">查询</a-button>
+            <a-button style="margin-left: 8px" @click="handleResetRecordMonth">重置</a-button>
+          </a-form-item>
+        </a-form>
+      </template>
+      <a-row :gutter="16" style="margin-bottom: 16px">
+        <a-col :span="12"><a-statistic title="发放人数" :value="recordSummary.count" /></a-col>
+        <a-col :span="12"><a-statistic title="发放合计" :precision="2" :value="recordSummary.total" prefix="¥" /></a-col>
+      </a-row>
       <a-table
         :data-source="state.rewards.items"
         :columns="rewardColumns"
@@ -53,7 +92,7 @@
 import { onMounted, ref, computed, watch } from 'vue'
 import { useLeaderboardAward } from '@/composables/useLeaderboardAward.js'
 
-const { state, fetchTop10, grant, fetchRewards } = useLeaderboardAward()
+const { state, fetchTop10, grant, fetchRewards, fetchConfig, saveConfig } = useLeaderboardAward()
 
 const columns = [
   { title: '排名', dataIndex: 'rank', key: 'rank', width: 80 },
@@ -72,6 +111,7 @@ const rewardColumns = [
 ]
 
 const monthObj = ref('')
+const recordMonth = ref('')
 watch(monthObj, (v) => {
   state.periodMonth = v || ''
 })
@@ -83,6 +123,15 @@ const pagination = computed(() => ({
   showSizeChanger: true
 }))
 
+const recordSummary = computed(() => {
+  const items = state.rewards.items || []
+  const total = items.reduce((sum, item) => sum + Number(item.amount || 0), 0)
+  return {
+    count: items.length,
+    total: Number(total.toFixed(2))
+  }
+})
+
 const handlePreview = async () => {
   if (!state.periodMonth) return
   await fetchTop10()
@@ -91,21 +140,51 @@ const handlePreview = async () => {
 const handleGrant = async () => {
   if (!state.periodMonth) return
   await grant()
+  recordMonth.value = state.periodMonth
+  await fetchRewards({ periodMonth: recordMonth.value, page: 1 })
+}
+
+const handleRecordQuery = () => {
+  fetchRewards({ periodMonth: recordMonth.value, page: 1 })
+}
+
+const handleResetRecordMonth = () => {
+  recordMonth.value = ''
+  fetchRewards({ periodMonth: '', page: 1 })
 }
 
 const handleTableChange = (p) => {
-  fetchRewards({ page: p.current, size: p.pageSize })
+  fetchRewards({ periodMonth: recordMonth.value, page: p.current, size: p.pageSize })
 }
 
 onMounted(() => {
   const now = new Date()
-  monthObj.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
-  fetchRewards()
+  const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  monthObj.value = monthStr
+  recordMonth.value = monthStr
+  state.periodMonth = monthStr
+  fetchConfig()
+  fetchRewards({ periodMonth: monthStr })
 })
 </script>
 
 <style scoped>
 .leaderboard-award .filter-bar {
   margin-bottom: 16px;
+}
+
+.leaderboard-award .config-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.leaderboard-award .record-filter {
+  display: flex;
+  align-items: center;
+}
+
+.leaderboard-award .record-filter .ant-form-item {
+  margin-bottom: 0;
 }
 </style>

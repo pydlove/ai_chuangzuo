@@ -87,24 +87,32 @@
 
     <!-- 手动发放会员弹框 -->
     <a-modal v-model:open="grantModalOpen" title="手动发放会员" :confirm-loading="granting" @ok="submitGrant">
-      <div style="height: 260px; overflow-y: auto;">
+      <div style="height: 320px; overflow-y: auto;">
         <a-form layout="vertical">
-          <a-form-item label="用户ID" required>
-            <a-input-number v-model:value="grantForm.userId" placeholder="输入用户ID" style="width: 100%" :min="1" />
+          <a-form-item label="用户" required>
+            <a-select
+              v-model:value="grantForm.userId"
+              placeholder="搜索昵称或邮箱选择用户"
+              style="width: 100%"
+              show-search
+              :filter-option="false"
+              :loading="userSelectLoading"
+              @search="onUserSearch"
+            >
+              <a-select-option v-for="u in userOptions" :key="u.id" :value="u.id">
+                {{ u.nickname }}（{{ u.email }}）
+              </a-select-option>
+            </a-select>
           </a-form-item>
           <a-form-item label="套餐" required>
             <a-select v-model:value="grantForm.planKey" placeholder="选择套餐" style="width: 100%">
-              <a-select-option value="basic">基础版</a-select-option>
-              <a-select-option value="pro">专业版</a-select-option>
-              <a-select-option value="flagship">旗舰版</a-select-option>
+              <a-select-option v-for="p in planOptions" :key="p.planKey" :value="p.planKey">
+                {{ p.displayName }}
+              </a-select-option>
             </a-select>
           </a-form-item>
-          <a-form-item label="周期" required>
-            <a-select v-model:value="grantForm.cycle" placeholder="选择周期" style="width: 100%">
-              <a-select-option value="month">月付（30天）</a-select-option>
-              <a-select-option value="quarter">季付（90天）</a-select-option>
-              <a-select-option value="year">年付（365天）</a-select-option>
-            </a-select>
+          <a-form-item label="时间范围" required>
+            <a-range-picker v-model:value="grantForm.dateRange" style="width: 100%" />
           </a-form-item>
           <a-form-item label="备注">
             <a-input v-model:value="grantForm.remark" placeholder="选填" />
@@ -162,6 +170,8 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
 import { getOrderList, getOrderDetail, markOrderPaid, refundOrder, cancelOrder, adjustMembership, grantMembership } from '@/api/order.js'
+import { listUserOptions } from '@/api/userOptions.js'
+import { fetchPlans } from '@/api/plan.js'
 
 // ── 搜索 & 列表 ──
 const keyword = ref('')
@@ -307,24 +317,57 @@ async function submitRefund() {
 // ── 手动发放会员 ──
 const grantModalOpen = ref(false)
 const granting = ref(false)
-const grantForm = reactive({ userId: null, planKey: undefined, cycle: undefined, remark: '' })
+const grantForm = reactive({ userId: null, planKey: undefined, dateRange: null, remark: '' })
+const userOptions = ref([])
+const userSelectLoading = ref(false)
+const planOptions = ref([])
+
+let userSearchTimer = null
+function onUserSearch(keyword) {
+  if (userSearchTimer) clearTimeout(userSearchTimer)
+  userSearchTimer = setTimeout(async () => {
+    userSelectLoading.value = true
+    try {
+      userOptions.value = await listUserOptions(keyword, 20)
+    } catch (e) {
+      userOptions.value = []
+    } finally {
+      userSelectLoading.value = false
+    }
+  }, 300)
+}
+
+async function loadPlanOptions() {
+  try {
+    planOptions.value = await fetchPlans()
+  } catch (e) {
+    planOptions.value = []
+  }
+}
 
 function openGrantModal() {
   grantForm.userId = null
   grantForm.planKey = undefined
-  grantForm.cycle = undefined
+  grantForm.dateRange = null
   grantForm.remark = ''
+  userOptions.value = []
   grantModalOpen.value = true
 }
 
 async function submitGrant() {
-  if (!grantForm.userId || !grantForm.planKey || !grantForm.cycle) {
+  if (!grantForm.userId || !grantForm.planKey || !grantForm.dateRange || grantForm.dateRange.length !== 2) {
     message.warning('请填写完整信息')
     return
   }
   granting.value = true
   try {
-    await grantMembership({ ...grantForm })
+    await grantMembership({
+      userId: grantForm.userId,
+      planKey: grantForm.planKey,
+      startDate: grantForm.dateRange[0].format('YYYY-MM-DD'),
+      endDate: grantForm.dateRange[1].format('YYYY-MM-DD'),
+      remark: grantForm.remark
+    })
     message.success('发放成功')
     grantModalOpen.value = false
     reload()
@@ -385,7 +428,10 @@ async function openDetailDrawer(record) {
   }
 }
 
-onMounted(reload)
+onMounted(() => {
+  reload()
+  loadPlanOptions()
+})
 </script>
 
 <style scoped>

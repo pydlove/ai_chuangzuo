@@ -24,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
@@ -43,7 +44,8 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
 
     /**
      * 剩余天数（不含今天）。
-     * expireAt 存的是"到期日次日 00:00" → lastValidDate = expireAt.toLocalDate() - 1 day。
+     * 新数据：expireAt 存的是"到期日次日 00:00" → lastValidDate = expireAt.toLocalDate() - 1 day。
+     * 兼容旧数据：若时间接近 23:59:59，说明存的是"到期日 23:59:59" → lastValidDate = expireAt.toLocalDate()。
      * 命中区间：0 ≤ remainingDays ≤ advanceDays。
      */
     @Override
@@ -54,8 +56,15 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
     /** 同上，便于测试时注入 today。 */
     public int calcRemainingDays(LocalDateTime expireAt, LocalDate today) {
         if (expireAt == null) return Integer.MIN_VALUE;
-        LocalDate lastValidDate = expireAt.toLocalDate().minusDays(1);
+        LocalDate lastValidDate = isStoredAsEndOfDay(expireAt)
+                ? expireAt.toLocalDate()
+                : expireAt.toLocalDate().minusDays(1);
         return (int) ChronoUnit.DAYS.between(today, lastValidDate);
+    }
+
+    private boolean isStoredAsEndOfDay(LocalDateTime expireAt) {
+        LocalTime time = expireAt.toLocalTime();
+        return time.isAfter(LocalTime.of(23, 59, 58)) || time.equals(LocalTime.MAX);
     }
 
     @Override
@@ -132,8 +141,8 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
 
     private boolean sendMessage(PlatformUser user, int remainingDays, String bizNo,
                                 LocalDate today, String triggerType) {
-        if (alreadySent(user.getId(), "message", today)) {
-            log.info("用户 {} 今日 message 已发送，跳过", user.getId());
+        if (!"manual".equals(triggerType) && alreadySent(user.getId(), "message", today, triggerType)) {
+            log.info("用户 {} 今日 message [{}] 已发送，跳过", user.getId(), triggerType);
             return false;
         }
         String title = "您的会员即将到期";
@@ -149,7 +158,7 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
         msg.setTitle(title);
         msg.setSummary(summary);
         msg.setContent(summary + "\n\n点击「我的会员」查看详情并续费。");
-        msg.setLinkUrl("/me/membership");
+        msg.setLinkUrl("/console/benefits");
         msg.setTenantId(0L);
         msg.setIsDeleted(0);
         LocalDateTime now = LocalDateTime.now();
@@ -158,7 +167,9 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
         msg.setCreatedBy(0L);
         msg.setUpdatedBy(0L);
         messageMapper.insert(msg);
-        recordLog(user.getId(), "message", today, remainingDays, triggerType, 1, null);
+        if (!"manual".equals(triggerType)) {
+            recordLog(user.getId(), "message", today, remainingDays, triggerType, 1, null);
+        }
         return true;
     }
 
@@ -167,8 +178,8 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
             log.warn("用户 {} 无邮箱，跳过邮件提醒", user.getId());
             return false;
         }
-        if (alreadySent(user.getId(), "email", today)) {
-            log.info("用户 {} 今日 email 已发送，跳过", user.getId());
+        if (!"manual".equals(triggerType) && alreadySent(user.getId(), "email", today, triggerType)) {
+            log.info("用户 {} 今日 email [{}] 已发送，跳过", user.getId(), triggerType);
             return false;
         }
         String subject = "您的爱创作会员即将到期";
@@ -180,19 +191,24 @@ public class ExpireReminderServiceImpl implements ExpireReminderService {
                 + "本邮件由系统自动发出，请勿直接回复。";
         try {
             mailService.send(user.getEmail(), subject, text);
-            recordLog(user.getId(), "email", today, remainingDays, triggerType, 1, null);
+            if (!"manual".equals(triggerType)) {
+                recordLog(user.getId(), "email", today, remainingDays, triggerType, 1, null);
+            }
             return true;
         } catch (Exception ex) {
-            recordLog(user.getId(), "email", today, remainingDays, triggerType, 0, ex.getMessage());
+            if (!"manual".equals(triggerType)) {
+                recordLog(user.getId(), "email", today, remainingDays, triggerType, 0, ex.getMessage());
+            }
             return false;
         }
     }
 
-    private boolean alreadySent(Long userId, String channel, LocalDate today) {
+    private boolean alreadySent(Long userId, String channel, LocalDate today, String triggerType) {
         Long count = sendLogMapper.selectCount(new LambdaQueryWrapper<ReminderSendLog>()
                 .eq(ReminderSendLog::getUserId, userId)
                 .eq(ReminderSendLog::getChannel, channel)
                 .eq(ReminderSendLog::getSendDate, today)
+                .eq(ReminderSendLog::getTriggerType, triggerType)
                 .eq(ReminderSendLog::getStatus, 1));
         return count != null && count > 0;
     }

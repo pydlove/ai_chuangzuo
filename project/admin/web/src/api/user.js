@@ -8,8 +8,8 @@ export function getUser(id) {
   return request.get(`/users/${id}`).then((res) => res.data)
 }
 
-export function getUserInvites(id) {
-  return request.get(`/users/${id}/invites`).then((res) => res.data)
+export function getUserInvites(id, page = 1, pageSize = 10) {
+  return request.get(`/users/${id}/invites`, { params: { page, pageSize } }).then((res) => res.data)
 }
 
 export function listUserSkills(id, sourceType = 1) {
@@ -72,4 +72,8 @@ export function downloadUserImportTemplate() {
 
 export function deleteUser(id) {
   return request.delete(`/users/${id}`).then((res) => res.data)
+}
+
+export function batchDeleteUsers(ids) {
+  return request.post('/users/batch/delete', { ids }).then((res) => res.data)
 }

@@ -6,6 +6,8 @@ import com.aichuangzuo.admin.modules.generation.mapper.GenerationConfigMapper;
 import com.aichuangzuo.admin.modules.generation.vo.GenerationConfigVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -29,6 +31,7 @@ public class GenerationConfigService {
     private static final long CACHE_ID = 1L;
 
     private final GenerationConfigMapper mapper;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     /** 内存缓存（volatile 保证多线程可见）。 */
     private volatile GenerationConfig cached;
@@ -65,13 +68,16 @@ public class GenerationConfigService {
     /**
      * 兜底：每 60s 兜一次（即使没有调用方触发）。
      */
+    @ScheduledTask(key = "generation_config_refresh", name = "创作配置缓存兜底刷新", description = "每分钟从 a_generation_config 刷新一次内存缓存", triggerType = "fixed_delay", expression = "60000", sortOrder = 70)
     @Scheduled(fixedDelay = 60_000L, initialDelay = 60_000L)
     public void scheduledRefresh() {
-        try {
-            refreshFromDb();
-        } catch (Exception e) {
-            log.warn("scheduled 刷新创作配置失败：{}", e.getMessage());
-        }
+        scheduledTaskExecutor.executeAuto("generation_config_refresh", () -> {
+            try {
+                refreshFromDb();
+            } catch (Exception e) {
+                log.warn("scheduled 刷新创作配置失败：{}", e.getMessage());
+            }
+        });
     }
 
     @Transactional

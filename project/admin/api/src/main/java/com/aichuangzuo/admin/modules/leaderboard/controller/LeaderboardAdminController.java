@@ -11,9 +11,8 @@ import com.aichuangzuo.admin.modules.leaderboard.service.LeaderboardAwardService
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardGrantResultVO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.LeaderboardTop10VO;
 import com.aichuangzuo.admin.modules.leaderboard.vo.RewardRecordAdminVO;
+import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.shared.result.Result;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -72,14 +71,14 @@ public class LeaderboardAdminController {
     }
 
     @GetMapping("/rewards")
-    public Result<IPage<RewardRecordAdminVO>> rewards(@RequestParam(name = "leaderboardType", required = false) Integer leaderboardType,
+    public Result<PageResult<RewardRecordAdminVO>> rewards(@RequestParam(name = "leaderboardType", required = false) Integer leaderboardType,
                                                          @RequestParam(name = "periodMonth", required = false) String periodMonth,
                                                          @RequestParam(name = "page", defaultValue = "1") int page,
                                                          @RequestParam(name = "size", defaultValue = "20") int size) {
         Long adminUserId = currentAdminId();
         log.info("管理员查询收益排行榜发放记录, adminUserId={}, leaderboardType={}, periodMonth={}, page={}, size={}",
                 adminUserId, leaderboardType, periodMonth, page, size);
-        return Result.success(awardService.rewardHistory(leaderboardType, periodMonth, new Page<>(page, size)));
+        return Result.success(awardService.rewardHistory(leaderboardType, periodMonth, page, size));
     }
 
     private Long currentAdminId() {

@@ -102,6 +102,14 @@ onMounted(() => {
   loadTopics()
 })
 
+// 父组件 CreateIndex 的 loadBenefits 是异步的，子组件 onMounted 时 planKey 可能还是默认值。
+// 监听锁状态：一旦权益加载完成并解锁，且当前没有数据，就补一次加载。
+watch(isTopicInspirationLocked, (locked) => {
+  if (!locked && topics.value.length === 0 && !refreshing.value) {
+    loadTopics()
+  }
+})
+
 const isUsed = (topic) => usedIds.value.has(topic.id)
 
 const applyTopic = (topic) => {

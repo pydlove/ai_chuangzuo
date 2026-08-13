@@ -5,6 +5,7 @@ import com.aichuangzuo.shared.exception.UnauthorizedException;
 import com.aichuangzuo.user.config.AuthProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -61,8 +62,14 @@ public class JwtUtil {
             return Long.valueOf(claims.getSubject());
         } catch (ExpiredJwtException e) {
             throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
+        } catch (SignatureException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        } catch (MalformedJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        } catch (UnsupportedJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
         } catch (JwtException e) {
-            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
         }
     }
 

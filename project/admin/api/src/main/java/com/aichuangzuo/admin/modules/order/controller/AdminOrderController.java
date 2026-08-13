@@ -4,12 +4,18 @@ import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipAdjustRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipGrantRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.OrderRefundRequest;
+import com.aichuangzuo.admin.modules.order.dto.request.RenewalUserQueryRequest;
+import com.aichuangzuo.admin.modules.order.dto.request.RenewalOrderDetailQueryRequest;
 import com.aichuangzuo.admin.modules.order.service.AdminOrderService;
 import com.aichuangzuo.admin.modules.order.vo.OrderDetailVO;
 import com.aichuangzuo.admin.modules.order.vo.OrderPageVO;
 import com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO;
 import com.aichuangzuo.admin.modules.order.vo.OrderTrendVO;
 import com.aichuangzuo.admin.modules.order.vo.PlanDistributionVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalDistributionVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalOverviewVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalTrendVO;
+import com.aichuangzuo.admin.modules.order.vo.RenewalUserPageVO;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -93,8 +99,8 @@ public class AdminOrderController {
     @PostMapping("/membership/grant")
     public Result<Void> grantMembership(@Valid @RequestBody MembershipGrantRequest request) {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
-        log.info("管理员手动发放会员, adminUserId={}, userId={}, planKey={}, cycle={}",
-                adminId, request.getUserId(), request.getPlanKey(), request.getCycle());
+        log.info("管理员手动发放会员, adminUserId={}, userId={}, planKey={}, startDate={}, endDate={}",
+                adminId, request.getUserId(), request.getPlanKey(), request.getStartDate(), request.getEndDate());
         orderService.grantMembership(request, adminId);
         return Result.success();
     }
@@ -121,5 +127,62 @@ public class AdminOrderController {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员查询订单套餐分布, adminUserId={}", adminUserId);
         return Result.success(orderService.getPlanDistribution());
+    }
+
+    @Operation(summary = "续费统计概览")
+    @GetMapping("/orders/stats/renewal/overview")
+    public Result<RenewalOverviewVO> renewalOverview() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询续费统计概览, adminUserId={}", adminUserId);
+        return Result.success(orderService.getRenewalOverview());
+    }
+
+    @Operation(summary = "续费趋势")
+    @GetMapping("/orders/stats/renewal/trend")
+    public Result<RenewalTrendVO> renewalTrend(
+            @RequestParam(name = "days", defaultValue = "7") int days) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询续费趋势, adminUserId={}, days={}", adminUserId, days);
+        return Result.success(orderService.getRenewalTrend(days));
+    }
+
+    @Operation(summary = "续费分布")
+    @GetMapping("/orders/stats/renewal/distribution")
+    public Result<RenewalDistributionVO> renewalDistribution() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询续费分布, adminUserId={}", adminUserId);
+        return Result.success(orderService.getRenewalDistribution());
+    }
+
+    @Operation(summary = "续费用户明细")
+    @GetMapping("/orders/stats/renewal/users")
+    public Result<RenewalUserPageVO> renewalUsers(
+            @Valid @ModelAttribute RenewalUserQueryRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询续费用户明细, adminUserId={}, keyword={}, planKey={}, cycle={}, page={}, renewalOnly={}",
+                adminUserId, request.getKeyword(), request.getPlanKey(), request.getCycle(), request.getPage(),
+                request.getRenewalOnly());
+        return Result.success(orderService.listRenewalUsers(request));
+    }
+
+    @Operation(summary = "累计付费用户明细")
+    @GetMapping("/orders/stats/renewal/paid-users")
+    public Result<RenewalUserPageVO> paidUsers(
+            @Valid @ModelAttribute RenewalUserQueryRequest request) {
+        request.setRenewalOnly(false);
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询累计付费用户明细, adminUserId={}, keyword={}, planKey={}, cycle={}, page={}",
+                adminUserId, request.getKeyword(), request.getPlanKey(), request.getCycle(), request.getPage());
+        return Result.success(orderService.listRenewalUsers(request));
+    }
+
+    @Operation(summary = "续费/新购订单明细")
+    @GetMapping("/orders/stats/renewal/orders")
+    public Result<OrderPageVO> renewalOrders(
+            @Valid @ModelAttribute RenewalOrderDetailQueryRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询续费/新购订单明细, adminUserId={}, type={}, page={}",
+                adminUserId, request.getType(), request.getPage());
+        return Result.success(orderService.listRenewalOrderDetails(request));
     }
 }

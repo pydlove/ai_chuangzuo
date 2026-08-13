@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listGlobalSkills, createGlobalSkill, updateGlobalSkill, deleteGlobalSkill } from '@/api/globalSkill.js'
+import { listGlobalSkills, createGlobalSkill, updateGlobalSkill, deleteGlobalSkill, batchDeleteGlobalSkills } from '@/api/globalSkill.js'
 
 export function useGlobalStyleManagement() {
   const list = ref([])
@@ -90,6 +90,18 @@ export function useGlobalStyleManagement() {
     }
   }
 
+  const handleBatchDelete = async (bizNos) => {
+    try {
+      const count = await batchDeleteGlobalSkills(bizNos)
+      message.success(`已批量删除 ${count} 条`)
+      await fetch()
+      return true
+    } catch (error) {
+      message.error(error.message || '批量删除失败')
+      return false
+    }
+  }
+
   return {
     list,
     total,
@@ -105,6 +117,7 @@ export function useGlobalStyleManagement() {
     handlePageChange,
     handleCreate,
     handleUpdate,
-    handleDelete
+    handleDelete,
+    handleBatchDelete
   }
 }

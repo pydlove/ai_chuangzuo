@@ -186,6 +186,11 @@ const routes = [
         component: () => import('@/views/OrderStatsView.vue')
       },
       {
+        path: 'orders/renewal',
+        name: 'AdminOrderRenewal',
+        component: () => import('@/views/RenewalStatsView.vue')
+      },
+      {
         path: 'plans',
         name: 'AdminPlanList',
         component: () => import('@/views/PlanListView.vue')
@@ -199,6 +204,11 @@ const routes = [
         path: 'audit-logs',
         name: 'AdminAuditLogList',
         component: () => import('@/views/AuditLogListView.vue')
+      },
+      {
+        path: 'scheduled-tasks',
+        name: 'AdminScheduledTask',
+        component: () => import('@/views/ScheduledTaskView.vue')
       }
     ]
   },

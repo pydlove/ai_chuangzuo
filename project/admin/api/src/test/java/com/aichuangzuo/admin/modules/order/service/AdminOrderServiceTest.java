@@ -209,18 +209,19 @@ class AdminOrderServiceTest {
         MembershipGrantRequest req = new MembershipGrantRequest();
         req.setUserId(5L);
         req.setPlanKey("pro");
-        req.setCycle("month");
+        req.setStartDate(LocalDate.now());
+        req.setEndDate(LocalDate.now().plusDays(30));
         req.setRemark("活动赠送");
 
         when(membershipMapper.userExists(5L)).thenReturn(1);
         when(membershipMapper.selectByUserId(5L)).thenReturn(null);
         when(membershipMapper.insertMembership(any())).thenReturn(1);
         when(membershipMapper.updateUserMembershipFields(eq(5L), any(), any())).thenReturn(1);
-        when(orderMapper.insertGrantOrder(anyString(), eq(5L), eq("pro"), eq("month"),
+        when(orderMapper.insertGrantOrder(anyString(), eq(5L), eq("pro"), eq(LocalDate.now()), eq(LocalDate.now().plusDays(30)),
                 anyString(), eq(1L), any())).thenReturn(1);
 
         assertDoesNotThrow(() -> orderService.grantMembership(req, 1L));
-        verify(orderMapper).insertGrantOrder(anyString(), eq(5L), eq("pro"), eq("month"),
+        verify(orderMapper).insertGrantOrder(anyString(), eq(5L), eq("pro"), eq(LocalDate.now()), eq(LocalDate.now().plusDays(30)),
                 argThat(r -> r.contains("活动赠送")), eq(1L), any());
         verify(membershipMapper).insertMembership(argThat(m ->
                 "pro".equals(m.getLevel())));
@@ -231,7 +232,8 @@ class AdminOrderServiceTest {
         MembershipGrantRequest req = new MembershipGrantRequest();
         req.setUserId(99L);
         req.setPlanKey("pro");
-        req.setCycle("month");
+        req.setStartDate(LocalDate.now());
+        req.setEndDate(LocalDate.now().plusDays(30));
 
         when(membershipMapper.userExists(99L)).thenReturn(0);
         BusinessException ex = assertThrows(BusinessException.class,

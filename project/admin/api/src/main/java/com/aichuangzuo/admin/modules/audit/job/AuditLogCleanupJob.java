@@ -3,6 +3,8 @@ package com.aichuangzuo.admin.modules.audit.job;
 import com.aichuangzuo.admin.modules.audit.client.UserAuditLogClient;
 import com.aichuangzuo.admin.modules.audit.event.AuditConfigChangedEvent;
 import com.aichuangzuo.admin.modules.audit.service.AuditConfigService;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.extern.slf4j.Slf4j;
@@ -24,15 +26,18 @@ public class AuditLogCleanupJob {
     private final AuditConfigService auditConfigService;
     private final UserAuditLogClient userAuditLogClient;
     private final ThreadPoolTaskScheduler taskScheduler;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     private volatile ScheduledFuture<?> scheduledFuture;
 
     public AuditLogCleanupJob(AuditConfigService auditConfigService,
                               UserAuditLogClient userAuditLogClient,
-                              ThreadPoolTaskScheduler auditLogTaskScheduler) {
+                              ThreadPoolTaskScheduler auditLogTaskScheduler,
+                              ScheduledTaskExecutor scheduledTaskExecutor) {
         this.auditConfigService = auditConfigService;
         this.userAuditLogClient = userAuditLogClient;
         this.taskScheduler = auditLogTaskScheduler;
+        this.scheduledTaskExecutor = scheduledTaskExecutor;
     }
 
     @PostConstruct
@@ -73,14 +78,17 @@ public class AuditLogCleanupJob {
         }
     }
 
+    @ScheduledTask(key = "audit_log_cleanup", name = "用户审计日志清理", description = "按保留天数清理 user-api 的 u_user_audit_log", triggerType = "cron", expression = "0 0 3 * * ?", sortOrder = 50)
     public void run() {
-        try {
-            var cfg = auditConfigService.getConfig();
-            int retentionDays = cfg.getRetentionDays() == null ? 30 : cfg.getRetentionDays();
-            userAuditLogClient.cleanupLogs(retentionDays);
-            log.info("审计日志清理完成，retentionDays={}", retentionDays);
-        } catch (Exception e) {
-            log.error("审计日志清理定时任务异常", e);
-        }
+        scheduledTaskExecutor.executeAuto("audit_log_cleanup", () -> {
+            try {
+                var cfg = auditConfigService.getConfig();
+                int retentionDays = cfg.getRetentionDays() == null ? 30 : cfg.getRetentionDays();
+                userAuditLogClient.cleanupLogs(retentionDays);
+                log.info("审计日志清理完成，retentionDays={}", retentionDays);
+            } catch (Exception e) {
+                log.error("审计日志清理定时任务异常", e);
+            }
+        });
     }
 }

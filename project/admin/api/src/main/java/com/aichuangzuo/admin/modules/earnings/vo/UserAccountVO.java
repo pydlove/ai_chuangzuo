@@ -13,6 +13,7 @@ public class UserAccountVO {
     private LocalDateTime registeredAt;
     private BigDecimal totalEarnings;
     private BigDecimal unsettledEarnings;
+    private BigDecimal withdrawnAmount;
     private BigDecimal coinBalance;
     private Integer coinRankThisMonth;
     private Integer incomeRankThisMonth;

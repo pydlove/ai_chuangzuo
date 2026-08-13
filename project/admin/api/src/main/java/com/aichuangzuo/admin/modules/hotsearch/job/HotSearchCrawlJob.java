@@ -18,6 +18,8 @@ import com.aichuangzuo.admin.modules.hotsearch.vo.LastRunVO;
 import com.aichuangzuo.admin.modules.hotsearch.vo.PlatformCrawlResultVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -56,6 +58,7 @@ public class HotSearchCrawlJob {
     private final HotSearchCrawlLogService crawlLogService;
     private final ThreadPoolTaskScheduler taskScheduler;
     private final ObjectMapper objectMapper;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     /**
      * 自注入代理，用于在定时入口走 Spring AOP 代理，使 @Transactional 生效。
@@ -73,7 +76,8 @@ public class HotSearchCrawlJob {
                              HotSearchConfigService configService,
                              HotSearchCrawlLogService crawlLogService,
                              @Qualifier("hotSearchTaskScheduler") ThreadPoolTaskScheduler hotSearchTaskScheduler,
-                             ObjectMapper objectMapper) {
+                             ObjectMapper objectMapper,
+                             ScheduledTaskExecutor scheduledTaskExecutor) {
         this.platformMapper = platformMapper;
         this.dailyMapper = dailyMapper;
         this.fetchers = fetchers;
@@ -81,6 +85,7 @@ public class HotSearchCrawlJob {
         this.crawlLogService = crawlLogService;
         this.taskScheduler = hotSearchTaskScheduler;
         this.objectMapper = objectMapper;
+        this.scheduledTaskExecutor = scheduledTaskExecutor;
     }
 
     /**
@@ -130,14 +135,17 @@ public class HotSearchCrawlJob {
     /**
      * 定时任务入口。
      */
+    @ScheduledTask(key = "hot_search_crawl", name = "每日热搜抓取", description = "抓取配置中启用的热搜平台榜单，写入 hot_search_daily", triggerType = "cron", expression = "0 0 2 * * ?", sortOrder = 10)
     public void crawl() {
-        log.info("热搜定时抓取任务开始执行");
-        try {
-            self.crawlAll(HotSearchTriggerType.AUTO);
-        } catch (Exception e) {
-            log.error("定时抓取异常", e);
-        }
-        log.info("热搜定时抓取任务执行结束");
+        scheduledTaskExecutor.executeAuto("hot_search_crawl", () -> {
+            log.info("热搜定时抓取任务开始执行");
+            try {
+                self.crawlAll(HotSearchTriggerType.AUTO);
+            } catch (Exception e) {
+                log.error("定时抓取异常", e);
+            }
+            log.info("热搜定时抓取任务执行结束");
+        });
     }
 
     /**

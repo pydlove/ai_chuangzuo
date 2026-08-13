@@ -83,22 +83,92 @@
             <div class="style-scope-hint">一句话让创作者快速了解你的提示词</div>
           </div>
           <div class="style-editor-field">
-            <label class="style-editor-label style-editor-label--with-action">
-              <span>提示词 <span class="required">*</span></span>
-              <FullscreenOutlined class="style-editor-fullscreen-btn" title="全屏编辑" @click="openFullscreenPrompt('custom')" />
-            </label>
-            <textarea
-              v-model="editingStyle.prompt"
-              class="style-editor-textarea"
-              placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
-              rows="5"
-              :maxlength="promptMaxLength"
-            ></textarea>
-            <div class="style-editor-counter" :class="{ over: editingStyle.prompt.length > promptMaxLength }">
-              {{ editingStyle.prompt.length }} / {{ promptMaxLength }}
+            <label class="style-editor-label">基于模版创建</label>
+            <div class="template-switch-row">
+              <a-switch
+                v-model:checked="editingStyle.templateBased"
+                checked-children="是"
+                un-checked-children="否"
+              />
+              <span class="style-scope-hint">开启后按「角色 / 受众 / 写作要求 / 语气 / 禁区」五部分填写，保存时自动拼接为完整提示词</span>
             </div>
-            <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
           </div>
+          <template v-if="!editingStyle.templateBased">
+            <div class="style-editor-field">
+              <label class="style-editor-label style-editor-label--with-action">
+                <span>提示词 <span class="required">*</span></span>
+                <FullscreenOutlined class="style-editor-fullscreen-btn" title="全屏编辑" @click="openFullscreenPrompt('custom')" />
+              </label>
+              <textarea
+                v-model="editingStyle.prompt"
+                class="style-editor-textarea"
+                placeholder="描述你希望 AI 采用的语气、结构、用词习惯等..."
+                rows="5"
+                :maxlength="promptMaxLength"
+              ></textarea>
+              <div class="style-editor-counter" :class="{ over: editingStyle.prompt.length > promptMaxLength }">
+                {{ editingStyle.prompt.length }} / {{ promptMaxLength }}
+              </div>
+              <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
+            </div>
+          </template>
+          <template v-else>
+            <div class="style-editor-field">
+              <label class="style-editor-label">角色 <span class="required">*</span></label>
+              <textarea
+                v-model="editingStyle.promptExtra.role"
+                class="style-editor-textarea"
+                placeholder="例如：你是一位擅长把专业知识翻译成大白话的科普作者"
+                rows="2"
+              ></textarea>
+              <div v-if="errors.role" class="style-editor-error">{{ errors.role }}</div>
+            </div>
+            <div class="style-editor-field">
+              <label class="style-editor-label">受众</label>
+              <textarea
+                v-model="editingStyle.promptExtra.audience"
+                class="style-editor-textarea"
+                placeholder="例如：对行业术语不熟悉但想快速理解的普通读者"
+                rows="2"
+              ></textarea>
+            </div>
+            <div class="style-editor-field">
+              <label class="style-editor-label">写作要求 <span class="required">*</span></label>
+              <textarea
+                v-model="editingStyle.promptExtra.requirements"
+                class="style-editor-textarea"
+                placeholder="例如：1. 开篇从生活场景入手\n2. 必须使用至少一个比喻或类比\n3. 按「是什么→为什么→会怎样」推进"
+                rows="5"
+              ></textarea>
+              <div v-if="errors.requirements" class="style-editor-error">{{ errors.requirements }}</div>
+            </div>
+            <div class="style-editor-field">
+              <label class="style-editor-label">语气</label>
+              <textarea
+                v-model="editingStyle.promptExtra.tone"
+                class="style-editor-textarea"
+                placeholder="例如：耐心、亲切，像在给朋友讲一件有趣的事情"
+                rows="2"
+              ></textarea>
+            </div>
+            <div class="style-editor-field">
+              <label class="style-editor-label">禁区</label>
+              <textarea
+                v-model="editingStyle.promptExtra.restrictions"
+                class="style-editor-textarea"
+                placeholder="例如：不要堆砌专业术语；不要给出无法验证的数据"
+                rows="3"
+              ></textarea>
+            </div>
+            <div class="style-editor-field">
+              <label class="style-editor-label">拼接预览</label>
+              <div class="template-prompt-preview">{{ displayPrompt }}</div>
+              <div class="style-editor-counter" :class="{ over: displayPrompt.length > promptMaxLength }">
+                {{ displayPrompt.length }} / {{ promptMaxLength }}
+              </div>
+              <div v-if="errors.prompt" class="style-editor-error">{{ errors.prompt }}</div>
+            </div>
+          </template>
           <div class="style-editor-field">
             <label class="style-editor-label">适用范围 <span class="required">*</span></label>
             <div class="style-scope-tags">
@@ -137,7 +207,7 @@
         <div v-if="canUseCustomStyles" class="styles-quota-hint">
           已创建 {{ customStyleQuotaText }} 个我的提示词
         </div>
-        <div v-if="filteredMyStyles.length === 0" class="styles-empty">
+        <div v-if="mySkills.length === 0" class="styles-empty">
           <div
             :class="['style-add-card', { locked: !canCreateCustom }]"
             @click="canCreateCustom && goToCreate()"
@@ -159,7 +229,7 @@
             <div class="style-add-text">新建我的提示词</div>
           </div>
           <SkillCard
-            v-for="s in filteredMyStyles"
+            v-for="s in mySkills"
             :key="s.name"
             :name="s.name"
             :desc="s.desc && s.desc !== '自定义提示词' ? s.desc : ''"
@@ -206,6 +276,18 @@
             </template>
           </SkillCard>
         </div>
+        <div v-if="mySkills.length > 0" class="styles-pagination">
+          <a-pagination
+            v-model:current="mySkillsPage"
+            v-model:pageSize="mySkillsPageSize"
+            :total="mySkillsTotal"
+            :page-size-options="['12', '24', '48']"
+            show-size-changer
+            show-quick-jumper
+            @change="onMySkillsPageChange"
+            @showSizeChange="onMySkillsPageSizeChange"
+          />
+        </div>
       </div>
     </div>
 
@@ -214,12 +296,12 @@
       <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
         当前套餐不支持系统预设提示词，开通会员后即可解锁
       </div>
-      <div v-else-if="filteredSystemStyles.length === 0" class="styles-empty">
+      <div v-else-if="systemSkillsDisplay.length === 0" class="styles-empty">
         没有找到匹配的系统预设提示词
       </div>
       <div v-else class="styles-grid">
         <SkillCard
-          v-for="s in filteredSystemStyles"
+          v-for="s in systemSkillsDisplay"
           :key="s.name"
           :name="s.name"
           :desc="s.desc"
@@ -248,6 +330,18 @@
           </template>
         </SkillCard>
       </div>
+      <div v-if="systemSkillsDisplay.length > 0" class="styles-pagination">
+        <a-pagination
+          v-model:current="systemSkillsPage"
+          v-model:pageSize="systemSkillsPageSize"
+          :total="systemSkillsTotal"
+          :page-size-options="['12', '24', '48']"
+          show-size-changer
+          show-quick-jumper
+          @change="onSystemSkillsPageChange"
+          @showSizeChange="onSystemSkillsPageSizeChange"
+        />
+      </div>
     </div>
 
     <!-- 学习的提示词 -->
@@ -255,8 +349,8 @@
       <div v-if="canLearn" class="learned-banner">
         {{ learnBannerText }}
       </div>
-      <div v-if="filteredLearnedStyles.length === 0" class="styles-empty">
-        <div v-if="isLearning" class="style-add-card learning-progress-card">
+      <div v-if="learnedSkillsDisplay.length === 0" class="styles-empty">
+        <div v-if="isLearning" class="style-add-card learning-progress-card">>
           <div class="style-add-icon"><a-spin /></div>
           <div class="style-add-text learning-progress-text">灵犀同学正在帮您分析…</div>
         </div>
@@ -295,7 +389,7 @@
           <div class="style-add-text">学习新提示词</div>
         </div>
         <SkillCard
-          v-for="s in filteredLearnedStyles"
+          v-for="s in learnedSkillsDisplay"
           :key="s.name"
           :name="s.name"
           :desc="s.desc"
@@ -343,11 +437,23 @@
           </template>
         </SkillCard>
       </div>
+      <div v-if="learnedSkillsDisplay.length > 0" class="styles-pagination">
+        <a-pagination
+          v-model:current="learnedSkillsPage"
+          v-model:pageSize="learnedSkillsPageSize"
+          :total="learnedSkillsTotal"
+          :page-size-options="['12', '24', '48']"
+          show-size-changer
+          show-quick-jumper
+          @change="onLearnedSkillsPageChange"
+          @showSizeChange="onLearnedSkillsPageSizeChange"
+        />
+      </div>
     </div>
 
     <!-- 收藏的提示词 -->
     <div v-show="activeTab === 'favorites'" class="styles-content">
-      <div v-if="favoriteSkills.length === 0" class="styles-empty">
+      <div v-if="favoriteSkillsDisplay.length === 0" class="styles-empty">
         <a-empty description="还没有收藏的提示词">
           <button class="empty-action-btn" @click="router.push('/console/skill-market')">
             去收藏
@@ -356,7 +462,7 @@
       </div>
       <div v-else class="styles-grid">
         <SkillCard
-          v-for="s in favoriteSkills"
+          v-for="s in favoriteSkillsDisplay"
           :key="s.id"
           :name="s.name"
           :desc="s.description || s.promptSummary || s.desc || ''"
@@ -397,6 +503,18 @@
             </div>
           </template>
         </SkillCard>
+      </div>
+      <div v-if="favoriteSkillsDisplay.length > 0" class="styles-pagination">
+        <a-pagination
+          v-model:current="favoriteSkillsPage"
+          v-model:pageSize="favoriteSkillsPageSize"
+          :total="favoriteSkillsTotal"
+          :page-size-options="['12', '24', '48']"
+          show-size-changer
+          show-quick-jumper
+          @change="onFavoriteSkillsPageChange"
+          @showSizeChange="onFavoriteSkillsPageSizeChange"
+        />
       </div>
     </div>
   </div>
@@ -641,29 +759,30 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import {
   systemSkills,
   mySkills,
+  mySkillsTotal,
+  currentSkill,
   applySkill,
   addCustomSkill,
   updateCustomSkill,
   removeCustomSkill,
   isSkillNameExists,
-  learnedSkills,
   removeLearnedSkill,
   analyzeArticleSkill,
   addLearnedSkill,
   isLearning,
   updateLearnedSkill,
   loadMySkills,
-  loadLearnedSkills
+  loadLearnedSkills,
+  loadSystemSkills
 } from '@/composables/useSkills.js'
 import {
   marketSkills,
-  favoriteSkills,
   toggleFavorite,
   useMarketSkill,
   loadMarketSkills,
@@ -686,7 +805,25 @@ const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const stylesIndexRef = ref(null)
 const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
 const activeTab = ref('my')
-const searchQuery = ref('')
+const mySkillsPage = ref(1)
+const mySkillsPageSize = ref(12)
+
+// 系统预设 / 学习 / 收藏 三 tab 的局部分页状态（与全局 ref 解耦，避免影响 main.js/CreateIndex 等）
+const systemSkillsDisplay = ref([])
+const systemSkillsPage = ref(1)
+const systemSkillsPageSize = ref(12)
+const systemSkillsTotal = ref(0)
+
+const learnedSkillsDisplay = ref([])
+const learnedSkillsPage = ref(1)
+const learnedSkillsPageSize = ref(12)
+const learnedSkillsTotal = ref(0)
+
+const favoriteSkillsDisplay = ref([])
+const favoriteSkillsPage = ref(1)
+const favoriteSkillsPageSize = ref(12)
+const favoriteSkillsTotal = ref(0)
+
 const promptMaxLength = ref(SKILL_PROMPT_MAX_LENGTH)
 const fullscreenPromptVisible = ref(false)
 const fullscreenPromptText = ref('')
@@ -715,9 +852,9 @@ const saveFullscreenPrompt = () => {
 // 套餐权益相关
 const styleCustomLimit = computed(() => parseInt(benefitValue('skill_custom') || '0', 10))
 const canUseCustomStyles = computed(() => styleCustomLimit.value > 0)
-const canCreateCustom = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length < styleCustomLimit.value)
-const isCustomQuotaFull = computed(() => canUseCustomStyles.value && filteredMyStyles.value.length >= styleCustomLimit.value)
-const customStyleQuotaText = computed(() => `${filteredMyStyles.value.length} / ${styleCustomLimit.value}`)
+const canCreateCustom = computed(() => canUseCustomStyles.value && mySkillsTotal.value < styleCustomLimit.value)
+const isCustomQuotaFull = computed(() => canUseCustomStyles.value && mySkillsTotal.value >= styleCustomLimit.value)
+const customStyleQuotaText = computed(() => `${mySkillsTotal.value} / ${styleCustomLimit.value}`)
 
 const learnRemaining = computed(() => benefitRemaining('skill_learn_analyze'))
 const learnTotal = computed(() => parseInt(benefitValue('skill_learn_analyze') || '0', 10))
@@ -739,12 +876,14 @@ const publishTotal = computed(() => parseInt(benefitValue('skill_market_publish'
 onMounted(async () => {
   await loadBenefits()
   await Promise.all([
-    loadMySkills(),
-    loadLearnedSkills(),
+    loadCurrentTab(),
     loadMarketSkills(),
-    loadFavoriteSkills(),
     loadMySubmissions()
   ])
+})
+
+onUnmounted(() => {
+  clearTimeout(searchDebounceTimer)
 })
 
 const MAX_SCOPE_TAGS = 3
@@ -799,30 +938,86 @@ const addLearnedResultTag = () => {
   learnedResult.value.scope = addScopeTag(learnedResult.value.scope, learnedResultScopeInput)
 }
 
-const filterText = (s) => {
-  const q = searchQuery.value.trim().toLowerCase()
-  if (!q) return true
-  return (
-    s.name.toLowerCase().includes(q) ||
-    (s.scope && s.scope.toLowerCase().includes(q)) ||
-    (s.prompt && s.prompt.toLowerCase().includes(q))
-  )
+const searchQuery = ref('')
+const searchKeyword = ref('')
+let searchDebounceTimer = null
+
+async function loadCurrentTab(keyword = '') {
+  if (activeTab.value === 'my') {
+    await loadMySkills(keyword, mySkillsPage.value, mySkillsPageSize.value)
+  } else if (activeTab.value === 'learned') {
+    const result = await loadLearnedSkills(keyword, learnedSkillsPage.value, learnedSkillsPageSize.value)
+    learnedSkillsDisplay.value = result.list || []
+    learnedSkillsTotal.value = result.total || 0
+  } else if (activeTab.value === 'system') {
+    const result = await loadSystemSkills(keyword, systemSkillsPage.value, systemSkillsPageSize.value)
+    systemSkillsDisplay.value = result.list || []
+    systemSkillsTotal.value = result.total || 0
+  } else if (activeTab.value === 'favorites') {
+    const result = await loadFavoriteSkills(keyword, favoriteSkillsPage.value, favoriteSkillsPageSize.value)
+    favoriteSkillsDisplay.value = result.list || []
+    favoriteSkillsTotal.value = result.total || 0
+  }
 }
 
-const filteredMyStyles = computed(() => mySkills.value.filter(filterText))
-const filteredLearnedStyles = computed(() => learnedSkills.value.filter(filterText))
-const filteredSystemStyles = computed(() =>
-  systemSkills.value.filter(s => {
-    const q = searchQuery.value.trim().toLowerCase()
-    if (!q) return true
-    return (
-      s.name.toLowerCase().includes(q) ||
-      (s.desc && s.desc.toLowerCase().includes(q)) ||
-      (s.promptSummary && s.promptSummary.toLowerCase().includes(q)) ||
-      (s.prompt && s.prompt.toLowerCase().includes(q))
-    )
-  })
-)
+const onMySkillsPageChange = (page) => {
+  mySkillsPage.value = page
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onMySkillsPageSizeChange = (current, size) => {
+  mySkillsPageSize.value = size
+  mySkillsPage.value = 1
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onSystemSkillsPageChange = (page) => {
+  systemSkillsPage.value = page
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onSystemSkillsPageSizeChange = (current, size) => {
+  systemSkillsPageSize.value = size
+  systemSkillsPage.value = 1
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onLearnedSkillsPageChange = (page) => {
+  learnedSkillsPage.value = page
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onLearnedSkillsPageSizeChange = (current, size) => {
+  learnedSkillsPageSize.value = size
+  learnedSkillsPage.value = 1
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onFavoriteSkillsPageChange = (page) => {
+  favoriteSkillsPage.value = page
+  loadCurrentTab(searchKeyword.value)
+}
+
+const onFavoriteSkillsPageSizeChange = (current, size) => {
+  favoriteSkillsPageSize.value = size
+  favoriteSkillsPage.value = 1
+  loadCurrentTab(searchKeyword.value)
+}
+
+watch(searchQuery, (val) => {
+  clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    searchKeyword.value = (val || '').trim()
+  }, 300)
+})
+
+watch([activeTab, searchKeyword], () => {
+  mySkillsPage.value = 1
+  systemSkillsPage.value = 1
+  learnedSkillsPage.value = 1
+  favoriteSkillsPage.value = 1
+  loadCurrentTab(searchKeyword.value)
+}, { immediate: false })
 
 // 导入对话框状态
 const importDialogVisible = ref(false)
@@ -873,9 +1068,9 @@ const selectedSkillForModal = computed(() => {
     scope: s.scope || '',
     createdAt: s.createdAt || null,
     approvedAt: s.approvedAt || null,
-    excerpt1: s.excerpt1 || '',
-    excerpt2: s.excerpt2 || ''
-  }
+   excerpt1: s.excerpt1 || '',
+   excerpt2: s.excerpt2 || ''
+ }
 })
 
 const editingStyle = reactive({
@@ -883,14 +1078,18 @@ const editingStyle = reactive({
   name: '',
   desc: '',
   prompt: '',
-  scope: ''
+  scope: '',
+  templateBased: false,
+  promptExtra: { ...DEFAULT_PROMPT_EXTRA }
 })
 const editingStyleScopeInput = ref('')
 
 const errors = reactive({
   name: '',
   prompt: '',
-  scope: ''
+  scope: '',
+  role: '',
+  requirements: ''
 })
 
 const promptSummary = (prompt) => {
@@ -898,13 +1097,52 @@ const promptSummary = (prompt) => {
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
 }
 
+const displayPrompt = computed(() => {
+  if (!editingStyle.templateBased) return editingStyle.prompt
+  return buildPromptFromExtra(editingStyle.promptExtra)
+})
+
+function buildPromptFromExtra(extra) {
+  const parts = []
+  if (extra.role?.trim()) parts.push(`- 角色：${extra.role.trim()}`)
+  if (extra.audience?.trim()) parts.push(`- 受众：${extra.audience.trim()}`)
+  if (extra.requirements?.trim()) parts.push(`- 写作要求：\n${extra.requirements.trim()}`)
+  if (extra.tone?.trim()) parts.push(`- 语气：${extra.tone.trim()}`)
+  if (extra.restrictions?.trim()) parts.push(`- 禁区：${extra.restrictions.trim()}`)
+  return parts.join('\n\n')
+}
+
+function parsePromptExtra(raw) {
+  if (!raw) return null
+  try {
+    const obj = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return obj && obj.templateBased === true ? obj : null
+  } catch (e) {
+    return null
+  }
+}
+
+watch(() => editingStyle.promptExtra, () => {
+  if (editingStyle.templateBased) {
+    editingStyle.prompt = buildPromptFromExtra(editingStyle.promptExtra)
+  }
+}, { deep: true })
+
+watch(() => editingStyle.templateBased, (val) => {
+  if (val) {
+    editingStyle.prompt = buildPromptFromExtra(editingStyle.promptExtra)
+  }
+})
+
 const validate = () => {
   errors.name = ''
   errors.prompt = ''
   errors.scope = ''
+  errors.role = ''
+  errors.requirements = ''
 
   const name = editingStyle.name.trim()
-  const prompt = editingStyle.prompt.trim()
+  const prompt = displayPrompt.value.trim()
   const scope = editingStyle.scope.trim()
   let valid = true
 
@@ -927,6 +1165,17 @@ const validate = () => {
     valid = false
   }
 
+  if (editingStyle.templateBased) {
+    if (!editingStyle.promptExtra.role.trim()) {
+      errors.role = '请填写角色'
+      valid = false
+    }
+    if (!editingStyle.promptExtra.requirements.trim()) {
+      errors.requirements = '请填写写作要求'
+      valid = false
+    }
+  }
+
   const scopeTags = parseScopeTags(scope)
   const scopeError = validateScopeTags(scopeTags)
   if (scopeError) {
@@ -939,9 +1188,17 @@ const validate = () => {
 
 const isFormValid = computed(() => {
   const name = editingStyle.name.trim()
-  const prompt = editingStyle.prompt.trim()
+  const prompt = displayPrompt.value.trim()
   const scopeTags = parseScopeTags(editingStyle.scope)
-  return name && name.length <= 20 && prompt && prompt.length <= promptMaxLength.value && !validateScopeTags(scopeTags)
+  if (!name || name.length > 20) return false
+  if (isSkillNameExists(name, editingStyle.originalName)) return false
+  if (!prompt || prompt.length > promptMaxLength.value) return false
+  if (editingStyle.templateBased) {
+    if (!editingStyle.promptExtra.role.trim()) return false
+    if (!editingStyle.promptExtra.requirements.trim()) return false
+  }
+  if (validateScopeTags(scopeTags)) return false
+  return true
 })
 
 const goToCreate = () => {
@@ -950,10 +1207,14 @@ const goToCreate = () => {
   editingStyle.desc = ''
   editingStyle.prompt = ''
   editingStyle.scope = ''
+  editingStyle.templateBased = false
+  editingStyle.promptExtra = { ...DEFAULT_PROMPT_EXTRA }
   editingStyleScopeInput.value = ''
   errors.name = ''
   errors.prompt = ''
   errors.scope = ''
+  errors.role = ''
+  errors.requirements = ''
   editorMode.value = true
 }
 
@@ -963,10 +1224,25 @@ const goToEdit = (style) => {
   editingStyle.desc = style.desc === '自定义提示词' ? '' : (style.desc || '')
   editingStyle.prompt = style.prompt
   editingStyle.scope = style.scope || ''
+  editingStyle.templateBased = false
+  editingStyle.promptExtra = { ...DEFAULT_PROMPT_EXTRA }
   editingStyleScopeInput.value = ''
   errors.name = ''
   errors.prompt = ''
   errors.scope = ''
+  errors.role = ''
+  errors.requirements = ''
+  const extra = parsePromptExtra(style.promptExtra)
+  if (extra) {
+    editingStyle.templateBased = true
+    editingStyle.promptExtra = {
+      role: extra.role || '',
+      audience: extra.audience || '',
+      requirements: extra.requirements || '',
+      tone: extra.tone || '',
+      restrictions: extra.restrictions || ''
+    }
+  }
   editorMode.value = true
 }
 
@@ -982,22 +1258,28 @@ const saveStyle = async () => {
     return
   }
   try {
-    if (editingStyle.originalName) {
-      await updateCustomSkill(editingStyle.originalName, {
-        name: editingStyle.name,
-        description: editingStyle.desc,
-        prompt: editingStyle.prompt,
-        scope: editingStyle.scope
-      })
+    const isCreate = !editingStyle.originalName
+    const payload = {
+      name: editingStyle.name,
+      description: editingStyle.desc,
+      prompt: displayPrompt.value,
+      scope: editingStyle.scope,
+      promptExtra: editingStyle.templateBased
+        ? JSON.stringify({ templateBased: true, ...editingStyle.promptExtra })
+        : null
+    }
+    if (isCreate) {
+      await addCustomSkill(payload)
+      mySkillsPage.value = 1
     } else {
-      await addCustomSkill({
-        name: editingStyle.name,
-        description: editingStyle.desc,
-        prompt: editingStyle.prompt,
-        scope: editingStyle.scope
-      })
+      await updateCustomSkill(editingStyle.originalName, payload)
     }
     editorMode.value = false
+    await loadCurrentTab(searchKeyword.value)
+    if (!isCreate && currentSkill.value && currentSkill.value.name === editingStyle.originalName) {
+      const updated = mySkills.value.find(s => s.name === editingStyle.name)
+      if (updated) currentSkill.value = updated
+    }
   } catch {
     // composable 已 message.error，弹框保持打开让用户修改
   }
@@ -1032,6 +1314,14 @@ const deleteSkill = (name) => {
     onOk: async () => {
       try {
         await removeCustomSkill(name)
+        await loadCurrentTab(searchKeyword.value)
+        if (mySkills.value.length === 0 && mySkillsPage.value > 1) {
+          mySkillsPage.value -= 1
+          await loadCurrentTab(searchKeyword.value)
+        }
+        if (currentSkill.value && currentSkill.value.name === name) {
+          currentSkill.value = systemSkills.value[0] || null
+        }
       } catch {
         // composable 已 message.error
       }
@@ -1192,6 +1482,7 @@ const saveLearnedResult = async () => {
     await loadBenefits()
     learnedResult.value = null
     closeImportDialog()
+    await loadCurrentTab(searchKeyword.value)
   } catch {
     // 错误提示已在 composable 内 message.error
   } finally {
@@ -1207,7 +1498,14 @@ const deleteLearnedStyle = (s) => {
     cancelText: '取消',
     okButtonProps: { danger: true },
     centered: true,
-    onOk: () => removeLearnedSkill(s.bizNo)
+    onOk: async () => {
+      try {
+        await removeLearnedSkill(s.bizNo)
+        await loadCurrentTab(searchKeyword.value)
+      } catch {
+        // composable 已 message.error
+      }
+    }
   })
 }
 
@@ -1219,8 +1517,13 @@ const confirmUnfavorite = (s) => {
     cancelText: '再想想',
     okButtonProps: { danger: true },
     centered: true,
-    onOk: () => {
-      toggleFavorite(s.id)
+    onOk: async () => {
+      try {
+        await toggleFavorite(s.id)
+        await loadCurrentTab(searchKeyword.value)
+      } catch {
+        // composable 已 message.error
+      }
     }
   })
 }
@@ -1261,11 +1564,7 @@ const confirmPublish = async () => {
   try {
     await publishSkill(style.bizNo)
     await loadMySubmissions()
-    if (sourceType === 'my') {
-      await loadMySkills()
-    } else {
-      await loadLearnedSkills()
-    }
+    await loadCurrentTab(searchKeyword.value)
     message.success('提示词已提交审核')
   } catch (err) {
     message.error(err?.message || '提交失败')
@@ -1294,7 +1593,8 @@ const confirmUnpublish = (style, sourceType) => {
         await Promise.all([
           loadBenefits(),
           loadMySubmissions(),
-          loadMarketSkills()
+          loadMarketSkills(),
+          loadCurrentTab(searchKeyword.value)
         ])
         message.success('提示词已下架，发布额度已恢复')
       } catch (err) {
@@ -1879,6 +2179,150 @@ const useSelectedStyle = (style, source) => {
   margin-bottom: 12px;
 }
 
+.styles-pagination {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.styles-pagination :deep(.ant-pagination) {
+  color: var(--color-text-secondary);
+}
+
+.styles-pagination :deep(.ant-pagination-item) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.styles-pagination :deep(.ant-pagination-item a) {
+  color: var(--color-text-secondary);
+}
+
+.styles-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+
+.styles-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+
+.styles-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.styles-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+.styles-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.styles-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.styles-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.styles-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.styles-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-default);
+  cursor: not-allowed;
+}
+
+.styles-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-default);
+}
+
+.styles-pagination :deep(.ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-link-icon),
+.styles-pagination :deep(.ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-link-icon) {
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination {
+  border-top-color: #303030;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item) {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item a) {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
+}
+
 .style-editor-label--with-action {
   display: flex;
   align-items: center;
@@ -2385,6 +2829,36 @@ body[data-theme="dark"] .style-scope-hint {
 }
 
 body[data-theme="dark"] .modal-title {
+  color: #f0f0f0;
+}
+
+/* 基于模版创建 */
+.template-switch-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.template-switch-row .style-scope-hint {
+  margin-top: 0;
+}
+.template-prompt-preview {
+  width: 100%;
+  min-height: 160px;
+  padding: 14px 16px;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.7;
+  font-family: inherit;
+  background: #fafafa;
+  color: var(--color-text-primary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+body[data-theme="dark"] .template-prompt-preview {
+  background: #2a2a2a;
+  border-color: #434343;
   color: #f0f0f0;
 }
 </style>

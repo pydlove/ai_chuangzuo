@@ -91,9 +91,22 @@ public class ArticleServiceImpl implements ArticleService {
         if (!StringUtils.hasText(request.getBody())) {
             throw new BusinessException(ArticleErrorCode.ARTICLE_BODY_EMPTY);
         }
+        if (request.getTaskId() != null) {
+            Article existing = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
+                    .eq(Article::getTaskId, request.getTaskId())
+                    .eq(Article::getUserId, userId)
+                    .eq(Article::getIsDeleted, 0)
+                    .last("LIMIT 1"));
+            if (existing != null) {
+                log.info("taskId={} 已存在作品，直接返回已有 bizNo={}", request.getTaskId(), existing.getBizNo());
+                return existing.getBizNo();
+            }
+        }
+
         Article article = new Article();
         article.setBizNo(generateBizNo());
         article.setUserId(userId);
+        article.setTaskId(request.getTaskId());
         article.setTitle(request.getTitle().trim());
         article.setBody(request.getBody());
         article.setStyleOverrides(normalizeStyleOverrides(request.getStyleOverrides()));
@@ -257,6 +270,7 @@ public class ArticleServiceImpl implements ArticleService {
         LocalDateTime end = start.plusMonths(1);
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Article::getUserId, userId)
+                .eq(Article::getIsDeleted, 0)
                 .ge(Article::getCompletedAt, start)
                 .lt(Article::getCompletedAt, end);
         return articleMapper.selectCount(wrapper);

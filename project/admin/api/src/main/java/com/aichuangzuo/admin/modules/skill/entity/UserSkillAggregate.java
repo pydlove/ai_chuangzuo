@@ -40,6 +40,9 @@ public class UserSkillAggregate extends BaseEntity {
     /** 风格提示词。 */
     private String prompt;
 
+    /** 结构化提示词 JSON（templateBased/role/audience/requirements/tone/restrictions）。 */
+    private String promptExtra;
+
     /** 简短描述（系统预选用）。 */
     private String description;
 

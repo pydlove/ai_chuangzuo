@@ -15,3 +15,7 @@ export const getTopicTitleTask = (taskId) =>
 /** 逻辑删除标题。 */
 export const deleteTopicTitle = (id) =>
   request.delete(`/topic-titles/${id}`).then((res) => res.data)
+
+/** 批量逻辑删除标题。 */
+export const batchDeleteTopicTitles = (ids) =>
+  request.post('/topic-titles/batch/delete', { ids }).then((res) => res.data)

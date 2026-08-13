@@ -17,6 +17,7 @@ public class GlobalSkillVO {
     private String description;
     private String promptSummary;
     private String prompt;
+    private String promptExtra;
     private String scope;
     private String status;
     private String creatorName;

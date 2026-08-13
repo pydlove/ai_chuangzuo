@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 
 /**
  * 到期提醒发送记录，对应表 u_reminder_send_log。
- * 唯一键 (user_id, channel, send_date) 负责去重。
+ * 唯一键 (user_id, channel, send_date, trigger_type) 负责按触发类型去重：
+ * 自动任务（auto）和手动立即提醒（manual）互不影响。
  */
 @Getter
 @Setter

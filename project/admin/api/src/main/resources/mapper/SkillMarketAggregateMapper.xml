@@ -23,6 +23,7 @@
         LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
         WHERE s.is_deleted = 0
           <if test="enableStatus != null">AND s.enable_status = #{enableStatus}</if>
+          <if test="featured != null">AND s.featured = #{featured}</if>
           <if test="keyword != null and keyword != ''">
               AND (s.skill_name LIKE CONCAT('%', #{keyword}, '%')
                 OR u.nickname   LIKE CONCAT('%', #{keyword}, '%'))
@@ -37,6 +38,7 @@
         LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
         WHERE s.is_deleted = 0
           <if test="enableStatus != null">AND s.enable_status = #{enableStatus}</if>
+          <if test="featured != null">AND s.featured = #{featured}</if>
           <if test="keyword != null and keyword != ''">
               AND (s.skill_name LIKE CONCAT('%', #{keyword}, '%')
                 OR u.nickname   LIKE CONCAT('%', #{keyword}, '%'))

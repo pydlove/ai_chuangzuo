@@ -3,6 +3,7 @@ package com.aichuangzuo.user.infrastructure.storage;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,9 +23,14 @@ import java.util.Locale;
 public class LocalFileStorage {
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final int MAX_FILES_PER_UPLOAD = 20;
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png");
 
-    private final Path basePath = Paths.get("data", "uploads");
+    private final Path basePath;
+
+    public LocalFileStorage(@Value("${storage.local.base-path:data/uploads}") String basePath) {
+        this.basePath = Paths.get(basePath);
+    }
 
     /**
      * 存储文件，返回相对于 data/uploads 的访问路径。
@@ -37,6 +43,9 @@ public class LocalFileStorage {
     public List<String> store(Long userId, String subDir, List<MultipartFile> files) {
         if (files == null || files.isEmpty()) {
             return List.of();
+        }
+        if (files.size() > MAX_FILES_PER_UPLOAD) {
+            throw new BusinessException(LeaderboardErrorCode.INCOME_FILE_INVALID);
         }
 
         Path dir = basePath.resolve("leaderboard").resolve(userId.toString()).resolve(subDir);

@@ -65,11 +65,12 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
             PlatformUser user = platformUserMapper.selectById(request.getUserId());
             entity.setUserId(request.getUserId());
             entity.setNickname(user != null && user.getNickname() != null ? user.getNickname() : request.getNickname());
+            entity.setAvatarUrl(user != null ? user.getAvatarUrl() : null);
         } else {
             entity.setUserId(null);
             entity.setNickname(request.getNickname());
+            entity.setAvatarUrl(request.getAvatarUrl());
         }
-        entity.setAvatarUrl(null);
         entity.setWinTime(request.getWinTime());
         entity.setSortOrder(request.getSortOrder() == null ? 0 : request.getSortOrder());
         if (request.getId() != null) {

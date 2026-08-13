@@ -14,10 +14,17 @@ import jakarta.mail.internet.MimeMultipart;
  */
 public final class EmailMessageFactory {
 
+    private static final String DEFAULT_HOME_URL = "https://aichuangzuo.com/pricing";
+
     private EmailMessageFactory() {
     }
 
     public static void populateCodeEmail(MimeMessage msg, String from, String toEmail, String code)
+            throws MessagingException {
+        populateCodeEmail(msg, from, toEmail, code, DEFAULT_HOME_URL);
+    }
+
+    public static void populateCodeEmail(MimeMessage msg, String from, String toEmail, String code, String homeUrl)
             throws MessagingException {
         msg.setFrom(new InternetAddress(from));
         msg.setRecipients(Message.RecipientType.TO, InternetAddress.parse(toEmail, false));
@@ -27,32 +34,32 @@ public final class EmailMessageFactory {
 
         // text/plain 分支
         MimeBodyPart text = new MimeBodyPart();
-        text.setText(buildPlainText(code), "UTF-8");
+        text.setText(buildPlainText(code, homeUrl), "UTF-8");
         mp.addBodyPart(text);
 
         // text/html 分支
         MimeBodyPart html = new MimeBodyPart();
-        html.setContent(buildHtml(code), "text/html;charset=UTF-8");
+        html.setContent(buildHtml(code, homeUrl), "text/html;charset=UTF-8");
         mp.addBodyPart(html);
 
         msg.setContent(mp);
         msg.saveChanges();
     }
 
-    private static String buildPlainText(String code) {
+    private static String buildPlainText(String code, String homeUrl) {
         return "Hi，欢迎加入爱创作！\n\n"
                 + "你的验证码是：" + code + "\n"
                 + "验证码 5 分钟内有效，请勿泄露给他人。\n\n"
                 + "爱创作是一款 AI 自媒体写作助手。只需输入一个写作方向，"
                 + "AI 会在 3 分钟内生成一篇结构完整、适配公众号、小红书、今日头条、"
-                + "抖音图文、百家号等平台的自媒体文章。\n\n"
-                + "核心功能：多平台适配、一键导出 Word\n"
-                + "了解会员权益：https://aichuangzuo.com/pricing\n\n"
+                + "抖音图文、百家号等平台的自媒体文章，让自媒体创作更轻松。\n\n"
+                + "你还可以通过平台活动赚取收益：约稿中心、提示词市场、邀请好友、排行榜、抽奖等。\n"
+                + "了解详情：" + homeUrl + "\n\n"
                 + "本邮件由系统自动发出，请勿直接回复。\n"
                 + "© 2026 杭州爱启云网络科技有限公司";
     }
 
-    private static String buildHtml(String code) {
+    private static String buildHtml(String code, String homeUrl) {
         return """
                 <!DOCTYPE html>
                 <html lang="zh-CN">
@@ -87,15 +94,14 @@ public final class EmailMessageFactory {
                         </td></tr>
                         <tr><td style="padding:0 32px;"><div style="height:1px;background-color:#eeeeee;"></div></td></tr>
                         <tr><td style="padding:24px 32px;">
-                          <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:8px;">AI 帮你高效创作自媒体内容</div>
+                          <div style="font-size:14px;font-weight:600;color:#1a1a1a;margin-bottom:8px;">AI 让自媒体创作更轻松</div>
                           <div style="font-size:13px;color:#595959;line-height:1.7;margin-bottom:12px;">
                             输入一个写作方向，AI 会在 3 分钟内生成一篇结构完整、适配公众号、小红书、今日头条、抖音图文、百家号等平台的自媒体文章。
                           </div>
-                          <div style="margin-bottom:16px;">
-                            <span style="display:inline-block;background-color:#fff0f2;color:#ff2442;font-size:12px;padding:4px 10px;border-radius:4px;margin-right:8px;">多平台适配</span>
-                            <span style="display:inline-block;background-color:#fff0f2;color:#ff2442;font-size:12px;padding:4px 10px;border-radius:4px;">一键导出 Word</span>
+                          <div style="font-size:13px;color:#595959;line-height:1.7;margin-bottom:12px;">
+                            你还可以通过平台活动赚取收益：约稿中心、提示词市场、邀请好友、排行榜、抽奖等。
                           </div>
-                          <a href="https://aichuangzuo.com/pricing" style="font-size:13px;color:#ff2442;text-decoration:none;">了解会员权益 &rarr;</a>
+                          <a href="%s" style="font-size:13px;color:#ff2442;text-decoration:none;">了解详情 &rarr;</a>
                         </td></tr>
                         <tr><td style="padding:16px 32px 32px;font-size:11px;color:#8c8c8c;line-height:1.6;border-top:1px solid #eeeeee;">
                           本邮件由系统自动发出，请勿直接回复。<br>
@@ -106,6 +112,6 @@ public final class EmailMessageFactory {
                   </table>
                 </body>
                 </html>
-                """.formatted(code);
+                """.formatted(code, homeUrl);
     }
 }

@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.topictitle.controller;
 
+import com.aichuangzuo.admin.modules.topictitle.dto.request.BatchDeleteTopicTitleRequest;
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleGenerateRequest;
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleQueryRequest;
 import com.aichuangzuo.admin.modules.topictitle.entity.TopicTitleTask;
@@ -72,5 +73,15 @@ public class TopicTitleAdminController {
         log.info("管理端删除标题, titleId={}", id);
         topicTitleService.delete(id);
         return Result.success();
+    }
+
+    /**
+     * 批量逻辑删除标题。
+     */
+    @PostMapping("/batch/delete")
+    public Result<Integer> batchDelete(@Valid @RequestBody BatchDeleteTopicTitleRequest request) {
+        log.info("管理端批量删除标题, ids={}", request.getIds());
+        int deleted = topicTitleService.deleteBatch(request.getIds());
+        return Result.success(deleted);
     }
 }

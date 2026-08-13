@@ -11,6 +11,7 @@ import com.aichuangzuo.user.modules.skill.service.UserSkillService;
 import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;
 import com.aichuangzuo.user.modules.skill.vo.SystemSkillVO;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -37,18 +38,24 @@ public class UserSkillController {
     private final SkillAnalyzeService skillAnalyzeService;
 
     /**
-     * 获取当前登录用户的风格列表。
+     * 分页获取当前登录用户的风格列表。
      *
      * @param sourceType 来源类型：1-自定义（默认），2-学习
-     * @return 风格列表
+     * @param keyword    关键词，匹配名称、适用范围、提示词或描述
+     * @param page       页码，默认 1
+     * @param pageSize   每页条数，默认 12
+     * @return 分页风格列表
      */
-    @Operation(summary = "获取我的风格列表")
+    @Operation(summary = "分页获取我的风格列表")
     @GetMapping
-    public Result<List<UserSkillVO>> listMySkills(
-            @RequestParam(name = "sourceType", required = false, defaultValue = "1") Integer sourceType) {
+    public Result<IPage<UserSkillVO>> listMySkills(
+            @RequestParam(name = "sourceType", required = false, defaultValue = "1") Integer sourceType,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(name = "pageSize", required = false, defaultValue = "12") int pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        log.info("获取我的风格列表 userId={} sourceType={}", userId, sourceType);
-        return Result.success(userSkillService.listMySkills(sourceType));
+        log.info("分页获取我的风格列表 userId={} sourceType={} keyword={} page={} pageSize={}", userId, sourceType, keyword, page, pageSize);
+        return Result.success(userSkillService.listMySkills(sourceType, keyword, page, pageSize));
     }
 
     /**
@@ -112,15 +119,17 @@ public class UserSkillController {
     }
 
     /**
-     * 获取当前启用的系统预设风格。
+     * 分页获取当前启用的系统预设风格。
      */
     @Operation(summary = "获取系统预设风格")
     @GetMapping("/system-skills")
-    public Result<List<SystemSkillVO>> listSystemSkills(
-            @RequestParam(name = "keyword", required = false) String keyword) {
+    public Result<IPage<SystemSkillVO>> listSystemSkills(
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(name = "pageSize", required = false, defaultValue = "12") int pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        log.info("获取系统预设风格 userId={} keyword={}", userId, keyword);
-        return Result.success(systemSkillService.listEnabled(keyword));
+        log.info("获取系统预设风格 userId={} keyword={} page={} pageSize={}", userId, keyword, page, pageSize);
+        return Result.success(systemSkillService.listEnabled(keyword, page, pageSize));
     }
 
     /**

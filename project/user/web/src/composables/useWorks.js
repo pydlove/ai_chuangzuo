@@ -34,7 +34,7 @@ export function useWorks() {
     try {
       const data = await listArticles({
         page: 1,
-        pageSize: 100,
+        pageSize: 10,
         ...params
       })
       articles.value = (data.list || []).map(normalizeArticle)

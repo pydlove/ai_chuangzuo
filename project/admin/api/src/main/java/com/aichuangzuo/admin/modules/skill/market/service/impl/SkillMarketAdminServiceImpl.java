@@ -1,7 +1,13 @@
 package com.aichuangzuo.admin.modules.skill.market.service.impl;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketOverviewDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketRow;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopPublisherDTO;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopSkillDTO;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTrendDTO;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketUsageRecordDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
@@ -9,7 +15,10 @@ import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.admin.modules.skill.market.enums.AdminSkillMarketErrorCode;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketAggregateMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketStatsMapper;
 import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketAdminService;
+import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
+import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
@@ -42,6 +51,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     private final SkillMarketMapper skillMarketMapper;
     private final SkillMarketAggregateMapper aggregateMapper;
     private final PlatformUserMapper platformUserMapper;
+    private final SkillMarketStatsMapper statsMapper;
 
     @Override
     public IPage<SkillMarketVO> page(SkillMarketPageRequest request) {
@@ -49,8 +59,9 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         String keyword = StringUtils.hasText(request.getKeyword()) ? request.getKeyword().trim() : null;
 
         List<SkillMarketRow> rows = aggregateMapper.selectMarketStylePage(
-                request.getEnableStatus(), keyword, offset, request.getPageSize());
-        long total = aggregateMapper.countMarketStylePage(request.getEnableStatus(), keyword);
+                request.getEnableStatus(), request.getFeatured(), keyword, offset,
+                request.getPageSize() != null ? request.getPageSize().longValue() : 20L);
+        long total = aggregateMapper.countMarketStylePage(request.getEnableStatus(), request.getFeatured(), keyword);
 
         List<SkillMarketVO> records = rows.stream().map(this::toVo).toList();
 
@@ -148,6 +159,32 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         log.info("软删风格市场条目 bizNo={}", bizNo);
     }
 
+    @Override
+    public MarketSkillStatsVO stats() {
+        SkillMarketOverviewDTO overview = statsMapper.selectOverview();
+        List<SkillMarketTopSkillDTO> topSkills = statsMapper.selectTopSkillsByTotalUses(10);
+        List<SkillMarketTopPublisherDTO> topPublishers = statsMapper.selectTopPublishersByWeeklyEarnings(10);
+        List<SkillMarketTrendDTO> trends = statsMapper.selectUsageTrend(7);
+
+        MarketSkillStatsVO vo = new MarketSkillStatsVO();
+        vo.setOverview(toOverview(overview));
+        vo.setTopSkills(topSkills.stream().map(this::toTopSkill).toList());
+        vo.setTopPublishers(topPublishers.stream().map(this::toTopPublisher).toList());
+        vo.setUsageTrend(trends.stream().map(this::toTrendItem).toList());
+        return vo;
+    }
+
+    @Override
+    public PageResult<SkillMarketUsageRecordVO> listUsageRecords(String bizNo, int pageNum, int pageSize) {
+        long offset = (long) (pageNum - 1) * pageSize;
+        long total = statsMapper.countUsageRecords(bizNo);
+        List<SkillMarketUsageRecordDTO> rows = total == 0
+                ? java.util.Collections.emptyList()
+                : statsMapper.selectUsageRecords(bizNo, offset, pageSize);
+        List<SkillMarketUsageRecordVO> items = rows.stream().map(this::toUsageRecord).toList();
+        return new PageResult<>(items, total, pageNum, pageSize);
+    }
+
     // -------- helpers --------
 
     private SkillMarket loadByBizNo(String bizNo) {
@@ -238,6 +275,63 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         vo.setStatus(row.getEnableStatus() != null && row.getEnableStatus() == 1 ? "enabled" : "disabled");
         vo.setFeatured(row.getFeatured() != null && row.getFeatured() == 1 ? 1 : 0);
         vo.setCreatedAt(row.getCreatedAt());
+        return vo;
+    }
+
+    private MarketSkillStatsVO.Overview toOverview(SkillMarketOverviewDTO dto) {
+        MarketSkillStatsVO.Overview vo = new MarketSkillStatsVO.Overview();
+        if (dto == null) {
+            return vo;
+        }
+        vo.setTotalSkills(dto.getTotalSkills());
+        vo.setEnabledSkills(dto.getEnabledSkills());
+        vo.setDisabledSkills(dto.getDisabledSkills());
+        vo.setFeaturedSkills(dto.getFeaturedSkills());
+        vo.setTotalUses(dto.getTotalUses());
+        vo.setWeeklyUses(dto.getWeeklyUses());
+        vo.setTotalEarnings(dto.getTotalEarnings());
+        vo.setWeeklyEarnings(dto.getWeeklyEarnings());
+        vo.setMilestoneBonus(dto.getMilestoneBonus());
+        return vo;
+    }
+
+    private MarketSkillStatsVO.TopSkill toTopSkill(SkillMarketTopSkillDTO dto) {
+        MarketSkillStatsVO.TopSkill vo = new MarketSkillStatsVO.TopSkill();
+        vo.setSkillName(dto.getSkillName());
+        vo.setPublisherName(dto.getPublisherName());
+        vo.setPublisherUserId(dto.getPublisherUserId());
+        vo.setTotalUses(dto.getTotalUses());
+        vo.setWeeklyUses(dto.getWeeklyUses());
+        vo.setWeeklyEarnings(dto.getWeeklyEarnings());
+        vo.setMilestoneBonus(dto.getMilestoneBonus());
+        return vo;
+    }
+
+    private MarketSkillStatsVO.TopPublisher toTopPublisher(SkillMarketTopPublisherDTO dto) {
+        MarketSkillStatsVO.TopPublisher vo = new MarketSkillStatsVO.TopPublisher();
+        vo.setPublisherUserId(dto.getPublisherUserId());
+        vo.setPublisherName(dto.getPublisherName());
+        vo.setSkillCount(dto.getSkillCount());
+        vo.setTotalUses(dto.getTotalUses());
+        vo.setWeeklyEarnings(dto.getWeeklyEarnings());
+        return vo;
+    }
+
+    private MarketSkillStatsVO.TrendItem toTrendItem(SkillMarketTrendDTO dto) {
+        MarketSkillStatsVO.TrendItem vo = new MarketSkillStatsVO.TrendItem();
+        vo.setDate(dto.getDate());
+        vo.setUses(dto.getUses());
+        vo.setEarnings(dto.getEarnings());
+        return vo;
+    }
+
+    private SkillMarketUsageRecordVO toUsageRecord(SkillMarketUsageRecordDTO dto) {
+        SkillMarketUsageRecordVO vo = new SkillMarketUsageRecordVO();
+        vo.setUserId(dto.getUserId());
+        vo.setUserNickname(dto.getUserNickname());
+        vo.setTaskBizNo(dto.getTaskBizNo());
+        vo.setArticleBizNo(dto.getArticleBizNo());
+        vo.setCompletedAt(dto.getCompletedAt());
         return vo;
     }
 }

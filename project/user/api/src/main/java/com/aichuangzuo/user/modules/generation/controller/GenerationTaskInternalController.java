@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.generation.service.GenerationTaskRefundService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +36,7 @@ public class GenerationTaskInternalController {
     private final ArticleService articleService;
     private final BenefitService benefitService;
     private final MessageService messageService;
+    private final GenerationTaskRefundService generationTaskRefundService;
 
     /**
      * admin worker 调入，保存生成的文章并返回 article.biz_no。
@@ -63,6 +65,7 @@ public class GenerationTaskInternalController {
         req.setTags(asStringList(payload.get("tags")));
         req.setWordCount(asInt(payload.get("wordCount")));
         req.setCompletedAt(LocalDateTime.now());
+        req.setTaskId(taskId);
 
         String bizNo = articleService.save(userId, req);
         log.info("task={} user={} article 保存成功 bizNo={}", taskId, userId, bizNo);
@@ -89,7 +92,7 @@ public class GenerationTaskInternalController {
         if (taskId == null || userId == null) {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }
-        benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
+        generationTaskRefundService.refundOnce(taskId, userId, ARTICLE_QUOTA_BENEFIT);
         log.info("task={} user={} 退文章额度成功", taskId, userId);
         return Result.success();
     }

@@ -3,6 +3,8 @@ package com.aichuangzuo.admin.modules.topictitle.worker;
 import com.aichuangzuo.admin.modules.topictitle.entity.TopicTitleTask;
 import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleTaskMapper;
 import com.aichuangzuo.admin.modules.topictitle.service.TopicTitleService;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,35 +29,41 @@ public class TopicTitleTaskWorker {
     private final TopicTitleTaskMapper taskMapper;
     private final TopicTitleService topicTitleService;
     private final Executor executor;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     public TopicTitleTaskWorker(TopicTitleTaskMapper taskMapper,
                                 TopicTitleService topicTitleService,
-                                @Qualifier("topicTitleTaskExecutor") Executor executor) {
+                                @Qualifier("topicTitleTaskExecutor") Executor executor,
+                                ScheduledTaskExecutor scheduledTaskExecutor) {
         this.taskMapper = taskMapper;
         this.topicTitleService = topicTitleService;
         this.executor = executor;
+        this.scheduledTaskExecutor = scheduledTaskExecutor;
     }
 
+    @ScheduledTask(key = "topic_title_task_poll", name = "AI 标题生成任务轮询", description = "每秒从 t_topic_title_task 抢一条 QUEUED 任务并提交 AI 执行", triggerType = "fixed_delay", expression = "1000", sortOrder = 80)
     @Scheduled(fixedDelay = 1000)
     public void poll() {
-        TopicTitleTask next;
-        try {
-            next = taskMapper.selectNextQueued();
-        } catch (Exception e) {
-            log.warn("TopicTitleTaskWorker poll DB 失败: {}", e.getMessage());
-            return;
-        }
-        if (next == null) {
-            return;
-        }
-        log.info("TopicTitleTaskWorker 抢到任务 taskId={} count={}", next.getId(), next.getCount());
-        executor.execute(() -> {
+        scheduledTaskExecutor.executeAuto("topic_title_task_poll", () -> {
+            TopicTitleTask next;
             try {
-                topicTitleService.executeTask(next.getId());
+                next = taskMapper.selectNextQueued();
             } catch (Exception e) {
-                log.error("TopicTitleTaskWorker 执行 taskId={} 异常: {}",
-                        next.getId(), e.getMessage(), e);
+                log.warn("TopicTitleTaskWorker poll DB 失败: {}", e.getMessage());
+                return;
             }
+            if (next == null) {
+                return;
+            }
+            log.info("TopicTitleTaskWorker 抢到任务 taskId={} count={}", next.getId(), next.getCount());
+            executor.execute(() -> {
+                try {
+                    topicTitleService.executeTask(next.getId());
+                } catch (Exception e) {
+                    log.error("TopicTitleTaskWorker 执行 taskId={} 异常: {}",
+                            next.getId(), e.getMessage(), e);
+                }
+            });
         });
     }
 }

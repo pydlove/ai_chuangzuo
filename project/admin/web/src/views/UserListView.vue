@@ -32,6 +32,10 @@
           <template #icon><PlusOutlined /></template>
           手动创建
         </a-button>
+        <a-button v-if="selectedRowKeys.length > 0" danger @click="confirmBatchDelete">
+          <template #icon><DeleteOutlined /></template>
+          批量删除 ({{ selectedRowKeys.length }})
+        </a-button>
         <a-button @click="downloadTemplate">
           <template #icon><DownloadOutlined /></template>
           下载导入模板
@@ -58,6 +62,7 @@
         :scroll="{ x: 'max-content' }"
         row-key="id"
         size="middle"
+        :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'email'">
@@ -97,7 +102,15 @@
             <span v-else style="color: #8c8c8c">—</span>
           </template>
           <template v-else-if="column.key === 'invitedCount'">
-            <a-tag :color="record.invitedCount > 0 ? 'green' : 'default'">{{ record.invitedCount || 0 }}</a-tag>
+            <a-button
+              v-if="record.invitedCount > 0"
+              type="link"
+              size="small"
+              @click="openInviteModal(record)"
+            >
+              {{ record.invitedCount }}
+            </a-button>
+            <span v-else style="color: #8c8c8c">0</span>
           </template>
           <template v-else-if="column.key === 'membershipExpireAt'">
             <span v-if="record.membershipExpireAt">{{ formatDateTime(record.membershipExpireAt) }}</span>
@@ -518,7 +531,8 @@
     <a-modal
       v-model:open="inviteModalVisible"
       title="邀请关系"
-      width="720"
+      width="100%"
+      :style="{ maxWidth: '1280px' }"
       :footer="null"
       @cancel="closeInviteModal"
     >
@@ -544,7 +558,7 @@
             </a-descriptions-item>
           </a-descriptions>
 
-          <div class="invite-section-title">邀请列表（{{ inviteDetail.invitees.length }} 人）</div>
+          <div class="invite-section-title">邀请列表（{{ inviteDetail.total || 0 }} 人）</div>
           <a-table
             :columns="inviteColumns"
             :data-source="inviteDetail.invitees"
@@ -564,6 +578,18 @@
               </template>
             </template>
           </a-table>
+          <div class="invite-tab-pagination">
+            <a-pagination
+              :current="invitePage"
+              :page-size="invitePageSize"
+              :total="inviteDetail.total || 0"
+              :page-size-options="['10', '20', '50']"
+              show-size-changer
+              show-total
+              @change="handleInvitePageChange"
+              @show-size-change="handleInvitePageChange"
+            />
+          </div>
         </div>
       </a-spin>
     </a-modal>
@@ -671,7 +697,7 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
+import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
 import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
@@ -693,7 +719,8 @@ const {
   handleStatusChange,
   handleResetPassword,
   handleCreateUser,
-  handleDeleteUser
+  handleDeleteUser,
+  handleBatchDeleteUsers
 } = useUserManagement()
 
 const columns = [
@@ -821,6 +848,10 @@ const inviteModalVisible = ref(false)
 const inviteDetail = ref(null)
 const inviteLoading = ref(false)
 const inviteTarget = ref(null)
+const invitePage = ref(1)
+const invitePageSize = ref(10)
+
+const selectedRowKeys = ref([])
 
 const editModalVisible = ref(false)
 const editFormRef = ref()
@@ -925,6 +956,28 @@ const confirmDelete = (user) => {
     okType: 'danger',
     cancelText: '取消',
     onOk: () => handleDeleteUser(user)
+  })
+}
+
+const onSelectChange = (keys) => {
+  selectedRowKeys.value = keys
+}
+
+const confirmBatchDelete = () => {
+  if (selectedRowKeys.value.length === 0) {
+    message.warning('请至少选择一个用户')
+    return
+  }
+  Modal.confirm({
+    title: `确定删除选中的 ${selectedRowKeys.value.length} 个用户？`,
+    content: '删除后不可恢复，请谨慎操作。',
+    okText: '确认删除',
+    okType: 'danger',
+    cancelText: '取消',
+    onOk: async () => {
+      await handleBatchDeleteUsers(selectedRowKeys.value)
+      selectedRowKeys.value = []
+    }
   })
 }
 
@@ -1263,15 +1316,17 @@ const publishStatusColor = (status) => {
   return map[status] || 'default'
 }
 
-const openInviteModal = async (user) => {
+const openInviteModal = async (user, page = 1, pageSize = 10) => {
   inviteTarget.value = user
+  invitePage.value = page
+  invitePageSize.value = pageSize
   inviteLoading.value = true
   inviteModalVisible.value = true
   try {
-    inviteDetail.value = await getUserInvites(user.id)
+    inviteDetail.value = await getUserInvites(user.id, invitePage.value, invitePageSize.value)
   } catch (error) {
     message.error(error.message || '加载邀请关系失败')
-    inviteDetail.value = { userId: user.id, inviteCode: user.inviteCode, inviter: null, invitees: [] }
+    inviteDetail.value = { userId: user.id, inviteCode: user.inviteCode, inviter: null, invitees: [], total: 0, page, pageSize }
   } finally {
     inviteLoading.value = false
   }
@@ -1281,6 +1336,13 @@ const closeInviteModal = () => {
   inviteModalVisible.value = false
   inviteDetail.value = null
   inviteTarget.value = null
+  invitePage.value = 1
+  invitePageSize.value = 10
+}
+
+const handleInvitePageChange = (p, size) => {
+  if (!inviteTarget.value) return
+  openInviteModal(inviteTarget.value, p, size || invitePageSize.value)
 }
 
 const downloadTemplate = async () => {
@@ -1415,6 +1477,12 @@ onMounted(() => {
 
 .invite-modal-content .ant-descriptions {
   margin-bottom: 8px;
+}
+
+.invite-tab-pagination {
+  margin-top: 16px;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .skill-tab-toolbar {

@@ -14,6 +14,8 @@ public class GenerationTaskAdminVO {
     private Integer status;
     private String statusLabel;
     private Long modelConfigId;
+    /** 模型配置展示：名称/供应商，如 "默认key/MiniMax"。 */
+    private String modelConfigDisplay;
     private Integer wordLimitTarget;
     private Integer retryCount;
     /** 用户提交的标题。 */

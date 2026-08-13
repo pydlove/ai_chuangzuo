@@ -22,19 +22,19 @@
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'learned' }]"
-        @click="styleTab = 'learned'; loadLearnedSkills()"
+        @click="styleTab = 'learned'; loadLearnedSkillsTab()"
       >
         学习
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'favorites' }]"
-        @click="styleTab = 'favorites'; loadFavoriteSkills()"
+        @click="styleTab = 'favorites'; loadFavoriteSkillsTab()"
       >
         收藏
       </button>
       <button
         :class="['style-tab', { active: styleTab === 'system' }]"
-        @click="styleTab = 'system'"
+        @click="styleTab = 'system'; loadSystemSkillsTab()"
       >
         系统
       </button>
@@ -42,109 +42,165 @@
 
     <div class="style-content">
       <!-- 系统预设 -->
-      <div v-show="styleTab === 'system'" class="style-grid">
-        <SkillCard
-          v-for="s in systemSkills"
-          :key="s.name"
-          :name="s.name"
-          :prompt="s.promptSummary"
-          :scope="s.scope"
-          size="compact"
-          :selected="selectedStyleName === s.name"
-          clickable
-          show-view-btn
-          @click="selectStyle(s)"
-          @view="openPromptModal(s)"
-        >
-          <template #meta>{{ s.desc }}</template>
-        </SkillCard>
+      <div v-show="styleTab === 'system'" class="style-tab-pane">
+        <div class="style-grid">
+          <SkillCard
+            v-for="s in systemList"
+            :key="s.name"
+            :name="s.name"
+            :prompt="s.promptSummary"
+            :scope="s.scope"
+            size="compact"
+            :selected="selectedStyleName === s.name"
+            clickable
+            show-view-btn
+            @click="selectStyle(s)"
+            @view="openPromptModal(s)"
+          >
+            <template #meta>{{ s.desc }}</template>
+          </SkillCard>
+        </div>
+        <div v-if="systemTotal > systemPageSize" class="style-pagination">
+          <a-pagination
+            v-model:current="systemPage"
+            v-model:pageSize="systemPageSize"
+            :total="systemTotal"
+            :page-size-options="pageSizeOptions"
+            show-size-changer
+            show-quick-jumper
+            @change="onSystemPageChange"
+            @showSizeChange="onSystemPageSizeChange"
+          />
+        </div>
       </div>
 
       <!-- 我的提示词 -->
-      <div v-show="styleTab === 'my'" class="style-grid">
-        <div class="style-add-card" @click="goToSkillsPage">
-          <div class="style-add-icon">+</div>
-          <div class="style-add-text">新建我的提示词</div>
+      <div v-show="styleTab === 'my'" class="style-tab-pane">
+        <div class="style-grid">
+          <div class="style-add-card" @click="goToSkillsPage">
+            <div class="style-add-icon">+</div>
+            <div class="style-add-text">新建我的提示词</div>
+          </div>
+          <SkillCard
+            v-for="m in myList"
+            :key="m.name"
+            :name="m.name"
+            :prompt="promptSummary(m.prompt)"
+            :scope="m.scope"
+            size="compact"
+            :selected="selectedStyleName === m.name"
+            clickable
+            show-view-btn
+            @click="selectStyle(m)"
+            @view="openPromptModal(m)"
+          >
+            <template #meta>
+              <span>{{ m.desc }}</span>
+              <span class="style-card-meta-dot">·</span>
+              <span>已用 {{ m.count }} 次</span>
+            </template>
+          </SkillCard>
         </div>
-        <SkillCard
-          v-for="m in mySkills"
-          :key="m.name"
-          :name="m.name"
-          :prompt="promptSummary(m.prompt)"
-          :scope="m.scope"
-          size="compact"
-          :selected="selectedStyleName === m.name"
-          clickable
-          show-view-btn
-          @click="selectStyle(m)"
-          @view="openPromptModal(m)"
-        >
-          <template #meta>
-            <span>{{ m.desc }}</span>
-            <span class="style-card-meta-dot">·</span>
-            <span>已用 {{ m.count }} 次</span>
-          </template>
-        </SkillCard>
+        <div v-if="myTotal > myPageSize" class="style-pagination">
+          <a-pagination
+            v-model:current="myPage"
+            v-model:pageSize="myPageSize"
+            :total="myTotal"
+            :page-size-options="pageSizeOptions"
+            show-size-changer
+            show-quick-jumper
+            @change="onMyPageChange"
+            @showSizeChange="onMyPageSizeChange"
+          />
+        </div>
       </div>
 
       <!-- 学习的提示词 -->
-      <div v-show="styleTab === 'learned'" class="style-grid">
-        <div
-          v-if="learnedSkills.length === 0"
-          class="style-empty style-empty-text"
-        >
-          还没有学习过的提示词，请前往「我的提示词」页面学习。
+      <div v-show="styleTab === 'learned'" class="style-tab-pane">
+        <div class="style-grid">
+          <div
+            v-if="learnedList.length === 0"
+            class="style-empty style-empty-text"
+          >
+            还没有学习过的提示词，请前往「我的提示词」页面学习。
+          </div>
+          <SkillCard
+            v-for="l in learnedList"
+            v-else
+            :key="l.name"
+            :name="l.name"
+            :prompt="promptSummary(l.prompt)"
+            :scope="l.scope"
+            size="compact"
+            avatar-variant="learned"
+            :selected="selectedStyleName === l.name"
+            clickable
+            show-view-btn
+            @click="selectStyle(l)"
+            @view="openPromptModal(l)"
+          >
+            <template #meta>学习 · {{ (l.createdAt || '').slice(0, 10) }}</template>
+          </SkillCard>
         </div>
-        <SkillCard
-          v-for="l in learnedSkills"
-          v-else
-          :key="l.name"
-          :name="l.name"
-          :prompt="promptSummary(l.prompt)"
-          :scope="l.scope"
-          size="compact"
-          avatar-variant="learned"
-          :selected="selectedStyleName === l.name"
-          clickable
-          show-view-btn
-          @click="selectStyle(l)"
-          @view="openPromptModal(l)"
-        >
-          <template #meta>学习 · {{ (l.createdAt || '').slice(0, 10) }}</template>
-        </SkillCard>
+        <div v-if="learnedTotal > learnedPageSize" class="style-pagination">
+          <a-pagination
+            v-model:current="learnedPage"
+            v-model:pageSize="learnedPageSize"
+            :total="learnedTotal"
+            :page-size-options="pageSizeOptions"
+            show-size-changer
+            show-quick-jumper
+            @change="onLearnedPageChange"
+            @showSizeChange="onLearnedPageSizeChange"
+          />
+        </div>
       </div>
 
       <!-- 收藏的提示词 -->
-      <div v-show="styleTab === 'favorites'" class="style-grid">
-        <div
-          v-if="favoriteSkills.length === 0"
-          class="style-empty style-empty-text"
-        >
-          还没有收藏的提示词，去
-          <button class="style-empty-link" @click="goToSkillMarket">提示词市场</button>
-          收藏喜欢的提示词吧。
+      <div v-show="styleTab === 'favorites'" class="style-tab-pane">
+        <div class="style-grid">
+          <div
+            v-if="favoriteList.length === 0"
+            class="style-empty style-empty-text"
+          >
+            还没有收藏的提示词，去
+            <button class="style-empty-link" @click="goToSkillMarket">提示词市场</button>
+            收藏喜欢的提示词吧。
+          </div>
+          <SkillCard
+            v-for="f in favoriteList"
+            v-else
+            :key="f.id"
+            :name="f.name"
+            :prompt="promptSummary(f.prompt)"
+            :scope="f.scope"
+            size="compact"
+            :selected="selectedStyleName === f.name"
+            :clickable="f.status === 'approved'"
+            :class="{ 'favorite-offline': f.status !== 'approved' }"
+            show-view-btn
+            @click="selectFavoriteStyle(f)"
+            @view="openPromptModal(f)"
+          >
+            <template #meta>
+              <span :class="['favorite-status-badge', f.status !== 'approved' ? 'offline' : '']">
+                {{ f.status === 'approved' ? 'by ' + f.creatorName : '已下架' }}
+              </span>
+            </template>
+          </SkillCard>
         </div>
-        <SkillCard
-          v-for="f in favoriteSkills"
-          v-else
-          :key="f.id"
-          :name="f.name"
-          :prompt="promptSummary(f.prompt)"
-          :scope="f.scope"
-          size="compact"
-          :selected="selectedStyleName === f.name"
-          :clickable="f.status === 'approved'"
-          :class="{ 'favorite-offline': f.status !== 'approved' }"
-          show-view-btn
-          @click="selectFavoriteStyle(f)"
-          @view="openPromptModal(f)"
-        >
-          <template #meta>
-            <span :class="['favorite-status-badge', f.status !== 'approved' ? 'offline' : '']">
-              {{ f.status === 'approved' ? 'by ' + f.creatorName : '已下架' }}
-            </span>
-          </template>
-        </SkillCard>
+        <div v-if="favoriteTotal > favoritePageSize" class="style-pagination">
+          <a-pagination
+            v-model:current="favoritePage"
+            v-model:pageSize="favoritePageSize"
+            :total="favoriteTotal"
+            :page-size-options="pageSizeOptions"
+            show-size-changer
+            show-quick-jumper
+            @change="onFavoritePageChange"
+            @showSizeChange="onFavoritePageSizeChange"
+          />
+        </div>
       </div>
     </div>
 
@@ -198,7 +254,8 @@ import {
   applySkill,
   learnedSkills,
   loadMySkills,
-  loadLearnedSkills
+  loadLearnedSkills,
+  loadSystemSkills
 } from '@/composables/useSkills.js'
 import {
   favoriteSkills,
@@ -216,6 +273,97 @@ const selectedStyleName = ref(null)
 const promptModalVisible = ref(false)
 const viewingSkill = ref(null)
 
+const pageSizeOptions = ['8', '16', '24']
+
+// 各 tab 局部分页状态（不污染全局 ref）
+const myPage = ref(1)
+const myPageSize = ref(8)
+const myTotal = ref(0)
+const myList = ref([])
+
+const systemPage = ref(1)
+const systemPageSize = ref(8)
+const systemTotal = ref(0)
+const systemList = ref([])
+
+const learnedPage = ref(1)
+const learnedPageSize = ref(8)
+const learnedTotal = ref(0)
+const learnedList = ref([])
+
+const favoritePage = ref(1)
+const favoritePageSize = ref(8)
+const favoriteTotal = ref(0)
+const favoriteList = ref([])
+
+const loadMySkillsTab = async () => {
+  const result = await loadMySkills('', myPage.value, myPageSize.value, false)
+  myList.value = result.list || []
+  myTotal.value = result.total || 0
+}
+
+const loadSystemSkillsTab = async () => {
+  const result = await loadSystemSkills('', systemPage.value, systemPageSize.value)
+  systemList.value = result.list || []
+  systemTotal.value = result.total || 0
+}
+
+const loadLearnedSkillsTab = async () => {
+  const result = await loadLearnedSkills('', learnedPage.value, learnedPageSize.value)
+  learnedList.value = result.list || []
+  learnedTotal.value = result.total || 0
+}
+
+const loadFavoriteSkillsTab = async () => {
+  const result = await loadFavoriteSkills('', favoritePage.value, favoritePageSize.value)
+  favoriteList.value = result.list || []
+  favoriteTotal.value = result.total || 0
+}
+
+const onMyPageChange = (page) => {
+  myPage.value = page
+  loadMySkillsTab()
+}
+
+const onMyPageSizeChange = (current, size) => {
+  myPageSize.value = size
+  myPage.value = 1
+  loadMySkillsTab()
+}
+
+const onSystemPageChange = (page) => {
+  systemPage.value = page
+  loadSystemSkillsTab()
+}
+
+const onSystemPageSizeChange = (current, size) => {
+  systemPageSize.value = size
+  systemPage.value = 1
+  loadSystemSkillsTab()
+}
+
+const onLearnedPageChange = (page) => {
+  learnedPage.value = page
+  loadLearnedSkillsTab()
+}
+
+const onLearnedPageSizeChange = (current, size) => {
+  learnedPageSize.value = size
+  learnedPage.value = 1
+  loadLearnedSkillsTab()
+}
+
+const onFavoritePageChange = (page) => {
+  favoritePage.value = page
+  loadFavoriteSkillsTab()
+}
+
+const onFavoritePageSizeChange = (current, size) => {
+  favoritePageSize.value = size
+  favoritePage.value = 1
+  loadFavoriteSkillsTab()
+}
+
 // 弹框打开时重置并加载我的提示词
 watch(styleVisible, async (open) => {
   if (!open) return
@@ -223,9 +371,27 @@ watch(styleVisible, async (open) => {
   selectedStyleName.value = null
   viewingSkill.value = null
   promptModalVisible.value = false
+
+  // 重置分页
+  myPage.value = 1
+  myPageSize.value = 8
+  systemPage.value = 1
+  systemPageSize.value = 8
+  learnedPage.value = 1
+  learnedPageSize.value = 8
+  favoritePage.value = 1
+  favoritePageSize.value = 8
+
   await Promise.all([
-    loadMySkills(),
-    loadFavoriteSkills()
+    loadMySkillsTab(),
+    loadFavoriteSkillsTab(),
+    loadSystemSkillsTab(),
+    loadLearnedSkillsTab(),
+    // 全量加载到全局 ref，供 findSelectedSkill 跨分页查找
+    loadMySkills('', 1, 999),
+    loadFavoriteSkills(),
+    loadSystemSkills(),
+    loadLearnedSkills()
   ])
 })
 
@@ -244,7 +410,11 @@ const selectFavoriteStyle = (f) => {
 const findSelectedSkill = () => {
   const name = selectedStyleName.value
   if (!name) return null
-  return systemSkills.value.find(x => x.name === name)
+  return systemList.value.find(x => x.name === name)
+    || myList.value.find(x => x.name === name)
+    || learnedList.value.find(x => x.name === name)
+    || favoriteList.value.find(x => x.name === name)
+    || systemSkills.value.find(x => x.name === name)
     || mySkills.value.find(x => x.name === name)
     || learnedSkills.value.find(x => x.name === name)
     || favoriteSkills.value.find(x => x.name === name)
@@ -351,6 +521,150 @@ const promptSummary = (prompt) => {
   height: 60vh;
   overflow-y: auto;
   padding: 8px 0;
+}
+
+.style-tab-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.style-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+
+.style-pagination :deep(.ant-pagination) {
+  color: var(--color-text-secondary);
+}
+
+.style-pagination :deep(.ant-pagination-item) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.style-pagination :deep(.ant-pagination-item a) {
+  color: var(--color-text-secondary);
+}
+
+.style-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+
+.style-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+
+.style-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.style-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+.style-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.style-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: var(--color-bg-card);
+  border-color: var(--color-border-default);
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all 0.2s;
+}
+
+.style-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.style-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.style-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-default);
+  cursor: not-allowed;
+}
+
+.style-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: var(--color-text-placeholder);
+  border-color: var(--color-border-default);
+}
+
+.style-pagination :deep(.ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-link-icon),
+.style-pagination :deep(.ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-link-icon) {
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item) {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item a) {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
+  color: #595959;
+  border-color: #303030;
 }
 
 .style-card-meta-dot {

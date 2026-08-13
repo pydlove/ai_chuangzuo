@@ -71,12 +71,6 @@
           </template>
           约稿管理
         </a-menu-item>
-        <a-menu-item key="/console/lottery">
-          <template #icon>
-            <FireOutlined />
-          </template>
-          抽奖活动
-        </a-menu-item>
         <a-sub-menu key="/console/skill-management">
           <template #icon>
             <BookOutlined />
@@ -139,6 +133,7 @@
           <template #title>订单管理</template>
           <a-menu-item key="/console/orders/list">订单列表</a-menu-item>
           <a-menu-item key="/console/orders/stats">数据统计</a-menu-item>
+          <a-menu-item key="/console/orders/renewal">续费统计</a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/operations">
           <template #icon>
@@ -150,6 +145,12 @@
               <ShareAltOutlined />
             </template>
             分享管理
+          </a-menu-item>
+          <a-menu-item key="/console/lottery">
+            <template #icon>
+              <FireOutlined />
+            </template>
+            抽奖活动
           </a-menu-item>
         </a-sub-menu>
         <a-sub-menu key="/console/settings">
@@ -193,6 +194,12 @@
             </template>
             安全设置
           </a-menu-item>
+          <a-menu-item key="/console/scheduled-tasks">
+            <template #icon>
+              <ClockCircleOutlined />
+            </template>
+            定时任务
+          </a-menu-item>
           <a-menu-item key="/console/audit-logs">
             <template #icon>
               <FileSearchOutlined />
@@ -231,7 +238,7 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
+import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, ClockCircleOutlined } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -250,15 +257,14 @@ const parentMenuKey = computed(() => {
   const p = route.path
   if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
   if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
-  if (p === '/console/lottery') return null
   if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
   if (p.startsWith('/console/learn/')) return '/console/learn'
   if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
   if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
   if (p.startsWith('/console/earnings/')) return '/console/earnings'
   if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/share-config') return '/console/operations'
-  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings' || p === '/console/audit-logs') return '/console/settings'
+  if (p === '/console/lottery' || p === '/console/share-config') return '/console/operations'
+  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings' || p === '/console/audit-logs' || p === '/console/scheduled-tasks') return '/console/settings'
   return null
 })
 
@@ -309,6 +315,7 @@ const currentMenuName = computed(() => {
   if (route.path === '/console/plans') return '套餐管理'
   if (route.path === '/console/security-settings') return '安全设置'
   if (route.path === '/console/audit-logs') return '操作审计'
+  if (route.path === '/console/scheduled-tasks') return '定时任务'
   return ''
 })
 

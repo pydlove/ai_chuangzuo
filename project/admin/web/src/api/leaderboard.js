@@ -24,3 +24,11 @@ export function grantRewards(data) {
 export function getRewards(params) {
   return request.get('/leaderboards/rewards', { params }).then((res) => res.data)
 }
+
+export function getRewardConfig() {
+  return request.get('/leaderboards/reward-config').then((res) => res.data)
+}
+
+export function updateRewardConfig(data) {
+  return request.put('/leaderboards/reward-config', data).then((res) => res.data)
+}

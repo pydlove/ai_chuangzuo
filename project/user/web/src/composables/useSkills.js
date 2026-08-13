@@ -12,6 +12,7 @@ import { message } from 'ant-design-vue'
 export const systemSkills = ref([])
 
 export const mySkills = ref([])
+export const mySkillsTotal = ref(0)
 export const learnedSkills = ref([])
 export const currentSkill = ref(null)
 
@@ -39,13 +40,18 @@ function errMsg(e) {
  * 加载系统预设 skills。应用启动时调用一次。
  * 仅负责拉取列表，不再自动选中 —— 选中态由 restoreLastSkill 统一恢复，
  * 避免 main.js 抢先 auto-pick 覆盖掉 localStorage 中用户上次的选择。
- * @returns {Promise<void>}
+ * @param {string} [keyword]
+ * @param {number} [page]
+ * @param {number} [pageSize]
+ * @returns {Promise<{list: Array, total: number}>}
  */
-export async function loadSystemSkills() {
+export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999) {
   try {
-    const res = await getSystemSkills()
-    const list = res.data || res || []
-    systemSkills.value = list.map(s => ({
+    const res = await getSystemSkills(keyword, page, pageSize)
+    const data = res.data || res || {}
+    const list = Array.isArray(data) ? data : (data.records || [])
+    const total = Array.isArray(data) ? list.length : (data.total || 0)
+    const mapped = list.map(s => ({
       bizNo: s.bizNo,
       name: s.name,
       desc: s.description,
@@ -53,8 +59,14 @@ export async function loadSystemSkills() {
       prompt: s.prompt,
       scope: s.scope
     }))
+    // 仅全量加载时同步全局 ref，分页调用由调用方自行维护局部状态
+    if (page === 1 && pageSize >= 999) {
+      systemSkills.value = mapped
+    }
+    return { list: mapped, total }
   } catch (e) {
     console.warn('[loadSystemSkills]', errMsg(e))
+    return { list: [], total: 0 }
   }
 }
 
@@ -93,22 +105,34 @@ export function restoreLastSkill(marketSkillsList = []) {
 }
 
 /**
- * 加载当前用户的自定义 skills 列表。
- * @returns {Promise<void>}
+ * 加载当前用户的自定义 skills 列表（分页）。
+ * @param {string} [keyword]
+ * @param {number} [page]
+ * @param {number} [pageSize]
+ * @param {boolean} [updateGlobal=true] 是否同步到全局 mySkills/mySkillsTotal ref
+ * @returns {Promise<{total:number, list:Array}>}
  */
-export async function loadMySkills() {
+export async function loadMySkills(keyword = '', page = 1, pageSize = 12, updateGlobal = true) {
   try {
-    const res = await getMySkills()
-    const list = res.data || res || []
-    mySkills.value = list.map(s => ({
+    const res = await getMySkills(1, keyword, page, pageSize)
+    const data = res.data || res || {}
+    const list = Array.isArray(data) ? data : (data.records || [])
+    const total = Array.isArray(data) ? list.length : (data.total || 0)
+    const mapped = list.map(s => ({
       bizNo: s.bizNo,
       name: s.skillName,
       desc: s.description || '自定义提示词',
       prompt: s.prompt,
       scope: s.scope,
+      promptExtra: s.promptExtra || null,
       count: s.useCount || 0,
       auditStatus: s.auditStatus
     }))
+    if (updateGlobal) {
+      mySkills.value = mapped
+      mySkillsTotal.value = total
+    }
+    return { total, list: mapped }
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -124,11 +148,11 @@ export const addCustomSkill = async (style) => {
     skillName: style.name.trim(),
     prompt: style.prompt.trim(),
     scope: (style.scope || '').trim(),
-    description: (style.description || '').trim() || null
+    description: (style.description || '').trim() || null,
+    promptExtra: style.promptExtra || null
   }
   try {
     await createSkill(trimmed)
-    await loadMySkills()
     message.success('提示词已保存')
   } catch (e) {
     message.error(errMsg(e))
@@ -143,15 +167,11 @@ export const updateCustomSkill = async (oldName, style) => {
     skillName: style.name.trim(),
     prompt: style.prompt.trim(),
     scope: (style.scope || '').trim(),
-    description: (style.description || '').trim() || null
+    description: (style.description || '').trim() || null,
+    promptExtra: style.promptExtra || null
   }
   try {
     await updateSkill(target.bizNo, trimmed)
-    await loadMySkills()
-    if (currentSkill.value && currentSkill.value.name === oldName) {
-      const updated = mySkills.value.find(s => s.name === trimmed.skillName)
-      if (updated) currentSkill.value = updated
-    }
     message.success('提示词已更新')
   } catch (e) {
     message.error(errMsg(e))
@@ -164,10 +184,6 @@ export const removeCustomSkill = async (name) => {
   if (!target) return
   try {
     await deleteSkill(target.bizNo)
-    await loadMySkills()
-    if (currentSkill.value && currentSkill.value.name === name) {
-      currentSkill.value = systemSkills.value[0] || null
-    }
     message.success('提示词已删除')
   } catch (e) {
     message.error(errMsg(e))
@@ -189,12 +205,19 @@ export const isSkillNameExists = (name, excludeName = null) => {
 
 export const isLearning = ref(false)
 
-/** 加载当前用户的学习 skills 列表（sourceType=2）。 */
-export async function loadLearnedSkills() {
+/** 加载当前用户的学习 skills 列表（sourceType=2），支持分页。
+ * @param {string} [keyword]
+ * @param {number} [page]
+ * @param {number} [pageSize]
+ * @returns {Promise<{list: Array, total: number}>}
+ */
+export async function loadLearnedSkills(keyword = '', page = 1, pageSize = 999) {
   try {
-    const res = await getMySkills(2)
-    const list = res.data || res || []
-    learnedSkills.value = list.map(s => ({
+    const res = await getMySkills(2, keyword, page, pageSize)
+    const data = res.data || res || {}
+    const list = Array.isArray(data) ? data : (data.records || [])
+    const total = Array.isArray(data) ? list.length : (data.total || 0)
+    const mapped = list.map(s => ({
       bizNo: s.bizNo,
       name: s.skillName,
       desc: s.description || '',
@@ -206,6 +229,11 @@ export async function loadLearnedSkills() {
       createdAt: s.createdAt,
       auditStatus: s.auditStatus
     }))
+    // 仅全量加载时同步全局 ref，分页调用由调用方自行维护局部状态
+    if (page === 1 && pageSize >= 999) {
+      learnedSkills.value = mapped
+    }
+    return { list: mapped, total }
   } catch (e) {
     message.error(errMsg(e))
     throw e
@@ -241,6 +269,7 @@ export async function addLearnedSkill(style) {
       description: (style.desc || '').trim() || null,
       excerpt1: (style.excerpt1 || '').trim(),
       excerpt2: (style.excerpt2 || '').trim(),
+      promptExtra: style.promptExtra || null,
       sourceType: 2
     })
     await loadLearnedSkills()
@@ -259,7 +288,8 @@ export async function updateLearnedSkill(bizNo, style) {
       scope: (style.scope || '').trim(),
       description: (style.desc || '').trim() || null,
       excerpt1: (style.excerpt1 || '').trim(),
-      excerpt2: (style.excerpt2 || '').trim()
+      excerpt2: (style.excerpt2 || '').trim(),
+      promptExtra: style.promptExtra || null
     })
     await loadLearnedSkills()
     message.success('提示词已更新')

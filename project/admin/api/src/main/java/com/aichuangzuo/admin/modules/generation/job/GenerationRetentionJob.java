@@ -4,6 +4,8 @@ import com.aichuangzuo.admin.modules.generation.entity.GenerationConfig;
 import com.aichuangzuo.admin.modules.generation.mapper.GenerationTaskMapper;
 import com.aichuangzuo.admin.modules.generation.service.GenerationConfigService;
 import com.aichuangzuo.admin.modules.generation.service.GenerationRetentionService;
+import com.aichuangzuo.admin.modules.scheduler.annotation.ScheduledTask;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,7 @@ public class GenerationRetentionJob {
     private final GenerationRetentionService retentionService;
     private final GenerationConfigService configService;
     private final ThreadPoolTaskScheduler generationTaskScheduler;
+    private final ScheduledTaskExecutor scheduledTaskExecutor;
 
     private volatile ScheduledFuture<?> scheduledFuture;
 
@@ -61,27 +64,30 @@ public class GenerationRetentionJob {
         }
     }
 
+    @ScheduledTask(key = "generation_retention", name = "创作任务归档", description = "每天把已过保留期的 completed/failed 创作任务迁移到 a_generation_history", triggerType = "cron", expression = "0 0 3 * * ?", sortOrder = 40)
     public void run() {
-        log.info("创作任务归档扫描开始");
-        int totalArchived = 0;
-        int totalBatches = 0;
-        try {
-            while (totalBatches < 1000) {
-                List<Long> ids = taskMapper.selectExpiredTaskIds(LocalDateTime.now(), BATCH_SIZE);
-                if (ids == null || ids.isEmpty()) {
-                    break;
+        scheduledTaskExecutor.executeAuto("generation_retention", () -> {
+            log.info("创作任务归档扫描开始");
+            int totalArchived = 0;
+            int totalBatches = 0;
+            try {
+                while (totalBatches < 1000) {
+                    List<Long> ids = taskMapper.selectExpiredTaskIds(LocalDateTime.now(), BATCH_SIZE);
+                    if (ids == null || ids.isEmpty()) {
+                        break;
+                    }
+                    int archived = retentionService.archiveBatch(ids);
+                    totalArchived += archived;
+                    totalBatches++;
+                    if (archived < ids.size()) {
+                        log.warn("归档批次异常：期望 {} 条，实际 {} 条", ids.size(), archived);
+                        break;
+                    }
                 }
-                int archived = retentionService.archiveBatch(ids);
-                totalArchived += archived;
-                totalBatches++;
-                if (archived < ids.size()) {
-                    log.warn("归档批次异常：期望 {} 条，实际 {} 条", ids.size(), archived);
-                    break;
-                }
+                log.info("创作任务归档扫描完成，共归档 {} 条，批次 {}", totalArchived, totalBatches);
+            } catch (Exception e) {
+                log.error("创作任务归档扫描异常", e);
             }
-            log.info("创作任务归档扫描完成，共归档 {} 条，批次 {}", totalArchived, totalBatches);
-        } catch (Exception e) {
-            log.error("创作任务归档扫描异常", e);
-        }
+        });
     }
 }

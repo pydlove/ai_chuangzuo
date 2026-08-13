@@ -15,6 +15,7 @@ public class SystemSkillRow {
     private String description;
     private String promptSummary;
     private String prompt;
+    private String promptExtra;
     private String scope;
     private Integer sourceType;
     private Integer enableStatus;

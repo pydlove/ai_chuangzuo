@@ -3,8 +3,7 @@ package com.aichuangzuo.user.modules.skill.service;
 import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
-
-import java.util.List;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 
 /**
  * 用户风格服务接口。
@@ -12,12 +11,15 @@ import java.util.List;
 public interface UserSkillService {
 
     /**
-     * 查询当前用户的风格列表。
+     * 分页查询当前用户的风格列表，可按关键词过滤。
      *
      * @param sourceType 来源类型：1-自定义，2-学习；为空时默认 1
-     * @return 风格列表，按更新时间倒序
+     * @param keyword    关键词，匹配名称、适用范围、提示词或描述；为空时不过滤
+     * @param page       页码，从 1 开始
+     * @param pageSize   每页条数
+     * @return 分页风格列表，按更新时间倒序
      */
-    List<UserSkillVO> listMySkills(Integer sourceType);
+    IPage<UserSkillVO> listMySkills(Integer sourceType, String keyword, int page, int pageSize);
 
     /**
      * 创建自定义风格。

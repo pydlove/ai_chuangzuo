@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.common.exception.handler;
 
 import com.aichuangzuo.shared.enums.error.SystemErrorCode;
+import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.*;
 import com.aichuangzuo.shared.result.Result;
 import lombok.extern.slf4j.Slf4j;
@@ -11,6 +12,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import io.jsonwebtoken.JwtException;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,7 +33,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler({MethodArgumentNotValidException.class, BindException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Result<Map<String, String>> handleValidationException(MethodArgumentNotValidException e) {
+    public Result<Map<String, String>> handleValidationException(BindException e) {
         Map<String, String> errors = new HashMap<>();
         e.getBindingResult().getFieldErrors().forEach(error ->
             errors.put(error.getField(), error.getDefaultMessage())
@@ -65,5 +67,13 @@ public class GlobalExceptionHandler {
         log.error("Unknown exception: ", e);
         return Result.fail(SystemErrorCode.SYSTEM_ERROR.getCode(),
                 SystemErrorCode.SYSTEM_ERROR.getMessage());
+    }
+
+    @ExceptionHandler(JwtException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Result<Void> handleJwtException(JwtException e) {
+        log.warn("JWT exception: {}", e.getMessage());
+        return Result.fail(UserAuthErrorCode.TOKEN_INVALID.getCode(),
+                UserAuthErrorCode.TOKEN_INVALID.getMessage());
     }
 }

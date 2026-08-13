@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.message.job;
 import com.aichuangzuo.admin.modules.message.entity.NotifyOutbox;
 import com.aichuangzuo.admin.modules.message.handler.MessageNotifyHandler;
 import com.aichuangzuo.admin.modules.message.mapper.NotifyOutboxMapper;
+import com.aichuangzuo.admin.modules.scheduler.executor.ScheduledTaskExecutor;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,6 +18,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -30,8 +32,19 @@ class NotifyOutboxDispatcherJobTest {
     @Mock
     private NotifyOutboxMapper outboxMapper;
 
+    @Mock
+    private ScheduledTaskExecutor scheduledTaskExecutor;
+
     @InjectMocks
     private NotifyOutboxDispatcherJob job;
+
+    private void stubExecutor() {
+        doAnswer(invocation -> {
+            Runnable task = invocation.getArgument(1);
+            task.run();
+            return null;
+        }).when(scheduledTaskExecutor).executeAuto(any(), any(Runnable.class));
+    }
 
     private NotifyOutbox row(String bizType, int retryCount) {
         NotifyOutbox row = new NotifyOutbox();
@@ -44,12 +57,13 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldRouteToHandlerAndMarkSent() {
+        stubExecutor();
         NotifyOutbox row = row("generation_completed", 0);
         MessageNotifyHandler handler = mock(MessageNotifyHandler.class);
         when(handler.bizType()).thenReturn("generation_completed");
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(List.of(row));
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler));
+        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler), scheduledTaskExecutor);
         job.dispatch();
 
         verify(handler).dispatch(row);
@@ -60,10 +74,11 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldMarkFailedForUnknownBizType() {
+        stubExecutor();
         NotifyOutbox row = row("unknown_biz", 0);
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(List.of(row));
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, Collections.emptyList());
+        job = new NotifyOutboxDispatcherJob(outboxMapper, Collections.emptyList(), scheduledTaskExecutor);
         job.dispatch();
 
         verify(outboxMapper).markFailed(eq(1L), eq("未知 biz_type: unknown_biz"));
@@ -72,13 +87,14 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldScheduleRetryOnHandlerException() {
+        stubExecutor();
         NotifyOutbox row = row("generation_failed", 1);
         MessageNotifyHandler handler = mock(MessageNotifyHandler.class);
         when(handler.bizType()).thenReturn("generation_failed");
         doThrow(new RuntimeException("user-api timeout")).when(handler).dispatch(row);
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(List.of(row));
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler));
+        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler), scheduledTaskExecutor);
         LocalDateTime before = LocalDateTime.now();
         job.dispatch();
         LocalDateTime after = LocalDateTime.now();
@@ -98,13 +114,14 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldMarkFailedWhenMaxRetryReached() {
+        stubExecutor();
         NotifyOutbox row = row("generation_failed", 4);
         MessageNotifyHandler handler = mock(MessageNotifyHandler.class);
         when(handler.bizType()).thenReturn("generation_failed");
         doThrow(new RuntimeException("final failure")).when(handler).dispatch(row);
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(List.of(row));
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler));
+        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handler), scheduledTaskExecutor);
         job.dispatch();
 
         verify(handler, times(1)).dispatch(row);
@@ -114,6 +131,7 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldProcessMultipleRowsIndependently() {
+        stubExecutor();
         NotifyOutbox rowA = row("generation_completed", 0);
         rowA.setId(1L);
         NotifyOutbox rowB = row("generation_failed", 0);
@@ -125,7 +143,7 @@ class NotifyOutboxDispatcherJobTest {
         doThrow(new RuntimeException("boom")).when(handlerB).dispatch(rowB);
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(List.of(rowA, rowB));
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handlerA, handlerB));
+        job = new NotifyOutboxDispatcherJob(outboxMapper, List.of(handlerA, handlerB), scheduledTaskExecutor);
         job.dispatch();
 
         verify(handlerA).dispatch(rowA);
@@ -136,9 +154,10 @@ class NotifyOutboxDispatcherJobTest {
 
     @Test
     void dispatch_shouldDoNothingWhenNoPendingRows() {
+        stubExecutor();
         when(outboxMapper.selectPending(any(LocalDateTime.class), eq(50))).thenReturn(Collections.emptyList());
 
-        job = new NotifyOutboxDispatcherJob(outboxMapper, Collections.emptyList());
+        job = new NotifyOutboxDispatcherJob(outboxMapper, Collections.emptyList(), scheduledTaskExecutor);
         job.dispatch();
 
         verify(outboxMapper, never()).markSent(any(), any());

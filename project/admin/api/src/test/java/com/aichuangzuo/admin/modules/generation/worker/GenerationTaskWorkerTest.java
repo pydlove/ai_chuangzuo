@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.worker;
 
+import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigSelector;
 import com.aichuangzuo.admin.modules.generation.entity.GenerationConfig;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationPipeline;
@@ -37,6 +38,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -55,6 +57,8 @@ class GenerationTaskWorkerTest {
     private QuotaRefundInternalClient refundClient;
     @Mock
     private GenerationCallLogService callLogService;
+    @Mock
+    private ModelConfigSelector modelConfigSelector;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -72,7 +76,8 @@ class GenerationTaskWorkerTest {
         defaultConfig.setLeaseMinutes(5);
         defaultConfig.setPollIntervalMs(500);
         defaultConfig.setWorkerId("worker-1");
-        when(configService.getCurrent()).thenReturn(defaultConfig);
+        lenient().when(configService.getCurrent()).thenReturn(defaultConfig);
+        lenient().when(modelConfigSelector.nextActiveConfigId()).thenReturn(42L);
     }
 
     private GenerationTask makeTask(Long id) {
@@ -109,6 +114,7 @@ class GenerationTaskWorkerTest {
         invokeProcessOne(task);
 
         verify(callLogService, times(4)).persistAll(any(GenerationContext.class));
+        verify(taskService).assignModelConfigId(eq(100L), eq(42L), eq("worker-1"));
         verify(taskService).markCompleted(eq(100L), eq("ART-100"), eq("worker-1"), anyMap());
         verify(taskService, never()).markFailed(anyLong(), anyString(), anyBoolean(), anyString(), anyMap());
     }
@@ -263,5 +269,22 @@ class GenerationTaskWorkerTest {
         verify(taskService, never()).markCompleted(anyLong(), anyString(), anyString(), anyMap());
         verify(refundClient, never()).refund(anyLong(), anyLong());
         verify(callLogService, times(1)).persistAll(any(GenerationContext.class));
+    }
+
+    @Test
+    void processOne_shouldMarkFailedWhenNoActiveModelConfig() throws Exception {
+        GenerationTask task = makeTask(105L);
+        when(modelConfigSelector.nextActiveConfigId()).thenReturn(null);
+        GenerationTask failedTask = new GenerationTask();
+        failedTask.setId(105L);
+        failedTask.setStatus(GenerationTaskStatus.FAILED);
+        failedTask.setTargetUserId(10L);
+        when(taskService.markFailed(eq(105L), anyString(), eq(false), eq("worker-1"), anyMap()))
+                .thenReturn(failedTask);
+
+        invokeProcessOne(task);
+
+        verify(taskService).markFailed(eq(105L), eq("AI 模型暂不可用"), eq(false), eq("worker-1"), anyMap());
+        verify(pipeline, never()).runInto(any(), any(), any(), any());
     }
 }

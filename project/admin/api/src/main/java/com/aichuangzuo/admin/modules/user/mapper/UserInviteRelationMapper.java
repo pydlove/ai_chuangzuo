@@ -33,11 +33,13 @@ public interface UserInviteRelationMapper extends BaseMapper<UserInviteRelation>
     int countEffectiveByInviterId(@Param("inviterId") Long inviterId);
 
     /**
-     * 查询邀请人邀请的全部用户 ID 列表（按创建时间倒序）。
+     * 分页查询邀请人邀请的有效用户 ID 列表（按创建时间倒序）。
      *
      * @param inviterId 邀请人用户 ID
+     * @param offset 偏移量
+     * @param limit 每页条数
      * @return 被邀请人 ID 列表
      */
-    @Select("SELECT invitee_id FROM u_user_invite_relation WHERE inviter_id = #{inviterId} ORDER BY created_at DESC")
-    List<Long> selectInviteeIdsByInviterId(@Param("inviterId") Long inviterId);
+    @Select("SELECT invitee_id FROM u_user_invite_relation WHERE inviter_id = #{inviterId} AND effective_status = 1 ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
+    List<Long> selectEffectiveInviteeIdsByInviterId(@Param("inviterId") Long inviterId, @Param("offset") int offset, @Param("limit") int limit);
 }

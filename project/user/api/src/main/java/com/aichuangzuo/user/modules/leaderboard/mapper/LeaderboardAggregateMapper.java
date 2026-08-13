@@ -21,6 +21,10 @@ public interface LeaderboardAggregateMapper {
                                               @Param("start") LocalDateTime start,
                                               @Param("end") LocalDateTime end);
 
+    List<LeaderboardEntryVO> selectCoinRankingAll(@Param("limit") int limit);
+
+    LeaderboardEntryVO selectCoinAmountByUserAll(@Param("userId") Long userId);
+
     List<LeaderboardEntryVO> selectIncomeRankingMonth(@Param("periodMonth") String periodMonth,
                                                       @Param("limit") int limit);
 

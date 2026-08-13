@@ -40,7 +40,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -565,7 +564,8 @@ public class MembershipServiceImpl implements MembershipService {
     }
 
     private void syncUserMembershipFields(Long userId, LocalDate expiresAt, String planKey) {
-        LocalDateTime expireDateTime = expiresAt.atTime(LocalTime.MAX);
+        // 缓存列统一按“到期日次日 00:00”存储，与管理端 updateUser 一致。
+        LocalDateTime expireDateTime = expiresAt.plusDays(1).atStartOfDay();
         String plan = expiresAt.isBefore(LocalDate.now()) ? null : planKey;
         userMapper.updateMembershipFields(userId, expireDateTime, plan);
     }

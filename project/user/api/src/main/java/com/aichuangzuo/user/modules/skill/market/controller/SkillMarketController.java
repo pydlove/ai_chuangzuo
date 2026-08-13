@@ -65,14 +65,17 @@ public class SkillMarketController {
     }
 
     /**
-     * 获取当前用户收藏的市场 skill 详情列表（含已下架）。
+     * 分页获取当前用户收藏的市场 skill 详情列表（含已下架）。
      */
-    @Operation(summary = "获取收藏的市场 skill 详情列表")
+    @Operation(summary = "分页获取收藏的市场 skill 详情列表")
     @GetMapping("/favorites")
-    public Result<List<MarketSkillVO>> listFavoriteSkills() {
+    public Result<IPage<MarketSkillVO>> listFavoriteSkills(
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", required = false, defaultValue = "1") int page,
+            @RequestParam(name = "pageSize", required = false, defaultValue = "12") int pageSize) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        log.info("获取收藏的市场 skill 详情列表 userId={}", userId);
-        return Result.success(userMarketFavoriteService.listFavoriteSkills(userId));
+        log.info("分页获取收藏的市场 skill 详情列表 userId={} keyword={} page={} pageSize={}", userId, keyword, page, pageSize);
+        return Result.success(userMarketFavoriteService.listFavoriteSkills(userId, keyword, page, pageSize));
     }
 
     /**

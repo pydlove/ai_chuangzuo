@@ -33,6 +33,9 @@ public class UserSkill {
     /** 风格提示词，生成文章时使用。 */
     private String prompt;
 
+    /** 结构化提示词 JSON（templateBased/role/audience/requirements/tone/restrictions）。 */
+    private String promptExtra;
+
     /** 原文提示词示例片段1（学习的提示词用）。 */
     private String excerpt1;
 

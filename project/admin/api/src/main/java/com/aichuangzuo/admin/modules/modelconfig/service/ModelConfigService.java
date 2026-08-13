@@ -14,17 +14,21 @@ public interface ModelConfigService {
 
     List<ModelConfigVO> listConfigs();
 
-    ModelConfigVO getConfig(String providerType);
+    ModelConfigVO getConfig(Long id);
 
-    void saveConfig(String providerType, ModelConfigSaveRequest request);
+    Long createConfig(ModelConfigSaveRequest request);
 
-    void deleteConfig(String providerType);
+    void updateConfig(Long id, ModelConfigSaveRequest request);
 
-    List<ModelOptionVO> fetchModels(String providerType, ModelConfigConnectionRequest request);
+    void deleteConfig(Long id);
 
-    boolean testConnection(String providerType, ModelConfigConnectionRequest request);
+    List<ModelOptionVO> fetchModels(ModelConfigConnectionRequest request);
 
-    void toggleActive(String providerType, ModelConfigActiveRequest request);
+    List<ModelOptionVO> listProviderModels(String providerType);
 
-    ModelConfigChatTestVO chatTest(String providerType, ModelConfigChatTestRequest request);
+    boolean testConnection(ModelConfigConnectionRequest request);
+
+    void toggleActive(Long id, ModelConfigActiveRequest request);
+
+    ModelConfigChatTestVO chatTest(ModelConfigChatTestRequest request);
 }

@@ -2,6 +2,8 @@ package com.aichuangzuo.admin.modules.order.service.impl;
 
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipAdjustRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipGrantRequest;
+import com.aichuangzuo.admin.modules.order.dto.request.RenewalUserQueryRequest;
+import com.aichuangzuo.admin.modules.order.dto.request.RenewalOrderDetailQueryRequest;
 import com.aichuangzuo.admin.modules.order.entity.AdminMembership;
 import com.aichuangzuo.admin.modules.order.entity.AdminOrderView;
 import com.aichuangzuo.admin.modules.order.enums.AdminOrderErrorCode;
@@ -17,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -165,11 +168,12 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         String orderNo = generateOrderNo();
 
         orderMapper.insertGrantOrder(orderNo, request.getUserId(), request.getPlanKey(),
-                request.getCycle(), remark, operatorId, now);
-        activateOrExtendMembership(request.getUserId(), request.getPlanKey(), request.getCycle());
+                request.getStartDate(), request.getEndDate(), remark, operatorId, now);
+        activateOrExtendMembership(request.getUserId(), request.getPlanKey(),
+                request.getStartDate(), request.getEndDate());
 
-        log.info("管理员发放会员 userId={}, planKey={}, cycle={}, operatorId={}",
-                request.getUserId(), request.getPlanKey(), request.getCycle(), operatorId);
+        log.info("管理员发放会员 userId={}, planKey={}, startDate={}, endDate={}, operatorId={}",
+                request.getUserId(), request.getPlanKey(), request.getStartDate(), request.getEndDate(), operatorId);
     }
 
     @Override
@@ -195,6 +199,115 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         vo.setDates(dates);
         vo.setRevenues(revenues);
         vo.setOrderCounts(orderCounts);
+        return vo;
+    }
+
+    @Override
+    public RenewalOverviewVO getRenewalOverview() {
+        RenewalOverviewVO vo = orderMapper.selectRenewalOverview();
+        if (vo.getTotalPaidUsers() != null && vo.getTotalPaidUsers() > 0) {
+            BigDecimal rate = BigDecimal.valueOf(vo.getRenewalUsers())
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(BigDecimal.valueOf(vo.getTotalPaidUsers()), 2, RoundingMode.HALF_UP);
+            vo.setRenewalRate(rate);
+        } else {
+            vo.setRenewalRate(BigDecimal.ZERO);
+        }
+        return vo;
+    }
+
+    @Override
+    public RenewalTrendVO getRenewalTrend(int days) {
+        if (days != 7 && days != 30 && days != 90) {
+            days = 7;
+        }
+        List<Map<String, Object>> rows = orderMapper.selectRenewalTrend(days);
+        RenewalTrendVO vo = new RenewalTrendVO();
+        List<String> dates = new ArrayList<>();
+        List<BigDecimal> revenues = new ArrayList<>();
+        List<Long> orderCounts = new ArrayList<>();
+        List<Long> userCounts = new ArrayList<>();
+        for (Map<String, Object> row : rows) {
+            dates.add((String) row.get("dateLabel"));
+            revenues.add((BigDecimal) row.get("revenue"));
+            orderCounts.add(((Number) row.get("orderCount")).longValue());
+            userCounts.add(((Number) row.get("userCount")).longValue());
+        }
+        vo.setDates(dates);
+        vo.setRevenues(revenues);
+        vo.setOrderCounts(orderCounts);
+        vo.setUserCounts(userCounts);
+        return vo;
+    }
+
+    @Override
+    public RenewalDistributionVO getRenewalDistribution() {
+        List<Map<String, Object>> planRows = orderMapper.selectRenewalPlanDistribution();
+        List<Map<String, Object>> cycleRows = orderMapper.selectRenewalCycleDistribution();
+
+        RenewalDistributionVO vo = new RenewalDistributionVO();
+        List<RenewalDistributionVO.PlanItem> plans = new ArrayList<>();
+        for (Map<String, Object> row : planRows) {
+            RenewalDistributionVO.PlanItem item = new RenewalDistributionVO.PlanItem();
+            String key = (String) row.get("planKey");
+            item.setPlanKey(key);
+            item.setPlanName(PLAN_NAMES.getOrDefault(key, key));
+            item.setCount(((Number) row.get("count")).longValue());
+            item.setRevenue((BigDecimal) row.get("revenue"));
+            plans.add(item);
+        }
+        vo.setPlans(plans);
+
+        List<RenewalDistributionVO.CycleItem> cycles = new ArrayList<>();
+        for (Map<String, Object> row : cycleRows) {
+            RenewalDistributionVO.CycleItem item = new RenewalDistributionVO.CycleItem();
+            String code = (String) row.get("cycle");
+            item.setCycle(code);
+            item.setCycleName(CYCLE_NAMES.getOrDefault(code, code));
+            item.setCount(((Number) row.get("count")).longValue());
+            item.setRevenue((BigDecimal) row.get("revenue"));
+            cycles.add(item);
+        }
+        vo.setCycles(cycles);
+        return vo;
+    }
+
+    @Override
+    public RenewalUserPageVO listRenewalUsers(RenewalUserQueryRequest request) {
+        long offset = (long) (request.getPage() - 1) * request.getPageSize();
+        boolean renewalOnly = request.getRenewalOnly() != null ? request.getRenewalOnly() : true;
+        List<RenewalUserVO> rows = orderMapper.selectRenewalUsers(
+                request.getKeyword(), request.getPlanKey(), request.getCycle(),
+                request.getStartDate(), request.getEndDate(), renewalOnly, offset, request.getPageSize());
+        long total = orderMapper.countRenewalUsers(
+                request.getKeyword(), request.getPlanKey(), request.getCycle(),
+                request.getStartDate(), request.getEndDate(), renewalOnly);
+        for (RenewalUserVO user : rows) {
+            user.setCurrentLevel(PLAN_NAMES.getOrDefault(user.getCurrentLevel(), user.getCurrentLevel()));
+        }
+        RenewalUserPageVO page = new RenewalUserPageVO();
+        page.setList(rows);
+        page.setTotal(total);
+        return page;
+    }
+
+    @Override
+    public OrderPageVO listRenewalOrderDetails(RenewalOrderDetailQueryRequest request) {
+        long offset = (long) (request.getPage() - 1) * request.getPageSize();
+        String type = request.getType();
+        if (!"first".equals(type) && !"renewal".equals(type)) {
+            type = "renewal";
+        }
+        List<AdminOrderView> rows = orderMapper.selectRenewalOrderPage(
+                type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
+                request.getStartDate(), request.getEndDate(), offset, request.getPageSize());
+        long total = orderMapper.countRenewalOrderPage(
+                type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
+                request.getStartDate(), request.getEndDate());
+        List<OrderListVO> list = rows.stream().map(this::toListVO).toList();
+        OrderPageVO vo = new OrderPageVO();
+        vo.setList(list);
+        vo.setTotal(total);
         return vo;
     }
 
@@ -259,6 +372,26 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         }
 
         syncUserMembershipFields(userId, newExpiresAt, planKey);
+    }
+
+    private void activateOrExtendMembership(Long userId, String planKey, LocalDate startDate, LocalDate endDate) {
+        AdminMembership membership = membershipMapper.selectByUserId(userId);
+
+        if (membership == null) {
+            membership = new AdminMembership();
+            membership.setUserId(userId);
+            membership.setLevel(planKey);
+            membership.setStartedAt(startDate);
+            membership.setExpiresAt(endDate);
+            membershipMapper.insertMembership(membership);
+        } else {
+            membership.setLevel(planKey);
+            membership.setStartedAt(startDate);
+            membership.setExpiresAt(endDate);
+            membershipMapper.updateMembership(membership);
+        }
+
+        syncUserMembershipFields(userId, endDate, planKey);
     }
 
     private void syncUserMembershipFields(Long userId, LocalDate expiresAt, String planKey) {

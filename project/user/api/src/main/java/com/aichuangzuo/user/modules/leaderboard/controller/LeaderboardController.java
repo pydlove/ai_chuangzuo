@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.leaderboard.service.LeaderboardService;
 import com.aichuangzuo.user.modules.leaderboard.vo.CoinLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeSubmissionVO;
+import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardRewardConfigVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
@@ -69,5 +70,11 @@ public class LeaderboardController {
         Long userId = SecurityUserContext.getCurrentUserId();
         log.info("List my income submissions, userId={}", userId);
         return Result.success(incomeSubmissionService.listByUser(userId, null));
+    }
+
+    @GetMapping("/reward-config")
+    public Result<LeaderboardRewardConfigVO> rewardConfig() {
+        log.info("Get leaderboard reward config");
+        return Result.success(leaderboardService.getRewardConfig());
     }
 }

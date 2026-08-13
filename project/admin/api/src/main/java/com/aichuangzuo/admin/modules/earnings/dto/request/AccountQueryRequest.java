@@ -9,6 +9,7 @@ public class AccountQueryRequest {
     private String nickname;
     private String phone;
     private String email;
+    private String sortBy;
 
     @Min(1)
     private int page = 1;

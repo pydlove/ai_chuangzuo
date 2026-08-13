@@ -23,6 +23,9 @@ public class CreateGlobalSkillRequest {
     @NotBlank(message = "提示词不能为空")
     private String prompt;
 
+    /** 结构化提示词 JSON（templateBased/role/audience/requirements/tone/restrictions）。 */
+    private String promptExtra;
+
     @Size(max = 256, message = "适用范围最多 256 字")
     private String scope;
 }

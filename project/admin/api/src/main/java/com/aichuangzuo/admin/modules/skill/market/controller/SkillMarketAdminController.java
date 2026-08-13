@@ -1,10 +1,13 @@
 package com.aichuangzuo.admin.modules.skill.market.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketAdminService;
+import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
+import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
 import com.aichuangzuo.shared.result.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -38,8 +42,8 @@ public class SkillMarketAdminController {
     @GetMapping
     public Result<IPage<SkillMarketVO>> page(SkillMarketPageRequest request) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        log.info("管理员查询提示词市场列表, adminUserId={}, enableStatus={}, keyword={}, pageNum={}, pageSize={}",
-                adminUserId, request.getEnableStatus(), request.getKeyword(),
+        log.info("管理员查询提示词市场列表, adminUserId={}, enableStatus={}, featured={}, keyword={}, pageNum={}, pageSize={}",
+                adminUserId, request.getEnableStatus(), request.getFeatured(), request.getKeyword(),
                 request.getPageNum(), request.getPageSize());
         return Result.success(skillMarketAdminService.page(request));
     }
@@ -71,5 +75,25 @@ public class SkillMarketAdminController {
         log.info("管理员删除提示词市场条目, adminUserId={}, bizNo={}", adminUserId, bizNo);
         skillMarketAdminService.delete(bizNo);
         return Result.success();
+    }
+
+    @Operation(summary = "提示词市场统计概览")
+    @GetMapping("/stats")
+    public Result<MarketSkillStatsVO> stats() {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询提示词市场统计概览, adminUserId={}", adminUserId);
+        return Result.success(skillMarketAdminService.stats());
+    }
+
+    @Operation(summary = "提示词市场使用记录")
+    @GetMapping("/{bizNo}/usage-records")
+    public Result<PageResult<SkillMarketUsageRecordVO>> usageRecords(
+            @PathVariable String bizNo,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询提示词使用记录, adminUserId={}, bizNo={}, pageNum={}, pageSize={}",
+                adminUserId, bizNo, pageNum, pageSize);
+        return Result.success(skillMarketAdminService.listUsageRecords(bizNo, pageNum, pageSize));
     }
 }

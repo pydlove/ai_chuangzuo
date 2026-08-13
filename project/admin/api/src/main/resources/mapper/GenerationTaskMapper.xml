@@ -53,7 +53,7 @@
         LIMIT #{limit}
     </select>
 
-    <!-- Admin 端-创作任务列表（含用户昵称） -->
+    <!-- Admin 端-创作任务列表（含用户昵称 + 模型配置名称/供应商） -->
     <select id="selectAdminList" resultType="com.aichuangzuo.admin.modules.generation.dto.GenerationTaskListRow">
         SELECT t.id            AS id,
                t.biz_no        AS bizNo,
@@ -61,6 +61,8 @@
                COALESCE(NULLIF(u.nickname, ''), u.email) AS userNickname,
                t.status        AS status,
                t.model_config_id AS modelConfigId,
+               cfg.name        AS modelConfigName,
+               cfg.provider_type AS providerType,
                t.word_limit_target AS wordLimitTarget,
                t.retry_count   AS retryCount,
                t.locked_by     AS lockedBy,
@@ -73,6 +75,7 @@
                t.created_at    AS createdAt
         FROM a_generation_task t
         LEFT JOIN u_user u ON u.id = t.target_user_id AND u.is_deleted = 0
+        LEFT JOIN a_model_config cfg ON cfg.id = t.model_config_id AND cfg.is_deleted = 0
         WHERE t.is_deleted = 0
           <if test="status != null">AND t.status = #{status}</if>
           <if test="keyword != null and keyword != ''">
