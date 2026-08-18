@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.topictitle.service;
 
+import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
@@ -11,6 +12,7 @@ import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleTaskMapper;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitlePageVO;
 import com.aichuangzuo.shared.entity.TopicTitle;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
+import com.aichuangzuo.shared.vo.AiPromptRendered;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,9 +23,11 @@ import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.when;
 
@@ -51,6 +55,9 @@ class TopicTitleServiceTest {
     @MockBean
     private GenerationAiService generationAiService;
 
+    @MockBean
+    private AiPromptRenderService aiPromptRenderService;
+
     @BeforeEach
     void setUp() {
         jdbcTemplate.update("DELETE FROM t_topic_title_task");
@@ -65,6 +72,15 @@ class TopicTitleServiceTest {
         cfg.setModelName("测试模型");
         cfg.setIsActive(1);
         modelConfigMapper.insert(cfg);
+
+        when(aiPromptRenderService.render(eq("topic_title_v1"), any()))
+                .thenAnswer(inv -> {
+                    Map<String, Object> vars = inv.getArgument(1);
+                    int count = (Integer) vars.get("count");
+                    String direction = (String) vars.get("direction");
+                    return new AiPromptRendered("你是自媒体爆款标题策划。",
+                            "请生成 " + count + " 条自媒体选题标题，方向：" + direction + "。");
+                });
     }
 
     @Test

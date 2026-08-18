@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.topictitle.service;
 
+import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
@@ -14,6 +15,7 @@ import com.aichuangzuo.shared.entity.TopicTitle;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.exception.NotFoundException;
+import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,6 +27,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 管理端-标题管理：AI 批量生成标题入库 + 分页查询 + 逻辑删除。
@@ -41,17 +44,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class TopicTitleService {
 
-    /** 固定角色设定。 */
-    private static final String SYSTEM_MESSAGE = "你是自媒体爆款标题策划。";
-
-    /** 最终输出强约束（内置后端，原文出自需求，勿改措辞）。 */
-    private static final String STRICT_OUTPUT_RULES = """
-            最终输出要求（覆盖以上所有说明，必须严格遵守）：
-            1. 只输出一个合法 JSON 对象。不要任何前言、说明、免责声明、思路解释、markdown 标题或后记。
-            2. 不要用 ```json 或任何代码围栏包裹。
-            3. 第一个字符必须是 {，最后一个字符必须是 }。
-            4. 所有需要解释、标注、声明的信息，必须放进 JSON 字段里，不能写在 JSON 之外。""";
-
     private static final int MAX_TITLE_LEN = 128;
     private static final int MAX_SUMMARY_LEN = 512;
     private static final int MAX_DIRECTION_LEN = 1024;
@@ -60,6 +52,7 @@ public class TopicTitleService {
     private final TopicTitleTaskMapper topicTitleTaskMapper;
     private final ModelConfigMapper modelConfigMapper;
     private final GenerationAiService generationAiService;
+    private final AiPromptRenderService aiPromptRenderService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -213,8 +206,12 @@ public class TopicTitleService {
                 count, direction, cfg.getId(), cfg.getProviderType(), cfg.getModelCode());
 
         long startMs = System.currentTimeMillis();
-        AiCallResult result = generationAiService.call(cfg.getId(), SYSTEM_MESSAGE,
-                buildUserMessage(count, direction), null);
+        String directionText = (direction == null || direction.isBlank())
+                ? "不限，覆盖职场、情感、生活、AI 等热门自媒体赛道" : direction.trim();
+        AiPromptRendered prompt = aiPromptRenderService.render("topic_title_v1",
+                Map.of("count", count, "direction", directionText));
+        AiCallResult result = generationAiService.call(cfg.getId(), prompt.systemRole(),
+                prompt.userPrompt(), null);
         log.info("AI 生成标题调用返回 duration={}ms contentLength={} tokens={}",
                 System.currentTimeMillis() - startMs,
                 result.getContent() == null ? 0 : result.getContent().length(),
@@ -224,37 +221,6 @@ public class TopicTitleService {
         titles.forEach(topicTitleMapper::insert);
         log.info("AI 生成标题入库 {} 条（请求 {} 条）direction={}", titles.size(), count, direction);
         return titles.size();
-    }
-
-    private String buildUserMessage(int count, String direction) {
-        String dir = (direction == null || direction.isBlank())
-                ? "不限，覆盖职场、情感、生活、AI 等热门自媒体赛道" : direction.trim();
-        return "请生成 " + count + " 条自媒体选题标题，每条包含标题和描述（写作指引）。\n\n"
-                + "生成方向：" + dir + "\n\n"
-                + "支持平台及规则约束（标题与描述必须同时满足）：\n"
-                + "- 微信公众号：禁止诱导分享/关注/转发、低俗、谣言、侵权、虚假宣传、标题党。\n"
-                + "- 小红书：禁止夸张营销、诱导点赞收藏、虚假体验、违禁词、过度美化/对比。\n"
-                + "- 今日头条：禁止标题党、低俗、谣言、侵权、广告法违禁词、无资质医疗/财经建议。\n"
-                + "- 知乎：禁止诱导关注、编故事、不友善、低质营销、无来源事实断言。\n"
-                + "- 百家号：禁止标题党、低俗、抄袭、广告法违禁词、虚假权威背书。\n"
-                + "- 抖音图文：禁止诱导互动（如“双击 666”）、低俗、虚假内容、侵权、未成年人不良引导。\n"
-                + "通用禁区：严禁使用“最”“第一”“绝对”“国家级”等无法证实的极限词；严禁制造焦虑、歧视、攻击、泄露隐私；严禁承诺收益、疗效等无法验证的结果。\n\n"
-                + "标题多样性要求（避免同质化）：\n"
-                + "- 每条标题必须从不同角度切入，避免同义反复或只换关键词。\n"
-                + "- 句式要交错使用：问题型、反差型、场景型、观点型、方法型、故事型、数据型等。\n"
-                + "- 情绪表达要有差异，避免连续使用“震惊”“绝了”“后悔没早点”等同一套爆款模板。\n"
-                + "- 同一生成批次中，任意两条标题的开头 5 个字不能完全相同。\n\n"
-                + "描述要求（必须是写作指引，不是简单总结）：\n"
-                + "- 说明这篇文章大致怎么写，给出 2-5 个核心观点或写作要点。\n"
-                + "- 格式示例：围绕以下观点创作，1、xxx；2、xxxxx；3、xxxx。\n"
-                + "- 每个要点要指出：本部分论证什么、从什么角度展开、给读者带来什么价值。\n"
-                + "- 不要只写“介绍方法”“分析原因”这类空泛说明。\n\n"
-                + "格式要求：\n"
-                + "- 标题 ≤30 字，描述 ≤300 字。\n"
-                + "- 标题和描述中如需引用词语，一律使用中文双引号“”，不要使用单引号。\n\n"
-                + "输出 JSON 结构：\n"
-                + "{\"titles\": [{\"title\": \"标题文字\", \"summary\": \"围绕以下观点创作，1、...；2、...；3、...\"}]}\n\n"
-                + STRICT_OUTPUT_RULES;
     }
 
     /**
