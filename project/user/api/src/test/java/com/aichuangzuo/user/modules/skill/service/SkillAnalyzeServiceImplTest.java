@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.skill.service;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.vo.AiPromptRendered;
+import com.aichuangzuo.user.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
@@ -15,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -71,10 +74,24 @@ class SkillAnalyzeServiceImplTest {
         return benefitService;
     }
 
+    private AiPromptRenderService mockRenderService() {
+        AiPromptRenderService renderService = mock(AiPromptRenderService.class);
+        when(renderService.render(anyString(), any())).thenAnswer(inv -> {
+            String code = inv.getArgument(0);
+            java.util.Map<String, Object> vars = inv.getArgument(1);
+            String text = (String) vars.get("text");
+            if ("skill_analyze_v1".equals(code)) {
+                return new AiPromptRendered("你是一位资深的中文文体分析师。", "请分析以下参考文章的写作风格：\n\n" + text);
+            }
+            return new AiPromptRendered("", "");
+        });
+        return renderService;
+    }
+
     private SkillAnalyzeServiceImpl serviceWith(String aiResponse) {
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(aiResponse);
-        return new SkillAnalyzeServiceImpl(aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), new ObjectMapper());
+        return new SkillAnalyzeServiceImpl(aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), mockRenderService(), new ObjectMapper());
     }
 
     @Test
@@ -187,7 +204,7 @@ class SkillAnalyzeServiceImplTest {
         SkillAnalyzeAiService aiService = mock(SkillAnalyzeAiService.class);
         when(aiService.call(anyString(), anyString())).thenReturn(VALID_JSON);
         SkillAnalyzeServiceImpl svc = new SkillAnalyzeServiceImpl(
-                aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), new ObjectMapper());
+                aiService, mockConfigService(), mockDailyLimiter(), mockBenefitService(), mockRenderService(), new ObjectMapper());
         svc.analyze(USER_ID, longText);
 
         ArgumentCaptor<String> userMsgCaptor = ArgumentCaptor.forClass(String.class);
