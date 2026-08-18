@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.vo.AiPromptRendered;
+import com.aichuangzuo.user.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 
 /**
  * AI 风格分析服务实现。
@@ -38,45 +41,11 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
     private static final String BENEFIT_CODE_SKILL_LEARN_ANALYZE = "skill_learn_analyze";
     private static final List<String> REQUIRED_MARKERS = List.of("【语气】", "【词汇】", "【句式】", "【结构】");
 
-    private static final String SYSTEM_MESSAGE =
-            "你是一位资深的中文文体分析师，擅长拆解中文自媒体文章的写作风格，并把风格特征提炼成可直接指导 AI 写作的提示词。";
-
-    /** 用户消息模板：%s 为参考文章正文。 */
-    private static final String USER_PROMPT_TEMPLATE = """
-            请分析以下参考文章的写作风格，完成两件事：
-
-            【文章正文】
-            %s
-
-            【任务】
-            1. 从【语气】【词汇】【句式】【结构】四个维度拆解风格特征。每条特征必须具体、可模仿，禁止空泛形容（不要写「语言优美」，要写「多用15字以内短句，段间留白多」这类可执行描述）。
-            2. 从原文中逐字摘录 2 个最能代表该风格的片段。
-
-            【输出 JSON 结构】
-            {"excerpt1":"原文中最能代表风格的连续片段，不超过120字，必须逐字摘自原文","excerpt2":"另一个代表性片段，不超过80字，必须逐字摘自原文，且不与excerpt1重复","description":"用一句话描述这个提示词适合写什么、风格是什么，不超过100字，不要出现英文双引号","prompt":"不超过1200字的风格提示词"}
-
-            其中 prompt 字段严格使用以下模板：
-            你是一位中文写手，请模仿以下参考文章的写作风格：
-
-            【语气】（人称视角、情感温度、与读者的距离感，1-2句）
-            【词汇】（书面/口语倾向、网络用语与语气词的使用习惯，1-2句）
-            【句式】（句子长短与节奏、标点习惯、常用修辞，1-2句）
-            【结构】（开头方式、段落组织、结尾处理，1-2句）
-
-            请在生成新内容时严格遵循以上风格特征。
-
-            最终输出要求（覆盖以上所有说明，必须严格遵守）：
-              1. 只输出一个合法 JSON 对象。不要任何前言、说明、免责声明、思路解释、markdown 标题或后记。
-              2. 不要用 ```json 或任何代码围栏包裹。
-              3. 第一个字符必须是 {，最后一个字符必须是 }。
-              4. 所有需要解释、标注、声明的信息，必须放进 JSON 字段里，不能写在 JSON 之外。
-              5. prompt 字段中若需引用示例词语，必须使用中文直角引号「」，严禁使用英文双引号 "，避免破坏 JSON 格式。
-            """;
-
     private final SkillAnalyzeAiService aiService;
     private final SkillAnalyzeConfigService skillAnalyzeConfigService;
     private final SkillAnalyzeDailyLimiter skillAnalyzeDailyLimiter;
     private final BenefitService benefitService;
+    private final AiPromptRenderService aiPromptRenderService;
     private final ObjectMapper objectMapper;
     private final ObjectMapper lenientObjectMapper = createLenientObjectMapper();
 
@@ -101,7 +70,8 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
             text = text.substring(0, TEXT_MAX_LENGTH);
         }
 
-        String aiResp = aiService.call(SYSTEM_MESSAGE, USER_PROMPT_TEMPLATE.replace("%s", text));
+        AiPromptRendered rendered = aiPromptRenderService.render("skill_analyze_v1", Map.of("text", text));
+        String aiResp = aiService.call(rendered.systemRole(), rendered.userPrompt());
         JsonNode root = parseJson(stripCodeFence(aiResp));
 
         String prompt = root.path("prompt").asText("").trim();
