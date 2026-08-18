@@ -1,6 +1,5 @@
 <template>
   <a-layout class="admin-layout">
-    <!-- 侧边栏 -->
     <a-layout-sider width="200" class="admin-sider">
       <div class="sider-brand">
         <img
@@ -13,205 +12,41 @@
           <div class="sider-brand-tag">管理控制台</div>
         </div>
       </div>
-      <a-menu
-        mode="inline"
-        :selected-keys="[$route.path]"
-        :open-keys="openKeys"
-        class="admin-menu"
-        @click="handleMenuClick"
-        @openChange="onOpenChange"
-      >
-        <a-sub-menu key="/console/creation">
-          <template #icon>
-            <ExperimentOutlined />
-          </template>
-          <template #title>创作管理</template>
-          <a-menu-item key="/console/creation-queue">
-            <template #icon>
-              <UnorderedListOutlined />
-            </template>
-            创作队列
-          </a-menu-item>
-          <a-menu-item key="/console/topic-titles">
-            <template #icon>
-              <BulbOutlined />
-            </template>
-            标题管理
-          </a-menu-item>
-          <a-menu-item key="/console/creation-settings">
-            <template #icon>
-              <SlidersOutlined />
-            </template>
-            创作设置
-          </a-menu-item>
-          <a-menu-item key="/console/export-templates">
-            <template #icon>
-              <ProfileOutlined />
-            </template>
-            导出模板
-          </a-menu-item>
-          <a-menu-item key="/console/prompt-templates">
-            <template #icon>
-              <FileTextOutlined />
-            </template>
-            创作提示词
-          </a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/user-management">
-          <template #icon>
-            <UserOutlined />
-          </template>
-          <template #title>用户管理</template>
-          <a-menu-item key="/console/users">注册用户</a-menu-item>
-          <a-menu-item key="/console/expire-reminder">到期提醒</a-menu-item>
-        </a-sub-menu>
-        <a-menu-item key="/console/commission-tasks">
-          <template #icon>
-            <FileTextOutlined />
-          </template>
-          约稿管理
-        </a-menu-item>
-        <a-sub-menu key="/console/skill-management">
-          <template #icon>
-            <BookOutlined />
-          </template>
-          <template #title>提示词管理</template>
-          <a-menu-item key="/console/skills">
-            提示词审核
-          </a-menu-item>
-          <a-menu-item key="/console/global-skills">
-            预设提示词
-          </a-menu-item>
-          <a-menu-item key="/console/market-skills">
-            提示词市场
-          </a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/learn">
-          <template #icon>
-            <ReadOutlined />
-          </template>
-          <template #title>创作学院</template>
-          <a-menu-item key="/console/learn/category">分类管理</a-menu-item>
-          <a-menu-item key="/console/learn/article">文章管理</a-menu-item>
-          <a-menu-item key="/console/learn/banner">Banner 管理</a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/hot-search">
-          <template #icon>
-            <FireOutlined />
-          </template>
-          <template #title>热度榜</template>
-          <a-menu-item key="/console/hot-search/platforms">平台管理</a-menu-item>
-          <a-menu-item key="/console/hot-search/daily">今日榜单</a-menu-item>
-          <a-menu-item key="/console/hot-search/config">抓取配置</a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/leaderboard">
-          <template #icon>
-            <TrophyOutlined />
-          </template>
-          <template #title>收益排行榜</template>
-          <!-- 自媒体收入榜功能暂时隐藏
-          <a-menu-item key="/console/leaderboard/review">收入审核</a-menu-item>
-          -->
-          <a-menu-item key="/console/leaderboard/award">奖励发放</a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/earnings">
-          <template #icon>
-            <DollarOutlined />
-          </template>
-          <template #title>收益管理</template>
-          <a-menu-item key="/console/earnings/accounts">账户明细</a-menu-item>
-          <a-menu-item key="/console/earnings/withdrawals">创作币提现</a-menu-item>
-          <!-- 自媒体收入榜功能暂时隐藏
-          <a-menu-item key="/console/earnings/self-media-review">自媒体审核</a-menu-item>
-          <a-menu-item key="/console/earnings/leaderboard-awards">榜单发奖</a-menu-item>
-          -->
-        </a-sub-menu>
-        <a-sub-menu key="/console/orders">
-          <template #icon>
-            <ShoppingCartOutlined />
-          </template>
-          <template #title>订单管理</template>
-          <a-menu-item key="/console/orders/list">订单列表</a-menu-item>
-          <a-menu-item key="/console/orders/stats">数据统计</a-menu-item>
-          <a-menu-item key="/console/orders/renewal">续费统计</a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/operations">
-          <template #icon>
-            <RocketOutlined />
-          </template>
-          <template #title>运营管理</template>
-          <a-menu-item key="/console/share-config">
-            <template #icon>
-              <ShareAltOutlined />
-            </template>
-            分享管理
-          </a-menu-item>
-          <a-menu-item key="/console/lottery">
-            <template #icon>
-              <FireOutlined />
-            </template>
-            抽奖活动
-          </a-menu-item>
-        </a-sub-menu>
-        <a-sub-menu key="/console/settings">
-          <template #icon>
-            <SettingOutlined />
-          </template>
-          <template #title>系统设置</template>
-          <a-menu-item key="/console/plans">
-            <template #icon>
-              <TagsOutlined />
-            </template>
-            套餐管理
-          </a-menu-item>
-          <a-menu-item key="/console/model-configs">
-            <template #icon>
-              <ApiOutlined />
-            </template>
-            模型配置
-          </a-menu-item>
-          <a-menu-item key="/console/home-banner">
-            <template #icon>
-              <PictureOutlined />
-            </template>
-            首页 Banner
-          </a-menu-item>
-          <a-menu-item key="/console/messages">
-            <template #icon>
-              <MessageOutlined />
-            </template>
-            消息管理
-          </a-menu-item>
-          <a-menu-item key="/console/feedbacks">
-            <template #icon>
-              <CommentOutlined />
-            </template>
-            用户反馈
-          </a-menu-item>
-          <a-menu-item key="/console/security-settings">
-            <template #icon>
-              <SafetyOutlined />
-            </template>
-            安全设置
-          </a-menu-item>
-          <a-menu-item key="/console/scheduled-tasks">
-            <template #icon>
-              <ClockCircleOutlined />
-            </template>
-            定时任务
-          </a-menu-item>
-          <a-menu-item key="/console/audit-logs">
-            <template #icon>
-              <FileSearchOutlined />
-            </template>
-            操作审计
-          </a-menu-item>
-        </a-sub-menu>
-      </a-menu>
+      <div class="admin-menu">
+        <div
+          v-for="group in menuGroups"
+          :key="group.key"
+          class="menu-group"
+        >
+          <div
+            class="menu-group-title"
+            :class="{ active: selectedKey === group.key || activeGroupKey === group.key }"
+            @click="group.children ? toggleGroup(group.key) : handleMenuClick({ key: group.key })"
+          >
+            <span class="menu-group-icon"><component :is="group.icon" /></span>
+            <span class="menu-group-label">{{ group.title }}</span>
+            <span v-if="group.children" class="menu-group-arrow">
+              <RightOutlined v-if="activeGroupKey !== group.key" />
+              <DownOutlined v-else />
+            </span>
+          </div>
+          <div v-if="group.children && activeGroupKey === group.key" class="menu-group-items">
+            <div
+              v-for="item in group.children"
+              :key="item.key"
+              class="menu-item"
+              :class="{ selected: selectedKey === item.key || (item.matchPrefix && selectedKey.startsWith(item.matchPrefix)) }"
+              @click="handleMenuClick({ key: item.key })"
+            >
+              <span v-if="item.icon" class="menu-item-icon"><component :is="item.icon" /></span>
+              <span class="menu-item-label">{{ item.title }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </a-layout-sider>
 
     <a-layout class="admin-main">
-      <!-- 顶部 header -->
       <a-layout-header class="admin-header">
         <a-breadcrumb class="admin-breadcrumb">
           <a-breadcrumb-item>首页</a-breadcrumb-item>
@@ -224,7 +59,6 @@
         </div>
       </a-layout-header>
 
-      <!-- 内容区 -->
       <a-layout-content class="admin-content">
         <router-view />
       </a-layout-content>
@@ -238,7 +72,13 @@
 <script setup>
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { UserOutlined, AuditOutlined, AppstoreOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined, UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined, TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, ClockCircleOutlined } from '@ant-design/icons-vue'
+import {
+  UserOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined,
+  BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined,
+  UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined,
+  TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, AppstoreOutlined,
+  ClockCircleOutlined, DownOutlined, RightOutlined
+} from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
 
@@ -252,70 +92,149 @@ const userStore = useUserStore()
 const userName = computed(() => userStore.userInfo?.realName || userStore.userInfo?.username || '管理员')
 const userInitial = computed(() => userName.value.charAt(0))
 
-// 当前路由所在的一级菜单 key（手风琴模式只展开这一个）
-const parentMenuKey = computed(() => {
-  const p = route.path
-  if (p === '/console/creation-queue' || p === '/console/creation-settings' || p === '/console/topic-titles' || p.startsWith('/console/prompt-templates') || p === '/console/export-templates') return '/console/creation'
-  if (p === '/console/users' || p === '/console/expire-reminder') return '/console/user-management'
-  if (p === '/console/skills' || p === '/console/global-skills' || p === '/console/market-skills') return '/console/skill-management'
-  if (p.startsWith('/console/learn/')) return '/console/learn'
-  if (p.startsWith('/console/hot-search/')) return '/console/hot-search'
-  if (p.startsWith('/console/leaderboard/')) return '/console/leaderboard'
-  if (p.startsWith('/console/earnings/')) return '/console/earnings'
-  if (p.startsWith('/console/orders/')) return '/console/orders'
-  if (p === '/console/lottery' || p === '/console/share-config') return '/console/operations'
-  if (p === '/console/model-configs' || p === '/console/home-banner' || p === '/console/plans' || p === '/console/messages' || p === '/console/feedbacks' || p === '/console/security-settings' || p === '/console/audit-logs' || p === '/console/scheduled-tasks') return '/console/settings'
-  return null
-})
+const selectedKey = computed(() => route.path)
 
-const openKeys = ref([])
-// 路由变化时只展开当前一级菜单（手风琴：其它自动折叠）
-watch(parentMenuKey, (key) => {
-  openKeys.value = key ? [key] : []
+const menuGroups = [
+  {
+    key: '/console/self-media',
+    title: '自媒体管理',
+    icon: AppstoreOutlined,
+    children: [
+      { key: '/console/self-media/platforms', title: '平台管理' }
+    ]
+  },
+  {
+    key: '/console/creation',
+    title: '创作管理',
+    icon: ExperimentOutlined,
+    children: [
+      { key: '/console/creation-queue', title: '创作队列', icon: UnorderedListOutlined },
+      { key: '/console/topic-titles', title: '标题管理', icon: BulbOutlined },
+      { key: '/console/creation-settings', title: '创作设置', icon: SlidersOutlined },
+      { key: '/console/export-templates', title: '导出模板', icon: ProfileOutlined },
+      { key: '/console/prompt-templates', title: '创作提示词', icon: FileTextOutlined, matchPrefix: '/console/prompt-templates' }
+    ]
+  },
+  {
+    key: '/console/user-management',
+    title: '用户管理',
+    icon: UserOutlined,
+    children: [
+      { key: '/console/users', title: '注册用户' },
+      { key: '/console/expire-reminder', title: '到期提醒' }
+    ]
+  },
+  { key: '/console/commission-tasks', title: '约稿管理', icon: FileTextOutlined },
+  {
+    key: '/console/skill-management',
+    title: '提示词管理',
+    icon: BookOutlined,
+    children: [
+      { key: '/console/skills', title: '提示词审核' },
+      { key: '/console/global-skills', title: '预设提示词' },
+      { key: '/console/market-skills', title: '提示词市场' }
+    ]
+  },
+  {
+    key: '/console/learn',
+    title: '创作学院',
+    icon: ReadOutlined,
+    children: [
+      { key: '/console/learn/category', title: '分类管理' },
+      { key: '/console/learn/article', title: '文章管理', matchPrefix: '/console/learn/article' },
+      { key: '/console/learn/banner', title: 'Banner 管理' }
+    ]
+  },
+  {
+    key: '/console/hot-search',
+    title: '热度榜',
+    icon: FireOutlined,
+    children: [
+      { key: '/console/hot-search/platforms', title: '平台管理' },
+      { key: '/console/hot-search/daily', title: '今日榜单' },
+      { key: '/console/hot-search/config', title: '抓取配置' }
+    ]
+  },
+  {
+    key: '/console/leaderboard',
+    title: '收益排行榜',
+    icon: TrophyOutlined,
+    children: [
+      { key: '/console/leaderboard/award', title: '奖励发放' }
+    ]
+  },
+  {
+    key: '/console/earnings',
+    title: '收益管理',
+    icon: DollarOutlined,
+    children: [
+      { key: '/console/earnings/accounts', title: '账户明细' },
+      { key: '/console/earnings/withdrawals', title: '创作币提现' }
+    ]
+  },
+  {
+    key: '/console/orders',
+    title: '订单管理',
+    icon: ShoppingCartOutlined,
+    children: [
+      { key: '/console/orders/list', title: '订单列表' },
+      { key: '/console/orders/stats', title: '数据统计' },
+      { key: '/console/orders/renewal', title: '续费统计' }
+    ]
+  },
+  {
+    key: '/console/operations',
+    title: '运营管理',
+    icon: RocketOutlined,
+    children: [
+      { key: '/console/share-config', title: '分享管理', icon: ShareAltOutlined },
+      { key: '/console/lottery', title: '抽奖活动', icon: FireOutlined }
+    ]
+  },
+  {
+    key: '/console/settings',
+    title: '系统设置',
+    icon: SettingOutlined,
+    children: [
+      { key: '/console/ai-prompts', title: 'AI 提示词管理', matchPrefix: '/console/ai-prompts' },
+      { key: '/console/plans', title: '套餐管理', icon: TagsOutlined },
+      { key: '/console/model-configs', title: '模型配置', icon: ApiOutlined },
+      { key: '/console/home-banner', title: '首页 Banner', icon: PictureOutlined },
+      { key: '/console/messages', title: '消息管理', icon: MessageOutlined },
+      { key: '/console/feedbacks', title: '用户反馈', icon: CommentOutlined },
+      { key: '/console/security-settings', title: '安全设置', icon: SafetyOutlined },
+      { key: '/console/sms-config', title: '短信配置', icon: MessageOutlined },
+      { key: '/console/scheduled-tasks', title: '定时任务', icon: ClockCircleOutlined },
+      { key: '/console/audit-logs', title: '操作审计', icon: FileSearchOutlined }
+    ]
+  }
+]
+
+function parentGroupKey(path) {
+  for (const group of menuGroups) {
+    if (group.key === path) return group.key
+    if (group.children?.some(item => item.key === path || (item.matchPrefix && path.startsWith(item.matchPrefix)))) {
+      return group.key
+    }
+  }
+  return ''
+}
+
+const activeGroupKey = ref('')
+watch(() => route.path, (path) => {
+  activeGroupKey.value = parentGroupKey(path)
 }, { immediate: true })
 
-// 用户手动展开时也只保留最新一个（手风琴）
-const onOpenChange = (keys) => {
-  const latest = keys[keys.length - 1]
-  openKeys.value = latest ? [latest] : []
+const toggleGroup = (key) => {
+  activeGroupKey.value = activeGroupKey.value === key ? '' : key
 }
+
 const currentMenuName = computed(() => {
-  if (route.path === '/console/users') return '用户管理'
-  if (route.path === '/console/skills' || route.path === '/console/global-skills' || route.path === '/console/market-skills') return '提示词管理'
-  if (route.path === '/console/model-configs') return '模型配置'
-  if (route.path === '/console/prompt-templates' || route.path.startsWith('/console/prompt-templates/')) return '创作提示词'
-  if (route.path === '/console/hot-search/platforms') return '平台管理'
-  if (route.path === '/console/hot-search/daily') return '今日榜单'
-  if (route.path === '/console/hot-search/config') return '抓取配置'
-  // 自媒体收入榜功能暂时隐藏
-  // if (route.path === '/console/leaderboard/review') return '收入审核'
-  if (route.path === '/console/leaderboard/award') return '奖励发放'
-  if (route.path === '/console/earnings/accounts') return '账户明细'
-  if (route.path === '/console/earnings/withdrawals') return '创作币提现'
-  if (route.path === '/console/earnings/settlements') return '结算中心'
-  // 自媒体收入榜功能暂时隐藏
-  // if (route.path === '/console/earnings/self-media-review') return '自媒体审核'
-  // if (route.path === '/console/earnings/leaderboard-awards') return '榜单发奖'
-  if (route.path === '/console/commission-tasks') return '约稿管理'
-  if (route.path === '/console/lottery') return '抽奖活动'
-  if (route.path === '/console/messages') return '消息管理'
-  if (route.path === '/console/feedbacks') return '用户反馈'
-  if (route.path === '/console/expire-reminder') return '到期提醒'
-  if (route.path === '/console/creation-queue') return '创作队列'
-  if (route.path === '/console/topic-titles') return '标题管理'
-  if (route.path === '/console/creation-settings') return '创作设置'
-  if (route.path === '/console/export-templates') return '导出模板'
-  if (route.path === '/console/learn/category') return '分类管理'
-  if (route.path === '/console/learn/article') return '文章管理'
-  if (route.path.startsWith('/console/learn/article/edit')) return '文章编辑'
-  if (route.path === '/console/orders/list') return '订单列表'
-  if (route.path === '/console/orders/stats') return '数据统计'
-  if (route.path === '/console/share-config') return '分享管理'
-  if (route.path === '/console/home-banner') return '首页 Banner'
-  if (route.path === '/console/plans') return '套餐管理'
-  if (route.path === '/console/security-settings') return '安全设置'
-  if (route.path === '/console/audit-logs') return '操作审计'
-  if (route.path === '/console/scheduled-tasks') return '定时任务'
+  for (const group of menuGroups) {
+    if (group.key === route.path) return group.title
+    const child = group.children?.find(item => item.key === route.path || (item.matchPrefix && route.path.startsWith(item.matchPrefix)))
+    if (child) return child.title
+  }
   return ''
 })
 
@@ -404,20 +323,82 @@ const handleLogout = async () => {
 .admin-menu {
   flex: 1;
   overflow-y: auto;
-  border-inline-end: none;
   padding: 8px 0;
 }
 
-.admin-menu :deep(.ant-menu-item) {
-  margin: 4px 8px;
-  border-radius: 8px;
-  height: 40px;
-  line-height: 40px;
+.menu-group {
+  margin-bottom: 4px;
 }
 
-.admin-menu :deep(.ant-menu-item-selected) {
+.menu-group-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 40px;
+  padding: 0 16px;
+  margin: 0 8px;
+  border-radius: 8px;
+  color: #262626;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  user-select: none;
+}
+
+.menu-group-title:hover {
+  background: #f5f5f5;
+}
+
+.menu-group-title.active {
+  color: #ff2442;
+}
+
+.menu-group-icon {
+  display: inline-flex;
+  font-size: 14px;
+  width: 16px;
+  justify-content: center;
+}
+
+.menu-group-label {
+  flex: 1;
+  font-size: 14px;
+}
+
+.menu-group-arrow {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.menu-group-items {
+  padding: 4px 8px 8px 44px;
+}
+
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  color: #595959;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  font-size: 13px;
+}
+
+.menu-item:hover {
+  background: #f5f5f5;
+  color: #262626;
+}
+
+.menu-item.selected {
   background: #fff0f2;
   color: #ff2442;
+}
+
+.menu-item-icon {
+  display: inline-flex;
+  font-size: 14px;
 }
 
 .admin-header {

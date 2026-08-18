@@ -13,14 +13,19 @@ const routes = [
     meta: { requiresAuth: true },
     redirect: '/console/users',
     children: [
+     {
+       path: 'users',
+       name: 'AdminUserList',
+       component: () => import('@/views/UserListView.vue')
+     },
       {
-        path: 'users',
-        name: 'AdminUserList',
-        component: () => import('@/views/UserListView.vue')
+        path: 'self-media/platforms',
+        name: 'AdminSelfMediaPlatforms',
+        component: () => import('@/views/SelfMediaPlatformView.vue')
       },
-      {
-        path: 'skills',
-        name: 'AdminSkillReview',
+     {
+       path: 'skills',
+       name: 'AdminSkillReview',
         component: () => import('@/views/SkillReviewView.vue')
       },
       {
@@ -196,6 +201,11 @@ const routes = [
         component: () => import('@/views/PlanListView.vue')
       },
       {
+        path: 'sms-config',
+        name: 'AdminSmsConfig',
+        component: () => import('@/views/SmsConfigView.vue')
+      },
+      {
         path: 'security-settings',
         name: 'AdminSecuritySettings',
         component: () => import('@/views/SecuritySettingsView.vue')
@@ -204,6 +214,21 @@ const routes = [
         path: 'audit-logs',
         name: 'AdminAuditLogList',
         component: () => import('@/views/AuditLogListView.vue')
+      },
+      {
+        path: 'ai-prompts',
+        name: 'AdminAiPromptList',
+        component: () => import('@/views/AiPromptListView.vue')
+      },
+      {
+        path: 'ai-prompts/new',
+        name: 'AdminAiPromptCreate',
+        component: () => import('@/views/AiPromptEditView.vue')
+      },
+      {
+        path: 'ai-prompts/:id',
+        name: 'AdminAiPromptEdit',
+        component: () => import('@/views/AiPromptEditView.vue')
       },
       {
         path: 'scheduled-tasks',
