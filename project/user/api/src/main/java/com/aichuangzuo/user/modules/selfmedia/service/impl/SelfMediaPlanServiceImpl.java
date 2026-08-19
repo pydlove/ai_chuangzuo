@@ -89,12 +89,15 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<QuestionVO> getOrGeneratePlatformQuestions(Long userId, String platformKey) {
+        log.info("[自媒体方案] 开始生成问题，userId={}, platformKey={}", userId, platformKey);
         Platform platform = requirePlatform(platformKey);
         List<SelfMediaPlanQuestion> cached = questionMapper.selectByUserAndPlatform(userId, platformKey);
         if (!cached.isEmpty() && PROMPT_PLATFORM_QUESTIONS.equals(cached.get(0).getPromptCode())) {
+            log.info("[自媒体方案] 命中问题缓存，userId={}, platformKey={}, count={}", userId, platformKey, cached.size());
             return cached.stream().map(this::toQuestionVO).toList();
         }
 
+        log.info("[自媒体方案] 调用 AI 生成问题，userId={}, platformKey={}", userId, platformKey);
         Map<String, Object> vars = platformVars(platform);
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_QUESTIONS, vars);
         List<QuestionVO> questions = parseQuestions(root.path("questions"));
@@ -116,28 +119,34 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
             entity.setSortOrder(q.getSortOrder() == null ? 0 : q.getSortOrder());
             questionMapper.insert(entity);
         }
+        log.info("[自媒体方案] 问题生成完成，userId={}, platformKey={}, count={}", userId, platformKey, questions.size());
         return questions;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public List<NicheOptionVO> recommendNiches(Long userId, RecommendNichesRequest request) {
-        Platform platform = requirePlatform(request.getPlatformKey());
+        String platformKey = request.getPlatformKey();
         String hash = answerHash(request.getAnswers());
-        List<SelfMediaPlanNiche> cached = nicheMapper.selectByUserPlatformAndHash(userId, request.getPlatformKey(), hash);
+        log.info("[自媒体方案] 开始推荐赛道，userId={}, platformKey={}, answerHash={}", userId, platformKey, hash);
+        Platform platform = requirePlatform(platformKey);
+        List<SelfMediaPlanNiche> cached = nicheMapper.selectByUserPlatformAndHash(userId, platformKey, hash);
         if (!cached.isEmpty()) {
+            log.info("[自媒体方案] 命中赛道缓存，userId={}, platformKey={}, answerHash={}, count={}",
+                    userId, platformKey, hash, cached.size());
             return cached.stream().map(this::toNicheVO).toList();
         }
 
+        log.info("[自媒体方案] 调用 AI 推荐赛道，userId={}, platformKey={}, answerHash={}", userId, platformKey, hash);
         Map<String, Object> vars = platformVars(platform);
-        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, request.getPlatformKey(), request.getAnswers()));
+        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, platformKey, request.getAnswers()));
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_NICHES, vars);
         List<NicheOptionVO> niches = parseNiches(root.path("niches"));
 
         for (NicheOptionVO n : niches) {
             SelfMediaPlanNiche entity = new SelfMediaPlanNiche();
             entity.setUserId(userId);
-            entity.setPlatformKey(request.getPlatformKey());
+            entity.setPlatformKey(platformKey);
             entity.setAnswerSnapshotHash(hash);
             entity.setAnswerSnapshotJson(toJson(request.getAnswers()));
             entity.setNicheKey(n.getKey());
@@ -150,27 +159,37 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
             entity.setReason(n.getReason());
             nicheMapper.insert(entity);
         }
+        log.info("[自媒体方案] 赛道推荐完成，userId={}, platformKey={}, answerHash={}, count={}",
+                userId, platformKey, hash, niches.size());
         return niches;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public RecommendPersonasResultVO recommendPersonas(Long userId, RecommendPersonasRequest request) {
-        Platform platform = requirePlatform(request.getPlatformKey());
+        String platformKey = request.getPlatformKey();
+        String nicheKey = request.getNicheKey();
         String hash = answerHash(request.getAnswers());
+        log.info("[自媒体方案] 开始推荐人设，userId={}, platformKey={}, nicheKey={}, answerHash={}",
+                userId, platformKey, nicheKey, hash);
+        Platform platform = requirePlatform(platformKey);
         List<SelfMediaPlanPersona> cached = personaMapper.selectByUserPlatformHashAndNiche(
-                userId, request.getPlatformKey(), hash, request.getNicheKey());
+                userId, platformKey, hash, nicheKey);
         if (!cached.isEmpty()) {
+            log.info("[自媒体方案] 命中人设缓存，userId={}, platformKey={}, nicheKey={}, answerHash={}, count={}",
+                    userId, platformKey, nicheKey, hash, cached.size());
             RecommendPersonasResultVO vo = new RecommendPersonasResultVO();
             vo.setPersonas(cached.stream().map(this::toPersonaVO).toList());
             vo.setDefaultPillars(parsePillarsJson(cached.get(0).getDefaultPillarsJson()));
             return vo;
         }
 
+        log.info("[自媒体方案] 调用 AI 推荐人设，userId={}, platformKey={}, nicheKey={}, answerHash={}",
+                userId, platformKey, nicheKey, hash);
         Map<String, Object> vars = platformVars(platform);
-        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, request.getPlatformKey(), request.getAnswers()));
-        vars.put("nicheKey", request.getNicheKey());
-        String nicheName = findNicheName(userId, request.getPlatformKey(), hash, request.getNicheKey());
+        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, platformKey, request.getAnswers()));
+        vars.put("nicheKey", nicheKey);
+        String nicheName = findNicheName(userId, platformKey, hash, nicheKey);
         vars.put("nicheName", nicheName);
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_PERSONAS, vars);
 
@@ -180,9 +199,9 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         for (PersonaOptionVO p : personas) {
             SelfMediaPlanPersona entity = new SelfMediaPlanPersona();
             entity.setUserId(userId);
-            entity.setPlatformKey(request.getPlatformKey());
+            entity.setPlatformKey(platformKey);
             entity.setAnswerSnapshotHash(hash);
-            entity.setNicheKey(request.getNicheKey());
+            entity.setNicheKey(nicheKey);
             entity.setPersonaKey(p.getKey());
             entity.setName(p.getName());
             entity.setDescription(p.getDesc());
@@ -190,6 +209,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
             personaMapper.insert(entity);
         }
 
+        log.info("[自媒体方案] 人设推荐完成，userId={}, platformKey={}, nicheKey={}, answerHash={}, count={}",
+                userId, platformKey, nicheKey, hash, personas.size());
         RecommendPersonasResultVO vo = new RecommendPersonasResultVO();
         vo.setPersonas(personas);
         vo.setDefaultPillars(defaultPillars);

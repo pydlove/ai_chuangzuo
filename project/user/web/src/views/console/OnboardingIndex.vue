@@ -95,8 +95,12 @@
       <div v-if="step === 2" class="step-panel">
         <h3 class="step-title">回答几个关于你的问题</h3>
         <p class="step-desc">基于你选择的平台，我们生成了几个问题。回答后 AI 会推荐适合的赛道。</p>
-        <div v-if="isLoadingQuestions" class="question-loading">
-          <a-spin tip="AI 正在生成问题..." />
+        <div v-if="isLoadingQuestions" class="wizard-loading">
+          <a-spin size="large" />
+          <div class="wizard-loading-text">
+            <div class="wizard-loading-title">正在为您定制方案</div>
+            <div class="wizard-loading-subtitle">先准备一些问题需要您回答</div>
+          </div>
         </div>
         <div v-else>
           <div v-for="q in questions" :key="q.key" class="form-block">
@@ -122,10 +126,14 @@
       <div v-if="step === 3" class="step-panel">
         <h3 class="step-title">推荐你尝试这些细分赛道</h3>
         <p class="step-desc">基于你选择的平台和回答，我们找出了需求真实、竞争度尚可的赛道。</p>
-        <div v-if="isLoadingNiches" class="niche-loading">
-          <a-spin tip="AI 正在推荐赛道..." />
+        <div v-if="isLoadingNiches" class="wizard-loading">
+          <a-spin size="large" />
+          <div class="wizard-loading-text">
+            <div class="wizard-loading-title">正在为您定制方案</div>
+            <div class="wizard-loading-subtitle">根据您的回答推荐适合的赛道</div>
+          </div>
         </div>
-        <div class="niche-list">
+        <div v-else class="niche-list">
           <div
             v-for="n in nicheOptions"
             :key="n.key"
@@ -155,11 +163,16 @@
       <div v-if="step === 4" class="step-panel">
         <h3 class="step-title">选择你的人设和内容支柱</h3>
         <p class="step-desc">人设决定用户怎么记住你，内容支柱保证你持续有得写。</p>
-        <div v-if="isLoadingPersonas" class="persona-loading">
-          <a-spin tip="AI 正在推荐人设..." />
+        <div v-if="isLoadingPersonas" class="wizard-loading">
+          <a-spin size="large" />
+          <div class="wizard-loading-text">
+            <div class="wizard-loading-title">正在为您定制方案</div>
+            <div class="wizard-loading-subtitle">根据赛道推荐适合的人设与内容支柱</div>
+          </div>
         </div>
-        <div class="form-block">
-          <div class="form-label">你想以什么身份出现？</div>
+        <template v-else>
+          <div class="form-block">
+            <div class="form-label">你想以什么身份出现？</div>
           <div class="persona-grid">
             <div
               v-for="p in personaOptions"
@@ -186,6 +199,7 @@
           </div>
           <div v-if="pillarTotal !== 100" class="pillar-warning">三项比例之和需等于 100%</div>
         </div>
+        </template>
       </div>
 
       <!-- Step 5: 方案汇总 -->
@@ -467,11 +481,6 @@ async function loadQuestions() {
     const data = res?.data ?? null
     questions.value = Array.isArray(data) ? data : []
     Object.keys(answers).forEach(k => delete answers[k])
-    questions.value.forEach(q => {
-      if (q.options?.length && q.isRequired) {
-        answers[q.key] = q.options[0].key
-      }
-    })
   } catch (e) {
     message.error('问题生成失败，请重试')
   } finally {
@@ -545,13 +554,17 @@ async function next() {
   try {
     if (step.value === 1) {
       resetAfterPlatformChange()
+      step.value = 2
       await loadQuestions()
     } else if (step.value === 2) {
+      step.value = 3
       await loadNicheOptions()
     } else if (step.value === 3) {
+      step.value = 4
       await loadPersonaOptions()
+    } else if (step.value === 4) {
+      step.value = 5
     }
-    step.value++
   } finally {
     isLoadingNext.value = false
   }
@@ -882,6 +895,26 @@ async function confirm() {
   display: flex;
   justify-content: center;
   padding: 48px 0;
+}
+.wizard-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 64px 0;
+}
+.wizard-loading-text {
+  text-align: center;
+}
+.wizard-loading-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+.wizard-loading-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
 }
 .niche-list {
   display: flex;
