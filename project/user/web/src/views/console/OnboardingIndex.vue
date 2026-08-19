@@ -957,6 +957,9 @@ async function confirm() {
   font-size: 14px;
   color: #8c8c8c;
 }
+.wizard-loading :deep(.ant-spin-dot-item) {
+  background: var(--color-primary, #07c160);
+}
 .niche-list {
   display: flex;
   flex-direction: column;

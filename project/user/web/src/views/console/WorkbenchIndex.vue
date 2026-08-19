@@ -10,7 +10,7 @@
             </a-avatar>
             <div class="welcome-info">
               <div class="welcome-name-row">
-                <span class="welcome-name">尊敬的{{ userInfo.nickname }}老师您好，我是您的自媒体顾问</span>
+                <span class="welcome-name">尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱</span>
                 <a-tag v-if="userInfo.vipLevel" class="vip-tag" color="#ff2442">
                   <CrownOutlined /> {{ userInfo.vipLevel }}
                 </a-tag>
@@ -84,9 +84,9 @@
           </div>
         </div>
         <div v-else class="plan-empty">
-          <div class="plan-empty-title">还没有专属运营方案</div>
+          <div class="plan-empty-title">您还没有还没有专属运营方案，</div>
           <div class="plan-empty-desc">
-            AI 会根据你的目标、时间与资源，为你定制一套自媒体运营方案，帮你更快起号、持续运营。
+            您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧。
           </div>
           <a-button type="primary" size="small" class="plan-empty-btn" @click="router.push('/console/onboarding')">
             立即制定
@@ -517,15 +517,18 @@ import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { checkNickname } from '@/api/accountCheck.js'
+import { getMyProfile } from '@/api/user.js'
+import { getAccountSummary } from '@/api/earnings.js'
+import { getMyMembership } from '@/api/membership.js'
 
 const router = useRouter()
 
 const userInfo = reactive({
-  nickname: '小王',
-  email: 'creator@example.com',
-  inviteCode: 'AICHUANG666',
-  vipLevel: '年度会员',
-  vipExpire: '2027-08-17'
+  nickname: '',
+  email: '',
+  inviteCode: '',
+  vipLevel: '',
+  vipExpire: ''
 })
 
 const balance = reactive({
@@ -546,6 +549,33 @@ const todayKey = computed(() => {
   const date = new Date()
   return `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
 })
+
+async function loadWelcomeData() {
+  try {
+    const [profileRes, summary, membershipRes] = await Promise.all([
+      getMyProfile(),
+      getAccountSummary(),
+      getMyMembership()
+    ])
+    const profile = profileRes?.data || {}
+    userInfo.nickname = profile.nickname || ''
+    userInfo.email = profile.email || ''
+    userInfo.inviteCode = profile.inviteCode || ''
+
+    balance.coin = summary?.coinBalance || 0
+
+    const membership = membershipRes?.data || {}
+    if (membership.hasMembership) {
+      userInfo.vipLevel = membership.levelName || ''
+      userInfo.vipExpire = membership.expiresAt || ''
+    } else {
+      userInfo.vipLevel = ''
+      userInfo.vipExpire = ''
+    }
+  } catch (err) {
+    console.error('加载欢迎卡片数据失败', err)
+  }
+}
 
 onMounted(() => {
   todayDone.value = localStorage.getItem(todayKey.value) === '1'
@@ -612,6 +642,7 @@ function dismissPlanModal() {
 
 onMounted(() => {
   todayDone.value = localStorage.getItem(todayKey.value) === '1'
+  loadWelcomeData()
   loadPlan().then(() => {
     if (!hasPlan.value && !localStorage.getItem(SELF_MEDIA_PLAN_MODAL_KEY)) {
       planModalVisible.value = true
