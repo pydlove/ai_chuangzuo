@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.selfmedia.mapper;
 
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanNiche;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -18,4 +19,10 @@ public interface SelfMediaPlanNicheMapper extends BaseMapper<SelfMediaPlanNiche>
     List<SelfMediaPlanNiche> selectByUserPlatformAndHash(@Param("userId") Long userId,
                                                          @Param("platformKey") String platformKey,
                                                          @Param("hash") String hash);
+
+    @Delete("DELETE FROM u_self_media_plan_niche " +
+            "WHERE user_id = #{userId} AND platform_key = #{platformKey} AND answer_snapshot_hash = #{hash}")
+    int deleteByUserPlatformAndHash(@Param("userId") Long userId,
+                                    @Param("platformKey") String platformKey,
+                                    @Param("hash") String hash);
 }

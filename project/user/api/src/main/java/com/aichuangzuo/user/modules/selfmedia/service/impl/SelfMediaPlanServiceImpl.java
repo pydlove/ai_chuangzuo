@@ -102,11 +102,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_QUESTIONS, vars);
         List<QuestionVO> questions = parseQuestions(root.path("questions"));
 
-        // 删除旧问题，保存新问题
-        questionMapper.delete(
-                new LambdaQueryWrapper<SelfMediaPlanQuestion>()
-                        .eq(SelfMediaPlanQuestion::getUserId, userId)
-                        .eq(SelfMediaPlanQuestion::getPlatformKey, platformKey));
+        // 删除旧问题，保存新问题（物理删除，避免唯一键冲突）
+        questionMapper.deleteByUserAndPlatform(userId, platformKey);
         for (QuestionVO q : questions) {
             SelfMediaPlanQuestion entity = new SelfMediaPlanQuestion();
             entity.setUserId(userId);
@@ -143,6 +140,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_NICHES, vars);
         List<NicheOptionVO> niches = parseNiches(root.path("niches"));
 
+        // 物理删除旧缓存，避免唯一键冲突
+        nicheMapper.deleteByUserPlatformAndHash(userId, platformKey, hash);
         for (NicheOptionVO n : niches) {
             SelfMediaPlanNiche entity = new SelfMediaPlanNiche();
             entity.setUserId(userId);
@@ -196,6 +195,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         List<PersonaOptionVO> personas = parsePersonas(root.path("personas"));
         List<PillarVO> defaultPillars = parsePillars(root.path("defaultPillars"));
 
+        // 物理删除旧缓存，避免唯一键冲突
+        personaMapper.deleteByUserPlatformHashAndNiche(userId, platformKey, hash, nicheKey);
         for (PersonaOptionVO p : personas) {
             SelfMediaPlanPersona entity = new SelfMediaPlanPersona();
             entity.setUserId(userId);
