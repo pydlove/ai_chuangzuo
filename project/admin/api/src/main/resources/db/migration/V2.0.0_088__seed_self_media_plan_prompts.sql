@@ -1,6 +1,6 @@
 SET NAMES utf8mb4;
 
-INSERT INTO c_ai_prompt (
+INSERT IGNORE INTO c_ai_prompt (
     prompt_code, prompt_name, module, category, system_role, user_prompt, variable_schema, status, sort_order, description
 ) VALUES (
     'self_media_recommend_platform_v1',
@@ -15,7 +15,7 @@ INSERT INTO c_ai_prompt (
     '自媒体方案：根据问卷推荐平台'
 );
 
-INSERT INTO c_ai_prompt (
+INSERT IGNORE INTO c_ai_prompt (
     prompt_code, prompt_name, module, category, system_role, user_prompt, variable_schema, status, sort_order, description
 ) VALUES (
     'self_media_recommend_goals_v1',
@@ -30,7 +30,7 @@ INSERT INTO c_ai_prompt (
     '自媒体方案：根据平台推荐运营目标'
 );
 
-INSERT INTO c_ai_prompt (
+INSERT IGNORE INTO c_ai_prompt (
     prompt_code, prompt_name, module, category, system_role, user_prompt, variable_schema, status, sort_order, description
 ) VALUES (
     'self_media_recommend_niches_v1',
@@ -45,7 +45,7 @@ INSERT INTO c_ai_prompt (
     '自媒体方案：根据平台与目标推荐细分赛道'
 );
 
-INSERT INTO c_ai_prompt (
+INSERT IGNORE INTO c_ai_prompt (
     prompt_code, prompt_name, module, category, system_role, user_prompt, variable_schema, status, sort_order, description
 ) VALUES (
     'self_media_recommend_personas_v1',
