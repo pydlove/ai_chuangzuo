@@ -577,10 +577,6 @@ async function loadWelcomeData() {
   }
 }
 
-onMounted(() => {
-  todayDone.value = localStorage.getItem(todayKey.value) === '1'
-})
-
 function setTodayDone() {
   todayDone.value = true
   localStorage.setItem(todayKey.value, '1')
