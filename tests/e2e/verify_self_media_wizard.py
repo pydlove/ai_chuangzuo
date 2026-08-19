@@ -112,6 +112,7 @@ def seed_test_data(user_id):
         f.write(f"DELETE FROM u_self_media_plan_question WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
         f.write(f"DELETE FROM u_self_media_plan_niche WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
         f.write(f"DELETE FROM u_self_media_plan_persona WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
+        f.write(f"DELETE FROM u_self_media_plan WHERE user_id = {user_id};\n")
 
         for q in QUESTIONS:
             f.write(

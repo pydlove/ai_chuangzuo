@@ -16,7 +16,7 @@ export function fetchCurrentPlan() {
  * @returns {Promise<{code:number, data:Array<{key:string,text:string,options:Array<{key:string,label:string}>,isRequired:boolean,sortOrder:number}>, msg:string}>}
  */
 export function fetchPlatformQuestions(platformKey) {
-  return api.get(`${BASE}/platform-questions`, { params: { platformKey } })
+  return api.get(`${BASE}/platform-questions`, { params: { platformKey }, timeout: 60000 })
 }
 
 /**

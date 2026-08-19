@@ -260,6 +260,7 @@ import {
 } from '@ant-design/icons-vue'
 import { platforms as backendPlatforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import {
+  fetchCurrentPlan,
   fetchPlatformQuestions,
   recommendNiches,
   recommendPersonas,
@@ -408,7 +409,47 @@ const platforms = computed(() => {
   })
 })
 
-onMounted(loadPlatforms)
+onMounted(async () => {
+  await checkExistingPlan()
+  if (step.value !== 5) {
+    await loadPlatforms()
+  }
+})
+async function checkExistingPlan() {
+  try {
+    const res = await fetchCurrentPlan()
+    const data = res?.data ?? null
+    if (!data || !data.platformKey) return
+
+    localStorage.setItem('aichuangzuo_onboarding_done', '1')
+    selectedPlatform.value = data.platformKey
+    await loadQuestions()
+
+    if (Array.isArray(data.answers)) {
+      data.answers.forEach((a) => {
+        answers[a.questionKey] = a.answer
+      })
+    }
+
+    nicheOptions.value = data.nicheKey
+      ? [{ key: data.nicheKey, name: data.nicheName || data.nicheKey }]
+      : []
+    selectedNiche.value = data.nicheKey || ''
+
+    personaOptions.value = data.personaKey
+      ? [{ key: data.personaKey, name: data.personaName || data.personaKey, desc: '' }]
+      : []
+    selectedPersona.value = data.personaKey || ''
+
+    if (Array.isArray(data.pillars) && data.pillars.length) {
+      pillars.splice(0, pillars.length, ...data.pillars.map((p) => ({ name: p.name, percent: p.percent })))
+    }
+
+    step.value = 5
+  } catch (e) {
+    console.warn('加载已有方案失败', e)
+  }
+}
 
 function difficultyClass(difficulty) {
   if (difficulty === '低') return 'tag-easy'
