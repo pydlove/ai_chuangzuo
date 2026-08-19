@@ -1152,7 +1152,7 @@ async function confirm() {
   display: flex;
   justify-content: center;
   gap: 16px;
-  margin-bottom: 24px;
+  padding-bottom: 48px;
 }
 .onboarding-actions .ant-btn-primary:not(.ant-btn-disabled) {
   background: var(--color-primary, #07c160);
