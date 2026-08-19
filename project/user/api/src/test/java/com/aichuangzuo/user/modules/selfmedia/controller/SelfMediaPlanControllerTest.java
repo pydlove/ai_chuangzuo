@@ -56,7 +56,6 @@ class SelfMediaPlanControllerTest {
     void savePlan_shouldCallServiceAndReturnVo() {
         SavePlanRequest req = new SavePlanRequest();
         req.setPlatformKey("xiaohongshu");
-        req.setGoal("靠生活经验变现");
         req.setNicheKey("zhichangzhuanxing");
         req.setPersonaKey("experiencer");
 

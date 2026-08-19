@@ -1,6 +1,6 @@
 package com.aichuangzuo.user.modules.selfmedia.vo;
 
-import com.aichuangzuo.user.modules.selfmedia.dto.SelfMediaRecommendationContext;
+import com.aichuangzuo.user.modules.selfmedia.dto.QuestionAnswerDTO;
 import lombok.Data;
 
 import java.util.List;
@@ -9,15 +9,10 @@ import java.util.List;
 public class SelfMediaPlanVO {
     private String platformKey;
     private String platformName;
-    private String goal;
-    private String background;
-    private Boolean hasProduct;
-    private String productDesc;
     private String nicheKey;
     private String nicheName;
     private String personaKey;
     private String personaName;
     private List<PillarVO> pillars;
-    private Boolean isRecommendedByAI;
-    private SelfMediaRecommendationContext recommendationContext;
+    private List<QuestionAnswerDTO> answers;
 }

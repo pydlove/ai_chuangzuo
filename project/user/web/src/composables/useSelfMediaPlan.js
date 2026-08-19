@@ -2,8 +2,7 @@ import { ref } from 'vue'
 import {
   fetchCurrentPlan as apiFetchCurrentPlan,
   savePlan as apiSavePlan,
-  recommendPlatform as apiRecommendPlatform,
-  recommendGoals as apiRecommendGoals,
+  fetchPlatformQuestions as apiFetchPlatformQuestions,
   recommendNiches as apiRecommendNiches,
   recommendPersonas as apiRecommendPersonas
 } from '@/api/selfMediaPlan'
@@ -37,19 +36,9 @@ export async function fetchCurrentPlan() {
   }
 }
 
-export async function recommendPlatform(data) {
+export async function fetchPlatformQuestions(platformKey) {
   try {
-    const res = await apiRecommendPlatform(data)
-    return unwrap(res)
-  } catch (e) {
-    message.error(errMsg(e))
-    throw e
-  }
-}
-
-export async function recommendGoals(data) {
-  try {
-    const res = await apiRecommendGoals(data)
+    const res = await apiFetchPlatformQuestions(platformKey)
     return unwrap(res)
   } catch (e) {
     message.error(errMsg(e))
@@ -94,8 +83,7 @@ export function useSelfMediaPlan() {
     currentPlan,
     isLoadingPlan,
     fetchCurrentPlan,
-    recommendPlatform,
-    recommendGoals,
+    fetchPlatformQuestions,
     recommendNiches,
     recommendPersonas,
     savePlan

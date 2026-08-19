@@ -27,22 +27,10 @@ public class SelfMediaPlanController {
         return Result.success(planService.getCurrentPlan(userId));
     }
 
-    @PostMapping
-    public Result<SelfMediaPlanVO> savePlan(@RequestBody SavePlanRequest request) {
+    @GetMapping("/platform-questions")
+    public Result<List<QuestionVO>> getPlatformQuestions(@RequestParam("platformKey") String platformKey) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(planService.savePlan(userId, request));
-    }
-
-    @PostMapping("/actions/recommend-platform")
-    public Result<RecommendPlatformResultVO> recommendPlatform(@RequestBody RecommendPlatformRequest request) {
-        Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(planService.recommendPlatform(userId, request));
-    }
-
-    @PostMapping("/actions/recommend-goals")
-    public Result<List<GoalOptionVO>> recommendGoals(@RequestBody RecommendGoalsRequest request) {
-        Long userId = SecurityUserContext.getCurrentUserId();
-        return Result.success(planService.recommendGoals(userId, request));
+        return Result.success(planService.getOrGeneratePlatformQuestions(userId, platformKey));
     }
 
     @PostMapping("/actions/recommend-niches")
@@ -55,5 +43,11 @@ public class SelfMediaPlanController {
     public Result<RecommendPersonasResultVO> recommendPersonas(@RequestBody RecommendPersonasRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(planService.recommendPersonas(userId, request));
+    }
+
+    @PostMapping
+    public Result<SelfMediaPlanVO> savePlan(@RequestBody SavePlanRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(planService.savePlan(userId, request));
     }
 }

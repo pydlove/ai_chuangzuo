@@ -3,8 +3,7 @@ package com.aichuangzuo.user.modules.selfmedia.vo;
 import lombok.Data;
 
 @Data
-public class GoalOptionVO {
+public class QuestionOptionVO {
     private String key;
-    private String name;
-    private String description;
+    private String label;
 }

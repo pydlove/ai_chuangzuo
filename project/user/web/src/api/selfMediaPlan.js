@@ -11,26 +11,19 @@ export function fetchCurrentPlan() {
 }
 
 /**
- * AI 推荐平台。
- * @param {object} data
- * @returns {Promise<{code:number, data:{platformKey:string, platformName:string, reason:string}, msg:string}>}
+ * 获取或生成平台问题。
+ * @param {string} platformKey
+ * @returns {Promise<{code:number, data:Array<{key:string,text:string,options:Array<{key:string,label:string}>,isRequired:boolean,sortOrder:number}>, msg:string}>}
  */
-export function recommendPlatform(data) {
-  return api.post(`${BASE}/actions/recommend-platform`, data, { timeout: 90000 })
-}
-
-/**
- * AI 推荐目标。
- * @param {object} data
- * @returns {Promise<{code:number, data:Array<{key:string,name:string,description:string}>, msg:string}>}
- */
-export function recommendGoals(data) {
-  return api.post(`${BASE}/actions/recommend-goals`, data, { timeout: 90000 })
+export function fetchPlatformQuestions(platformKey) {
+  return api.get(`${BASE}/platform-questions`, { params: { platformKey } })
 }
 
 /**
  * AI 推荐赛道。
  * @param {object} data
+ * @param {string} data.platformKey
+ * @param {Array<{questionKey:string,answer:string}>} data.answers
  * @returns {Promise<{code:number, data:Array, msg:string}>}
  */
 export function recommendNiches(data) {
@@ -40,6 +33,9 @@ export function recommendNiches(data) {
 /**
  * AI 推荐人设与默认内容支柱。
  * @param {object} data
+ * @param {string} data.platformKey
+ * @param {string} data.nicheKey
+ * @param {Array<{questionKey:string,answer:string}>} data.answers
  * @returns {Promise<{code:number, data:{personas:Array, defaultPillars:Array}, msg:string}>}
  */
 export function recommendPersonas(data) {

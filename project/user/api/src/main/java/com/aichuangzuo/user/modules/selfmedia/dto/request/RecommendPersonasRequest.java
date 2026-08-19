@@ -1,14 +1,13 @@
 package com.aichuangzuo.user.modules.selfmedia.dto.request;
 
-import com.aichuangzuo.user.modules.selfmedia.dto.SelfMediaRecommendationContext;
+import com.aichuangzuo.user.modules.selfmedia.dto.QuestionAnswerDTO;
 import lombok.Data;
+
+import java.util.List;
 
 @Data
 public class RecommendPersonasRequest {
     private String platformKey;
-    private String goal;
-    private String background;
     private String nicheKey;
-    private String nicheName;
-    private SelfMediaRecommendationContext context;
+    private List<QuestionAnswerDTO> answers;
 }

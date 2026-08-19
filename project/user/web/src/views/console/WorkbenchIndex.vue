@@ -70,10 +70,6 @@
               <span class="plan-label">人设定位</span>
               <span class="plan-value">{{ plan.persona }}</span>
             </div>
-            <div class="plan-row">
-              <span class="plan-label">核心目标</span>
-              <span class="plan-value">{{ plan.goal }}</span>
-            </div>
           </div>
           <div class="plan-pillars-inline">
             <span class="plan-label">内容支柱</span>
@@ -233,13 +229,35 @@
           <div class="form-row">
             <span class="form-label">账号名称</span>
             <a-input v-model:value="accountInfo.name" placeholder="输入你的账号昵称" />
-            <a-button type="primary" size="small" class="validate-btn" :disabled="!accountInfo.name.trim()" @click="validateAccountName">
+            <a-button
+              type="primary"
+              size="small"
+              class="validate-btn"
+              :loading="checking"
+              :disabled="!accountInfo.name.trim()"
+              @click="validateAccountName"
+            >
               检测名称
             </a-button>
           </div>
-          <div v-if="accountValidation" class="validation-result">{{ accountValidation }}</div>
-          <div v-if="accountValidation && accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">推荐名称：</div>
+          <div
+            v-if="accountValidation"
+            class="validation-result"
+            :class="{ fit: accountFit === true, unfit: accountFit === false }"
+          >
+            <template v-if="accountFit === true">
+              <CheckCircleOutlined class="result-icon" /> {{ accountValidation }}
+            </template>
+            <template v-else-if="accountFit === false">
+              <InfoCircleOutlined class="result-icon" /> {{ accountValidation }}
+            </template>
+            <template v-else>
+              {{ accountValidation }}
+            </template>
+          </div>
+          <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
+          <div v-if="accountSuggestions.length" class="suggestion-list">
+            <div class="suggestion-label">{{ accountFit === false ? 'AI 建议昵称：' : '推荐名称：' }}</div>
             <div class="suggestion-chips">
               <span
                 v-for="s in accountSuggestions"
@@ -259,8 +277,38 @@
             <div class="guide-item">简介说明价值，如「分享真实职场转型经验」</div>
             <div class="guide-item">头像使用真人或统一风格，提高信任感</div>
           </div>
+          <div class="form-row register-check-row">
+            <span class="form-label">想好的昵称</span>
+            <a-input v-model:value="accountInfo.name" placeholder="输入你想好的昵称，AI 会先帮你检测" />
+            <a-button
+              type="primary"
+              size="small"
+              class="validate-btn"
+              :loading="checking"
+              :disabled="!accountInfo.name.trim()"
+              @click="validateAccountName"
+            >
+              检测名称
+            </a-button>
+          </div>
+          <div
+            v-if="accountValidation"
+            class="validation-result"
+            :class="{ fit: accountFit === true, unfit: accountFit === false }"
+          >
+            <template v-if="accountFit === true">
+              <CheckCircleOutlined class="result-icon" /> {{ accountValidation }}
+            </template>
+            <template v-else-if="accountFit === false">
+              <InfoCircleOutlined class="result-icon" /> {{ accountValidation }}
+            </template>
+            <template v-else>
+              {{ accountValidation }}
+            </template>
+          </div>
+          <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
           <div v-if="accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">推荐昵称：</div>
+            <div class="suggestion-label">{{ accountFit === false ? 'AI 建议昵称：' : '推荐昵称：' }}</div>
             <div class="suggestion-chips">
               <span
                 v-for="s in accountSuggestions"
@@ -418,6 +466,8 @@ import {
   MailOutlined,
   UserOutlined,
   RocketOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
   FileTextOutlined,
   ShopOutlined,
   FireOutlined,
@@ -436,6 +486,7 @@ import {
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
+import { checkNickname } from '@/api/accountCheck.js'
 
 const router = useRouter()
 
@@ -487,7 +538,6 @@ const plan = reactive({
   platform: '小红书',
   niche: '35+ 职场转型',
   persona: '实战记录者',
-  goal: '靠内容流量变现',
   pillars: [
     { name: '干货复盘', percent: 60 },
     { name: '个人故事', percent: 20 },
@@ -497,14 +547,14 @@ const plan = reactive({
 
 async function loadPlan() {
   try {
-    const data = await fetchCurrentPlan()
-    if (data) {
+    const result = await fetchCurrentPlan()
+    const data = result?.data || result
+    if (data && typeof data === 'object') {
       Object.assign(plan, {
-        platform: data.platformName || data.platformKey || '',
-        niche: data.nicheName || '',
-        persona: data.personaName || '',
-        goal: data.goal || '',
-        pillars: Array.isArray(data.pillars) ? data.pillars : []
+        platform: data.platformName || data.platformKey || plan.platform,
+        niche: data.nicheName || plan.niche,
+        persona: data.personaName || plan.persona,
+        pillars: Array.isArray(data.pillars) ? data.pillars : plan.pillars
       })
     }
   } catch (e) {
@@ -564,16 +614,17 @@ const accountInfo = reactive({
 })
 
 const accountValidation = ref('')
+const accountFit = ref(null)
+const accountReason = ref('')
+const checking = ref(false)
 
 watch(() => accountInfo.name, () => {
   accountValidation.value = ''
+  accountFit.value = null
+  accountReason.value = ''
 }, { flush: 'sync' })
 
-const accountSuggestions = [
-  '35+职场转型手记',
-  'Remote工作实战派',
-  '中年转型实验室'
-]
+const accountSuggestions = ref([])
 
 const shortcuts = [
   { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { accountModalVisible.value = true } },
@@ -829,18 +880,63 @@ function validateAccountName() {
     accountValidation.value = '请输入账号名称'
     return
   }
-  if (name.length < 3) {
-    accountValidation.value = '账号名称建议 3 个字以上，更容易被记住和搜索'
-  } else if (!/[\u4e00-\u9fa5]/.test(name)) {
-    accountValidation.value = '建议包含中文关键词，便于平台搜索推荐'
-  } else {
-    accountValidation.value = '名称可用，但还可以优化赛道关键词'
+  doCheckNickname(name)
+}
+
+function buildPositioning() {
+  const { platform, niche, persona, goal, pillars } = plan
+  const parts = []
+  if (platform) parts.push(`平台：${platform}`)
+  if (niche) parts.push(`赛道：${niche}`)
+  if (persona) parts.push(`人设：${persona}`)
+  if (goal) parts.push(`核心目标：${goal}`)
+  if (pillars?.length) {
+    const pillarText = pillars.map((p) => `${p.name} ${p.percent}%`).join('，')
+    parts.push(`内容支柱：${pillarText}`)
+  }
+  return parts.join('；')
+}
+
+async function doCheckNickname(name) {
+  checking.value = true
+  accountValidation.value = ''
+  accountFit.value = null
+  accountReason.value = ''
+  accountSuggestions.value = []
+  try {
+    const positioning = buildPositioning()
+    if (!positioning) {
+      message.warning('请先制定自媒体方案后再进行检测')
+      return
+    }
+    const result = await checkNickname({
+      nickname: name,
+      platform: plan.platform || '',
+      positioning
+    })
+    accountFit.value = result.fit === true
+    accountReason.value = result.reason || ''
+    accountSuggestions.value = Array.isArray(result.suggestions) ? result.suggestions : []
+    if (accountFit.value) {
+      accountValidation.value = '名称与定位契合'
+    } else if (accountSuggestions.value.length) {
+      accountValidation.value = '名称不够契合，可参考以下建议'
+    } else {
+      accountValidation.value = '检测完成'
+    }
+  } catch (err) {
+    accountValidation.value = err?.message || '检测失败，请重试'
+    accountFit.value = false
+  } finally {
+    checking.value = false
   }
 }
 
 function selectSuggestion(s) {
   accountInfo.name = s
   accountValidation.value = ''
+  accountFit.value = null
+  accountReason.value = ''
 }
 </script>
 
@@ -2000,5 +2096,69 @@ function selectSuggestion(s) {
   .create-choice-options {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* 账号检测弹窗主题色 */
+.account-modal :deep(.ant-modal-title) {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.account-modal :deep(.ant-btn-primary) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.account-modal :deep(.ant-btn-primary:hover),
+.account-modal :deep(.ant-btn-primary:focus) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.account-modal :deep(.ant-btn-primary:active) {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.account-modal :deep(.ant-btn-primary[disabled]) {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+}
+
+.validation-result {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+}
+
+.validation-result.fit {
+  color: var(--color-success);
+}
+
+.validation-result.unfit {
+  color: var(--color-primary);
+}
+
+.result-icon {
+  font-size: 14px;
+}
+
+.validation-reason {
+  margin-top: 6px;
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  padding: 8px 10px;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-md);
+}
+
+.register-check-row {
+  margin-top: 12px;
 }
 </style>

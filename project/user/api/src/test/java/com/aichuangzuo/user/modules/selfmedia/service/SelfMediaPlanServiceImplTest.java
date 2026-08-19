@@ -1,8 +1,12 @@
 package com.aichuangzuo.user.modules.selfmedia.service;
 
+import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.SavePlanRequest;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlan;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanNicheMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPersonaMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanQuestionMapper;
 import com.aichuangzuo.user.modules.selfmedia.service.impl.SelfMediaPlanServiceImpl;
 import com.aichuangzuo.user.modules.selfmedia.vo.PillarVO;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,10 +23,14 @@ class SelfMediaPlanServiceImplTest {
 
     private final SelfMediaPlanAiService aiService = mock(SelfMediaPlanAiService.class);
     private final SelfMediaPlanMapper planMapper = mock(SelfMediaPlanMapper.class);
+    private final SelfMediaPlanQuestionMapper questionMapper = mock(SelfMediaPlanQuestionMapper.class);
+    private final SelfMediaPlanNicheMapper nicheMapper = mock(SelfMediaPlanNicheMapper.class);
+    private final SelfMediaPlanPersonaMapper personaMapper = mock(SelfMediaPlanPersonaMapper.class);
+    private final PlatformMapper platformMapper = mock(PlatformMapper.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private SelfMediaPlanServiceImpl service() {
-        return new SelfMediaPlanServiceImpl(aiService, planMapper, null, objectMapper);
+        return new SelfMediaPlanServiceImpl(aiService, planMapper, questionMapper, nicheMapper, personaMapper, platformMapper, objectMapper);
     }
 
     @Test
@@ -30,9 +38,6 @@ class SelfMediaPlanServiceImplTest {
         SavePlanRequest req = new SavePlanRequest();
         req.setPlatformKey("xiaohongshu");
         req.setPlatformName("小红书");
-        req.setGoal("靠生活经验变现");
-        req.setBackground("职场/管理");
-        req.setHasProduct(false);
         req.setNicheKey("zhichangzhuanxing");
         req.setNicheName("35+ 职场转型");
         req.setPersonaKey("experiencer");
@@ -53,11 +58,8 @@ class SelfMediaPlanServiceImplTest {
         assertEquals(1L, inserted.getUserId());
         assertEquals("xiaohongshu", inserted.getPlatformKey());
         assertEquals("小红书", inserted.getPlatformName());
-        assertEquals("靠生活经验变现", inserted.getGoal());
         assertEquals("zhichangzhuanxing", inserted.getNicheKey());
         assertEquals("experiencer", inserted.getPersonaKey());
-        assertEquals(0, inserted.getHasProduct());
-        assertEquals(0, inserted.getIsRecommendedByAi());
         assertNotNull(inserted.getContentPillarsJson());
     }
 }

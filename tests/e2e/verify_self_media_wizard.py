@@ -1,142 +1,312 @@
 from playwright.sync_api import sync_playwright
+import base64
+import hashlib
 import json
+import os
+import subprocess
 import urllib.request
 
 BASE_URL = 'http://127.0.0.1:22345'
 API_URL = 'http://127.0.0.1:25050'
 SCREENSHOT_DIR = '/tmp/self_media_wizard'
 
+DB_HOST = '127.0.0.1'
+DB_USER = 'root'
+DB_PASSWORD = '123456'
+DB_NAME = 'aichuangzuo'
+
+TEST_EMAIL = 'test_selfmedia@example.com'
+TEST_PASSWORD = 'Test1234!'
+TEST_PLATFORM = 'xiaohongshu'
+
+QUESTIONS = [
+    {
+        'key': 'content_form',
+        'text': '你更想发布哪种内容形式？',
+        'options': [
+            {'key': 'graphic_notes', 'label': '图文笔记'},
+            {'key': 'short_video', 'label': '短视频'},
+            {'key': 'live', 'label': '直播'},
+        ],
+        'isRequired': True,
+        'sortOrder': 1,
+    },
+    {
+        'key': 'time_commitment',
+        'text': '每周能投入多少时间？',
+        'options': [
+            {'key': 'lt_3h', 'label': '3小时以内'},
+            {'key': '3_10h', 'label': '3-10小时'},
+            {'key': 'gt_10h', 'label': '10小时以上'},
+        ],
+        'isRequired': True,
+        'sortOrder': 2,
+    },
+    {
+        'key': 'monetization_goal',
+        'text': '你的变现目标是什么？',
+        'options': [
+            {'key': 'side_income', 'label': '副业增收'},
+            {'key': 'personal_brand', 'label': '打造个人品牌'},
+            {'key': 'product_sales', 'label': '卖货/卖服务'},
+        ],
+        'isRequired': True,
+        'sortOrder': 3,
+    },
+    {
+        'key': 'on_camera',
+        'text': '是否愿意出镜？',
+        'options': [
+            {'key': 'no', 'label': '不想出镜'},
+            {'key': 'yes', 'label': '愿意出镜'},
+            {'key': 'voice_only', 'label': '只出声音'},
+        ],
+        'isRequired': True,
+        'sortOrder': 4,
+    },
+]
+
+NICHE = {
+    'key': 'zhichang_fupan',
+    'name': '职场复盘',
+    'audience': '25-40岁职场人',
+    'monetization': '付费咨询、课程',
+    'riskLabel': '中',
+    'riskColor': 'warning',
+    'caseCount': 12,
+    'reason': '真实经验分享容易建立信任，变现路径清晰',
+}
+
+PERSONA = {
+    'key': 'experiencer',
+    'name': '实战记录者',
+    'desc': '用亲身经历讲透一个领域的实战经验',
+}
+
+PILLARS = [
+    {'name': '干货复盘', 'percent': 60},
+    {'name': '个人故事', 'percent': 20},
+    {'name': '热点解读', 'percent': 20},
+]
+
+
+def compute_answer_hash(answers):
+    """与后端 SelfMediaPlanServiceImpl.answerHash 保持一致。"""
+    sorted_answers = sorted(answers, key=lambda a: a['questionKey'])
+    payload = json.dumps(
+        sorted_answers,
+        separators=(',', ':'),
+        ensure_ascii=False,
+    )
+    return hashlib.sha256(payload.encode('utf-8')).hexdigest()
+
+
+def seed_test_data(user_id):
+    answers = [{'questionKey': q['key'], 'answer': q['options'][0]['key']} for q in QUESTIONS]
+    answer_hash = compute_answer_hash(answers)
+
+    sql_path = '/tmp/self_media_wizard_seed.sql'
+    with open(sql_path, 'w', encoding='utf-8') as f:
+        f.write('SET NAMES utf8mb4;\n')
+        f.write(f"DELETE FROM u_self_media_plan_question WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
+        f.write(f"DELETE FROM u_self_media_plan_niche WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
+        f.write(f"DELETE FROM u_self_media_plan_persona WHERE user_id = {user_id} AND platform_key = '{TEST_PLATFORM}';\n")
+
+        for q in QUESTIONS:
+            f.write(
+                "INSERT INTO u_self_media_plan_question "
+                "(user_id, platform_key, prompt_code, question_key, question_text, options_json, is_required, sort_order) "
+                f"VALUES ({user_id}, '{TEST_PLATFORM}', 'self_media_platform_questions_v1', "
+                f"'{q['key']}', '{q['text']}', '{json.dumps(q['options'], ensure_ascii=False)}', "
+                f"{1 if q['isRequired'] else 0}, {q['sortOrder']});\n"
+            )
+
+        f.write(
+            "INSERT INTO u_self_media_plan_niche "
+            "(user_id, platform_key, answer_snapshot_hash, answer_snapshot_json, niche_key, name, audience, monetization, risk_label, risk_color, case_count, reason) "
+            f"VALUES ({user_id}, '{TEST_PLATFORM}', '{answer_hash}', "
+            f"'{json.dumps(answers, ensure_ascii=False)}', "
+            f"'{NICHE['key']}', '{NICHE['name']}', '{NICHE['audience']}', "
+            f"'{NICHE['monetization']}', '{NICHE['riskLabel']}', '{NICHE['riskColor']}', "
+            f"{NICHE['caseCount']}, '{NICHE['reason']}');\n"
+        )
+
+        f.write(
+            "INSERT INTO u_self_media_plan_persona "
+            "(user_id, platform_key, answer_snapshot_hash, niche_key, persona_key, name, description, default_pillars_json) "
+            f"VALUES ({user_id}, '{TEST_PLATFORM}', '{answer_hash}', "
+            f"'{NICHE['key']}', '{PERSONA['key']}', '{PERSONA['name']}', "
+            f"'{PERSONA['desc']}', '{json.dumps(PILLARS, ensure_ascii=False)}');\n"
+        )
+
+    subprocess.run(
+        ['mysql', f'-h{DB_HOST}', f'-u{DB_USER}', f'-p{DB_PASSWORD}', DB_NAME, '-e', open(sql_path, encoding='utf-8').read()],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return answer_hash
+
 
 def login():
     req = urllib.request.Request(
         f'{API_URL}/api/v1/user/auth/login',
-        data=json.dumps({'email': 'test_selfmedia@example.com', 'password': 'Test1234!'}).encode(),
+        data=json.dumps({'email': TEST_EMAIL, 'password': TEST_PASSWORD}).encode(),
         headers={'Content-Type': 'application/json'},
-        method='POST'
+        method='POST',
     )
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read().decode())
-        return data['data']['accessToken']
+        token = data['data']['accessToken']
+        # JWT sub 即为 userId
+        payload_b64 = token.split('.')[1]
+        padding = 4 - len(payload_b64) % 4
+        payload_json = base64.urlsafe_b64decode(payload_b64 + '=' * padding).decode('utf-8')
+        payload = json.loads(payload_json)
+        user_id = int(payload['sub'])
+        return token, user_id
 
 
 def main():
-    token = login()
-    print(f'Got access token: {token[:20]}...')
+    os.makedirs(SCREENSHOT_DIR, exist_ok=True)
+
+    token, user_id = login()
+    print(f'Logged in as user {user_id}, token={token[:20]}...')
+
+    seed_test_data(user_id)
+    print('Seeded cached wizard data for user.')
 
     errors = []
     network_logs = []
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        page = browser.new_page(viewport={'width': 1280, 'height': 900})
+        context = browser.new_context(viewport={'width': 1280, 'height': 900})
+        page = context.new_page()
 
-        page.on('console', lambda msg: errors.append(msg.text) if msg.type == 'error' else None)
-
-        def log_response(resp):
-            if resp.status >= 400:
-                network_logs.append(f'{resp.status} {resp.url}')
-
-        page.on('response', log_response)
-
-        # Inject auth state and clear onboarding flag
-        page.goto(BASE_URL + '/login')
-        page.evaluate(f'''() => {{
+        # 在页面脚本执行前注入 token，避免未登录时 system-skills 接口 403
+        context.add_init_script(f'''
             localStorage.setItem('aichuangzuo_access_token', '{token}');
             localStorage.removeItem('aichuangzuo_onboarding_done');
-        }}''')
+        ''')
 
-        # Navigate to onboarding
+        page.on('console', lambda msg: errors.append(msg.text) if msg.type == 'error' else None)
+        page.on('response', lambda resp: network_logs.append(f'{{resp.status}} {{resp.url}}') if resp.status >= 400 else None)
+
+        # Step 1: 选平台
         page.goto(BASE_URL + '/console/onboarding')
         page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(1500)
-        page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_load.png', full_page=True)
+        page.wait_for_timeout(800)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step1_platform.png', full_page=True)
 
-        # Check wizard title
         title = page.locator('text=制定你的自媒体方案').first
         print(f'Wizard title visible: {title.is_visible() if title.count() > 0 else False}')
 
-        # Select a platform directly (skip AI recommendation since LLM not configured)
         platform_card = page.locator('.platform-card:has-text("小红书")').first
-        if platform_card.count() > 0:
-            platform_card.click()
-            print('Selected 小红书 platform')
-        else:
-            print('WARN: 小红书 platform card not found')
+        assert platform_card.count() > 0, '小红书 platform card not found'
+        platform_card.click()
+        page.wait_for_timeout(300)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step1_selected.png', full_page=True)
 
-        page.wait_for_timeout(500)
-        page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_platform_selected.png', full_page=True)
-
-        # Check next button
         next_btn = page.locator('button:has-text("下一步")').first
-        print(f'Next button visible: {next_btn.is_visible() if next_btn.count() > 0 else False}')
-        print(f'Next button enabled: {next_btn.is_enabled() if next_btn.count() > 0 else False}')
+        assert next_btn.count() > 0 and next_btn.is_enabled(), 'Next button not available on step 1'
+        next_btn.click()
 
-        if next_btn.count() > 0 and next_btn.is_enabled():
-            next_btn.click()
-            page.wait_for_timeout(1000)
-            page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_step2.png', full_page=True)
-            step2_title = page.locator('text=你更适合哪种变现方式？').first
-            print(f'Step 2 title visible: {step2_title.is_visible() if step2_title.count() > 0 else False}')
+        # Step 2: 回答问题
+        page.wait_for_selector('.form-block', timeout=15000)
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step2_questions.png', full_page=True)
 
-        # Go back to step 1 and test AI recommendation modal wiring
-        prev_btn = page.locator('button:has-text("上一步")').first
-        if prev_btn.count() > 0 and prev_btn.is_enabled():
-            prev_btn.click()
-            page.wait_for_timeout(500)
+        question_blocks = page.locator('.form-block').all()
+        print(f'Questions count: {len(question_blocks)}')
+        assert len(question_blocks) == len(QUESTIONS), f'Expected {len(QUESTIONS)} questions, got {len(question_blocks)}'
 
-        ai_btn = page.locator('button:has-text("AI 推荐")').first
-        if ai_btn.count() > 0:
-            ai_btn.click()
-            page.wait_for_timeout(500)
-            page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_recommend_modal.png', full_page=True)
-            modal_title = page.locator('text=让 AI 推荐最适合你的平台').first
-            print(f'AI recommend modal visible: {modal_title.is_visible() if modal_title.count() > 0 else False}')
+        for idx, block in enumerate(question_blocks):
+            option_btn = block.locator('.option-group button').first
+            assert option_btn.count() > 0, f'No options for question {idx}'
+            option_btn.click()
+            page.wait_for_timeout(100)
 
-            # Fill required fields in modal
-            for label, value in [
-                ('主业还是副业', '副业'),
-                ('每周能投入多少时间', '3 - 10 小时'),
-                ('期望月收入达到多少', '月入过万'),
-                ('能接受多久不盈利', '3 个月'),
-                ('倾向于做哪种内容', '图文笔记'),
-                ('目标受众是哪类人', '职场人'),
-                ('更符合哪种身份', '职场人'),
-                ('是否愿意出镜或做视频', '不想做视频'),
-            ]:
-                btn = page.locator(f'.recommend-form .form-block:has-text("{label}") .option-group button:has-text("{value}")').first
-                if btn.count() > 0:
-                    btn.click()
-                    page.wait_for_timeout(100)
+        page.wait_for_timeout(300)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step2_answered.png', full_page=True)
 
-            page.wait_for_timeout(300)
-            page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_recommend_filled.png', full_page=True)
-            recommend_btn = page.locator('button:has-text("获取推荐")').first
-            print(f'Get recommend button enabled: {recommend_btn.is_enabled() if recommend_btn.count() > 0 else False}')
-            if recommend_btn.count() > 0 and recommend_btn.is_enabled():
-                recommend_btn.click()
-                page.wait_for_timeout(2000)
-                page.screenshot(path=f'{SCREENSHOT_DIR}_onboarding_recommend_result.png', full_page=True)
-                error_msg = page.locator('text=平台推荐失败').first
-                print(f'Recommend error visible (expected due to no LLM): {error_msg.is_visible() if error_msg.count() > 0 else False}')
+        next_btn = page.locator('button:has-text("下一步")').first
+        next_btn.click()
 
-        # Navigate to workbench
-        page.goto(BASE_URL + '/console/workbench')
+        # Step 3: 选赛道
+        page.wait_for_selector('.niche-card', timeout=15000)
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step3_niches.png', full_page=True)
+
+        niche_cards = page.locator('.niche-card').all()
+        print(f'Niche options count: {len(niche_cards)}')
+        assert len(niche_cards) >= 1, 'No niche options rendered'
+
+        next_btn = page.locator('button:has-text("下一步")').first
+        next_btn.click()
+
+        # Step 4: 选人设
+        page.wait_for_selector('.persona-card', timeout=15000)
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step4_personas.png', full_page=True)
+
+        persona_cards = page.locator('.persona-card').all()
+        print(f'Persona options count: {len(persona_cards)}')
+        assert len(persona_cards) >= 1, 'No persona options rendered'
+
+        next_btn = page.locator('button:has-text("下一步")').first
+        next_btn.click()
+
+        # Step 5: 方案汇总
+        page.wait_for_selector('.summary-card', timeout=15000)
+        page.wait_for_timeout(500)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_step5_summary.png', full_page=True)
+
+        confirm_btn = page.locator('button:has-text("确认方案，进入工作台")').first
+        assert confirm_btn.count() > 0 and confirm_btn.is_enabled(), 'Confirm button not available'
+        confirm_btn.click()
+
+        # 等待跳转工作台
+        try:
+            page.wait_for_url(BASE_URL + '/console/workbench', timeout=15000)
+        except Exception as e:
+            print(f'Navigation to workbench failed: {e}')
+            print(f'Current URL: {page.url}')
+            page.screenshot(path=f'{SCREENSHOT_DIR}_workbench_timeout.png', full_page=True)
+            print('Network logs:')
+            for log in network_logs:
+                print(f'  {log}')
+            print('Console errors:')
+            for err in errors:
+                print(f'  {err}')
+            raise
+
         page.wait_for_load_state('networkidle')
-        page.wait_for_timeout(1500)
-        page.screenshot(path=f'{SCREENSHOT_DIR}_workbench_load.png', full_page=True)
+        page.wait_for_timeout(800)
+        page.screenshot(path=f'{SCREENSHOT_DIR}_workbench.png', full_page=True)
 
         workbench_title = page.locator('text=工作台').first
         print(f'Workbench title visible: {workbench_title.is_visible() if workbench_title.count() > 0 else False}')
 
-        print(f'\nSelf-media plan API calls:')
-        for log in network_logs:
-            print(f'  {log}')
-
-        print(f'\nConsole errors: {len(errors)}')
-        for e in errors:
-            print(f'  ERROR: {e}')
+        # 验证运营方案卡片
+        assert page.locator('text=小红书').first.is_visible(), 'Plan platform not shown'
+        assert page.locator(f'text={NICHE["name"]}').first.is_visible(), 'Plan niche not shown'
+        assert page.locator(f'text={PERSONA["name"]}').first.is_visible(), 'Plan persona not shown'
+        for pillar in PILLARS:
+            assert page.locator(f'text={pillar["name"]} {pillar["percent"]}%').first.is_visible(), f'Pillar {pillar["name"]} not shown'
 
         browser.close()
+
+    print('\nNetwork errors:')
+    for log in network_logs:
+        print(f'  {log}')
+
+    print(f'\nConsole errors: {len(errors)}')
+    for e in errors:
+        print(f'  ERROR: {e}')
+
+    if network_logs or errors:
+        raise AssertionError('Verification failed: network or console errors detected')
 
     print('\nVerification complete')
 

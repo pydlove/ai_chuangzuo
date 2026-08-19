@@ -19,29 +19,21 @@
     </div>
 
     <div class="onboarding-card">
-     <div v-if="step === 1" class="step-panel">
-       <h3 class="step-title">你想在哪个平台做自媒体？</h3>
+      <!-- Step 1: 选平台 -->
+      <div v-if="step === 1" class="step-panel">
+        <h3 class="step-title">你想在哪个平台做自媒体？</h3>
         <p class="step-desc">每个平台的内容形式、用户群体、变现方式和收入空间都不同，了解清楚再选。</p>
-       <div class="recommend-bar">
-          <div class="recommend-card" @click="openRecommendModal">
-           <div class="recommend-card-text">
-             <BulbOutlined class="recommend-icon" />
-             <span>纠结选哪个平台？<strong>AI 帮你推荐最合适的</strong></span>
-           </div>
-            <button class="recommend-card-btn">AI 推荐</button>
-         </div>
-        </div>
         <div class="platform-grid">
           <div
             v-for="p in platforms"
             :key="p.key"
-            :class="['platform-card', { selected: form.platform === p.key }]"
+            :class="['platform-card', { selected: selectedPlatform === p.key }]"
             @click="selectPlatform(p.key)"
           >
             <div class="platform-card-header">
               <div class="platform-icon">
-              <img :src="p.iconImg" :alt="p.name" />
-            </div>
+                <img :src="p.iconImg" :alt="p.name" />
+              </div>
               <div class="platform-title">
                 <div class="platform-name">{{ p.name }}</div>
                 <a-tag :class="difficultyClass(p.difficulty)">{{ p.difficulty }}难度</a-tag>
@@ -92,67 +84,44 @@
                 </div>
               </div>
             </div>
-            <div v-if="form.platform === p.key" class="selected-check">
+            <div v-if="selectedPlatform === p.key" class="selected-check">
               <CheckOutlined />
             </div>
           </div>
         </div>
       </div>
 
+      <!-- Step 2: 回答问题 -->
       <div v-if="step === 2" class="step-panel">
-        <h3 class="step-title">你更适合哪种变现方式？</h3>
-        <p class="step-desc">根据你的优势选择变现路径，后面会推荐对应的赛道和玩法。</p>
-        <div class="form-block">
-          <div class="form-label">你更适合哪种变现方式？</div>
-          <a-button type="primary" size="small" :loading="isLoadingGoals" :disabled="isLoadingGoals || !form.platform" @click="loadGoalOptions">
-            <BulbOutlined /> AI 推荐目标
-          </a-button>
-          <div class="option-group" style="margin-top: 12px;">
-            <button
-              v-for="g in goalOptions"
-              :key="g.key"
-              :class="['option-btn', { selected: form.goal === g.name }]"
-              @click="form.goal = g.name"
-            >
-              {{ g.name }}
-            </button>
-          </div>
+        <h3 class="step-title">回答几个关于你的问题</h3>
+        <p class="step-desc">基于你选择的平台，我们生成了几个问题。回答后 AI 会推荐适合的赛道。</p>
+        <div v-if="isLoadingQuestions" class="question-loading">
+          <a-spin tip="AI 正在生成问题..." />
         </div>
-        <div class="form-block">
-          <div class="form-label">你的职业/经验领域是？</div>
-          <div class="option-group">
-            <button
-              v-for="b in backgrounds"
-              :key="b"
-              :class="['option-btn', { selected: form.background === b }]"
-              @click="form.background = b"
-            >
-              {{ b }}
-            </button>
+        <div v-else>
+          <div v-for="q in questions" :key="q.key" class="form-block">
+            <div class="form-label">
+              {{ q.text }}
+              <span v-if="q.isRequired" class="required-mark">*</span>
+            </div>
+            <div class="option-group">
+              <button
+                v-for="opt in q.options"
+                :key="opt.key"
+                :class="['option-btn', { selected: answers[q.key] === opt.key }]"
+                @click="answers[q.key] = opt.key"
+              >
+                {{ opt.label }}
+              </button>
+            </div>
           </div>
-        </div>
-        <div v-if="showProductInput" class="form-block">
-          <div class="form-label">你是否有可变现的产品、服务或技能？</div>
-          <div class="option-group">
-            <button :class="['option-btn', { selected: form.hasProduct === true }]" @click="form.hasProduct = true">
-              有
-            </button>
-            <button :class="['option-btn', { selected: form.hasProduct === false }]" @click="form.hasProduct = false">
-              没有，想先跑流量
-            </button>
-          </div>
-          <a-input
-            v-if="form.hasProduct"
-            v-model:value="form.productDesc"
-            placeholder="简单描述一下，比如：职场咨询、育儿课程、电商货源"
-            class="product-input"
-          />
         </div>
       </div>
 
+      <!-- Step 3: 选赛道 -->
       <div v-if="step === 3" class="step-panel">
         <h3 class="step-title">推荐你尝试这些细分赛道</h3>
-        <p class="step-desc">基于你选择的平台、背景和目标，我们找出了需求真实、竞争度尚可的赛道。</p>
+        <p class="step-desc">基于你选择的平台和回答，我们找出了需求真实、竞争度尚可的赛道。</p>
         <div v-if="isLoadingNiches" class="niche-loading">
           <a-spin tip="AI 正在推荐赛道..." />
         </div>
@@ -182,6 +151,7 @@
         </div>
       </div>
 
+      <!-- Step 4: 选人设 -->
       <div v-if="step === 4" class="step-panel">
         <h3 class="step-title">选择你的人设和内容支柱</h3>
         <p class="step-desc">人设决定用户怎么记住你，内容支柱保证你持续有得写。</p>
@@ -218,6 +188,7 @@
         </div>
       </div>
 
+      <!-- Step 5: 方案汇总 -->
       <div v-if="step === 5" class="step-panel">
         <h3 class="step-title">你的自媒体运营方案</h3>
         <p class="step-desc">确认后就可以进入工作台，按推荐选题开始创作。</p>
@@ -241,8 +212,13 @@
             </div>
           </div>
           <div class="summary-row">
-            <span class="summary-label">核心目标</span>
-            <span class="summary-value">{{ form.goal }}</span>
+            <span class="summary-label">平台问答</span>
+            <div class="summary-answers">
+              <div v-for="a in answerSummary" :key="a.key" class="summary-answer">
+                <span class="answer-question">{{ a.text }}</span>
+                <span class="answer-value">{{ a.answerLabel }}</span>
+              </div>
+            </div>
           </div>
         </div>
         <div class="summary-tip">
@@ -251,126 +227,16 @@
       </div>
     </div>
 
-   <div class="onboarding-actions">
-     <a-button v-if="step > 1" size="large" @click="prev">上一步</a-button>
-     <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" @click="next">下一步</a-button>
-     <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
-   </div>
-   <a-modal
-     v-model:open="recommendModalOpen"
-     title="让 AI 推荐最适合你的平台"
-      width="760px"
-     :footer="null"
-     @cancel="resetRecommend"
-   >
-      <div class="recommend-form">
-        <div class="form-block">
-          <div class="form-label">你做自媒体是主业还是副业？</div>
-          <div class="option-group">
-            <button
-              v-for="w in workTypes"
-              :key="w"
-              :class="['option-btn', { selected: recommendForm.workType === w }]"
-              @click="recommendForm.workType = w"
-            >{{ w }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你每周能投入多少时间？</div>
-          <div class="option-group">
-            <button
-              v-for="t in timeOptions"
-              :key="t"
-              :class="['option-btn', { selected: recommendForm.timePerWeek === t }]"
-              @click="recommendForm.timePerWeek = t"
-            >{{ t }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你期望月收入达到多少？</div>
-          <div class="option-group">
-            <button
-              v-for="i in incomeGoals"
-              :key="i"
-              :class="['option-btn', { selected: recommendForm.incomeGoal === i }]"
-              @click="recommendForm.incomeGoal = i"
-            >{{ i }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你能接受多久不盈利？</div>
-          <div class="option-group">
-            <button
-              v-for="b in breakEvenPeriods"
-              :key="b"
-              :class="['option-btn', { selected: recommendForm.breakEvenPeriod === b }]"
-              @click="recommendForm.breakEvenPeriod = b"
-            >{{ b }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你倾向于做哪种内容？</div>
-          <div class="option-group">
-            <button
-              v-for="c in contentTypes"
-              :key="c"
-              :class="['option-btn', { selected: recommendForm.contentType === c }]"
-              @click="recommendForm.contentType = c"
-            >{{ c }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你的目标受众是哪类人？</div>
-          <div class="option-group">
-            <button
-              v-for="a in audiences"
-              :key="a"
-              :class="['option-btn', { selected: recommendForm.audience === a }]"
-              @click="recommendForm.audience = a"
-            >{{ a }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你更符合哪种身份？</div>
-          <div class="option-group">
-            <button
-              v-for="i in identities"
-              :key="i"
-              :class="['option-btn', { selected: recommendForm.identity === i }]"
-              @click="recommendForm.identity = i"
-            >{{ i }}</button>
-          </div>
-        </div>
-        <div class="form-block">
-          <div class="form-label">你是否愿意出镜或做视频？</div>
-          <div class="option-group">
-            <button
-              v-for="o in onCameraOptions"
-              :key="o"
-              :class="['option-btn', { selected: recommendForm.onCamera === o }]"
-              @click="recommendForm.onCamera = o"
-           >{{ o }}</button>
-         </div>
-       </div>
-       <div class="form-block">
-         <div class="form-label">其他补充（可选）</div>
-          <a-textarea v-model:value="recommendForm.note" :rows="3" placeholder="比如：我想做短视频但不敢出镜、有育儿经验但不知道写什么..." />
-        </div>
-        <div class="recommend-actions">
-          <a-button type="primary" class="recommend-modal-btn" size="large" :disabled="!canRecommend" :loading="recommendLoading" @click="runRecommend">获取推荐</a-button>
-        </div>
-        <div v-if="recommendResult" class="recommend-result">
-          <div class="recommend-result-title">推荐平台：{{ recommendResult.platformName }}</div>
-          <div class="recommend-result-reason">{{ recommendResult.reason }}</div>
-          <a-button type="primary" class="recommend-modal-btn" @click="applyRecommend">选择这个平台</a-button>
-        </div>
-      </div>
-    </a-modal>
+    <div class="onboarding-actions">
+      <a-button v-if="step > 1" size="large" @click="prev">上一步</a-button>
+      <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" :loading="isLoadingNext" @click="next">下一步</a-button>
+      <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -380,16 +246,15 @@ import {
 } from '@ant-design/icons-vue'
 import { platforms as backendPlatforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import {
-  recommendPlatform as apiRecommendPlatform,
-  recommendGoals as apiRecommendGoals,
-  recommendNiches as apiRecommendNiches,
-  recommendPersonas as apiRecommendPersonas,
+  fetchPlatformQuestions,
+  recommendNiches,
+  recommendPersonas,
   savePlan as apiSavePlan
 } from '@/api/selfMediaPlan.js'
 
 const router = useRouter()
 const step = ref(1)
-const steps = ['选平台', '定目标', '选赛道', '做人设', '出方案']
+const steps = ['选平台', '答问题', '选赛道', '做人设', '出方案']
 
 function platformIconUrl(key) {
   return `/platforms/${key}.png`
@@ -543,121 +408,86 @@ function earnClass(ease) {
   return 'tag-hard'
 }
 
-const backgrounds = ['职场/管理', 'IT/互联网', '育儿/教育', '健康/养生', '金融/理财', '电商/创业', '生活方式', '其他']
-const timeOptions = ['小于 3 小时', '3 - 10 小时', '大于 10 小时']
-const workTypes = ['主业', '副业', '想转主业', '不明确']
-const incomeGoals = ['几千零花钱', '月入过万', '月入几万', '没具体目标', '不明确']
-const breakEvenPeriods = ['1 个月', '3 个月', '6 个月', '1 年以上', '不明确']
-const contentTypes = ['长图文', '短视频', '图文笔记', '直播', '问答', '不明确']
-const audiences = ['年轻人', '职场人', '宝妈家庭', '中老年人', '专业人士', '不明确']
-const identities = ['宝妈', '职场人', '创业者/老板', '自由职业', '学生', '其他', '不明确']
-const onCameraOptions = ['愿意出镜', '做视频但不出镜', '不想做视频', '不明确']
-
-const form = reactive({
-  platform: '',
-  goal: '',
-  background: '',
-  timePerWeek: '',
-  hasProduct: null,
-  productDesc: '',
-  recommendedByAI: false
-})
-
-const selectedNiche = ref('')
-const selectedPersona = ref('')
-const pillars = reactive([
-  { name: '干货复盘', percent: 60 },
-  { name: '个人故事', percent: 20 },
-  { name: '热点解读', percent: 20 }
-])
-
-// AI 推荐结果
-const goalOptions = ref([])
+const selectedPlatform = ref('')
+const questions = ref([])
+const answers = reactive({})
 const nicheOptions = ref([])
+const selectedNiche = ref('')
 const personaOptions = ref([])
-const isLoadingGoals = ref(false)
+const selectedPersona = ref('')
+const pillars = reactive([])
+
+const isLoadingQuestions = ref(false)
 const isLoadingNiches = ref(false)
 const isLoadingPersonas = ref(false)
+const isLoadingNext = ref(false)
 
 const selectedNicheName = computed(() => nicheOptions.value.find((n) => n.key === selectedNiche.value)?.name || '')
 const selectedPersonaName = computed(() => personaOptions.value.find((p) => p.key === selectedPersona.value)?.name || '')
-const platformLabels = computed(() => platforms.value.find((p) => p.key === form.platform)?.name || '')
+const platformLabels = computed(() => platforms.value.find((p) => p.key === selectedPlatform.value)?.name || '')
 const pillarTotal = computed(() => pillars.reduce((sum, p) => sum + p.percent, 0))
 
-const showProductInput = computed(() => {
-  const g = form.goal || ''
-  return g.includes('产品') || g.includes('服务') || g.includes('资源') || g.includes('信息差')
+const answerList = computed(() => {
+  return questions.value.map(q => ({
+    questionKey: q.key,
+    answer: answers[q.key] || ''
+  })).filter(a => a.answer)
 })
 
-watch(() => form.platform, () => {
-  form.goal = ''
-  goalOptions.value = []
-})
-
-const canNext = computed(() => {
-  if (step.value === 1) return !!form.platform
-  if (step.value === 2) {
-    if (!form.goal || !form.background) return false
-    if (showProductInput.value) {
-      if (form.hasProduct === null || form.hasProduct === undefined) return false
-      if (form.hasProduct === true && !form.productDesc.trim()) return false
+const answerSummary = computed(() => {
+  return questions.value.map(q => {
+    const opt = q.options.find(o => o.key === answers[q.key])
+    return {
+      key: q.key,
+      text: q.text,
+      answerLabel: opt?.label || answers[q.key] || '未回答'
     }
-    return true
-  }
-  if (step.value === 3) return !!selectedNiche.value
-  if (step.value === 4) return !!selectedPersona.value && pillarTotal.value === 100
-  return true
+  })
 })
 
 function selectPlatform(key) {
-  form.platform = form.platform === key ? '' : key
-  form.recommendedByAI = false
+  selectedPlatform.value = selectedPlatform.value === key ? '' : key
 }
 
-async function loadGoalOptions() {
-  if (!form.platform) return
-  isLoadingGoals.value = true
+function resetAfterPlatformChange() {
+  questions.value = []
+  Object.keys(answers).forEach(k => delete answers[k])
+  nicheOptions.value = []
+  selectedNiche.value = ''
+  personaOptions.value = []
+  selectedPersona.value = ''
+  pillars.splice(0, pillars.length)
+}
+
+async function loadQuestions() {
+  if (!selectedPlatform.value) return
+  isLoadingQuestions.value = true
   try {
-    const platform = platforms.value.find((p) => p.key === form.platform)
-    const data = await apiRecommendGoals({
-      platformKey: form.platform,
-      background: form.background || '',
-      context: buildContext(),
-      platformName: platform?.name || '',
-      platformTagline: platform?.tagline || '',
-      platformContentForm: (platform?.contentForm || []).join('、'),
-      platformMonetization: (platform?.monetization || []).join('、'),
-      platformBestFor: platform?.bestFor || ''
+    const res = await fetchPlatformQuestions(selectedPlatform.value)
+    const data = res?.data ?? null
+    questions.value = Array.isArray(data) ? data : []
+    Object.keys(answers).forEach(k => delete answers[k])
+    questions.value.forEach(q => {
+      if (q.options?.length && q.isRequired) {
+        answers[q.key] = q.options[0].key
+      }
     })
-    goalOptions.value = Array.isArray(data) ? data : []
-    if (goalOptions.value.length && !form.goal) {
-      form.goal = goalOptions.value[0].name
-    }
   } catch (e) {
-    message.error('目标推荐失败，请重试')
+    message.error('问题生成失败，请重试')
   } finally {
-    isLoadingGoals.value = false
+    isLoadingQuestions.value = false
   }
 }
 
 async function loadNicheOptions() {
-  if (!form.platform || !form.goal) return
+  if (!selectedPlatform.value || answerList.value.length === 0) return
   isLoadingNiches.value = true
   try {
-    const platform = platforms.value.find((p) => p.key === form.platform)
-    const data = await apiRecommendNiches({
-      platformKey: form.platform,
-      goal: form.goal,
-      background: form.background || '',
-      hasProduct: form.hasProduct === true,
-      productDesc: form.productDesc || '',
-      context: buildContext(),
-      platformName: platform?.name || '',
-      platformTagline: platform?.tagline || '',
-      platformContentForm: (platform?.contentForm || []).join('、'),
-      platformMonetization: (platform?.monetization || []).join('、'),
-      platformBestFor: platform?.bestFor || ''
+    const res = await recommendNiches({
+      platformKey: selectedPlatform.value,
+      answers: answerList.value
     })
+    const data = res?.data ?? null
     nicheOptions.value = Array.isArray(data) ? data : []
     selectedNiche.value = nicheOptions.value[0]?.key || ''
   } catch (e) {
@@ -668,28 +498,24 @@ async function loadNicheOptions() {
 }
 
 async function loadPersonaOptions() {
-  if (!form.platform || !form.goal || !selectedNiche.value) return
+  if (!selectedPlatform.value || !selectedNiche.value) return
   isLoadingPersonas.value = true
   try {
-    const platform = platforms.value.find((p) => p.key === form.platform)
-    const niche = nicheOptions.value.find((n) => n.key === selectedNiche.value)
-    const data = await apiRecommendPersonas({
-      platformKey: form.platform,
-      goal: form.goal,
-      background: form.background || '',
-      nicheKey: niche?.key || '',
-      nicheName: niche?.name || '',
-      context: buildContext(),
-      platformName: platform?.name || '',
-      platformTagline: platform?.tagline || '',
-      platformContentForm: (platform?.contentForm || []).join('、'),
-      platformMonetization: (platform?.monetization || []).join('、'),
-      platformBestFor: platform?.bestFor || ''
+    const res = await recommendPersonas({
+      platformKey: selectedPlatform.value,
+      nicheKey: selectedNiche.value,
+      answers: answerList.value
     })
-    const result = data || {}
+    const result = res?.data ?? {}
     personaOptions.value = Array.isArray(result.personas) ? result.personas : []
     if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
       pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
+    } else {
+      pillars.splice(0, pillars.length,
+        { name: '干货复盘', percent: 60 },
+        { name: '个人故事', percent: 20 },
+        { name: '热点解读', percent: 20 }
+      )
     }
     selectedPersona.value = personaOptions.value[0]?.key || ''
   } catch (e) {
@@ -699,37 +525,36 @@ async function loadPersonaOptions() {
   }
 }
 
-function buildContext() {
-  return {
-    workType: recommendForm.workType || '',
-    timePerWeek: recommendForm.timePerWeek || '',
-    incomeGoal: recommendForm.incomeGoal || '',
-    breakEvenPeriod: recommendForm.breakEvenPeriod || '',
-    contentType: recommendForm.contentType || '',
-    audience: recommendForm.audience || '',
-    identity: recommendForm.identity || '',
-    onCamera: recommendForm.onCamera || '',
-    note: recommendForm.note || ''
+const canNext = computed(() => {
+  if (isLoadingNext.value) return false
+  if (step.value === 1) return !!selectedPlatform.value
+  if (step.value === 2) {
+    return questions.value.every(q => !q.isRequired || !!answers[q.key])
   }
-}
+  if (step.value === 3) return !!selectedNiche.value
+  if (step.value === 4) return !!selectedPersona.value && pillarTotal.value === 100
+  return true
+})
 
-function next() {
+async function next() {
   if (!canNext.value) {
     message.warning('请先完成当前步骤的选择')
     return
   }
-  if (step.value === 2) {
-    loadNicheOptions()
+  isLoadingNext.value = true
+  try {
+    if (step.value === 1) {
+      resetAfterPlatformChange()
+      await loadQuestions()
+    } else if (step.value === 2) {
+      await loadNicheOptions()
+    } else if (step.value === 3) {
+      await loadPersonaOptions()
+    }
+    step.value++
+  } finally {
+    isLoadingNext.value = false
   }
-  if (step.value === 3) {
-    loadPersonaOptions()
-  }
-  if (step.value === 1 && form.recommendedByAI) {
-    step.value = 3
-    loadNicheOptions()
-    return
-  }
-  step.value++
 }
 
 function prev() {
@@ -737,24 +562,19 @@ function prev() {
 }
 
 async function confirm() {
-  const platform = platforms.value.find((p) => p.key === form.platform)
+  const platform = platforms.value.find((p) => p.key === selectedPlatform.value)
   const niche = nicheOptions.value.find((n) => n.key === selectedNiche.value)
   const persona = personaOptions.value.find((p) => p.key === selectedPersona.value)
   try {
     await apiSavePlan({
-      platformKey: form.platform,
+      platformKey: selectedPlatform.value,
       platformName: platform?.name || '',
-      goal: form.goal,
-      background: form.background,
-      hasProduct: form.hasProduct === true,
-      productDesc: form.productDesc || '',
       nicheKey: niche?.key || '',
       nicheName: niche?.name || '',
       personaKey: persona?.key || '',
       personaName: persona?.name || '',
-      isRecommendedByAI: form.recommendedByAI,
       pillars: pillars.map((p) => ({ name: p.name, percent: p.percent })),
-      recommendationContext: buildContext()
+      answers: answerList.value
     })
     message.success('自媒体方案已生成')
     localStorage.setItem('aichuangzuo_onboarding_done', '1')
@@ -762,85 +582,6 @@ async function confirm() {
   } catch (e) {
     message.error('保存方案失败，请重试')
   }
-}
-
-// AI 平台推荐（前端规则模拟，后续可替换为 LLM 接口）
-const recommendModalOpen = ref(false)
-const recommendLoading = ref(false)
-const recommendResult = ref(null)
-const recommendForm = reactive({
-  workType: '',
-  timePerWeek: '',
-  incomeGoal: '',
-  breakEvenPeriod: '',
-  contentType: '',
-  audience: '',
-  identity: '',
-  onCamera: '',
-  note: ''
-})
-
-const canRecommend = computed(() => {
-  return !!recommendForm.contentType &&
-         !!recommendForm.timePerWeek &&
-         !!recommendForm.onCamera &&
-         !!recommendForm.incomeGoal &&
-         !!recommendForm.workType
-})
-
-function openRecommendModal() {
-  recommendForm.workType = ''
-  recommendForm.timePerWeek = form.timePerWeek || ''
-  recommendForm.incomeGoal = ''
-  recommendForm.breakEvenPeriod = ''
-  recommendForm.contentType = ''
-  recommendForm.audience = ''
-  recommendForm.identity = ''
-  recommendForm.onCamera = ''
-  recommendForm.note = ''
-  recommendResult.value = null
-  recommendModalOpen.value = true
-}
-
-function resetRecommend() {
-  recommendResult.value = null
-  recommendLoading.value = false
-}
-
-function applyRecommend() {
-  if (recommendResult.value) {
-    form.platform = recommendResult.value.platformKey
-    if (recommendForm.timePerWeek) form.timePerWeek = recommendForm.timePerWeek
-    form.recommendedByAI = true
-    form.background = identityBackgroundMap[recommendForm.identity] || '其他'
-    recommendModalOpen.value = false
-    resetRecommend()
-    // 提前拉取 AI 目标推荐，方便用户进入下一步直接看到选项
-    loadGoalOptions()
-  }
-}
-
-async function runRecommend() {
-  if (!canRecommend.value) return
-  recommendLoading.value = true
-  recommendResult.value = null
-  try {
-    recommendResult.value = await apiRecommendPlatform({ context: buildContext() })
-  } catch (e) {
-    message.error('平台推荐失败，请重试')
-  } finally {
-    recommendLoading.value = false
-  }
-}
-
-const identityBackgroundMap = {
-  '职场人': '职场/管理',
-  '创业者/老板': '电商/创业',
-  '宝妈': '育儿/教育',
-  '学生': '其他',
-  '自由职业': '其他',
-  '其他': '其他',
-  '不明确': '其他'
 }
 </script>
 
@@ -851,6 +592,7 @@ const identityBackgroundMap = {
   max-width: 1440px;
   margin: 0 auto;
   min-height: 100%;
+  color: #1a1a1a;
 }
 .onboarding-header {
   text-align: center;
@@ -905,19 +647,24 @@ const identityBackgroundMap = {
   font-size: 14px;
   font-weight: 600;
   transition: all 0.2s;
+  color: #1a1a1a;
 }
 .step-item.active .step-circle {
   background: var(--color-primary, #FF2442);
+  color: #fff;
 }
 .step-item.done .step-circle {
   background: var(--color-primary, #07c160);
+  color: #fff;
 }
 .step-label {
   font-size: 13px;
+  color: #8c8c8c;
 }
 .step-item.active .step-label,
 .step-item.done .step-label {
   font-weight: 500;
+  color: var(--color-primary, #FF2442);
 }
 .onboarding-card {
   background: #fff;
@@ -930,10 +677,12 @@ const identityBackgroundMap = {
   font-size: 20px;
   font-weight: 700;
   margin: 0 0 8px;
+  color: #1a1a1a;
 }
 .step-desc {
   font-size: 14px;
   margin: 0 0 24px;
+  color: #595959;
 }
 .platform-grid {
   display: grid;
@@ -985,6 +734,7 @@ const identityBackgroundMap = {
   font-size: 16px;
   font-weight: 700;
   margin-bottom: 4px;
+  color: #1a1a1a;
 }
 
 .tag-easy,
@@ -1029,6 +779,7 @@ const identityBackgroundMap = {
 .meta-label {
   width: 56px;
   flex-shrink: 0;
+  color: #8c8c8c;
 }
 .meta-tags {
   flex: 1;
@@ -1039,6 +790,7 @@ const identityBackgroundMap = {
 .meta-value {
   flex: 1;
   line-height: 1.5;
+  color: #1a1a1a;
 }
 .platform-reason {
   font-size: 12px;
@@ -1048,6 +800,7 @@ const identityBackgroundMap = {
   border: 1px solid rgba(255, 36, 66, 0.12);
   border-radius: 8px;
   margin-top: auto;
+  color: #595959;
 }
 
 .platform-earn {
@@ -1061,6 +814,7 @@ const identityBackgroundMap = {
   font-size: 13px;
   font-weight: 600;
   margin-bottom: 10px;
+  color: #1a1a1a;
 }
 
 .earn-metrics {
@@ -1077,11 +831,13 @@ const identityBackgroundMap = {
 .earn-metric-label {
   font-size: 12px;
   margin-bottom: 4px;
+  color: #8c8c8c;
 }
 
 .earn-metric-value {
   font-size: 13px;
   font-weight: 600;
+  color: #1a1a1a;
 }
 
 .form-block {
@@ -1091,6 +847,11 @@ const identityBackgroundMap = {
   font-size: 15px;
   font-weight: 600;
   margin-bottom: 12px;
+  color: #1a1a1a;
+}
+.required-mark {
+  color: var(--color-primary, #FF2442);
+  margin-left: 4px;
 }
 .option-group {
   display: flex;
@@ -1105,6 +866,7 @@ const identityBackgroundMap = {
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
+  color: #1a1a1a;
 }
 .option-btn:hover {
   border-color: var(--color-primary, #FF2442);
@@ -1112,10 +874,14 @@ const identityBackgroundMap = {
 .option-btn.selected {
   border-color: var(--color-primary, #FF2442);
   background: var(--color-primary, #FF2442);
+  color: #fff;
 }
-.product-input {
-  margin-top: 12px;
-  max-width: 420px;
+.question-loading,
+.niche-loading,
+.persona-loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px 0;
 }
 .niche-list {
   display: flex;
@@ -1146,6 +912,7 @@ const identityBackgroundMap = {
 .niche-name {
   font-size: 16px;
   font-weight: 700;
+  color: #1a1a1a;
 }
 .niche-meta {
   display: flex;
@@ -1153,14 +920,17 @@ const identityBackgroundMap = {
   font-size: 13px;
   margin-bottom: 8px;
   flex-wrap: wrap;
+  color: #595959;
 }
 .niche-evidence {
   font-size: 13px;
   margin-bottom: 8px;
+  color: var(--color-primary, #FF2442);
 }
 .niche-reason {
   font-size: 13px;
   line-height: 1.6;
+  color: #595959;
 }
 .persona-grid {
   display: grid;
@@ -1186,10 +956,12 @@ const identityBackgroundMap = {
   font-size: 15px;
   font-weight: 700;
   margin-bottom: 6px;
+  color: #1a1a1a;
 }
 .persona-desc {
   font-size: 13px;
   line-height: 1.5;
+  color: #595959;
 }
 .pillars-input {
   display: flex;
@@ -1204,6 +976,7 @@ const identityBackgroundMap = {
 .pillar-name {
   width: 80px;
   font-size: 14px;
+  color: #1a1a1a;
 }
 .pillar-row :deep(.ant-slider) {
   flex: 1;
@@ -1226,16 +999,19 @@ const identityBackgroundMap = {
   width: 48px;
   text-align: right;
   font-size: 14px;
+  color: #1a1a1a;
 }
 .pillar-warning {
   margin-top: 8px;
   font-size: 13px;
+  color: var(--color-primary, #FF2442);
 }
 .selected-check {
   position: absolute;
   top: 8px;
   right: 8px;
   font-size: 16px;
+  color: var(--color-primary, #FF2442);
 }
 .summary-card {
   background: #fafafa;
@@ -1255,15 +1031,38 @@ const identityBackgroundMap = {
   width: 100px;
   font-size: 14px;
   flex-shrink: 0;
+  color: #8c8c8c;
 }
 .summary-value {
   font-size: 15px;
   font-weight: 600;
+  color: #1a1a1a;
 }
 .summary-pillars {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+}
+.summary-answers {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.summary-answer {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 8px;
+}
+.answer-question {
+  color: #595959;
+}
+.answer-value {
+  color: #1a1a1a;
+  font-weight: 500;
 }
 .summary-tip {
   display: flex;
@@ -1273,6 +1072,7 @@ const identityBackgroundMap = {
   background: #fff7e6;
   padding: 12px 16px;
   border-radius: 8px;
+  color: #d46b08;
 }
 .onboarding-actions {
   display: flex;
@@ -1293,61 +1093,6 @@ const identityBackgroundMap = {
 .onboarding-actions .ant-btn-primary:disabled {
   opacity: 0.6;
 }
-/* Restore text colors stripped by the last edit */
-.onboarding-index {
-  color: #1a1a1a;
-}
-.step-circle {
-  color: #1a1a1a;
-}
-.step-item.active .step-circle,
-.step-item.done .step-circle {
-  color: #fff;
-}
-.step-label {
-  color: #8c8c8c;
-}
-.step-item.active .step-label,
-.step-item.done .step-label {
-  color: var(--color-primary, #FF2442);
-}
-.step-title,
-.form-label,
-.platform-name,
-.meta-value,
-.earn-title,
-.earn-metric-value,
-.niche-name,
-.persona-name,
-.pillar-name,
-.pillar-percent,
-.summary-value {
-  color: #1a1a1a;
-}
-.step-desc,
-.platform-reason,
-.platform-earn,
-.niche-meta,
-.niche-reason,
-.persona-desc {
-  color: #595959;
-}
-.meta-label,
-.earn-metric-label,
-.summary-label {
-  color: #8c8c8c;
-}
-.niche-evidence,
-.pillar-warning,
-.selected-check {
-  color: var(--color-primary, #FF2442);
-}
-.option-btn.selected {
-  color: #fff;
-}
-.summary-tip {
-  color: #d46b08;
-}
 
 @media (max-width: 768px) {
   .onboarding-index {
@@ -1365,14 +1110,12 @@ const identityBackgroundMap = {
   .onboarding-card {
     padding: 20px;
   }
-   .platform-grid {
+  .platform-grid {
     grid-template-columns: 1fr;
   }
-
   .persona-grid {
     grid-template-columns: 1fr 1fr;
   }
-
   .earn-metrics {
     flex-direction: column;
     gap: 8px;
@@ -1381,102 +1124,13 @@ const identityBackgroundMap = {
     flex-direction: column;
     gap: 4px;
   }
+  .summary-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+  .summary-answer {
+    flex-direction: column;
+    gap: 4px;
+  }
 }
-
-.recommend-bar {
-  margin-bottom: 20px;
-}
-.recommend-card {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  background: #fff1f2;
-  border: 1px solid #ffccd0;
-  border-radius: 12px;
-  padding: 14px 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.recommend-card:hover {
-  background: #ffe6e8;
-  border-color: #ffaeb4;
-}
-.recommend-card-text {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #820014;
-  font-size: 14px;
-  line-height: 1.5;
-}
-.recommend-card-text strong {
-  color: var(--color-primary, #FF2442);
-}
-.recommend-icon {
-  font-size: 22px;
-  color: var(--color-primary, #FF2442);
-  flex-shrink: 0;
-}
-.recommend-card-btn {
-  flex-shrink: 0;
-  background: #fff;
-  color: var(--color-primary, #FF2442);
-  border: 1px solid var(--color-primary, #FF2442);
-  border-radius: 8px;
-  padding: 0 18px;
-  height: 34px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.recommend-card:hover .recommend-card-btn {
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-}
-.recommend-form {
-  padding: 8px 4px;
-}
-.recommend-form .ant-input:focus,
-.recommend-form .ant-input-focused {
-  border-color: var(--color-primary, #FF2442) !important;
-  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.2) !important;
-}
-.recommend-actions {
-  display: flex;
-  justify-content: center;
-  margin: 24px 0 16px;
-}
-.recommend-result {
-  background: #fff1f2;
-  border: 1px solid #ffccd0;
-  border-radius: 12px;
-  padding: 16px;
-  text-align: center;
-}
-.recommend-result-title {
-  font-size: 16px;
-  font-weight: 700;
-  margin-bottom: 8px;
-  color: #820014;
-}
-.recommend-modal-btn.ant-btn-primary:not(.ant-btn-disabled) {
-  background: var(--color-primary, #FF2442);
-  border-color: var(--color-primary, #FF2442);
-  color: #fff;
-}
-.recommend-modal-btn.ant-btn-primary:not(.ant-btn-disabled):hover,
-.recommend-modal-btn.ant-btn-primary:not(.ant-btn-disabled):focus {
-  background: #cf1322;
-  border-color: #cf1322;
-  color: #fff;
-}
-.recommend-result-reason {
-  font-size: 13px;
-  color: #595959;
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-
 </style>

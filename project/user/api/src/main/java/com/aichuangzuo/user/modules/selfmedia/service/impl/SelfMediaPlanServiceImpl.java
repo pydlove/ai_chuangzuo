@@ -3,11 +3,17 @@ package com.aichuangzuo.user.modules.selfmedia.service.impl;
 import com.aichuangzuo.shared.entity.Platform;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
-import com.aichuangzuo.user.modules.selfmedia.dto.SelfMediaRecommendationContext;
+import com.aichuangzuo.user.modules.selfmedia.dto.QuestionAnswerDTO;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.*;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlan;
+import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanNiche;
+import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanPersona;
+import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanQuestion;
 import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanNicheMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPersonaMapper;
+import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanQuestionMapper;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
@@ -20,8 +26,12 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +43,15 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
 
+    private static final String PROMPT_PLATFORM_QUESTIONS = "self_media_platform_questions_v1";
+    private static final String PROMPT_PLATFORM_NICHES = "self_media_platform_niches_v1";
+    private static final String PROMPT_PLATFORM_PERSONAS = "self_media_platform_personas_v1";
+
     private final SelfMediaPlanAiService aiService;
     private final SelfMediaPlanMapper planMapper;
+    private final SelfMediaPlanQuestionMapper questionMapper;
+    private final SelfMediaPlanNicheMapper nicheMapper;
+    private final SelfMediaPlanPersonaMapper personaMapper;
     private final PlatformMapper platformMapper;
     private final ObjectMapper objectMapper;
 
@@ -45,6 +62,7 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public SelfMediaPlanVO savePlan(Long userId, SavePlanRequest request) {
         validateSave(request);
         SelfMediaPlan existing = planMapper.selectByUserId(userId);
@@ -52,17 +70,13 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         plan.setUserId(userId);
         plan.setPlatformKey(request.getPlatformKey());
         plan.setPlatformName(request.getPlatformName());
-        plan.setGoal(request.getGoal());
-        plan.setBackground(request.getBackground());
-        plan.setHasProduct(Boolean.TRUE.equals(request.getHasProduct()) ? 1 : 0);
-        plan.setProductDesc(request.getProductDesc());
         plan.setNicheKey(request.getNicheKey());
         plan.setNicheName(request.getNicheName());
         plan.setPersonaKey(request.getPersonaKey());
         plan.setPersonaName(request.getPersonaName());
-        plan.setIsRecommendedByAi(Boolean.TRUE.equals(request.getIsRecommendedByAI()) ? 1 : 0);
         plan.setContentPillarsJson(toJson(request.getPillars()));
-        plan.setRecommendationContextJson(toJson(request.getRecommendationContext()));
+        plan.setAnswersJson(toJson(request.getAnswers()));
+        plan.setQuestionPromptCode(PROMPT_PLATFORM_QUESTIONS);
         plan.setTenantId(0L);
         if (existing == null) {
             planMapper.insert(plan);
@@ -73,75 +87,112 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     }
 
     @Override
-    public RecommendPlatformResultVO recommendPlatform(Long userId, RecommendPlatformRequest request) {
-        SelfMediaRecommendationContext ctx = request.getContext();
-        List<Platform> platforms = platformMapper.selectList(
-                new LambdaQueryWrapper<Platform>()
-                        .eq(Platform::getStatus, 1)
-                        .orderByAsc(Platform::getSortOrder));
-        String platformsJson = toJson(platforms.stream().map(p -> Map.of(
-                "platformKey", p.getPlatformKey(),
-                "platformName", p.getPlatformName(),
-                "tagline", defaultString(p.getTagline()),
-                "contentForm", jsonListToString(p.getContentFormJson()),
-                "monetization", jsonListToString(p.getMonetizationJson()),
-                "bestFor", defaultString(p.getBestFor())
-        )).collect(Collectors.toList()));
-
-        Map<String, Object> vars = contextVars(ctx);
-        vars.put("platformsJson", platformsJson);
-        JsonNode root = aiService.callPrompt("self_media_recommend_platform_v1", vars);
-        String platformKey = root.path("platformKey").asText("");
-        Platform chosen = platforms.stream()
-                .filter(p -> p.getPlatformKey().equals(platformKey))
-                .findFirst()
-                .orElse(platforms.isEmpty() ? null : platforms.get(0));
-        if (chosen == null) {
-            throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
+    @Transactional(rollbackFor = Exception.class)
+    public List<QuestionVO> getOrGeneratePlatformQuestions(Long userId, String platformKey) {
+        Platform platform = requirePlatform(platformKey);
+        List<SelfMediaPlanQuestion> cached = questionMapper.selectByUserAndPlatform(userId, platformKey);
+        if (!cached.isEmpty() && PROMPT_PLATFORM_QUESTIONS.equals(cached.get(0).getPromptCode())) {
+            return cached.stream().map(this::toQuestionVO).toList();
         }
-        RecommendPlatformResultVO vo = new RecommendPlatformResultVO();
-        vo.setPlatformKey(chosen.getPlatformKey());
-        vo.setPlatformName(chosen.getPlatformName());
-        vo.setReason(root.path("reason").asText(""));
-        return vo;
-    }
 
-    @Override
-    public List<GoalOptionVO> recommendGoals(Long userId, RecommendGoalsRequest request) {
-        Platform platform = requirePlatform(request.getPlatformKey());
         Map<String, Object> vars = platformVars(platform);
-        vars.put("background", defaultString(request.getBackground()));
-        vars.putAll(contextVars(request.getContext()));
-        JsonNode root = aiService.callPrompt("self_media_recommend_goals_v1", vars);
-        return parseGoals(root.path("goals"));
+        JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_QUESTIONS, vars);
+        List<QuestionVO> questions = parseQuestions(root.path("questions"));
+
+        // 删除旧问题，保存新问题
+        questionMapper.delete(
+                new LambdaQueryWrapper<SelfMediaPlanQuestion>()
+                        .eq(SelfMediaPlanQuestion::getUserId, userId)
+                        .eq(SelfMediaPlanQuestion::getPlatformKey, platformKey));
+        for (QuestionVO q : questions) {
+            SelfMediaPlanQuestion entity = new SelfMediaPlanQuestion();
+            entity.setUserId(userId);
+            entity.setPlatformKey(platformKey);
+            entity.setPromptCode(PROMPT_PLATFORM_QUESTIONS);
+            entity.setQuestionKey(q.getKey());
+            entity.setQuestionText(q.getText());
+            entity.setOptionsJson(toJson(q.getOptions()));
+            entity.setIsRequired(Boolean.TRUE.equals(q.getIsRequired()) ? 1 : 0);
+            entity.setSortOrder(q.getSortOrder() == null ? 0 : q.getSortOrder());
+            questionMapper.insert(entity);
+        }
+        return questions;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public List<NicheOptionVO> recommendNiches(Long userId, RecommendNichesRequest request) {
         Platform platform = requirePlatform(request.getPlatformKey());
+        String hash = answerHash(request.getAnswers());
+        List<SelfMediaPlanNiche> cached = nicheMapper.selectByUserPlatformAndHash(userId, request.getPlatformKey(), hash);
+        if (!cached.isEmpty()) {
+            return cached.stream().map(this::toNicheVO).toList();
+        }
+
         Map<String, Object> vars = platformVars(platform);
-        vars.put("goal", defaultString(request.getGoal()));
-        vars.put("background", defaultString(request.getBackground()));
-        vars.put("hasProduct", Boolean.TRUE.equals(request.getHasProduct()) ? "有" : "没有");
-        vars.put("productDesc", defaultString(request.getProductDesc()));
-        vars.putAll(contextVars(request.getContext()));
-        JsonNode root = aiService.callPrompt("self_media_recommend_niches_v1", vars);
-        return parseNiches(root.path("niches"));
+        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, request.getPlatformKey(), request.getAnswers()));
+        JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_NICHES, vars);
+        List<NicheOptionVO> niches = parseNiches(root.path("niches"));
+
+        for (NicheOptionVO n : niches) {
+            SelfMediaPlanNiche entity = new SelfMediaPlanNiche();
+            entity.setUserId(userId);
+            entity.setPlatformKey(request.getPlatformKey());
+            entity.setAnswerSnapshotHash(hash);
+            entity.setAnswerSnapshotJson(toJson(request.getAnswers()));
+            entity.setNicheKey(n.getKey());
+            entity.setName(n.getName());
+            entity.setAudience(n.getAudience());
+            entity.setMonetization(n.getMonetization());
+            entity.setRiskLabel(n.getRiskLabel());
+            entity.setRiskColor(n.getRiskColor());
+            entity.setCaseCount(n.getCaseCount());
+            entity.setReason(n.getReason());
+            nicheMapper.insert(entity);
+        }
+        return niches;
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public RecommendPersonasResultVO recommendPersonas(Long userId, RecommendPersonasRequest request) {
         Platform platform = requirePlatform(request.getPlatformKey());
+        String hash = answerHash(request.getAnswers());
+        List<SelfMediaPlanPersona> cached = personaMapper.selectByUserPlatformHashAndNiche(
+                userId, request.getPlatformKey(), hash, request.getNicheKey());
+        if (!cached.isEmpty()) {
+            RecommendPersonasResultVO vo = new RecommendPersonasResultVO();
+            vo.setPersonas(cached.stream().map(this::toPersonaVO).toList());
+            vo.setDefaultPillars(parsePillarsJson(cached.get(0).getDefaultPillarsJson()));
+            return vo;
+        }
+
         Map<String, Object> vars = platformVars(platform);
-        vars.put("goal", defaultString(request.getGoal()));
-        vars.put("background", defaultString(request.getBackground()));
-        vars.put("nicheKey", defaultString(request.getNicheKey()));
-        vars.put("nicheName", defaultString(request.getNicheName()));
-        vars.putAll(contextVars(request.getContext()));
-        JsonNode root = aiService.callPrompt("self_media_recommend_personas_v1", vars);
+        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, request.getPlatformKey(), request.getAnswers()));
+        vars.put("nicheKey", request.getNicheKey());
+        String nicheName = findNicheName(userId, request.getPlatformKey(), hash, request.getNicheKey());
+        vars.put("nicheName", nicheName);
+        JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_PERSONAS, vars);
+
+        List<PersonaOptionVO> personas = parsePersonas(root.path("personas"));
+        List<PillarVO> defaultPillars = parsePillars(root.path("defaultPillars"));
+
+        for (PersonaOptionVO p : personas) {
+            SelfMediaPlanPersona entity = new SelfMediaPlanPersona();
+            entity.setUserId(userId);
+            entity.setPlatformKey(request.getPlatformKey());
+            entity.setAnswerSnapshotHash(hash);
+            entity.setNicheKey(request.getNicheKey());
+            entity.setPersonaKey(p.getKey());
+            entity.setName(p.getName());
+            entity.setDescription(p.getDesc());
+            entity.setDefaultPillarsJson(toJson(defaultPillars));
+            personaMapper.insert(entity);
+        }
+
         RecommendPersonasResultVO vo = new RecommendPersonasResultVO();
-        vo.setPersonas(parsePersonas(root.path("personas")));
-        vo.setDefaultPillars(parsePillars(root.path("defaultPillars")));
+        vo.setPersonas(personas);
+        vo.setDefaultPillars(defaultPillars);
         return vo;
     }
 
@@ -150,9 +201,6 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     private void validateSave(SavePlanRequest request) {
         if (StringUtils.isBlank(request.getPlatformKey())) {
             throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_PLATFORM_REQUIRED);
-        }
-        if (StringUtils.isBlank(request.getGoal())) {
-            throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_GOAL_REQUIRED);
         }
         if (StringUtils.isBlank(request.getNicheKey())) {
             throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_NICHE_REQUIRED);
@@ -184,30 +232,49 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         return vars;
     }
 
-    private Map<String, Object> contextVars(SelfMediaRecommendationContext ctx) {
-        Map<String, Object> vars = new LinkedHashMap<>();
-        if (ctx == null) {
-            vars.put("workType", "");
-            vars.put("timePerWeek", "");
-            vars.put("incomeGoal", "");
-            vars.put("breakEvenPeriod", "");
-            vars.put("contentType", "");
-            vars.put("audience", "");
-            vars.put("identity", "");
-            vars.put("onCamera", "");
-            vars.put("note", "");
-            return vars;
+    private String buildQuestionsAnswersJson(Long userId, String platformKey, List<QuestionAnswerDTO> answers) {
+        List<SelfMediaPlanQuestion> questions = questionMapper.selectByUserAndPlatform(userId, platformKey);
+        Map<String, String> textMap = questions.stream()
+                .collect(Collectors.toMap(SelfMediaPlanQuestion::getQuestionKey, SelfMediaPlanQuestion::getQuestionText, (a, b) -> a));
+        List<Map<String, String>> list = answers.stream()
+                .sorted(Comparator.comparing(QuestionAnswerDTO::getQuestionKey))
+                .map(a -> {
+                    Map<String, String> m = new LinkedHashMap<>();
+                    m.put("questionKey", a.getQuestionKey());
+                    m.put("text", textMap.getOrDefault(a.getQuestionKey(), a.getQuestionKey()));
+                    m.put("answer", defaultString(a.getAnswer()));
+                    return m;
+                }).toList();
+        return toJson(list);
+    }
+
+    private String findNicheName(Long userId, String platformKey, String hash, String nicheKey) {
+        List<SelfMediaPlanNiche> list = nicheMapper.selectByUserPlatformAndHash(userId, platformKey, hash);
+        return list.stream()
+                .filter(n -> nicheKey.equals(n.getNicheKey()))
+                .findFirst()
+                .map(SelfMediaPlanNiche::getName)
+                .orElse("");
+    }
+
+    @SneakyThrows
+    private String answerHash(List<QuestionAnswerDTO> answers) {
+        if (answers == null) return sha256("");
+        List<QuestionAnswerDTO> sorted = answers.stream()
+                .sorted(Comparator.comparing(QuestionAnswerDTO::getQuestionKey))
+                .toList();
+        return sha256(toJson(sorted));
+    }
+
+    @SneakyThrows
+    private String sha256(String input) {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        byte[] hash = digest.digest(input.getBytes(StandardCharsets.UTF_8));
+        StringBuilder hex = new StringBuilder();
+        for (byte b : hash) {
+            hex.append(String.format("%02x", b));
         }
-        vars.put("workType", defaultString(ctx.getWorkType()));
-        vars.put("timePerWeek", defaultString(ctx.getTimePerWeek()));
-        vars.put("incomeGoal", defaultString(ctx.getIncomeGoal()));
-        vars.put("breakEvenPeriod", defaultString(ctx.getBreakEvenPeriod()));
-        vars.put("contentType", defaultString(ctx.getContentType()));
-        vars.put("audience", defaultString(ctx.getAudience()));
-        vars.put("identity", defaultString(ctx.getIdentity()));
-        vars.put("onCamera", defaultString(ctx.getOnCamera()));
-        vars.put("note", defaultString(ctx.getNote()));
-        return vars;
+        return hex.toString();
     }
 
     private String defaultString(String s) {
@@ -234,18 +301,62 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         SelfMediaPlanVO vo = new SelfMediaPlanVO();
         vo.setPlatformKey(plan.getPlatformKey());
         vo.setPlatformName(plan.getPlatformName());
-        vo.setGoal(plan.getGoal());
-        vo.setBackground(plan.getBackground());
-        vo.setHasProduct(Integer.valueOf(1).equals(plan.getHasProduct()));
-        vo.setProductDesc(plan.getProductDesc());
         vo.setNicheKey(plan.getNicheKey());
         vo.setNicheName(plan.getNicheName());
         vo.setPersonaKey(plan.getPersonaKey());
         vo.setPersonaName(plan.getPersonaName());
-        vo.setIsRecommendedByAI(Integer.valueOf(1).equals(plan.getIsRecommendedByAi()));
         vo.setPillars(parsePillarsJson(plan.getContentPillarsJson()));
-        vo.setRecommendationContext(parseContextJson(plan.getRecommendationContextJson()));
+        vo.setAnswers(parseAnswersJson(plan.getAnswersJson()));
         return vo;
+    }
+
+    private QuestionVO toQuestionVO(SelfMediaPlanQuestion q) {
+        QuestionVO vo = new QuestionVO();
+        vo.setKey(q.getQuestionKey());
+        vo.setText(q.getQuestionText());
+        vo.setOptions(parseOptionsJson(q.getOptionsJson()));
+        vo.setIsRequired(Integer.valueOf(1).equals(q.getIsRequired()));
+        vo.setSortOrder(q.getSortOrder());
+        return vo;
+    }
+
+    private NicheOptionVO toNicheVO(SelfMediaPlanNiche n) {
+        NicheOptionVO vo = new NicheOptionVO();
+        vo.setKey(n.getNicheKey());
+        vo.setName(n.getName());
+        vo.setAudience(n.getAudience());
+        vo.setMonetization(n.getMonetization());
+        vo.setRiskLabel(n.getRiskLabel());
+        vo.setRiskColor(n.getRiskColor());
+        vo.setCaseCount(n.getCaseCount());
+        vo.setReason(n.getReason());
+        return vo;
+    }
+
+    private PersonaOptionVO toPersonaVO(SelfMediaPlanPersona p) {
+        PersonaOptionVO vo = new PersonaOptionVO();
+        vo.setKey(p.getPersonaKey());
+        vo.setName(p.getName());
+        vo.setDesc(p.getDescription());
+        return vo;
+    }
+
+    private List<QuestionOptionVO> parseOptionsJson(String json) {
+        if (StringUtils.isBlank(json)) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<QuestionOptionVO>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
+    }
+
+    private List<QuestionAnswerDTO> parseAnswersJson(String json) {
+        if (StringUtils.isBlank(json)) return Collections.emptyList();
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<QuestionAnswerDTO>>() {});
+        } catch (Exception e) {
+            return Collections.emptyList();
+        }
     }
 
     private List<PillarVO> parsePillarsJson(String json) {
@@ -257,22 +368,25 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         }
     }
 
-    private SelfMediaRecommendationContext parseContextJson(String json) {
-        if (StringUtils.isBlank(json)) return new SelfMediaRecommendationContext();
-        try {
-            return objectMapper.readValue(json, SelfMediaRecommendationContext.class);
-        } catch (Exception e) {
-            return new SelfMediaRecommendationContext();
-        }
-    }
-
-    private List<GoalOptionVO> parseGoals(JsonNode node) {
+    private List<QuestionVO> parseQuestions(JsonNode node) {
         return StreamSupport.stream(node.spliterator(), false)
                 .map(n -> {
-                    GoalOptionVO vo = new GoalOptionVO();
+                    QuestionVO vo = new QuestionVO();
                     vo.setKey(n.path("key").asText(""));
-                    vo.setName(n.path("name").asText(""));
-                    vo.setDescription(n.path("description").asText(""));
+                    vo.setText(n.path("text").asText(""));
+                    vo.setOptions(parseQuestionOptions(n.path("options")));
+                    vo.setIsRequired(n.path("isRequired").asBoolean(true));
+                    vo.setSortOrder(n.path("sortOrder").asInt(0));
+                    return vo;
+                }).collect(Collectors.toList());
+    }
+
+    private List<QuestionOptionVO> parseQuestionOptions(JsonNode node) {
+        return StreamSupport.stream(node.spliterator(), false)
+                .map(n -> {
+                    QuestionOptionVO vo = new QuestionOptionVO();
+                    vo.setKey(n.path("key").asText(""));
+                    vo.setLabel(n.path("label").asText(""));
                     return vo;
                 }).collect(Collectors.toList());
     }

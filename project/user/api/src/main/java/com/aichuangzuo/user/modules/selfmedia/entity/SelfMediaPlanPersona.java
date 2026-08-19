@@ -9,23 +9,18 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@TableName("u_self_media_plan")
-public class SelfMediaPlan extends BaseEntity {
+@TableName("u_self_media_plan_persona")
+public class SelfMediaPlanPersona extends BaseEntity {
 
     @TableId(type = IdType.AUTO)
     private Long id;
 
     private Long userId;
     private String platformKey;
-    private String platformName;
+    private String answerSnapshotHash;
     private String nicheKey;
-    private String nicheName;
     private String personaKey;
-    private String personaName;
-    private String contentPillarsJson;
-    private String recommendationContextJson;
-    private String answersJson;
-    private String questionPromptCode;
-    private Integer isRecommendedByAi;
-    private Long tenantId;
+    private String name;
+    private String description;
+    private String defaultPillarsJson;
 }
