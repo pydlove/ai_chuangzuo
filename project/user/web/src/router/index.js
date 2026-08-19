@@ -200,12 +200,6 @@ router.beforeEach((to) => {
   if (!token && (to.path.startsWith('/console') || to.meta?.requireAuth)) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
-  if (token && to.path.startsWith('/console') && to.path !== '/console/onboarding') {
-    const done = localStorage.getItem('aichuangzuo_onboarding_done')
-    if (!done) {
-      return { path: '/console/onboarding' }
-    }
-  }
 })
 
 export default router

@@ -56,7 +56,7 @@
       </div>
 
       <a-card class="wb-card plan-card" :bordered="false" title="运营方案">
-        <div class="plan-content">
+        <div v-if="hasPlan" class="plan-content">
           <div class="plan-grid">
             <div class="plan-row">
               <span class="plan-label">主攻平台</span>
@@ -82,6 +82,16 @@
               调整方案
             </a-button>
           </div>
+        </div>
+        <div v-else class="plan-empty">
+          <div class="plan-empty-icon">📝</div>
+          <div class="plan-empty-title">还没有专属运营方案</div>
+          <div class="plan-empty-desc">
+            AI 会根据你的目标、时间与资源，为你定制一套自媒体运营方案，帮你更快起号、持续运营。
+          </div>
+          <a-button type="primary" size="small" class="plan-empty-btn" @click="router.push('/console/onboarding')">
+            立即制定
+          </a-button>
         </div>
       </a-card>
     </div>
@@ -453,6 +463,28 @@
         </div>
       </div>
     </a-modal>
+    <!-- 制定自媒体方案弹框 -->
+    <a-modal
+      v-model:open="planModalVisible"
+      title="制定你的自媒体方案"
+      width="560px"
+      :footer="null"
+      centered
+      class="plan-modal"
+      @cancel="dismissPlanModal"
+    >
+      <div class="plan-modal-body">
+        <div class="plan-modal-icon">🎯</div>
+        <div class="plan-modal-title">让 AI 为你定制专属运营方案</div>
+        <div class="plan-modal-desc">
+          为了给你更精准的运营建议，请先回答几个简单问题，AI 会基于你的目标、时间与资源，为你定制一套更容易起号的自媒体运营方案。
+        </div>
+        <div class="plan-modal-actions">
+          <a-button type="primary" size="large" block @click="goToPlan">去制定方案</a-button>
+          <a-button size="large" block class="plan-modal-later" @click="dismissPlanModal">稍后再说</a-button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -545,26 +577,48 @@ const plan = reactive({
   ]
 })
 
+const hasPlan = ref(false)
+const planModalVisible = ref(false)
+const SELF_MEDIA_PLAN_MODAL_KEY = 'aichuangzuo_selfmedia_plan_modal_dismissed'
+
 async function loadPlan() {
   try {
     const result = await fetchCurrentPlan()
     const data = result?.data || result
-    if (data && typeof data === 'object') {
+    if (data && typeof data === 'object' && data.platformKey) {
+      hasPlan.value = true
       Object.assign(plan, {
         platform: data.platformName || data.platformKey || plan.platform,
         niche: data.nicheName || plan.niche,
         persona: data.personaName || plan.persona,
         pillars: Array.isArray(data.pillars) ? data.pillars : plan.pillars
       })
+    } else {
+      hasPlan.value = false
     }
   } catch (e) {
     console.warn('加载运营方案失败', e)
+    hasPlan.value = false
   }
+}
+
+function goToPlan() {
+  planModalVisible.value = false
+  router.push('/console/onboarding')
+}
+
+function dismissPlanModal() {
+  planModalVisible.value = false
+  localStorage.setItem(SELF_MEDIA_PLAN_MODAL_KEY, '1')
 }
 
 onMounted(() => {
   todayDone.value = localStorage.getItem(todayKey.value) === '1'
-  loadPlan()
+  loadPlan().then(() => {
+    if (!hasPlan.value && !localStorage.getItem(SELF_MEDIA_PLAN_MODAL_KEY)) {
+      planModalVisible.value = true
+    }
+  })
 })
 
 const createFlowVisible = ref(false)
@@ -1220,6 +1274,78 @@ function selectSuggestion(s) {
   padding-top: var(--space-sm);
 }
 .plan-btn {
+  border-radius: var(--radius-lg);
+}
+.plan-empty {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) 0;
+}
+.plan-empty-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+.plan-empty-title {
+  font-size: var(--font-h4);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.plan-empty-desc {
+  font-size: var(--font-body);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  max-width: 260px;
+}
+.plan-empty-btn {
+  margin-top: var(--space-xs);
+  border-radius: var(--radius-lg);
+}
+
+/* 制定方案弹框 */
+.plan-modal-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: var(--space-md) var(--space-sm) var(--space-sm);
+  gap: var(--space-sm);
+}
+.plan-modal-icon {
+  font-size: 48px;
+  line-height: 1;
+}
+.plan-modal-title {
+  font-size: var(--font-h3);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.plan-modal-desc {
+  font-size: var(--font-body);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.plan-modal-actions {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-top: var(--space-sm);
+}
+.plan-modal-actions :deep(.ant-btn-primary) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+.plan-modal-actions :deep(.ant-btn-primary:hover) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.plan-modal-later {
   border-radius: var(--radius-lg);
 }
 

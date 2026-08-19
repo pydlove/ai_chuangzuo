@@ -22,6 +22,7 @@ const USER_SCOPED_KEYS = [
   'aichuangzuo_create_mode',
   'aichuangzuo_create_last_skill',
   'aichuangzuo_earnings_records',
+  'aichuangzuo_selfmedia_plan_modal_dismissed',
   'aichuangzuo_coin_balance',
   'aichuangzuo_redeem_codes',
   'aichuangzuo_redeem_history',
