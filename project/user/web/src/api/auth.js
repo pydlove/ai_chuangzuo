@@ -5,6 +5,9 @@ export const api = request
 export function sendEmailCode(data) {
   return api.post('/auth/email-codes', data)
 }
+export function sendSmsCode(data) {
+  return api.post('/auth/sms-codes', data)
+}
 
 export function register(data) {
   return api.post('/auth/register', data)
@@ -33,3 +36,13 @@ export function logout() {
 export function resetPassword(data) {
   return api.post('/auth/reset-password', data)
 }
+/**
+ * 重置密码（公开接口）
+ * @param {object} data
+ * @param {string} [data.email]
+ * @param {string} [data.emailCode]
+ * @param {string} [data.phone]
+ * @param {string} [data.smsCode]
+ * @param {string} data.password
+ * @param {string} data.confirmPassword
+ */

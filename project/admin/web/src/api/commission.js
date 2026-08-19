@@ -29,6 +29,10 @@ export function createCommissionSubmission(id, data) {
 export function createCommissionSubmissionBatch(id, data) {
   return request.post(`${BASE}/${id}/submissions/batch`, data).then((res) => res.data)
 }
+export function batchDeleteCommissionTasks(ids) {
+  return request.post(`${BASE}/batch-delete`, { ids }).then((res) => res.data)
+}
+
 export function importCommissionTasks(file) {
   const formData = new FormData()
   formData.append('file', file)

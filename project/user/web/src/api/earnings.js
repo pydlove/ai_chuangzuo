@@ -13,7 +13,7 @@ export function getAccountSummary() {
  * @returns {Promise<Array<{month:string, count:number, total:number}>>}
  */
 export function getMonthlySettlementList() {
-  return api.get('/account/settlement-list').then((res) => res.data || [])
+  return api.get('/account/monthly-summary').then((res) => res.data || [])
 }
 
 /**

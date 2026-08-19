@@ -1073,6 +1073,14 @@ const selectedSkillForModal = computed(() => {
  }
 })
 
+const DEFAULT_PROMPT_EXTRA = {
+  role: '',
+  audience: '',
+  requirements: '',
+  tone: '',
+  restrictions: ''
+}
+
 const editingStyle = reactive({
   originalName: '',
   name: '',

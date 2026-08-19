@@ -23,4 +23,5 @@ public interface AdminCommissionService {
     int createSubmissionBatch(Long taskId, CommissionSubmissionBatchCreateRequest request, Long adminId);
     int reconcileTaskStatus();
     CommissionTaskImportResultVO importExcel(MultipartFile file, Long adminId);
+    void batchDelete(List<Long> ids);
 }

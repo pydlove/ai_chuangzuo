@@ -6,9 +6,11 @@ import com.aichuangzuo.user.modules.auth.dto.request.RefreshTokenRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.RegisterRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.ResetPasswordRequest;
 import com.aichuangzuo.user.modules.auth.dto.request.SendEmailCodeRequest;
+import com.aichuangzuo.user.modules.auth.dto.request.SendSmsCodeRequest;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
-import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
+ import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
+ import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -31,12 +33,21 @@ public class AuthController {
 
     private final EmailCodeService emailCodeService;
     private final AuthService authService;
+    private final SmsCodeService smsCodeService;
 
     @Operation(summary = "发送邮箱验证码")
     @PostMapping("/email-codes")
     public Result<Void> sendEmailCode(@Valid @RequestBody SendEmailCodeRequest request) {
         log.info("发送邮箱验证码, userId={}, email={}", SecurityUserContext.getCurrentUserId(), request.getEmail());
         emailCodeService.sendEmailCode(request.getEmail());
+        return Result.success();
+    }
+    @Operation(summary = "发送短信验证码")
+    @PostMapping("/sms-codes")
+    public Result<Void> sendSmsCode(@Valid @RequestBody SendSmsCodeRequest request, HttpServletRequest httpRequest) {
+        String clientIp = getClientIp(httpRequest);
+        log.info("发送短信验证码, userId={}, phone={}", SecurityUserContext.getCurrentUserId(), request.getPhone());
+        smsCodeService.sendSmsCode(request.getPhone(), clientIp);
         return Result.success();
     }
 

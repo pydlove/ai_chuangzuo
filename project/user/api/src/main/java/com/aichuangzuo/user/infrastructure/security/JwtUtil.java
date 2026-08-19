@@ -11,6 +11,8 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Date;
 import java.util.UUID;
 
@@ -18,29 +20,39 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class JwtUtil {
 
+    private static final String REMEMBER_ME_CLAIM = "remember_me";
+
     private final AuthProperties authProperties;
 
     public String generateAccessToken(Long userId) {
         return generateToken(userId, authProperties.getJwt().getAccessSecret(),
-                authProperties.getJwt().getAccessExpiration() * 1000);
+                authProperties.getJwt().getAccessExpiration() * 1000, null);
     }
 
-    public String generateRefreshToken(Long userId) {
+    public String generateRefreshToken(Long userId, boolean rememberMe) {
+        long expirationSeconds = rememberMe
+                ? authProperties.getJwt().getRememberMeRefreshExpiration()
+                : authProperties.getJwt().getRefreshExpiration();
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(REMEMBER_ME_CLAIM, rememberMe);
         return generateToken(userId, authProperties.getJwt().getRefreshSecret(),
-                authProperties.getJwt().getRefreshExpiration() * 1000);
+                expirationSeconds * 1000, claims);
     }
 
-    private String generateToken(Long userId, String secret, long expirationMillis) {
+    private String generateToken(Long userId, String secret, long expirationMillis,
+                                 Map<String, Object> extraClaims) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMillis);
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-        return Jwts.builder()
+        JwtBuilder builder = Jwts.builder()
                 .subject(String.valueOf(userId))
                 .id(UUID.randomUUID().toString())
                 .issuedAt(now)
-                .expiration(expiry)
-                .signWith(key)
-                .compact();
+                .expiration(expiry);
+        if (extraClaims != null) {
+            extraClaims.forEach(builder::claim);
+        }
+        return builder.signWith(key).compact();
     }
 
     public Long parseAccessToken(String token) {
@@ -109,5 +121,27 @@ public class JwtUtil {
                 .parseSignedClaims(token)
                 .getPayload();
         return claims.getIssuedAt();
+    }
+
+    /**
+     * 解析 refresh token 中的 rememberMe 标记。
+     * 兼容旧 token（无该 claim），默认返回 false。
+     */
+    public boolean parseRememberMeFromRefreshToken(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(
+                    authProperties.getJwt().getRefreshSecret().getBytes(StandardCharsets.UTF_8));
+            Claims claims = Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+            Object value = claims.get(REMEMBER_ME_CLAIM);
+            return value != null && Boolean.parseBoolean(value.toString());
+        } catch (ExpiredJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
+        } catch (JwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
     }
 }

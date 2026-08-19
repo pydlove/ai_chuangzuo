@@ -44,17 +44,28 @@
           />
         </div>
 
-        <div class="form-item">
-          <label class="form-label">密码</label>
-          <input
-            v-model="loginForm.password"
-            type="password"
-            class="form-input"
-            placeholder="请输入密码"
-          />
+       <div class="form-item">
+         <label class="form-label">密码</label>
+         <input
+           v-model="loginForm.password"
+           type="password"
+           class="form-input"
+           placeholder="请输入密码"
+         />
+       </div>
+
+        <div class="form-item remember-row">
+          <label class="remember-label">
+            <input
+              v-model="rememberMe"
+              type="checkbox"
+              class="remember-checkbox"
+            />
+            <span class="remember-text">记住我</span>
+          </label>
         </div>
 
-        <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
+       <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
 
         <button class="submit-btn" @click="handleLogin">登录</button>
 
@@ -182,8 +193,8 @@
     >
       <p class="slider-modal-tip">
         按顺序点击下方成语中的汉字完成验证后将向
-        <b>{{ registerForm.email || '当前邮箱' }}</b>
-        发送 6 位邮箱验证码
+        <b>{{ registerMode === 'email' ? (registerForm.email || '当前邮箱') : (registerForm.phone || '当前手机号') }}</b>
+        发送 6 位{{ registerMode === 'email' ? '邮箱' : '短信' }}验证码
       </p>
       <GridClickCaptcha v-model="sliderModalPassed" />
     </a-modal>
@@ -200,7 +211,7 @@
     >
       <p class="slider-modal-tip">
         按顺序点击下方成语中的汉字完成验证后将登录账号
-        <b v-if="loginForm.email">「{{ loginForm.email }}」</b>
+        <b v-if="loginIdentifier">「{{ loginIdentifier }}」</b>
       </p>
       <GridClickCaptcha v-model="loginModalPassed" />
     </a-modal>
@@ -226,8 +237,11 @@ const {
   showInviteBanner,
   agreed,
   agreementShakeCount,
+  loginMode,
+  registerMode,
   loginForm,
   registerForm,
+  loginIdentifier,
   sliderModalVisible,
   sliderModalPassed,
   loginSliderModalVisible,
@@ -235,7 +249,8 @@ const {
   codeCountdown,
   openSliderModal,
   handleLogin,
-  handleRegister
+  handleRegister,
+  rememberMe
 } = useLogin()
 
 const navLinks = [
@@ -490,6 +505,38 @@ onBeforeUnmount(() => {
   box-shadow: 0 6px 20px rgba(255, 36, 66, 0.35);
 }
 
+/* 记住我 */
+.remember-row {
+  margin: 4px 0;
+}
+
+.remember-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #595959;
+}
+
+.remember-checkbox {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  flex-shrink: 0;
+  accent-color: #FF2442;
+  cursor: pointer;
+}
+
+.remember-text {
+  flex: 1;
+}
+
+body[data-theme="dark"] .remember-label {
+  color: #a6a6a6;
+}
+
 /* 表单底部 */
 .form-footer {
   display: flex;
@@ -539,6 +586,38 @@ onBeforeUnmount(() => {
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* 邮箱/手机切换 */
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+.mode-toggle-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-toggle-btn.active {
+  border-color: #FF2442;
+  color: #FF2442;
+  background: #fff0f2;
+}
+body[data-theme="dark"] .mode-toggle-btn {
+  background: #1f1f1f;
+  border-color: #404040;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .mode-toggle-btn.active {
+  border-color: #ff4d6f;
+  color: #ff4d6f;
+  background: rgba(255, 77, 111, 0.12);
 }
 
 /* ========== 媒体查询：手机端 ≤768px ========== */

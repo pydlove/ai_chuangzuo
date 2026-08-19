@@ -78,6 +78,18 @@ public class CaffeineConfig {
                         .maximumSize(10)
                         .expireAfterWrite(1, TimeUnit.MINUTES)
                         .build());
+        // 访问控制规则：1 分钟 TTL（管理端改动后较快生效）
+        manager.registerCustomCache("accessControl",
+                Caffeine.newBuilder()
+                        .maximumSize(10)
+                        .expireAfterWrite(1, TimeUnit.MINUTES)
+                        .build());
+        // 访问控制用户缓存：5 分钟 TTL
+        manager.registerCustomCache("accessControlUser",
+                Caffeine.newBuilder()
+                        .maximumSize(1000)
+                        .expireAfterWrite(5, TimeUnit.MINUTES)
+                        .build());
         return manager;
     }
 }

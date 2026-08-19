@@ -139,8 +139,9 @@ watch(wordCountVisible, (visible) => {
 })
 
 const platformWordCounts = computed(() => {
-  const platform = currentPlatform.value?.key || 'wechat'
-  return wordCountPresets.platform[platform] || wordCountPresets.platform.general
+  return currentPlatform.value?.wordCountPresets?.length
+    ? currentPlatform.value.wordCountPresets
+    : wordCountPresets.platform.general
 })
 
 const isLocked = (count) => count > wordCountLimit.value

@@ -1,3 +1,4 @@
+com/aichuangzuo/shared/utils/AiPromptVariableResolver.class
 com/aichuangzuo/shared/entity/GenerationTask.class
 com/aichuangzuo/shared/exception/UnauthorizedException.class
 com/aichuangzuo/shared/result/ErrorCode.class
@@ -9,12 +10,17 @@ com/aichuangzuo/shared/enums/error/AdminModelConfigErrorCode.class
 com/aichuangzuo/shared/exception/SystemException.class
 com/aichuangzuo/shared/entity/PromptTemplateVersion.class
 com/aichuangzuo/shared/entity/ShareConfig.class
+com/aichuangzuo/shared/entity/AiPrompt.class
+com/aichuangzuo/shared/entity/Platform.class
+com/aichuangzuo/shared/enums/error/AdminSecurityErrorCode.class
 com/aichuangzuo/shared/utils/AesUtil.class
 com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.class
 com/aichuangzuo/shared/exception/BusinessException.class
 com/aichuangzuo/shared/entity/GenerationHistory.class
+com/aichuangzuo/shared/vo/AiPromptRendered.class
 com/aichuangzuo/shared/exception/NotFoundException.class
 com/aichuangzuo/shared/enums/error/AdminAuditErrorCode.class
+com/aichuangzuo/shared/enums/error/AdminAiPromptErrorCode.class
 com/aichuangzuo/shared/enums/error/SystemErrorCode.class
 com/aichuangzuo/shared/entity/PromptTemplate.class
 com/aichuangzuo/shared/result/Result.class

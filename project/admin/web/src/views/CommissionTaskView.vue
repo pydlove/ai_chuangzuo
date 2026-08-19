@@ -16,9 +16,10 @@
       </a-upload>
       <a-button @click="downloadTemplate">下载模板</a-button>
       <a-button :loading="reconciling" @click="reconcileStatus">校正任务状态</a-button>
+      <a-button type="primary" danger :disabled="selectedTaskRowKeys.length === 0" @click="handleBatchDelete">批量删除</a-button>
     </div>
 
-    <a-table :columns="columns" :data-source="records" :loading="loading" row-key="id" :pagination="pagination" @change="onTableChange">
+    <a-table :columns="columns" :data-source="records" :loading="loading" row-key="id" :row-selection="taskRowSelection" :pagination="pagination" @change="onTableChange">
       <template #bodyCell="{ column, record }">
         <template v-if="column.key === 'reward'">{{ record.rewardCoin }} 创作币/篇</template>
         <template v-else-if="column.key === 'progress'">{{ record.adoptedCount }}/{{ record.neededCount }} 篇</template>
@@ -204,7 +205,7 @@ import { computed, reactive, ref } from 'vue'
 import { Modal, message } from 'ant-design-vue'
 import dayjs from 'dayjs'
 import {
-  adoptCommissionSubmissions, closeCommissionTask, createCommissionSubmissionBatch,
+  adoptCommissionSubmissions, batchDeleteCommissionTasks, closeCommissionTask, createCommissionSubmissionBatch,
   createCommissionTask, fetchCommissionTask, fetchCommissionTasks,
   importCommissionTasks, reconcileCommissionTasks, updateCommissionTask
 } from '@/api/commission.js'
@@ -223,6 +224,7 @@ const status = ref(undefined)
 const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
+const selectedTaskRowKeys = ref([])
 const publishVisible = ref(false)
 const editVisible = ref(false)
 const editingTaskId = ref(null)
@@ -264,6 +266,10 @@ const submissionColumns = [
   { title: '状态', key: 'status', width: 110 }
 ]
 const pagination = computed(() => ({ current: page.value, pageSize: pageSize.value, total: total.value, showSizeChanger: true }))
+const taskRowSelection = computed(() => ({
+  selectedRowKeys: selectedTaskRowKeys.value,
+  onChange: (keys) => { selectedTaskRowKeys.value = keys }
+}))
 const remainingCount = computed(() => detail.value ? detail.value.task.neededCount - detail.value.task.adoptedCount : 0)
 const realSubmissions = computed(() => (detail.value?.submissions || []).filter(s => !s.articleBizNo?.startsWith('MANUAL:')))
 const botSubmissions = computed(() => (detail.value?.submissions || []).filter(s => s.articleBizNo?.startsWith('MANUAL:')))
@@ -275,6 +281,26 @@ const rowSelection = computed(() => ({
 }))
 const emptyForm = () => ({ title: '', description: '', minWordCount: 600, maxWordCount: 1200, skillHint: '', rewardCoin: 30, neededCount: 1, deadlineAt: null, selectionDeadlineAt: null })
 const form = reactive(emptyForm())
+
+function handleBatchDelete() {
+  const count = selectedTaskRowKeys.value.length
+  if (count === 0) return
+  Modal.confirm({
+    title: '确认批量删除？',
+    content: `已选择 ${count} 条约稿任务，删除后不可恢复。`,
+    okType: 'danger',
+    onOk: async () => {
+      try {
+        await batchDeleteCommissionTasks(selectedTaskRowKeys.value)
+        message.success('已批量删除')
+        selectedTaskRowKeys.value = []
+        loadTasks()
+      } catch (error) {
+        message.error(error.message || '删除失败')
+      }
+    }
+  })
+}
 
 async function loadTasks() {
   loading.value = true

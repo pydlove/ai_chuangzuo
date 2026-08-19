@@ -27,7 +27,15 @@ public enum UserAuthErrorCode implements ErrorCode {
     INVITE_BINDING_EXPIRED(111020, "邀请人绑定已过期"),
     RESET_PASSWORD_FAILED(111021, "重置失败，请检查邮箱或验证码"),
     TOKEN_INVALID(111022, "token 无效或已过期"),
-    TOKEN_BLACKLISTED(111023, "token 已被登出");
+    TOKEN_BLACKLISTED(111023, "token 已被登出"),
+    ACCESS_DENIED(111024, "访问受限，请联系管理员"),
+    PHONE_FORMAT_ERROR(111025, "手机号格式错误"),
+    PHONE_ALREADY_EXISTS(111026, "手机号已注册"),
+    PHONE_NOT_FOUND(111027, "手机号未注册"),
+    SMS_SEND_FAILED(111028, "短信发送失败，请稍后重试"),
+    SMS_CODE_ERROR(111029, "短信验证码错误或已过期"),
+    SMS_CONFIG_NOT_ENABLED(111030, "短信验证未启用"),
+    PHONE_OR_EMAIL_REQUIRED(111031, "邮箱或手机号至少填写一项");
 
     private final int code;
     private final String message;

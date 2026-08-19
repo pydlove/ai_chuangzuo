@@ -45,6 +45,10 @@ public class User {
     private Integer userType;
     /** 邮箱是否验证：0-否 / 1-是；改邮箱成功后置 1。 */
     private Integer emailVerified;
+    /** 手机号。 */
+    private String phone;
+    /** 手机是否验证：0-否 / 1-是。 */
+    private Integer phoneVerified;
     /** 租户ID；当前统一为 0，预留多租户扩展。 */
     private Long tenantId;
     /** 逻辑删除标记：0-未删 / 1-已删；所有查询自动追加 is_deleted=0 条件。 */

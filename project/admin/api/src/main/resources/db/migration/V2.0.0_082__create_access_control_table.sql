@@ -1,0 +1,17 @@
+SET NAMES utf8mb4;
+
+CREATE TABLE IF NOT EXISTS a_access_control (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    rule_type TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '规则类型：1-IP，2-账号',
+    list_type TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '名单类型：1-黑名单，2-白名单',
+    rule_value VARCHAR(128) NOT NULL COMMENT '规则值：IP地址或账号标识（用户ID/邮箱）',
+    rule_status TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+    remark VARCHAR(256) DEFAULT NULL COMMENT '备注说明',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_a_access_control_rule (rule_type, list_type, rule_value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='访问控制规则表（IP/账号黑白名单）';

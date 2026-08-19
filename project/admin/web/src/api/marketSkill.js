@@ -49,3 +49,8 @@ export function getMarketSkillUsageRecords(bizNo, params = {}) {
       }
     })
 }
+
+export function simulateMarketSkillUsage(bizNo, userId) {
+  return request.post(`/market-skills/${bizNo}/simulate-usage`, { userId })
+    .then((body) => body.data)
+}

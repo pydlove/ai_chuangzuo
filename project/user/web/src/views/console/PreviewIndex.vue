@@ -628,15 +628,48 @@ const formattedBody = computed(() => {
   return renderedWithOverrides
 })
 
+// 通用复制（兼容 HTTP 非安全上下文，navigator.clipboard 在 http 下为 undefined）
+const copyToClipboard = (text, successMsg, errorMsg) => {
+  if (!text) {
+    message.error(errorMsg || '复制内容为空')
+    return
+  }
+
+  const writeWithFallback = async () => {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '0'
+    textarea.setAttribute('readonly', '')
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    try {
+      const successful = document.execCommand('copy')
+      if (!successful) {
+        throw new Error('execCommand copy failed')
+      }
+    } finally {
+      document.body.removeChild(textarea)
+    }
+  }
+
+  writeWithFallback()
+    .then(() => message.success(successMsg || '复制成功'))
+    .catch(() => message.error(errorMsg || '复制失败'))
+}
+
 // 复制正文
 const copyText = () => {
   if (!article.value) return
   const text = `${article.value.title}\n\n${article.value.body}`
-  navigator.clipboard.writeText(text).then(() => {
-    message.success('已复制到剪贴板')
-  }).catch(() => {
-    message.error('复制失败')
-  })
+  copyToClipboard(text, '已复制到剪贴板', '复制失败')
 }
 
 // 导出 Word
@@ -674,11 +707,7 @@ const exportWord = () => {
 
 // 复制描述
 const copyDesc = () => {
-  navigator.clipboard.writeText(publishDesc.value).then(() => {
-    message.success('描述已复制')
-  }).catch(() => {
-    message.error('复制失败')
-  })
+  copyToClipboard(publishDesc.value, '描述已复制', '复制失败')
 }
 
 // 复制全部标签
@@ -687,11 +716,7 @@ const copyTags = () => {
     message.info(`推荐标签为${SEO_MIN_PLAN.name}功能，请升级套餐后使用`)
     return
   }
-  navigator.clipboard.writeText(publishTags.value.join(' ')).then(() => {
-    message.success('标签已复制')
-  }).catch(() => {
-    message.error('复制失败')
-  })
+  copyToClipboard(publishTags.value.join(' '), '标签已复制', '复制失败')
 }
 
 // AI优化标题：首次点击调后端大模型生成，之后后端返回首次缓存结果

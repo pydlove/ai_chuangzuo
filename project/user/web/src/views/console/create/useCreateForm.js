@@ -1,59 +1,14 @@
 import { ref, watch } from 'vue'
+import { platforms } from '@/composables/usePlatforms.js'
 
 // 模块级单例：熟手模式创作配置
 const MODE_KEY = 'aichuangzuo_create_mode'
 const FORM_KEY = 'aichuangzuo_create_form'
 
-export const platforms = [
-  { key: 'wechat', name: '公众号', desc: '深度长文，适合专业内容输出', recommendWords: 1500, trait: '长文深度阅读，段落完整，适合观点输出' },
-  { key: 'xiaohongshu', name: '小红书', desc: '轻松图文，种草安利效果好', recommendWords: 800, trait: '短段落多 emoji，自动带话题标签' },
-  { key: 'toutiao', name: '今日头条', desc: '算法分发，热点资讯类内容', recommendWords: 800, trait: '算法友好，热点资讯提示词' },
-  { key: 'baijiahao', name: '百家号', desc: '多平台分发，SEO友好', recommendWords: 1500, trait: 'SEO 友好，知识科普调性' },
-  { key: 'douyin', name: '抖音图文', desc: '短视频+图文，流量大', recommendWords: 300, trait: '图配文短文案，金句为主' },
-  { key: 'zhihu', name: '知乎', desc: '深度问答，专业知识分享', recommendWords: 1500, trait: '专业问答体，逻辑严谨' },
-  { key: 'bilibili', name: 'B站', desc: '专栏图文，年轻兴趣社区', recommendWords: 1500, trait: '专栏图文，年轻社区语气' }
-]
+// 平台列表已从后端动态加载，见 composables/usePlatforms.js
 
 export const wordCountPresets = {
   platform: {
-    wechat: [
-      { count: 500, label: '短讯 / 快讯' },
-      { count: 800, label: '早报 / 简评' },
-      { count: 1500, label: '标准深度文' },
-      { count: 2500, label: '专题报道' },
-      { count: 3000, label: '行业研究（上限）' }
-    ],
-    xiaohongshu: [
-      { count: 300, label: '标题种草' },
-      { count: 500, label: '图文分享' },
-      { count: 800, label: '详细测评' },
-      { count: 1200, label: '步骤拆解教程' }
-    ],
-    toutiao: [
-      { count: 400, label: '热点快讯' },
-      { count: 800, label: '事件报道' },
-      { count: 1500, label: '专题分析' },
-      { count: 2000, label: '观点长文' }
-    ],
-    baijiahao: [
-      { count: 500, label: '短科普' },
-      { count: 1000, label: '知识科普' },
-      { count: 1500, label: '生活攻略' },
-      { count: 2000, label: '人文叙事' },
-      { count: 2500, label: '行业洞察' }
-    ],
-    douyin: [
-      { count: 150, label: '封面金句' },
-      { count: 300, label: '图配文' },
-      { count: 600, label: '情感短篇' }
-    ],
-    bilibili: [
-      { count: 500, label: '短篇动态' },
-      { count: 800, label: '动态短文' },
-      { count: 1500, label: '科普专栏' },
-      { count: 2500, label: '深度评测' },
-      { count: 3000, label: '连载长文' }
-    ],
     general: [
       { count: 500, label: '短文' },
       { count: 1000, label: '中等' },
@@ -78,7 +33,7 @@ export const wordCountPresets = {
 const createMode = ref('minimal')
 const customTitle = ref('')
 const customRequirement = ref('')
-const currentPlatform = ref(platforms[0])
+const currentPlatform = ref({ key: '', name: '选择平台', desc: '', recommendWords: 0, trait: '', wordCountPresets: [] })
 const currentWordCount = ref({ count: 1500, label: '标准', desc: '深度阅读，8 分钟读完' })
 const customWordCount = ref(1500)
 const selectedTemplateKey = ref('wechat')
@@ -87,14 +42,25 @@ const wordCountVisible = ref(false)
 const styleVisible = ref(false)
 const templateVisible = ref(false)
 
-function loadForm() {
+function setDefaultPlatform() {
+  const p = platforms.value.find(x => x.isDefault) || platforms.value[0]
+  if (p) currentPlatform.value = p
+}
+
+export function loadForm() {
   try {
     const raw = localStorage.getItem(FORM_KEY)
-    if (!raw) return
+    if (!raw) {
+      setDefaultPlatform()
+      return
+    }
     const data = JSON.parse(raw)
     if (data.platformKey) {
-      const p = platforms.find(x => x.key === data.platformKey)
+      const p = platforms.value.find(x => x.key === data.platformKey)
       if (p) currentPlatform.value = p
+    }
+    if (!currentPlatform.value?.key) {
+      setDefaultPlatform()
     }
     if (data.wordCount && typeof data.wordCount.count === 'number') {
       currentWordCount.value = data.wordCount
@@ -103,7 +69,7 @@ function loadForm() {
       selectedTemplateKey.value = data.templateKey
     }
   } catch {
-    // ignore
+    setDefaultPlatform()
   }
 }
 
@@ -119,7 +85,6 @@ function saveForm() {
   }
 }
 
-loadForm()
 
 export function useCreateForm() {
   watch(currentPlatform, saveForm, { deep: true })

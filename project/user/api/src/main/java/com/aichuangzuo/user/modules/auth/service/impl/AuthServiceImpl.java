@@ -20,6 +20,7 @@ import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
+import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
 import com.aichuangzuo.user.modules.auth.vo.UserVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -29,6 +30,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -47,6 +49,7 @@ public class AuthServiceImpl implements AuthService {
     private final IpRegisterLimitMapper ipRegisterLimitMapper;
     private final EmailCodeService emailCodeService;
     private final JwtUtil jwtUtil;
+    private final SmsCodeService smsCodeService;
     private final CacheUtil cacheUtil;
     private final AuthConverter authConverter;
     private final PasswordEncoder passwordEncoder;
@@ -60,21 +63,41 @@ public class AuthServiceImpl implements AuthService {
     private static final long ACCOUNT_LOCK_MINUTES = 30;
     private static final String PASSWORD_RESET_AT_PREFIX = "user:auth:password-reset-at:";
 
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public void resetPassword(ResetPasswordRequest request, String clientIp) {
+   @Override
+   @Transactional(rollbackFor = Exception.class)
+   public void resetPassword(ResetPasswordRequest request, String clientIp) {
         if (!request.getPassword().equals(request.getConfirmPassword())) {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
         }
 
-        String email = request.getEmail().trim().toLowerCase();
-        User user = userMapper.selectByEmail(email);
-        if (user == null) {
-            throw new BusinessException(UserAuthErrorCode.RESET_PASSWORD_FAILED);
+        boolean isEmail = StringUtils.hasText(request.getEmail());
+        boolean isPhone = StringUtils.hasText(request.getPhone());
+        if (!isEmail && !isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
+        }
+        if (isEmail && isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
         }
 
-        if (!emailCodeService.validateEmailCode(email, request.getEmailCode())) {
-            throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+        User user;
+        if (isEmail) {
+            String email = request.getEmail().trim().toLowerCase();
+            user = userMapper.selectByEmail(email);
+            if (user == null) {
+                throw new BusinessException(UserAuthErrorCode.RESET_PASSWORD_FAILED);
+            }
+            if (!emailCodeService.validateEmailCode(email, request.getEmailCode())) {
+                throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+            }
+        } else {
+            String phone = normalizePhone(request.getPhone());
+            user = userMapper.selectByPhone(phone);
+            if (user == null) {
+                throw new BusinessException(UserAuthErrorCode.PHONE_NOT_FOUND);
+            }
+            if (!smsCodeService.validateSmsCode(phone, request.getSmsCode())) {
+                throw new BusinessException(UserAuthErrorCode.SMS_CODE_ERROR);
+            }
         }
 
         String newHash = passwordEncoder.encode(request.getPassword());
@@ -89,13 +112,12 @@ public class AuthServiceImpl implements AuthService {
                 TimeUnit.SECONDS);
 
         saveLoginLog(user.getId(), 3, clientIp, "reset-password", 1, null);
-    }
+   }
 
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AuthTokenVO register(RegisterRequest request, String clientIp, String userAgent) {
-        String email = request.getEmail().trim().toLowerCase();
         String inviteCode = request.getInviteCode() == null ? null
                 : request.getInviteCode().trim().toUpperCase();
 
@@ -105,12 +127,33 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.PASSWORD_NOT_MATCH);
         }
 
-        if (userMapper.selectByEmail(email) != null) {
-            throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+        boolean isEmail = StringUtils.hasText(request.getEmail());
+        boolean isPhone = StringUtils.hasText(request.getPhone());
+        if (!isEmail && !isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
+        }
+        if (isEmail && isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
         }
 
-        if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {
-            throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+        String email = null;
+        String phone = null;
+        if (isEmail) {
+            email = request.getEmail().trim().toLowerCase();
+            if (userMapper.selectByEmail(email) != null) {
+                throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+            if (!emailCodeService.validateEmailCode(request.getEmail(), request.getEmailCode())) {
+                throw new BusinessException(UserAuthErrorCode.EMAIL_CODE_ERROR);
+            }
+        } else {
+            phone = normalizePhone(request.getPhone());
+            if (userMapper.selectByPhone(phone) != null) {
+                throw new BusinessException(UserAuthErrorCode.PHONE_ALREADY_EXISTS);
+            }
+            if (!smsCodeService.validateSmsCode(phone, request.getSmsCode())) {
+                throw new BusinessException(UserAuthErrorCode.SMS_CODE_ERROR);
+            }
         }
 
         if (inviteCode != null && !inviteCode.isBlank()) {
@@ -122,16 +165,22 @@ public class AuthServiceImpl implements AuthService {
         User user = new User();
         user.setBizNo("U" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
         user.setEmail(email);
+        user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setInviteCode(generateInviteCode());
         user.setUserStatus(1);
-        user.setEmailVerified(1);
+        user.setEmailVerified(isEmail ? 1 : 0);
+        user.setPhoneVerified(isPhone ? 1 : 0);
         user.setNickname("用户" + user.getInviteCode());
 
         try {
             userMapper.insert(user);
         } catch (DuplicateKeyException e) {
-            throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+            if (isEmail) {
+                throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
+            } else {
+                throw new BusinessException(UserAuthErrorCode.PHONE_ALREADY_EXISTS);
+            }
         }
 
         if (inviteCode != null && !inviteCode.isBlank()) {
@@ -148,8 +197,9 @@ public class AuthServiceImpl implements AuthService {
 
         saveLoginLog(user.getId(), 2, clientIp, userAgent, 1, null);
 
-        return buildAuthTokenVO(user);
-    }
+        boolean rememberMe = request.getRememberMe() != null && request.getRememberMe();
+        return buildAuthTokenVO(user, rememberMe);
+}
 
     private void checkIpRegisterLimit(String clientIp) {
         IpRegisterLimit limit = ipRegisterLimitMapper.selectOne(
@@ -177,11 +227,12 @@ public class AuthServiceImpl implements AuthService {
         throw new SystemException("生成邀请码失败");
     }
 
-    private AuthTokenVO buildAuthTokenVO(User user) {
+    private AuthTokenVO buildAuthTokenVO(User user, boolean rememberMe) {
         AuthTokenVO vo = new AuthTokenVO();
         vo.setAccessToken(jwtUtil.generateAccessToken(user.getId()));
-        vo.setRefreshToken(jwtUtil.generateRefreshToken(user.getId()));
+        vo.setRefreshToken(jwtUtil.generateRefreshToken(user.getId(), rememberMe));
         vo.setExpiresIn(Math.toIntExact(authProperties.getJwt().getAccessExpiration()));
+        vo.setRememberMe(rememberMe);
         UserVO userVO = authConverter.toUserVO(user);
         vo.setUser(userVO);
         return vo;
@@ -202,15 +253,34 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthTokenVO login(LoginRequest request, String clientIp, String userAgent) {
-        String email = request.getEmail().trim().toLowerCase();
-        String failKey = "user:auth:login-fail:" + email;
-        String lockKey = "user:auth:account-lock:" + email;
+        boolean isEmail = StringUtils.hasText(request.getEmail());
+        boolean isPhone = StringUtils.hasText(request.getPhone());
+        if (!isEmail && !isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
+        }
+        if (isEmail && isPhone) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_OR_EMAIL_REQUIRED);
+        }
+
+        String identifier;
+        User user;
+        if (isEmail) {
+            String email = request.getEmail().trim().toLowerCase();
+            identifier = email;
+            user = userMapper.selectByEmail(email);
+        } else {
+            String phone = normalizePhone(request.getPhone());
+            identifier = phone;
+            user = userMapper.selectByPhone(phone);
+        }
+
+        String failKey = "user:auth:login-fail:" + identifier;
+        String lockKey = "user:auth:account-lock:" + identifier;
 
         if (cacheUtil.get(lockKey) != null) {
             throw new BusinessException(UserAuthErrorCode.OPERATION_TOO_FREQUENT);
         }
 
-        User user = userMapper.selectByEmail(email);
         if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             saveLoginLog(0L, 1, clientIp, userAgent, 0, "账号或密码错误");
             incrementLoginFail(failKey, lockKey);
@@ -223,8 +293,9 @@ public class AuthServiceImpl implements AuthService {
 
         cacheUtil.delete(failKey);
         saveLoginLog(user.getId(), 1, clientIp, userAgent, 1, null);
-        return buildAuthTokenVO(user);
-    }
+        boolean rememberMe = request.getRememberMe() != null && request.getRememberMe();
+        return buildAuthTokenVO(user, rememberMe);
+}
 
     private void incrementLoginFail(String failKey, String lockKey) {
         synchronized (failKey.intern()) {
@@ -261,7 +332,8 @@ public class AuthServiceImpl implements AuthService {
         if (user == null || user.getUserStatus() == 0) {
             throw new BusinessException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
         }
-        return buildAuthTokenVO(user);
+        boolean rememberMe = jwtUtil.parseRememberMeFromRefreshToken(request.getRefreshToken());
+        return buildAuthTokenVO(user, rememberMe);
     }
 
     @Override
@@ -271,5 +343,18 @@ public class AuthServiceImpl implements AuthService {
         if (ttlMillis > 0) {
             cacheUtil.set("user:auth:token-blacklist:" + jti, true, ttlMillis, java.util.concurrent.TimeUnit.MILLISECONDS);
         }
+    }
+    private String normalizePhone(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return "";
+        }
+        String digits = phone.replaceAll("\\D", "");
+        if (digits.length() == 13 && digits.startsWith("86")) {
+            return digits.substring(2);
+        }
+        if (digits.length() == 14 && digits.startsWith("086")) {
+            return digits.substring(3);
+        }
+        return digits;
     }
 }

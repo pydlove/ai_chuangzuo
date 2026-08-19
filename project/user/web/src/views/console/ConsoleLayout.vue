@@ -1267,7 +1267,9 @@ import {
   GiftOutlined,
   MessageOutlined,
   BookOutlined,
-  TagsOutlined
+  TagsOutlined,
+  DashboardOutlined,
+  CompassOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1418,8 +1420,9 @@ const dismissNewcomerBanner = () => {
 const goToNewcomerOffer = () => {
   openPricing('newcomer=1')
 }
-
 const navItems = [
+  { path: '/console/workbench', label: '工作台', icon: DashboardOutlined },
+  { path: '/console/onboarding', label: '自媒体方案', icon: CompassOutlined },
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
@@ -1861,6 +1864,7 @@ const handleLogout = async () => {
   }
   localStorage.removeItem('aichuangzuo_access_token')
   localStorage.removeItem('aichuangzuo_refresh_token')
+  localStorage.removeItem('aichuangzuo_remember_me')
   localStorage.removeItem('aichuangzuo_membership')
   router.push('/login')
 }
@@ -3027,7 +3031,6 @@ provide('consoleActions', {
 .console-content {
   flex: 1;
   min-height: 0;
-  padding: 24px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;

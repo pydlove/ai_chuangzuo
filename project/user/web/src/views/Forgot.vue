@@ -16,17 +16,35 @@
       <p class="form-subtitle">验证邮箱后即可设置新密码</p>
 
       <div class="form-item">
-        <label class="form-label">邮箱</label>
+        <div class="mode-toggle">
+          <button
+            :class="['mode-toggle-btn', { active: resetMode === 'email' }]"
+            @click="resetMode = 'email'"
+          >
+            邮箱重置
+          </button>
+          <button
+            :class="['mode-toggle-btn', { active: resetMode === 'phone' }]"
+            @click="resetMode = 'phone'"
+          >
+            手机号重置
+          </button>
+        </div>
+      </div>
+
+      <div class="form-item">
+        <label class="form-label">{{ resetMode === 'email' ? '邮箱' : '手机号' }}</label>
         <input
-          v-model="form.email"
-          type="email"
+          v-model="form[resetMode]"
+          :type="resetMode === 'email' ? 'email' : 'tel'"
           class="form-input"
-          placeholder="请输入注册邮箱"
+          :placeholder="resetMode === 'email' ? '请输入注册邮箱' : '请输入手机号'"
+          autocomplete="off"
         />
       </div>
 
       <div class="form-item">
-        <label class="form-label">邮箱验证码</label>
+        <label class="form-label">{{ resetMode === 'email' ? '邮箱验证码' : '短信验证码' }}</label>
         <div class="captcha-row">
           <input
             v-model="form.code"
@@ -89,8 +107,8 @@
     >
       <p class="slider-modal-tip">
         拖动滑块完成验证后将向
-        <b>{{ form.email || '当前邮箱' }}</b>
-        发送 6 位邮箱验证码
+        <b>{{ resetMode === 'email' ? (form.email || '当前邮箱') : (form.phone || '当前手机号') }}</b>
+        发送 6 位{{ resetMode === 'email' ? '邮箱' : '短信' }}验证码
       </p>
       <SliderCaptcha v-model="codeModalPassed" />
     </a-modal>
@@ -107,7 +125,7 @@
     >
       <p class="slider-modal-tip">
         拖动滑块完成验证后将重置账号
-        <b v-if="form.email">「{{ form.email }}」</b>
+        <b v-if="resetMode === 'email' ? form.email : form.phone">「{{ resetMode === 'email' ? form.email : form.phone }}」</b>
         的密码
       </p>
       <SliderCaptcha v-model="resetModalPassed" />
@@ -123,7 +141,7 @@ import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
-import { sendEmailCode, resetPassword } from '@/api/auth'
+import { sendEmailCode, sendSmsCode, resetPassword } from '@/api/auth'
 
 const router = useRouter()
 
@@ -174,8 +192,13 @@ const resetModalPassed = ref(false)
 let resetModalSending = false
 
 
+const PHONE_REGEX = /^1[3-9]\d{9}$/
+
+const resetMode = ref('email')
+
 const form = reactive({
   email: '',
+  phone: '',
   code: '',
   password: '',
   confirmPassword: ''
@@ -200,13 +223,24 @@ const startCodeCountdown = () => {
 // === 发送邮箱验证码：弹框拖滑块 → 通过后才调 sendEmailCode ===
 const openCodeSlider = () => {
   if (codeCountdown.value > 0) return
-  if (!form.email) {
-    message.warning('请先填写邮箱')
-    return
-  }
-  if (!EMAIL_REGEX.test(form.email)) {
-    message.warning('邮箱格式不正确')
-    return
+  if (resetMode.value === 'email') {
+    if (!form.email) {
+      message.warning('请先填写邮箱')
+      return
+    }
+    if (!EMAIL_REGEX.test(form.email)) {
+      message.warning('邮箱格式不正确')
+      return
+    }
+  } else {
+    if (!form.phone) {
+      message.warning('请先填写手机号')
+      return
+    }
+    if (!PHONE_REGEX.test(form.phone)) {
+      message.warning('手机号格式不正确')
+      return
+    }
   }
   codeModalPassed.value = false
   codeModalVisible.value = true
@@ -216,7 +250,11 @@ watch(codeModalPassed, async (val) => {
   if (!val || codeModalSending) return
   codeModalSending = true
   try {
-    await sendEmailCode({ email: form.email })
+    if (resetMode.value === 'email') {
+      await sendEmailCode({ email: form.email })
+    } else {
+      await sendSmsCode({ phone: form.phone })
+    }
     startCodeCountdown()
     message.success('验证码已发送')
   } catch (err) {
@@ -233,12 +271,20 @@ const handleReset = async () => {
     message.error('两次输入的密码不一致')
     return
   }
-  if (!form.email || !form.code || !form.password) {
+  if (resetMode.value === 'email' && !form.email) {
+    message.warning('请填写邮箱')
+    return
+  }
+  if (resetMode.value === 'phone' && !form.phone) {
+    message.warning('请填写手机号')
+    return
+  }
+  if (!form.code || !form.password) {
     message.warning('请完整填写表单')
     return
   }
   if (codeCountdown.value <= 0) {
-    message.warning('请先获取邮箱验证码')
+    message.warning(resetMode.value === 'email' ? '请先获取邮箱验证码' : '请先获取短信验证码')
     return
   }
   resetModalPassed.value = false
@@ -249,12 +295,18 @@ watch(resetModalPassed, async (val) => {
   if (!val || resetModalSending) return
   resetModalSending = true
   try {
-    await resetPassword({
-      email: form.email,
-      emailCode: form.code,
+    const payload = {
       password: form.password,
       confirmPassword: form.confirmPassword
-    })
+    }
+    if (resetMode.value === 'email') {
+      payload.email = form.email
+      payload.emailCode = form.code
+    } else {
+      payload.phone = form.phone
+      payload.smsCode = form.code
+    }
+    await resetPassword(payload)
     message.success('密码已重置，请重新登录')
     resetModalVisible.value = false
     if (countdownTimer) {
@@ -478,6 +530,38 @@ onBeforeUnmount(() => {
   content: '|';
   margin: 0 12px;
   color: #eee;
+}
+
+/* 邮箱/手机切换 */
+.mode-toggle {
+  display: flex;
+  gap: 8px;
+}
+.mode-toggle-btn {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-toggle-btn.active {
+  border-color: #FF2442;
+  color: #FF2442;
+  background: #fff0f2;
+}
+body[data-theme="dark"] .mode-toggle-btn {
+  background: #1f1f1f;
+  border-color: #404040;
+  color: #a6a6a6;
+}
+body[data-theme="dark"] .mode-toggle-btn.active {
+  border-color: #ff4d6f;
+  color: #ff4d6f;
+  background: rgba(255, 77, 111, 0.12);
 }
 
 /* ========== 媒体查询：手机端 ≤768px ========== */

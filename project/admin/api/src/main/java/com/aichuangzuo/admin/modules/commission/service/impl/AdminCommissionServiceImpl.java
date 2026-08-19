@@ -32,7 +32,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
@@ -362,6 +361,20 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
 
         taskMapper.batchInsert(tasks);
         return new CommissionTaskImportResultVO(true, rows.size(), tasks.size(), List.of());
+    }
+
+
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDelete(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        int affected = taskMapper.batchDelete(ids, LocalDateTime.now());
+        if (affected != ids.size()) {
+            throw new BusinessException(AdminCommissionErrorCode.TASK_NOT_FOUND);
+        }
     }
 
     private CommissionTask validateAndBuildTask(CommissionTaskExcelRowData row, int rowIndex,

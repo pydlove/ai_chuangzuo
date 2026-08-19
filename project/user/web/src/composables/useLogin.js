@@ -1,12 +1,14 @@
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
+
+import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { getRefFromUrl } from '@/composables/useInviteCode'
-import { sendEmailCode, register as registerApi, login as loginApi } from '@/api/auth'
+import { sendEmailCode, sendSmsCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_REGEX = /^1[3-9]\d{9}$/
 
-// 用户作用域的本地缓存：换账号时一并清空，避免上一个账号的草稿/会员/收益等残留
+// 用户作用域的本地缓存：换账号时一并清空
 const USER_ID_KEY = 'aichuangzuo_user_id'
 const USER_SCOPED_KEYS = [
   'aichuangzuo_user_id',
@@ -34,20 +36,32 @@ export function useLogin() {
   const agreed = ref(false)
   const agreementShakeCount = ref(0)
 
+  const loginMode = ref('email')
+  const registerMode = ref('email')
+
   const loginForm = reactive({
-    email: 'py_world@163.com',
-    password: '123456'
+    email: '',
+    phone: '',
+    password: ''
   })
 
   const registerForm = reactive({
-    email: 'py_world@163.com',
+    email: '',
+    phone: '',
     code: '',
     password: '',
     confirmPassword: '',
     inviteCode: ''
   })
 
-  // 注册流程：发送邮箱验证码前的滑块弹框
+  const loginIdentifier = computed(() => {
+    if (loginMode.value === 'email') {
+      return loginForm.email
+    }
+    return loginForm.phone
+  })
+
+  // 注册流程：发送验证码前的滑块弹框
   const sliderModalVisible = ref(false)
   const sliderModalPassed = ref(false)
   let modalSending = false
@@ -57,12 +71,22 @@ export function useLogin() {
   const loginModalPassed = ref(false)
   let loginModalSending = false
 
-  // 注册弹框内滑块通过 → 调发送邮箱验证码接口
+  const rememberMe = ref(localStorage.getItem('aichuangzuo_remember_me') === 'true')
+
+  watch(rememberMe, (val) => {
+    localStorage.setItem('aichuangzuo_remember_me', val ? 'true' : 'false')
+  })
+
+  // 注册弹框内滑块通过 → 发送验证码
   watch(sliderModalPassed, async (val) => {
     if (!val || modalSending) return
     modalSending = true
     try {
-      await sendEmailCode({ email: registerForm.email })
+      if (registerMode.value === 'email') {
+        await sendEmailCode({ email: registerForm.email })
+      } else {
+        await sendSmsCode({ phone: registerForm.phone })
+      }
       startCodeCountdown()
       message.success('验证码已发送')
     } catch (err) {
@@ -78,10 +102,13 @@ export function useLogin() {
     if (!val || loginModalSending) return
     loginModalSending = true
     try {
-      const res = await loginApi({
-        email: loginForm.email,
-        password: loginForm.password
-      })
+      const payload = { password: loginForm.password, rememberMe: rememberMe.value }
+      if (loginMode.value === 'email') {
+        payload.email = loginForm.email
+      } else {
+        payload.phone = loginForm.phone
+      }
+      const res = await loginApi(payload)
       persistTokens(res.data)
       message.success('登录成功')
       loginSliderModalVisible.value = false
@@ -97,22 +124,48 @@ export function useLogin() {
 
   const openSliderModal = () => {
     if (codeCountdown.value > 0) return
-    if (!registerForm.email) {
-      message.warning('请先填写邮箱')
-      return
-    }
-    if (!EMAIL_REGEX.test(registerForm.email)) {
-      message.warning('邮箱格式不正确')
-      return
+    if (registerMode.value === 'email') {
+      if (!registerForm.email) {
+        message.warning('请先填写邮箱')
+        return
+      }
+      if (!EMAIL_REGEX.test(registerForm.email)) {
+        message.warning('邮箱格式不正确')
+        return
+      }
+    } else {
+      if (!registerForm.phone) {
+        message.warning('请先填写手机号')
+        return
+      }
+      if (!PHONE_REGEX.test(registerForm.phone)) {
+        message.warning('手机号格式不正确')
+        return
+      }
     }
     sliderModalPassed.value = false
     sliderModalVisible.value = true
   }
 
   const openLoginSliderModal = () => {
-    if (!loginForm.email) {
-      message.warning('请填写邮箱')
-      return
+    if (loginMode.value === 'email') {
+      if (!loginForm.email) {
+        message.warning('请填写邮箱')
+        return
+      }
+      if (!EMAIL_REGEX.test(loginForm.email)) {
+        message.warning('邮箱格式不正确')
+        return
+      }
+    } else {
+      if (!loginForm.phone) {
+        message.warning('请填写手机号')
+        return
+      }
+      if (!PHONE_REGEX.test(loginForm.phone)) {
+        message.warning('手机号格式不正确')
+        return
+      }
     }
     if (!loginForm.password) {
       message.warning('请填写密码')
@@ -140,12 +193,12 @@ export function useLogin() {
   const persistTokens = (data) => {
     const prevUserId = localStorage.getItem(USER_ID_KEY)
     const newUserId = data.user?.id != null ? String(data.user.id) : null
-    // 切换账号才清用户作用域缓存；同账号重登保留草稿/会员/收益等
     if (newUserId && prevUserId && prevUserId !== newUserId) {
       USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key))
     }
     localStorage.setItem('aichuangzuo_access_token', data.accessToken)
     localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
+    localStorage.setItem('aichuangzuo_remember_me', data.rememberMe ? 'true' : 'false')
     if (newUserId) {
       localStorage.setItem(USER_ID_KEY, newUserId)
     }
@@ -166,20 +219,31 @@ export function useLogin() {
       message.warning('请先阅读并同意《用户协议》和《隐私政策》')
       return
     }
-    if (!registerForm.email) {
-      message.warning('请输入邮箱')
-      return
-    }
-    if (!EMAIL_REGEX.test(registerForm.email)) {
-      message.warning('邮箱格式不正确')
-      return
+    if (registerMode.value === 'email') {
+      if (!registerForm.email) {
+        message.warning('请输入邮箱')
+        return
+      }
+      if (!EMAIL_REGEX.test(registerForm.email)) {
+        message.warning('邮箱格式不正确')
+        return
+      }
+    } else {
+      if (!registerForm.phone) {
+        message.warning('请输入手机号')
+        return
+      }
+      if (!PHONE_REGEX.test(registerForm.phone)) {
+        message.warning('手机号格式不正确')
+        return
+      }
     }
     if (!registerForm.code) {
-      message.warning('请输入邮箱验证码')
+      message.warning(registerMode.value === 'email' ? '请输入邮箱验证码' : '请输入短信验证码')
       return
     }
     if (!/^\d{6}$/.test(registerForm.code)) {
-      message.warning('邮箱验证码为 6 位数字')
+      message.warning('验证码为 6 位数字')
       return
     }
     if (!registerForm.password) {
@@ -199,16 +263,22 @@ export function useLogin() {
       return
     }
 
-    const inviteCode = registerForm.inviteCode.trim().toUpperCase()
+    const payload = {
+      password: registerForm.password,
+      confirmPassword: registerForm.confirmPassword,
+      inviteCode: registerForm.inviteCode.trim().toUpperCase() || undefined,
+      rememberMe: rememberMe.value
+    }
+    if (registerMode.value === 'email') {
+      payload.email = registerForm.email
+      payload.emailCode = registerForm.code
+    } else {
+      payload.phone = registerForm.phone
+      payload.smsCode = registerForm.code
+    }
 
     try {
-      const res = await registerApi({
-        email: registerForm.email,
-        emailCode: registerForm.code,
-        password: registerForm.password,
-        confirmPassword: registerForm.confirmPassword,
-        inviteCode: inviteCode || undefined
-      })
+      const res = await registerApi(payload)
       persistTokens(res.data)
       message.success('注册成功')
       const redirect = router.currentRoute.value.query.redirect
@@ -239,8 +309,11 @@ export function useLogin() {
     showInviteBanner,
     agreed,
     agreementShakeCount,
+    loginMode,
+    registerMode,
     loginForm,
     registerForm,
+    loginIdentifier,
     sliderModalVisible,
     sliderModalPassed,
     loginSliderModalVisible,
@@ -249,6 +322,7 @@ export function useLogin() {
     openSliderModal,
     openLoginSliderModal,
     handleLogin,
-    handleRegister
+    handleRegister,
+    rememberMe
   }
 }

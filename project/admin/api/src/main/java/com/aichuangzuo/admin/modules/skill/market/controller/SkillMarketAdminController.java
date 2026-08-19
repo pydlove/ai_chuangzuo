@@ -4,6 +4,7 @@ import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
+import com.aichuangzuo.admin.modules.skill.market.dto.request.SimulateSkillUsageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketAdminService;
 import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
@@ -95,5 +96,16 @@ public class SkillMarketAdminController {
         log.info("管理员查询提示词使用记录, adminUserId={}, bizNo={}, pageNum={}, pageSize={}",
                 adminUserId, bizNo, pageNum, pageSize);
         return Result.success(skillMarketAdminService.listUsageRecords(bizNo, pageNum, pageSize));
+    }
+
+    @Operation(summary = "模拟使用一次提示词")
+    @PostMapping("/{bizNo}/simulate-usage")
+    public Result<Void> simulateUsage(@PathVariable String bizNo,
+                                      @Valid @RequestBody SimulateSkillUsageRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员模拟使用提示词, adminUserId={}, bizNo={}, consumerUserId={}",
+                adminUserId, bizNo, request.getUserId());
+        skillMarketAdminService.simulateUsage(bizNo, request.getUserId());
+        return Result.success();
     }
 }

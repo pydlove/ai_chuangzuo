@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.config;
 
+import com.aichuangzuo.user.common.interceptor.AccessControlInterceptor;
 import com.aichuangzuo.user.common.interceptor.RateLimitInterceptor;
 import com.aichuangzuo.user.modules.audit.interceptor.UserAuditLogInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 public class WebMvcConfig implements WebMvcConfigurer {
 
+    private final AccessControlInterceptor accessControlInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
     private final UserAuditLogInterceptor userAuditLogInterceptor;
 
@@ -29,6 +31,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(accessControlInterceptor)
+                .addPathPatterns("/api/v1/user/**")
+                .excludePathPatterns("/api/v1/user/internal/**");
+
         registry.addInterceptor(rateLimitInterceptor)
                 .addPathPatterns("/api/v1/user/auth/**");
 

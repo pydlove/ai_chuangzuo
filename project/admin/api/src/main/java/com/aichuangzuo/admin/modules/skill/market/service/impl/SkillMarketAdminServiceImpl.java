@@ -17,6 +17,7 @@ import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketAggregateMap
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketStatsMapper;
 import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketAdminService;
+import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketUsageClient;
 import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
@@ -52,6 +53,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     private final SkillMarketAggregateMapper aggregateMapper;
     private final PlatformUserMapper platformUserMapper;
     private final SkillMarketStatsMapper statsMapper;
+    private final SkillMarketUsageClient usageClient;
 
     @Override
     public IPage<SkillMarketVO> page(SkillMarketPageRequest request) {
@@ -186,6 +188,15 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     }
 
     // -------- helpers --------
+    @Override
+    public void simulateUsage(String bizNo, Long userId) {
+        SkillMarket market = loadByBizNo(bizNo);
+        validateConsumer(userId);
+        usageClient.recordUsage(bizNo, userId);
+        log.info("管理员模拟使用提示词 bizNo={}, skillName={}, consumerUserId={}, adminUserId={}",
+                bizNo, market.getSkillName(), userId, SecurityAdminContext.getCurrentAdminUserId());
+    }
+
 
     private SkillMarket loadByBizNo(String bizNo) {
         LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
@@ -246,12 +257,23 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         }
     }
 
-    private String normalizeScope(String scope) {
+   private String normalizeScope(String scope) {
+
         if (scope == null) {
             return null;
         }
         String trimmed = scope.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private void validateConsumer(Long consumerUserId) {
+        if (consumerUserId == null) {
+            throw new BusinessException(AdminSkillMarketErrorCode.CONSUMER_USER_NOT_FOUND);
+        }
+        PlatformUser user = platformUserMapper.selectById(consumerUserId);
+        if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+            throw new BusinessException(AdminSkillMarketErrorCode.CONSUMER_USER_NOT_FOUND);
+        }
     }
 
     private String generateBizNo() {

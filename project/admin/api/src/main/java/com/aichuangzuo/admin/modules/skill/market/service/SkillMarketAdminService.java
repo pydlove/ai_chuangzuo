@@ -40,6 +40,11 @@ public interface SkillMarketAdminService {
     MarketSkillStatsVO stats();
 
     /**
+     * 模拟一次提示词使用：指定用户消费一次该提示词，发布者获得收益。
+     */
+    void simulateUsage(String bizNo, Long userId);
+
+    /**
      * 分页查询指定提示词的使用记录。
      */
     PageResult<SkillMarketUsageRecordVO> listUsageRecords(String bizNo, int pageNum, int pageSize);

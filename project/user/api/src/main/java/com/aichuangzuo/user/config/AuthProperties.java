@@ -11,12 +11,13 @@ public class AuthProperties {
     private Jwt jwt;
     private Register register;
 
-    @Data
+@Data
     public static class Jwt {
         private String accessSecret;
         private String refreshSecret;
         private Long accessExpiration;
         private Long refreshExpiration;
+        private Long rememberMeRefreshExpiration;
     }
 
     @Data

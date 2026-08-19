@@ -14,9 +14,9 @@
       </div>
     </template>
     <div class="platform-grid">
-      <div
-        v-for="p in platforms"
-        :key="p.key"
+     <div
+        v-for="p in platforms.value"
+       :key="p.key"
         :class="['platform-item', { selected: currentPlatform.key === p.key }]"
         @click="selectPlatform(p)"
       >
@@ -28,7 +28,8 @@
 </template>
 
 <script setup>
-import { platforms, useCreateForm } from '../useCreateForm.js'
+import { platforms } from '@/composables/usePlatforms.js'
+import { useCreateForm } from '../useCreateForm.js'
 
 const { platformVisible, currentPlatform } = useCreateForm()
 

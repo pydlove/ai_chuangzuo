@@ -1,115 +1,147 @@
 <template>
   <div class="security-settings">
     <a-card :bordered="false">
-      <a-page-header title="安全设置" sub-title="配置用户端创作相关的安全策略" />
+      <a-page-header title="安全设置" sub-title="配置用户端创作相关的安全策略" style="padding-left: 0; padding-top: 0" />
 
-      <a-spin :spinning="loading">
-        <a-form layout="vertical" style="max-width: 720px; margin-top: 8px">
-          <a-divider orientation="left">AI 生成频率限制</a-divider>
-          <p class="section-tip">
-            限制每个会员套餐每分钟内最多可提交的生成任务数（包含重新生成）。
-            修改后约 2 分钟内在用户端生效。
-          </p>
+      <a-alert
+        v-if="isAccessControlTab"
+        message="访问限制说明"
+        description="IP / 账号黑白名单用于防御用户端攻击。白名单优先级高于黑名单：若开启白名单，则仅允许白名单中的 IP / 账号访问；未开启白名单时，黑名单中的 IP / 账号将被拦截。"
+        type="info"
+        show-icon
+        style="margin-bottom: 16px"
+      />
 
-          <a-row :gutter="16">
-            <a-col :span="8">
-              <a-form-item label="基础版（次/分钟）">
-                <a-input-number
-                  v-model:value="values.basic"
-                  :min="1"
-                  :max="1000"
-                  :precision="0"
-                  style="width: 100%"
+      <a-tabs v-model:activeKey="activeTab">
+        <a-tab-pane key="rateLimit" tab="AI 生成频率限制">
+          <a-spin :spinning="loading">
+            <a-form layout="vertical" style="max-width: 720px">
+              <p class="section-tip">
+                限制每个会员套餐每分钟内最多可提交的生成任务数（包含重新生成）。修改后约 2 分钟内在用户端生效。
+              </p>
+
+              <a-row :gutter="16">
+                <a-col :span="8">
+                  <a-form-item label="基础版（次/分钟）">
+                    <a-input-number
+                      v-model:value="values.basic"
+                      :min="1"
+                      :max="1000"
+                      :precision="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                  <a-form-item label="专业版（次/分钟）">
+                    <a-input-number
+                      v-model:value="values.pro"
+                      :min="1"
+                      :max="1000"
+                      :precision="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+                <a-col :span="8">
+                  <a-form-item label="旗舰版（次/分钟）">
+                    <a-input-number
+                      v-model:value="values.flagship"
+                      :min="1"
+                      :max="1000"
+                      :precision="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-form-item>
+                <a-space>
+                  <a-button type="primary" :loading="submitting" @click="onSubmit">保存</a-button>
+                  <a-button @click="load">重置</a-button>
+                </a-space>
+              </a-form-item>
+            </a-form>
+          </a-spin>
+        </a-tab-pane>
+
+        <a-tab-pane key="skillAnalyze" tab="AI 提示词学习日限次">
+          <a-spin :spinning="loading">
+            <a-form layout="vertical" style="max-width: 720px">
+              <p class="section-tip">
+                限制每个用户每天最多可进行 AI 提示词分析的次数，防止反复分析浪费 Token。修改后约 1 分钟内在用户端生效。
+              </p>
+
+              <a-row :gutter="16">
+                <a-col :span="8">
+                  <a-form-item label="每日上限（次/天）">
+                    <a-input-number
+                      v-model:value="skillAnalyzeDailyLimit"
+                      :min="1"
+                      :max="1000"
+                      :precision="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-form-item>
+                <a-button type="primary" :loading="submittingSkillAnalyze" @click="onSubmitSkillAnalyze">
+                  保存
+                </a-button>
+              </a-form-item>
+            </a-form>
+          </a-spin>
+        </a-tab-pane>
+
+        <a-tab-pane key="loginRateLimit" tab="登录频率限制">
+          <a-spin :spinning="loading">
+            <a-form layout="vertical" style="max-width: 720px">
+              <p class="section-tip">
+                关闭后同一 IP 在用户端登录不再受 60 秒 10 次的频率限制，方便压测。生产环境建议保持开启。修改后约 1 分钟内在用户端生效。
+              </p>
+
+              <a-form-item>
+                <a-switch
+                  v-model:checked="loginRateLimitEnabled"
+                  checked-children="开启"
+                  un-checked-children="关闭"
                 />
               </a-form-item>
-            </a-col>
-            <a-col :span="8">
-              <a-form-item label="专业版（次/分钟）">
-                <a-input-number
-                  v-model:value="values.pro"
-                  :min="1"
-                  :max="1000"
-                  :precision="0"
-                  style="width: 100%"
-                />
+
+              <a-form-item>
+                <a-button type="primary" :loading="submittingRateLimit" @click="onSubmitRateLimit">保存</a-button>
               </a-form-item>
-            </a-col>
-            <a-col :span="8">
-              <a-form-item label="旗舰版（次/分钟）">
-                <a-input-number
-                  v-model:value="values.flagship"
-                  :min="1"
-                  :max="1000"
-                  :precision="0"
-                  style="width: 100%"
-                />
-              </a-form-item>
-            </a-col>
-          </a-row>
+            </a-form>
+          </a-spin>
+        </a-tab-pane>
 
-          <a-form-item>
-            <a-space>
-              <a-button type="primary" :loading="submitting" @click="onSubmit">保存</a-button>
-              <a-button @click="load">重置</a-button>
-            </a-space>
-          </a-form-item>
+        <a-tab-pane key="ipBlacklist" tab="IP 黑名单">
+          <AccessControlList title="IP 黑名单" :rule-type="1" :list-type="1" type-label="IP" />
+        </a-tab-pane>
 
-          <a-divider orientation="left">AI 提示词学习日限次</a-divider>
-          <p class="section-tip">
-            限制每个用户每天最多可进行 AI 提示词分析的次数，防止反复分析浪费 Token。
-            修改后约 1 分钟内在用户端生效。
-          </p>
+        <a-tab-pane key="ipWhitelist" tab="IP 白名单">
+          <AccessControlList title="IP 白名单" :rule-type="1" :list-type="2" type-label="IP" />
+        </a-tab-pane>
 
-          <a-row :gutter="16">
-            <a-col :span="8">
-              <a-form-item label="每日上限（次/天）">
-                <a-input-number
-                  v-model:value="skillAnalyzeDailyLimit"
-                  :min="1"
-                  :max="1000"
-                  :precision="0"
-                  style="width: 100%"
-                />
-              </a-form-item>
-            </a-col>
-          </a-row>
+        <a-tab-pane key="accountBlacklist" tab="账号黑名单">
+          <AccessControlList title="账号黑名单" :rule-type="2" :list-type="1" type-label="账号" />
+        </a-tab-pane>
 
-          <a-form-item>
-            <a-space>
-              <a-button type="primary" :loading="submittingSkillAnalyze" @click="onSubmitSkillAnalyze">
-                保存
-              </a-button>
-            </a-space>
-          </a-form-item>
-
-          <a-divider orientation="left">登录频率限制</a-divider>
-          <p class="section-tip">
-            关闭后同一 IP 在用户端登录不再受 60 秒 10 次的频率限制，方便压测。生产环境建议保持开启。
-            修改后约 1 分钟内在用户端生效。
-          </p>
-
-          <a-form-item>
-            <a-switch
-              v-model:checked="loginRateLimitEnabled"
-              checked-children="开启"
-              un-checked-children="关闭"
-            />
-          </a-form-item>
-
-          <a-form-item>
-            <a-space>
-              <a-button type="primary" :loading="submittingRateLimit" @click="onSubmitRateLimit">保存</a-button>
-            </a-space>
-          </a-form-item>
-        </a-form>
-      </a-spin>
+        <a-tab-pane key="accountWhitelist" tab="账号白名单">
+          <AccessControlList title="账号白名单" :rule-type="2" :list-type="2" type-label="账号" />
+        </a-tab-pane>
+      </a-tabs>
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
+import AccessControlList from '@/components/AccessControlList.vue'
 import { fetchBenefits } from '@/api/benefit.js'
 import { fetchPlanBenefits, upsertPlanBenefit } from '@/api/planBenefit.js'
 import { getSkillAnalyzeConfig, updateSkillAnalyzeConfig, getRateLimitConfig, updateRateLimitConfig } from '@/api/security.js'
@@ -118,16 +150,20 @@ const BENEFIT_CODE = 'generation_rate_limit'
 const PLAN_KEYS = ['basic', 'pro', 'flagship']
 const DEFAULT_VALUES = { basic: 3, pro: 5, flagship: 8 }
 
+const activeTab = ref('rateLimit')
+const isAccessControlTab = computed(() =>
+  ['ipBlacklist', 'ipWhitelist', 'accountBlacklist', 'accountWhitelist'].includes(activeTab.value)
+)
 const loading = ref(false)
 const submitting = ref(false)
 const submittingSkillAnalyze = ref(false)
+const submittingRateLimit = ref(false)
 const values = reactive({ ...DEFAULT_VALUES })
 const originalValues = reactive({ ...DEFAULT_VALUES })
 const skillAnalyzeDailyLimit = ref(5)
 const originalSkillAnalyzeDailyLimit = ref(5)
 const loginRateLimitEnabled = ref(true)
 const originalLoginRateLimitEnabled = ref(true)
-const submittingRateLimit = ref(false)
 
 async function load() {
   loading.value = true
@@ -201,10 +237,10 @@ async function onSubmitSkillAnalyze() {
   }
   submittingSkillAnalyze.value = true
   try {
-    await updateSkillAnalyzeConfig({
-      dailyAttemptLimit: skillAnalyzeDailyLimit.value
+   await updateSkillAnalyzeConfig({
+     dailyAttemptLimit: skillAnalyzeDailyLimit.value
     })
-    message.success('保存成功')
+   message.success('保存成功')
     originalSkillAnalyzeDailyLimit.value = skillAnalyzeDailyLimit.value
   } catch (e) {
     message.error(e?.message || '保存失败')
@@ -242,7 +278,7 @@ onMounted(load)
 
 <style scoped>
 .security-settings {
-  max-width: 1000px;
+  max-width: 1200px;
 }
 .section-tip {
   margin: 0 0 16px;

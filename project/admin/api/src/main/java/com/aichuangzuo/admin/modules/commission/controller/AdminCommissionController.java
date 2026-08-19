@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.commission.dto.request.CommissionAdoptReque
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmissionBatchCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionSubmissionCreateRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskCreateRequest;
+import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskBatchDeleteRequest;
 import com.aichuangzuo.admin.modules.commission.dto.request.CommissionTaskUpdateRequest;
 import com.aichuangzuo.admin.modules.commission.service.AdminCommissionService;
 import com.aichuangzuo.admin.modules.commission.vo.CommissionTaskDetailVO;
@@ -117,6 +118,16 @@ public class AdminCommissionController {
         return Result.success(commissionService.createSubmissionBatch(taskId, request, adminUserId));
     }
 
+
+
+    @Operation(summary = "批量删除约稿任务")
+    @PostMapping("/batch-delete")
+    public Result<Void> batchDelete(@Valid @RequestBody CommissionTaskBatchDeleteRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量删除约稿任务, adminUserId={}, ids={}", adminUserId, request.getIds());
+        commissionService.batchDelete(request.getIds());
+        return Result.success();
+    }
     @Operation(summary = "从Excel批量导入约稿任务")
     @PostMapping(value = "/import-excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<CommissionTaskImportResultVO> importExcel(@RequestParam("file") MultipartFile file) {

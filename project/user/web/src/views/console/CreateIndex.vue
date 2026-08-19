@@ -34,7 +34,8 @@ import {
 import { marketSkills, loadMarketSkills, loadFavoriteSkills } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
-import { platforms, wordCountPresets, useCreateForm } from './create/useCreateForm.js'
+import { wordCountPresets, useCreateForm, loadForm } from './create/useCreateForm.js'
+import { platforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import { useGenerationQueue } from './create/useGenerationQueue.js'
 import MinimalPanel from './create/MinimalPanel.vue'
 import MobileCreate from './create/MobileCreate.vue'
@@ -70,8 +71,11 @@ const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remain
 
 // 恢复草稿（加载最新一个或从作品页继续编辑）
 onMounted(async () => {
-  await loadSystemSkills()
-  await loadExportTemplates()
+  await Promise.all([
+    loadSystemSkills(),
+    loadExportTemplates(),
+    loadPlatforms()
+  ])
   loadBenefits()
   // 加载我的/学习/收藏 skills（熟手模式也会用到）
   await Promise.all([
@@ -81,10 +85,13 @@ onMounted(async () => {
     loadFavoriteSkills().catch(() => {})
   ])
 
-  // 所有 skills 加载完成后，恢复上次本地记住的 skill
-  restoreLastSkill(marketSkills.value)
+ // 所有 skills 加载完成后，恢复上次本地记住的 skill
+ restoreLastSkill(marketSkills.value)
 
-  const resume = localStorage.getItem('aichuangzuo_current_article')
+  // 平台配置加载完成后，恢复上次的平台/字数/模板选择
+  loadForm()
+
+ const resume = localStorage.getItem('aichuangzuo_current_article')
   if (resume) {
     try {
       const data = JSON.parse(resume)
@@ -164,11 +171,11 @@ const restoreDraft = (draft) => {
   customTitle.value = draft.customTitle || ''
   customRequirement.value = draft.customRequirement || ''
   // 当前仅保留熟手模式，不再恢复引导模式
-  if (draft.platform) {
-    const platformKey = typeof draft.platform === 'object' ? draft.platform.key : draft.platform
-    const p = platforms.find(x => x.key === platformKey)
-    if (p) currentPlatform.value = p
-  }
+ if (draft.platform) {
+   const platformKey = typeof draft.platform === 'object' ? draft.platform.key : draft.platform
+    const p = platforms.value.find(x => x.key === platformKey)
+   if (p) currentPlatform.value = p
+ }
   if (draft.wordCount) {
     const count = typeof draft.wordCount === 'object' ? draft.wordCount.count : draft.wordCount
     const wc = wordCountPresets.tier.find(x => x.count === count)

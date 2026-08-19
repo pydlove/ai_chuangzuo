@@ -33,6 +33,7 @@ auth:
     refresh-secret: ${JWT_REFRESH_SECRET:please-change-this-refresh-secret-at-least-256-bits-long}
     access-expiration: 7200
     refresh-expiration: 604800
+    remember-me-refresh-expiration: 2592000
   register:
     max-per-ip: 10
 

@@ -62,4 +62,15 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT COUNT(*) > 0 FROM u_user WHERE email = #{email} AND is_deleted = 0 AND id <> #{excludeUserId}")
     boolean existsByEmail(@Param("email") String email, @Param("excludeUserId") Long excludeUserId);
+    /**
+     * 按手机号精确查询未被软删的用户。
+     */
+    @Select("SELECT * FROM u_user WHERE phone = #{phone} AND is_deleted = 0 LIMIT 1")
+    User selectByPhone(String phone);
+
+    /**
+     * 判断指定手机号是否已被他人占用。
+     */
+    @Select("SELECT COUNT(*) > 0 FROM u_user WHERE phone = #{phone} AND is_deleted = 0 AND id <> #{excludeUserId}")
+    boolean existsByPhone(@Param("phone") String phone, @Param("excludeUserId") Long excludeUserId);
 }

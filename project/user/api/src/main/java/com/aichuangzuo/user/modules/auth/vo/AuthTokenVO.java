@@ -8,4 +8,6 @@ public class AuthTokenVO {
     private String refreshToken;
     private Integer expiresIn;
     private UserVO user;
+
+    private Boolean rememberMe;
 }

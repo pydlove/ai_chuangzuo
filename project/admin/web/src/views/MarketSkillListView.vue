@@ -231,6 +231,13 @@
             :min="0"
             style="width: 160px"
           />
+          <a-button
+            v-if="editingBizNo"
+            style="margin-left: 8px"
+            @click="openSimulateUsageModal"
+          >
+            +1
+          </a-button>
         </a-form-item>
         <a-form-item label="上架状态">
           <a-switch
@@ -244,6 +251,31 @@
             v-model:checked="form.featured"
             checked-children="精选"
             un-checked-children="普通"
+          />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
+    <!-- 模拟使用 Modal -->
+    <a-modal
+      v-model:open="simulateUsageVisible"
+      title="模拟使用一次"
+      ok-text="确认"
+      cancel-text="取消"
+      :confirm-loading="simulateUsageLoading"
+      @ok="confirmSimulateUsage"
+    >
+      <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
+        <a-form-item label="选择使用者" required>
+          <a-select
+            v-model:value="simulateUsageUserId"
+            placeholder="搜索并选择使用者"
+            show-search
+            :filter-option="false"
+            :options="simulateUserOptions"
+            :loading="simulateUserLoading"
+            @search="searchSimulateUser"
+            @dropdown-visible-change="onSimulateUserDropdownOpen"
           />
         </a-form-item>
       </a-form>
@@ -332,6 +364,7 @@ import { useMarketStyleManagement } from '@/composables/useMarketStyleManagement
 import { useMarketSkillStats } from '@/composables/useMarketSkillStats.js'
 import { useScopeTags } from '@/composables/useScopeTags.js'
 import { listUserOptions } from '@/api/userOptions.js'
+import { simulateMarketSkillUsage } from '@/api/marketSkill.js'
 
 use([CanvasRenderer, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
 
@@ -497,6 +530,12 @@ const publisherKeyword = ref('')
 
 const detailVisible = ref(false)
 const detailRecord = ref({})
+const simulateUsageVisible = ref(false)
+const simulateUsageLoading = ref(false)
+const simulateUsageUserId = ref(null)
+const simulateUserOptions = ref([])
+const simulateUserLoading = ref(false)
+const simulateUserKeyword = ref('')
 
 const openDetailModal = (record) => {
   detailRecord.value = { ...record }
@@ -573,6 +612,57 @@ const loadPublisherOptions = async (kw = '') => {
   }
 }
 
+const openSimulateUsageModal = () => {
+  simulateUsageUserId.value = null
+  simulateUserOptions.value = []
+  simulateUserKeyword.value = ''
+  simulateUsageVisible.value = true
+}
+
+const searchSimulateUser = async (kw) => {
+  simulateUserKeyword.value = kw
+  await loadSimulateUserOptions(kw)
+}
+
+const onSimulateUserDropdownOpen = async (open) => {
+  if (open && simulateUserOptions.value.length === 0) {
+    await loadSimulateUserOptions(simulateUserKeyword.value)
+  }
+}
+
+const loadSimulateUserOptions = async (kw = '') => {
+  simulateUserLoading.value = true
+  try {
+    const users = await listUserOptions(kw, 20)
+    simulateUserOptions.value = users.map((u) => ({
+      label: u.nickname ? `${u.nickname}（${u.email}）` : u.email,
+      value: u.id
+    }))
+  } catch (error) {
+    message.error(error.message || '加载用户失败')
+  } finally {
+    simulateUserLoading.value = false
+  }
+}
+
+const confirmSimulateUsage = async () => {
+  if (!simulateUsageUserId.value) {
+    message.error('请选择使用者')
+    return
+  }
+  simulateUsageLoading.value = true
+  try {
+    await simulateMarketSkillUsage(editingBizNo.value, simulateUsageUserId.value)
+    message.success('已模拟使用一次，发布者已获得收益')
+    form.totalUses = (form.totalUses || 0) + 1
+    simulateUsageVisible.value = false
+    await fetch()
+  } catch (error) {
+    message.error(error.message || '模拟使用失败')
+  } finally {
+    simulateUsageLoading.value = false
+  }
+}
 const openCreateModal = () => {
   editingBizNo.value = null
   resetForm()
