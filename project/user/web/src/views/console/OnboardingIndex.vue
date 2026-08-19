@@ -94,7 +94,7 @@
       <!-- Step 2: 回答问题 -->
       <div v-if="step === 2" class="step-panel">
         <h3 class="step-title">回答几个关于你的问题</h3>
-        <p class="step-desc">基于你选择的平台，我们生成了几个问题。回答后 AI 会推荐适合的赛道。</p>
+        <p class="step-desc">请根据你的实际情况回答以下问题，AI 将结合平台特征为你推荐更合适的赛道方向。</p>
         <div v-if="isLoadingQuestions" class="wizard-loading">
           <a-spin size="large" />
           <div class="wizard-loading-text">
