@@ -1267,7 +1267,9 @@ import {
   GiftOutlined,
   MessageOutlined,
   BookOutlined,
-  TagsOutlined
+  TagsOutlined,
+  DashboardOutlined,
+  CompassOutlined
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1420,6 +1422,8 @@ const goToNewcomerOffer = () => {
 }
 
 const navItems = [
+  { path: '/console/workbench', label: '工作台', icon: DashboardOutlined },
+  { path: '/console/onboarding', label: '自媒体方案', icon: CompassOutlined },
   { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },

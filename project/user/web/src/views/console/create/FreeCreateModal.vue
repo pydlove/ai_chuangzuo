@@ -1,0 +1,380 @@
+<template>
+  <a-modal
+    :open="visible"
+    title="自由创作"
+    width="760px"
+    :footer="null"
+    :mask-closable="false"
+    centered
+    class="free-create-modal"
+    @cancel="close"
+  >
+    <div class="free-create-body">
+      <div class="free-create-tips">
+        填写标题和核心观点，AI 将完全按照你的想法生成文章。
+      </div>
+
+      <div class="free-create-card" :class="{ focused: heroFocused }">
+        <input
+          v-model="customTitle"
+          type="text"
+          class="free-create-title"
+          placeholder="输入标题或想法，例如：职场新人快速提升效率的 5 个方法"
+          @focus="heroFocused = true"
+          @blur="heroFocused = false"
+        />
+        <div class="free-create-textarea-wrap">
+          <textarea
+            ref="requirementEl"
+            v-model="customRequirement"
+            class="free-create-textarea"
+            rows="4"
+            placeholder="补充要求：观点、案例、情节、目标读者..."
+            :maxlength="REQUIREMENT_MAX"
+            @input="autoGrow"
+            @focus="heroFocused = true"
+            @blur="heroFocused = false"
+          ></textarea>
+          <div class="free-create-textarea-meta">
+            <span class="free-create-char-count" :class="{ warning: requirementChars >= REQUIREMENT_MAX * 0.9 }">
+              {{ requirementChars }}/{{ REQUIREMENT_MAX }}
+            </span>
+          </div>
+        </div>
+
+        <div class="free-create-divider"></div>
+
+        <div class="free-create-chips">
+          <button class="settings-chip" @click="wordCountVisible = true">
+            <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="styleVisible = true">
+            <span>{{ currentSkill?.name || '选择提示词' }}</span><span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="templateVisible = true">
+            <span>{{ currentTemplate?.name || '选择导出模板' }}</span><span class="chip-caret">▾</span>
+          </button>
+        </div>
+
+        <div class="free-create-actions">
+          <a-button size="large" @click="close">取消</a-button>
+          <a-button type="primary" size="large" :disabled="!canGenerate" @click="handleGenerate">
+            <ThunderboltOutlined />
+            生成文章
+          </a-button>
+        </div>
+      </div>
+    </div>
+
+    <SkillModal />
+    <WordCountModal />
+    <TemplateModal />
+  </a-modal>
+</template>
+
+<script setup>
+import { ref, computed, nextTick, onMounted } from 'vue'
+import { message, Modal } from 'ant-design-vue'
+import { ThunderboltOutlined } from '@ant-design/icons-vue'
+import { useCreateForm } from './useCreateForm.js'
+import { platforms } from '@/composables/usePlatforms.js'
+import { useGenerationQueue } from './useGenerationQueue.js'
+import { currentSkill } from '@/composables/useSkills.js'
+import { marketSkills } from '@/composables/useSkillMarket.js'
+import { useExportTemplates } from '@/composables/useExportTemplates.js'
+import { useBenefits } from '@/composables/useBenefits.js'
+import { submitGeneration } from '@/api/generation.js'
+import SkillModal from './modals/SkillModal.vue'
+import WordCountModal from './modals/WordCountModal.vue'
+import TemplateModal from './modals/TemplateModal.vue'
+
+const props = defineProps({
+  visible: Boolean,
+  plan: Object
+})
+const emit = defineEmits(['update:visible', 'success'])
+
+const {
+  customTitle, customRequirement,
+  currentWordCount, selectedTemplateKey,
+  styleVisible, wordCountVisible, templateVisible,
+  clearForm
+} = useCreateForm()
+
+const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
+const { templates: apiTemplates, load: loadExportTemplates } = useExportTemplates()
+const { benefits, planKey, loadBenefits } = useBenefits()
+
+const REQUIREMENT_MAX = 200
+const heroFocused = ref(false)
+const requirementEl = ref(null)
+const isReady = ref(false)
+
+const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
+const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
+const requirementChars = computed(() => customRequirement.value?.length || 0)
+const canGenerate = computed(() => customTitle.value.trim() && customRequirement.value.trim())
+
+const planPlatformKey = computed(() => {
+  const planPlatform = props.plan?.platform
+  if (!planPlatform) return 'wechat'
+  const found = platforms.value.find(p => p.name === planPlatform)
+  return found?.key || 'wechat'
+})
+
+onMounted(async () => {
+  loadBenefits()
+  await loadExportTemplates().catch(() => {})
+  isReady.value = true
+})
+
+const autoGrow = () => {
+  const el = requirementEl.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 300) + 'px'
+}
+
+const isCurrentSkillAvailable = () => {
+  const skill = currentSkill.value
+  if (!skill) return true
+  if (!skill.id) return true
+  const live = marketSkills.value.find(s => s.id === skill.id)
+  if (!live) return false
+  return live.status === 'approved'
+}
+
+const close = () => {
+  emit('update:visible', false)
+}
+
+const handleGenerate = async () => {
+  if (!props.visible) return
+  if (planKey.value === 'free') {
+    Modal.confirm({
+      title: '需要订阅套餐',
+      content: '订阅套餐后即可使用 AI 生成文章，是否去订阅？',
+      okText: '去订阅',
+      cancelText: '取消',
+      centered: true,
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => window.open('/pricing', '_blank')
+    })
+    return
+  }
+  if (!customTitle.value.trim()) {
+    message.warning('请输入文章标题')
+    return
+  }
+  if (!customRequirement.value.trim()) {
+    message.warning('请补充你的核心观点和要求')
+    return
+  }
+  if (quotaRemaining.value <= 0) {
+    Modal.confirm({
+      title: '额度已用完',
+      content: '本月额度已用完，升级会员可获得更多额度，是否去升级？',
+      okText: '去升级',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => window.open('/pricing', '_blank')
+    })
+    return
+  }
+  if (!isCurrentSkillAvailable()) {
+    message.warning('该提示词已下架或不可用，请重新选择')
+    return
+  }
+  try {
+    const task = await submitGeneration({
+      title: customTitle.value,
+      description: customRequirement.value,
+      platform: planPlatformKey.value,
+      skillRef: currentSkill.value?.id || currentSkill.value?.name || '',
+      wordCount: currentWordCount.value?.count || 800,
+      template: currentTemplate.value?.key || 'wechat'
+    })
+    message.success('已加入生成队列')
+    clearForm()
+    requirementEl.value && (requirementEl.value.style.height = '')
+    loadQueue()
+    queueOpen.value = true
+    loadBenefits()
+    close()
+    emit('success', task)
+  } catch (e) {
+    message.error(e?.message || '提交失败，请稍后重试')
+  }
+}
+</script>
+
+<style scoped>
+.free-create-modal :deep(.ant-modal-content) {
+  border-radius: 16px;
+  overflow: hidden;
+}
+.free-create-modal :deep(.ant-modal-body) {
+  padding: 24px;
+}
+.free-create-body {
+  padding: 8px 4px;
+}
+.free-create-tips {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+.free-create-card {
+  background: var(--color-bg-card);
+  border-radius: 16px;
+  padding: 20px 20px 16px;
+  border: 1.5px solid transparent;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+.free-create-card.focused {
+  border-color: var(--color-primary-light);
+  box-shadow: 0 4px 24px rgba(7, 193, 96, 0.12);
+}
+.free-create-title {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  background: transparent;
+  padding: 4px 0 10px;
+  box-sizing: border-box;
+}
+.free-create-title::placeholder {
+  color: var(--color-text-placeholder);
+  font-weight: 400;
+}
+.free-create-textarea-wrap {
+  position: relative;
+}
+.free-create-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--color-text-regular);
+  background: transparent;
+  min-height: 112px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.free-create-textarea::placeholder {
+  color: var(--color-text-placeholder);
+}
+.free-create-textarea-meta {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  padding-top: 6px;
+}
+.free-create-char-count {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
+  transition: color 0.15s;
+  min-width: 42px;
+  text-align: right;
+}
+.free-create-char-count.warning {
+  color: var(--color-error);
+  font-weight: 500;
+}
+.free-create-divider {
+  height: 1px;
+  background: var(--color-border-light);
+  margin: var(--space-md) 0;
+}
+.free-create-chips {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-lg);
+}
+.settings-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  color: var(--color-text-regular);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.settings-chip:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+.chip-caret {
+  font-size: 10px;
+  color: var(--color-text-placeholder);
+}
+.free-create-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.free-create-actions .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 28px;
+  font-weight: 600;
+  box-shadow: 0 4px 14px rgba(7, 193, 96, 0.3);
+}
+.free-create-actions .ant-btn-primary :deep(.anticon) {
+  color: #fff;
+}
+.free-create-actions .ant-btn-primary:hover,
+.free-create-actions .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(7, 193, 96, 0.4);
+}
+.free-create-actions .ant-btn-primary:disabled {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+  opacity: 0.5;
+  box-shadow: none;
+}
+
+@media (max-width: 768px) {
+  .free-create-chips {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .free-create-chips .settings-chip {
+    flex-shrink: 0;
+  }
+  .free-create-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .free-create-actions .ant-btn {
+    width: 100%;
+  }
+}
+</style>
