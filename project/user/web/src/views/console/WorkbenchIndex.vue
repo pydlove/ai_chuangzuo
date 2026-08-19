@@ -5,12 +5,27 @@
       <div class="left-column">
         <a-card class="wb-card welcome-card" :bordered="false">
           <div class="welcome-body">
-            <a-avatar :size="56" class="welcome-avatar">
-              {{ userInfo.nickname ? userInfo.nickname[0] : 'U' }}
-            </a-avatar>
+            <!-- 左侧：对话区域 -->
+            <div class="welcome-dialogue">
+              <a-avatar :size="48" class="ai-avatar">AI</a-avatar>
+              <div class="dialogue-bubble">
+                <div class="dialogue-title">
+                  尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱
+                </div>
+                <div class="dialogue-greeting">
+                  <span v-if="todayDone" class="done-text">今日创作目标已达成，继续保持！</span>
+                  <span v-else class="todo-text">今日任务还没完成，点击「开始今日创作」去写一篇吧</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 中间：个人信息区域 -->
             <div class="welcome-info">
-              <div class="welcome-name-row">
-                <span class="welcome-name">尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱</span>
+              <div class="info-header">
+                <a-avatar :size="40" class="user-avatar-mini">
+                  {{ userInfo.nickname ? userInfo.nickname[0] : 'U' }}
+                </a-avatar>
+                <span class="info-name">{{ userInfo.nickname || '未设置昵称' }}</span>
                 <a-tag v-if="userInfo.vipLevel" class="vip-tag" color="#ff2442">
                   <CrownOutlined /> {{ userInfo.vipLevel }}
                 </a-tag>
@@ -23,11 +38,9 @@
                   复制
                 </a-button>
               </div>
-              <div class="welcome-greeting">
-                <span v-if="todayDone" class="done-text">🎉 🎉 🎉 今日创作目标已达成，继续保持！</span>
-                <span v-else class="todo-text">今日任务还没完成，点击「开始今日创作」去写一篇吧</span>
-              </div>
             </div>
+
+            <!-- 右侧：账户区域 -->
             <div class="welcome-balance">
               <div class="balance-header">
                 <span class="balance-label">账户余额</span>
@@ -1110,28 +1123,71 @@ function selectSuggestion(s) {
 }
 .welcome-body {
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--space-lg);
 }
-.welcome-avatar {
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 24px;
+.welcome-dialogue {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+  flex: 1;
+  min-width: 0;
+}
+.ai-avatar {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border: 1px solid var(--color-primary-light);
+  font-size: 14px;
   font-weight: 700;
   flex-shrink: 0;
+}
+.dialogue-bubble {
+  flex: 1;
+  min-width: 0;
+  background: var(--color-bg-page);
+  border-radius: var(--radius-xl);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+.dialogue-title {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.5;
+}
+.dialogue-greeting {
+  font-size: var(--font-small);
+  color: var(--color-text-regular);
+  line-height: 1.5;
 }
 .welcome-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  border-left: 1px solid var(--color-border-light);
+  border-right: 1px solid var(--color-border-light);
 }
-.welcome-name-row {
+.info-header {
   display: flex;
   align-items: center;
   gap: var(--space-sm);
-  margin-bottom: var(--space-sm);
   flex-wrap: wrap;
 }
-.welcome-name {
+.user-avatar-mini {
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.info-name {
   font-size: var(--font-h3);
   font-weight: 700;
   color: var(--color-text-primary);
@@ -1147,7 +1203,6 @@ function selectSuggestion(s) {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-xs);
-  margin-bottom: var(--space-md);
   font-size: var(--font-small);
   color: var(--color-text-secondary);
 }
@@ -1167,11 +1222,6 @@ function selectSuggestion(s) {
   height: auto;
   font-size: var(--font-small);
 }
-.welcome-greeting {
-  font-size: var(--font-body);
-  color: var(--color-text-regular);
-  line-height: 1.6;
-}
 .done-text {
   color: var(--color-success);
   font-weight: 600;
@@ -1185,9 +1235,7 @@ function selectSuggestion(s) {
   flex-direction: column;
   justify-content: center;
   min-width: 180px;
-  padding-left: var(--space-xl);
-  margin-left: auto;
-  border-left: 1px solid var(--color-border-light);
+  padding: 0 var(--space-md);
   gap: 8px;
 }
 .balance-header {
@@ -2195,14 +2243,19 @@ function selectSuggestion(s) {
   .welcome-body {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-md);
+  }
+  .welcome-info {
+    padding: var(--space-md) 0;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--color-border-light);
+    border-bottom: 1px solid var(--color-border-light);
   }
   .welcome-balance {
     width: 100%;
-    padding-left: 0;
-    padding-top: var(--space-md);
-    margin-left: 0;
-    border-left: none;
-    border-top: 1px solid var(--color-border-light);
+    padding: 0;
+    border-top: none;
   }
   .welcome-meta {
     flex-direction: column;
