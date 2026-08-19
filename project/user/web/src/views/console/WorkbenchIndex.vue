@@ -84,7 +84,6 @@
           </div>
         </div>
         <div v-else class="plan-empty">
-          <div class="plan-empty-icon">📝</div>
           <div class="plan-empty-title">还没有专属运营方案</div>
           <div class="plan-empty-desc">
             AI 会根据你的目标、时间与资源，为你定制一套自媒体运营方案，帮你更快起号、持续运营。
@@ -474,7 +473,6 @@
       @cancel="dismissPlanModal"
     >
       <div class="plan-modal-body">
-        <div class="plan-modal-icon">🎯</div>
         <div class="plan-modal-title">让 AI 为你定制专属运营方案</div>
         <div class="plan-modal-desc">
           为了给你更精准的运营建议，请先回答几个简单问题，AI 会基于你的目标、时间与资源，为你定制一套更容易起号的自媒体运营方案。
@@ -1286,10 +1284,6 @@ function selectSuggestion(s) {
   gap: var(--space-sm);
   padding: var(--space-md) 0;
 }
-.plan-empty-icon {
-  font-size: 40px;
-  line-height: 1;
-}
 .plan-empty-title {
   font-size: var(--font-h4);
   font-weight: 600;
@@ -1314,10 +1308,6 @@ function selectSuggestion(s) {
   text-align: center;
   padding: var(--space-md) var(--space-sm) var(--space-sm);
   gap: var(--space-sm);
-}
-.plan-modal-icon {
-  font-size: 48px;
-  line-height: 1;
 }
 .plan-modal-title {
   font-size: var(--font-h3);
