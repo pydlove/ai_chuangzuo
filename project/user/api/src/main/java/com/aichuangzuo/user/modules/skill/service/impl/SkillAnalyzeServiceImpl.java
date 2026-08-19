@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.skill.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.utils.LlmJsonParser;
 import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.aichuangzuo.user.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
@@ -72,7 +73,7 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
 
         AiPromptRendered rendered = aiPromptRenderService.render("skill_analyze_v1", Map.of("text", text));
         String aiResp = aiService.call(rendered.systemRole(), rendered.userPrompt());
-        JsonNode root = parseJson(stripCodeFence(aiResp));
+        JsonNode root = parseJson(aiResp);
 
         String prompt = root.path("prompt").asText("").trim();
         validatePrompt(prompt);
@@ -91,93 +92,12 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
     }
 
     private JsonNode parseJson(String raw) {
-        String cleaned = stripCodeFence(raw);
         try {
-            return lenientObjectMapper.readTree(cleaned);
+            return LlmJsonParser.parseLenient(lenientObjectMapper, raw);
         } catch (Exception e) {
-            String extracted = extractJsonObject(cleaned);
-            if (extracted != null && !extracted.equals(cleaned)) {
-                try {
-                    return lenientObjectMapper.readTree(extracted);
-                } catch (Exception ignored) {
-                    // 继续尝试修复 prompt 内未转义引号
-                }
-            }
-            String fixed = fixUnescapedQuotesInPrompt(cleaned);
-            if (!fixed.equals(cleaned)) {
-                try {
-                    return lenientObjectMapper.readTree(fixed);
-                } catch (Exception ignored) {
-                    // 继续走失败分支
-                }
-            }
             log.warn("AI 风格分析结果解析失败 resp={}", abbreviate(raw, 2000));
             throw new BusinessException(SkillErrorCode.SKILL_ANALYZE_FAILED);
         }
-    }
-
-    /**
-     * 修复 prompt 字段内部未转义的英文双引号。
-     * 模型常把示例词语写成 "xxx" 而非 \"xxx\"，导致整个 JSON 非法。
-     */
-    private static String fixUnescapedQuotesInPrompt(String text) {
-        if (text == null) {
-            return text;
-        }
-        String promptKey = "\"prompt\"";
-        int keyIdx = text.indexOf(promptKey);
-        if (keyIdx < 0) {
-            return text;
-        }
-        int valueStart = text.indexOf('"', keyIdx + promptKey.length());
-        if (valueStart < 0) {
-            return text;
-        }
-        valueStart++; // 跳过 opening quote
-
-        // 从后往前找 prompt 字段的结束引号：第一个前面不是反斜杠的 "
-        int valueEnd = -1;
-        for (int i = text.length() - 1; i >= valueStart; i--) {
-            char c = text.charAt(i);
-            if (c == '"' && (i == 0 || text.charAt(i - 1) != '\\')) {
-                // 再确认它后面是合法的 JSON 分隔符（跳过空白）
-                int j = i + 1;
-                while (j < text.length() && Character.isWhitespace(text.charAt(j))) {
-                    j++;
-                }
-                if (j >= text.length() || text.charAt(j) == ',' || text.charAt(j) == '}') {
-                    valueEnd = i;
-                    break;
-                }
-            }
-        }
-        if (valueEnd <= valueStart) {
-            return text;
-        }
-
-        String promptValue = text.substring(valueStart, valueEnd);
-        StringBuilder fixed = new StringBuilder();
-        for (int i = 0; i < promptValue.length(); i++) {
-            char c = promptValue.charAt(i);
-            if (c == '"' && (i == 0 || promptValue.charAt(i - 1) != '\\')) {
-                fixed.append('\\');
-            }
-            fixed.append(c);
-        }
-        return text.substring(0, valueStart) + fixed + text.substring(valueEnd);
-    }
-
-    /** 从文本中截取出最外层 JSON 对象（兼容模型在 JSON 前后加说明的情况）。 */
-    private static String extractJsonObject(String text) {
-        if (text == null) {
-            return null;
-        }
-        int start = text.indexOf('{');
-        int end = text.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            return text.substring(start, end + 1);
-        }
-        return null;
     }
 
     /** prompt 非空、≤1200 字、含四个维度标记，缺一不可。 */
@@ -214,26 +134,6 @@ public class SkillAnalyzeServiceImpl implements SkillAnalyzeService {
                 .max(Comparator.comparingInt(String::length))
                 .map(s -> s.length() <= EXCERPT2_MAX ? s : s.substring(0, EXCERPT2_MAX))
                 .orElse("");
-    }
-
-    /** 防御：模型偶有 ```json 围栏输出，剥掉再解析。 */
-    private static String stripCodeFence(String text) {
-        if (text == null) {
-            return "";
-        }
-        String s = text.strip();
-        if (s.startsWith("```")) {
-            int firstNewline = s.indexOf('\n');
-            if (firstNewline > 0) {
-                s = s.substring(firstNewline + 1);
-            } else {
-                s = s.substring(3);
-            }
-            if (s.endsWith("```")) {
-                s = s.substring(0, s.length() - 3);
-            }
-        }
-        return s.strip();
     }
 
     private static String abbreviate(String s, int maxLength) {

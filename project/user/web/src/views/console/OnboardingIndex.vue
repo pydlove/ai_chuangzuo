@@ -104,14 +104,17 @@
         <p class="step-desc">根据你的优势选择变现路径，后面会推荐对应的赛道和玩法。</p>
         <div class="form-block">
           <div class="form-label">你更适合哪种变现方式？</div>
-          <div class="option-group">
+          <a-button type="primary" size="small" :loading="isLoadingGoals" :disabled="isLoadingGoals || !form.platform" @click="loadGoalOptions">
+            <BulbOutlined /> AI 推荐目标
+          </a-button>
+          <div class="option-group" style="margin-top: 12px;">
             <button
-              v-for="g in availableGoals"
-              :key="g"
-              :class="['option-btn', { selected: form.goal === g }]"
-              @click="form.goal = g"
+              v-for="g in goalOptions"
+              :key="g.key"
+              :class="['option-btn', { selected: form.goal === g.name }]"
+              @click="form.goal = g.name"
             >
-              {{ g }}
+              {{ g.name }}
             </button>
           </div>
         </div>
@@ -128,7 +131,7 @@
             </button>
           </div>
         </div>
-        <div v-if="form.goal === '靠产品/服务变现' || form.goal === '靠行业资源/信息差变现'" class="form-block">
+        <div v-if="showProductInput" class="form-block">
           <div class="form-label">你是否有可变现的产品、服务或技能？</div>
           <div class="option-group">
             <button :class="['option-btn', { selected: form.hasProduct === true }]" @click="form.hasProduct = true">
@@ -150,6 +153,9 @@
       <div v-if="step === 3" class="step-panel">
         <h3 class="step-title">推荐你尝试这些细分赛道</h3>
         <p class="step-desc">基于你选择的平台、背景和目标，我们找出了需求真实、竞争度尚可的赛道。</p>
+        <div v-if="isLoadingNiches" class="niche-loading">
+          <a-spin tip="AI 正在推荐赛道..." />
+        </div>
         <div class="niche-list">
           <div
             v-for="n in nicheOptions"
@@ -179,11 +185,14 @@
       <div v-if="step === 4" class="step-panel">
         <h3 class="step-title">选择你的人设和内容支柱</h3>
         <p class="step-desc">人设决定用户怎么记住你，内容支柱保证你持续有得写。</p>
+        <div v-if="isLoadingPersonas" class="persona-loading">
+          <a-spin tip="AI 正在推荐人设..." />
+        </div>
         <div class="form-block">
           <div class="form-label">你想以什么身份出现？</div>
           <div class="persona-grid">
             <div
-              v-for="p in personas"
+              v-for="p in personaOptions"
               :key="p.key"
               :class="['persona-card', { selected: selectedPersona === p.key }]"
               @click="selectedPersona = p.key"
@@ -351,7 +360,7 @@
           <a-button type="primary" class="recommend-modal-btn" size="large" :disabled="!canRecommend" :loading="recommendLoading" @click="runRecommend">获取推荐</a-button>
         </div>
         <div v-if="recommendResult" class="recommend-result">
-          <div class="recommend-result-title">推荐平台：{{ recommendResult.platform.name }}</div>
+          <div class="recommend-result-title">推荐平台：{{ recommendResult.platformName }}</div>
           <div class="recommend-result-reason">{{ recommendResult.reason }}</div>
           <a-button type="primary" class="recommend-modal-btn" @click="applyRecommend">选择这个平台</a-button>
         </div>
@@ -369,25 +378,21 @@ import {
   BulbOutlined,
   FireOutlined
 } from '@ant-design/icons-vue'
-import xiaohongshuIcon from '../../../../../assets/images/小红书-copy-copy.png'
-import wechatIcon from '../../../../../assets/images/微信.png'
-import toutiaoIcon from '../../../../../assets/images/今日头条.png'
-import baijiahaoIcon from '../../../../../assets/images/百家号-nh.png'
-import zhihuIcon from '../../../../../assets/images/知乎-copy.png'
-import douyinIcon from '../../../../../assets/images/抖音.png'
 import { platforms as backendPlatforms, loadPlatforms } from '@/composables/usePlatforms.js'
+import {
+  recommendPlatform as apiRecommendPlatform,
+  recommendGoals as apiRecommendGoals,
+  recommendNiches as apiRecommendNiches,
+  recommendPersonas as apiRecommendPersonas,
+  savePlan as apiSavePlan
+} from '@/api/selfMediaPlan.js'
 
 const router = useRouter()
 const step = ref(1)
 const steps = ['选平台', '定目标', '选赛道', '做人设', '出方案']
 
-const PLATFORM_ICONS = {
-  xiaohongshu: xiaohongshuIcon,
-  wechat: wechatIcon,
-  toutiao: toutiaoIcon,
-  baijiahao: baijiahaoIcon,
-  zhihu: zhihuIcon,
-  douyin: douyinIcon
+function platformIconUrl(key) {
+  return `/platforms/${key}.png`
 }
 
 const PLATFORM_DETAILS = {
@@ -509,7 +514,7 @@ const platforms = computed(() => {
       ...p,
       key: p.key,
       name: p.name || detail.name,
-      iconImg: p.iconUrl || PLATFORM_ICONS[p.key] || '',
+      iconImg: p.iconUrl || platformIconUrl(p.key) || '',
       tagline: p.tagline || detail.tagline,
       contentForm: p.contentForm?.length ? p.contentForm : detail.contentForm,
       monetization: p.monetization?.length ? p.monetization : detail.monetization,
@@ -538,16 +543,6 @@ function earnClass(ease) {
   return 'tag-hard'
 }
 
-const goals = ['靠专业知识/技能变现', '靠产品/服务变现', '靠生活经验/好物分享变现', '靠追热点/爆款内容变现', '靠行业资源/信息差变现']
-
-const goalOptionsByPlatform = {
-  xiaohongshu: ['靠生活经验/好物分享变现', '靠产品/服务变现', '靠行业资源/信息差变现'],
-  wechat: ['靠专业知识/技能变现', '靠追热点/爆款内容变现', '靠产品/服务变现'],
-  toutiao: ['靠追热点/爆款内容变现', '靠专业知识/技能变现', '靠生活经验/好物分享变现'],
-  baijiahao: ['靠追热点/爆款内容变现', '靠专业知识/技能变现', '靠产品/服务变现'],
-  zhihu: ['靠专业知识/技能变现', '靠产品/服务变现', '靠行业资源/信息差变现'],
-  douyin: ['靠生活经验/好物分享变现', '靠产品/服务变现', '靠追热点/爆款内容变现']
-}
 const backgrounds = ['职场/管理', 'IT/互联网', '育儿/教育', '健康/养生', '金融/理财', '电商/创业', '生活方式', '其他']
 const timeOptions = ['小于 3 小时', '3 - 10 小时', '大于 10 小时']
 const workTypes = ['主业', '副业', '想转主业', '不明确']
@@ -576,87 +571,34 @@ const pillars = reactive([
   { name: '热点解读', percent: 20 }
 ])
 
-const personas = [
-  { key: 'experiencer', name: '实战记录者', desc: '分享亲身经历，真实感强，容易建立信任' },
-  { key: 'expert', name: '干货专家', desc: '输出方法论和深度分析，适合专业赛道' },
-  { key: 'challenger', name: '反常识挑战者', desc: '提出不同观点，适合争议型话题' },
-  { key: 'curator', name: '经验总结者', desc: '整理归纳信息，适合工具/清单类内容' }
-]
+// AI 推荐结果
+const goalOptions = ref([])
+const nicheOptions = ref([])
+const personaOptions = ref([])
+const isLoadingGoals = ref(false)
+const isLoadingNiches = ref(false)
+const isLoadingPersonas = ref(false)
 
-const nichePool = [
-  { key: 'zhichangzhuanxing', name: '35+ 职场转型', audience: '30-45 岁职场人', monetization: '咨询/课程/社群', caseCount: 12, riskColor: 'success', riskLabel: '同质化风险低', reason: '低粉高赞案例多，且细分人群明确，适合结合个人经历。', fitPlatforms: ['wechat', 'zhihu', 'xiaohongshu'] },
-  { key: 'qiuzhibikeng', name: '应届生求职避坑', audience: '22-28 岁求职者', monetization: '简历服务/课程', caseCount: 8, riskColor: 'warning', riskLabel: '同质化风险中', reason: '需求稳定，但热门话题较拥挤，需用个人故事差异化。', fitPlatforms: ['xiaohongshu', 'zhihu', 'wechat'] },
-  { key: 'fuyezhuanqian', name: '副业/自由职业', audience: '想增收的上班族', monetization: '课程/社群/带货', caseCount: 15, riskColor: 'success', riskLabel: '同质化风险低', reason: '变现路径清晰，案例丰富，长尾选题多。', fitPlatforms: ['xiaohongshu', 'douyin', 'toutiao', 'wechat'] },
-  { key: 'yangzhongqing', name: '养生/健康生活', audience: '25-45 岁亚健康人群', monetization: '带货/课程', caseCount: 10, riskColor: 'warning', riskLabel: '同质化风险中', reason: '平台流量扶持，但内容需注入真实体验避免大路货。', fitPlatforms: ['xiaohongshu', 'douyin', 'toutiao', 'baijiahao'] },
-  { key: 'qinzijiaoyu', name: '亲子教育/陪读', audience: '0-12 岁孩子家长', monetization: '课程/社群/带货', caseCount: 14, riskColor: 'success', riskLabel: '同质化风险低', reason: '家长付费意愿强，个人育儿经验是最佳差异化。', fitPlatforms: ['xiaohongshu', 'wechat', 'douyin'] },
-  { key: 'jinlicaifu', name: '理财/财富思维', audience: '25-40 岁想理财的人', monetization: '课程/咨询', caseCount: 6, riskColor: 'warning', riskLabel: '同质化风险中', reason: '专业门槛高，需有真实经验或资质背书。', fitPlatforms: ['zhihu', 'wechat', 'baijiahao'] },
-  { key: 'chengxuyuan', name: '程序员/技术成长', audience: 'IT 从业者', monetization: '课程/社群/内推', caseCount: 9, riskColor: 'success', riskLabel: '同质化风险低', reason: '技术内容护城河高，个人项目经验是亮点。', fitPlatforms: ['zhihu', 'wechat', 'xiaohongshu'] },
-  { key: 'dianshangganhuo', name: '电商/运营干货', audience: '电商从业者', monetization: '课程/社群/货源', caseCount: 11, riskColor: 'warning', riskLabel: '同质化风险中', reason: '案例多，需用具体店铺/产品数据做差异化。', fitPlatforms: ['xiaohongshu', 'douyin', 'zhihu', 'wechat'] }
-]
-
-const nicheOptions = computed(() => {
-  const { platform, background, goal } = form
-  const result = []
-  if (background === '职场/管理') {
-    result.push(nichePool.find((n) => n.key === 'zhichangzhuanxing'))
-    result.push(nichePool.find((n) => n.key === 'qiuzhibikeng'))
-  }
-  if (background === 'IT/互联网') {
-    result.push(nichePool.find((n) => n.key === 'chengxuyuan'))
-    result.push(nichePool.find((n) => n.key === 'fuyezhuanqian'))
-  }
-  if (background === '育儿/教育') {
-    result.push(nichePool.find((n) => n.key === 'qinzijiaoyu'))
-  }
-  if (background === '健康/养生') {
-    result.push(nichePool.find((n) => n.key === 'yangzhongqing'))
-  }
-  if (background === '金融/理财') {
-    result.push(nichePool.find((n) => n.key === 'jinlicaifu'))
-  }
-  if (background === '电商/创业') {
-    result.push(nichePool.find((n) => n.key === 'dianshangganhuo'))
-    result.push(nichePool.find((n) => n.key === 'fuyezhuanqian'))
-  }
-  if (goal === '靠产品/服务变现' || goal === '靠行业资源/信息差变现') {
-    if (!result.find((n) => n.key === 'fuyezhuanqian')) {
-      result.push(nichePool.find((n) => n.key === 'fuyezhuanqian'))
-    }
-  }
-  if (result.length < 3) {
-    result.push(nichePool.find((n) => n.key === 'fuyezhuanqian'))
-  }
-  if (result.length < 3) {
-    result.push(nichePool.find((n) => n.key === 'zhichangzhuanxing'))
-  }
-  const filtered = result.filter(Boolean)
-  if (platform) {
-    const platformFirst = filtered.filter((n) => n.fitPlatforms.includes(platform))
-    if (platformFirst.length >= 1) return platformFirst.slice(0, 3)
-  }
-  return filtered.slice(0, 3)
-})
-
-const selectedNicheName = computed(() => nichePool.find((n) => n.key === selectedNiche.value)?.name || '')
-const selectedPersonaName = computed(() => personas.find((p) => p.key === selectedPersona.value)?.name || '')
+const selectedNicheName = computed(() => nicheOptions.value.find((n) => n.key === selectedNiche.value)?.name || '')
+const selectedPersonaName = computed(() => personaOptions.value.find((p) => p.key === selectedPersona.value)?.name || '')
 const platformLabels = computed(() => platforms.value.find((p) => p.key === form.platform)?.name || '')
 const pillarTotal = computed(() => pillars.reduce((sum, p) => sum + p.percent, 0))
 
-const availableGoals = computed(() => {
-  return goalOptionsByPlatform[form.platform] || goals
+const showProductInput = computed(() => {
+  const g = form.goal || ''
+  return g.includes('产品') || g.includes('服务') || g.includes('资源') || g.includes('信息差')
 })
 
 watch(() => form.platform, () => {
-  if (form.platform && !availableGoals.value.includes(form.goal)) {
-    form.goal = ''
-  }
+  form.goal = ''
+  goalOptions.value = []
 })
 
 const canNext = computed(() => {
   if (step.value === 1) return !!form.platform
   if (step.value === 2) {
     if (!form.goal || !form.background) return false
-    if ((form.goal === '靠产品/服务变现' || form.goal === '靠行业资源/信息差变现')) {
+    if (showProductInput.value) {
       if (form.hasProduct === null || form.hasProduct === undefined) return false
       if (form.hasProduct === true && !form.productDesc.trim()) return false
     }
@@ -669,6 +611,106 @@ const canNext = computed(() => {
 
 function selectPlatform(key) {
   form.platform = form.platform === key ? '' : key
+  form.recommendedByAI = false
+}
+
+async function loadGoalOptions() {
+  if (!form.platform) return
+  isLoadingGoals.value = true
+  try {
+    const platform = platforms.value.find((p) => p.key === form.platform)
+    const data = await apiRecommendGoals({
+      platformKey: form.platform,
+      background: form.background || '',
+      context: buildContext(),
+      platformName: platform?.name || '',
+      platformTagline: platform?.tagline || '',
+      platformContentForm: (platform?.contentForm || []).join('、'),
+      platformMonetization: (platform?.monetization || []).join('、'),
+      platformBestFor: platform?.bestFor || ''
+    })
+    goalOptions.value = Array.isArray(data) ? data : []
+    if (goalOptions.value.length && !form.goal) {
+      form.goal = goalOptions.value[0].name
+    }
+  } catch (e) {
+    message.error('目标推荐失败，请重试')
+  } finally {
+    isLoadingGoals.value = false
+  }
+}
+
+async function loadNicheOptions() {
+  if (!form.platform || !form.goal) return
+  isLoadingNiches.value = true
+  try {
+    const platform = platforms.value.find((p) => p.key === form.platform)
+    const data = await apiRecommendNiches({
+      platformKey: form.platform,
+      goal: form.goal,
+      background: form.background || '',
+      hasProduct: form.hasProduct === true,
+      productDesc: form.productDesc || '',
+      context: buildContext(),
+      platformName: platform?.name || '',
+      platformTagline: platform?.tagline || '',
+      platformContentForm: (platform?.contentForm || []).join('、'),
+      platformMonetization: (platform?.monetization || []).join('、'),
+      platformBestFor: platform?.bestFor || ''
+    })
+    nicheOptions.value = Array.isArray(data) ? data : []
+    selectedNiche.value = nicheOptions.value[0]?.key || ''
+  } catch (e) {
+    message.error('赛道推荐失败，请重试')
+  } finally {
+    isLoadingNiches.value = false
+  }
+}
+
+async function loadPersonaOptions() {
+  if (!form.platform || !form.goal || !selectedNiche.value) return
+  isLoadingPersonas.value = true
+  try {
+    const platform = platforms.value.find((p) => p.key === form.platform)
+    const niche = nicheOptions.value.find((n) => n.key === selectedNiche.value)
+    const data = await apiRecommendPersonas({
+      platformKey: form.platform,
+      goal: form.goal,
+      background: form.background || '',
+      nicheKey: niche?.key || '',
+      nicheName: niche?.name || '',
+      context: buildContext(),
+      platformName: platform?.name || '',
+      platformTagline: platform?.tagline || '',
+      platformContentForm: (platform?.contentForm || []).join('、'),
+      platformMonetization: (platform?.monetization || []).join('、'),
+      platformBestFor: platform?.bestFor || ''
+    })
+    const result = data || {}
+    personaOptions.value = Array.isArray(result.personas) ? result.personas : []
+    if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
+      pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
+    }
+    selectedPersona.value = personaOptions.value[0]?.key || ''
+  } catch (e) {
+    message.error('人设推荐失败，请重试')
+  } finally {
+    isLoadingPersonas.value = false
+  }
+}
+
+function buildContext() {
+  return {
+    workType: recommendForm.workType || '',
+    timePerWeek: recommendForm.timePerWeek || '',
+    incomeGoal: recommendForm.incomeGoal || '',
+    breakEvenPeriod: recommendForm.breakEvenPeriod || '',
+    contentType: recommendForm.contentType || '',
+    audience: recommendForm.audience || '',
+    identity: recommendForm.identity || '',
+    onCamera: recommendForm.onCamera || '',
+    note: recommendForm.note || ''
+  }
 }
 
 function next() {
@@ -677,14 +719,14 @@ function next() {
     return
   }
   if (step.value === 2) {
-    selectedNiche.value = nicheOptions.value[0]?.key || ''
+    loadNicheOptions()
   }
   if (step.value === 3) {
-    selectedPersona.value = personas[0].key
+    loadPersonaOptions()
   }
   if (step.value === 1 && form.recommendedByAI) {
     step.value = 3
-    selectedNiche.value = nicheOptions.value[0]?.key || ''
+    loadNicheOptions()
     return
   }
   step.value++
@@ -694,10 +736,32 @@ function prev() {
   step.value--
 }
 
-function confirm() {
-  message.success('自媒体方案已生成')
-  localStorage.setItem('aichuangzuo_onboarding_done', '1')
-  router.push('/console/workbench')
+async function confirm() {
+  const platform = platforms.value.find((p) => p.key === form.platform)
+  const niche = nicheOptions.value.find((n) => n.key === selectedNiche.value)
+  const persona = personaOptions.value.find((p) => p.key === selectedPersona.value)
+  try {
+    await apiSavePlan({
+      platformKey: form.platform,
+      platformName: platform?.name || '',
+      goal: form.goal,
+      background: form.background,
+      hasProduct: form.hasProduct === true,
+      productDesc: form.productDesc || '',
+      nicheKey: niche?.key || '',
+      nicheName: niche?.name || '',
+      personaKey: persona?.key || '',
+      personaName: persona?.name || '',
+      isRecommendedByAI: form.recommendedByAI,
+      pillars: pillars.map((p) => ({ name: p.name, percent: p.percent })),
+      recommendationContext: buildContext()
+    })
+    message.success('自媒体方案已生成')
+    localStorage.setItem('aichuangzuo_onboarding_done', '1')
+    router.push('/console/workbench')
+  } catch (e) {
+    message.error('保存方案失败，请重试')
+  }
 }
 
 // AI 平台推荐（前端规则模拟，后续可替换为 LLM 接口）
@@ -745,38 +809,14 @@ function resetRecommend() {
 
 function applyRecommend() {
   if (recommendResult.value) {
-    form.platform = recommendResult.value.platform.key
+    form.platform = recommendResult.value.platformKey
     if (recommendForm.timePerWeek) form.timePerWeek = recommendForm.timePerWeek
     form.recommendedByAI = true
-    // 根据 AI 推荐答案推导目标
-    const platformKey = recommendResult.value.platform.key
-    const candidateGoals = goalOptionsByPlatform[platformKey] || goals
-    let derivedGoal
-    if (recommendForm.identity === '创业者/老板') {
-      derivedGoal = '靠产品/服务变现'
-    } else if (recommendForm.workType === '主业' || recommendForm.workType === '想转主业') {
-      derivedGoal = recommendForm.incomeGoal !== '没具体目标' ? '靠专业知识/技能变现' : '靠生活经验/好物分享变现'
-    } else if (recommendForm.contentType === '短视频' || recommendForm.contentType === '图文笔记') {
-      derivedGoal = '靠生活经验/好物分享变现'
-    } else if (recommendForm.contentType === '长图文' || recommendForm.contentType === '问答') {
-      derivedGoal = '靠专业知识/技能变现'
-    } else {
-      derivedGoal = '靠生活经验/好物分享变现'
-    }
-    form.goal = candidateGoals.includes(derivedGoal) ? derivedGoal : (candidateGoals[0] || goals[0])
-    // 根据身份推导背景领域
-    const identityBackgroundMap = {
-      '职场人': '职场/管理',
-      '创业者/老板': '电商/创业',
-      '宝妈': '育儿/教育',
-      '学生': '其他',
-      '自由职业': '其他',
-      '其他': '其他',
-      '不明确': '其他'
-    }
     form.background = identityBackgroundMap[recommendForm.identity] || '其他'
     recommendModalOpen.value = false
     resetRecommend()
+    // 提前拉取 AI 目标推荐，方便用户进入下一步直接看到选项
+    loadGoalOptions()
   }
 }
 
@@ -784,115 +824,23 @@ async function runRecommend() {
   if (!canRecommend.value) return
   recommendLoading.value = true
   recommendResult.value = null
-  // 模拟 LLM 调用延迟
-  setTimeout(() => {
-    recommendResult.value = recommendPlatform(recommendForm)
+  try {
+    recommendResult.value = await apiRecommendPlatform({ context: buildContext() })
+  } catch (e) {
+    message.error('平台推荐失败，请重试')
+  } finally {
     recommendLoading.value = false
-  }, 600)
+  }
 }
 
-function recommendPlatform(input) {
-  const scores = {
-    xiaohongshu: 0,
-    wechat: 0,
-    toutiao: 0,
-    baijiahao: 0,
-    zhihu: 0,
-    douyin: 0
-  }
-
-  const contentTypeScores = {
-    '长图文': { wechat: 4, zhihu: 3, baijiahao: 2, toutiao: 2, xiaohongshu: 1, douyin: 0 },
-    '短视频': { douyin: 4, xiaohongshu: 3, toutiao: 2, baijiahao: 1, wechat: 1, zhihu: 0 },
-    '图文笔记': { xiaohongshu: 4, toutiao: 2, baijiahao: 1, wechat: 1, zhihu: 0, douyin: 0 },
-    '直播': { douyin: 4, xiaohongshu: 2, wechat: 1, toutiao: 1, baijiahao: 0, zhihu: 0 },
-    '问答': { zhihu: 4, baijiahao: 3, toutiao: 2, wechat: 1, xiaohongshu: 0, douyin: 0 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const onCameraScores = {
-    '愿意出镜': { douyin: 4, xiaohongshu: 3, wechat: 1, toutiao: 1, baijiahao: 0, zhihu: 0 },
-    '做视频但不出镜': { douyin: 3, xiaohongshu: 2, toutiao: 1, baijiahao: 0, wechat: 0, zhihu: 0 },
-    '不想做视频': { wechat: 4, zhihu: 3, baijiahao: 2, toutiao: 2, xiaohongshu: 1, douyin: 0 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const timeScores = {
-    '小于 3 小时': { toutiao: 4, baijiahao: 3, xiaohongshu: 1, douyin: 0, wechat: 0, zhihu: 0 },
-    '3 - 10 小时': { xiaohongshu: 4, zhihu: 3, toutiao: 2, baijiahao: 2, douyin: 1, wechat: 1 },
-    '大于 10 小时': { wechat: 4, douyin: 4, zhihu: 3, xiaohongshu: 2, toutiao: 1, baijiahao: 1 }
-  }
-
-  const incomeScores = {
-    '几千零花钱': { toutiao: 4, baijiahao: 3, xiaohongshu: 2, douyin: 1, wechat: 1, zhihu: 0 },
-    '月入过万': { xiaohongshu: 4, douyin: 3, wechat: 3, zhihu: 2, toutiao: 1, baijiahao: 1 },
-    '月入几万': { douyin: 4, xiaohongshu: 4, wechat: 3, zhihu: 2, toutiao: 1, baijiahao: 1 },
-    '没具体目标': { xiaohongshu: 2, toutiao: 2, baijiahao: 2, wechat: 1, zhihu: 1, douyin: 1 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const breakEvenScores = {
-    '1 个月': { toutiao: 4, baijiahao: 3, xiaohongshu: 2, douyin: 1, wechat: 0, zhihu: 0 },
-    '3 个月': { xiaohongshu: 4, toutiao: 3, baijiahao: 2, douyin: 2, wechat: 1, zhihu: 1 },
-    '6 个月': { wechat: 4, xiaohongshu: 3, douyin: 3, zhihu: 2, toutiao: 1, baijiahao: 1 },
-    '1 年以上': { wechat: 4, zhihu: 4, xiaohongshu: 2, douyin: 2, baijiahao: 1, toutiao: 1 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const workTypeScores = {
-    '主业': { wechat: 4, douyin: 4, zhihu: 3, xiaohongshu: 2, toutiao: 1, baijiahao: 1 },
-    '副业': { toutiao: 4, baijiahao: 3, xiaohongshu: 2, zhihu: 2, douyin: 1, wechat: 1 },
-    '想转主业': { wechat: 4, xiaohongshu: 3, douyin: 3, zhihu: 2, toutiao: 1, baijiahao: 1 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const audienceScores = {
-    '年轻人': { xiaohongshu: 4, douyin: 4, zhihu: 2, toutiao: 1, baijiahao: 1, wechat: 1 },
-    '职场人': { zhihu: 4, wechat: 3, xiaohongshu: 2, toutiao: 1, baijiahao: 1, douyin: 1 },
-    '宝妈家庭': { xiaohongshu: 4, douyin: 3, wechat: 2, toutiao: 2, baijiahao: 1, zhihu: 0 },
-    '中老年人': { toutiao: 4, baijiahao: 3, douyin: 2, wechat: 1, xiaohongshu: 0, zhihu: 0 },
-    '专业人士': { zhihu: 4, wechat: 3, baijiahao: 2, xiaohongshu: 1, toutiao: 1, douyin: 0 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-  const identityScores = {
-    '宝妈': { xiaohongshu: 4, douyin: 3, wechat: 2, toutiao: 2, baijiahao: 1, zhihu: 0 },
-    '职场人': { zhihu: 4, wechat: 3, xiaohongshu: 2, toutiao: 1, baijiahao: 1, douyin: 1 },
-    '创业者/老板': { douyin: 4, xiaohongshu: 3, wechat: 3, zhihu: 2, toutiao: 1, baijiahao: 1 },
-    '自由职业': { xiaohongshu: 4, zhihu: 3, douyin: 2, wechat: 2, toutiao: 1, baijiahao: 1 },
-    '学生': { xiaohongshu: 4, douyin: 3, zhihu: 2, toutiao: 1, baijiahao: 1, wechat: 0 },
-    '其他': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 },
-    '不明确': { xiaohongshu: 1, wechat: 1, toutiao: 1, baijiahao: 1, zhihu: 1, douyin: 1 }
-  }
-
-
-  const note = (input.note || '').toLowerCase()
-  if (note.includes('视频') || note.includes('出镜') || note.includes('直播') || note.includes('短')) {
-    scores.douyin += 3
-    scores.xiaohongshu += 2
-  }
-  if (note.includes('长文') || note.includes('专业') || note.includes('深度')) {
-    scores.wechat += 3
-    scores.zhihu += 2
-  }
-  if (note.includes('热点') || note.includes('资讯')) {
-    scores.toutiao += 3
-  }
-  if (note.includes('搜索') || note.includes('百度')) {
-    scores.baijiahao += 3
-  }
-
-  const winner = Object.keys(scores).reduce((a, b) => scores[a] >= scores[b] ? a : b)
-  const platform = platforms.value.find((p) => p.key === winner) || platforms.value[0]
-  const reason = '根据你的内容形式、投入时间和目标，' + platform.name + ' 的匹配度最高：' + platform.reason
-  return { platform, reason }
-}
-
-function addScores(target, source) {
-  if (!source) return
-  for (const key of Object.keys(target)) {
-    if (source[key]) target[key] += source[key]
-  }
+const identityBackgroundMap = {
+  '职场人': '职场/管理',
+  '创业者/老板': '电商/创业',
+  '宝妈': '育儿/教育',
+  '学生': '其他',
+  '自由职业': '其他',
+  '其他': '其他',
+  '不明确': '其他'
 }
 </script>
 

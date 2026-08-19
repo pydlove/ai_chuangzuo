@@ -435,6 +435,7 @@ import {
 } from '@ant-design/icons-vue'
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
+import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 
 const router = useRouter()
 
@@ -482,7 +483,7 @@ function copyInviteCode() {
   })
 }
 
-const plan = {
+const plan = reactive({
   platform: '小红书',
   niche: '35+ 职场转型',
   persona: '实战记录者',
@@ -492,7 +493,29 @@ const plan = {
     { name: '个人故事', percent: 20 },
     { name: '热点解读', percent: 20 }
   ]
+})
+
+async function loadPlan() {
+  try {
+    const data = await fetchCurrentPlan()
+    if (data) {
+      Object.assign(plan, {
+        platform: data.platformName || data.platformKey || '',
+        niche: data.nicheName || '',
+        persona: data.personaName || '',
+        goal: data.goal || '',
+        pillars: Array.isArray(data.pillars) ? data.pillars : []
+      })
+    }
+  } catch (e) {
+    console.warn('加载运营方案失败', e)
+  }
 }
+
+onMounted(() => {
+  todayDone.value = localStorage.getItem(todayKey.value) === '1'
+  loadPlan()
+})
 
 const createFlowVisible = ref(false)
 const createChoiceVisible = ref(false)
