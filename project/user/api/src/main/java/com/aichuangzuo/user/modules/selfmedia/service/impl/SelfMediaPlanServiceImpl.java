@@ -43,7 +43,7 @@ import java.util.stream.StreamSupport;
 @RequiredArgsConstructor
 public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
 
-    private static final String PROMPT_PLATFORM_QUESTIONS = "self_media_platform_questions_v1";
+    private static final String PROMPT_PLATFORM_QUESTIONS = "self_media_platform_questions_v2";
     private static final String PROMPT_PLATFORM_NICHES = "self_media_platform_niches_v1";
     private static final String PROMPT_PLATFORM_PERSONAS = "self_media_platform_personas_v1";
 

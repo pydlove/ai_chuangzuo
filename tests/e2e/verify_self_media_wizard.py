@@ -33,11 +33,12 @@ QUESTIONS = [
     },
     {
         'key': 'time_commitment',
-        'text': '每周能投入多少时间？',
+        'text': '你每天能投入多少时间？',
         'options': [
-            {'key': 'lt_3h', 'label': '3小时以内'},
-            {'key': '3_10h', 'label': '3-10小时'},
-            {'key': 'gt_10h', 'label': '10小时以上'},
+            {'key': 'lt_1h', 'label': '1小时以内'},
+            {'key': '1_2h', 'label': '1-2小时'},
+            {'key': '2_4h', 'label': '2-4小时'},
+            {'key': 'gt_4h', 'label': '4小时以上'},
         ],
         'isRequired': True,
         'sortOrder': 2,
@@ -116,7 +117,7 @@ def seed_test_data(user_id):
             f.write(
                 "INSERT INTO u_self_media_plan_question "
                 "(user_id, platform_key, prompt_code, question_key, question_text, options_json, is_required, sort_order) "
-                f"VALUES ({user_id}, '{TEST_PLATFORM}', 'self_media_platform_questions_v1', "
+                f"VALUES ({user_id}, '{TEST_PLATFORM}', 'self_media_platform_questions_v2', "
                 f"'{q['key']}', '{q['text']}', '{json.dumps(q['options'], ensure_ascii=False)}', "
                 f"{1 if q['isRequired'] else 0}, {q['sortOrder']});\n"
             )
