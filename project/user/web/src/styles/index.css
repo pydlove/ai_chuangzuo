@@ -212,10 +212,18 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   font-weight: 600;
 }
 
-.account-modal .ant-radio-wrapper:hover .ant-radio,
+.account-modal .ant-radio-wrapper:hover .ant-radio-inner,
 .account-modal .ant-radio:hover .ant-radio-inner,
-.account-modal .ant-radio-input:focus + .ant-radio-inner {
+.account-modal .ant-radio-wrapper:hover .ant-radio,
+.account-modal .ant-radio:hover .ant-radio,
+.account-modal .ant-radio-input:focus + .ant-radio-inner,
+.account-modal .ant-radio-wrapper-checked:hover .ant-radio-inner,
+.account-modal .ant-radio-wrapper-checked .ant-radio-inner {
   border-color: var(--color-primary);
+}
+
+.account-modal .ant-radio-input:focus + .ant-radio-inner {
+  box-shadow: 0 0 0 3px var(--color-primary-light);
 }
 
 .account-modal .ant-radio-checked .ant-radio-inner {
@@ -224,6 +232,10 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 
 .account-modal .ant-radio-checked .ant-radio-inner::after {
   background: var(--color-primary);
+}
+
+.account-modal .ant-radio-wrapper .ant-radio-checked::after {
+  border-color: var(--color-primary);
 }
 
 .account-modal .ant-input:hover,
