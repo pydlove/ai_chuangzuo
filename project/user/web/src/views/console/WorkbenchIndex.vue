@@ -1148,7 +1148,6 @@ function selectSuggestion(s) {
 .dialogue-bubble {
   flex: 1;
   min-width: 0;
-  background: var(--color-bg-page);
   border-radius: var(--radius-xl);
   padding: var(--space-md);
   display: flex;
