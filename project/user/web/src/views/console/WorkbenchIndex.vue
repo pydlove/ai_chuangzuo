@@ -560,7 +560,8 @@ import {
   CreditCardOutlined,
   SafetyOutlined,
   TagOutlined,
-  CompassOutlined
+  CompassOutlined,
+  QuestionCircleOutlined
 } from '@ant-design/icons-vue'
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
@@ -775,7 +776,12 @@ const shortcuts = [
   { path: '/console/my-skills', label: '我的提示词', icon: CodeOutlined },
   { path: '/console/account', label: '我的账户', icon: CreditCardOutlined },
   { path: '/console/benefits', label: '我的权益', icon: SafetyOutlined },
-  { path: '/console/coupons', label: '我的优惠券', icon: TagOutlined }
+  { path: '/console/coupons', label: '我的优惠券', icon: TagOutlined },
+  {
+    label: '帮助文档',
+    icon: QuestionCircleOutlined,
+    action: () => window.open('https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink', '_blank')
+  }
 ]
 
 const activities = [
@@ -1649,16 +1655,17 @@ async function recommendAccountName() {
 
 /* 快捷操作 */
 .shortcut-grid {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--space-sm);
 }
 .shortcut-item {
-  display: inline-flex;
+  display: flex;
   flex-direction: row;
   align-items: center;
+  justify-content: center;
   gap: 8px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   background: var(--color-bg-card);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-lg);
