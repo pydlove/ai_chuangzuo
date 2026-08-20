@@ -247,6 +247,14 @@
       @cancel="accountModalVisible = false"
     >
       <div class="account-section">
+        <a-alert
+          v-if="nicknameCheckLimitReached"
+          message="今日账号检测次数已达上限"
+          description="每个账号每天可检测次数有限，请明天再试。"
+          type="warning"
+          show-icon
+          style="margin-bottom: 16px"
+        />
         <div class="account-question">你已经有 {{ hasPlan ? plan.platform : '自媒体' }} 账号了吗？</div>
         <a-radio-group v-model:value="accountInfo.hasAccount" class="account-radio">
           <a-radio :value="true">已有账号</a-radio>
@@ -261,7 +269,7 @@
               type="primary"
               class="validate-btn"
               :loading="checking"
-              :disabled="!accountInfo.name.trim()"
+              :disabled="nicknameCheckLimitReached || !accountInfo.name.trim()"
               @click="validateAccountName"
             >
               检测名称
@@ -335,7 +343,7 @@
               type="primary"
               class="validate-btn"
               :loading="checking"
-              :disabled="!accountInfo.name.trim()"
+              :disabled="nicknameCheckLimitReached || !accountInfo.name.trim()"
               @click="validateAccountName"
             >
               检测名称
@@ -737,12 +745,19 @@ const accountValidation = ref('')
 const accountFit = ref(null)
 const accountReason = ref('')
 const checking = ref(false)
+const nicknameCheckLimitReached = ref(false)
 
 watch(() => accountInfo.name, () => {
   accountValidation.value = ''
   accountFit.value = null
   accountReason.value = ''
 }, { flush: 'sync' })
+
+watch(accountModalVisible, (visible) => {
+  if (visible) {
+    nicknameCheckLimitReached.value = false
+  }
+})
 
 const accountSuggestions = ref([])
 const nicknameRecommend = ref('')
@@ -1054,6 +1069,9 @@ async function doCheckNickname(name) {
       accountValidation.value = '检测完成'
     }
   } catch (err) {
+    if (err?.code === 113008) {
+      nicknameCheckLimitReached.value = true
+    }
     accountValidation.value = err?.message || '检测失败，请重试'
     accountFit.value = false
   } finally {
