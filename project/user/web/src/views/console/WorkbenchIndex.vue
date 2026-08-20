@@ -151,8 +151,7 @@
             </div>
           </template>
           <div v-if="!recentRecords.length" class="generation-empty">
-            <RocketOutlined class="empty-icon" />
-            还没有生成记录，点击「开始今日创作」开始你的第一篇内容
+            <a-empty description="暂无数据" />
           </div>
           <div v-else class="generation-list">
             <div
@@ -558,7 +557,6 @@ import {
   CrownOutlined,
   MailOutlined,
   UserOutlined,
-  RocketOutlined,
   CheckCircleOutlined,
   InfoCircleOutlined,
   FileTextOutlined,
@@ -1770,18 +1768,7 @@ async function recommendAccountName() {
   color: var(--color-primary-hover);
 }
 .generation-empty {
-  padding: 12px 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--color-bg-page);
-  border-radius: var(--radius-lg);
-  color: var(--color-text-secondary);
-  font-size: var(--font-small);
-}
-.empty-icon {
-  font-size: 20px;
-  color: var(--color-primary);
+  padding: 24px 16px;
 }
 .generation-list {
   display: flex;
