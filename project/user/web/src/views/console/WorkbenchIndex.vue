@@ -7,7 +7,12 @@
           <div class="welcome-body">
             <!-- 左侧：对话区域 -->
             <div class="welcome-dialogue">
-              <a-avatar :size="48" class="ai-avatar">AI</a-avatar>
+              <a-avatar
+                :size="48"
+                src="https://foruda.gitee.com/images/1787188720633617816/b28bf15b_8060302.png"
+                alt="AI 顾问"
+                class="ai-avatar"
+              />
               <div class="dialogue-bubble">
                 <div class="dialogue-title">
                   尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱
@@ -1130,16 +1135,15 @@ function selectSuggestion(s) {
   display: flex;
   align-items: flex-start;
   gap: var(--space-sm);
-  flex: 1;
+  flex: 2;
   min-width: 0;
 }
 .ai-avatar {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary-light);
-  font-size: 14px;
-  font-weight: 700;
   flex-shrink: 0;
+  background: transparent;
+}
+.ai-avatar :deep(img) {
+  object-fit: cover;
 }
 .dialogue-bubble {
   flex: 1;
@@ -1231,10 +1235,11 @@ function selectSuggestion(s) {
   font-weight: 600;
 }
 .welcome-balance {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  min-width: 180px;
   padding: 0 var(--space-md);
   gap: 8px;
 }
@@ -1285,12 +1290,14 @@ function selectSuggestion(s) {
 /* 运营方案卡 */
 .plan-card {
   height: 100%;
+  min-height: 0;
 }
 .plan-card :deep(.ant-card-body) {
   padding-top: 8px;
   display: flex;
   flex-direction: column;
   height: calc(100% - 54px);
+  overflow-y: auto;
 }
 .plan-content {
   flex: 1;
