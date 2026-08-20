@@ -256,7 +256,7 @@
         />
         <div class="account-question">你已经有 {{ hasPlan ? plan.platform : '自媒体' }} 账号了吗？</div>
         <a-radio-group v-model:value="accountInfo.hasAccount" class="account-radio">
-          <a-radio :value="true">已有账号</a-radio>
+          <a-radio :value="true">已有账号或者想好了账号</a-radio>
           <a-radio :value="false">还没有</a-radio>
         </a-radio-group>
 
