@@ -36,7 +36,11 @@ public class PlatformAccountCheckController {
         String platform = StringUtils.defaultIfBlank(request.getPlatform(),
                 plan == null ? "" : StringUtils.defaultString(plan.getPlatformName(), plan.getPlatformKey()));
         String positioning = StringUtils.defaultIfBlank(request.getPositioning(), buildPositioning(plan));
+        log.info("平台账号名称检测, userId={}, nickname={}, platform={}, hasPlan={}",
+                userId, request.getNickname(), platform, plan != null);
         NicknameCheckVO vo = nicknameCheckAiService.checkNickname(platform, positioning, request.getNickname());
+        log.info("平台账号名称检测完成, userId={}, nickname={}, fit={}, reason={}",
+                userId, request.getNickname(), vo.getFit(), StringUtils.abbreviate(vo.getReason(), 100));
         return Result.success(vo);
     }
 

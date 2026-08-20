@@ -247,7 +247,7 @@
       @cancel="accountModalVisible = false"
     >
       <div class="account-section">
-        <div class="account-question">你已经有 {{ plan.platform }} 账号了吗？</div>
+        <div class="account-question">你已经有 {{ hasPlan ? plan.platform : '自媒体' }} 账号了吗？</div>
         <a-radio-group v-model:value="accountInfo.hasAccount" class="account-radio">
           <a-radio :value="true">已有账号</a-radio>
           <a-radio :value="false">还没有</a-radio>
@@ -298,12 +298,16 @@
         </div>
 
         <div v-else class="register-guide">
-          <div class="guide-title">注册 {{ plan.platform }} 账号建议</div>
+          <div class="guide-title">注册 {{ hasPlan ? plan.platform : '自媒体' }} 账号建议</div>
           <div class="guide-list">
-            <div class="guide-item">下载 {{ plan.platform }} App 或访问官网注册</div>
+            <div class="guide-item">下载 {{ hasPlan ? plan.platform : '对应平台' }} App 或访问官网注册</div>
             <div class="guide-item">昵称包含赛道关键词，如「35+职场转型」</div>
             <div class="guide-item">简介说明价值，如「分享真实职场转型经验」</div>
             <div class="guide-item">头像使用真人或统一风格，提高信任感</div>
+          </div>
+          <div class="guide-doc-link">
+            注册前可以查阅：
+            <a href="https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink" target="_blank" rel="noopener noreferrer">爱创作新手教程</a>
           </div>
           <div class="form-row register-check-row">
             <span class="form-label">想好的昵称</span>
@@ -973,6 +977,12 @@ function statusText(status) {
 }
 
 function validateAccountName() {
+  if (!hasPlan.value) {
+    message.info('请先制定自媒体运营方案，再检测账号名称')
+    accountModalVisible.value = false
+    router.push('/console/onboarding')
+    return
+  }
   const name = accountInfo.name.trim()
   if (!name) {
     accountValidation.value = '请输入账号名称'
@@ -2313,6 +2323,32 @@ function selectSuggestion(s) {
   font-weight: 600;
 }
 
+.account-modal :deep(.ant-radio-wrapper:hover .ant-radio),
+.account-modal :deep(.ant-radio:hover .ant-radio-inner),
+.account-modal :deep(.ant-radio-input:focus + .ant-radio-inner) {
+  border-color: var(--color-primary);
+}
+
+.account-modal :deep(.ant-radio-checked .ant-radio-inner) {
+  border-color: var(--color-primary);
+}
+
+.account-modal :deep(.ant-radio-checked .ant-radio-inner::after) {
+  background: var(--color-primary);
+}
+
+.account-modal :deep(.ant-input:hover),
+.account-modal :deep(.ant-input:focus),
+.account-modal :deep(.ant-input-affix-wrapper:hover),
+.account-modal :deep(.ant-input-affix-wrapper-focused) {
+  border-color: var(--color-primary);
+}
+
+.account-modal :deep(.ant-input:focus),
+.account-modal :deep(.ant-input-affix-wrapper-focused) {
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
 .account-modal :deep(.ant-btn-primary) {
   background: var(--color-primary);
   border-color: var(--color-primary);
@@ -2333,6 +2369,21 @@ function selectSuggestion(s) {
   background: #f5f5f5;
   border-color: #d9d9d9;
   color: #bfbfbf;
+}
+
+.guide-doc-link {
+  margin-top: var(--space-sm);
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+}
+
+.guide-doc-link a {
+  color: var(--color-info, #1989fa);
+  text-decoration: underline;
+}
+
+.guide-doc-link a:hover {
+  color: #1478d2;
 }
 
 .validation-result {
