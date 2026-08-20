@@ -570,6 +570,7 @@ import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
+import { listGenerationTasks } from '@/api/generation.js'
 
 const router = useRouter()
 
@@ -689,6 +690,7 @@ function dismissPlanModal() {
 onMounted(() => {
   todayDone.value = localStorage.getItem(todayKey.value) === '1'
   loadWelcomeData()
+  loadGenerationRecords()
   loadPlan().then(() => {
     if (!hasPlan.value && !localStorage.getItem(SELF_MEDIA_PLAN_MODAL_KEY)) {
       planModalVisible.value = true
@@ -829,75 +831,44 @@ const activities = [
   }
 ]
 
-const generationRecords = reactive([
-  {
-    id: 1,
-    title: '35+转型：如何从焦虑走向行动',
-    platform: '小红书',
-    status: 'completed',
-    progress: 100,
-    createdAt: '08-17 09:30',
-    createdAtTimestamp: Date.now() - 2 * 24 * 60 * 60 * 1000,
-    selectedTopic: { title: '35+转型：如何从焦虑走向行动' }
-  },
-  {
-    id: 2,
-    title: 'Remote 工作第一年，我踩过的 5 个坑',
-    platform: '小红书',
-    status: 'generating',
-    progress: 42,
-    createdAt: '08-17 10:15',
-    createdAtTimestamp: Date.now() - 24 * 60 * 60 * 1000,
-  },
-  {
-    id: 3,
-    title: '中年转型，别让年龄定义你的可能性',
-    platform: '小红书',
-    status: 'failed',
-    progress: 0,
-    createdAt: '08-17 11:02',
-    createdAtTimestamp: Date.now(),
-  },
-  {
-    id: 4,
-    title: '副业起步：下班后 2 小时能做些什么',
-    platform: '今日头条',
-    status: 'completed',
-    progress: 100,
-    createdAt: '08-16 14:20',
-    createdAtTimestamp: Date.now() - 3 * 24 * 60 * 60 * 1000,
-    selectedTopic: { title: '副业起步：下班后 2 小时能做些什么' }
-  },
-  {
-    id: 5,
-    title: '35+ 职场人如何建立个人品牌',
-    platform: '百家号',
-    status: 'completed',
-    progress: 100,
-    createdAt: '08-15 20:10',
-    createdAtTimestamp: Date.now() - 4 * 24 * 60 * 60 * 1000,
-    selectedTopic: { title: '35+ 职场人如何建立个人品牌' }
-  },
-  {
-    id: 6,
-    title: '远程办公第三年，我的效率工具清单',
-    platform: '知乎',
-    status: 'completed',
-    progress: 100,
-    createdAt: '08-14 08:45',
-    createdAtTimestamp: Date.now() - 5 * 24 * 60 * 60 * 1000,
-    selectedTopic: { title: '远程办公第三年，我的效率工具清单' }
-  },
-  {
-    id: 7,
-    title: '中年转行，我为什么会选择内容创作',
-    platform: '微信公众号',
-    status: 'pending',
-    progress: 0,
-    createdAt: '08-13 16:30',
-    createdAtTimestamp: Date.now() - 6 * 24 * 60 * 60 * 1000,
+const generationRecords = reactive([])
+
+const statusCodeMap = {
+  0: 'pending',
+  1: 'generating',
+  2: 'completed',
+  3: 'failed'
+}
+
+async function loadGenerationRecords() {
+  try {
+    const res = await listGenerationTasks({ page: 1, pageSize: 20 })
+    const list = res?.list || []
+    generationRecords.length = 0
+    list.forEach(item => {
+      const ts = item.createdAt ? new Date(item.createdAt).getTime() : Date.now()
+      generationRecords.push({
+        id: item.id,
+        bizNo: item.bizNo,
+        title: item.title || '未命名创作',
+        platform: item.inputParam?.platform || '',
+        status: statusCodeMap[item.status] || 'generating',
+        progress: item.progressPct || 0,
+        createdAt: item.createdAt
+          ? new Date(item.createdAt).toLocaleString('zh-CN', {
+              month: 'numeric',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            }).replace(/\//g, '-')
+          : '',
+        createdAtTimestamp: ts
+      })
+    })
+  } catch (e) {
+    console.warn('加载生成记录失败', e)
   }
-])
+}
 
 const recentRecords = computed(() => {
   const oneWeek = 7 * 24 * 60 * 60 * 1000
