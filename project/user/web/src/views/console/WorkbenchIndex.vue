@@ -67,7 +67,7 @@
         <div class="create-section">
           <a-button type="primary" size="large" class="create-main-btn" @click="openCreateChoice">
             <EditOutlined />
-            开始今日创作
+            开始今日创作{{ quotaText }}
           </a-button>
           <a-button size="large" class="weekly-data-btn" @click="weeklyDataVisible = true">
             <BarChartOutlined />
@@ -76,7 +76,20 @@
         </div>
       </div>
 
-      <a-card class="wb-card plan-card" :bordered="false" title="运营方案">
+      <a-card class="wb-card plan-card" :bordered="false">
+        <template #title>
+          <span>运营方案</span>
+        </template>
+        <template #extra>
+          <a-button
+            v-if="hasPlan"
+            size="small"
+            class="plan-btn"
+            @click="openAdjustPlanConfirm"
+          >
+            调整方案
+          </a-button>
+        </template>
         <div v-if="hasPlan" class="plan-content">
           <div class="plan-grid">
             <div class="plan-row">
@@ -97,11 +110,6 @@
             <div class="plan-pillar-tags">
               <a-tag v-for="p in plan.pillars" :key="p.name" size="small">{{ p.name }} {{ p.percent }}%</a-tag>
             </div>
-          </div>
-          <div class="plan-actions">
-            <a-button size="small" class="plan-btn" @click="router.push('/console/onboarding')">
-              调整方案
-            </a-button>
           </div>
         </div>
         <div v-else class="plan-empty">
@@ -191,7 +199,7 @@
               @click="router.push(item.path)"
             >
               <div class="activity-icon" :class="item.iconClass">
-                <img :src="item.img" class="activity-icon-img" alt="" />
+                <component :is="item.icon" class="activity-icon-svg" />
               </div>
               <div class="activity-info">
                 <div class="activity-name">{{ item.label }}</div>
@@ -213,26 +221,42 @@
       class="publish-modal"
       @cancel="publishModalVisible = false"
     >
-      <div v-if="currentPublishRecord" class="publish-guide">
-        <div class="publish-guide-section">
-          <div class="publish-guide-label">建议发布时间</div>
-          <div class="publish-guide-value">{{ publishTimeText }}</div>
-          <div class="publish-guide-desc">基于你的主攻平台「{{ currentPublishRecord.platform }}」的流量高峰和账号冷启动效率推荐</div>
-        </div>
-        <div class="publish-guide-section">
-          <div class="publish-guide-label">一文多发方案</div>
-          <div class="publish-guide-platforms">
-            <div v-for="p in publishPlatforms" :key="p.platform" class="publish-guide-platform-item">
-              <div class="publish-guide-platform-name">{{ p.platform }}</div>
-              <div class="publish-guide-platform-method">{{ p.method }}</div>
+      <div class="publish-plan-spin">
+        <a-spin :spinning="publishPlanLoading" tip="小爱正在为您准备发布建议...">
+          <template v-if="!hasPlan">
+            <a-empty description="请先制定自媒体运营方案，再生成发布计划">
+              <a-button type="primary" @click="router.push('/console/onboarding')">去制定方案</a-button>
+            </a-empty>
+          </template>
+          <template v-else-if="publishPlan">
+            <div class="publish-guide-section">
+              <div class="publish-guide-label">建议发布时间</div>
+              <div class="publish-guide-value">{{ publishPlan.mainPlatform?.publishTime || '-' }}</div>
+              <div class="publish-guide-desc">
+                主攻平台「{{ publishPlan.mainPlatform?.platform || currentPublishRecord?.platform || plan.platform }}」：{{ publishPlan.mainPlatform?.reason || '基于流量高峰和账号冷启动效率推荐' }}
+              </div>
             </div>
-          </div>
-        </div>
-        <div class="publish-guide-section">
-          <div class="publish-guide-label">发送方式</div>
-          <div class="publish-guide-value">{{ sendMethod.method }}</div>
-          <a :href="sendMethod.docLink" target="_blank" class="publish-guide-doc-link">{{ sendMethod.docText }}</a>
-        </div>
+            <div class="publish-guide-section">
+              <div class="publish-guide-label">冷启动策略</div>
+              <div class="publish-guide-coldstart-duration">{{ publishPlan.coldStart?.duration || '发布后 30 分钟内' }}</div>
+              <ul class="publish-guide-coldstart-list">
+                <li v-for="(action, idx) in publishPlan.coldStart?.immediateActions" :key="idx">{{ action }}</li>
+                <li v-if="!publishPlan.coldStart?.immediateActions?.length">发布后立即点赞、收藏并阅读一遍</li>
+              </ul>
+              <div v-if="publishPlan.coldStart?.sharingTips" class="publish-guide-coldstart-share">
+                💡 {{ publishPlan.coldStart.sharingTips }}
+              </div>
+            </div>
+            <div class="publish-guide-section">
+              <div class="publish-guide-label">发送方式</div>
+              <div class="publish-guide-value">{{ sendMethod.method }}</div>
+              <a :href="sendMethod.docLink" target="_blank" class="publish-guide-doc-link">{{ sendMethod.docText }}</a>
+            </div>
+          </template>
+          <template v-else>
+            <a-empty description="暂无发布计划" />
+          </template>
+        </a-spin>
       </div>
     </a-modal>
 
@@ -338,65 +362,21 @@
               推荐昵称
             </a-button>
           </div>
-          <div v-if="recommendOptions.length" class="recommend-options">
-            <div class="recommend-options-label">AI 推荐昵称（点击选择）：</div>
-            <div class="recommend-options-list">
+          <div v-if="recommendOptions.length" class="suggestion-list">
+            <div class="suggestion-label">小爱推荐昵称</div>
+            <div class="suggestion-cards">
               <div
                 v-for="(opt, idx) in recommendOptions"
                 :key="idx"
-                class="recommend-option-card"
-                @click="selectRecommendOption(opt)"
-              >
-                <div class="recommend-option-nickname">{{ opt.nickname }}</div>
-                <div class="recommend-option-bio">{{ opt.bio }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="form-row register-check-row">
-            <span class="form-label">想好的昵称</span>
-            <a-input v-model:value="accountInfo.name" placeholder="输入你想好的昵称，AI 会先帮你检测" />
-            <a-button
-              type="primary"
-              class="validate-btn"
-              :loading="checking"
-              :disabled="nicknameCheckLimitReached || !accountInfo.name.trim()"
-              @click="validateAccountName"
-            >
-              检测名称
-            </a-button>
-          </div>
-          <div
-            v-if="accountValidation"
-            class="validation-result"
-            :class="{ fit: accountFit === true, unfit: accountFit === false }"
-          >
-            <template v-if="accountFit === true">
-              <CheckCircleOutlined class="result-icon" /> {{ accountValidation }}
-            </template>
-            <template v-else-if="accountFit === false">
-              <InfoCircleOutlined class="result-icon" /> {{ accountValidation }}
-            </template>
-            <template v-else>
-              {{ accountValidation }}
-            </template>
-          </div>
-          <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
-          <div v-if="accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">小爱建议昵称</div>
-            <div class="suggestion-cards">
-              <div
-                v-for="(s, idx) in accountSuggestions"
-                :key="idx"
                 class="suggestion-card"
-                @click="selectSuggestion(s)"
               >
                 <div class="suggestion-card-row">
-                  <div class="suggestion-card-nickname">{{ s.nickname }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(s.nickname)">复制昵称</span>
+                  <div class="suggestion-card-nickname">{{ opt.nickname }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(opt.nickname)">复制昵称</span>
                 </div>
                 <div class="suggestion-card-row">
-                  <div class="suggestion-card-bio">{{ s.bio }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(s.bio)">复制描述</span>
+                  <div class="suggestion-card-bio">{{ opt.bio }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(opt.bio)">复制描述</span>
                 </div>
               </div>
             </div>
@@ -415,7 +395,7 @@
       @cancel="weeklyDataVisible = false"
     >
       <div class="weekly-data-summary">
-        本周共发布 <strong>{{ weeklyArticles.length }}</strong> 篇，总阅读量 <strong>{{ totalWeeklyReads }}</strong>
+        本周共发布 <strong>{{ validWeeklyArticles.length }}</strong> 篇，总阅读量 <strong>{{ totalWeeklyReads }}</strong>
       </div>
       <div class="weekly-data-list">
         <div
@@ -423,12 +403,25 @@
           :key="index"
           class="weekly-data-item"
         >
-          <a-input v-model:value="item.title" placeholder="文章标题" class="weekly-data-title" />
+          <a-input v-model:value="item.title" placeholder="文章标题" class="weekly-data-title" :maxlength="256" show-count />
           <a-input-number v-model:value="item.reads" placeholder="阅读量" :min="0" class="weekly-data-reads" />
+          <a-button
+            v-if="weeklyArticles.length > 1"
+            type="text"
+            danger
+            class="weekly-data-remove"
+            @click="removeWeeklyArticle(index)"
+          >
+            <DeleteOutlined />
+          </a-button>
         </div>
       </div>
       <div class="weekly-data-actions">
-        <a-button type="primary" @click="saveWeeklyData">保存</a-button>
+        <a-button type="dashed" @click="addWeeklyArticle">
+          <PlusOutlined />
+          添加文章
+        </a-button>
+        <a-button type="primary" :loading="weeklyLoading" @click="saveWeeklyData">保存</a-button>
       </div>
     </a-modal>
 
@@ -455,17 +448,24 @@
           <span class="withdraw-percent">{{ balancePercent }}%</span>
         </div>
         <div class="withdraw-status">
-          还差 <strong>{{ coinsToWithdraw }}</strong> 创作币，完成下方任务即可提现
+          <template v-if="balancePercent >= 100">
+            已达到提现门槛，<a class="withdraw-go-link" @click="goToWithdrawPage">去提现</a>
+          </template>
+          <template v-else>
+            还差 <strong>{{ coinsToWithdraw }}</strong> 创作币，完成下方任务即可提现
+          </template>
         </div>
       </div>
-      <div class="withdraw-plan">
+      <div v-if="balancePercent < 100" class="withdraw-plan">
         <div class="withdraw-plan-title">快速达标方案</div>
         <div
           v-for="task in withdrawTasks"
           :key="task.label"
           class="withdraw-plan-item"
         >
-          <div class="withdraw-plan-icon">{{ task.icon }}</div>
+          <div class="withdraw-plan-icon" :class="task.iconClass">
+            <component :is="task.icon" class="withdraw-plan-icon-svg" />
+          </div>
           <div class="withdraw-plan-info">
             <div class="withdraw-plan-label">{{ task.label }}</div>
             <div class="withdraw-plan-reward">+{{ task.reward }} 创作币</div>
@@ -477,7 +477,7 @@
       </div>
 
       <div class="withdraw-marquee">
-        <div class="withdraw-marquee-title">🎉 实时提现成功</div>
+        <div class="withdraw-marquee-title">🎉 🎉 🎉 实时提现成功</div>
         <div class="withdraw-marquee-wrap">
           <div class="withdraw-marquee-list">
             <div
@@ -486,7 +486,7 @@
               class="withdraw-marquee-item"
             >
               <span class="marquee-name">{{ item.name }}</span>
-              <span>刚刚提现</span>
+              <span>提现</span>
               <span class="marquee-amount">{{ item.amount }} 元</span>
               <span class="marquee-status">成功</span>
             </div>
@@ -495,7 +495,7 @@
       </div>
     </a-modal>
 
-    <CreateFlowModal v-model:visible="createFlowVisible" :plan="plan" @start="onCreateStart" />
+    <CreateFlowModal v-model:visible="createFlowVisible" :plan="plan" @success="onCreateStart" />
     <FreeCreateModal v-model:visible="freeCreateVisible" :plan="plan" @success="onFreeCreateSuccess" />
 
     <!-- 创作方式选择弹窗 -->
@@ -514,10 +514,10 @@
             <div class="choice-icon-wrap">
               <CompassOutlined class="choice-icon" />
             </div>
-            <div class="choice-title">按爱创作推荐方式创作</div>
-            <div class="choice-desc">基于你的运营方案，AI 推荐选题、观点、字数、提示词和模板，适合想要灵感的人。</div>
+            <div class="choice-title">按小爱推荐的方式创作</div>
+            <div class="choice-desc">小爱针对你的运营方案，推荐选题、观点、字数等进行创作。</div>
             <div class="choice-tags">
-              <span class="choice-tag">AI 推荐选题</span>
+              <span class="choice-tag">小爱推荐选题</span>
               <span class="choice-tag">低粉高赞案例</span>
             </div>
           </div>
@@ -557,6 +557,24 @@
         </div>
       </div>
     </a-modal>
+    <!-- 调整方案确认弹框 -->
+    <a-modal
+      v-model:open="adjustPlanConfirmVisible"
+      title="提示"
+      width="420px"
+      :footer="null"
+      centered
+      class="adjust-plan-confirm-modal"
+      @cancel="adjustPlanConfirmVisible = false"
+    >
+      <div class="adjust-plan-confirm-body">
+        老师，做自媒体最重要的是坚持，频繁修改运营方案会影响您的账号定位和流量，是否继续调整？
+      </div>
+      <div class="adjust-plan-confirm-footer">
+        <a-button type="primary" class="continue-btn" @click="confirmAdjustPlan">继续</a-button>
+        <a-button @click="adjustPlanConfirmVisible = false">取消</a-button>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -574,6 +592,7 @@ import {
   FileTextOutlined,
   ShopOutlined,
   FireOutlined,
+  GiftOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
   BarChartOutlined,
@@ -584,17 +603,23 @@ import {
   CreditCardOutlined,
   SafetyOutlined,
   TagOutlined,
+  TeamOutlined,
   CompassOutlined,
-  QuestionCircleOutlined
+  QuestionCircleOutlined,
+  PlusOutlined,
+  DeleteOutlined
 } from '@ant-design/icons-vue'
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
-import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
+import { fetchCurrentPlan, generatePublishPlan } from '@/api/selfMediaPlan.js'
 import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
 import { listGenerationTasks } from '@/api/generation.js'
+import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
+import { useWithdraw } from '@/composables/useWithdraw.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 
 const router = useRouter()
 
@@ -608,7 +633,28 @@ const userInfo = reactive({
 
 const balance = reactive({
   coin: 120,
-  withdrawThreshold: 200
+  withdrawThreshold: 1000
+})
+
+const { withdrawRecords: rawWithdrawRecords, loadWithdrawals } = useWithdraw()
+const { benefits, loadBenefits } = useBenefits()
+
+const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
+const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
+const quotaText = computed(() => {
+  if (quotaTotal.value === 0) return ''
+  return `（剩余 ${quotaRemaining.value} 次）`
+})
+
+const withdrawRecords = computed(() => {
+  return rawWithdrawRecords.value
+    .filter((r) => r.status === 'approved')
+    .map((r) => ({
+      id: r.id,
+      name: r.nickname || r.name || '用户',
+      amount: Number((r.amount / 10).toFixed(2))
+    }))
+    .sort((a, b) => b.id.localeCompare(a.id))
 })
 
 const balancePercent = computed(() => {
@@ -706,6 +752,15 @@ function goToPlan() {
   router.push('/console/onboarding')
 }
 
+function openAdjustPlanConfirm() {
+  adjustPlanConfirmVisible.value = true
+}
+
+function confirmAdjustPlan() {
+  adjustPlanConfirmVisible.value = false
+  router.push('/console/onboarding?reset=1')
+}
+
 function dismissPlanModal() {
   planModalVisible.value = false
   localStorage.setItem(SELF_MEDIA_PLAN_MODAL_KEY, '1')
@@ -713,8 +768,10 @@ function dismissPlanModal() {
 
 onMounted(() => {
   todayDone.value = localStorage.getItem(todayKey.value) === '1'
+  loadBenefits()
   loadWelcomeData()
   loadGenerationRecords()
+  loadWithdrawals()
   loadPlan().then(() => {
     if (!hasPlan.value && !localStorage.getItem(SELF_MEDIA_PLAN_MODAL_KEY)) {
       planModalVisible.value = true
@@ -727,21 +784,14 @@ const createChoiceVisible = ref(false)
 const freeCreateVisible = ref(false)
 const accountModalVisible = ref(false)
 const weeklyDataVisible = ref(false)
+const weeklyLoading = ref(false)
 const withdrawModalVisible = ref(false)
+const adjustPlanConfirmVisible = ref(false)
 
 const withdrawTasks = [
-  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', icon: '📝' },
-  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', icon: '💡' },
-  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', icon: '🎁' }
-]
-
-const withdrawRecords = [
-  { id: 1, name: '创作者小张', amount: 50 },
-  { id: 2, name: '创作者小李', amount: 100 },
-  { id: 3, name: '创作者阿伟', amount: 80 },
-  { id: 4, name: '创作者王姐', amount: 200 },
-  { id: 5, name: '创作者小赵', amount: 150 },
-  { id: 6, name: '创作者陈哥', amount: 60 }
+  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', icon: ShopOutlined, iconClass: 'commission' },
+  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', icon: BulbOutlined, iconClass: 'skill' },
+  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', icon: TeamOutlined, iconClass: 'invite' }
 ]
 
 function goWithdrawTask(path) {
@@ -749,18 +799,73 @@ function goWithdrawTask(path) {
   router.push(path)
 }
 
-const weeklyArticles = reactive([
-  { title: '35+转型：如何从焦虑走向行动', reads: 1200 },
-  { title: 'Remote 工作第一年，我踩过的 5 个坑', reads: 800 }
-])
+function goToWithdrawPage() {
+  withdrawModalVisible.value = false
+  router.push('/console/coin?from=workbench')
+}
+
+const weeklyArticles = reactive([])
+
+const validWeeklyArticles = computed(() =>
+  weeklyArticles.filter(item => (item.title || '').trim())
+)
 
 const totalWeeklyReads = computed(() => {
-  return weeklyArticles.reduce((sum, item) => sum + (Number(item.reads) || 0), 0)
+  return validWeeklyArticles.value.reduce((sum, item) => sum + (Number(item.reads) || 0), 0)
 })
 
-function saveWeeklyData() {
-  message.success('本周数据已保存')
-  weeklyDataVisible.value = false
+function addWeeklyArticle() {
+  weeklyArticles.push({ title: '', reads: 0 })
+}
+
+function removeWeeklyArticle(index) {
+  weeklyArticles.splice(index, 1)
+  if (weeklyArticles.length === 0) {
+    addWeeklyArticle()
+  }
+}
+
+async function loadWeeklyArticles() {
+  weeklyLoading.value = true
+  try {
+    const res = await getWeeklyArticles()
+    const list = res?.data || []
+    weeklyArticles.splice(0, weeklyArticles.length,
+      ...list.map(item => ({ title: item.title || '', reads: item.reads ?? 0 })))
+    if (weeklyArticles.length === 0) {
+      addWeeklyArticle()
+    }
+  } catch (err) {
+    message.error(err?.message || '加载本周数据失败')
+  } finally {
+    weeklyLoading.value = false
+  }
+}
+
+watch(weeklyDataVisible, (visible) => {
+  if (visible) {
+    loadWeeklyArticles()
+  }
+})
+
+async function saveWeeklyData() {
+  const payload = weeklyArticles
+    .map(item => ({ title: (item.title || '').trim(), reads: Number(item.reads) || 0 }))
+    .filter(item => item.title)
+  if (!payload.length) {
+    message.warning('请至少填写一篇文章标题')
+    return
+  }
+  weeklyLoading.value = true
+  try {
+    await saveWeeklyArticles({ articles: payload })
+    message.success('本周数据已保存')
+    weeklyDataVisible.value = false
+  } catch (err) {
+    message.error(err?.message || '保存失败')
+  } finally {
+    weeklyLoading.value = false
+  }
 }
 
 const accountInfo = reactive({
@@ -804,8 +909,8 @@ const shortcuts = [
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
   { path: '/console/learn', label: '创作学院', icon: BookOutlined },
   { path: '/console/works', label: '我的作品', icon: FileTextOutlined },
-  { path: '/console/my-skills', label: '我的提示词', icon: CodeOutlined },
-  { path: '/console/account', label: '我的账户', icon: CreditCardOutlined },
+  { path: '/console/skills', label: '我的提示词', icon: CodeOutlined },
+  { path: '/console/earnings', label: '我的账户', icon: CreditCardOutlined },
   { path: '/console/benefits', label: '我的权益', icon: SafetyOutlined },
   { path: '/console/coupons', label: '我的优惠券', icon: TagOutlined },
   {
@@ -820,42 +925,42 @@ const activities = [
     label: '幸运抽奖',
     desc: '每日免费抽奖，创作币、会员时长、限定模板等好礼送不停',
     path: '/console/lottery',
-    img: 'https://foruda.gitee.com/images/1787037155495964487/ad31b97f_8060302.jpg',
+    icon: GiftOutlined,
     iconClass: 'lottery'
   },
   {
     label: '约稿任务',
     desc: '精选品牌与创作者对接，完成任务即可获得丰厚创作币奖励',
     path: '/console/commission',
-    img: 'https://foruda.gitee.com/images/1787037155375766510/8e8ea74b_8060302.jpg',
+    icon: ShopOutlined,
     iconClass: 'commission'
   },
   {
     label: '提示词市场',
     desc: '上传原创提示词，被他人使用即可持续获得收益分成',
     path: '/console/skill-market',
-    img: 'https://foruda.gitee.com/images/1787037155374404643/8e3df6d3_8060302.jpg',
+    icon: BulbOutlined,
     iconClass: 'skill'
   },
   {
     label: '邀请有礼',
     desc: '邀请好友加入，双方均可获得创作币与会员权益奖励',
     path: '/console/invite',
-    img: 'https://foruda.gitee.com/images/1787037155601899174/e2d0ea7e_8060302.jpg',
+    icon: TeamOutlined,
     iconClass: 'invite'
   },
   {
     label: '收益排行榜',
     desc: '实时查看平台创作者收益榜单，学习头部创作者的变现路径',
     path: '/console/leaderboard',
-    img: 'https://foruda.gitee.com/images/1787037155488319561/776ff162_8060302.jpg',
+    icon: TrophyOutlined,
     iconClass: 'rank'
   },
   {
     label: '创作学院',
     desc: '从选题、标题到爆款结构，系统化课程帮你快速提升创作能力',
     path: '/console/learn',
-    img: 'https://foruda.gitee.com/images/1787037155375260626/2a681493_8060302.jpg',
+    icon: BookOutlined,
     iconClass: 'learn'
   }
 ]
@@ -910,37 +1015,33 @@ const recentRecords = computed(() => {
 
 const publishModalVisible = ref(false)
 const currentPublishRecord = ref(null)
-
-const publishTimeText = computed(() => {
-  const hour = new Date().getHours()
-  if (hour < 11) return '今晚 20:00'
-  if (hour < 17) return '今晚 21:00'
-  return '明天 08:00'
-})
-
-const publishPlatforms = computed(() => {
-  if (!currentPublishRecord.value) return []
-  const main = currentPublishRecord.value.platform
-  const all = [
-    { platform: '微信公众号', method: '作为首发生态发布，正文保留完整论述，标题用主标题，引导读者关注后阅读全文。' },
-    { platform: '小红书', method: '截取文章前 3 段核心观点，配图 3-6 张，标题改为短句+emoji，正文加话题标签。' },
-    { platform: '今日头条', method: '同步标题+正文，封面选文中高冲突段落截图，导语强调利益点，提升点击率。' },
-    { platform: '百家号', method: '拆成 3 个小标题版本发布，强调搜索关键词覆盖，增加被搜索到的概率。' },
-    { platform: '知乎', method: '把文章改成问答体，开头直接回应一个相关问题，增强专业感和互动。' },
-    { platform: '抖音', method: '提取 3 个金句做口播脚本，配合文中截图做视频，引导回公众号看全文。' }
-  ]
-  const mainItems = all.filter(p => p.platform === main)
-  const otherItems = all.filter(p => p.platform !== main)
-  return mainItems.concat(otherItems).slice(0, 4)
-})
+const publishPlan = ref(null)
+const publishPlanLoading = ref(false)
 
 const sendMethod = computed(() => {
   return {
-    method: '手动复制到各平台发布（自动发布功能开发中）',
-    docLink: '/docs/manual-publish',
+    method: '手动复制到各平台发布',
+    docLink: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink',
     docText: '查看《手动发布操作文档》'
   }
 })
+
+async function loadPublishPlan(record) {
+  publishPlan.value = null
+  if (!hasPlan.value) return
+  const title = record?.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
+  const mainPlatform = record?.platform || plan.platform
+  if (!title || !mainPlatform) return
+  publishPlanLoading.value = true
+  try {
+    const res = await generatePublishPlan({ articleTitle: title, mainPlatform })
+    publishPlan.value = res?.data || null
+  } catch (err) {
+    message.error(err?.message || '生成发布计划失败，请重试')
+  } finally {
+    publishPlanLoading.value = false
+  }
+}
 
 function openCreateChoice() {
   createChoiceVisible.value = true
@@ -956,60 +1057,33 @@ function chooseFreeCreate() {
   freeCreateVisible.value = true
 }
 
-function onCreateStart(payload) {
+function onCreateStart(task) {
   setTodayDone()
-  createGenerationRecord(payload)
+  loadGenerationRecords()
+  if (task?.id) {
+    message.success('文章生成任务已创建')
+  }
 }
 
 function onFreeCreateSuccess(task) {
   setTodayDone()
-  createGenerationRecord({
-    title: task?.title || '自由创作内容',
-    platform: plan.platform,
-    status: 'generating',
-    progress: 0,
-    selectedTopic: { title: task?.title || '自由创作内容' }
-  })
-}
-
-function createGenerationRecord(payload) {
-  const record = {
-    id: Date.now(),
-    title: payload.selectedTopic?.title || '今日创作内容',
-    platform: plan.platform,
-    status: 'generating',
-    progress: 0,
-    createdAt: new Date().toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-    createdAtTimestamp: Date.now(),
-    ...payload
+  loadGenerationRecords()
+  if (task?.id) {
+    message.success('文章生成任务已创建')
   }
-  generationRecords.unshift(record)
-  simulateGeneration(record)
-}
-
-function simulateGeneration(record) {
-  let p = 0
-  const timer = setInterval(() => {
-    p += Math.floor(Math.random() * 12) + 8
-    if (p >= 100) {
-      p = 100
-      clearInterval(timer)
-      record.status = 'completed'
-      record.progress = 100
-      message.success('文章生成完成，可点击查看或发布建议')
-    }
-    record.progress = p
-  }, 400)
 }
 
 function openPublishGuide(record) {
   currentPublishRecord.value = record
+  loadPublishPlan(record)
   publishModalVisible.value = true
 }
 
 function openHowToPublish() {
   const completed = recentRecords.value.find(r => r.status === 'completed')
-  currentPublishRecord.value = completed || recentRecords.value[0] || null
+  const record = completed || recentRecords.value[0] || null
+  currentPublishRecord.value = record
+  loadPublishPlan(record)
   publishModalVisible.value = true
 }
 
@@ -1107,13 +1181,6 @@ async function copyText(text) {
     document.body.removeChild(input)
     message.success('已复制')
   }
-}
-
-function selectRecommendOption(opt) {
-  accountInfo.name = opt.nickname
-  accountValidation.value = ''
-  accountFit.value = null
-  accountReason.value = ''
 }
 
 function saveLastCheckResult() {
@@ -1285,12 +1352,13 @@ async function recommendAccountName() {
   display: flex;
   align-items: flex-start;
   gap: var(--space-sm);
-  flex: 2;
+  flex: 5;
   min-width: 0;
 }
 .ai-avatar {
   flex-shrink: 0;
   background: transparent;
+  margin-top: 18px;
 }
 .ai-avatar :deep(img) {
   object-fit: cover;
@@ -1316,7 +1384,7 @@ async function recommendAccountName() {
   line-height: 1.5;
 }
 .welcome-info {
-  flex: 1;
+  flex: 3.5;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1392,7 +1460,7 @@ async function recommendAccountName() {
   color: #1478d2;
 }
 .welcome-balance {
-  flex: 1;
+  flex: 1.5;
   min-width: 0;
   display: flex;
   flex-direction: column;
@@ -1505,12 +1573,6 @@ async function recommendAccountName() {
   border-color: var(--color-primary-light);
   color: var(--color-primary);
 }
-.plan-actions {
-  display: flex;
-  gap: var(--space-sm);
-  margin-top: auto;
-  padding-top: var(--space-sm);
-}
 .plan-btn {
   border-radius: var(--radius-lg);
 }
@@ -1572,6 +1634,25 @@ async function recommendAccountName() {
   border-color: var(--color-primary-hover);
 }
 .plan-modal-later {
+  border-radius: var(--radius-lg);
+}
+
+/* 调整方案确认弹框 */
+.adjust-plan-confirm-modal :deep(.ant-modal-body) {
+  padding: var(--space-lg);
+}
+.adjust-plan-confirm-body {
+  font-size: var(--font-body);
+  color: var(--color-text-primary);
+  line-height: 1.6;
+  margin-bottom: var(--space-lg);
+}
+.adjust-plan-confirm-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-sm);
+}
+.continue-btn {
   border-radius: var(--radius-lg);
 }
 
@@ -1680,30 +1761,35 @@ async function recommendAccountName() {
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  overflow: hidden;
+  font-size: 28px;
 }
 .activity-icon.lottery {
   background: linear-gradient(135deg, #fff5e6, #ffe0b3);
+  color: #fa8c16;
 }
 .activity-icon.commission {
   background: var(--color-primary-bg);
+  color: var(--color-primary);
 }
 .activity-icon.skill {
   background: #f0f5ff;
+  color: #2f54eb;
 }
 .activity-icon.invite {
   background: #fff0f3;
+  color: #eb2f96;
 }
 .activity-icon.rank {
   background: #fffbe6;
+  color: #faad14;
 }
 .activity-icon.learn {
   background: #f6ffed;
+  color: #52c41a;
 }
-.activity-icon-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: var(--radius-md);
+.activity-icon-svg {
+  display: block;
 }
 .activity-info {
   flex: 1;
@@ -1876,6 +1962,12 @@ async function recommendAccountName() {
 .publish-guide {
   padding: 4px;
 }
+.publish-plan-spin :deep(.ant-spin-text) {
+  color: var(--color-primary);
+}
+.publish-plan-spin :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
 .publish-guide-section {
   margin-bottom: var(--space-lg);
 }
@@ -1901,33 +1993,41 @@ async function recommendAccountName() {
   color: var(--color-text-secondary);
   line-height: 1.5;
 }
-.publish-guide-platforms {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-.publish-guide-platform-item {
-  padding: var(--space-md);
-  background: var(--color-bg-page);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-}
-.publish-guide-platform-name {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 4px;
-}
-.publish-guide-platform-method {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-}
 .publish-guide-doc-link {
   font-size: var(--font-small);
   color: var(--color-primary);
 }
 .publish-guide-doc-link:hover {
   color: var(--color-primary-hover);
+}
+
+.publish-guide-coldstart-duration {
+  font-size: var(--font-body);
+  color: var(--color-primary);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.publish-guide-coldstart-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--font-small);
+  color: var(--color-text-regular);
+  line-height: 1.7;
+}
+
+.publish-guide-coldstart-list li {
+  margin-bottom: 4px;
+}
+
+.publish-guide-coldstart-share {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-md);
+  font-size: var(--font-small);
+  color: var(--color-text-regular);
+  line-height: 1.5;
 }
 
 /* 账号检测弹窗 */
@@ -2205,13 +2305,20 @@ async function recommendAccountName() {
   width: 140px;
   flex-shrink: 0;
 }
+.weekly-data-remove {
+  flex-shrink: 0;
+  padding: 0 8px;
+}
 .weekly-data-reads :deep(.ant-input-number-handler-wrap) {
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
 .weekly-data-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: var(--space-sm);
+}
+.weekly-data-actions .ant-btn-dashed {
+  border-radius: var(--radius-md);
 }
 .weekly-data-actions .ant-btn-primary {
   background: var(--color-primary);
@@ -2286,6 +2393,15 @@ async function recommendAccountName() {
   color: var(--color-primary);
   font-weight: 600;
 }
+.withdraw-go-link {
+  color: #1677ff;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.withdraw-go-link:hover {
+  color: #4096ff;
+}
 .withdraw-plan {
   display: flex;
   flex-direction: column;
@@ -2307,15 +2423,30 @@ async function recommendAccountName() {
   border-radius: var(--radius-lg);
 }
 .withdraw-plan-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-bg);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  flex-shrink: 0;
+  font-size: 22px;
+}
+.withdraw-plan-icon.commission {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+.withdraw-plan-icon.skill {
+  background: #f0f5ff;
+  color: #2f54eb;
+}
+.withdraw-plan-icon.invite {
+  background: #fff0f3;
+  color: #eb2f96;
+}
+.withdraw-plan-icon-svg {
+  display: block;
 }
 .withdraw-plan-info {
   flex: 1;
@@ -2334,6 +2465,15 @@ async function recommendAccountName() {
 }
 .withdraw-plan-btn {
   border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.withdraw-plan-btn:hover,
+.withdraw-plan-btn:focus {
+  background: var(--color-primary-hover, #e61e3a);
+  border-color: var(--color-primary-hover, #e61e3a);
+  color: #fff;
 }
 
 /* 实时提现滚动 */
@@ -2526,10 +2666,6 @@ async function recommendAccountName() {
   border-radius: var(--radius-md);
 }
 
-.register-check-row {
-  margin-top: 12px;
-}
-
 .recommend-row {
   margin-top: var(--space-sm);
 }
@@ -2538,76 +2674,4 @@ async function recommendAccountName() {
   border-radius: var(--radius-md);
 }
 
-.recommend-result {
-  margin-top: var(--space-sm);
-  padding: var(--space-sm);
-  background: var(--color-primary-bg);
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-xs);
-}
-
-.recommend-options {
-  margin-top: var(--space-sm);
-}
-
-.recommend-options-label {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
-}
-
-.recommend-options-list {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-sm);
-}
-
-.recommend-option-card {
-  padding: var(--space-sm);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.recommend-option-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm2);
-}
-
-.recommend-option-nickname {
-  font-size: var(--font-body);
-  font-weight: 600;
-  color: var(--color-primary);
-  margin-bottom: 4px;
-}
-
-.recommend-option-bio {
-  font-size: var(--font-caption);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.recommend-item {
-  display: flex;
-  gap: var(--space-sm);
-  font-size: var(--font-body);
-}
-
-.recommend-label {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
-}
-
-.recommend-value {
-  color: var(--color-text-primary);
-  font-weight: 500;
-}
 </style>
