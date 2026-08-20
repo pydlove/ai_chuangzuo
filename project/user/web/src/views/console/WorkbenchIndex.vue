@@ -107,11 +107,9 @@
         <div v-else class="plan-empty">
           <div class="plan-empty-title">您还没有还没有专属运营方案，</div>
           <div class="plan-empty-desc">
-            您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧。
+            您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧，
+            <a href="javascript:;" class="plan-link" @click="router.push('/console/onboarding')">立即制定</a>
           </div>
-          <a-button type="primary" size="small" class="plan-empty-btn" @click="router.push('/console/onboarding')">
-            立即制定
-          </a-button>
         </div>
       </a-card>
     </div>
@@ -1387,10 +1385,6 @@ function selectSuggestion(s) {
   color: var(--color-text-secondary);
   line-height: 1.6;
   max-width: 260px;
-}
-.plan-empty-btn {
-  margin-top: var(--space-xs);
-  border-radius: var(--radius-lg);
 }
 
 /* 制定方案弹框 */
