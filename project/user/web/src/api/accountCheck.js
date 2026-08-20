@@ -8,7 +8,7 @@ const BASE = '/self-media/nickname'
  * @param {string} data.nickname 待检测昵称
  * @param {string} [data.platform] 平台显示名
  * @param {string} [data.positioning] 自媒体定位摘要
- * @returns {Promise<{fit:boolean, reason:string, suggestions:string[]}>}
+ * @returns {Promise<{fit:boolean, reason:string, suggestions:{nickname:string,bio:string}[]}>}
  */
 export function checkNickname(data) {
   return api.post(`${BASE}/check`, data, { timeout: 90000 }).then((res) => res.data || {})

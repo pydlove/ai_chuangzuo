@@ -13,7 +13,15 @@ public class NicknameCheckVO {
     /** 判定理由。 */
     private String reason;
 
-    /** 不契合时给出的 3 个建议昵称。 */
-    private List<String> suggestions;
-}
+    /** 不契合时给出的 3 个建议昵称（含简介）。 */
+    private List<Suggestion> suggestions;
 
+    @Data
+    public static class Suggestion {
+        /** 建议昵称。 */
+        private String nickname;
+
+        /** 对应账号简介。 */
+        private String bio;
+    }
+}

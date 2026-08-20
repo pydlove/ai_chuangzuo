@@ -68,10 +68,11 @@ public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
         vo.setSuggestions(parseSuggestions(result.path("suggestions")));
         if (Boolean.FALSE.equals(vo.getFit()) && vo.getSuggestions().isEmpty()) {
             log.warn("昵称检测 AI 返回不契合但未给出建议, result={}", result);
+            String nickname = result.path("nickname").asText("");
             vo.setSuggestions(List.of(
-                    platformNameOf(result) + "笔记",
-                    result.path("nickname").asText("") + "的成长日记",
-                    result.path("nickname").asText("") + "说"
+                    suggestionOf(platformNameOf(result) + "笔记", ""),
+                    suggestionOf(nickname + "的成长日记", ""),
+                    suggestionOf(nickname + "说", "")
             ));
         }
         return vo;
@@ -108,19 +109,31 @@ public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
                 : node.asText().trim();
     }
 
-    private List<String> parseSuggestions(JsonNode node) {
-        List<String> list = new ArrayList<>();
+    private List<NicknameCheckVO.Suggestion> parseSuggestions(JsonNode node) {
+        List<NicknameCheckVO.Suggestion> list = new ArrayList<>();
         if (node.isArray()) {
             for (JsonNode item : node) {
                 if (item.isTextual()) {
                     String text = item.asText().trim();
                     if (StringUtils.isNotBlank(text)) {
-                        list.add(text);
+                        list.add(suggestionOf(text, ""));
+                    }
+                } else if (item.isObject()) {
+                    String nickname = textOrDefault(item.path("nickname"), "");
+                    if (StringUtils.isNotBlank(nickname)) {
+                        list.add(suggestionOf(nickname, textOrDefault(item.path("bio"), "")));
                     }
                 }
             }
         }
         return list;
+    }
+
+    private NicknameCheckVO.Suggestion suggestionOf(String nickname, String bio) {
+        NicknameCheckVO.Suggestion s = new NicknameCheckVO.Suggestion();
+        s.setNickname(nickname);
+        s.setBio(bio);
+        return s;
     }
 
     private String platformNameOf(JsonNode result) {

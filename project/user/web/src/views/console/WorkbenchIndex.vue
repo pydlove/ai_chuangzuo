@@ -295,14 +295,17 @@
           </div>
           <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
           <div v-if="accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">{{ accountFit === false ? 'AI 建议昵称：' : '推荐名称：' }}</div>
-            <div class="suggestion-chips">
-              <span
-                v-for="s in accountSuggestions"
-                :key="s"
-                class="suggestion-item"
+            <div class="suggestion-label">小爱建议昵称</div>
+            <div class="suggestion-cards">
+              <div
+                v-for="(s, idx) in accountSuggestions"
+                :key="idx"
+                class="suggestion-card"
                 @click="selectSuggestion(s)"
-              >{{ s }}</span>
+              >
+                <div class="suggestion-card-nickname">{{ s.nickname }}</div>
+                <div class="suggestion-card-bio">{{ s.bio }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -374,14 +377,17 @@
           </div>
           <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
           <div v-if="accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">{{ accountFit === false ? 'AI 建议昵称：' : '推荐昵称：' }}</div>
-            <div class="suggestion-chips">
-              <span
-                v-for="s in accountSuggestions"
-                :key="s"
-                class="suggestion-item"
+            <div class="suggestion-label">小爱建议昵称</div>
+            <div class="suggestion-cards">
+              <div
+                v-for="(s, idx) in accountSuggestions"
+                :key="idx"
+                class="suggestion-card"
                 @click="selectSuggestion(s)"
-              >{{ s }}</span>
+              >
+                <div class="suggestion-card-nickname">{{ s.nickname }}</div>
+                <div class="suggestion-card-bio">{{ s.bio }}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1071,7 +1077,7 @@ async function doCheckNickname(name) {
 }
 
 function selectSuggestion(s) {
-  accountInfo.name = s
+  accountInfo.name = s.nickname || ''
   accountValidation.value = ''
   accountFit.value = null
   accountReason.value = ''
@@ -1963,26 +1969,37 @@ async function recommendAccountName() {
   color: var(--color-text-secondary);
   margin-bottom: var(--space-xs);
 }
-.suggestion-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-xs);
+.suggestion-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
 }
-.suggestion-item {
-  display: inline-block;
-  padding: 4px 10px;
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-light);
-  border-radius: var(--radius-full);
-  font-size: var(--font-small);
-  color: var(--color-primary);
+.suggestion-card {
+  padding: var(--space-sm);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s;
 }
-.suggestion-item:hover {
-  background: var(--color-primary);
-  color: #fff;
+.suggestion-card:hover {
   border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm2);
+}
+.suggestion-card-nickname {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+.suggestion-card-bio {
+  font-size: var(--font-caption);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .register-guide {
   background: var(--color-bg-page);
