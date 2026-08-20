@@ -228,7 +228,7 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
 
 .account-modal .ant-radio-checked .ant-radio-inner {
   border-color: var(--color-primary);
-  background-color: var(--color-primary);
+  background-color: #fff;
 }
 
 .account-modal .ant-radio-checked .ant-radio-inner::after {
