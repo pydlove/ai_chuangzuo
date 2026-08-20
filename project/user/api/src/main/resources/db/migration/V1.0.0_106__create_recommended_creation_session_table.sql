@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS u_recommended_creation_session (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '所属用户ID',
+    current_step TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT '当前步骤：1选题 2观点 3字数 4提示词 5模板',
+    topics_json JSON DEFAULT NULL COMMENT 'AI生成的选题列表',
+    selected_topic_json JSON DEFAULT NULL COMMENT '用户选中的选题',
+    angles_json JSON DEFAULT NULL COMMENT 'AI生成的观点角度列表',
+    selected_angles_json JSON DEFAULT NULL COMMENT '用户选中的观点角度（最多3个）',
+    word_count INT UNSIGNED DEFAULT NULL COMMENT '用户设置的字数',
+    prompt VARCHAR(512) DEFAULT NULL COMMENT '用户选中的创作提示词',
+    template VARCHAR(64) DEFAULT NULL COMMENT '用户选中的导出模板key',
+    status VARCHAR(16) NOT NULL DEFAULT 'draft' COMMENT '会话状态：draft',
+    tenant_id BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '是否删除：0-否，1-是',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '创建人ID',
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '更新人ID',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_u_recommended_creation_session_user_id (user_id),
+    KEY idx_u_recommended_creation_session_created_at (created_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户推荐创作会话表';
