@@ -1,15 +1,17 @@
 import request from '@/utils/request'
 
+const AI_TIMEOUT = 60000
+
 export function getRecommendedCreationSession() {
   return request.get('/recommended-creation/session').then((res) => res.data)
 }
 
 export function generateRecommendedTopics() {
-  return request.post('/recommended-creation/topics').then((res) => res.data)
+  return request.post('/recommended-creation/topics', {}, { timeout: AI_TIMEOUT }).then((res) => res.data)
 }
 
 export function generateRecommendedAngles(topicId) {
-  return request.post('/recommended-creation/angles', { topicId }).then((res) => res.data)
+  return request.post('/recommended-creation/angles', { topicId }, { timeout: AI_TIMEOUT }).then((res) => res.data)
 }
 
 export function updateRecommendedSession(data) {
