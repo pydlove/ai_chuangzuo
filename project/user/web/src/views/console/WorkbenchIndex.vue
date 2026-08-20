@@ -302,8 +302,14 @@
                 class="suggestion-card"
                 @click="selectSuggestion(s)"
               >
-                <div class="suggestion-card-nickname">{{ s.nickname }}</div>
-                <div class="suggestion-card-bio">{{ s.bio }}</div>
+                <div class="suggestion-card-row">
+                  <div class="suggestion-card-nickname">{{ s.nickname }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(s.nickname)">复制昵称</span>
+                </div>
+                <div class="suggestion-card-row">
+                  <div class="suggestion-card-bio">{{ s.bio }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(s.bio)">复制描述</span>
+                </div>
               </div>
             </div>
           </div>
@@ -384,8 +390,14 @@
                 class="suggestion-card"
                 @click="selectSuggestion(s)"
               >
-                <div class="suggestion-card-nickname">{{ s.nickname }}</div>
-                <div class="suggestion-card-bio">{{ s.bio }}</div>
+                <div class="suggestion-card-row">
+                  <div class="suggestion-card-nickname">{{ s.nickname }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(s.nickname)">复制昵称</span>
+                </div>
+                <div class="suggestion-card-row">
+                  <div class="suggestion-card-bio">{{ s.bio }}</div>
+                  <span class="suggestion-card-copy" @click.stop="copyText(s.bio)">复制描述</span>
+                </div>
               </div>
             </div>
           </div>
@@ -1079,6 +1091,22 @@ function selectSuggestion(s) {
   accountValidation.value = ''
   accountFit.value = null
   accountReason.value = ''
+}
+
+async function copyText(text) {
+  if (!text) return
+  try {
+    await navigator.clipboard.writeText(text)
+    message.success('已复制')
+  } catch {
+    const input = document.createElement('textarea')
+    input.value = text
+    document.body.appendChild(input)
+    input.select()
+    document.execCommand('copy')
+    document.body.removeChild(input)
+    message.success('已复制')
+  }
 }
 
 function selectRecommendOption(opt) {
@@ -1957,8 +1985,8 @@ async function recommendAccountName() {
   margin-bottom: var(--space-xs);
 }
 .suggestion-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: var(--space-sm);
 }
 .suggestion-card {
@@ -1973,20 +2001,37 @@ async function recommendAccountName() {
   border-color: var(--color-primary);
   box-shadow: var(--shadow-sm2);
 }
+.suggestion-card-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-sm);
+}
+.suggestion-card-row + .suggestion-card-row {
+  margin-top: 6px;
+}
 .suggestion-card-nickname {
+  flex: 1;
+  min-width: 0;
   font-size: var(--font-body);
   font-weight: 600;
   color: var(--color-primary);
-  margin-bottom: 4px;
 }
 .suggestion-card-bio {
-  font-size: var(--font-caption);
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-small);
   color: var(--color-text-secondary);
   line-height: 1.5;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+}
+.suggestion-card-copy {
+  flex-shrink: 0;
+  font-size: var(--font-caption);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.suggestion-card-copy:hover {
+  color: var(--color-primary);
 }
 .register-guide {
   background: var(--color-bg-page);
