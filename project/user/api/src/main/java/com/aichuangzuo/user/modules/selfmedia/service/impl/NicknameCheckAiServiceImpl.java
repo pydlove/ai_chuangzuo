@@ -5,6 +5,7 @@ import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.vo.NicknameCheckVO;
+import com.aichuangzuo.user.modules.selfmedia.vo.NicknameRecommendVO;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,7 +21,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
 
-    private static final String PROMPT_CODE = "platform_account_check_v1";
+    private static final String CHECK_PROMPT_CODE = "platform_account_check_v1";
+    private static final String RECOMMEND_PROMPT_CODE = "platform_account_recommend_v1";
 
     private final SelfMediaPlanAiService selfMediaPlanAiService;
 
@@ -34,11 +36,24 @@ public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
                 "positioning", positioning.trim(),
                 "nickname", nickname.trim()
         );
-        JsonNode result = selfMediaPlanAiService.callPrompt(PROMPT_CODE, variables);
-        return parseResult(result);
+        JsonNode result = selfMediaPlanAiService.callPrompt(CHECK_PROMPT_CODE, variables);
+        return parseCheckResult(result);
     }
 
-    private NicknameCheckVO parseResult(JsonNode result) {
+    @Override
+    public NicknameRecommendVO recommendNickname(String platform, String positioning) {
+        if (StringUtils.isAnyBlank(platform, positioning)) {
+            throw new BusinessException(SelfMediaPlanErrorCode.NICKNAME_CHECK_AI_FAILED);
+        }
+        Map<String, Object> variables = Map.of(
+                "platform", platform.trim(),
+                "positioning", positioning.trim()
+        );
+        JsonNode result = selfMediaPlanAiService.callPrompt(RECOMMEND_PROMPT_CODE, variables);
+        return parseRecommendResult(result);
+    }
+
+    private NicknameCheckVO parseCheckResult(JsonNode result) {
         NicknameCheckVO vo = new NicknameCheckVO();
         if (result == null) {
             throw new BusinessException(SelfMediaPlanErrorCode.NICKNAME_CHECK_AI_FAILED);
@@ -59,6 +74,16 @@ public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
                     result.path("nickname").asText("") + "说"
             ));
         }
+        return vo;
+    }
+
+    private NicknameRecommendVO parseRecommendResult(JsonNode result) {
+        NicknameRecommendVO vo = new NicknameRecommendVO();
+        if (result == null) {
+            throw new BusinessException(SelfMediaPlanErrorCode.NICKNAME_CHECK_AI_FAILED);
+        }
+        vo.setNickname(textOrDefault(result.path("nickname"), "未生成昵称"));
+        vo.setBio(textOrDefault(result.path("bio"), "暂未生成简介"));
         return vo;
     }
 

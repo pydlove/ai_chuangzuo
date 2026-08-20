@@ -259,7 +259,6 @@
             <a-input v-model:value="accountInfo.name" placeholder="输入你的账号昵称" />
             <a-button
               type="primary"
-              size="small"
               class="validate-btn"
               :loading="checking"
               :disabled="!accountInfo.name.trim()"
@@ -309,12 +308,31 @@
             注册前可以查阅：
             <a href="https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink" target="_blank" rel="noopener noreferrer">爱创作新手教程</a>
           </div>
+          <div class="recommend-row">
+            <a-button
+              type="primary"
+              class="recommend-btn"
+              :loading="recommending"
+              @click="recommendAccountName"
+            >
+              推荐昵称
+            </a-button>
+          </div>
+          <div v-if="nicknameRecommend || bioRecommend" class="recommend-result">
+            <div v-if="nicknameRecommend" class="recommend-item">
+              <span class="recommend-label">推荐昵称</span>
+              <span class="recommend-value">{{ nicknameRecommend }}</span>
+            </div>
+            <div v-if="bioRecommend" class="recommend-item">
+              <span class="recommend-label">账号简介</span>
+              <span class="recommend-value">{{ bioRecommend }}</span>
+            </div>
+          </div>
           <div class="form-row register-check-row">
             <span class="form-label">想好的昵称</span>
             <a-input v-model:value="accountInfo.name" placeholder="输入你想好的昵称，AI 会先帮你检测" />
             <a-button
               type="primary"
-              size="small"
               class="validate-btn"
               :loading="checking"
               :disabled="!accountInfo.name.trim()"
@@ -539,7 +557,7 @@ import {
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
-import { checkNickname } from '@/api/accountCheck.js'
+import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
@@ -727,6 +745,9 @@ watch(() => accountInfo.name, () => {
 }, { flush: 'sync' })
 
 const accountSuggestions = ref([])
+const nicknameRecommend = ref('')
+const bioRecommend = ref('')
+const recommending = ref(false)
 
 const shortcuts = [
   { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { accountModalVisible.value = true } },
@@ -1045,6 +1066,27 @@ function selectSuggestion(s) {
   accountValidation.value = ''
   accountFit.value = null
   accountReason.value = ''
+}
+
+async function recommendAccountName() {
+  if (!hasPlan.value) {
+    message.info('请先制定自媒体运营方案，再获取昵称推荐')
+    accountModalVisible.value = false
+    router.push('/console/onboarding')
+    return
+  }
+  recommending.value = true
+  nicknameRecommend.value = ''
+  bioRecommend.value = ''
+  try {
+    const result = await recommendNickname()
+    nicknameRecommend.value = result.nickname || ''
+    bioRecommend.value = result.bio || ''
+  } catch (err) {
+    message.error(err?.message || '推荐失败，请重试')
+  } finally {
+    recommending.value = false
+  }
 }
 </script>
 
@@ -2419,5 +2461,39 @@ function selectSuggestion(s) {
 
 .register-check-row {
   margin-top: 12px;
+}
+
+.recommend-row {
+  margin-top: var(--space-sm);
+}
+
+.recommend-btn {
+  border-radius: var(--radius-md);
+}
+
+.recommend-result {
+  margin-top: var(--space-sm);
+  padding: var(--space-sm);
+  background: var(--color-primary-bg);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.recommend-item {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: var(--font-body);
+}
+
+.recommend-label {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+}
+
+.recommend-value {
+  color: var(--color-text-primary);
+  font-weight: 500;
 }
 </style>

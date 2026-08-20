@@ -14,3 +14,11 @@ export function checkNickname(data) {
   return api.post(`${BASE}/check`, data, { timeout: 90000 }).then((res) => res.data || {})
 }
 
+/**
+ * 基于自媒体定位推荐账号昵称和简介。
+ * @returns {Promise<{nickname:string, bio:string}>}
+ */
+export function recommendNickname() {
+  return api.post(`${BASE}/recommend`, {}, { timeout: 90000 }).then((res) => res.data || {})
+}
+
