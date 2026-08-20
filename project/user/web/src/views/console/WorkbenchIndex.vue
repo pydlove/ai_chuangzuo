@@ -137,7 +137,7 @@
           <template #title>
             <div class="card-title-row">
               <span class="card-title">生成记录</span>
-              <span class="record-count">最近 7 天</span>
+              <span class="record-count">最近 20 条</span>
             </div>
           </template>
           <template #extra>
@@ -887,14 +887,7 @@ async function loadGenerationRecords() {
   }
 }
 
-const recentRecords = computed(() => {
-  const oneWeek = 7 * 24 * 60 * 60 * 1000
-  const now = Date.now()
-  return generationRecords.filter(r => {
-    const ts = r.createdAtTimestamp
-    return ts && now - ts <= oneWeek
-  })
-})
+const recentRecords = computed(() => generationRecords)
 
 const publishModalVisible = ref(false)
 const currentPublishRecord = ref(null)
