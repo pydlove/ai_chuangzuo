@@ -18,7 +18,10 @@
                   尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱
                 </div>
                 <div class="dialogue-greeting">
-                  <span v-if="todayDone" class="done-text">今日创作目标已达成，继续保持！</span>
+                  <span v-if="!hasPlan" class="todo-text">
+                    我可以帮您定制专属您的自媒体运营方案，<a href="javascript:;" class="plan-link" @click="router.push('/console/onboarding')">去制定</a>
+                  </span>
+                  <span v-else-if="todayDone" class="done-text">今日创作目标已达成，继续保持！</span>
                   <span v-else class="todo-text">今日任务还没完成，点击「开始今日创作」去写一篇吧</span>
                 </div>
               </div>
@@ -1233,6 +1236,14 @@ function selectSuggestion(s) {
   color: var(--color-primary);
   font-weight: 600;
 }
+.plan-link {
+  color: var(--color-info, #1989fa);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.plan-link:hover {
+  color: #1478d2;
+}
 .welcome-balance {
   flex: 1;
   min-width: 0;
@@ -1290,6 +1301,7 @@ function selectSuggestion(s) {
 .plan-card {
   height: 100%;
   min-height: 0;
+  max-height: 100%;
 }
 .plan-card :deep(.ant-card-body) {
   padding-top: 8px;
