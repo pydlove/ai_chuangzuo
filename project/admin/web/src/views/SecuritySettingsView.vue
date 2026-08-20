@@ -103,6 +103,16 @@
                 关闭后同一 IP 在用户端登录不再受 60 秒 10 次的频率限制，方便压测。生产环境建议保持开启。修改后约 1 分钟内在用户端生效。
               </p>
 
+              <a-form-item label="平台账号检测每日上限（次/天）">
+                <a-input-number
+                  v-model:value="nicknameCheckDailyLimit"
+                  :min="1"
+                  :max="1000"
+                  :precision="0"
+                  style="width: 200px"
+                />
+              </a-form-item>
+
               <a-form-item>
                 <a-switch
                   v-model:checked="loginRateLimitEnabled"
@@ -164,6 +174,8 @@ const skillAnalyzeDailyLimit = ref(5)
 const originalSkillAnalyzeDailyLimit = ref(5)
 const loginRateLimitEnabled = ref(true)
 const originalLoginRateLimitEnabled = ref(true)
+const nicknameCheckDailyLimit = ref(10)
+const originalNicknameCheckDailyLimit = ref(10)
 
 async function load() {
   loading.value = true
@@ -200,6 +212,13 @@ async function load() {
     const parsedEnabled = rateLimitConfig?.isLoginRateLimitEnabled === 1
     loginRateLimitEnabled.value = parsedEnabled
     originalLoginRateLimitEnabled.value = parsedEnabled
+
+    const parsedNicknameCheckDailyLimit = parsePositiveInt(
+      rateLimitConfig?.nicknameCheckDailyLimit,
+      10
+    )
+    nicknameCheckDailyLimit.value = parsedNicknameCheckDailyLimit
+    originalNicknameCheckDailyLimit.value = parsedNicknameCheckDailyLimit
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {
@@ -250,16 +269,20 @@ async function onSubmitSkillAnalyze() {
 }
 
 async function onSubmitRateLimit() {
-  if (loginRateLimitEnabled.value === originalLoginRateLimitEnabled.value) {
+  const enabledChanged = loginRateLimitEnabled.value !== originalLoginRateLimitEnabled.value
+  const limitChanged = nicknameCheckDailyLimit.value !== originalNicknameCheckDailyLimit.value
+  if (!enabledChanged && !limitChanged) {
     return
   }
   submittingRateLimit.value = true
   try {
     await updateRateLimitConfig({
-      isLoginRateLimitEnabled: loginRateLimitEnabled.value ? 1 : 0
+      isLoginRateLimitEnabled: loginRateLimitEnabled.value ? 1 : 0,
+      nicknameCheckDailyLimit: nicknameCheckDailyLimit.value
     })
     message.success('保存成功')
     originalLoginRateLimitEnabled.value = loginRateLimitEnabled.value
+    originalNicknameCheckDailyLimit.value = nicknameCheckDailyLimit.value
   } catch (e) {
     message.error(e?.message || '保存失败')
   } finally {

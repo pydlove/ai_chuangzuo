@@ -37,8 +37,8 @@ public class RateLimitConfigAdminController {
     @PutMapping
     public Result<RateLimitConfigVO> update(@Valid @RequestBody RateLimitConfigUpdateRequest request) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        log.info("管理员更新登录限流安全配置, adminUserId={}, isLoginRateLimitEnabled={}",
-                adminUserId, request.getIsLoginRateLimitEnabled());
+        log.info("管理员更新登录限流安全配置, adminUserId={}, isLoginRateLimitEnabled={}, nicknameCheckDailyLimit={}",
+                adminUserId, request.getIsLoginRateLimitEnabled(), request.getNicknameCheckDailyLimit());
         return Result.success(service.update(request, adminUserId));
     }
 }

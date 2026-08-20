@@ -6,6 +6,7 @@ import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.NicknameCheckRequest;
 import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckAiService;
+import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckRateLimiter;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.NicknameCheckVO;
 import com.aichuangzuo.user.modules.selfmedia.vo.NicknameRecommendVO;
@@ -31,6 +32,7 @@ public class PlatformAccountCheckController {
 
     private final NicknameCheckAiService nicknameCheckAiService;
     private final SelfMediaPlanService selfMediaPlanService;
+    private final NicknameCheckRateLimiter nicknameCheckRateLimiter;
 
     @PostMapping("/recommend")
     public Result<NicknameRecommendVO> recommend() {
@@ -51,6 +53,7 @@ public class PlatformAccountCheckController {
     @PostMapping("/check")
     public Result<NicknameCheckVO> check(@Valid @RequestBody NicknameCheckRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        nicknameCheckRateLimiter.checkAndIncrement(userId);
         SelfMediaPlanVO plan = selfMediaPlanService.getCurrentPlan(userId);
         String platform = StringUtils.defaultIfBlank(request.getPlatform(),
                 plan == null ? "" : StringUtils.defaultString(plan.getPlatformName(), plan.getPlatformKey()));
