@@ -23,7 +23,8 @@
         <div
           v-for='(s, idx) in steps'
           :key='idx'
-          :class='["flow-step", { active: flowData.step >= idx + 1, current: flowData.step === idx + 1 }]'>
+          :class='["flow-step", { active: flowData.step >= idx + 1, current: flowData.step === idx + 1 }]'
+        >
           <div class='flow-step-num'>{{ idx + 1 }}</div>
           <div class='flow-step-title'>{{ s.title }}</div>
         </div>
@@ -31,13 +32,14 @@
 
       <div v-if='flowData.step === 1' class='flow-panel'>
         <div class='panel-title'>第一步：选择今日创作方向</div>
-        <div class='panel-desc'>基于你的「{{ plan?.niche || '运营方案' }}」方案，从低粉高赞案例中挑了 3 个选题</div>
+        <div class='panel-desc'>基于你的「{{ plan?.niche || '运营方案' }}」方案，从低粉高赞案例中挑了 {{ topicOptions.length }} 个选题</div>
         <div class='topic-options'>
           <div
             v-for='topic in topicOptions'
             :key='topic.id'
             :class='["topic-option", { selected: flowData.selectedTopic?.id === topic.id }]'
-            @click='selectTopic(topic)'>
+            @click='selectTopic(topic)'
+          >
             <div class='topic-option-title'>{{ topic.title }}</div>
             <div class='topic-option-meta'>
               <a-tag :color='riskColor(topic.risk)'>{{ topic.riskLabel }}</a-tag>
@@ -58,7 +60,8 @@
             v-for='angle in generatedAngleList'
             :key='angle.id'
             :class='["angle-option", { selected: isAngleSelected(angle.id), editing: editingAngleId === angle.id }]'
-            @click='toggleAngle(angle)'>
+            @click='toggleAngle(angle)'
+          >
             <a-checkbox :checked='isAngleSelected(angle.id)' class='angle-check' @click.stop />
             <div v-if='editingAngleId !== angle.id' class='angle-text'>{{ angle.text }}</div>
             <a-input
@@ -67,13 +70,15 @@
               size='small'
               class='angle-edit-input'
               @click.stop
-              @pressEnter='editingAngleId = null' />
+              @pressEnter='editingAngleId = null'
+            />
             <a-button
               v-if='isAngleSelected(angle.id)'
               type='link'
               size='small'
               class='angle-edit-btn'
-              @click.stop='toggleEdit(angle)'>
+              @click.stop='toggleEdit(angle)'
+            >
               {{ editingAngleId === angle.id ? '完成' : '编辑' }}
             </a-button>
           </div>
@@ -91,7 +96,8 @@
             v-for='p in wordPresets'
             :key='p.value'
             :type='flowData.wordCount === p.value ? "primary" : "default"'
-            @click='flowData.wordCount = p.value'>
+            @click='flowData.wordCount = p.value'
+          >
             {{ p.label }}
           </a-button>
         </div>
@@ -109,7 +115,8 @@
           class='prompt-market-tip'
           type='info'
           show-icon
-          :message='"提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。"' />
+          :message='"提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。"'
+        />
         <a-tabs v-model:activeKey='flowData.promptTab'>
           <a-tab-pane key='mine' tab='我的'>
             <div class='prompt-options'>
@@ -117,7 +124,8 @@
                 v-for='(prompt, idx) in minePrompts'
                 :key='idx'
                 :class='["prompt-option", { selected: flowData.selectedPrompt === prompt }]'
-                @click='selectPrompt(prompt)'>
+                @click='selectPrompt(prompt)'
+              >
                 {{ prompt }}
               </div>
               <div v-if='!minePrompts.length' class='prompt-empty'>你还没有保存自己的提示词，可在「学习」或「系统」里先选一个</div>
@@ -129,7 +137,8 @@
                 v-for='(prompt, idx) in learnPrompts'
                 :key='idx'
                 :class='["prompt-option", { selected: flowData.selectedPrompt === prompt }]'
-                @click='selectPrompt(prompt)'>
+                @click='selectPrompt(prompt)'
+              >
                 {{ prompt }}
               </div>
             </div>
@@ -140,7 +149,8 @@
                 v-for='(prompt, idx) in favoritePrompts'
                 :key='idx'
                 :class='["prompt-option", { selected: flowData.selectedPrompt === prompt }]'
-                @click='selectPrompt(prompt)'>
+                @click='selectPrompt(prompt)'
+              >
                 {{ prompt }}
               </div>
               <div v-if='!favoritePrompts.length' class='prompt-empty'>还没有收藏提示词，去提示词市场发现更多好风格</div>
@@ -152,7 +162,8 @@
                 v-for='(prompt, idx) in systemPrompts'
                 :key='idx'
                 :class='["prompt-option", { selected: flowData.selectedPrompt === prompt }]'
-                @click='selectPrompt(prompt)'>
+                @click='selectPrompt(prompt)'
+              >
                 {{ prompt }}
               </div>
             </div>
@@ -167,7 +178,8 @@
             v-for='tab in templatePlatformTabs'
             :key='tab.key'
             :class='["template-platform-tab", { active: templatePlatformTab === tab.key }]'
-            @click='templatePlatformTab = tab.key'>
+            @click='templatePlatformTab = tab.key'
+          >
             {{ tab.label }}
           </button>
         </div>
@@ -176,7 +188,8 @@
             v-for='t in filteredTemplates'
             :key='t.key'
             :class='["template-card", { selected: flowData.selectedTemplate === t.key, locked: !t.accessible }]'
-            @click='selectTemplate(t)'>
+            @click='selectTemplate(t)'
+          >
             <div v-if='!t.accessible' class='template-card-badge'>升级可用</div>
             <div class='template-card-name'>{{ t.name }}</div>
             <div class='template-card-desc'>{{ t.desc }}</div>
@@ -185,9 +198,27 @@
       </div>
 
       <div class='flow-footer'>
-        <a-button v-if='flowData.step > 1' size='large' @click='prevStep'>上一步</a-button>
-        <a-button v-if='flowData.step < 5' type='primary' size='large' :disabled='!canNext' @click='nextStep'>下一步</a-button>
-        <a-button v-if='flowData.step === 5' type='primary' size='large' :disabled='!canNext' @click='finish'>生成文章</a-button>
+        <a-button v-if='flowData.step > 1' size='large' :disabled='loading || submitting' @click='prevStep'>上一步</a-button>
+        <a-button
+          v-if='flowData.step < 5'
+          type='primary'
+          size='large'
+          :disabled='!canNext || loading || submitting'
+          :loading='loading'
+          @click='nextStep'
+        >
+          下一步
+        </a-button>
+        <a-button
+          v-if='flowData.step === 5'
+          type='primary'
+          size='large'
+          :disabled='!canNext || loading || submitting'
+          :loading='submitting'
+          @click='finish'
+        >
+          生成文章
+        </a-button>
       </div>
     </div>
   </a-modal>
@@ -197,15 +228,23 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { FireOutlined, BulbOutlined } from '@ant-design/icons-vue'
+import {
+  getRecommendedCreationSession,
+  generateRecommendedTopics,
+  generateRecommendedAngles,
+  updateRecommendedSession,
+  submitRecommendedGeneration
+} from '@/api/recommendedCreation.js'
 
 const props = defineProps({
   visible: Boolean,
   plan: Object
 })
 
-const emit = defineEmits(['update:visible', 'start'])
+const emit = defineEmits(['update:visible', 'success'])
 
-const loading = ref(true)
+const loading = ref(false)
+const submitting = ref(false)
 const steps = [
   { title: '选题', desc: '选择创作方向' },
   { title: '观点', desc: '确定文章观点' },
@@ -228,32 +267,9 @@ const flowData = reactive({
 const editingAngleId = ref(null)
 const memberMaxWords = 3000
 
-const topicOptions = [
-  {
-    id: 1,
-    title: '35+ 被优化后，我用 3 个月找到 Remote 工作的真实路径',
-    risk: 'low',
-    riskLabel: '同质化风险低',
-    caseCount: 12,
-    recommendedAngle: '真实复盘'
-  },
-  {
-    id: 2,
-    title: '不要再劝年轻人“停止内耗”了，这 3 个做法更管用',
-    risk: 'medium',
-    riskLabel: '同质化风险中',
-    caseCount: 8,
-    recommendedAngle: '反共识'
-  },
-  {
-    id: 3,
-    title: '从月薪 8K 到 3W，我做对了哪 5 个副业选择',
-    risk: 'low',
-    riskLabel: '同质化风险低',
-    caseCount: 15,
-    recommendedAngle: '副业清单'
-  }
-]
+const topicOptions = ref([])
+const generatedAngleList = ref([])
+const lastGeneratedTopicId = ref('')
 
 const wordPresets = [
   { label: '小红书笔记（800字）', value: 800 },
@@ -312,26 +328,6 @@ const filteredTemplates = computed(() => {
   if (templatePlatformTab.value === 'all') return templates.value
   return templates.value.filter(t => t.platform === templatePlatformTab.value)
 })
-
-const generatedAngleList = ref([])
-
-watch(() => flowData.selectedTopic, (topic) => {
-  if (!topic) {
-    generatedAngleList.value = []
-    return
-  }
-  generatedAngleList.value = [
-    { id: 'a1', text: `数字具体化：把「${topic.title}」里的关键数字提炼到标题` },
-    { id: 'a2', text: `反常识冲突：写一个与大众认知相反的标题` },
-    { id: 'a3', text: `身份共鸣：突出「35+ / 普通人 / 职场人」等标签` },
-    { id: 'a4', text: `利益承诺：标题直接点明读者能获得什么` },
-    { id: 'a5', text: `悬念钩子：把最有冲击力的结论藏一半在标题里` },
-    { id: 'a6', text: `情绪共鸣：用焦虑、后悔、庆幸等情绪词切入` },
-    { id: 'a7', text: `结果前置：先写结果，再解释怎么做到的` }
-  ]
-  flowData.selectedAngleIds = []
-  editingAngleId.value = null
-}, { immediate: true })
 
 const selectedAngleTexts = computed(() => {
   return flowData.selectedAngleIds
@@ -399,30 +395,55 @@ const canNext = computed(() => {
   return true
 })
 
-function nextStep() {
-  if (!canNext.value) return
-  flowData.step++
+async function nextStep() {
+  if (!canNext.value || loading.value || submitting.value) return
+
+  let ok = true
+  if (flowData.step === 1) {
+    await ensureAnglesForSelectedTopic()
+    if (!generatedAngleList.value.length) return
+  } else if (flowData.step === 2) {
+    const selectedAngles = flowData.selectedAngleIds
+      .map(id => generatedAngleList.value.find(a => a.id === id))
+      .filter(Boolean)
+    ok = await persistStep(3, { selectedAngles })
+  } else if (flowData.step === 3) {
+    ok = await persistStep(4, { wordCount: flowData.wordCount })
+  } else if (flowData.step === 4) {
+    ok = await persistStep(5, { prompt: flowData.selectedPrompt })
+  }
+
+  if (ok) {
+    flowData.step++
+  }
 }
 
 function prevStep() {
-  flowData.step--
+  if (flowData.step > 1) {
+    flowData.step--
+  }
 }
 
-function finish() {
-  if (!canNext.value) return
-  message.success('开始生成今日文章')
-  emit('start', {
-    ...flowData,
-    selectedAngles: selectedAngleTexts.value
-  })
-  close()
+async function finish() {
+  if (!canNext.value || submitting.value) return
+  submitting.value = true
+  try {
+    const task = await submitRecommendedGeneration()
+    message.success('已加入生成队列')
+    emit('success', task)
+    close()
+  } catch (err) {
+    message.error(err?.message || '提交生成失败，请重试')
+  } finally {
+    submitting.value = false
+  }
 }
 
 function close() {
   emit('update:visible', false)
 }
 
-function reset() {
+function resetLocalState() {
   flowData.step = 1
   flowData.selectedTopic = null
   flowData.selectedAngleIds = []
@@ -433,15 +454,100 @@ function reset() {
   flowData.selectedTemplate = ''
   templatePlatformTab.value = 'all'
   editingAngleId.value = null
+  topicOptions.value = []
+  generatedAngleList.value = []
+  lastGeneratedTopicId.value = ''
+}
+
+function applySession(session) {
+  flowData.step = Math.max(1, Math.min(5, session.currentStep || 1))
+  topicOptions.value = session.topics || []
+  flowData.selectedTopic = session.selectedTopic || null
+  generatedAngleList.value = session.angles || []
+  lastGeneratedTopicId.value = session.selectedTopic?.id || ''
+
+  if (session.selectedAngles?.length) {
+    flowData.selectedAngleIds = session.selectedAngles.map(a => a.id)
+    session.selectedAngles.forEach(sel => {
+      const existing = generatedAngleList.value.find(a => a.id === sel.id)
+      if (existing) {
+        existing.text = sel.text
+      } else {
+        generatedAngleList.value.push(sel)
+      }
+    })
+  } else {
+    flowData.selectedAngleIds = []
+  }
+
+  flowData.wordCount = session.wordCount || 1500
+  flowData.selectedPrompt = session.prompt || ''
+  flowData.selectedTemplate = session.template || ''
+  editingAngleId.value = null
+}
+
+async function ensureAnglesForSelectedTopic() {
+  const topic = flowData.selectedTopic
+  if (!topic) return
+
+  if (lastGeneratedTopicId.value === topic.id && generatedAngleList.value.length) {
+    return
+  }
+
+  loading.value = true
+  try {
+    const angles = await generateRecommendedAngles(topic.id)
+    generatedAngleList.value = angles || []
+    flowData.selectedAngleIds = []
+    editingAngleId.value = null
+    lastGeneratedTopicId.value = topic.id
+    if (!generatedAngleList.value.length) {
+      message.warning('未生成到观点，请重试')
+    }
+  } catch (err) {
+    message.error(err?.message || '生成观点失败，请重试')
+    generatedAngleList.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+async function persistStep(step, extra = {}) {
+  try {
+    await updateRecommendedSession({ currentStep: step, ...extra })
+    return true
+  } catch (err) {
+    message.error(err?.message || '保存创作进度失败，请重试')
+    return false
+  }
+}
+
+async function initSession() {
+  loading.value = true
+  try {
+    const session = await getRecommendedCreationSession()
+    if (session) {
+      applySession(session)
+    } else {
+      resetLocalState()
+      const topics = await generateRecommendedTopics()
+      topicOptions.value = topics || []
+      if (!topicOptions.value.length) {
+        message.warning('未生成到选题，请重试')
+        close()
+      }
+    }
+  } catch (err) {
+    message.error(err?.message || '加载创作任务失败，请重试')
+    close()
+  } finally {
+    loading.value = false
+  }
 }
 
 watch(() => props.visible, (val) => {
   if (val) {
-    reset()
-    loading.value = true
-    setTimeout(() => {
-      loading.value = false
-    }, 800)
+    initSession()
   }
 })
 </script>
