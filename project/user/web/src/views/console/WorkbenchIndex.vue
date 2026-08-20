@@ -2359,60 +2359,6 @@ async function recommendAccountName() {
 }
 
 
-/* 账号检测弹窗主题色 */
-.account-modal :deep(.ant-modal-title) {
-  color: var(--color-primary);
-  font-weight: 600;
-}
-
-.account-modal :deep(.ant-radio-wrapper:hover .ant-radio),
-.account-modal :deep(.ant-radio:hover .ant-radio-inner),
-.account-modal :deep(.ant-radio-input:focus + .ant-radio-inner) {
-  border-color: var(--color-primary);
-}
-
-.account-modal :deep(.ant-radio-checked .ant-radio-inner) {
-  border-color: var(--color-primary);
-}
-
-.account-modal :deep(.ant-radio-checked .ant-radio-inner::after) {
-  background: var(--color-primary);
-}
-
-.account-modal :deep(.ant-input:hover),
-.account-modal :deep(.ant-input:focus),
-.account-modal :deep(.ant-input-affix-wrapper:hover),
-.account-modal :deep(.ant-input-affix-wrapper-focused) {
-  border-color: var(--color-primary);
-}
-
-.account-modal :deep(.ant-input:focus),
-.account-modal :deep(.ant-input-affix-wrapper-focused) {
-  box-shadow: 0 0 0 2px var(--color-primary-light);
-}
-
-.account-modal :deep(.ant-btn-primary) {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.account-modal :deep(.ant-btn-primary:hover),
-.account-modal :deep(.ant-btn-primary:focus) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-.account-modal :deep(.ant-btn-primary:active) {
-  background: var(--color-primary-active);
-  border-color: var(--color-primary-active);
-}
-
-.account-modal :deep(.ant-btn-primary[disabled]) {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-}
-
 .guide-doc-link {
   margin-top: var(--space-sm);
   font-size: var(--font-small);

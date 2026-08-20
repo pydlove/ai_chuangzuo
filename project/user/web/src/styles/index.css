@@ -206,6 +206,60 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   border-color: var(--color-primary-active);
 }
 
+/* 平台账号检测弹框：统一使用项目主题色 */
+.account-modal .ant-modal-title {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.account-modal .ant-radio-wrapper:hover .ant-radio,
+.account-modal .ant-radio:hover .ant-radio-inner,
+.account-modal .ant-radio-input:focus + .ant-radio-inner {
+  border-color: var(--color-primary);
+}
+
+.account-modal .ant-radio-checked .ant-radio-inner {
+  border-color: var(--color-primary);
+}
+
+.account-modal .ant-radio-checked .ant-radio-inner::after {
+  background: var(--color-primary);
+}
+
+.account-modal .ant-input:hover,
+.account-modal .ant-input:focus,
+.account-modal .ant-input-affix-wrapper:hover,
+.account-modal .ant-input-affix-wrapper-focused {
+  border-color: var(--color-primary);
+}
+
+.account-modal .ant-input:focus,
+.account-modal .ant-input-affix-wrapper-focused {
+  box-shadow: 0 0 0 2px var(--color-primary-light);
+}
+
+.account-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.account-modal .ant-btn-primary:hover,
+.account-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.account-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.account-modal .ant-btn-primary[disabled] {
+  background: #f5f5f5;
+  border-color: #d9d9d9;
+  color: #bfbfbf;
+}
+
 .invite-coin-tooltip-section + .invite-coin-tooltip-section {
   margin-top: 8px;
   padding-top: 8px;
