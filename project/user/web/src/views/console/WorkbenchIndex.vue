@@ -1301,7 +1301,7 @@ function selectSuggestion(s) {
 .plan-card {
   height: 100%;
   min-height: 0;
-  max-height: 100%;
+  max-height: 220px;
 }
 .plan-card :deep(.ant-card-body) {
   padding-top: 8px;
