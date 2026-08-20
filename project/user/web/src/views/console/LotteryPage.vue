@@ -591,7 +591,8 @@ async function handleShare() {
     Modal.success({
       title: '文案已复制',
       content: '快去粘贴给好友吧～好友使用你的邀请码注册，还能额外获得一次抽奖机会！',
-      okText: '知道了'
+      okText: '知道了',
+      class: 'lottery-share-modal'
     })
   } catch {
     message.error('复制失败，请长按手动复制')

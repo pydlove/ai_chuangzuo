@@ -273,6 +273,27 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   color: #bfbfbf;
 }
 
+/* 抽奖活动-分享文案复制成功弹框：使用项目主题色 */
+.lottery-share-modal .ant-modal-confirm-body > .anticon {
+  color: var(--color-primary);
+}
+
+.lottery-share-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.lottery-share-modal .ant-btn-primary:hover,
+.lottery-share-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.lottery-share-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
 .invite-coin-tooltip-section + .invite-coin-tooltip-section {
   margin-top: 8px;
   padding-top: 8px;
