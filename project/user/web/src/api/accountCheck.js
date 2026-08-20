@@ -16,7 +16,7 @@ export function checkNickname(data) {
 
 /**
  * 基于自媒体定位推荐账号昵称和简介。
- * @returns {Promise<{nickname:string, bio:string}>}
+ * @returns {Promise<{options:{nickname:string,bio:string}[]}>}
  */
 export function recommendNickname() {
   return api.post(`${BASE}/recommend`, {}, { timeout: 90000 }).then((res) => res.data || {})

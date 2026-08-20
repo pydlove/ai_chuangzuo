@@ -37,6 +37,7 @@ public class PlatformAccountCheckController {
     @PostMapping("/recommend")
     public Result<NicknameRecommendVO> recommend() {
         Long userId = SecurityUserContext.getCurrentUserId();
+        nicknameCheckRateLimiter.checkAndIncrement(userId);
         SelfMediaPlanVO plan = selfMediaPlanService.getCurrentPlan(userId);
         if (plan == null) {
             log.info("推荐昵称时用户未制定运营方案, userId={}", userId);
@@ -46,7 +47,7 @@ public class PlatformAccountCheckController {
         String positioning = buildPositioning(plan);
         log.info("推荐账号昵称, userId={}, platform={}", userId, platform);
         NicknameRecommendVO vo = nicknameCheckAiService.recommendNickname(platform, positioning);
-        log.info("推荐账号昵称完成, userId={}, nickname={}", userId, vo.getNickname());
+        log.info("推荐账号昵称完成, userId={}, optionCount={}", userId, vo.getOptions() == null ? 0 : vo.getOptions().size());
         return Result.success(vo);
     }
 

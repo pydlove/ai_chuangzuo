@@ -249,8 +249,8 @@
       <div class="account-section">
         <a-alert
           v-if="nicknameCheckLimitReached"
-          message="今日账号检测次数已达上限"
-          description="每个账号每天可检测次数有限，请明天再试。"
+          message="今日账号检测/昵称推荐次数已达上限"
+          description="每个账号每天可检测/推荐次数有限，请明天再试。"
           type="warning"
           show-icon
           style="margin-bottom: 16px"
@@ -262,6 +262,9 @@
         </a-radio-group>
 
         <div v-if="accountInfo.hasAccount" class="account-form">
+          <div class="account-hint">
+            如果您已经有账号了，可以填写昵称检测下和您的自媒体定位是否相符，如果不符合，也会给您一些推荐。
+          </div>
           <div class="form-row">
             <span class="form-label">账号名称</span>
             <a-input v-model:value="accountInfo.name" placeholder="输入你的账号昵称" />
@@ -321,19 +324,24 @@
               type="primary"
               class="recommend-btn"
               :loading="recommending"
+              :disabled="nicknameCheckLimitReached"
               @click="recommendAccountName"
             >
               推荐昵称
             </a-button>
           </div>
-          <div v-if="nicknameRecommend || bioRecommend" class="recommend-result">
-            <div v-if="nicknameRecommend" class="recommend-item">
-              <span class="recommend-label">推荐昵称</span>
-              <span class="recommend-value">{{ nicknameRecommend }}</span>
-            </div>
-            <div v-if="bioRecommend" class="recommend-item">
-              <span class="recommend-label">账号简介</span>
-              <span class="recommend-value">{{ bioRecommend }}</span>
+          <div v-if="recommendOptions.length" class="recommend-options">
+            <div class="recommend-options-label">AI 推荐昵称（点击选择）：</div>
+            <div class="recommend-options-list">
+              <div
+                v-for="(opt, idx) in recommendOptions"
+                :key="idx"
+                class="recommend-option-card"
+                @click="selectRecommendOption(opt)"
+              >
+                <div class="recommend-option-nickname">{{ opt.nickname }}</div>
+                <div class="recommend-option-bio">{{ opt.bio }}</div>
+              </div>
             </div>
           </div>
           <div class="form-row register-check-row">
@@ -751,6 +759,7 @@ const checking = ref(false)
 const nicknameCheckLimitReached = ref(false)
 
 watch(() => accountInfo.name, () => {
+  if (isRestoring.value) return
   accountValidation.value = ''
   accountFit.value = null
   accountReason.value = ''
@@ -759,13 +768,17 @@ watch(() => accountInfo.name, () => {
 watch(accountModalVisible, (visible) => {
   if (visible) {
     nicknameCheckLimitReached.value = false
+    restoreAccountModalState()
   }
 })
 
 const accountSuggestions = ref([])
-const nicknameRecommend = ref('')
-const bioRecommend = ref('')
+const recommendOptions = ref([])
 const recommending = ref(false)
+const isRestoring = ref(false)
+
+const ACCOUNT_CHECK_LAST_KEY = 'aichuangzuo_account_check_last'
+const ACCOUNT_RECOMMEND_LAST_KEY = 'aichuangzuo_account_recommend_last'
 
 const shortcuts = [
   { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { accountModalVisible.value = true } },
@@ -1045,6 +1058,7 @@ async function doCheckNickname(name) {
     } else {
       accountValidation.value = '检测完成'
     }
+    saveLastCheckResult()
   } catch (err) {
     if (err?.code === 113008) {
       nicknameCheckLimitReached.value = true
@@ -1063,6 +1077,56 @@ function selectSuggestion(s) {
   accountReason.value = ''
 }
 
+function selectRecommendOption(opt) {
+  accountInfo.name = opt.nickname
+  accountValidation.value = ''
+  accountFit.value = null
+  accountReason.value = ''
+}
+
+function saveLastCheckResult() {
+  localStorage.setItem(ACCOUNT_CHECK_LAST_KEY, JSON.stringify({
+    name: accountInfo.name,
+    fit: accountFit.value,
+    reason: accountReason.value,
+    suggestions: accountSuggestions.value,
+    validation: accountValidation.value
+  }))
+}
+
+function saveLastRecommendResult() {
+  localStorage.setItem(ACCOUNT_RECOMMEND_LAST_KEY, JSON.stringify(recommendOptions.value))
+}
+
+function restoreAccountModalState() {
+  isRestoring.value = true
+  try {
+    const checkRaw = localStorage.getItem(ACCOUNT_CHECK_LAST_KEY)
+    if (checkRaw) {
+      try {
+        const data = JSON.parse(checkRaw)
+        accountInfo.name = data.name || ''
+        accountFit.value = data.fit ?? null
+        accountReason.value = data.reason || ''
+        accountSuggestions.value = Array.isArray(data.suggestions) ? data.suggestions : []
+        accountValidation.value = data.validation || ''
+      } catch {
+        localStorage.removeItem(ACCOUNT_CHECK_LAST_KEY)
+      }
+    }
+    const recommendRaw = localStorage.getItem(ACCOUNT_RECOMMEND_LAST_KEY)
+    if (recommendRaw) {
+      try {
+        recommendOptions.value = JSON.parse(recommendRaw) || []
+      } catch {
+        localStorage.removeItem(ACCOUNT_RECOMMEND_LAST_KEY)
+      }
+    }
+  } finally {
+    isRestoring.value = false
+  }
+}
+
 async function recommendAccountName() {
   if (!hasPlan.value) {
     message.info('请先制定自媒体运营方案，再获取昵称推荐')
@@ -1071,13 +1135,19 @@ async function recommendAccountName() {
     return
   }
   recommending.value = true
-  nicknameRecommend.value = ''
-  bioRecommend.value = ''
+  recommendOptions.value = []
   try {
     const result = await recommendNickname()
-    nicknameRecommend.value = result.nickname || ''
-    bioRecommend.value = result.bio || ''
+    const opts = Array.isArray(result?.options) ? result.options : []
+    if (!opts.length && result?.nickname) {
+      opts.push({ nickname: result.nickname, bio: result.bio || '' })
+    }
+    recommendOptions.value = opts
+    saveLastRecommendResult()
   } catch (err) {
+    if (err?.code === 113008) {
+      nicknameCheckLimitReached.value = true
+    }
     message.error(err?.message || '推荐失败，请重试')
   } finally {
     recommending.value = false
@@ -1852,6 +1922,12 @@ async function recommendAccountName() {
 .account-radio {
   margin-bottom: 12px;
 }
+.account-hint {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
 .account-form {
   padding: 12px;
   background: var(--color-bg-page);
@@ -2421,6 +2497,53 @@ async function recommendAccountName() {
   display: flex;
   flex-direction: column;
   gap: var(--space-xs);
+}
+
+.recommend-options {
+  margin-top: var(--space-sm);
+}
+
+.recommend-options-label {
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-xs);
+}
+
+.recommend-options-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-sm);
+}
+
+.recommend-option-card {
+  padding: var(--space-sm);
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recommend-option-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow-sm2);
+}
+
+.recommend-option-nickname {
+  font-size: var(--font-body);
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 4px;
+}
+
+.recommend-option-bio {
+  font-size: var(--font-caption);
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .recommend-item {

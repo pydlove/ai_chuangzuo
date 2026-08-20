@@ -82,8 +82,23 @@ public class NicknameCheckAiServiceImpl implements NicknameCheckAiService {
         if (result == null) {
             throw new BusinessException(SelfMediaPlanErrorCode.NICKNAME_CHECK_AI_FAILED);
         }
-        vo.setNickname(textOrDefault(result.path("nickname"), "未生成昵称"));
-        vo.setBio(textOrDefault(result.path("bio"), "暂未生成简介"));
+        List<NicknameRecommendVO.Option> options = new ArrayList<>();
+        JsonNode optionsNode = result.path("options");
+        if (optionsNode.isArray()) {
+            for (JsonNode item : optionsNode) {
+                NicknameRecommendVO.Option option = new NicknameRecommendVO.Option();
+                option.setNickname(textOrDefault(item.path("nickname"), "未生成昵称"));
+                option.setBio(textOrDefault(item.path("bio"), "暂未生成简介"));
+                options.add(option);
+            }
+        }
+        if (options.isEmpty()) {
+            NicknameRecommendVO.Option option = new NicknameRecommendVO.Option();
+            option.setNickname(textOrDefault(result.path("nickname"), "未生成昵称"));
+            option.setBio(textOrDefault(result.path("bio"), "暂未生成简介"));
+            options.add(option);
+        }
+        vo.setOptions(options);
         return vo;
     }
 
