@@ -45,9 +45,12 @@ public class RateLimitConfigService {
             exist = new RateLimitConfig();
             exist.setId(CONFIG_ID);
         }
-        exist.setIsLoginRateLimitEnabled(req.getIsLoginRateLimitEnabled());
-        Integer dailyLimit = req.getNicknameCheckDailyLimit();
-        exist.setNicknameCheckDailyLimit(dailyLimit == null ? DEFAULT_NICKNAME_CHECK_DAILY_LIMIT : dailyLimit);
+        if (req.getIsLoginRateLimitEnabled() != null) {
+            exist.setIsLoginRateLimitEnabled(req.getIsLoginRateLimitEnabled());
+        }
+        if (req.getNicknameCheckDailyLimit() != null) {
+            exist.setNicknameCheckDailyLimit(req.getNicknameCheckDailyLimit());
+        }
         exist.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         if (isNew) {
             mapper.insert(exist);

@@ -103,16 +103,6 @@
                 关闭后同一 IP 在用户端登录不再受 60 秒 10 次的频率限制，方便压测。生产环境建议保持开启。修改后约 1 分钟内在用户端生效。
               </p>
 
-              <a-form-item label="平台账号检测每日上限（次/天）">
-                <a-input-number
-                  v-model:value="nicknameCheckDailyLimit"
-                  :min="1"
-                  :max="1000"
-                  :precision="0"
-                  style="width: 200px"
-                />
-              </a-form-item>
-
               <a-form-item>
                 <a-switch
                   v-model:checked="loginRateLimitEnabled"
@@ -123,6 +113,36 @@
 
               <a-form-item>
                 <a-button type="primary" :loading="submittingRateLimit" @click="onSubmitRateLimit">保存</a-button>
+              </a-form-item>
+            </a-form>
+          </a-spin>
+        </a-tab-pane>
+
+        <a-tab-pane key="nicknameCheckLimit" tab="平台账号检测限次">
+          <a-spin :spinning="loading">
+            <a-form layout="vertical" style="max-width: 720px">
+              <p class="section-tip">
+                限制每个用户每天最多可进行平台账号检测的次数，防止反复检测浪费 Token。修改后约 1 分钟内在用户端生效。
+              </p>
+
+              <a-row :gutter="16">
+                <a-col :span="8">
+                  <a-form-item label="每日上限（次/天）">
+                    <a-input-number
+                      v-model:value="nicknameCheckDailyLimit"
+                      :min="1"
+                      :max="1000"
+                      :precision="0"
+                      style="width: 100%"
+                    />
+                  </a-form-item>
+                </a-col>
+              </a-row>
+
+              <a-form-item>
+                <a-button type="primary" :loading="submittingNicknameCheck" @click="onSubmitNicknameCheck">
+                  保存
+                </a-button>
               </a-form-item>
             </a-form>
           </a-spin>
@@ -168,6 +188,7 @@ const loading = ref(false)
 const submitting = ref(false)
 const submittingSkillAnalyze = ref(false)
 const submittingRateLimit = ref(false)
+const submittingNicknameCheck = ref(false)
 const values = reactive({ ...DEFAULT_VALUES })
 const originalValues = reactive({ ...DEFAULT_VALUES })
 const skillAnalyzeDailyLimit = ref(5)
@@ -269,24 +290,38 @@ async function onSubmitSkillAnalyze() {
 }
 
 async function onSubmitRateLimit() {
-  const enabledChanged = loginRateLimitEnabled.value !== originalLoginRateLimitEnabled.value
-  const limitChanged = nicknameCheckDailyLimit.value !== originalNicknameCheckDailyLimit.value
-  if (!enabledChanged && !limitChanged) {
+  if (loginRateLimitEnabled.value === originalLoginRateLimitEnabled.value) {
     return
   }
   submittingRateLimit.value = true
   try {
     await updateRateLimitConfig({
-      isLoginRateLimitEnabled: loginRateLimitEnabled.value ? 1 : 0,
-      nicknameCheckDailyLimit: nicknameCheckDailyLimit.value
+      isLoginRateLimitEnabled: loginRateLimitEnabled.value ? 1 : 0
     })
     message.success('保存成功')
     originalLoginRateLimitEnabled.value = loginRateLimitEnabled.value
-    originalNicknameCheckDailyLimit.value = nicknameCheckDailyLimit.value
   } catch (e) {
     message.error(e?.message || '保存失败')
   } finally {
     submittingRateLimit.value = false
+  }
+}
+
+async function onSubmitNicknameCheck() {
+  if (nicknameCheckDailyLimit.value === originalNicknameCheckDailyLimit.value) {
+    return
+  }
+  submittingNicknameCheck.value = true
+  try {
+    await updateRateLimitConfig({
+      nicknameCheckDailyLimit: nicknameCheckDailyLimit.value
+    })
+    message.success('保存成功')
+    originalNicknameCheckDailyLimit.value = nicknameCheckDailyLimit.value
+  } catch (e) {
+    message.error(e?.message || '保存失败')
+  } finally {
+    submittingNicknameCheck.value = false
   }
 }
 
