@@ -608,7 +608,6 @@ async function finish() {
     const saved = await persistStep(5, { template: flowData.selectedTemplate })
     if (!saved) return
     const task = await submitRecommendedGeneration()
-    message.success('已加入生成队列')
     emit('success', task)
     close()
   } catch (err) {
