@@ -146,6 +146,17 @@
             <div class="card-title-row">
               <span class="card-title">生成记录</span>
               <span class="record-count">最近 7 天</span>
+              <a-button
+                type="text"
+                size="small"
+                class="refresh-records-btn"
+                :loading="generationRecordsLoading"
+                @click="loadGenerationRecords"
+              >
+                <template #icon>
+                  <ReloadOutlined />
+                </template>
+              </a-button>
             </div>
           </template>
           <template #extra>
@@ -607,7 +618,8 @@ import {
   CompassOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  ReloadOutlined
 } from '@ant-design/icons-vue'
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
@@ -966,6 +978,7 @@ const activities = [
 ]
 
 const generationRecords = reactive([])
+const generationRecordsLoading = ref(false)
 
 const statusCodeMap = {
   0: 'pending',
@@ -975,6 +988,7 @@ const statusCodeMap = {
 }
 
 async function loadGenerationRecords() {
+  generationRecordsLoading.value = true
   try {
     const res = await listGenerationTasks({ page: 1, pageSize: 20 })
     const list = res?.list || []
@@ -1001,6 +1015,8 @@ async function loadGenerationRecords() {
     })
   } catch (e) {
     console.warn('加载生成记录失败', e)
+  } finally {
+    generationRecordsLoading.value = false
   }
 }
 
@@ -1315,6 +1331,13 @@ async function recommendAccountName() {
   border-radius: var(--radius-full);
   font-weight: 500;
   line-height: 1.4;
+}
+.refresh-records-btn {
+  color: var(--color-text-secondary);
+  margin-left: 4px;
+}
+.refresh-records-btn:hover {
+  color: var(--color-primary);
 }
 .view-more-btn {
   padding: 0;
