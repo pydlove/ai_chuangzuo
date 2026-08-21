@@ -786,8 +786,8 @@ watch(() => props.visible, (val) => {
 .flow-line-progress {
   position: absolute;
   top: 14px;
-  left: 28px;
-  right: 28px;
+  left: 10%;
+  right: 10%;
   height: 2px;
 }
 .flow-line-bg {
