@@ -225,9 +225,8 @@
               class="activity-item"
               @click="router.push(item.path)"
             >
-              <div class="activity-icon" :class="item.iconClass">
-                <img v-if="item.img" :src="item.img" class="activity-icon-img" alt="" />
-                <component v-else :is="item.icon" class="activity-icon-svg" />
+              <div class="activity-icon">
+                <img :src="item.img" class="activity-icon-img" alt="" />
               </div>
               <div class="activity-info">
                 <div class="activity-name">{{ item.label }}</div>
@@ -333,6 +332,10 @@
                 <div class="reposts-modal-field">
                   <span class="reposts-modal-label">配图建议</span>
                   <span class="reposts-modal-value">{{ item.imageSuggestions || '-' }}</span>
+                </div>
+                <div v-if="item.tips" class="reposts-modal-field">
+                  <span class="reposts-modal-label">发布建议</span>
+                  <span class="reposts-modal-value">{{ item.tips }}</span>
                 </div>
               </div>
             </div>
@@ -547,8 +550,8 @@
           :key="task.label"
           class="withdraw-plan-item"
         >
-          <div class="withdraw-plan-icon" :class="task.iconClass">
-            <component :is="task.icon" class="withdraw-plan-icon-svg" />
+          <div class="withdraw-plan-icon">
+            <img :src="task.img" alt="" class="withdraw-plan-icon-img" />
           </div>
           <div class="withdraw-plan-info">
             <div class="withdraw-plan-label">{{ task.label }}</div>
@@ -686,7 +689,6 @@ import {
   CreditCardOutlined,
   SafetyOutlined,
   TagOutlined,
-  TeamOutlined,
   CompassOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
@@ -874,9 +876,9 @@ const withdrawModalVisible = ref(false)
 const adjustPlanConfirmVisible = ref(false)
 
 const withdrawTasks = [
-  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', icon: ShopOutlined, iconClass: 'commission' },
-  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', icon: BulbOutlined, iconClass: 'skill' },
-  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', icon: TeamOutlined, iconClass: 'invite' }
+  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', img: '/assets/images/约稿任务.png' },
+  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', img: '/assets/images/提示词市场.png' },
+  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', img: '/assets/images/邀请有礼.png' }
 ]
 
 function goWithdrawTask(path) {
@@ -1010,43 +1012,37 @@ const activities = [
     label: '幸运抽奖',
     desc: '每日免费抽奖，创作币、会员时长、限定模板等好礼送不停',
     path: '/console/lottery',
-    img: '/assets/images/幸运抽奖.png',
-    iconClass: 'lottery'
+    img: '/assets/images/幸运抽奖.png'
   },
   {
     label: '约稿任务',
     desc: '精选品牌与创作者对接，完成任务即可获得丰厚创作币奖励',
     path: '/console/commission',
-    icon: ShopOutlined,
-    iconClass: 'commission'
+    img: '/assets/images/约稿任务.png'
   },
   {
     label: '提示词市场',
     desc: '上传原创提示词，被他人使用即可持续获得收益分成',
     path: '/console/skill-market',
-    icon: BulbOutlined,
-    iconClass: 'skill'
+    img: '/assets/images/提示词市场.png'
   },
   {
     label: '邀请有礼',
     desc: '邀请好友加入，双方均可获得创作币与会员权益奖励',
     path: '/console/invite',
-    icon: TeamOutlined,
-    iconClass: 'invite'
+    img: '/assets/images/邀请有礼.png'
   },
   {
     label: '收益排行榜',
     desc: '实时查看平台创作者收益榜单，学习头部创作者的变现路径',
     path: '/console/leaderboard',
-    icon: TrophyOutlined,
-    iconClass: 'rank'
+    img: '/assets/images/收益排行榜.png'
   },
   {
     label: '创作学院',
     desc: '从选题、标题到爆款结构，系统化课程帮你快速提升创作能力',
     path: '/console/learn',
-    icon: BookOutlined,
-    iconClass: 'learn'
+    img: '/assets/images/创作学院.png'
   }
 ]
 
@@ -1996,33 +1992,7 @@ async function recommendAccountName() {
   justify-content: center;
   flex-shrink: 0;
   overflow: hidden;
-  font-size: 28px;
-}
-.activity-icon.lottery {
   background: #fff;
-}
-.activity-icon.commission {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-.activity-icon.skill {
-  background: #f0f5ff;
-  color: #2f54eb;
-}
-.activity-icon.invite {
-  background: #fff0f3;
-  color: #eb2f96;
-}
-.activity-icon.rank {
-  background: #fffbe6;
-  color: #faad14;
-}
-.activity-icon.learn {
-  background: #f6ffed;
-  color: #52c41a;
-}
-.activity-icon-svg {
-  display: block;
 }
 .activity-icon-img {
   width: 100%;
@@ -2748,22 +2718,13 @@ async function recommendAccountName() {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  background: #fff;
 }
-.withdraw-plan-icon.commission {
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-}
-.withdraw-plan-icon.skill {
-  background: #f0f5ff;
-  color: #2f54eb;
-}
-.withdraw-plan-icon.invite {
-  background: #fff0f3;
-  color: #eb2f96;
-}
-.withdraw-plan-icon-svg {
-  display: block;
+.withdraw-plan-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 2px;
 }
 .withdraw-plan-info {
   flex: 1;
