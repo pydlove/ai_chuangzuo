@@ -4,6 +4,7 @@
     :title='modalTitle'
     width='900px'
     :footer='null'
+    :mask-closable='false'
     @cancel='close'
   >
     <div class='create-flow'>
