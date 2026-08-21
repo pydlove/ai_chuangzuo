@@ -343,33 +343,6 @@
       </div>
     </a-modal>
 
-    <!-- 查看文章弹窗 -->
-    <a-modal
-      :open="articleViewModalVisible"
-      title="查看文章"
-      width="760px"
-      :footer="null"
-      class="article-view-modal"
-      @cancel="articleViewModalVisible = false"
-    >
-      <div class="article-view-spin">
-        <a-spin :spinning="articleViewLoading" tip="正在加载文章…">
-          <div v-if="currentViewArticle" class="article-view-content">
-            <h2 class="article-view-title">{{ currentViewArticle.title }}</h2>
-            <div class="article-view-meta">
-              <span>{{ currentViewArticle.platform }}</span>
-              <span>·</span>
-              <span>{{ currentViewArticle.createdAt }}</span>
-            </div>
-            <div class="article-view-body" v-html="formatArticleBody(currentViewArticle.body)"></div>
-          </div>
-          <div v-else-if="!articleViewLoading" class="article-view-empty">
-            <a-empty description="暂无文章内容" />
-          </div>
-        </a-spin>
-      </div>
-    </a-modal>
-
     <!-- 账号检测弹窗 -->
     <a-modal
       v-model:open="accountModalVisible"
@@ -729,7 +702,6 @@ import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
 import { listGenerationTasks } from '@/api/generation.js'
 import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
-import { getArticle } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
@@ -1149,10 +1121,6 @@ const currentRepostRecord = ref(null)
 const currentRepostPlan = ref(null)
 const repostsLoading = ref(false)
 
-const articleViewModalVisible = ref(false)
-const currentViewArticle = ref(null)
-const articleViewLoading = ref(false)
-
 const sendMethod = computed(() => {
   return {
     method: '手动复制到各平台发布',
@@ -1242,35 +1210,9 @@ async function openRepostsPlan(record) {
   }
 }
 
-async function openArticleView(record) {
+function openArticleView(record) {
   if (!record?.bizNo) return
-  currentViewArticle.value = null
-  articleViewModalVisible.value = true
-  articleViewLoading.value = true
-  try {
-    const data = await getArticle(record.bizNo)
-    if (data) {
-      currentViewArticle.value = {
-        title: data.title || '未命名文章',
-        body: data.body || '',
-        platform: data.platformName || record.platform || plan.platform || '',
-        createdAt: record.createdAt || ''
-      }
-    }
-  } catch (err) {
-    message.error(err?.message || '加载文章失败，请重试')
-  } finally {
-    articleViewLoading.value = false
-  }
-}
-
-function formatArticleBody(body) {
-  if (!body) return ''
-  return body
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br>')
+  router.push(`/console/preview/${record.bizNo}`)
 }
 
 function statusText(status) {
@@ -2299,41 +2241,6 @@ async function recommendAccountName() {
   color: var(--color-primary);
   border-radius: 10px;
   font-size: 12px;
-}
-
-/* 查看文章弹窗 */
-.article-view-spin :deep(.ant-spin-text) {
-  color: var(--color-primary);
-}
-.article-view-spin :deep(.ant-spin-dot-item) {
-  background-color: var(--color-primary);
-}
-.article-view-content {
-  max-height: 70vh;
-  overflow-y: auto;
-  padding: 4px;
-}
-.article-view-title {
-  font-size: var(--font-h2);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-sm);
-  line-height: 1.4;
-}
-.article-view-meta {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-lg);
-  padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--color-border-light);
-}
-.article-view-body {
-  font-size: var(--font-body);
-  line-height: 1.8;
-  color: var(--color-text-regular);
 }
 
 /* 账号检测弹窗 */
