@@ -761,11 +761,16 @@ watch(() => props.visible, (val) => {
 
 <style scoped>
 .create-flow {
-  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  height: 620px;
+  padding: 16px 20px;
+  box-sizing: border-box;
 }
 .flow-header {
   min-height: 40px;
   margin-bottom: 8px;
+  flex-shrink: 0;
 }
 .flow-loading {
   display: flex;
@@ -832,7 +837,10 @@ watch(() => props.visible, (val) => {
   font-weight: 500;
 }
 .flow-panel {
-  min-height: 320px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
 }
 .panel-title {
   font-size: 18px;
@@ -1120,7 +1128,7 @@ watch(() => props.visible, (val) => {
   display: flex;
   justify-content: center;
   gap: 12px;
-  margin-top: 24px;
+  flex-shrink: 0;
   padding-top: 16px;
   border-top: 1px solid #f0f0f0;
 }
