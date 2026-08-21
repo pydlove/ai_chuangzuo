@@ -226,7 +226,8 @@
               @click="router.push(item.path)"
             >
               <div class="activity-icon" :class="item.iconClass">
-                <component :is="item.icon" class="activity-icon-svg" />
+                <img v-if="item.img" :src="item.img" class="activity-icon-img" alt="" />
+                <component v-else :is="item.icon" class="activity-icon-svg" />
               </div>
               <div class="activity-info">
                 <div class="activity-name">{{ item.label }}</div>
@@ -675,7 +676,6 @@ import {
   FileTextOutlined,
   ShopOutlined,
   FireOutlined,
-  GiftOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
   BarChartOutlined,
@@ -1009,7 +1009,7 @@ const activities = [
     label: '幸运抽奖',
     desc: '每日免费抽奖，创作币、会员时长、限定模板等好礼送不停',
     path: '/console/lottery',
-    icon: GiftOutlined,
+    img: '/assets/images/幸运抽奖.png',
     iconClass: 'lottery'
   },
   {
@@ -1122,6 +1122,11 @@ const currentRepostRecord = ref(null)
 const currentRepostPlan = ref(null)
 const repostsLoading = ref(false)
 
+// 发布方案 AI 结果缓存：同一篇文章（articleBizNo / task bizNo）复用已调用结果，
+// 避免重复点击「如何发布」「一文多发」时反复请求 AI。
+const aiPublishPlanCache = reactive(new Map())
+const aiPublishPlanInflight = reactive(new Map())
+
 const sendMethod = computed(() => {
   return {
     method: '手动复制到各平台发布',
@@ -1130,16 +1135,57 @@ const sendMethod = computed(() => {
   }
 })
 
+function planCacheKey(record) {
+  return record?.articleBizNo || record?.bizNo || record?.id || ''
+}
+
 async function loadPublishPlan(record) {
   publishPlan.value = null
   if (!hasPlan.value) return
   const title = record?.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
   const mainPlatform = platformNameMap[record?.platform] || record?.platform || plan.platform
   if (!title || !mainPlatform) return
+
+  const key = planCacheKey(record)
+  if (!key) return
+
+  const cached = aiPublishPlanCache.get(key)
+  if (cached) {
+    publishPlan.value = cached
+    return
+  }
+
+  const inflight = aiPublishPlanInflight.get(key)
+  if (inflight) {
+    publishPlanLoading.value = true
+    try {
+      publishPlan.value = await inflight
+    } finally {
+      publishPlanLoading.value = false
+    }
+    return
+  }
+
   publishPlanLoading.value = true
+  const promise = generatePublishPlan({ articleTitle: title, mainPlatform })
+    .then((res) => {
+      const data = res?.data || null
+      if (data) {
+        aiPublishPlanCache.set(key, data)
+      }
+      return data
+    })
+    .catch((err) => {
+      aiPublishPlanCache.delete(key)
+      throw err
+    })
+    .finally(() => {
+      aiPublishPlanInflight.delete(key)
+    })
+  aiPublishPlanInflight.set(key, promise)
+
   try {
-    const res = await generatePublishPlan({ articleTitle: title, mainPlatform })
-    publishPlan.value = res?.data || null
+    publishPlan.value = await promise
   } catch (err) {
     message.error(err?.message || '生成发布计划失败，请重试')
   } finally {
@@ -1200,10 +1246,47 @@ async function openRepostsPlan(record) {
   const title = record.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
   const mainPlatform = platformNameMap[record.platform] || record.platform || plan.platform
   if (!title || !mainPlatform) return
+
+  const key = planCacheKey(record)
+  if (!key) return
+
+  const cached = aiPublishPlanCache.get(key)
+  if (cached) {
+    currentRepostPlan.value = cached
+    return
+  }
+
+  const inflight = aiPublishPlanInflight.get(key)
+  if (inflight) {
+    repostsLoading.value = true
+    try {
+      currentRepostPlan.value = await inflight
+    } finally {
+      repostsLoading.value = false
+    }
+    return
+  }
+
   repostsLoading.value = true
+  const promise = generatePublishPlan({ articleTitle: title, mainPlatform })
+    .then((res) => {
+      const data = res?.data || null
+      if (data) {
+        aiPublishPlanCache.set(key, data)
+      }
+      return data
+    })
+    .catch((err) => {
+      aiPublishPlanCache.delete(key)
+      throw err
+    })
+    .finally(() => {
+      aiPublishPlanInflight.delete(key)
+    })
+  aiPublishPlanInflight.set(key, promise)
+
   try {
-    const res = await generatePublishPlan({ articleTitle: title, mainPlatform })
-    currentRepostPlan.value = res?.data || null
+    currentRepostPlan.value = await promise
   } catch (err) {
     message.error(err?.message || '生成多平台方案失败，请重试')
   } finally {
@@ -1902,8 +1985,7 @@ async function recommendAccountName() {
   font-size: 28px;
 }
 .activity-icon.lottery {
-  background: linear-gradient(135deg, #fff5e6, #ffe0b3);
-  color: #fa8c16;
+  background: #fff;
 }
 .activity-icon.commission {
   background: var(--color-primary-bg);
@@ -1927,6 +2009,12 @@ async function recommendAccountName() {
 }
 .activity-icon-svg {
   display: block;
+}
+.activity-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 4px;
 }
 .activity-info {
   flex: 1;
