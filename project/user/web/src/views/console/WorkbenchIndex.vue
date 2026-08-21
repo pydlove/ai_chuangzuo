@@ -194,7 +194,23 @@
                   class="generation-progress"
                 />
               </div>
-              <RightOutlined class="generation-arrow" />
+              <a-button
+                v-if="record.status === 'completed'"
+                type="link"
+                size="small"
+                class="repost-btn"
+                @click.stop="openRepostsPlan(record)"
+              >
+                一文多发
+              </a-button>
+              <a-button
+                type="link"
+                size="small"
+                class="view-article-btn"
+                @click.stop="openArticleView(record)"
+              >
+                查看
+              </a-button>
             </div>
           </div>
         </a-card>
@@ -267,6 +283,89 @@
           <template v-else>
             <a-empty description="暂无发布计划" />
           </template>
+        </a-spin>
+      </div>
+    </a-modal>
+
+    <!-- 一文多发方案弹窗 -->
+    <a-modal
+      :open="repostsModalVisible"
+      title="一文多发方案"
+      width="700px"
+      :footer="null"
+      class="reposts-modal"
+      @cancel="repostsModalVisible = false"
+    >
+      <div class="reposts-modal-spin">
+        <a-spin :spinning="repostsLoading" tip="小爱正在准备多平台方案…">
+          <template v-if="!hasPlan">
+            <a-empty description="请先制定自媒体运营方案，再生成多平台发布计划">
+              <a-button type="primary" @click="router.push('/console/onboarding')">去制定方案</a-button>
+            </a-empty>
+          </template>
+          <template v-else-if="currentRepostPlan?.reposts?.length">
+            <div class="reposts-modal-list">
+              <div
+                v-for="(item, idx) in currentRepostPlan.reposts"
+                :key="item.platform + idx"
+                class="reposts-modal-card"
+              >
+                <div class="reposts-modal-header">
+                  <span class="reposts-modal-platform">{{ item.platform }}</span>
+                  <span class="reposts-modal-time">{{ item.publishTime }}</span>
+                </div>
+                <div class="reposts-modal-field">
+                  <span class="reposts-modal-label">标题</span>
+                  <span class="reposts-modal-value">{{ item.title || '-' }}</span>
+                </div>
+                <div class="reposts-modal-field">
+                  <span class="reposts-modal-label">标签</span>
+                  <div class="reposts-modal-tags">
+                    <span
+                      v-for="tag in item.tags"
+                      :key="tag"
+                      class="reposts-modal-tag"
+                    >{{ tag }}</span>
+                    <span v-if="!item.tags?.length" class="reposts-modal-value">-</span>
+                  </div>
+                </div>
+                <div class="reposts-modal-field">
+                  <span class="reposts-modal-label">配图建议</span>
+                  <span class="reposts-modal-value">{{ item.imageSuggestions || '-' }}</span>
+                </div>
+              </div>
+            </div>
+          </template>
+          <template v-else>
+            <a-empty description="暂无多平台发布方案" />
+          </template>
+        </a-spin>
+      </div>
+    </a-modal>
+
+    <!-- 查看文章弹窗 -->
+    <a-modal
+      :open="articleViewModalVisible"
+      title="查看文章"
+      width="760px"
+      :footer="null"
+      class="article-view-modal"
+      @cancel="articleViewModalVisible = false"
+    >
+      <div class="article-view-spin">
+        <a-spin :spinning="articleViewLoading" tip="正在加载文章…">
+          <div v-if="currentViewArticle" class="article-view-content">
+            <h2 class="article-view-title">{{ currentViewArticle.title }}</h2>
+            <div class="article-view-meta">
+              <span>{{ currentViewArticle.platform }}</span>
+              <span>·</span>
+              <span>{{ currentViewArticle.createdAt }}</span>
+            </div>
+            <div class="article-view-body" v-html="formatArticleBody(currentViewArticle.body)"></div>
+          </div>
+          <div v-else-if="!articleViewLoading" class="article-view-empty">
+            <a-empty description="暂无文章内容" />
+          </div>
         </a-spin>
       </div>
     </a-modal>
@@ -630,6 +729,7 @@ import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
 import { listGenerationTasks } from '@/api/generation.js'
 import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
+import { getArticle } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
@@ -987,6 +1087,16 @@ const statusCodeMap = {
   3: 'failed'
 }
 
+const platformNameMap = {
+  xiaohongshu: '小红书',
+  wechat: '公众号',
+  toutiao: '今日头条',
+  baijiahao: '百家号',
+  douyin: '抖音',
+  zhihu: '知乎',
+  bilibili: 'B站'
+}
+
 async function loadGenerationRecords() {
   generationRecordsLoading.value = true
   try {
@@ -1034,6 +1144,15 @@ const currentPublishRecord = ref(null)
 const publishPlan = ref(null)
 const publishPlanLoading = ref(false)
 
+const repostsModalVisible = ref(false)
+const currentRepostRecord = ref(null)
+const currentRepostPlan = ref(null)
+const repostsLoading = ref(false)
+
+const articleViewModalVisible = ref(false)
+const currentViewArticle = ref(null)
+const articleViewLoading = ref(false)
+
 const sendMethod = computed(() => {
   return {
     method: '手动复制到各平台发布',
@@ -1046,7 +1165,7 @@ async function loadPublishPlan(record) {
   publishPlan.value = null
   if (!hasPlan.value) return
   const title = record?.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
-  const mainPlatform = record?.platform || plan.platform
+  const mainPlatform = platformNameMap[record?.platform] || record?.platform || plan.platform
   if (!title || !mainPlatform) return
   publishPlanLoading.value = true
   try {
@@ -1101,6 +1220,57 @@ function openHowToPublish() {
   currentPublishRecord.value = record
   loadPublishPlan(record)
   publishModalVisible.value = true
+}
+
+async function openRepostsPlan(record) {
+  if (!record) return
+  currentRepostRecord.value = record
+  currentRepostPlan.value = null
+  repostsModalVisible.value = true
+  if (!hasPlan.value) return
+  const title = record.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
+  const mainPlatform = platformNameMap[record.platform] || record.platform || plan.platform
+  if (!title || !mainPlatform) return
+  repostsLoading.value = true
+  try {
+    const res = await generatePublishPlan({ articleTitle: title, mainPlatform })
+    currentRepostPlan.value = res?.data || null
+  } catch (err) {
+    message.error(err?.message || '生成多平台方案失败，请重试')
+  } finally {
+    repostsLoading.value = false
+  }
+}
+
+async function openArticleView(record) {
+  if (!record?.bizNo) return
+  currentViewArticle.value = null
+  articleViewModalVisible.value = true
+  articleViewLoading.value = true
+  try {
+    const data = await getArticle(record.bizNo)
+    if (data) {
+      currentViewArticle.value = {
+        title: data.title || '未命名文章',
+        body: data.body || '',
+        platform: data.platformName || record.platform || plan.platform || '',
+        createdAt: record.createdAt || ''
+      }
+    }
+  } catch (err) {
+    message.error(err?.message || '加载文章失败，请重试')
+  } finally {
+    articleViewLoading.value = false
+  }
+}
+
+function formatArticleBody(body) {
+  if (!body) return ''
+  return body
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\n/g, '<br>')
 }
 
 function statusText(status) {
@@ -1904,6 +2074,25 @@ async function recommendAccountName() {
 .how-publish-btn:hover {
   color: var(--color-primary-hover);
 }
+.repost-btn {
+  padding: 0 8px;
+  color: var(--color-primary);
+  font-size: var(--font-small);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+.repost-btn:hover {
+  color: var(--color-primary-hover);
+}
+.view-article-btn {
+  padding: 0 8px;
+  color: var(--color-text-secondary);
+  font-size: var(--font-small);
+  flex-shrink: 0;
+}
+.view-article-btn:hover {
+  color: var(--color-primary);
+}
 .generation-empty {
   padding: 24px 16px;
 }
@@ -1970,15 +2159,6 @@ async function recommendAccountName() {
 }
 .generation-progress :deep(.ant-progress-bg) {
   background: var(--color-primary) !important;
-}
-.generation-arrow {
-  font-size: 12px;
-  color: var(--color-text-placeholder);
-  flex-shrink: 0;
-  transition: color 0.2s ease;
-}
-.generation-item:hover .generation-arrow {
-  color: var(--color-primary);
 }
 
 /* 发布建议弹窗 */
@@ -2051,6 +2231,109 @@ async function recommendAccountName() {
   font-size: var(--font-small);
   color: var(--color-text-regular);
   line-height: 1.5;
+}
+
+/* 一文多发方案弹窗 */
+.reposts-modal-spin :deep(.ant-spin-text) {
+  color: var(--color-primary);
+}
+.reposts-modal-spin :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
+.reposts-modal-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.reposts-modal-card {
+  padding: var(--space-md);
+  background: var(--color-bg-page);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+.reposts-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+  margin-bottom: 10px;
+}
+.reposts-modal-platform {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: var(--font-body);
+}
+.reposts-modal-time {
+  flex-shrink: 0;
+  font-size: var(--font-small);
+  color: var(--color-primary);
+  font-weight: 500;
+}
+.reposts-modal-field {
+  display: flex;
+  gap: var(--space-sm);
+  font-size: var(--font-small);
+  line-height: 1.6;
+}
+.reposts-modal-field + .reposts-modal-field {
+  margin-top: 6px;
+}
+.reposts-modal-label {
+  flex-shrink: 0;
+  color: var(--color-text-secondary);
+  width: 60px;
+}
+.reposts-modal-value {
+  flex: 1;
+  color: var(--color-text-regular);
+}
+.reposts-modal-tags {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.reposts-modal-tag {
+  padding: 2px 8px;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+/* 查看文章弹窗 */
+.article-view-spin :deep(.ant-spin-text) {
+  color: var(--color-primary);
+}
+.article-view-spin :deep(.ant-spin-dot-item) {
+  background-color: var(--color-primary);
+}
+.article-view-content {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 4px;
+}
+.article-view-title {
+  font-size: var(--font-h2);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-sm);
+  line-height: 1.4;
+}
+.article-view-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--font-small);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid var(--color-border-light);
+}
+.article-view-body {
+  font-size: var(--font-body);
+  line-height: 1.8;
+  color: var(--color-text-regular);
 }
 
 /* 账号检测弹窗 */
