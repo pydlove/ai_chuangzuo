@@ -72,6 +72,19 @@ public class ArticleServiceImpl implements ArticleService {
     }
 
     @Override
+    public ArticleVO getByTaskId(Long userId, Long taskId) {
+        Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
+                .eq(Article::getTaskId, taskId)
+                .eq(Article::getUserId, userId)
+                .eq(Article::getIsDeleted, 0)
+                .last("LIMIT 1"));
+        if (article == null) {
+            throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
+        }
+        return toVo(article);
+    }
+
+    @Override
     public ArticleVO getInternal(String bizNo) {
         Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                 .eq(Article::getBizNo, bizNo)

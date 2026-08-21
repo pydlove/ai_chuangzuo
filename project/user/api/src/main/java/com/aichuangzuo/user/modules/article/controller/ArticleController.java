@@ -69,6 +69,17 @@ public class ArticleController {
     }
 
     /**
+     * 根据生成任务 ID 查询作品详情（工作台查看兜底）。
+     */
+    @Operation(summary = "根据任务ID查询作品")
+    @GetMapping("/by-task/{taskId}")
+    public Result<ArticleVO> getByTaskId(@PathVariable("taskId") Long taskId) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("根据任务ID查询作品, userId={}, taskId={}", userId, taskId);
+        return Result.success(articleService.getByTaskId(userId, taskId));
+    }
+
+    /**
      * 创建作品（生成完成时调用）。
      *
      * @return 新作品的 bizNo

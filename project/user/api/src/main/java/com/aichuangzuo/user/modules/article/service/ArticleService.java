@@ -21,6 +21,11 @@ public interface ArticleService {
     ArticleVO get(Long userId, String bizNo);
 
     /**
+     * 根据生成任务 ID 查询作品详情（工作台查看兜底）。
+     */
+    ArticleVO getByTaskId(Long userId, Long taskId);
+
+    /**
      * 内部查询：管理端通过 articleBizNo 读取作品内容（不校验用户归属）。
      */
     ArticleVO getInternal(String bizNo);

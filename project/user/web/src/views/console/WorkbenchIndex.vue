@@ -702,6 +702,7 @@ import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
 import { listGenerationTasks } from '@/api/generation.js'
 import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
+import { getArticleByTaskId } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
@@ -1294,9 +1295,22 @@ async function openRepostsPlan(record) {
   }
 }
 
-function openArticleView(record) {
-  const bizNo = record?.articleBizNo || record?.bizNo
-  if (!bizNo) return
+async function openArticleView(record) {
+  if (!record) return
+  let bizNo = record.articleBizNo
+  if (!bizNo && record.id) {
+    try {
+      const article = await getArticleByTaskId(record.id)
+      bizNo = article?.bizNo
+    } catch (err) {
+      message.error(err?.message || '查看失败，请重试')
+      return
+    }
+  }
+  if (!bizNo) {
+    message.error('作品尚未生成完成，暂无法查看')
+    return
+  }
   router.push(`/console/preview/${bizNo}`)
 }
 

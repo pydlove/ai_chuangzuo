@@ -18,6 +18,14 @@ export function getArticle(bizNo) {
 }
 
 /**
+ * 根据生成任务 ID 获取作品详情（工作台查看兜底）。
+ * @param {number|string} taskId
+ */
+export function getArticleByTaskId(taskId) {
+  return api.get(`/articles/by-task/${taskId}`).then((res) => res.data || null)
+}
+
+/**
  * 保存作品（生成完成时调用）。
  * @param {{title:string, body:string, styleOverrides?:string, platform?:string, style?:string, template?:string, wordCount?:number, completedAt?:string}} payload
  * @returns {Promise<string>} bizNo
