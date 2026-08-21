@@ -18,7 +18,7 @@
         <div class='flow-line-bg'></div>
         <div
           class='flow-line-progress'
-          :style='{ width: ((flowData.step - 1) / (steps.length - 1) * 100) + "%" }'
+          :style='{ width: ((flowData.step - 1) / (steps.length - 1) * 80) + "%" }'
         ></div>
         <div
           v-for='(s, idx) in steps'
