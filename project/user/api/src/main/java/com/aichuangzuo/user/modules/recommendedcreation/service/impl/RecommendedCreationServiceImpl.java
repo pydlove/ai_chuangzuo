@@ -156,7 +156,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         req.setTemplate(session.getTemplate());
 
         GenerationTaskVO task = generationTaskService.submit(req, userId);
-        sessionMapper.deleteById(session.getId());
+        sessionMapper.deleteByIdPhysically(session.getId());
         return task;
     }
 
@@ -165,7 +165,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
     public void clearSession(Long userId) {
         RecommendedCreationSession session = sessionMapper.selectByUserId(userId);
         if (session != null) {
-            sessionMapper.deleteById(session.getId());
+            sessionMapper.deleteByIdPhysically(session.getId());
         }
     }
 

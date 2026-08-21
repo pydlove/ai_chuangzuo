@@ -145,7 +145,7 @@ class RecommendedCreationServiceImplTest {
         assertEquals("xiaohongshu", captor.getValue().getPlatform());
         assertEquals(1500, captor.getValue().getWordCount());
         assertEquals("xiaohongshu-default", captor.getValue().getTemplate());
-        verify(sessionMapper).deleteById(1L);
+        verify(sessionMapper).deleteByIdPhysically(1L);
     }
 
     @Test
@@ -168,6 +168,6 @@ class RecommendedCreationServiceImplTest {
 
         service().clearSession(1L);
 
-        verify(sessionMapper).deleteById(1L);
+        verify(sessionMapper).deleteByIdPhysically(1L);
     }
 }
