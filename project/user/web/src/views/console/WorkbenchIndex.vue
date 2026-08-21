@@ -1080,6 +1080,7 @@ async function loadGenerationRecords() {
       generationRecords.push({
         id: item.id,
         bizNo: item.bizNo,
+        articleBizNo: item.articleBizNo,
         title: item.title || '未命名创作',
         platform: item.inputParam?.platform || '',
         status: statusCodeMap[item.status] || 'generating',
@@ -1211,8 +1212,9 @@ async function openRepostsPlan(record) {
 }
 
 function openArticleView(record) {
-  if (!record?.bizNo) return
-  router.push(`/console/preview/${record.bizNo}`)
+  const bizNo = record?.articleBizNo || record?.bizNo
+  if (!bizNo) return
+  router.push(`/console/preview/${bizNo}`)
 }
 
 function statusText(status) {

@@ -14,6 +14,7 @@ public class GenerationTaskVO {
 
     private Long id;
     private String bizNo;
+    private String articleBizNo;
     private Integer status;
     private String statusLabel;
     private String title;
@@ -36,6 +37,7 @@ public class GenerationTaskVO {
         GenerationTaskVO vo = new GenerationTaskVO();
         vo.id = t.getId();
         vo.bizNo = t.getBizNo();
+        vo.articleBizNo = t.getArticleBizNo();
         vo.status = t.getStatus() == null ? null : t.getStatus().getCode();
         vo.statusLabel = t.getStatus() == null ? "" : t.getStatus().getLabel();
         // title 可从 input_param.title 兜底（任务入队时还没 AI 输出没正式 title）
