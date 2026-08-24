@@ -1,7 +1,7 @@
 <template>
   <div class="console-layout">
-    <!-- 侧边栏 -->
-    <aside class="console-sidebar">
+    <!-- 侧边栏：创作页隐藏，保持专注写作 -->
+    <aside v-if="!hideSidebar" class="console-sidebar">
       <div class="console-sidebar-brand">
         <img
           :src="logoUrl"
@@ -820,7 +820,15 @@
             :trigger="['click']"
             placement="bottomRight"
           >
-            <div class="console-avatar"><UserOutlined /></div>
+            <div class="console-avatar">
+              <img
+                v-if="userProfile.profile.value?.avatarUrl"
+                :src="userProfile.profile.value.avatarUrl"
+                alt="avatar"
+                class="console-avatar-img"
+              />
+              <UserOutlined v-else />
+            </div>
             <template #overlay>
               <div class="user-center-panel">
                 <!-- 会员卡 -->
@@ -850,6 +858,19 @@
                       </svg>
                     </span>
                   </div>
+                  <div class="user-row" @click="triggerAvatarUpload">
+                    <span class="user-row-label">头像</span>
+                    <span class="user-row-value user-row-edit">
+                      <img
+                        v-if="userProfile.profile.value?.avatarUrl"
+                        :src="userProfile.profile.value.avatarUrl"
+                        alt="avatar"
+                        class="user-center-avatar-preview"
+                      />
+                      <span v-else>点击上传</span>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                    </span>
+                  </div>
                   <div class="user-row" @click="openProfileModal">
                     <span class="user-row-label">昵称</span>
                     <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.nickname || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
@@ -857,6 +878,10 @@
                   <div class="user-row" @click="openEmailModal">
                     <span class="user-row-label">邮箱</span>
                     <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.email || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                  </div>
+                  <div class="user-row" @click="openPhoneModal">
+                    <span class="user-row-label">手机</span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.phone || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
                   <div
                     v-if="userProfile.profile.value?.inviterUserId == null"
@@ -909,6 +934,13 @@
               </div>
             </template>
           </a-dropdown>
+          <input
+            ref="avatarInput"
+            type="file"
+            accept="image/jpeg,image/png,image/jpg"
+            style="display: none"
+            @change="onAvatarFileChange"
+          />
         </div>
       </header>
 
@@ -1094,6 +1126,17 @@
     class="profile-modal"
   >
     <div class="profile-modal-content">
+      <div class="profile-avatar-item" @click="triggerAvatarUpload">
+        <div class="profile-avatar-preview">
+          <img
+            v-if="profileForm.avatarUrl"
+            :src="profileForm.avatarUrl"
+            alt="avatar"
+          />
+          <UserOutlined v-else />
+        </div>
+        <span class="profile-avatar-text">{{ profileForm.avatarUrl ? '更换头像' : '上传头像' }}</span>
+      </div>
       <div class="profile-item">
         <label class="profile-label">昵称</label>
         <input
@@ -1169,6 +1212,68 @@
     <SliderCaptcha v-model="emailSliderPassed" />
   </a-modal>
 
+  <!-- 修改手机弹框 -->
+  <a-modal
+    v-model:open="phoneVisible"
+    title="修改手机号"
+    :footer="null"
+    :width="400"
+    centered
+    class="phone-modal"
+  >
+    <div class="phone-modal-content">
+      <div class="phone-item">
+        <label class="phone-label">新手机号</label>
+        <input
+          v-model="phoneForm.newPhone"
+          type="tel"
+          class="phone-input"
+          placeholder="请输入新手机号"
+          maxlength="11"
+        />
+      </div>
+      <div class="phone-item">
+        <label class="phone-label">验证码</label>
+        <div class="phone-code-row">
+          <input
+            v-model="phoneForm.code"
+            type="text"
+            class="phone-input phone-code-input"
+            placeholder="请输入验证码"
+            maxlength="6"
+          />
+          <button
+            class="phone-code-btn"
+            :disabled="phoneCountdown > 0"
+            @click="sendPhoneCode"
+          >
+            {{ phoneCountdown > 0 ? `${phoneCountdown}s 后重发` : '获取验证码' }}
+          </button>
+        </div>
+      </div>
+      <button class="phone-submit" @click="handlePhoneSubmit">确认修改</button>
+    </div>
+  </a-modal>
+
+  <!-- 手机端修改手机：发送验证码前的人机验证弹框 -->
+  <a-modal
+    v-model:open="phoneSliderVisible"
+    title="人机验证"
+    :footer="null"
+    :mask-closable="false"
+    :keyboard="false"
+    :width="420"
+    centered
+    class="slider-modal phone-slider-modal"
+  >
+    <p class="slider-modal-tip">
+      拖动滑块完成验证后将向
+      <b>{{ phoneForm.newPhone || '当前手机号' }}</b>
+      发送 6 位短信验证码
+    </p>
+    <SliderCaptcha v-model="phoneSliderPassed" />
+  </a-modal>
+
   <!-- 绑定邀请人弹框 -->
   <a-modal
     v-model:open="inviteBindingVisible"
@@ -1235,7 +1340,7 @@ import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
-import { logout as logoutApi, sendEmailCode as sendEmailCodeApi } from '@/api/auth'
+import { logout as logoutApi, sendEmailCode as sendEmailCodeApi, sendSmsCode as sendSmsCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { getShareConfig } from '@/api/shareConfig.js'
@@ -1289,11 +1394,15 @@ const { benefits, loadBenefits } = useBenefits()
 const isMobile = useIsMobile()
 
 // 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
-const tabbarPaths = ['/console/create', '/console/activities', '/console/messages', '/console/mine']
+const tabbarPaths = ['/console/workbench', '/console/activities', '/console/messages', '/console/mine']
 const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
+
+// 创作页隐藏侧边栏菜单，保持专注写作
+const hideSidebar = computed(() => route.path === '/console/create')
 
 // 手机端子页面顶部返回标题
 const pageTitleMap = {
+  '/console/workbench': '工作台',
   '/console/create': '创作',
   '/console/activities': '活动',
   '/console/works': '我的作品',
@@ -1443,7 +1552,7 @@ const navItems = [
 // 手机端底部 TabBar：只保留 4 个高频入口，其余功能内聚到 "我的"
 // 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
 const tabbarItems = [
-  { path: '/console/create', label: '创作', icon: EditOutlined },
+  { path: '/console/workbench', label: '工作台', icon: DashboardOutlined },
   { path: '/console/activities', label: '活动', icon: GiftOutlined },
   { path: '/console/messages', label: '消息', icon: MessageOutlined },
   { path: '/console/mine', label: '我的', icon: UserOutlined }
@@ -1639,10 +1748,17 @@ const privacyVisible = ref(false)
 const wechatVisible = ref(false)
 const passwordVisible = ref(false)
 const profileVisible = ref(false)
+const avatarInput = ref(null)
 const emailVisible = ref(false)
 const emailSliderVisible = ref(false)
 const emailSliderPassed = ref(false)
 let emailSliderSending = false
+const phoneVisible = ref(false)
+const phoneSliderVisible = ref(false)
+const phoneSliderPassed = ref(false)
+let phoneSliderSending = false
+const phoneCountdown = ref(0)
+let phoneCountdownTimer = null
 const inviteBindingVisible = ref(false)
 
 const inviteBindingForm = reactive({
@@ -1684,7 +1800,11 @@ const handleInviteBindingSubmit = () => {
 // 用 getter/setter 而非 computed：computed 在 reactive 里只读。
 const profileForm = reactive({
   get nickname() { return userProfile.profile.value?.nickname ?? '' },
-  set nickname(v) { userProfile.profile.value && (userProfile.profile.value.nickname = v) }
+  set nickname(v) { userProfile.profile.value && (userProfile.profile.value.nickname = v) },
+  get avatarUrl() { return userProfile.profile.value?.avatarUrl ?? '' },
+  set avatarUrl(v) { userProfile.profile.value && (userProfile.profile.value.avatarUrl = v) },
+  get phone() { return userProfile.profile.value?.phone ?? '' },
+  set phone(v) { /* 当前手机号通过 savePhone 成功后重新拉取 profile 更新 */ }
 })
 
 const emailForm = reactive({
@@ -1692,6 +1812,14 @@ const emailForm = reactive({
   get email() { return userProfile.profile.value?.email ?? '' },
   set email(v) { /* 当前邮箱通过 saveEmail 成功后重新拉取 profile 更新 */ },
   newEmail: '',
+  code: ''
+})
+
+const phoneForm = reactive({
+  // 当前手机号：只读展示，修改手机弹框里不要回填旧手机号
+  get phone() { return userProfile.profile.value?.phone ?? '' },
+  set phone(v) { /* 当前手机号通过 savePhone 成功后重新拉取 profile 更新 */ },
+  newPhone: '',
   code: ''
 })
 
@@ -1747,6 +1875,61 @@ watch(emailSliderPassed, async (val) => {
   }
 })
 
+const startPhoneCodeCountdown = () => {
+  phoneCountdown.value = 60
+  if (phoneCountdownTimer) clearInterval(phoneCountdownTimer)
+  phoneCountdownTimer = setInterval(() => {
+    phoneCountdown.value--
+    if (phoneCountdown.value <= 0) {
+      clearInterval(phoneCountdownTimer)
+      phoneCountdownTimer = null
+    }
+  }, 1000)
+}
+
+const PHONE_PATTERN = /^1[3-9]\d{9}$/
+
+const sendPhoneCode = async () => {
+  if (phoneCountdown.value > 0) return
+  const phone = phoneForm.newPhone.trim()
+  if (!phone) {
+    message.warning('请输入手机号')
+    return
+  }
+  if (!PHONE_PATTERN.test(phone)) {
+    message.warning('手机号格式错误')
+    return
+  }
+  if (isMobile.value) {
+    phoneSliderPassed.value = false
+    phoneSliderVisible.value = true
+    return
+  }
+  try {
+    await sendSmsCodeApi({ phone })
+    message.success('验证码已发送，请查收短信')
+    startPhoneCodeCountdown()
+  } catch (e) {
+    message.error(e?.message || '验证码发送失败')
+  }
+}
+
+watch(phoneSliderPassed, async (val) => {
+  if (!val || phoneSliderSending) return
+  phoneSliderSending = true
+  try {
+    const phone = phoneForm.newPhone.trim()
+    await sendSmsCodeApi({ phone })
+    startPhoneCodeCountdown()
+    message.success('验证码已发送，请查收短信')
+  } catch (e) {
+    message.error(e?.message || '验证码发送失败')
+  } finally {
+    phoneSliderVisible.value = false
+    phoneSliderSending = false
+  }
+})
+
 const openProfileModal = () => {
   userCenterVisible.value = false
   // 表单字段已经是 profile 的派生值，无需重置
@@ -1758,6 +1941,13 @@ const openEmailModal = () => {
   emailForm.newEmail = ''  // 新邮箱每次重新输入，不默认填旧邮箱
   emailForm.code = ''      // 验证码每次重新输入
   emailVisible.value = true
+}
+
+const openPhoneModal = () => {
+  userCenterVisible.value = false
+  phoneForm.newPhone = ''  // 新手机号每次重新输入，不默认填旧手机号
+  phoneForm.code = ''      // 验证码每次重新输入
+  phoneVisible.value = true
 }
 
 const copyAccountUserId = async () => {
@@ -1789,6 +1979,21 @@ const handleProfileSubmit = async () => {
   }
 }
 
+const triggerAvatarUpload = () => {
+  avatarInput.value?.click()
+}
+
+const onAvatarFileChange = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
+  try {
+    await userProfile.saveAvatar(file)
+  } catch {
+    // composable 已 message.error
+  }
+}
+
 const handleEmailSubmit = async () => {
   if (!emailForm.newEmail.trim() || !emailForm.code.trim()) {
     message.warning('邮箱和验证码不能为空')
@@ -1799,6 +2004,26 @@ const handleEmailSubmit = async () => {
     emailVisible.value = false
     emailForm.newEmail = ''
     emailForm.code = ''
+  } catch {
+    // composable 已 message.error
+  }
+}
+
+const handlePhoneSubmit = async () => {
+  const phone = phoneForm.newPhone.trim()
+  if (!phone || !phoneForm.code.trim()) {
+    message.warning('手机号和验证码不能为空')
+    return
+  }
+  if (!PHONE_PATTERN.test(phone)) {
+    message.warning('手机号格式错误')
+    return
+  }
+  try {
+    await userProfile.savePhone(phone, phoneForm.code)
+    phoneVisible.value = false
+    phoneForm.newPhone = ''
+    phoneForm.code = ''
   } catch {
     // composable 已 message.error
   }
@@ -2670,10 +2895,12 @@ provide('consoleActions', {
   openPasswordModal,
   openProfileModal,
   openEmailModal,
+  openPhoneModal,
   handleLogout,
   // 用户状态（响应式，子页面读它会跟着变）
   profileForm,
   emailForm,
+  phoneForm,
   coinBalance,
   inviteStats,
   membershipLevel,
@@ -2835,6 +3062,13 @@ provide('consoleActions', {
   cursor: pointer;
   font-size: 14px;
   font-weight: 600;
+  overflow: hidden;
+}
+
+.console-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .console-membership-badge {
@@ -4256,6 +4490,13 @@ body[data-theme="dark"] .about-footer {
   opacity: 0.75;
 }
 
+.user-center-avatar-preview {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
 .user-row-copy {
   display: flex;
   align-items: center;
@@ -4276,6 +4517,44 @@ body[data-theme="dark"] .about-footer {
 /* 修改昵称 */
 .profile-modal-content {
   padding: 8px 0;
+}
+
+.profile-avatar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+  cursor: pointer;
+}
+
+.profile-avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  overflow: hidden;
+}
+
+.profile-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-avatar-text {
+  font-size: 13px;
+  color: var(--color-primary);
+  font-weight: 500;
+}
+
+.profile-avatar-item:hover .profile-avatar-text {
+  opacity: 0.75;
 }
 
 .profile-item {
@@ -4326,15 +4605,18 @@ body[data-theme="dark"] .about-footer {
 }
 
 /* 修改邮箱 */
-.email-modal-content {
+.email-modal-content,
+.phone-modal-content {
   padding: 8px 0;
 }
 
-.email-item {
+.email-item,
+.phone-item {
   margin-bottom: 16px;
 }
 
-.email-label {
+.email-label,
+.phone-label {
   display: block;
   font-size: 13px;
   color: #595959;
@@ -4342,7 +4624,8 @@ body[data-theme="dark"] .about-footer {
   font-weight: 500;
 }
 
-.email-input {
+.email-input,
+.phone-input {
   width: 100%;
   padding: 10px 12px;
   border: 1px solid #d9d9d9;
@@ -4353,22 +4636,26 @@ body[data-theme="dark"] .about-footer {
   box-sizing: border-box;
 }
 
-.email-input:focus {
+.email-input:focus,
+.phone-input:focus {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
 }
 
-.email-code-row {
+.email-code-row,
+.phone-code-row {
   display: flex;
   gap: 10px;
 }
 
-.email-code-input {
+.email-code-input,
+.phone-code-input {
   flex: 1;
 }
 
-.email-code-btn {
+.email-code-btn,
+.phone-code-btn {
   padding: 0 14px;
   background: #fff;
   border: 1px solid var(--color-primary);
@@ -4380,18 +4667,21 @@ body[data-theme="dark"] .about-footer {
   transition: all 0.2s;
 }
 
-.email-code-btn:hover:not(:disabled) {
+.email-code-btn:hover:not(:disabled),
+.phone-code-btn:hover:not(:disabled) {
   background: var(--color-primary);
   color: #fff;
 }
 
-.email-code-btn:disabled {
+.email-code-btn:disabled,
+.phone-code-btn:disabled {
   border-color: #d9d9d9;
   color: #8c8c8c;
   cursor: not-allowed;
 }
 
-.email-submit {
+.email-submit,
+.phone-submit {
   width: 100%;
   padding: 10px;
   background: var(--color-primary);
@@ -4405,7 +4695,8 @@ body[data-theme="dark"] .about-footer {
   transition: background 0.2s;
 }
 
-.email-submit:hover {
+.email-submit:hover,
+.phone-submit:hover {
   background: var(--color-primary-hover);
 }
 
@@ -4497,36 +4788,42 @@ body[data-theme="dark"] .slider-modal-tip b {
 
 /* 暗色主题 */
 body[data-theme="dark"] .profile-label,
-body[data-theme="dark"] .email-label {
+body[data-theme="dark"] .email-label,
+body[data-theme="dark"] .phone-label {
   color: #a6a6a6;
 }
 
 body[data-theme="dark"] .profile-input,
-body[data-theme="dark"] .email-input {
+body[data-theme="dark"] .email-input,
+body[data-theme="dark"] .phone-input {
   background: #262626;
   border-color: #404040;
   color: #e0e0e0;
 }
 
 body[data-theme="dark"] .profile-input:focus,
-body[data-theme="dark"] .email-input:focus {
+body[data-theme="dark"] .email-input:focus,
+body[data-theme="dark"] .phone-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
 }
 
-body[data-theme="dark"] .email-code-btn {
+body[data-theme="dark"] .email-code-btn,
+body[data-theme="dark"] .phone-code-btn {
   background: transparent;
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-body[data-theme="dark"] .email-code-btn:hover:not(:disabled) {
+body[data-theme="dark"] .email-code-btn:hover:not(:disabled),
+body[data-theme="dark"] .phone-code-btn:hover:not(:disabled) {
   background: rgba(255, 36, 66, 0.15);
   border-color: var(--color-primary);
   color: var(--color-primary);
 }
 
-body[data-theme="dark"] .email-code-btn:disabled {
+body[data-theme="dark"] .email-code-btn:disabled,
+body[data-theme="dark"] .phone-code-btn:disabled {
   border-color: #434343;
   color: #737373;
   background: transparent;
@@ -5910,12 +6207,14 @@ body[data-theme="dark"] .redeem-submit:hover:not(:disabled) {
 }
 
 body[data-theme="dark"] .profile-submit,
-body[data-theme="dark"] .email-submit {
+body[data-theme="dark"] .email-submit,
+body[data-theme="dark"] .phone-submit {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
 }
 
 body[data-theme="dark"] .profile-submit:hover,
-body[data-theme="dark"] .email-submit:hover {
+body[data-theme="dark"] .email-submit:hover,
+body[data-theme="dark"] .phone-submit:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
@@ -6356,10 +6655,12 @@ body[data-theme="dark"] .feedback-modal .ant-modal-content,
 body[data-theme="dark"] .about-modal .ant-modal-content,
 body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
+body[data-theme="dark"] .phone-modal .ant-modal-content,
 body[data-theme="dark"] .redeem-modal .ant-modal-content,
 body[data-theme="dark"] .password-modal .ant-modal-content,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-content,
 body[data-theme="dark"] .email-slider-modal .ant-modal-content,
+body[data-theme="dark"] .phone-slider-modal .ant-modal-content,
 body[data-theme="dark"] .withdraw-modal .ant-modal-content,
 body[data-theme="dark"] .notif-detail-modal .ant-modal-content,
 body[data-theme="dark"] .renewal-modal .ant-modal-content {
@@ -6438,6 +6739,7 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close,
 body[data-theme="dark"] .about-modal .ant-modal-close,
 body[data-theme="dark"] .profile-modal .ant-modal-close,
 body[data-theme="dark"] .email-modal .ant-modal-close,
+body[data-theme="dark"] .phone-modal .ant-modal-close,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-close,
 body[data-theme="dark"] .redeem-modal .ant-modal-close,
 body[data-theme="dark"] .password-modal .ant-modal-close {
@@ -6452,8 +6754,10 @@ body[data-theme="dark"] .feedback-modal .ant-modal-close:hover,
 body[data-theme="dark"] .about-modal .ant-modal-close:hover,
 body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-modal .ant-modal-close:hover,
+body[data-theme="dark"] .phone-modal .ant-modal-close:hover,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-slider-modal .ant-modal-close:hover,
+body[data-theme="dark"] .phone-slider-modal .ant-modal-close:hover,
 body[data-theme="dark"] .redeem-modal .ant-modal-close:hover,
 body[data-theme="dark"] .password-modal .ant-modal-close:hover {
   color: #fff;
@@ -6463,18 +6767,22 @@ body[data-theme="dark"] .password-modal .ant-modal-close:hover {
 /* 修改昵称 / 修改邮箱 / 修改密码 / 绑定邀请人 的 Ant 标题头在暗色下需改为深底 */
 body[data-theme="dark"] .profile-modal .ant-modal-header,
 body[data-theme="dark"] .email-modal .ant-modal-header,
+body[data-theme="dark"] .phone-modal .ant-modal-header,
 body[data-theme="dark"] .password-modal .ant-modal-header,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-header,
-body[data-theme="dark"] .email-slider-modal .ant-modal-header {
+body[data-theme="dark"] .email-slider-modal .ant-modal-header,
+body[data-theme="dark"] .phone-slider-modal .ant-modal-header {
   background: #141414;
   border-bottom-color: #303030;
 }
 
 body[data-theme="dark"] .profile-modal .ant-modal-title,
 body[data-theme="dark"] .email-modal .ant-modal-title,
+body[data-theme="dark"] .phone-modal .ant-modal-title,
 body[data-theme="dark"] .password-modal .ant-modal-title,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-title,
-body[data-theme="dark"] .email-slider-modal .ant-modal-title {
+body[data-theme="dark"] .email-slider-modal .ant-modal-title,
+body[data-theme="dark"] .phone-slider-modal .ant-modal-title {
   color: #e0e0e0;
 }
 

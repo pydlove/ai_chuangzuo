@@ -11,10 +11,10 @@ import java.util.List;
 public interface AiPromptService {
 
     PageResult list(AiPromptQueryRequest request);
+    List<String> listCategories();
     AiPromptDetailVO get(Long id);
     Long create(AiPromptCreateRequest request);
     void update(Long id, AiPromptUpdateRequest request);
-    void delete(Long id);
     void enable(Long id);
     void disable(Long id);
 

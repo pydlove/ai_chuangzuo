@@ -4,9 +4,12 @@ import {
   getMyProfile,
   updateNickname,
   updateEmail,
+  updatePhone,
   changePassword,
-  bindInviteCode
+  bindInviteCode,
+  updateAvatar
 } from '@/api/user'
+import { compressAvatar } from '@/utils/imageCompress.js'
 
 // 模块级 ref：单例模式，整个 console 共享一份 profile。
 // 不再额外包装 store，因为只有 ConsoleLayout 一处使用。
@@ -65,6 +68,18 @@ export function useUserProfile() {
     }
   }
 
+  async function savePhone(newPhone, smsCode) {
+    try {
+      await updatePhone(newPhone, smsCode)
+      // 服务端把 phone_verified 置 1，重新拉一份
+      await loadProfile()
+      message.success('手机号已更新')
+    } catch (e) {
+      message.error(errMsg(e))
+      throw e
+    }
+  }
+
   async function savePassword(payload) {
     try {
       await changePassword(payload)
@@ -88,13 +103,33 @@ export function useUserProfile() {
     }
   }
 
+  async function saveAvatar(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      message.error('请选择图片文件')
+      throw new Error('请选择图片文件')
+    }
+    try {
+      const compressed = await compressAvatar(file, 200)
+      const res = await updateAvatar(compressed)
+      const vo = res.data || res
+      if (profile.value) profile.value.avatarUrl = vo.avatarUrl
+      message.success('头像已更新')
+      return vo.avatarUrl
+    } catch (e) {
+      message.error(errMsg(e))
+      throw e
+    }
+  }
+
   return {
     profile,
     loading,
     loadProfile,
     saveNickname,
     saveEmail,
+    savePhone,
     savePassword,
-    saveInviteCode
+    saveInviteCode,
+    saveAvatar
   }
 }

@@ -13,6 +13,7 @@ public interface AccountAdminMapper {
                                           @Param("nickname") String nickname,
                                           @Param("phone") String phone,
                                           @Param("email") String email,
+                                          @Param("userType") Integer userType,
                                           @Param("sortBy") String sortBy,
                                           @Param("offset") long offset,
                                           @Param("size") long size);
@@ -20,7 +21,8 @@ public interface AccountAdminMapper {
     long countAccountList(@Param("userId") Long userId,
                           @Param("nickname") String nickname,
                           @Param("phone") String phone,
-                          @Param("email") String email);
+                          @Param("email") String email,
+                          @Param("userType") Integer userType);
 
     Integer selectCoinRank(@Param("userId") Long userId,
                            @Param("month") String month);

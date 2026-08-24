@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.earnings.service;
 
 import com.aichuangzuo.admin.modules.earnings.dto.request.AccountQueryRequest;
+import com.aichuangzuo.admin.modules.earnings.dto.request.AddCoinRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserCoinRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserEarningsRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserRewardRecordQueryRequest;
@@ -15,6 +16,8 @@ public interface AccountAdminService {
     UserAccountPageVO listAccounts(AccountQueryRequest request);
 
     UserAccountDetailVO getAccountDetail(Long userId);
+
+    String addCoinToRobot(Long userId, AddCoinRequest request);
 
     PageResult<UserCoinRecordVO> listUserCoinRecords(Long userId, UserCoinRecordQueryRequest request);
 

@@ -38,6 +38,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/v1/user/share-config/**").permitAll()
                 .requestMatchers("/api/v1/user/internal/**").permitAll()
                 .requestMatchers("/__test/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .requestMatchers("/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
                 .anyRequest().authenticated()
             )

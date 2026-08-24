@@ -27,6 +27,7 @@ function normalizeRecord(raw) {
     amount: toNumber(raw.amount),
     account: raw.account || '',
     name: raw.name || '',
+    nickname: raw.nickname || '',
     status: raw.status || 'pending',
     processedAt: raw.processedAt,
     processedBy: raw.processedBy,

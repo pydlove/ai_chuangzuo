@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @Tag(name = "管理端 AI 提示词管理")
@@ -36,6 +37,14 @@ public class AiPromptController {
         Long adminUserId = checkSuperAdmin();
         log.info("管理员查询 AI 提示词列表, adminUserId={}", adminUserId);
         return Result.success(aiPromptService.list(request));
+    }
+
+    @Operation(summary = "查询分类列表")
+    @GetMapping("/categories")
+    public Result<List<String>> listCategories() {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员查询 AI 提示词分类列表, adminUserId={}", adminUserId);
+        return Result.success(aiPromptService.listCategories());
     }
 
     @Operation(summary = "查看提示词详情")
@@ -62,15 +71,6 @@ public class AiPromptController {
         Long adminUserId = checkSuperAdmin();
         log.info("管理员编辑 AI 提示词, adminUserId={}, id={}", adminUserId, id);
         aiPromptService.update(id, request);
-        return Result.success();
-    }
-
-    @Operation(summary = "删除提示词")
-    @DeleteMapping("/{id}")
-    public Result<Void> delete(@PathVariable("id") Long id) {
-        Long adminUserId = checkSuperAdmin();
-        log.info("管理员删除 AI 提示词, adminUserId={}, id={}", adminUserId, id);
-        aiPromptService.delete(id);
         return Result.success();
     }
 

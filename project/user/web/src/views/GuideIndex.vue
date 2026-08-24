@@ -29,7 +29,7 @@
         <div class="guide-footer-cta">
           <h3>准备好开始了吗？</h3>
           <p>每天 3 分钟，把内容变成账号流量和收入。</p>
-          <router-link to="/login" class="guide-cta-btn">立即开始创作</router-link>
+          <router-link to="/console/workbench" class="guide-cta-btn">立即开始创作</router-link>
         </div>
       </div>
     </div>
@@ -66,7 +66,7 @@ const navLinks = [
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
-const ctaTo = '/login'
+const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 const handleSelect = ({ articleId }) => {

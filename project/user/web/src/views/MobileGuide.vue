@@ -18,7 +18,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/login" class="mg-header__cta">开始创作</router-link>
+        <router-link to="/console/workbench" class="mg-header__cta">开始创作</router-link>
       </div>
     </header>
 
@@ -98,7 +98,7 @@
     <section class="mg-cta">
       <h2 class="mg-cta__title">准备好开始了吗？</h2>
       <p class="mg-cta__desc">每天 3 分钟，把内容变成账号流量和收入。</p>
-      <router-link to="/login" class="mg-btn">立即开始创作</router-link>
+      <router-link to="/console/workbench" class="mg-btn">立即开始创作</router-link>
     </section>
 
     <footer class="mg-footer">

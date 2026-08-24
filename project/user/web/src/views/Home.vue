@@ -20,7 +20,7 @@
             让你的自媒体账号像滚雪球一样，越做越大、越来越值钱。
           </p>
           <div class="hero-actions">
-            <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+            <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
             <router-link to="/guide" class="hero-btn-secondary">看看能赚多少钱</router-link>
           </div>
           <div class="hero-checkmarks">
@@ -257,7 +257,7 @@
           等你准备好赚钱时，雪球已经在滚。
         </p>
         <div class="cta-actions">
-          <router-link to="/login" class="hero-btn">立即开始创作</router-link>
+          <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
           <router-link to="/guide" class="hero-btn-secondary">查看玩法指南</router-link>
         </div>
       </div>
@@ -288,7 +288,7 @@ const navLinks = [
   { to: '/learn', label: '创作学院' },
   { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
 ]
-const ctaTo = '/login'
+const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 const banners = ref([])

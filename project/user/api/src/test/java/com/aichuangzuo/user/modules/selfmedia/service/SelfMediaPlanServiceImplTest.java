@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.modules.selfmedia.service;
 
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.SavePlanRequest;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlan;
@@ -27,10 +28,11 @@ class SelfMediaPlanServiceImplTest {
     private final SelfMediaPlanNicheMapper nicheMapper = mock(SelfMediaPlanNicheMapper.class);
     private final SelfMediaPlanPersonaMapper personaMapper = mock(SelfMediaPlanPersonaMapper.class);
     private final PlatformMapper platformMapper = mock(PlatformMapper.class);
+    private final BenefitService benefitService = mock(BenefitService.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private SelfMediaPlanServiceImpl service() {
-        return new SelfMediaPlanServiceImpl(aiService, planMapper, questionMapper, nicheMapper, personaMapper, platformMapper, objectMapper);
+        return new SelfMediaPlanServiceImpl(aiService, planMapper, questionMapper, nicheMapper, personaMapper, platformMapper, benefitService, objectMapper);
     }
 
     @Test

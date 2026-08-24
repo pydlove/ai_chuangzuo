@@ -50,3 +50,12 @@ export function recommendPersonas(data) {
 export function savePlan(data) {
   return api.post(BASE, data)
 }
+
+/**
+ * 根据自媒体运营方案生成发布计划（主平台规律时段 + 冷启动策略 + 一文多发）。
+ * @param {{articleTitle:string, mainPlatform:string}} data
+ * @returns {Promise<{code:number, data:{mainPlatform:{platform:string,publishTime:string,reason:string}, coldStart:{immediateActions:string[],duration:string,sharingTips:string}, reposts:{platform:string,publishTime:string,title:string,tags:string[],imageSuggestions:string}[]}, msg:string}>}
+ */
+export function generatePublishPlan(data) {
+  return api.post(`${BASE}/actions/publish-plan`, data, { timeout: 90000 })
+}

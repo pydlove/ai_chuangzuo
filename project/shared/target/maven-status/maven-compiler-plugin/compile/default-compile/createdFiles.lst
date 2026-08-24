@@ -12,6 +12,7 @@ com/aichuangzuo/shared/entity/PromptTemplateVersion.class
 com/aichuangzuo/shared/entity/ShareConfig.class
 com/aichuangzuo/shared/entity/AiPrompt.class
 com/aichuangzuo/shared/entity/Platform.class
+com/aichuangzuo/shared/utils/LlmJsonParser.class
 com/aichuangzuo/shared/enums/error/AdminSecurityErrorCode.class
 com/aichuangzuo/shared/utils/AesUtil.class
 com/aichuangzuo/shared/enums/error/AdminEarningsErrorCode.class
@@ -27,6 +28,7 @@ com/aichuangzuo/shared/result/Result.class
 com/aichuangzuo/shared/creative/TemplateStatus.class
 com/aichuangzuo/shared/entity/BaseEntity.class
 com/aichuangzuo/shared/enums/error/AdminAuthErrorCode.class
+com/aichuangzuo/shared/utils/LlmJsonParser$1.class
 com/aichuangzuo/shared/entity/TopicTitle.class
 com/aichuangzuo/shared/enums/GenerationTaskStatus.class
 com/aichuangzuo/shared/enums/error/UserAuthErrorCode.class

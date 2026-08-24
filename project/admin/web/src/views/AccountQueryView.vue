@@ -10,16 +10,37 @@
         <a-input v-model:value="query.userId" placeholder="用户ID" style="width: 120px" />
         <a-input v-model:value="query.nickname" placeholder="昵称" style="width: 180px" />
         <a-input v-model:value="query.email" placeholder="邮箱" style="width: 200px" />
+        <a-select v-model:value="query.userType" allow-clear placeholder="全部类型" style="width: 120px">
+          <a-select-option :value="0">机器人</a-select-option>
+          <a-select-option :value="1">真实用户</a-select-option>
+        </a-select>
         <a-button type="primary" @click="fetchAccounts">查询</a-button>
         <a-radio-group :value="viewMode" option-type="button" @change="e => onViewModeChange(e.target.value)" style="margin-left: auto">
           <a-radio-button value="all">全部用户</a-radio-button>
           <a-radio-button value="heavyEarnings">深度用户（按收益）</a-radio-button>
           <a-radio-button value="heavyCoin">深度用户（按余额）</a-radio-button>
         </a-radio-group>
+        <a-popover title="显示列" placement="bottomRight" trigger="click">
+          <template #content>
+            <div class="column-toggle">
+              <a-checkbox v-model:checked="columnVisibility.userId">用户ID</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.nickname">昵称</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.email">邮箱</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.userType">类型</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.totalEarnings">累计收益</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.coinBalance">创作币余额</a-checkbox>
+              <a-checkbox v-model:checked="columnVisibility.withdrawnAmount">已经提现金额</a-checkbox>
+            </div>
+          </template>
+          <a-button>
+            <template #icon><SettingOutlined /></template>
+            列设置
+          </a-button>
+        </a-popover>
       </div>
 
       <a-table
-        :columns="columns"
+        :columns="displayColumns"
         :data-source="accounts"
         :loading="loading"
         :pagination="false"
@@ -27,8 +48,14 @@
         size="middle"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'actions'">
+          <template v-if="column.key === 'userType'">
+            <a-tag :color="record.userType === 0 ? 'orange' : 'blue'">
+              {{ record.userType === 0 ? '机器人' : '真实用户' }}
+            </a-tag>
+          </template>
+          <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="openDetail(record.userId)">查看详情</a-button>
+            <a-button v-if="record.userType === 0" type="link" size="small" @click="openAddCoin(record)">增加创作币</a-button>
           </template>
         </template>
       </a-table>
@@ -177,13 +204,45 @@
         </template>
       </a-spin>
     </a-modal>
+
+    <a-modal
+      v-model:open="addCoinVisible"
+      title="增加创作币"
+      ok-text="确认增加"
+      cancel-text="取消"
+      :confirm-loading="addCoinLoading"
+      @ok="submitAddCoin"
+      @cancel="closeAddCoin"
+    >
+      <p v-if="addCoinTarget">
+        用户：<strong>{{ addCoinTarget.nickname || addCoinTarget.email || addCoinTarget.userId }}</strong>
+        <a-tag color="orange" style="margin-left: 8px">机器人</a-tag>
+      </p>
+      <a-form ref="addCoinFormRef" :model="addCoinForm" :rules="addCoinRules" layout="vertical">
+        <a-form-item label="增加数量" name="amount">
+          <a-input-number
+            v-model:value="addCoinForm.amount"
+            :min="0.01"
+            :precision="2"
+            style="width: 100%"
+            placeholder="请输入要增加的创作币数量"
+          />
+        </a-form-item>
+        <a-form-item label="备注" name="remark">
+          <a-textarea v-model:value="addCoinForm.remark" :rows="3" placeholder="可选，记录调整原因" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import dayjs from 'dayjs'
-import { onMounted } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { message } from 'ant-design-vue'
+import { SettingOutlined } from '@ant-design/icons-vue'
 import { useAccountQuery } from '@/composables/useAccountQuery.js'
+import { addCoinToUser } from '@/api/earnings.js'
 
 const {
   accounts, total, loading, query,
@@ -198,40 +257,79 @@ const {
   searchRewardRecords, resetRewardQuery
 } = useAccountQuery()
 
-const columns = [
+const baseColumns = [
   { title: '用户ID', dataIndex: 'userId', key: 'userId' },
   { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
   { title: '邮箱', dataIndex: 'email', key: 'email' },
+  { title: '类型', dataIndex: 'userType', key: 'userType' },
   { title: '累计收益', dataIndex: 'totalEarnings', key: 'totalEarnings' },
   { title: '创作币余额', dataIndex: 'coinBalance', key: 'coinBalance' },
   { title: '已经提现金额', dataIndex: 'withdrawnAmount', key: 'withdrawnAmount' },
   { title: '操作', key: 'actions' }
 ]
 
-const coinColumns = [
-  { title: '业务类型', dataIndex: 'bizType', key: 'bizType', width: 140 },
-  { title: '方向', key: 'direction', width: 80 },
-  { title: '金额', dataIndex: 'amount', key: 'amount', width: 100 },
-  { title: '余额', dataIndex: 'balanceAfter', key: 'balanceAfter', width: 100 },
-  { title: '备注', dataIndex: 'remark', key: 'remark', width: 180, ellipsis: true },
-  { title: '业务时间', key: 'bizTime', width: 150 }
-]
+const columnVisibility = reactive({
+  userId: true,
+  nickname: true,
+  email: true,
+  userType: true,
+  totalEarnings: true,
+  coinBalance: true,
+  withdrawnAmount: true
+})
 
-const earningsColumns = [
-  { title: '类型', dataIndex: 'type', key: 'type' },
-  { title: '标题', dataIndex: 'title', key: 'title' },
-  { title: '金额', dataIndex: 'amount', key: 'amount' },
-  { title: '结算月份', dataIndex: 'settlementMonth', key: 'settlementMonth' },
-  { title: '创建时间', key: 'createdAt' }
-]
+const displayColumns = computed(() =>
+  baseColumns.filter((col) => col.key === 'actions' || columnVisibility[col.key] !== false)
+)
 
-const rewardColumns = [
-  { title: '榜单类型', key: 'leaderboardType' },
-  { title: '月份', dataIndex: 'periodMonth', key: 'periodMonth' },
-  { title: '排名', dataIndex: 'rankNo', key: 'rankNo' },
-  { title: '金额', dataIndex: 'amount', key: 'amount' },
-  { title: '发放时间', key: 'grantedAt' }
-]
+const addCoinVisible = ref(false)
+const addCoinLoading = ref(false)
+const addCoinTarget = ref(null)
+const addCoinFormRef = ref()
+const addCoinForm = reactive({
+  amount: null,
+  remark: ''
+})
+
+const addCoinRules = {
+  amount: [
+    { required: true, message: '请输入创作币数量', trigger: 'blur' },
+    { type: 'number', min: 0.01, message: '数量必须大于 0', trigger: 'blur', transform: (v) => Number(v) }
+  ]
+}
+
+const openAddCoin = (record) => {
+  addCoinTarget.value = record
+  addCoinForm.amount = null
+  addCoinForm.remark = ''
+  addCoinVisible.value = true
+}
+
+const closeAddCoin = () => {
+  addCoinVisible.value = false
+  addCoinTarget.value = null
+  addCoinFormRef.value?.resetFields()
+}
+
+const submitAddCoin = () => {
+  addCoinFormRef.value?.validate().then(async () => {
+    if (!addCoinTarget.value) return
+    addCoinLoading.value = true
+    try {
+      await addCoinToUser(addCoinTarget.value.userId, {
+        amount: addCoinForm.amount,
+        remark: addCoinForm.remark?.trim() || undefined
+      })
+      message.success('创作币已增加')
+      closeAddCoin()
+      fetchAccounts()
+    } catch (error) {
+      message.error(error.message || '增加创作币失败')
+    } finally {
+      addCoinLoading.value = false
+    }
+  })
+}
 
 onMounted(fetchAccounts)
 
@@ -265,6 +363,13 @@ function formatTime(t) {
 .page-desc { color: #8c8c8c; margin: 0; }
 .toolbar { display: flex; gap: 8px; margin-bottom: 16px; }
 .pagination { margin-top: 16px; display: flex; justify-content: flex-end; }
+
+.column-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 120px;
+}
 
 .detail-header { margin-bottom: 16px; }
 .detail-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }

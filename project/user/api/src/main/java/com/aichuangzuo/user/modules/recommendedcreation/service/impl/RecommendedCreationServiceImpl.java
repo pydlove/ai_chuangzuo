@@ -71,6 +71,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
             session = newSession(userId);
         }
         session.setCurrentStep(1);
+        session.setStatus("draft");
         session.setTopicsJson(toJson(topics));
         session.setSelectedTopicJson(null);
         session.setAnglesJson(null);
@@ -156,7 +157,8 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         req.setTemplate(session.getTemplate());
 
         GenerationTaskVO task = generationTaskService.submit(req, userId);
-        sessionMapper.deleteByIdPhysically(session.getId());
+        session.setStatus("completed");
+        save(session);
         return task;
     }
 
@@ -302,6 +304,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         vo.setWordCount(session.getWordCount());
         vo.setPrompt(session.getPrompt());
         vo.setTemplate(session.getTemplate());
+        vo.setStatus(session.getStatus());
         return vo;
     }
 

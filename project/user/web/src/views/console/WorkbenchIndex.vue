@@ -8,9 +8,9 @@
             <!-- 左侧：对话区域 -->
             <div class="welcome-dialogue">
               <a-avatar
-                :size="48"
-                src="https://foruda.gitee.com/images/1787188720633617816/b28bf15b_8060302.png"
-                alt="AI 顾问"
+                :size="62"
+                src="/assets/images/小爱.png"
+                alt="小爱"
                 class="ai-avatar"
               />
               <div class="dialogue-bubble">
@@ -19,9 +19,9 @@
                 </div>
                 <div class="dialogue-greeting">
                   <span v-if="!hasPlan" class="todo-text">
-                    我可以帮您定制专属您的自媒体运营方案，<a href="javascript:;" class="plan-link" @click="router.push('/console/onboarding')">去制定</a>
+                    我可以帮您定制专属您的自媒体运营方案，<a href="javascript:;" class="plan-link" @click="goToOnboarding()">去制定</a>
                   </span>
-                  <span v-else-if="todayDone" class="done-text">今日创作目标已达成，继续保持！</span>
+                  <span v-else-if="todayDone" class="done-text">🎉 🎉 🎉 今日创作目标已达成，继续保持！</span>
                   <span v-else class="todo-text">今日任务还没完成，点击「开始今日创作」去写一篇吧</span>
                 </div>
               </div>
@@ -30,7 +30,7 @@
             <!-- 中间：个人信息区域 -->
             <div class="welcome-info">
               <div class="info-header">
-                <a-avatar :size="40" class="user-avatar-mini">
+                <a-avatar :size="40" class="user-avatar-mini" :src="userInfo.avatarUrl">
                   {{ userInfo.nickname ? userInfo.nickname[0] : 'U' }}
                 </a-avatar>
                 <span class="info-name">{{ userInfo.nickname || '未设置昵称' }}</span>
@@ -39,10 +39,22 @@
                 </a-tag>
               </div>
               <div class="welcome-meta">
-                <span class="meta-item"><MailOutlined /> {{ userInfo.email }}</span>
-                <a-divider type="vertical" class="meta-divider" />
-                <span class="meta-item">邀请码：{{ userInfo.inviteCode }}</span>
-                <a-button type="link" size="small" class="copy-code-btn" @click="copyInviteCode">
+                <span v-if="userInfo.email" class="meta-item"><MailOutlined /> {{ userInfo.email }}</span>
+                <span v-if="userInfo.phone" class="meta-item"><PhoneOutlined /> {{ userInfo.phone }}</span>
+                <span v-if="!userInfo.email && !userInfo.phone" class="meta-item">未绑定联系方式</span>
+                <a-divider
+                  v-if="(userInfo.email || userInfo.phone) && userInfo.inviteCode"
+                  type="vertical"
+                  class="meta-divider"
+                />
+                <span v-if="userInfo.inviteCode" class="meta-item">邀请码：{{ userInfo.inviteCode }}</span>
+                <a-button
+                  v-if="userInfo.inviteCode"
+                  type="link"
+                  size="small"
+                  class="copy-code-btn"
+                  @click="copyInviteCode"
+                >
                   复制
                 </a-button>
               </div>
@@ -87,7 +99,7 @@
             class="plan-btn"
             @click="openAdjustPlanConfirm"
           >
-            调整方案
+            调整方案{{ planAdjustText }}
           </a-button>
         </template>
         <div v-if="hasPlan" class="plan-content">
@@ -116,7 +128,7 @@
           <div class="plan-empty-title">您还没有还没有专属运营方案，</div>
           <div class="plan-empty-desc">
             您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧，
-            <a href="javascript:;" class="plan-link" @click="router.push('/console/onboarding')">立即制定</a>
+            <a href="javascript:;" class="plan-link" @click="goToOnboarding()">立即制定</a>
           </div>
         </div>
       </a-card>
@@ -194,23 +206,35 @@
                   class="generation-progress"
                 />
               </div>
-              <a-button
+              <div
                 v-if="record.status === 'completed'"
-                type="link"
-                size="small"
-                class="repost-btn"
-                @click.stop="openRepostsPlan(record)"
+                class="generation-actions"
               >
-                一文多发
-              </a-button>
-              <a-button
-                type="link"
-                size="small"
-                class="view-article-btn"
-                @click.stop="openArticleView(record)"
-              >
-                查看
-              </a-button>
+                <a-button
+                  type="link"
+                  size="small"
+                  class="repost-btn"
+                  @click.stop="openRepostsPlan(record)"
+                >
+                  一文多发
+                </a-button>
+                <a-tag
+                  v-if="!hasBenefit('repost_plan')"
+                  color="#ff2442"
+                  size="small"
+                  class="repost-pro-tag"
+                >
+                  专业版
+                </a-tag>
+                <a-button
+                  type="link"
+                  size="small"
+                  class="view-article-btn"
+                  @click.stop="openArticleView(record)"
+                >
+                  查看
+                </a-button>
+              </div>
             </div>
           </div>
         </a-card>
@@ -252,7 +276,7 @@
         <a-spin :spinning="publishPlanLoading" tip="小爱正在为您准备发布建议...">
           <template v-if="!hasPlan">
             <a-empty description="请先制定自媒体运营方案，再生成发布计划">
-              <a-button type="primary" @click="router.push('/console/onboarding')">去制定方案</a-button>
+              <a-button type="primary" @click="goToOnboarding()">去制定方案</a-button>
             </a-empty>
           </template>
           <template v-else-if="publishPlan">
@@ -300,7 +324,7 @@
         <a-spin :spinning="repostsLoading" tip="小爱正在准备多平台方案…">
           <template v-if="!hasPlan">
             <a-empty description="请先制定自媒体运营方案，再生成多平台发布计划">
-              <a-button type="primary" @click="router.push('/console/onboarding')">去制定方案</a-button>
+              <a-button type="primary" @click="goToOnboarding()">去制定方案</a-button>
             </a-empty>
           </template>
           <template v-else-if="currentRepostPlan?.reposts?.length">
@@ -347,130 +371,7 @@
       </div>
     </a-modal>
 
-    <!-- 账号检测弹窗 -->
-    <a-modal
-      v-model:open="accountModalVisible"
-      title="平台账号检测"
-      width="560px"
-      :footer="null"
-      class="account-modal"
-      @cancel="accountModalVisible = false"
-    >
-      <div class="account-section">
-        <a-alert
-          v-if="nicknameCheckLimitReached"
-          message="今日账号检测/昵称推荐次数已达上限"
-          description="每个账号每天可检测/推荐次数有限，请明天再试。"
-          type="warning"
-          show-icon
-          style="margin-bottom: 16px"
-        />
-        <div class="account-question">你已经有 {{ hasPlan ? plan.platform : '自媒体' }} 账号了吗？</div>
-        <a-radio-group v-model:value="accountInfo.hasAccount" class="account-radio">
-          <a-radio :value="true">已有账号或者想好了账号</a-radio>
-          <a-radio :value="false">还没有</a-radio>
-        </a-radio-group>
-
-        <div v-if="accountInfo.hasAccount" class="account-form">
-          <div class="account-hint">
-            如果您已经有账号了，可以填写昵称检测下和您的自媒体定位是否相符，如果不符合，也会给您一些推荐。
-          </div>
-          <div class="form-row">
-            <span class="form-label">账号名称</span>
-            <a-input v-model:value="accountInfo.name" placeholder="输入你的账号昵称" />
-            <a-button
-              type="primary"
-              class="validate-btn"
-              :loading="checking"
-              :disabled="nicknameCheckLimitReached || !accountInfo.name.trim()"
-              @click="validateAccountName"
-            >
-              检测名称
-            </a-button>
-          </div>
-          <div
-            v-if="accountValidation"
-            class="validation-result"
-            :class="{ fit: accountFit === true, unfit: accountFit === false }"
-          >
-            <template v-if="accountFit === true">
-              <CheckCircleOutlined class="result-icon" /> {{ accountValidation }}
-            </template>
-            <template v-else-if="accountFit === false">
-              <InfoCircleOutlined class="result-icon" /> {{ accountValidation }}
-            </template>
-            <template v-else>
-              {{ accountValidation }}
-            </template>
-          </div>
-          <div v-if="accountReason" class="validation-reason">{{ accountReason }}</div>
-          <div v-if="accountSuggestions.length" class="suggestion-list">
-            <div class="suggestion-label">小爱建议昵称</div>
-            <div class="suggestion-cards">
-              <div
-                v-for="(s, idx) in accountSuggestions"
-                :key="idx"
-                class="suggestion-card"
-                @click="selectSuggestion(s)"
-              >
-                <div class="suggestion-card-row">
-                  <div class="suggestion-card-nickname">{{ s.nickname }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(s.nickname)">复制昵称</span>
-                </div>
-                <div class="suggestion-card-row">
-                  <div class="suggestion-card-bio">{{ s.bio }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(s.bio)">复制描述</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div v-else class="register-guide">
-          <div class="guide-title">注册 {{ hasPlan ? plan.platform : '自媒体' }} 账号建议</div>
-          <div class="guide-list">
-            <div class="guide-item">下载 {{ hasPlan ? plan.platform : '对应平台' }} App 或访问官网注册</div>
-            <div class="guide-item">昵称包含赛道关键词，如「35+职场转型」</div>
-            <div class="guide-item">简介说明价值，如「分享真实职场转型经验」</div>
-            <div class="guide-item">头像使用真人或统一风格，提高信任感</div>
-          </div>
-          <div class="guide-doc-link">
-            注册前可以查阅：
-            <a href="https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink" target="_blank" rel="noopener noreferrer">爱创作新手教程</a>
-          </div>
-          <div class="recommend-row">
-            <a-button
-              type="primary"
-              class="recommend-btn"
-              :loading="recommending"
-              :disabled="nicknameCheckLimitReached"
-              @click="recommendAccountName"
-            >
-              推荐昵称
-            </a-button>
-          </div>
-          <div v-if="recommendOptions.length" class="suggestion-list">
-            <div class="suggestion-label">小爱推荐昵称</div>
-            <div class="suggestion-cards">
-              <div
-                v-for="(opt, idx) in recommendOptions"
-                :key="idx"
-                class="suggestion-card"
-              >
-                <div class="suggestion-card-row">
-                  <div class="suggestion-card-nickname">{{ opt.nickname }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(opt.nickname)">复制昵称</span>
-                </div>
-                <div class="suggestion-card-row">
-                  <div class="suggestion-card-bio">{{ opt.bio }}</div>
-                  <span class="suggestion-card-copy" @click.stop="copyText(opt.bio)">复制描述</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </a-modal>
+    <AccountCheckModal v-model:visible="accountModalVisible" />
 
     <!-- 本周数据弹窗 -->
     <a-modal
@@ -658,7 +559,7 @@
         老师，做自媒体最重要的是坚持，频繁修改运营方案会影响您的账号定位和流量，是否继续调整？
       </div>
       <div class="adjust-plan-confirm-footer">
-        <a-button type="primary" class="continue-btn" @click="confirmAdjustPlan">继续</a-button>
+        <a-button type="default" class="continue-btn" @click="confirmAdjustPlan">继续</a-button>
         <a-button @click="adjustPlanConfirmVisible = false">取消</a-button>
       </div>
     </a-modal>
@@ -673,9 +574,8 @@ import {
   EditOutlined,
   CrownOutlined,
   MailOutlined,
+  PhoneOutlined,
   UserOutlined,
-  CheckCircleOutlined,
-  InfoCircleOutlined,
   FileTextOutlined,
   ShopOutlined,
   FireOutlined,
@@ -697,8 +597,8 @@ import {
 } from '@ant-design/icons-vue'
 import CreateFlowModal from './create/CreateFlowModal.vue'
 import FreeCreateModal from './create/FreeCreateModal.vue'
+import AccountCheckModal from '@/components/AccountCheckModal.vue'
 import { fetchCurrentPlan, generatePublishPlan } from '@/api/selfMediaPlan.js'
-import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
@@ -713,7 +613,9 @@ const router = useRouter()
 const userInfo = reactive({
   nickname: '',
   email: '',
+  phone: '',
   inviteCode: '',
+  avatarUrl: '',
   vipLevel: '',
   vipExpire: ''
 })
@@ -724,13 +626,20 @@ const balance = reactive({
 })
 
 const { withdrawRecords: rawWithdrawRecords, loadWithdrawals } = useWithdraw()
-const { benefits, loadBenefits } = useBenefits()
+const { benefits, loadBenefits, hasBenefit } = useBenefits()
 
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const quotaText = computed(() => {
   if (quotaTotal.value === 0) return ''
   return `（剩余 ${quotaRemaining.value} 次）`
+})
+
+const planAdjustTotal = computed(() => Number(benefits.value['plan_adjust_quota']?.value) || 0)
+const planAdjustRemaining = computed(() => benefits.value['plan_adjust_quota']?.remaining ?? 0)
+const planAdjustText = computed(() => {
+  if (planAdjustTotal.value === 0) return ''
+  return `（本月剩余 ${planAdjustRemaining.value} 次）`
 })
 
 const withdrawRecords = computed(() => {
@@ -758,6 +667,8 @@ const todayKey = computed(() => {
   return `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
 })
 
+const hasMembership = ref(false)
+
 async function loadWelcomeData() {
   try {
     const [profileRes, summary, membershipRes] = await Promise.all([
@@ -768,11 +679,14 @@ async function loadWelcomeData() {
     const profile = profileRes?.data || {}
     userInfo.nickname = profile.nickname || ''
     userInfo.email = profile.email || ''
+    userInfo.phone = profile.phone || ''
     userInfo.inviteCode = profile.inviteCode || ''
+    userInfo.avatarUrl = profile.avatarUrl || ''
 
     balance.coin = summary?.coinBalance || 0
 
     const membership = membershipRes?.data || {}
+    hasMembership.value = membership.hasMembership || false
     if (membership.hasMembership) {
       userInfo.vipLevel = membership.levelName || ''
       userInfo.vipExpire = membership.expiresAt || ''
@@ -834,18 +748,32 @@ async function loadPlan() {
   }
 }
 
+function goToOnboarding(reset = false) {
+  if (!hasMembership.value) {
+    message.info('制定运营方案需要开通会员，请先订阅套餐')
+    router.push('/pricing')
+    return
+  }
+  const path = reset ? '/console/onboarding?reset=1' : '/console/onboarding'
+  router.push(path)
+}
+
 function goToPlan() {
   planModalVisible.value = false
-  router.push('/console/onboarding')
+  goToOnboarding()
 }
 
 function openAdjustPlanConfirm() {
+  if (planAdjustTotal.value > 0 && planAdjustRemaining.value <= 0) {
+    message.warning('本月调整方案次数已用完，如需继续调整请升级套餐')
+    return
+  }
   adjustPlanConfirmVisible.value = true
 }
 
 function confirmAdjustPlan() {
   adjustPlanConfirmVisible.value = false
-  router.push('/console/onboarding?reset=1')
+  goToOnboarding(true)
 }
 
 function dismissPlanModal() {
@@ -954,39 +882,6 @@ async function saveWeeklyData() {
     weeklyLoading.value = false
   }
 }
-
-const accountInfo = reactive({
-  hasAccount: true,
-  name: ''
-})
-
-const accountValidation = ref('')
-const accountFit = ref(null)
-const accountReason = ref('')
-const checking = ref(false)
-const nicknameCheckLimitReached = ref(false)
-
-watch(() => accountInfo.name, () => {
-  if (isRestoring.value) return
-  accountValidation.value = ''
-  accountFit.value = null
-  accountReason.value = ''
-}, { flush: 'sync' })
-
-watch(accountModalVisible, (visible) => {
-  if (visible) {
-    nicknameCheckLimitReached.value = false
-    restoreAccountModalState()
-  }
-})
-
-const accountSuggestions = ref([])
-const recommendOptions = ref([])
-const recommending = ref(false)
-const isRestoring = ref(false)
-
-const ACCOUNT_CHECK_LAST_KEY = 'aichuangzuo_account_check_last'
-const ACCOUNT_RECOMMEND_LAST_KEY = 'aichuangzuo_account_recommend_last'
 
 const shortcuts = [
   { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { accountModalVisible.value = true } },
@@ -1136,6 +1031,19 @@ function planCacheKey(record) {
   return record?.articleBizNo || record?.bizNo || record?.id || ''
 }
 
+function ensureRepostPlanBenefit() {
+  if (!hasMembership.value) {
+    message.warning('当前套餐不支持发布方案建议，请升级专业版及以上套餐')
+    router.push('/pricing')
+    return false
+  }
+  if (!hasBenefit('repost_plan')) {
+    message.warning('当前套餐不支持发布方案建议，请升级专业版及以上套餐')
+    return false
+  }
+  return true
+}
+
 async function loadPublishPlan(record) {
   publishPlan.value = null
   if (!hasPlan.value) return
@@ -1221,12 +1129,14 @@ function onFreeCreateSuccess(task) {
 }
 
 function openPublishGuide(record) {
+  if (!ensureRepostPlanBenefit()) return
   currentPublishRecord.value = record
   loadPublishPlan(record)
   publishModalVisible.value = true
 }
 
 function openHowToPublish() {
+  if (!ensureRepostPlanBenefit()) return
   const completed = recentRecords.value.find(r => r.status === 'completed')
   const record = completed || recentRecords.value[0] || null
   currentPublishRecord.value = record
@@ -1235,6 +1145,7 @@ function openHowToPublish() {
 }
 
 async function openRepostsPlan(record) {
+  if (!ensureRepostPlanBenefit()) return
   if (!record) return
   currentRepostRecord.value = record
   currentRepostPlan.value = null
@@ -1315,166 +1226,7 @@ function statusText(status) {
   return map[status] || status
 }
 
-function validateAccountName() {
-  if (!hasPlan.value) {
-    message.info('请先制定自媒体运营方案，再检测账号名称')
-    accountModalVisible.value = false
-    router.push('/console/onboarding')
-    return
-  }
-  const name = accountInfo.name.trim()
-  if (!name) {
-    accountValidation.value = '请输入账号名称'
-    return
-  }
-  doCheckNickname(name)
-}
 
-function buildPositioning() {
-  const { platform, niche, persona, goal, pillars } = plan
-  const parts = []
-  if (platform) parts.push(`平台：${platform}`)
-  if (niche) parts.push(`赛道：${niche}`)
-  if (persona) parts.push(`人设：${persona}`)
-  if (goal) parts.push(`核心目标：${goal}`)
-  if (pillars?.length) {
-    const pillarText = pillars.map((p) => `${p.name} ${p.percent}%`).join('，')
-    parts.push(`内容支柱：${pillarText}`)
-  }
-  return parts.join('；')
-}
-
-async function doCheckNickname(name) {
-  checking.value = true
-  accountValidation.value = ''
-  accountFit.value = null
-  accountReason.value = ''
-  accountSuggestions.value = []
-  try {
-    const positioning = buildPositioning()
-    if (!positioning) {
-      message.warning('请先制定自媒体方案后再进行检测')
-      return
-    }
-    const result = await checkNickname({
-      nickname: name,
-      platform: plan.platform || '',
-      positioning
-    })
-    accountFit.value = result.fit === true
-    accountReason.value = result.reason || ''
-    accountSuggestions.value = Array.isArray(result.suggestions) ? result.suggestions : []
-    if (accountFit.value) {
-      accountValidation.value = '名称与定位契合'
-    } else if (accountSuggestions.value.length) {
-      accountValidation.value = '名称不够契合，可参考以下建议'
-    } else {
-      accountValidation.value = '检测完成'
-    }
-    saveLastCheckResult()
-  } catch (err) {
-    if (err?.code === 113008) {
-      nicknameCheckLimitReached.value = true
-    }
-    accountValidation.value = err?.message || '检测失败，请重试'
-    accountFit.value = false
-  } finally {
-    checking.value = false
-  }
-}
-
-function selectSuggestion(s) {
-  accountInfo.name = s.nickname || ''
-  accountValidation.value = ''
-  accountFit.value = null
-  accountReason.value = ''
-}
-
-async function copyText(text) {
-  if (!text) return
-  try {
-    await navigator.clipboard.writeText(text)
-    message.success('已复制')
-  } catch {
-    const input = document.createElement('textarea')
-    input.value = text
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    document.body.removeChild(input)
-    message.success('已复制')
-  }
-}
-
-function saveLastCheckResult() {
-  localStorage.setItem(ACCOUNT_CHECK_LAST_KEY, JSON.stringify({
-    name: accountInfo.name,
-    fit: accountFit.value,
-    reason: accountReason.value,
-    suggestions: accountSuggestions.value,
-    validation: accountValidation.value
-  }))
-}
-
-function saveLastRecommendResult() {
-  localStorage.setItem(ACCOUNT_RECOMMEND_LAST_KEY, JSON.stringify(recommendOptions.value))
-}
-
-function restoreAccountModalState() {
-  isRestoring.value = true
-  try {
-    const checkRaw = localStorage.getItem(ACCOUNT_CHECK_LAST_KEY)
-    if (checkRaw) {
-      try {
-        const data = JSON.parse(checkRaw)
-        accountInfo.name = data.name || ''
-        accountFit.value = data.fit ?? null
-        accountReason.value = data.reason || ''
-        accountSuggestions.value = Array.isArray(data.suggestions) ? data.suggestions : []
-        accountValidation.value = data.validation || ''
-      } catch {
-        localStorage.removeItem(ACCOUNT_CHECK_LAST_KEY)
-      }
-    }
-    const recommendRaw = localStorage.getItem(ACCOUNT_RECOMMEND_LAST_KEY)
-    if (recommendRaw) {
-      try {
-        recommendOptions.value = JSON.parse(recommendRaw) || []
-      } catch {
-        localStorage.removeItem(ACCOUNT_RECOMMEND_LAST_KEY)
-      }
-    }
-  } finally {
-    isRestoring.value = false
-  }
-}
-
-async function recommendAccountName() {
-  if (!hasPlan.value) {
-    message.info('请先制定自媒体运营方案，再获取昵称推荐')
-    accountModalVisible.value = false
-    router.push('/console/onboarding')
-    return
-  }
-  recommending.value = true
-  recommendOptions.value = []
-  try {
-    const result = await recommendNickname()
-    const opts = Array.isArray(result?.options) ? result.options : []
-    if (!opts.length && result?.nickname) {
-      opts.push({ nickname: result.nickname, bio: result.bio || '' })
-    }
-    recommendOptions.value = opts
-    saveLastRecommendResult()
-  } catch (err) {
-    if (err?.code === 113008) {
-      nicknameCheckLimitReached.value = true
-    }
-    message.error(err?.message || '推荐失败，请重试')
-  } finally {
-    recommending.value = false
-  }
-}
 </script>
 
 <style scoped>
@@ -1588,7 +1340,7 @@ async function recommendAccountName() {
 .ai-avatar {
   flex-shrink: 0;
   background: transparent;
-  margin-top: 18px;
+  margin-top: 15px;
 }
 .ai-avatar :deep(img) {
   object-fit: cover;
@@ -1805,6 +1557,11 @@ async function recommendAccountName() {
 }
 .plan-btn {
   border-radius: var(--radius-lg);
+}
+.plan-btn:hover,
+.plan-btn:focus {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 .plan-empty {
   flex: 1;
@@ -2100,6 +1857,13 @@ async function recommendAccountName() {
 .repost-btn:hover {
   color: var(--color-primary-hover);
 }
+.repost-pro-tag {
+  margin-inline-start: 4px;
+  font-size: 11px;
+  line-height: 18px;
+  padding: 0 6px;
+  border-radius: 999px;
+}
 .view-article-btn {
   padding: 0 8px;
   color: var(--color-text-secondary);
@@ -2249,6 +2013,23 @@ async function recommendAccountName() {
   line-height: 1.5;
 }
 
+:global(.publish-modal .ant-btn-primary),
+:global(.reposts-modal .ant-btn-primary),
+:global(.plan-modal .ant-btn-primary) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  border-radius: var(--radius-lg);
+}
+:global(.publish-modal .ant-btn-primary:hover),
+:global(.publish-modal .ant-btn-primary:focus),
+:global(.reposts-modal .ant-btn-primary:hover),
+:global(.reposts-modal .ant-btn-primary:focus),
+:global(.plan-modal .ant-btn-primary:hover),
+:global(.plan-modal .ant-btn-primary:focus) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
 /* 一文多发方案弹窗 */
 .reposts-modal-spin :deep(.ant-spin-text) {
   color: var(--color-primary);
@@ -2315,142 +2096,6 @@ async function recommendAccountName() {
   color: var(--color-primary);
   border-radius: 10px;
   font-size: 12px;
-}
-
-/* 账号检测弹窗 */
-.account-section {
-  padding: 4px;
-}
-.account-question {
-  font-size: var(--font-small);
-  color: var(--color-text-primary);
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-.account-radio {
-  margin-bottom: 12px;
-}
-.account-hint {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: 12px;
-}
-.account-form {
-  padding: 12px;
-  background: var(--color-bg-page);
-  border-radius: var(--radius-lg);
-}
-.form-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.form-row :deep(.ant-input-affix-wrapper) {
-  flex: 1;
-  min-width: 0;
-}
-.form-label {
-  flex-shrink: 0;
-  font-size: var(--font-body);
-  color: var(--color-text-secondary);
-}
-.validate-btn {
-  border-radius: var(--radius-md);
-}
-.validation-result {
-  margin-top: 8px;
-  font-size: var(--font-small);
-  color: var(--color-error);
-}
-.suggestion-list {
-  margin-top: 12px;
-}
-.suggestion-label {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  margin-bottom: var(--space-xs);
-}
-.suggestion-cards {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-sm);
-}
-.suggestion-card {
-  padding: var(--space-sm);
-  background: var(--color-bg-card);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.suggestion-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: var(--shadow-sm2);
-}
-.suggestion-card-row {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-sm);
-}
-.suggestion-card-row + .suggestion-card-row {
-  margin-top: 6px;
-}
-.suggestion-card-nickname {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--font-body);
-  font-weight: 600;
-  color: var(--color-primary);
-}
-.suggestion-card-bio {
-  flex: 1;
-  min-width: 0;
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  line-height: 1.5;
-}
-.suggestion-card-copy {
-  flex-shrink: 0;
-  font-size: var(--font-caption);
-  color: var(--color-text-secondary);
-  cursor: pointer;
-  transition: color 0.2s;
-}
-.suggestion-card-copy:hover {
-  color: var(--color-primary);
-}
-.register-guide {
-  background: var(--color-bg-page);
-  border-radius: var(--radius-lg);
-  padding: var(--space-md);
-}
-.guide-title {
-  font-weight: 600;
-  font-size: var(--font-body);
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-sm);
-}
-.guide-list {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.guide-item {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  position: relative;
-  padding-left: 16px;
-}
-.guide-item::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 7px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-primary);
 }
 
 /* 创作方式选择弹窗 */
@@ -2841,59 +2486,483 @@ async function recommendAccountName() {
 }
 @media (max-width: 768px) {
   .workbench-index {
-    padding: var(--space-md);
+    padding: 14px 12px calc(20px + env(safe-area-inset-bottom));
+    background:
+      radial-gradient(140% 90% at 50% -8%, var(--color-primary-bg) 0%, transparent 55%),
+      var(--color-bg-page);
+  }
+
+  .top-row,
+  .bottom-row,
+  .left-column {
+    gap: 14px;
+  }
+
+  /* 卡片：更圆润、更柔和的阴影 */
+  .wb-card {
+    border-radius: 18px;
+    background: var(--color-bg-card);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+  }
+  .wb-card :deep(.ant-card-body),
+  .wb-card :deep(.ant-card-head) {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .wb-card :deep(.ant-card-head) {
+    min-height: 50px;
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .wb-card :deep(.ant-card-head-title) {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+  }
+
+  /* 欢迎区：改成居中的英雄卡片 */
+  .welcome-card {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    border: 1px solid rgba(255, 36, 66, 0.06);
+    box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
+    border-radius: 20px;
+  }
+  .welcome-card::before {
+    content: '';
+    position: absolute;
+    top: -50px;
+    right: -40px;
+    width: 140px;
+    height: 140px;
+    background: radial-gradient(circle, rgba(255, 36, 66, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+  }
+  .welcome-card :deep(.ant-card-body) {
+    position: relative;
+    padding: 18px;
   }
   .welcome-body {
     flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-md);
+    align-items: center;
+    gap: 12px;
+    text-align: center;
   }
-  .welcome-info {
-    padding: var(--space-md) 0;
-    border-left: none;
-    border-right: none;
-    border-top: 1px solid var(--color-border-light);
-    border-bottom: 1px solid var(--color-border-light);
+  .ai-avatar {
+    width: 64px;
+    height: 64px;
+    margin-top: 0;
+    flex-shrink: 0;
+    border-radius: 50%;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
   }
-  .welcome-balance {
-    width: 100%;
-    padding: 0;
-    border-top: none;
+  .ai-avatar :deep(.ant-avatar) {
+    width: 64px !important;
+    height: 64px !important;
   }
-  .welcome-meta {
-    flex-direction: column;
-    align-items: flex-start;
+  .dialogue-bubble {
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px;
+    padding: 14px 16px;
     gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.6);
   }
-  .meta-divider {
+  .dialogue-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.45;
+  }
+  .dialogue-greeting {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.55;
+  }
+  .plan-link {
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
+  /* 隐藏个人信息与账户 */
+  .welcome-info,
+  .welcome-balance {
     display: none;
   }
+
+  /* 主操作区 */
   .create-section {
     flex-direction: column;
+    gap: 10px;
+    margin-top: 0;
+  }
+  .create-main-btn.ant-btn-primary {
+    height: 54px;
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    border: none;
+    box-shadow: 0 8px 22px rgba(255, 36, 66, 0.28);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .create-main-btn.ant-btn-primary:active {
+    transform: translateY(1px);
+    box-shadow: 0 4px 12px rgba(255, 36, 66, 0.22);
+  }
+  .create-main-btn :deep(.anticon) {
+    font-size: 20px;
   }
   .weekly-data-btn {
     width: 100%;
+    height: 44px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 14px;
+    background: #ffffff;
+    border: 1px solid #eeeeee;
+    color: #595959;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  }
+  .weekly-data-btn:hover {
+    background: #fff9fb;
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+  }
+  .weekly-data-btn :deep(.anticon) {
+    font-size: 16px;
+    color: var(--color-primary);
+  }
+
+  /* 运营方案：做成信息块 */
+  .plan-card {
+    max-height: none;
+  }
+  .plan-card :deep(.ant-card-body) {
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .plan-content {
+    gap: 10px;
+  }
+  .plan-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .plan-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    background: #f8f9fa;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+  .plan-label {
+    font-size: 11px;
+    color: #8c8c8c;
+    flex-shrink: 0;
+  }
+  .plan-value {
+    color: var(--color-text-primary);
+    font-weight: 600;
+    text-align: left;
+  }
+  .plan-platform {
+    color: var(--color-primary);
+    font-size: 15px;
+  }
+  .plan-pillars-inline {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    background: #f8f9fa;
+    padding: 10px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+  }
+  .plan-pillar-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .plan-pillar-tags :deep(.ant-tag) {
+    background: #ffffff;
+    border: 1px solid var(--color-primary-light);
+    color: var(--color-primary);
+    font-weight: 500;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    margin: 0;
+  }
+  .plan-empty {
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    padding: 18px 8px;
+    background: #f8f9fa;
+    border-radius: 12px;
+  }
+  .plan-empty-title {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .plan-empty-desc {
+    font-size: 12px;
+    line-height: 1.65;
+    max-width: none;
+    color: var(--color-text-secondary);
+  }
+
+  /* 手机端隐藏快捷操作和热门活动 */
+  .shortcut-card,
+  .activity-card-wrapper {
+    display: none;
+  }
+
+  /* 生成记录：卡片化 */
+  .generation-card :deep(.ant-card-body) {
+    padding: 8px;
+    height: auto;
+  }
+  .generation-empty {
+    padding: 32px 16px;
+  }
+  .generation-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
   }
   .generation-item {
-    gap: var(--space-sm);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 14px;
+    margin: 0;
+    border: 1px solid #f5f5f5;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    cursor: pointer;
+  }
+  .generation-item:last-child {
+    border-bottom: 1px solid #f5f5f5;
+  }
+  .generation-item:active {
+    transform: scale(0.995);
   }
   .generation-item:hover {
-    margin: 0 calc(-1 * var(--space-md));
-    padding-left: var(--space-md);
-    padding-right: var(--space-md);
+    margin: 0;
+    padding: 14px;
+    background: #ffffff;
+    border-color: var(--color-primary-light);
+    box-shadow: 0 6px 18px rgba(255, 36, 66, 0.08);
   }
+  .generation-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .generation-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    white-space: normal;
+  }
+  .generation-meta {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .generation-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+  .generation-status::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+  .generation-status.generating {
+    color: var(--color-warning);
+    background: #fff7e6;
+  }
+  .generation-status.generating::before {
+    background: var(--color-warning);
+  }
+  .generation-status.completed {
+    color: var(--color-success);
+    background: #e6f7ed;
+  }
+  .generation-status.completed::before {
+    background: var(--color-success);
+  }
+  .generation-status.failed {
+    color: var(--color-error);
+    background: #fff1f0;
+  }
+  .generation-status.failed::before {
+    background: var(--color-error);
+  }
+  .generation-progress {
+    margin-top: 8px;
+  }
+  .generation-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .repost-btn.ant-btn-link,
+  .view-article-btn.ant-btn-link {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 28px;
+    border: none;
+  }
+  .repost-btn.ant-btn-link {
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+  }
+  .view-article-btn.ant-btn-link {
+    background: #f5f5f5;
+    color: #595959;
+  }
+
+  /* 弹框统一宽度 */
+  :global(.publish-modal .ant-modal),
+  :global(.reposts-modal .ant-modal),
+  :global(.account-modal .ant-modal),
+  :global(.weekly-data-modal .ant-modal),
+  :global(.withdraw-modal .ant-modal),
+  :global(.plan-modal .ant-modal),
+  :global(.adjust-plan-confirm-modal .ant-modal) {
+    width: calc(100vw - 32px) !important;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+  :global(.create-choice-modal .ant-modal) {
+    width: calc(100vw - 32px) !important;
+    max-width: 100%;
+    margin: 0 auto;
+  }
+
+  /* 本周数据弹窗 */
   .weekly-data-item {
     flex-direction: column;
     align-items: stretch;
+    gap: var(--space-sm);
   }
   .weekly-data-reads {
     width: 100%;
   }
   .weekly-data-actions {
     flex-direction: column;
+    gap: var(--space-sm);
   }
+  .weekly-data-actions .ant-btn-dashed,
+  .weekly-data-actions .ant-btn-primary {
+    height: 42px;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  /* 创作方式选择 */
   .create-choice-options {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .create-choice-card {
+    padding: 16px;
+    border-radius: 16px;
+    border-width: 1px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .create-choice-card:active {
+    transform: scale(0.99);
+  }
+  .create-choice-card.recommended {
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    border-color: var(--color-primary-light);
+  }
+  .create-choice-card.recommended .choice-icon-wrap {
+    background: var(--color-primary);
+  }
+  .create-choice-card.recommended .choice-icon {
+    color: #ffffff;
+  }
+  .choice-icon-wrap {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .choice-icon {
+    font-size: 22px;
+  }
+  .choice-title {
+    font-size: 15px;
+    font-weight: 700;
+  }
+  .choice-desc {
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .choice-tag {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  /* 快捷操作在极窄屏下 3 列纵向排列（已隐藏，保留兼容） */
+  .shortcut-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .shortcut-item {
+    flex-direction: column;
+    justify-content: center;
+    padding: 10px 4px;
+    gap: 6px;
+  }
+  .shortcut-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+  .shortcut-icon {
+    font-size: 16px;
+  }
+  .shortcut-label {
+    font-size: 12px;
+    white-space: normal;
+    text-align: center;
+    line-height: 1.3;
   }
 }
 

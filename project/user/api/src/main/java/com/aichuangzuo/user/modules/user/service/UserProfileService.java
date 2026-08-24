@@ -3,7 +3,9 @@ package com.aichuangzuo.user.modules.user.service;
 import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户个人资料服务：查询与修改当前登录用户的基本信息。
@@ -38,6 +40,24 @@ public interface UserProfileService {
      * @throws com.aichuangzuo.shared.exception.BusinessException EMAIL_CODE_ERROR / EMAIL_ALREADY_EXISTS / EMAIL_SAME_AS_OLD / USER_NOT_FOUND
      */
     UserProfileVO updateEmail(UpdateEmailRequest request);
+
+    /**
+     * 修改手机号。需要新手机号已收到短信验证码。
+     *
+     * @param request 新手机号 + 6 位验证码（已通过 Bean Validation）
+     * @return 更新后的 UserProfileVO（phone_verified 置 1）
+     * @throws com.aichuangzuo.shared.exception.BusinessException SMS_CODE_ERROR / PHONE_ALREADY_EXISTS / PHONE_SAME_AS_OLD / USER_NOT_FOUND
+     */
+    UserProfileVO updatePhone(UpdatePhoneRequest request);
+
+    /**
+     * 上传头像。
+     *
+     * @param file 头像文件
+     * @return 更新后的 UserProfileVO
+     * @throws com.aichuangzuo.shared.exception.BusinessException AVATAR_FILE_INVALID / USER_NOT_FOUND
+     */
+    UserProfileVO updateAvatar(MultipartFile file);
 
     /**
      * 修改密码。需要原密码校验通过。

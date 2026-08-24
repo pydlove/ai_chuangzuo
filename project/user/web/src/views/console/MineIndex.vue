@@ -3,7 +3,22 @@
     <!-- 用户卡 -->
     <section class="mine-user-card">
       <div class="mine-user-main">
-        <div class="mine-user-avatar">{{ avatarLetter }}</div>
+        <div class="mine-user-avatar" @click="triggerAvatarUpload">
+          <img
+            v-if="profileForm.avatarUrl"
+            :src="profileForm.avatarUrl"
+            alt="avatar"
+            class="mine-avatar-img"
+          />
+          <span v-else>{{ avatarLetter }}</span>
+        </div>
+        <input
+          ref="mineAvatarInput"
+          type="file"
+          accept="image/jpeg,image/png,image/jpg"
+          style="display: none"
+          @change="onMineAvatarChange"
+        />
         <div class="mine-user-info">
           <div class="mine-user-name-row">
             <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
@@ -18,7 +33,8 @@
               {{ membershipLevel || '免费版' }}
             </span>
           </div>
-          <div class="mine-user-email">{{ emailForm.email || 'user@example.com' }}</div>
+          <div class="mine-user-email">{{ emailForm.email || '未绑定邮箱' }}</div>
+          <div class="mine-user-phone">{{ phoneForm.phone || '未绑定手机号' }}</div>
           <div v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
             有效期至 {{ membershipExpiry }}
           </div>
@@ -79,9 +95,9 @@
           <div class="mine-grid-icon mine-grid-icon--skills"><SmileOutlined /></div>
           <span class="mine-grid-label">我的提示词</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/skill-market')">
-          <div class="mine-grid-icon mine-grid-icon--market"><ShopOutlined /></div>
-          <span class="mine-grid-label">提示词市场</span>
+        <div class="mine-grid-item" @click="accountModalVisible = true">
+          <div class="mine-grid-icon mine-grid-icon--check"><SafetyCertificateOutlined /></div>
+          <span class="mine-grid-label">账号检测</span>
         </div>
         <div class="mine-grid-item" @click="$router.push('/console/hot-search')">
           <div class="mine-grid-icon mine-grid-icon--hot"><FireOutlined /></div>
@@ -139,6 +155,11 @@
           <span class="mine-list-label">修改邮箱</span>
           <RightOutlined class="mine-list-arrow" />
         </li>
+        <li class="mine-list-item" @click="actions.openPhoneModal">
+          <PhoneOutlined class="mine-list-icon" />
+          <span class="mine-list-label">修改手机号</span>
+          <RightOutlined class="mine-list-arrow" />
+        </li>
       </ul>
     </section>
 
@@ -180,6 +201,7 @@
     </button>
 
     <p class="mine-footer">© 2026 爱创作 · 杭州爱启云网络科技有限公司</p>
+    <AccountCheckModal v-model:visible="accountModalVisible" />
   </div>
 </template>
 
@@ -188,13 +210,14 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { inject } from 'vue'
 import { Modal } from 'ant-design-vue'
+import { useUserProfile } from '@/composables/useUserProfile.js'
 import {
   CrownOutlined,
   EditOutlined,
   DollarOutlined,
   ContainerOutlined,
   SmileOutlined,
-  ShopOutlined,
+  SafetyCertificateOutlined,
   FireOutlined,
   GiftOutlined,
   TagOutlined,
@@ -202,6 +225,7 @@ import {
   MessageOutlined,
   LockOutlined,
   MailOutlined,
+  PhoneOutlined,
   InfoCircleOutlined,
   FileTextOutlined,
   SafetyOutlined,
@@ -213,12 +237,19 @@ import {
 } from '@ant-design/icons-vue'
 import { getMonthlyCount } from '@/api/article'
 import { getMyCoupons } from '@/api/lottery'
+import AccountCheckModal from '@/components/AccountCheckModal.vue'
 
 const router = useRouter()
 const actions = inject('consoleActions')
 
+const accountModalVisible = ref(false)
+
+const userProfile = useUserProfile()
+const mineAvatarInput = ref(null)
+
 const profileForm = actions.profileForm
 const emailForm = actions.emailForm
+const phoneForm = actions.phoneForm
 const coinBalance = actions.coinBalance
 const inviteStats = actions.inviteStats
 const membershipLevel = actions.membershipLevel
@@ -263,6 +294,21 @@ const confirmLogout = () => {
 
 const openOfficialSite = () => {
   router.push('/')
+}
+
+const triggerAvatarUpload = () => {
+  mineAvatarInput.value?.click()
+}
+
+const onMineAvatarChange = async (e) => {
+  const file = e.target.files?.[0]
+  if (!file) return
+  e.target.value = ''
+  try {
+    await userProfile.saveAvatar(file)
+  } catch {
+    // composable 已 message.error
+  }
 }
 </script>
 
@@ -333,6 +379,14 @@ const openOfficialSite = () => {
   font-size: 24px;
   font-weight: 700;
   color: #fff;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.mine-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .mine-user-info {
@@ -392,6 +446,15 @@ const openOfficialSite = () => {
   margin-top: 5px;
   font-size: 12px;
   color: rgba(255, 255, 255, 0.85);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mine-user-phone {
+  margin-top: 3px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -555,7 +618,7 @@ const openOfficialSite = () => {
   border: 2px solid #fff;
 }
 .mine-grid-icon--skills { background: #F0F9FF; color: #1890ff; }
-.mine-grid-icon--market { background: #F0F9FF; color: #1890ff; }
+.mine-grid-icon--check { background: #F6FFED; color: #52c41a; }
 .mine-grid-icon--hot { background: #FFF5F7; color: #FF2442; }
 .mine-grid-icon--coupon { background: #FFF7F0; color: #fa8c16; }
 .mine-grid-icon--redeem { background: #F6FFED; color: #52c41a; }
@@ -752,7 +815,7 @@ body[data-theme="dark"] .mine-grid-gift-badge {
   box-shadow: 0 2px 5px rgba(255, 77, 111, 0.35);
 }
 body[data-theme="dark"] .mine-grid-icon--skills { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
-body[data-theme="dark"] .mine-grid-icon--market { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
+body[data-theme="dark"] .mine-grid-icon--check { background: rgba(82, 196, 26, 0.12); color: #95de64; }
 body[data-theme="dark"] .mine-grid-icon--coupon { background: rgba(250, 140, 22, 0.12); color: #ffc53d; }
 body[data-theme="dark"] .mine-grid-icon--redeem { background: rgba(82, 196, 26, 0.12); color: #95de64; }
 

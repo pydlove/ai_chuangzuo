@@ -19,6 +19,8 @@ public class WithdrawRequestVO {
 
     private String name;
 
+    private String nickname;
+
     private String status;
 
     private LocalDateTime processedAt;

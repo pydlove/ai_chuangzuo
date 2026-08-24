@@ -199,7 +199,7 @@ const navLinks = [
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
-const ctaTo = '/login'
+const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 const {

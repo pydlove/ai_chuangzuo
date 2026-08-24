@@ -2,10 +2,16 @@ package com.aichuangzuo.user.modules.selfmedia.controller;
 
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.*;
+import com.aichuangzuo.user.modules.selfmedia.service.PublishPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
+import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +25,11 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SelfMediaPlanController {
 
+    private static final String BENEFIT_REPOST_PLAN = "repost_plan";
+
     private final SelfMediaPlanService planService;
+    private final PublishPlanAiService publishPlanAiService;
+    private final BenefitService benefitService;
 
     @GetMapping("/current")
     public Result<SelfMediaPlanVO> getCurrentPlan() {
@@ -49,5 +59,15 @@ public class SelfMediaPlanController {
     public Result<SelfMediaPlanVO> savePlan(@RequestBody SavePlanRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(planService.savePlan(userId, request));
+    }
+
+    @PostMapping("/actions/publish-plan")
+    public Result<PublishPlanGuideVO> generatePublishPlan(@Valid @RequestBody PublishPlanRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        BenefitCheckVO check = benefitService.check(userId, BENEFIT_REPOST_PLAN);
+        if (!Boolean.TRUE.equals(check.getAllowed())) {
+            throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED.getCode(), check.getMessage());
+        }
+        return Result.success(publishPlanAiService.generatePlan(userId, request.getArticleTitle(), request.getMainPlatform()));
     }
 }

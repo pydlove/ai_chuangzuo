@@ -36,29 +36,12 @@
       <!-- 登录表单 -->
       <div v-show="activeTab === 'login'" class="ml-form">
         <div class="ml-field">
-          <div class="mode-toggle">
-            <button
-              :class="['mode-toggle-btn', { active: loginMode === 'email' }]"
-              @click="loginMode = 'email'"
-            >
-              邮箱登录
-            </button>
-            <button
-              :class="['mode-toggle-btn', { active: loginMode === 'phone' }]"
-              @click="loginMode = 'phone'"
-            >
-              手机号登录
-            </button>
-          </div>
-        </div>
-
-        <div class="ml-field">
-          <label class="ml-field__label">{{ loginMode === 'email' ? '邮箱' : '手机号' }}</label>
+          <label class="ml-field__label">手机号 / 邮箱</label>
           <input
-            v-model="loginForm[loginMode]"
-            :type="loginMode === 'email' ? 'email' : 'tel'"
+            v-model="loginForm.identifier"
+            type="text"
             class="ml-field__input"
-            :placeholder="loginMode === 'email' ? '请输入邮箱' : '请输入手机号'"
+            placeholder="请输入手机号或邮箱"
             autocomplete="off"
           />
         </div>
@@ -98,35 +81,18 @@
       <!-- 注册表单 -->
       <div v-show="activeTab === 'register'" class="ml-form">
         <div class="ml-field">
-          <div class="mode-toggle">
-            <button
-              :class="['mode-toggle-btn', { active: registerMode === 'email' }]"
-              @click="registerMode = 'email'"
-            >
-              邮箱注册
-            </button>
-            <button
-              :class="['mode-toggle-btn', { active: registerMode === 'phone' }]"
-              @click="registerMode = 'phone'"
-            >
-              手机号注册
-            </button>
-          </div>
-        </div>
-
-        <div class="ml-field">
-          <label class="ml-field__label">{{ registerMode === 'email' ? '邮箱' : '手机号' }}</label>
+          <label class="ml-field__label">手机号 / 邮箱</label>
           <input
-            v-model="registerForm[registerMode]"
-            :type="registerMode === 'email' ? 'email' : 'tel'"
+            v-model="registerForm.identifier"
+            type="text"
             class="ml-field__input"
-            :placeholder="registerMode === 'email' ? '请输入邮箱' : '请输入手机号'"
+            placeholder="请输入手机号或邮箱"
             autocomplete="off"
           />
         </div>
 
         <div class="ml-field">
-          <label class="ml-field__label">{{ registerMode === 'email' ? '邮箱验证码' : '短信验证码' }}</label>
+          <label class="ml-field__label">{{ registerMode === 'email' ? '邮箱验证码' : registerMode === 'phone' ? '短信验证码' : '验证码' }}</label>
           <div class="ml-captcha">
             <input
               v-model="registerForm.code"
@@ -226,8 +192,8 @@
     >
       <p class="ml-slider-tip">
         按顺序点击下方成语中的汉字完成验证后将向
-        <b>{{ registerMode === 'email' ? (registerForm.email || '当前邮箱') : (registerForm.phone || '当前手机号') }}</b>
-        发送 6 位{{ registerMode === 'email' ? '邮箱' : '短信' }}验证码
+        <b>{{ registerMode === 'email' ? (registerForm.identifier || '当前邮箱') : registerMode === 'phone' ? (registerForm.identifier || '当前手机号') : (registerForm.identifier || '当前账号') }}</b>
+        发送 6 位{{ registerMode === 'email' ? '邮箱' : registerMode === 'phone' ? '短信' : '' }}验证码
       </p>
       <GridClickCaptcha v-model="sliderModalPassed" />
     </a-modal>
@@ -548,38 +514,6 @@ body[data-theme="dark"] .remember-label {
   color: #FF2442;
   font-weight: 500;
   word-break: break-all;
-}
-
-/* 邮箱/手机切换 */
-.mode-toggle {
-  display: flex;
-  gap: 8px;
-}
-.mode-toggle-btn {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #d9d9d9;
-  background: #fff;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-toggle-btn.active {
-  border-color: #FF2442;
-  color: #FF2442;
-  background: #fff0f2;
-}
-body[data-theme="dark"] .mode-toggle-btn {
-  background: #1f1f1f;
-  border-color: #404040;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .mode-toggle-btn.active {
-  border-color: #ff4d6f;
-  color: #ff4d6f;
-  background: rgba(255, 77, 111, 0.12);
 }
 
 /* 暗色主题 */

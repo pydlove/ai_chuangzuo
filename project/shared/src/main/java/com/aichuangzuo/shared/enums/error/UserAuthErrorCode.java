@@ -35,7 +35,9 @@ public enum UserAuthErrorCode implements ErrorCode {
     SMS_SEND_FAILED(111028, "短信发送失败，请稍后重试"),
     SMS_CODE_ERROR(111029, "短信验证码错误或已过期"),
     SMS_CONFIG_NOT_ENABLED(111030, "短信验证未启用"),
-    PHONE_OR_EMAIL_REQUIRED(111031, "邮箱或手机号至少填写一项");
+    PHONE_OR_EMAIL_REQUIRED(111031, "邮箱或手机号至少填写一项"),
+    AVATAR_FILE_INVALID(111032, "头像必须是 jpg/png 且不超过 5MB"),
+    PHONE_SAME_AS_OLD(111033, "新手机号与原手机号相同");
 
     private final int code;
     private final String message;

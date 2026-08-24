@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.infrastructure.storage;
 
+import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
 import lombok.extern.slf4j.Slf4j;
@@ -68,6 +69,47 @@ public class LocalFileStorage {
             relativePaths.add("leaderboard/" + userId + "/" + subDir + "/" + filename);
         }
         return relativePaths;
+    }
+
+    /**
+     * 存储头像，返回 root-relative 访问路径。
+     *
+     * @param userId 用户ID
+     * @param file   头像文件
+     * @return /uploads/avatar/{userId}/{filename}.jpg
+     */
+    public String storeAvatar(Long userId, MultipartFile file) {
+        validateAvatar(file);
+
+        Path dir = basePath.resolve("avatar").resolve(userId.toString());
+        try {
+            Files.createDirectories(dir);
+        } catch (IOException e) {
+            throw new IllegalStateException("创建头像目录失败: " + dir, e);
+        }
+
+        String filename = System.nanoTime() + ".jpg";
+        Path target = dir.resolve(filename);
+        try {
+            file.transferTo(target);
+        } catch (IOException e) {
+            throw new IllegalStateException("头像保存失败: " + target, e);
+        }
+
+        return "/uploads/avatar/" + userId + "/" + filename;
+    }
+
+    private void validateAvatar(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(UserAuthErrorCode.AVATAR_FILE_INVALID);
+        }
+        if (file.getSize() > MAX_FILE_SIZE) {
+            throw new BusinessException(UserAuthErrorCode.AVATAR_FILE_INVALID);
+        }
+        String ext = extension(file.getOriginalFilename());
+        if (!ALLOWED_EXTENSIONS.contains(ext)) {
+            throw new BusinessException(UserAuthErrorCode.AVATAR_FILE_INVALID);
+        }
     }
 
     private void validate(MultipartFile file) {

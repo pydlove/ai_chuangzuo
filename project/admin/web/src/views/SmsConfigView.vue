@@ -37,8 +37,8 @@
             <a-input v-model:value="form.templateCode" placeholder="例如：SMS_12345678" maxlength="64" />
           </a-form-item>
 
-          <a-form-item label="RegionId" required>
-            <a-input v-model:value="form.regionId" placeholder="例如：cn-hangzhou" maxlength="32" />
+          <a-form-item label="RegionId（可选）">
+            <a-input v-model:value="form.regionId" placeholder="dypnsapi 可不填" maxlength="32" />
           </a-form-item>
 
           <a-form-item label="启用短信验证码">
@@ -139,7 +139,7 @@ const form = reactive({
 function resetForm(data = {}) {
   form.provider = data.provider || 'aliyun'
   form.accessKeyId = data.accessKeyId || ''
-  form.accessKeySecret = ''
+  form.accessKeySecret = data.accessKeySecret || ''
   form.signName = data.signName || ''
   form.templateCode = data.templateCode || ''
   form.regionId = data.regionId || ''

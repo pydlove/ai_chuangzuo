@@ -35,12 +35,12 @@
         <p class="form-subtitle">登录后即可开始创作</p>
 
         <div class="form-item">
-          <label class="form-label">邮箱</label>
+          <label class="form-label">手机号 / 邮箱</label>
           <input
-            v-model="loginForm.email"
-            type="email"
+            v-model="loginForm.identifier"
+            type="text"
             class="form-input"
-            placeholder="请输入邮箱"
+            placeholder="请输入手机号或邮箱"
           />
         </div>
 
@@ -84,17 +84,17 @@
         <p class="form-subtitle">注册后即可开始生成文章</p>
 
         <div class="form-item">
-          <label class="form-label">邮箱</label>
+          <label class="form-label">手机号 / 邮箱</label>
           <input
-            v-model="registerForm.email"
-            type="email"
+            v-model="registerForm.identifier"
+            type="text"
             class="form-input"
-            placeholder="请输入邮箱"
+            placeholder="请输入手机号或邮箱"
           />
         </div>
 
         <div class="form-item">
-          <label class="form-label">邮箱验证码</label>
+          <label class="form-label">{{ registerMode === 'email' ? '邮箱验证码' : registerMode === 'phone' ? '短信验证码' : '验证码' }}</label>
           <div class="captcha-row">
             <input
               v-model="registerForm.code"
@@ -193,8 +193,8 @@
     >
       <p class="slider-modal-tip">
         按顺序点击下方成语中的汉字完成验证后将向
-        <b>{{ registerMode === 'email' ? (registerForm.email || '当前邮箱') : (registerForm.phone || '当前手机号') }}</b>
-        发送 6 位{{ registerMode === 'email' ? '邮箱' : '短信' }}验证码
+        <b>{{ registerMode === 'email' ? (registerForm.identifier || '当前邮箱') : registerMode === 'phone' ? (registerForm.identifier || '当前手机号') : (registerForm.identifier || '当前账号') }}</b>
+        发送 6 位{{ registerMode === 'email' ? '邮箱' : registerMode === 'phone' ? '短信' : '' }}验证码
       </p>
       <GridClickCaptcha v-model="sliderModalPassed" />
     </a-modal>
@@ -260,7 +260,7 @@ const navLinks = [
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
-const ctaTo = '/login'
+const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 // ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移（仅 PC） ----------
@@ -586,38 +586,6 @@ body[data-theme="dark"] .remember-label {
   content: '|';
   margin: 0 12px;
   color: #eee;
-}
-
-/* 邮箱/手机切换 */
-.mode-toggle {
-  display: flex;
-  gap: 8px;
-}
-.mode-toggle-btn {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #d9d9d9;
-  background: #fff;
-  border-radius: 8px;
-  font-size: 13px;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-toggle-btn.active {
-  border-color: #FF2442;
-  color: #FF2442;
-  background: #fff0f2;
-}
-body[data-theme="dark"] .mode-toggle-btn {
-  background: #1f1f1f;
-  border-color: #404040;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .mode-toggle-btn.active {
-  border-color: #ff4d6f;
-  color: #ff4d6f;
-  background: rgba(255, 77, 111, 0.12);
 }
 
 /* ========== 媒体查询：手机端 ≤768px ========== */

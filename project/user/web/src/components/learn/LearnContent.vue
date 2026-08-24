@@ -139,7 +139,7 @@
                 <div class="learn-cta-title">想把自己的账号也做成这样？</div>
                 <div class="learn-cta-subtitle">用 AI 一分钟生成你的第一篇</div>
               </div>
-              <router-link to="/login" class="learn-cta-btn">立即开始创作 →</router-link>
+              <router-link to="/console/workbench" class="learn-cta-btn">立即开始创作 →</router-link>
             </div>
           </footer>
         </div>

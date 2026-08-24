@@ -1,19 +1,17 @@
 
 package com.aichuangzuo.user.modules.auth.service.impl;
 
-import com.aliyuncs.CommonRequest;
-import com.aliyuncs.CommonResponse;
-import com.aliyuncs.DefaultAcsClient;
-import com.aliyuncs.IAcsClient;
-import com.aliyuncs.exceptions.ClientException;
-import com.aliyuncs.http.MethodType;
-import com.aliyuncs.profile.DefaultProfile;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
+import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
 import com.aichuangzuo.user.modules.security.smsconfig.entity.SmsConfig;
 import com.aichuangzuo.user.modules.security.smsconfig.mapper.SmsConfigMapper;
-import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
+import com.aliyun.dypnsapi20170525.Client;
+import com.aliyun.dypnsapi20170525.models.SendSmsVerifyCodeRequest;
+import com.aliyun.dypnsapi20170525.models.SendSmsVerifyCodeResponse;
+import com.aliyun.teaopenapi.models.Config;
+import com.aliyun.teautil.models.RuntimeOptions;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jasypt.encryption.StringEncryptor;
@@ -160,29 +158,30 @@ public class SmsCodeServiceImpl implements SmsCodeService {
             throw new BusinessException(UserAuthErrorCode.SMS_CONFIG_NOT_ENABLED);
         }
 
-        DefaultProfile profile = DefaultProfile.getProfile(config.getRegionId(), config.getAccessKeyId(), accessKeySecret);
-        IAcsClient client = new DefaultAcsClient(profile);
+        String templateParam = "{\"code\":\"" + code + "\",\"min\":\"5\"}";
+
         try {
-            CommonRequest request = new CommonRequest();
-            request.setSysMethod(MethodType.POST);
-            request.setSysDomain("dysmsapi.aliyuncs.com");
-            request.setSysVersion("2017-05-25");
-            request.setSysAction("SendSms");
-            request.putQueryParameter("PhoneNumbers", phone);
-            request.putQueryParameter("SignName", config.getSignName());
-            request.putQueryParameter("TemplateCode", config.getTemplateCode());
-            request.putQueryParameter("TemplateParam", "{\"code\":\"" + code + "\",\"min\":\"5\"}");
-            CommonResponse response = client.getCommonResponse(request);
-            String data = response.getData();
-            if (data == null || !data.contains("\"Code\":\"OK\"")) {
-                log.warn("阿里云短信发送失败 phone={} response={}", phone, data);
+            Config openapiConfig = new Config()
+                    .setAccessKeyId(config.getAccessKeyId())
+                    .setAccessKeySecret(accessKeySecret);
+            openapiConfig.endpoint = "dypnsapi.aliyuncs.com";
+            Client client = new Client(openapiConfig);
+
+            SendSmsVerifyCodeRequest request = new SendSmsVerifyCodeRequest()
+                    .setPhoneNumber(phone)
+                    .setSignName(config.getSignName())
+                    .setTemplateCode(config.getTemplateCode())
+                    .setTemplateParam(templateParam);
+
+            SendSmsVerifyCodeResponse response = client.sendSmsVerifyCodeWithOptions(request, new RuntimeOptions());
+            log.info("阿里云短信发送响应 phone={} body={}", phone, response != null ? response.getBody() : null);
+            if (response == null || response.getBody() == null || !Boolean.TRUE.equals(response.getBody().getSuccess())) {
+                log.warn("阿里云短信发送失败 phone={} response={}", phone, response != null ? response.getBody() : null);
                 throw new BusinessException(UserAuthErrorCode.SMS_SEND_FAILED);
             }
-        } catch (ClientException e) {
-            log.warn("阿里云短信发送异常 phone={} message={}", phone, e.getMessage());
+        } catch (Exception e) {
+            log.warn("阿里云短信发送异常 phone={} message={}", phone, e.getMessage(), e);
             throw new BusinessException(UserAuthErrorCode.SMS_SEND_FAILED);
-        } finally {
-            client.shutdown();
         }
     }
 

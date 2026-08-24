@@ -18,7 +18,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/login" class="mh-header__cta">开始创作</router-link>
+        <router-link to="/console/workbench" class="mh-header__cta">开始创作</router-link>
       </div>
     </header>
 
@@ -61,7 +61,7 @@
         3 分钟产出一篇能直接发布的文章，让你的自媒体账号像滚雪球一样越做越值钱。
       </p>
       <div class="mh-hero__actions">
-        <router-link to="/login" class="mh-btn mh-btn--primary">立即开始创作</router-link>
+        <router-link to="/console/workbench" class="mh-btn mh-btn--primary">立即开始创作</router-link>
         <router-link to="/guide" class="mh-btn mh-btn--secondary">看看能赚多少钱</router-link>
       </div>
 
@@ -228,7 +228,7 @@
     <section class="mh-cta">
       <h2 class="mh-cta__title">现在起号，3 个月后看复利</h2>
       <p class="mh-cta__desc">内容慢慢写，账号先到位。等你准备好赚钱时，雪球已经在滚。</p>
-      <router-link to="/login" class="mh-btn mh-btn--primary">立即开始创作</router-link>
+      <router-link to="/console/workbench" class="mh-btn mh-btn--primary">立即开始创作</router-link>
       <router-link to="/guide" class="mh-btn mh-btn--secondary">查看玩法指南</router-link>
     </section>
 

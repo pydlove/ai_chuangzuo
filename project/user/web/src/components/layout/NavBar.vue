@@ -85,7 +85,7 @@ const THEME_KEY = 'aichuangzuo_theme'
 const props = defineProps({
   links: { type: Array, required: true },
   activePath: { type: String, default: '' },
-  ctaTo: { type: String, default: '/login' },
+  ctaTo: { type: String, default: '/console/workbench' },
   ctaLabel: { type: String, default: '开始创作' }
 })
 

@@ -6,6 +6,7 @@ import com.aichuangzuo.user.modules.user.dto.request.BindInviteCodeRequest;
 import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
 import com.aichuangzuo.user.modules.user.service.UserInviteBindingService;
 import com.aichuangzuo.user.modules.user.service.UserProfileService;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
@@ -14,12 +15,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户个人资料 REST 接口。
@@ -80,6 +84,20 @@ public class UserProfileController {
     }
 
     /**
+     * 修改手机号。需要新手机号已收到短信验证码。
+     *
+     * @param request 新手机号 + 6 位验证码
+     * @return 更新后的 UserProfileVO（phone_verified 置 1）
+     */
+    @Operation(summary = "修改手机号")
+    @PutMapping("/phone")
+    public Result<UserProfileVO> updatePhone(@Valid @RequestBody UpdatePhoneRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改手机号, userId={}, newPhone={}", userId, request.getNewPhone());
+        return Result.success(userProfileService.updatePhone(request));
+    }
+
+    /**
      * 修改密码。需要原密码校验通过，且账号未被禁用。
      *
      * @param request 旧/新/确认密码
@@ -107,5 +125,19 @@ public class UserProfileController {
         log.info("绑定邀请人, userId={}, inviteCode={}", userId, request.getInviteCode());
         userInviteBindingService.bindInviteCode(request);
         return Result.success();
+    }
+
+    /**
+     * 上传头像。
+     *
+     * @param file 头像文件（jpg/png，最大 5MB）
+     * @return 更新后的 UserProfileVO
+     */
+    @Operation(summary = "上传头像")
+    @PostMapping(value = "/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<UserProfileVO> updateAvatar(@RequestParam("file") MultipartFile file) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("上传头像, userId={}", userId);
+        return Result.success(userProfileService.updateAvatar(file));
     }
 }

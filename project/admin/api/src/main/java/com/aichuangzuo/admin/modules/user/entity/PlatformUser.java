@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.annotation.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Getter
@@ -20,6 +21,7 @@ public class PlatformUser {
     private String inviteCode;
     private Integer userStatus;
     private Integer userType;
+    private BigDecimal coinBalance;
     private LocalDateTime membershipExpireAt;
     private String membershipPlan;
     private Integer emailVerified;

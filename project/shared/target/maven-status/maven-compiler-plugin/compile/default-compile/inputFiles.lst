@@ -33,4 +33,5 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/result/Result.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/utils/AesUtil.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/utils/AiPromptVariableResolver.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/utils/LlmJsonParser.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/vo/AiPromptRendered.java

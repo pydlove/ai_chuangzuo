@@ -18,7 +18,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/login" class="mp-header__cta">开始创作</router-link>
+        <router-link to="/console/workbench" class="mp-header__cta">开始创作</router-link>
       </div>
     </header>
 

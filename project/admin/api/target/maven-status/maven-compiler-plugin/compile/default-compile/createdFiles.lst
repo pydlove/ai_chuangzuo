@@ -349,6 +349,7 @@ com/aichuangzuo/admin/modules/skill/review/service/impl/SkillReviewServiceImpl.c
 com/aichuangzuo/admin/modules/auth/entity/AdminUser.class
 com/aichuangzuo/admin/modules/message/handler/SkillUsageHandler.class
 com/aichuangzuo/admin/modules/exporttemplate/controller/ExportTemplateController.class
+com/aichuangzuo/admin/modules/earnings/dto/request/AddCoinRequest.class
 com/aichuangzuo/admin/modules/commission/vo/CommissionTaskImportResultVO.class
 com/aichuangzuo/admin/modules/user/controller/AdminUserController.class
 com/aichuangzuo/admin/modules/reminder/mapper/ReminderSendLogMapper.class

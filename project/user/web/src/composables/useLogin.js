@@ -37,30 +37,28 @@ export function useLogin() {
   const agreed = ref(false)
   const agreementShakeCount = ref(0)
 
-  const loginMode = ref('email')
-  const registerMode = ref('email')
-
   const loginForm = reactive({
-    email: '',
-    phone: '',
+    identifier: '',
     password: ''
   })
 
   const registerForm = reactive({
-    email: '',
-    phone: '',
+    identifier: '',
     code: '',
     password: '',
     confirmPassword: '',
     inviteCode: ''
   })
 
-  const loginIdentifier = computed(() => {
-    if (loginMode.value === 'email') {
-      return loginForm.email
-    }
-    return loginForm.phone
-  })
+  const detectMode = (value) => {
+    if (EMAIL_REGEX.test(value)) return 'email'
+    if (PHONE_REGEX.test(value)) return 'phone'
+    return 'unknown'
+  }
+
+  const loginMode = computed(() => detectMode(loginForm.identifier))
+  const registerMode = computed(() => detectMode(registerForm.identifier))
+  const loginIdentifier = computed(() => loginForm.identifier)
 
   // 注册流程：发送验证码前的滑块弹框
   const sliderModalVisible = ref(false)
@@ -81,12 +79,14 @@ export function useLogin() {
   // 注册弹框内滑块通过 → 发送验证码
   watch(sliderModalPassed, async (val) => {
     if (!val || modalSending) return
+    const mode = registerMode.value
+    if (mode === 'unknown') return
     modalSending = true
     try {
-      if (registerMode.value === 'email') {
-        await sendEmailCode({ email: registerForm.email })
+      if (mode === 'email') {
+        await sendEmailCode({ email: registerForm.identifier })
       } else {
-        await sendSmsCode({ phone: registerForm.phone })
+        await sendSmsCode({ phone: registerForm.identifier })
       }
       startCodeCountdown()
       message.success('验证码已发送')
@@ -101,20 +101,22 @@ export function useLogin() {
   // 登录弹框内滑块通过 → 调后端登录接口
   watch(loginModalPassed, async (val) => {
     if (!val || loginModalSending) return
+    const mode = loginMode.value
+    if (mode === 'unknown') return
     loginModalSending = true
     try {
       const payload = { password: loginForm.password, rememberMe: rememberMe.value }
-      if (loginMode.value === 'email') {
-        payload.email = loginForm.email
+      if (mode === 'email') {
+        payload.email = loginForm.identifier
       } else {
-        payload.phone = loginForm.phone
+        payload.phone = loginForm.identifier
       }
       const res = await loginApi(payload)
       persistTokens(res.data)
       message.success('登录成功')
       loginSliderModalVisible.value = false
       const redirect = router.currentRoute.value.query.redirect
-      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console')
+      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console/workbench')
     } catch (err) {
       message.error(err?.message || '登录失败')
       loginSliderModalVisible.value = false
@@ -125,21 +127,18 @@ export function useLogin() {
 
   const openSliderModal = () => {
     if (codeCountdown.value > 0) return
-    if (registerMode.value === 'email') {
-      if (!registerForm.email) {
-        message.warning('请先填写邮箱')
-        return
-      }
-      if (!EMAIL_REGEX.test(registerForm.email)) {
+    const mode = registerMode.value
+    if (mode === 'unknown') {
+      message.warning('请输入有效的手机号或邮箱')
+      return
+    }
+    if (mode === 'email') {
+      if (!EMAIL_REGEX.test(registerForm.identifier)) {
         message.warning('邮箱格式不正确')
         return
       }
     } else {
-      if (!registerForm.phone) {
-        message.warning('请先填写手机号')
-        return
-      }
-      if (!PHONE_REGEX.test(registerForm.phone)) {
+      if (!PHONE_REGEX.test(registerForm.identifier)) {
         message.warning('手机号格式不正确')
         return
       }
@@ -149,21 +148,18 @@ export function useLogin() {
   }
 
   const openLoginSliderModal = () => {
-    if (loginMode.value === 'email') {
-      if (!loginForm.email) {
-        message.warning('请填写邮箱')
-        return
-      }
-      if (!EMAIL_REGEX.test(loginForm.email)) {
+    const mode = loginMode.value
+    if (mode === 'unknown') {
+      message.warning('请输入有效的手机号或邮箱')
+      return
+    }
+    if (mode === 'email') {
+      if (!EMAIL_REGEX.test(loginForm.identifier)) {
         message.warning('邮箱格式不正确')
         return
       }
     } else {
-      if (!loginForm.phone) {
-        message.warning('请填写手机号')
-        return
-      }
-      if (!PHONE_REGEX.test(loginForm.phone)) {
+      if (!PHONE_REGEX.test(loginForm.identifier)) {
         message.warning('手机号格式不正确')
         return
       }
@@ -220,27 +216,24 @@ export function useLogin() {
       message.warning('请先阅读并同意《用户协议》和《隐私政策》')
       return
     }
-    if (registerMode.value === 'email') {
-      if (!registerForm.email) {
-        message.warning('请输入邮箱')
-        return
-      }
-      if (!EMAIL_REGEX.test(registerForm.email)) {
+    const mode = registerMode.value
+    if (mode === 'unknown') {
+      message.warning('请输入有效的手机号或邮箱')
+      return
+    }
+    if (mode === 'email') {
+      if (!EMAIL_REGEX.test(registerForm.identifier)) {
         message.warning('邮箱格式不正确')
         return
       }
     } else {
-      if (!registerForm.phone) {
-        message.warning('请输入手机号')
-        return
-      }
-      if (!PHONE_REGEX.test(registerForm.phone)) {
+      if (!PHONE_REGEX.test(registerForm.identifier)) {
         message.warning('手机号格式不正确')
         return
       }
     }
     if (!registerForm.code) {
-      message.warning(registerMode.value === 'email' ? '请输入邮箱验证码' : '请输入短信验证码')
+      message.warning('请输入验证码')
       return
     }
     if (!/^\d{6}$/.test(registerForm.code)) {
@@ -270,11 +263,11 @@ export function useLogin() {
       inviteCode: registerForm.inviteCode.trim().toUpperCase() || undefined,
       rememberMe: rememberMe.value
     }
-    if (registerMode.value === 'email') {
-      payload.email = registerForm.email
+    if (mode === 'email') {
+      payload.email = registerForm.identifier
       payload.emailCode = registerForm.code
     } else {
-      payload.phone = registerForm.phone
+      payload.phone = registerForm.identifier
       payload.smsCode = registerForm.code
     }
 
@@ -283,7 +276,7 @@ export function useLogin() {
       persistTokens(res.data)
       message.success('注册成功')
       const redirect = router.currentRoute.value.query.redirect
-      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console')
+      router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console/workbench')
     } catch (err) {
       message.error(err?.message || '注册失败')
     }

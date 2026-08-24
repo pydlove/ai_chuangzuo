@@ -103,7 +103,8 @@ import {
   BookOutlined,
   FontSizeOutlined,
   ThunderboltOutlined,
-  AppstoreOutlined
+  AppstoreOutlined,
+  ShareAltOutlined
 } from '@ant-design/icons-vue'
 
 const router = useRouter()
@@ -122,6 +123,7 @@ const PLAN_NAMES = {
 // 按「额度」展示进度条的权益（有剩余/已用/总额概念）
 const QUOTA_CODES = [
   'ai_article_quota',
+  'plan_adjust_quota',
   'skill_custom',
   'skill_learn_analyze',
   'skill_market_publish',
@@ -132,6 +134,7 @@ const QUOTA_CODES = [
 const LIMIT_CODES = ['generation_rate_limit', 'generation_word_limit', 'history_days', 'queue_max_tasks']
 
 const QUOTA_UNITS = {
+  plan_adjust_quota: '次',
   skill_custom: '个',
   skill_learn_analyze: '次',
   ai_article_quota: '篇',
@@ -141,6 +144,8 @@ const QUOTA_UNITS = {
 
 const iconMap = {
   ai_article_quota: FileTextOutlined,
+  plan_adjust_quota: EditOutlined,
+  repost_plan: ShareAltOutlined,
   export_word: FileWordOutlined,
   copy_text: CopyOutlined,
   ai_topic: BulbOutlined,

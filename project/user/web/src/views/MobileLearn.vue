@@ -24,7 +24,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/login" class="ml-header__cta">开始创作</router-link>
+        <router-link to="/console/workbench" class="ml-header__cta">开始创作</router-link>
       </div>
     </header>
 
@@ -127,7 +127,7 @@
       <section class="ml-cta">
         <h2 class="ml-cta__title">想把自己的账号也做起来？</h2>
         <p class="ml-cta__desc">用 AI 一分钟生成你的第一篇</p>
-        <router-link to="/login" class="ml-btn">立即开始创作 →</router-link>
+        <router-link to="/console/workbench" class="ml-btn">立即开始创作 →</router-link>
       </section>
     </template>
 
@@ -241,7 +241,7 @@
         <div class="ml-cta ml-cta--inline">
           <h2 class="ml-cta__title">想把自己的账号也做起来？</h2>
           <p class="ml-cta__desc">用 AI 一分钟生成你的第一篇</p>
-          <router-link to="/login" class="ml-btn">立即开始创作 →</router-link>
+          <router-link to="/console/workbench" class="ml-btn">立即开始创作 →</router-link>
         </div>
       </main>
     </template>

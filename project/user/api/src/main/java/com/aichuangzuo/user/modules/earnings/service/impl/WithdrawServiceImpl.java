@@ -167,6 +167,8 @@ public class WithdrawServiceImpl implements WithdrawService {
         vo.setAmount(record.getAmount());
         vo.setAccount(record.getAccount());
         vo.setName(record.getName());
+        User user = userMapper.selectById(record.getUserId());
+        vo.setNickname(maskNickname(user == null ? null : user.getNickname()));
         vo.setStatus(statusText(record.getStatus()));
         vo.setProcessedAt(record.getProcessedAt());
         vo.setProcessedBy(record.getProcessedBy());
@@ -189,6 +191,16 @@ public class WithdrawServiceImpl implements WithdrawService {
             return idCard;
         }
         return idCard.substring(0, 4) + "**********" + idCard.substring(idCard.length() - 4);
+    }
+
+    private String maskNickname(String nickname) {
+        if (!StringUtils.hasText(nickname)) {
+            return "用户";
+        }
+        if (nickname.length() <= 2) {
+            return nickname.charAt(0) + "*";
+        }
+        return nickname.charAt(0) + "**" + nickname.charAt(nickname.length() - 1);
     }
 
     private boolean isValidIdCard(String idCard) {

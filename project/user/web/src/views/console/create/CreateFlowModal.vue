@@ -345,7 +345,8 @@ import {
   generateRecommendedTopics,
   generateRecommendedAngles,
   updateRecommendedSession,
-  submitRecommendedGeneration
+  submitRecommendedGeneration,
+  clearRecommendedSession
 } from '@/api/recommendedCreation.js'
 import { platforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import {
@@ -609,6 +610,7 @@ async function finish() {
     const saved = await persistStep(5, { template: flowData.selectedTemplate })
     if (!saved) return
     const task = await submitRecommendedGeneration()
+    clearRecommendedSession().catch(() => {})
     emit('success', task)
     close()
   } catch (err) {
@@ -736,6 +738,17 @@ async function initSession() {
 
     const session = await getRecommendedCreationSession()
     if (session) {
+      if (session.status === 'completed') {
+        await clearRecommendedSession().catch(() => {})
+        resetLocalState()
+        const topics = await generateRecommendedTopics()
+        topicOptions.value = topics || []
+        if (!topicOptions.value.length) {
+          message.warning('未生成到选题，请重试')
+          close()
+        }
+        return
+      }
       applySession(session)
     } else {
       resetLocalState()

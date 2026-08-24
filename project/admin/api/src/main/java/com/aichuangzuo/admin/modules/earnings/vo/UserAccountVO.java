@@ -15,6 +15,10 @@ public class UserAccountVO {
     private BigDecimal unsettledEarnings;
     private BigDecimal withdrawnAmount;
     private BigDecimal coinBalance;
+    /**
+     * 用户类型：0-机器人，1-真实用户。
+     */
+    private Integer userType;
     private Integer coinRankThisMonth;
     private Integer incomeRankThisMonth;
 }

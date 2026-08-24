@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.earnings.service.impl;
 
 import com.aichuangzuo.admin.modules.earnings.dto.request.AccountQueryRequest;
+import com.aichuangzuo.admin.modules.earnings.dto.request.AddCoinRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserCoinRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserEarningsRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserRewardRecordQueryRequest;
@@ -13,17 +14,28 @@ import com.aichuangzuo.admin.modules.leaderboard.entity.RewardRecord;
 import com.aichuangzuo.admin.modules.leaderboard.mapper.RewardRecordMapper;
 import com.aichuangzuo.admin.modules.earnings.service.AccountAdminService;
 import com.aichuangzuo.admin.modules.earnings.vo.*;
+import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
+import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
+import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.shared.enums.error.AdminEarningsErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AccountAdminServiceImpl implements AccountAdminService {
@@ -32,6 +44,12 @@ public class AccountAdminServiceImpl implements AccountAdminService {
     private final EarningsRecordMapper earningsRecordMapper;
     private final UserCoinRecordMapper userCoinRecordMapper;
     private final RewardRecordMapper rewardRecordMapper;
+    private final PlatformUserMapper platformUserMapper;
+
+    private static final String COIN_BIZ_TYPE_ADMIN_ADJUST = "admin_adjust";
+    private static final int COIN_DIRECTION_INCOME = 1;
+    private static final String COIN_BIZ_NO_PREFIX = "CR";
+    private static final int USER_TYPE_ROBOT = 0;
 
     @Override
     public UserAccountPageVO listAccounts(AccountQueryRequest request) {
@@ -41,6 +59,7 @@ public class AccountAdminServiceImpl implements AccountAdminService {
                 request.getNickname(),
                 request.getPhone(),
                 request.getEmail(),
+                request.getUserType(),
                 request.getSortBy(),
                 offset,
                 request.getSize());
@@ -53,7 +72,7 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         }
 
         long total = accountAdminMapper.countAccountList(
-                request.getUserId(), request.getNickname(), request.getPhone(), request.getEmail());
+                request.getUserId(), request.getNickname(), request.getPhone(), request.getEmail(), request.getUserType());
 
         UserAccountPageVO vo = new UserAccountPageVO();
         vo.setList(list);
@@ -66,7 +85,7 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         UserAccountDetailVO detail = new UserAccountDetailVO();
         detail.setUserId(userId);
 
-        List<UserAccountVO> accountList = accountAdminMapper.selectAccountList(userId, null, null, null, null, 0, 1);
+        List<UserAccountVO> accountList = accountAdminMapper.selectAccountList(userId, null, null, null, null, null, 0, 1);
         if (!accountList.isEmpty()) {
             UserAccountVO account = accountList.get(0);
             detail.setNickname(account.getNickname());
@@ -116,6 +135,54 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         detail.setRecentCoinRecords(coins.stream().map(this::toUserCoinRecordVO).collect(Collectors.toList()));
         detail.setRecentRewards(rewards.stream().map(this::toRewardRecordVO).collect(Collectors.toList()));
         return detail;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String addCoinToRobot(Long userId, AddCoinRequest request) {
+        if (request.getAmount() == null || request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException(AdminEarningsErrorCode.ADD_COIN_AMOUNT_INVALID);
+        }
+
+        PlatformUser user = platformUserMapper.selectById(userId);
+        if (user == null || user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminEarningsErrorCode.ADD_COIN_USER_NOT_FOUND);
+        }
+        if (user.getUserType() == null || user.getUserType() != USER_TYPE_ROBOT) {
+            throw new BusinessException(AdminEarningsErrorCode.ADD_COIN_ROBOT_ONLY);
+        }
+
+        BigDecimal amount = request.getAmount();
+        platformUserMapper.update(null, new LambdaUpdateWrapper<PlatformUser>()
+                .setSql("coin_balance = coin_balance + " + amount.toPlainString())
+                .set(PlatformUser::getUpdatedAt, LocalDateTime.now())
+                .eq(PlatformUser::getId, userId));
+
+        PlatformUser updated = platformUserMapper.selectById(userId);
+        BigDecimal balanceAfter = updated != null && updated.getCoinBalance() != null
+                ? updated.getCoinBalance() : BigDecimal.ZERO;
+
+        UserCoinRecord record = new UserCoinRecord();
+        record.setBizNo(generateCoinBizNo());
+        record.setUserId(userId);
+        record.setBizType(COIN_BIZ_TYPE_ADMIN_ADJUST);
+        record.setDirection(COIN_DIRECTION_INCOME);
+        record.setAmount(amount);
+        record.setBalanceAfter(balanceAfter);
+        record.setRemark(request.getRemark());
+        record.setBizTime(LocalDateTime.now());
+        record.setCreatedAt(LocalDateTime.now());
+        record.setUpdatedAt(LocalDateTime.now());
+        record.setTenantId(0L);
+        userCoinRecordMapper.insert(record);
+
+        log.info("管理员为机器人用户增加创作币, adminUserId={}, userId={}, amount={}, bizNo={}",
+                SecurityAdminContext.getCurrentAdminUserId(), userId, amount, record.getBizNo());
+        return record.getBizNo();
+    }
+
+    private String generateCoinBizNo() {
+        return COIN_BIZ_NO_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 
     @Override

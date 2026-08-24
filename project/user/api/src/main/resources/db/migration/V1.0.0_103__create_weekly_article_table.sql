@@ -1,0 +1,13 @@
+CREATE TABLE IF NOT EXISTS u_weekly_article (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY COMMENT '主键ID',
+    user_id BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
+    week_start_date DATE NOT NULL COMMENT '所在周的周一日期',
+    title VARCHAR(256) NOT NULL COMMENT '文章标题',
+    `reads` INT UNSIGNED NOT NULL DEFAULT 0 COMMENT '阅读量',
+    is_deleted TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '逻辑删除标记：0-未删除，1-已删除',
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    created_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    updated_by BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    KEY idx_u_weekly_article_user_week (user_id, week_start_date)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户每周文章数据';

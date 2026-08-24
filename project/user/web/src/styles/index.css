@@ -294,6 +294,38 @@ body[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
   border-color: var(--color-primary-active);
 }
 
+/* 调整方案确认弹框 */
+.adjust-plan-confirm-modal .ant-modal-title {
+  color: var(--color-primary);
+  font-weight: 600;
+}
+.adjust-plan-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.adjust-plan-confirm-modal .ant-btn-primary:hover,
+.adjust-plan-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.adjust-plan-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+.adjust-plan-confirm-modal .continue-btn {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.adjust-plan-confirm-modal .continue-btn:hover,
+.adjust-plan-confirm-modal .continue-btn:focus {
+  color: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.adjust-plan-confirm-modal .continue-btn:active {
+  color: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
 .invite-coin-tooltip-section + .invite-coin-tooltip-section {
   margin-top: 8px;
   padding-top: 8px;

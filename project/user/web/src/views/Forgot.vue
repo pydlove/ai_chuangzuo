@@ -13,38 +13,21 @@
     <!-- 重置密码卡片 -->
     <div ref="cardRef" class="forgot-card">
       <h2 class="form-title">重置密码</h2>
-      <p class="form-subtitle">验证邮箱后即可设置新密码</p>
+      <p class="form-subtitle">验证身份后即可设置新密码</p>
 
       <div class="form-item">
-        <div class="mode-toggle">
-          <button
-            :class="['mode-toggle-btn', { active: resetMode === 'email' }]"
-            @click="resetMode = 'email'"
-          >
-            邮箱重置
-          </button>
-          <button
-            :class="['mode-toggle-btn', { active: resetMode === 'phone' }]"
-            @click="resetMode = 'phone'"
-          >
-            手机号重置
-          </button>
-        </div>
-      </div>
-
-      <div class="form-item">
-        <label class="form-label">{{ resetMode === 'email' ? '邮箱' : '手机号' }}</label>
+        <label class="form-label">手机号 / 邮箱</label>
         <input
-          v-model="form[resetMode]"
-          :type="resetMode === 'email' ? 'email' : 'tel'"
+          v-model="form.identifier"
+          type="text"
           class="form-input"
-          :placeholder="resetMode === 'email' ? '请输入注册邮箱' : '请输入手机号'"
+          placeholder="请输入手机号或邮箱"
           autocomplete="off"
         />
       </div>
 
       <div class="form-item">
-        <label class="form-label">{{ resetMode === 'email' ? '邮箱验证码' : '短信验证码' }}</label>
+        <label class="form-label">{{ resetMode === 'email' ? '邮箱验证码' : resetMode === 'phone' ? '短信验证码' : '验证码' }}</label>
         <div class="captcha-row">
           <input
             v-model="form.code"
@@ -107,8 +90,8 @@
     >
       <p class="slider-modal-tip">
         拖动滑块完成验证后将向
-        <b>{{ resetMode === 'email' ? (form.email || '当前邮箱') : (form.phone || '当前手机号') }}</b>
-        发送 6 位{{ resetMode === 'email' ? '邮箱' : '短信' }}验证码
+        <b>{{ resetMode === 'email' ? (form.identifier || '当前邮箱') : resetMode === 'phone' ? (form.identifier || '当前手机号') : (form.identifier || '当前账号') }}</b>
+        发送 6 位{{ resetMode === 'email' ? '邮箱' : resetMode === 'phone' ? '短信' : '' }}验证码
       </p>
       <SliderCaptcha v-model="codeModalPassed" />
     </a-modal>
@@ -125,7 +108,7 @@
     >
       <p class="slider-modal-tip">
         拖动滑块完成验证后将重置账号
-        <b v-if="resetMode === 'email' ? form.email : form.phone">「{{ resetMode === 'email' ? form.email : form.phone }}」</b>
+        <b v-if="form.identifier">「{{ form.identifier }}」</b>
         的密码
       </p>
       <SliderCaptcha v-model="resetModalPassed" />
@@ -135,7 +118,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, watch, onMounted, onBeforeUnmount } from 'vue'
+import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
@@ -154,7 +137,7 @@ const navLinks = [
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' }
 ]
-const ctaTo = '/login'
+const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 // ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移 ----------
@@ -194,15 +177,20 @@ let resetModalSending = false
 
 const PHONE_REGEX = /^1[3-9]\d{9}$/
 
-const resetMode = ref('email')
+const detectMode = (value) => {
+  if (EMAIL_REGEX.test(value)) return 'email'
+  if (PHONE_REGEX.test(value)) return 'phone'
+  return 'unknown'
+}
 
 const form = reactive({
-  email: '',
-  phone: '',
+  identifier: '',
   code: '',
   password: '',
   confirmPassword: ''
 })
+
+const resetMode = computed(() => detectMode(form.identifier))
 
 // 验证码倒计时
 const codeCountdown = ref(0)
@@ -220,24 +208,21 @@ const startCodeCountdown = () => {
   }, 1000)
 }
 
-// === 发送邮箱验证码：弹框拖滑块 → 通过后才调 sendEmailCode ===
+// === 发送验证码：弹框拖滑块 → 通过后才调 sendEmailCode / sendSmsCode ===
 const openCodeSlider = () => {
   if (codeCountdown.value > 0) return
-  if (resetMode.value === 'email') {
-    if (!form.email) {
-      message.warning('请先填写邮箱')
-      return
-    }
-    if (!EMAIL_REGEX.test(form.email)) {
+  const mode = resetMode.value
+  if (mode === 'unknown') {
+    message.warning('请输入有效的手机号或邮箱')
+    return
+  }
+  if (mode === 'email') {
+    if (!EMAIL_REGEX.test(form.identifier)) {
       message.warning('邮箱格式不正确')
       return
     }
   } else {
-    if (!form.phone) {
-      message.warning('请先填写手机号')
-      return
-    }
-    if (!PHONE_REGEX.test(form.phone)) {
+    if (!PHONE_REGEX.test(form.identifier)) {
       message.warning('手机号格式不正确')
       return
     }
@@ -248,12 +233,14 @@ const openCodeSlider = () => {
 
 watch(codeModalPassed, async (val) => {
   if (!val || codeModalSending) return
+  const mode = resetMode.value
+  if (mode === 'unknown') return
   codeModalSending = true
   try {
-    if (resetMode.value === 'email') {
-      await sendEmailCode({ email: form.email })
+    if (mode === 'email') {
+      await sendEmailCode({ email: form.identifier })
     } else {
-      await sendSmsCode({ phone: form.phone })
+      await sendSmsCode({ phone: form.identifier })
     }
     startCodeCountdown()
     message.success('验证码已发送')
@@ -267,16 +254,17 @@ watch(codeModalPassed, async (val) => {
 
 // === 重置密码：弹框拖滑块 → 通过后才调 resetPassword API ===
 const handleReset = async () => {
+  const mode = resetMode.value
+  if (mode === 'unknown') {
+    message.warning('请输入有效的手机号或邮箱')
+    return
+  }
+  if (!form.identifier) {
+    message.warning(mode === 'email' ? '请填写邮箱' : '请填写手机号')
+    return
+  }
   if (form.password !== form.confirmPassword) {
     message.error('两次输入的密码不一致')
-    return
-  }
-  if (resetMode.value === 'email' && !form.email) {
-    message.warning('请填写邮箱')
-    return
-  }
-  if (resetMode.value === 'phone' && !form.phone) {
-    message.warning('请填写手机号')
     return
   }
   if (!form.code || !form.password) {
@@ -284,7 +272,7 @@ const handleReset = async () => {
     return
   }
   if (codeCountdown.value <= 0) {
-    message.warning(resetMode.value === 'email' ? '请先获取邮箱验证码' : '请先获取短信验证码')
+    message.warning(mode === 'email' ? '请先获取邮箱验证码' : '请先获取短信验证码')
     return
   }
   resetModalPassed.value = false
@@ -293,17 +281,19 @@ const handleReset = async () => {
 
 watch(resetModalPassed, async (val) => {
   if (!val || resetModalSending) return
+  const mode = resetMode.value
+  if (mode === 'unknown') return
   resetModalSending = true
   try {
     const payload = {
       password: form.password,
       confirmPassword: form.confirmPassword
     }
-    if (resetMode.value === 'email') {
-      payload.email = form.email
+    if (mode === 'email') {
+      payload.email = form.identifier
       payload.emailCode = form.code
     } else {
-      payload.phone = form.phone
+      payload.phone = form.identifier
       payload.smsCode = form.code
     }
     await resetPassword(payload)

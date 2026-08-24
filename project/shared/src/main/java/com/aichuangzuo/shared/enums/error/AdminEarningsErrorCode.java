@@ -19,7 +19,10 @@ public enum AdminEarningsErrorCode implements ErrorCode {
     LEADERBOARD_TYPE_INVALID(300206, "榜单类型非法"),
     LEADERBOARD_PERIOD_INVALID(300207, "榜单周期格式错误"),
     GRANT_CROSS_SERVICE_FAILED(300208, "发奖时跨端调用失败"),
-    GRANT_DUPLICATE(300209, "重复发奖");
+    GRANT_DUPLICATE(300209, "重复发奖"),
+    ADD_COIN_AMOUNT_INVALID(300210, "创作币数量必须大于 0"),
+    ADD_COIN_ROBOT_ONLY(300211, "仅支持为机器人用户增加创作币"),
+    ADD_COIN_USER_NOT_FOUND(300212, "用户不存在");
 
     private final int code;
     private final String message;

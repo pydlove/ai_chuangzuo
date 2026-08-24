@@ -3,21 +3,26 @@ package com.aichuangzuo.user.modules.user.service.impl;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.infrastructure.storage.LocalFileStorage;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
+import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
 import com.aichuangzuo.user.modules.user.converter.UserConverter;
 import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
 import com.aichuangzuo.user.modules.user.service.UserProfileService;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户个人资料服务实现。
@@ -46,8 +51,10 @@ public class UserProfileServiceImpl implements UserProfileService {
     private final UserMapper userMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
     private final EmailCodeService emailCodeService;
+    private final SmsCodeService smsCodeService;
     private final PasswordEncoder passwordEncoder;
     private final UserConverter userConverter;
+    private final LocalFileStorage localFileStorage;
 
     @Override
     public UserProfileVO getMyProfile() {
@@ -120,6 +127,45 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
+     * 修改当前用户的手机号。需要新手机号收到的短信验证码。
+     *
+     * <p>流程：
+     * <ol>
+     *   <li>校验新手机号收到的短信验证码（一次性，验证后失效）</li>
+     *   <li>不允许新手机号与旧手机号相同</li>
+     *   <li>新手机号不能已被他人注册</li>
+     *   <li>写入新手机号并把 phone_verified 置 1</li>
+     * </ol>
+     *
+     * @param request 新手机号 + 6 位验证码
+     * @return 更新后的视图对象
+     * @throws BusinessException SMS_CODE_ERROR / PHONE_SAME_AS_OLD / PHONE_ALREADY_EXISTS / USER_NOT_FOUND
+     */
+    @Override
+    public UserProfileVO updatePhone(UpdatePhoneRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        String newPhone = normalizePhone(request.getNewPhone());
+        if (!smsCodeService.validateSmsCode(newPhone, request.getSmsCode())) {
+            throw new BusinessException(UserAuthErrorCode.SMS_CODE_ERROR);
+        }
+        if (newPhone.equalsIgnoreCase(user.getPhone())) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_SAME_AS_OLD);
+        }
+        if (userMapper.existsByPhone(newPhone, userId)) {
+            throw new BusinessException(UserAuthErrorCode.PHONE_ALREADY_EXISTS);
+        }
+        user.setPhone(newPhone);
+        user.setPhoneVerified(1);
+        userMapper.updateById(user);
+        log.info("手机号已修改 userId={}, newPhone={}", userId, newPhone);
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
+    }
+
+    /**
      * 修改当前用户的密码。需要原密码校验通过，新密码长度 ≥6 且 ≤20，新密码两次一致。
      *
      * <p>成功后仅更新密码字段，不签发新 token —— 客户端继续使用旧 access token。
@@ -150,6 +196,41 @@ public class UserProfileServiceImpl implements UserProfileService {
         user.setPasswordHash(passwordEncoder.encode(newPwd));
         userMapper.updateById(user);
         log.info("密码已修改 userId={}", userId);
+    }
+
+    /**
+     * 上传并更新当前用户头像。
+     *
+     * @param file 头像文件
+     * @return 更新后的视图对象
+     * @throws BusinessException AVATAR_FILE_INVALID / USER_NOT_FOUND
+     */
+    @Override
+    public UserProfileVO updateAvatar(MultipartFile file) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        String avatarUrl = localFileStorage.storeAvatar(userId, file);
+        user.setAvatarUrl(avatarUrl);
+        userMapper.updateById(user);
+        log.info("头像已修改 userId={}", userId);
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
+    }
+
+    private String normalizePhone(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return "";
+        }
+        String digits = phone.replaceAll("\\D", "");
+        if (digits.length() == 13 && digits.startsWith("86")) {
+            return digits.substring(2);
+        }
+        if (digits.length() == 14 && digits.startsWith("086")) {
+            return digits.substring(3);
+        }
+        return digits;
     }
 
     /**

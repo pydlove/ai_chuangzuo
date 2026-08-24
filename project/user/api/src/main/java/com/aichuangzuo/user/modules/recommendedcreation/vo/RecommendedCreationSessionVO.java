@@ -14,4 +14,5 @@ public class RecommendedCreationSessionVO {
     private Integer wordCount;
     private String prompt;
     private String template;
+    private String status;
 }

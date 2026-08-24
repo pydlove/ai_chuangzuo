@@ -17,6 +17,7 @@ export function useAccountQuery() {
     nickname: '',
     phone: '',
     email: '',
+    userType: null,
     sortBy: null,
     page: 1,
     size: 20
@@ -68,6 +69,9 @@ export function useAccountQuery() {
       const params = { ...query.value }
       if (!params.sortBy) {
         delete params.sortBy
+      }
+      if (params.userType === null || params.userType === undefined) {
+        delete params.userType
       }
       const res = await listAccounts(params)
       accounts.value = res.list

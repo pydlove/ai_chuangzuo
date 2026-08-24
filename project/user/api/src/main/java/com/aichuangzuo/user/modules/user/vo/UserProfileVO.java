@@ -12,8 +12,10 @@ import lombok.Data;
  *   <li>userId - 业务编号（u_user.biz_no），前端展示用，不暴露数据库主键</li>
  *   <li>nickname - 昵称，可能为空（前端需有兜底）</li>
  *   <li>email - 当前邮箱；前端展示通常脱敏但此处原样返回，由调用方决定</li>
- *   <li>avatarUrl - 头像 URL；空时前端用通用图标兜底</li>
  *   <li>emailVerified - 0/1；改邮箱成功后置 1</li>
+ *   <li>phone - 当前手机号；空表示未绑定</li>
+ *   <li>phoneVerified - 0/1；改手机成功后置 1</li>
+ *   <li>avatarUrl - 头像 URL；空时前端用通用图标兜底</li>
  *   <li>inviterUserId - 邀请人用户主键 ID；null 表示未绑定，用于前端控制"绑定邀请人"入口</li>
  *   <li>inviterNickname - 邀请人展示名；优先返回昵称，未设置时退化为邮箱；null 表示未绑定或邀请人不存在</li>
  * </ul>
@@ -23,8 +25,10 @@ public class UserProfileVO {
     private String userId;
     private String nickname;
     private String email;
-    private String avatarUrl;
     private Integer emailVerified;
+    private String phone;
+    private Integer phoneVerified;
+    private String avatarUrl;
     private Long inviterUserId;
     private String inviterNickname;
     /** 个人邀请码，6 位字母数字。 */

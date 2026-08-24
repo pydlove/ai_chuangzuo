@@ -8,6 +8,7 @@
             u.id AS userId,
             u.nickname,
             u.email,
+            u.user_type AS userType,
             u.created_at AS registeredAt,
             u.coin_balance AS coinBalance,
             COALESCE(SUM(er.amount), 0) AS totalEarnings,
@@ -24,7 +25,10 @@
         <if test="email != null and email != ''">
             AND u.email LIKE CONCAT('%', #{email}, '%')
         </if>
-        GROUP BY u.id, u.nickname, u.email, u.created_at, u.coin_balance
+        <if test="userType != null">
+            AND u.user_type = #{userType}
+        </if>
+        GROUP BY u.id, u.nickname, u.email, u.user_type, u.created_at, u.coin_balance
         <choose>
             <when test="sortBy == 'totalEarnings'">ORDER BY totalEarnings DESC, u.id DESC</when>
             <when test="sortBy == 'coinBalance'">ORDER BY u.coin_balance DESC, u.id DESC</when>
@@ -45,6 +49,9 @@
         </if>
         <if test="email != null and email != ''">
             AND u.email LIKE CONCAT('%', #{email}, '%')
+        </if>
+        <if test="userType != null">
+            AND u.user_type = #{userType}
         </if>
     </select>
 

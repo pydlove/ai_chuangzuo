@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.selfmedia.service.impl;
 
 import com.aichuangzuo.shared.entity.Platform;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
 import com.aichuangzuo.user.modules.selfmedia.dto.QuestionAnswerDTO;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.*;
@@ -46,6 +47,7 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     private static final String PROMPT_PLATFORM_QUESTIONS = "self_media_platform_questions_v2";
     private static final String PROMPT_PLATFORM_NICHES = "self_media_platform_niches_v1";
     private static final String PROMPT_PLATFORM_PERSONAS = "self_media_platform_personas_v1";
+    private static final String BENEFIT_PLAN_ADJUST = "plan_adjust_quota";
 
     private final SelfMediaPlanAiService aiService;
     private final SelfMediaPlanMapper planMapper;
@@ -53,6 +55,7 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     private final SelfMediaPlanNicheMapper nicheMapper;
     private final SelfMediaPlanPersonaMapper personaMapper;
     private final PlatformMapper platformMapper;
+    private final BenefitService benefitService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -66,24 +69,35 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
     public SelfMediaPlanVO savePlan(Long userId, SavePlanRequest request) {
         validateSave(request);
         SelfMediaPlan existing = planMapper.selectByUserId(userId);
-        SelfMediaPlan plan = existing == null ? new SelfMediaPlan() : existing;
-        plan.setUserId(userId);
-        plan.setPlatformKey(request.getPlatformKey());
-        plan.setPlatformName(request.getPlatformName());
-        plan.setNicheKey(request.getNicheKey());
-        plan.setNicheName(request.getNicheName());
-        plan.setPersonaKey(request.getPersonaKey());
-        plan.setPersonaName(request.getPersonaName());
-        plan.setContentPillarsJson(toJson(request.getPillars()));
-        plan.setAnswersJson(toJson(request.getAnswers()));
-        plan.setQuestionPromptCode(PROMPT_PLATFORM_QUESTIONS);
-        plan.setTenantId(0L);
-        if (existing == null) {
-            planMapper.insert(plan);
-        } else {
-            planMapper.updateById(plan);
+        boolean isAdjust = existing != null;
+        if (isAdjust) {
+            benefitService.consume(userId, BENEFIT_PLAN_ADJUST);
         }
-        return getCurrentPlan(userId);
+        try {
+            SelfMediaPlan plan = existing == null ? new SelfMediaPlan() : existing;
+            plan.setUserId(userId);
+            plan.setPlatformKey(request.getPlatformKey());
+            plan.setPlatformName(request.getPlatformName());
+            plan.setNicheKey(request.getNicheKey());
+            plan.setNicheName(request.getNicheName());
+            plan.setPersonaKey(request.getPersonaKey());
+            plan.setPersonaName(request.getPersonaName());
+            plan.setContentPillarsJson(toJson(request.getPillars()));
+            plan.setAnswersJson(toJson(request.getAnswers()));
+            plan.setQuestionPromptCode(PROMPT_PLATFORM_QUESTIONS);
+            plan.setTenantId(0L);
+            if (existing == null) {
+                planMapper.insert(plan);
+            } else {
+                planMapper.updateById(plan);
+            }
+            return getCurrentPlan(userId);
+        } catch (Exception e) {
+            if (isAdjust) {
+                benefitService.refund(userId, BENEFIT_PLAN_ADJUST);
+            }
+            throw e;
+        }
     }
 
     @Override

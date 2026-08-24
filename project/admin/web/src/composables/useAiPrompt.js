@@ -2,10 +2,10 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   listAiPrompts,
+  listAiPromptCategories,
   getAiPrompt,
   createAiPrompt,
   updateAiPrompt,
-  deleteAiPrompt,
   enableAiPrompt,
   disableAiPrompt
 } from '@/api/aiPrompt.js'
@@ -14,6 +14,7 @@ export function useAiPrompt() {
   const list = ref([])
   const total = ref(0)
   const loading = ref(false)
+  const categories = ref([])
   const page = ref(1)
   const pageSize = ref(20)
 
@@ -38,6 +39,14 @@ export function useAiPrompt() {
     return await getAiPrompt(id)
   }
 
+  const loadCategories = async () => {
+    try {
+      categories.value = await listAiPromptCategories()
+    } catch (e) {
+      categories.value = []
+    }
+  }
+
   const save = async (id, data) => {
     if (id) {
       await updateAiPrompt(id, data)
@@ -46,11 +55,6 @@ export function useAiPrompt() {
       await createAiPrompt(data)
       message.success('创建成功')
     }
-  }
-
-  const remove = async (id) => {
-    await deleteAiPrompt(id)
-    message.success('删除成功')
   }
 
   const toggleStatus = async (record) => {
@@ -67,12 +71,13 @@ export function useAiPrompt() {
     list,
     total,
     loading,
+    categories,
     page,
     pageSize,
     fetchList,
+    loadCategories,
     getDetail,
     save,
-    remove,
     toggleStatus
   }
 }

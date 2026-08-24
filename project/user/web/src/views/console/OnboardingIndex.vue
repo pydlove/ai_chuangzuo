@@ -242,7 +242,7 @@
     </div>
 
     <div class="onboarding-actions">
-      <a-button v-if="step > 1" size="large" @click="prev">上一步</a-button>
+      <a-button v-if="step > 1 && step !== 2" size="large" @click="prev">上一步</a-button>
       <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" :loading="isLoadingNext" @click="next">下一步</a-button>
       <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
     </div>
@@ -250,9 +250,9 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { message } from 'ant-design-vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { message, Modal } from 'ant-design-vue'
 import {
   CheckOutlined,
   BulbOutlined,
@@ -268,8 +268,11 @@ import {
 } from '@/api/selfMediaPlan.js'
 
 const router = useRouter()
+const route = useRoute()
 const step = ref(1)
 const steps = ['选平台', '答问题', '选赛道', '做人设', '出方案']
+const DRAFT_KEY = 'aichuangzuo_onboarding_draft'
+const isRestoringDraft = ref(false)
 
 function platformIconUrl(key) {
   return `/platforms/${key}.png`
@@ -410,6 +413,26 @@ const platforms = computed(() => {
 })
 
 onMounted(async () => {
+  const hasDraft = loadDraft()
+  if (route.query.reset === '1') {
+    if (!hasDraft) {
+      clearDraft()
+      step.value = 1
+    }
+    await loadPlatforms()
+    if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
+    if (step.value >= 3) await loadNicheOptions()
+    if (step.value >= 4) await loadPersonaOptions()
+    router.replace({ query: {} })
+    return
+  }
+  if (hasDraft) {
+    await loadPlatforms()
+    if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
+    if (step.value >= 3) await loadNicheOptions()
+    if (step.value >= 4) await loadPersonaOptions()
+    return
+  }
   await checkExistingPlan()
   if (step.value !== 5) {
     await loadPlatforms()
@@ -504,6 +527,57 @@ function selectPlatform(key) {
   selectedPlatform.value = selectedPlatform.value === key ? '' : key
 }
 
+function saveDraft() {
+  const draft = {
+    step: step.value,
+    selectedPlatform: selectedPlatform.value,
+    answers: { ...answers },
+    selectedNiche: selectedNiche.value,
+    selectedPersona: selectedPersona.value,
+    pillars: pillars.map((p) => ({ name: p.name, percent: p.percent }))
+  }
+  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+}
+
+function loadDraft() {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY)
+    if (!raw) return false
+    const draft = JSON.parse(raw)
+    if (!draft || typeof draft.step !== 'number') return false
+
+    isRestoringDraft.value = true
+    step.value = draft.step
+    selectedPlatform.value = draft.selectedPlatform || ''
+    Object.keys(answers).forEach((k) => delete answers[k])
+    Object.assign(answers, draft.answers || {})
+    selectedNiche.value = draft.selectedNiche || ''
+    selectedPersona.value = draft.selectedPersona || ''
+    pillars.splice(
+      0,
+      pillars.length,
+      ...(draft.pillars || []).map((p) => ({ name: p.name, percent: p.percent }))
+    )
+    return true
+  } catch (e) {
+    console.warn('加载方案草稿失败', e)
+    return false
+  } finally {
+    isRestoringDraft.value = false
+  }
+}
+
+function clearDraft() {
+  localStorage.removeItem(DRAFT_KEY)
+}
+
+watch(step, saveDraft)
+watch(selectedPlatform, saveDraft)
+watch(answers, saveDraft, { deep: true })
+watch(selectedNiche, saveDraft)
+watch(selectedPersona, saveDraft)
+watch(pillars, saveDraft, { deep: true })
+
 function resetAfterPlatformChange() {
   questions.value = []
   Object.keys(answers).forEach(k => delete answers[k])
@@ -521,7 +595,9 @@ async function loadQuestions() {
     const res = await fetchPlatformQuestions(selectedPlatform.value)
     const data = res?.data ?? null
     questions.value = Array.isArray(data) ? data : []
-    Object.keys(answers).forEach(k => delete answers[k])
+    if (!isRestoringDraft.value) {
+      Object.keys(answers).forEach((k) => delete answers[k])
+    }
   } catch (e) {
     message.error('问题生成失败，请重试')
   } finally {
@@ -539,7 +615,9 @@ async function loadNicheOptions() {
     })
     const data = res?.data ?? null
     nicheOptions.value = Array.isArray(data) ? data : []
-    selectedNiche.value = nicheOptions.value[0]?.key || ''
+    if (!isRestoringDraft.value) {
+      selectedNiche.value = nicheOptions.value[0]?.key || ''
+    }
   } catch (e) {
     message.error('赛道推荐失败，请重试')
   } finally {
@@ -558,16 +636,18 @@ async function loadPersonaOptions() {
     })
     const result = res?.data ?? {}
     personaOptions.value = Array.isArray(result.personas) ? result.personas : []
-    if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
-      pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
-    } else {
-      pillars.splice(0, pillars.length,
-        { name: '干货复盘', percent: 60 },
-        { name: '个人故事', percent: 20 },
-        { name: '热点解读', percent: 20 }
-      )
+    if (!isRestoringDraft.value) {
+      if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
+        pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
+      } else {
+        pillars.splice(0, pillars.length,
+          { name: '干货复盘', percent: 60 },
+          { name: '个人故事', percent: 20 },
+          { name: '热点解读', percent: 20 }
+        )
+      }
+      selectedPersona.value = personaOptions.value[0]?.key || ''
     }
-    selectedPersona.value = personaOptions.value[0]?.key || ''
   } catch (e) {
     message.error('人设推荐失败，请重试')
   } finally {
@@ -591,6 +671,21 @@ async function next() {
     message.warning('请先完成当前步骤的选择')
     return
   }
+  if (step.value === 1) {
+    Modal.confirm({
+      title: '确认平台',
+      content: '您是否确认选择此平台？确认后将根据您的情况和平台特性为您定制运营方案',
+      okText: '确认',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => proceedNext()
+    })
+    return
+  }
+  await proceedNext()
+}
+
+async function proceedNext() {
   isLoadingNext.value = true
   try {
     if (step.value === 1) {
@@ -632,6 +727,7 @@ async function confirm() {
     })
     message.success('自媒体方案已生成')
     localStorage.setItem('aichuangzuo_onboarding_done', '1')
+    clearDraft()
     router.push('/console/workbench')
   } catch (e) {
     message.error('保存方案失败，请重试')
@@ -1059,18 +1155,18 @@ async function confirm() {
   flex: 1;
 }
 .pillar-row :deep(.ant-slider-track) {
-  background: var(--color-primary, #07c160);
+  background: var(--color-primary, #FF2442);
 }
 .pillar-row :deep(.ant-slider-handle) {
-  border-color: var(--color-primary, #07c160);
+  border-color: var(--color-primary, #FF2442);
 }
 .pillar-row :deep(.ant-slider-handle:focus),
 .pillar-row :deep(.ant-slider-handle.ant-tooltip-open) {
-  border-color: var(--color-primary, #07c160);
-  box-shadow: 0 0 0 4px rgba(7, 193, 96, 0.2);
+  border-color: var(--color-primary, #FF2442);
+  box-shadow: 0 0 0 4px rgba(255, 36, 66, 0.2);
 }
 .pillar-row :deep(.ant-slider-dot-active) {
-  border-color: var(--color-primary, #07c160);
+  border-color: var(--color-primary, #FF2442);
 }
 .pillar-percent {
   width: 48px;
@@ -1158,14 +1254,14 @@ async function confirm() {
   padding-bottom: 48px;
 }
 .onboarding-actions .ant-btn-primary:not(.ant-btn-disabled) {
-  background: var(--color-primary, #07c160);
-  border-color: var(--color-primary, #07c160);
+  background: var(--color-primary, #FF2442);
+  border-color: var(--color-primary, #FF2442);
   color: #fff;
 }
 .onboarding-actions .ant-btn-primary:not(.ant-btn-disabled):hover,
 .onboarding-actions .ant-btn-primary:not(.ant-btn-disabled):focus {
-  background: var(--color-primary-hover, #06ad56);
-  border-color: var(--color-primary-hover, #06ad56);
+  background: var(--color-primary-hover, #E61E3A);
+  border-color: var(--color-primary-hover, #E61E3A);
   color: #fff;
 }
 .onboarding-actions .ant-btn-primary:disabled {
@@ -1174,41 +1270,336 @@ async function confirm() {
 
 @media (max-width: 768px) {
   .onboarding-index {
-    padding: 20px 16px;
+    padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
+    background:
+      radial-gradient(140% 90% at 50% -8%, var(--color-primary-bg) 0%, transparent 55%),
+      var(--color-bg-page);
+  }
+  .onboarding-header {
+    text-align: left;
+    margin-bottom: 18px;
   }
   .onboarding-title {
-    font-size: 22px;
+    font-size: 24px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .onboarding-subtitle {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #8c8c8c;
+  }
+
+  .onboarding-steps {
+    margin-bottom: 16px;
   }
   .step-bar::before {
-    display: none;
+    left: 12%;
+    right: 12%;
+    top: 16px;
+    height: 2px;
+    background: #f0f0f0;
+  }
+  .step-item {
+    gap: 6px;
+  }
+  .step-circle {
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   }
   .step-label {
     display: none;
+    font-size: 10px;
+    white-space: nowrap;
   }
+  .step-item.active .step-label {
+    display: block;
+    color: var(--color-primary);
+    font-weight: 600;
+  }
+
   .onboarding-card {
-    padding: 20px;
+    border-radius: 20px;
+    padding: 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    margin-bottom: 16px;
   }
+  .step-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .step-desc {
+    font-size: 13px;
+    color: #8c8c8c;
+    margin-bottom: 18px;
+    line-height: 1.55;
+  }
+
+  /* 平台选择 */
   .platform-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
-  .persona-grid {
-    grid-template-columns: 1fr 1fr;
+  .platform-card {
+    padding: 14px;
+    border-radius: 16px;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid #f5f5f5;
+  }
+  .platform-card.selected {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-light);
+    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+  }
+  .platform-card-header {
+    gap: 10px;
+  }
+  .platform-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+  }
+  .platform-name {
+    font-size: 17px;
+  }
+  .platform-tagline {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+  .platform-meta {
+    padding: 10px;
+    gap: 6px;
+    background: #f8f9fa;
+    border-radius: 10px;
+  }
+  .meta-row {
+    font-size: 12px;
+    gap: 8px;
+  }
+  .meta-label {
+    width: 52px;
+  }
+  .meta-tags :deep(.ant-tag) {
+    font-size: 11px;
+    padding: 1px 6px;
+    margin: 0;
+  }
+  .platform-reason {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+  .platform-earn {
+    padding: 10px;
+    border-radius: 10px;
+  }
+  .earn-title {
+    font-size: 12px;
+    margin-bottom: 8px;
   }
   .earn-metrics {
+    flex-direction: row;
+    gap: 6px;
+  }
+  .earn-metric {
+    background: #fff;
+    border-radius: 8px;
+    padding: 6px 2px;
+  }
+  .earn-metric-label {
+    font-size: 10px;
+  }
+  .earn-metric-value {
+    font-size: 12px;
+  }
+  .selected-check {
+    top: 10px;
+    right: 10px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+  }
+
+  /* 问题选项 */
+  .form-block {
+    margin-bottom: 18px;
+  }
+  .form-label {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+  .option-group {
     flex-direction: column;
     gap: 8px;
+  }
+  .option-btn {
+    width: 100%;
+    text-align: left;
+    padding: 12px 14px;
+    border-radius: 12px;
+    font-size: 14px;
+    border-color: #eeeeee;
+  }
+  .option-btn.selected {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+  }
+
+  /* 赛道 */
+  .niche-list {
+    gap: 10px;
+  }
+  .niche-card {
+    padding: 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #f5f5f5;
+  }
+  .niche-card.selected {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-light);
+    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+  }
+  .niche-header {
+    margin-bottom: 8px;
+  }
+  .niche-name {
+    font-size: 16px;
   }
   .niche-meta {
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    gap: 12px;
+    font-size: 12px;
   }
-  .summary-row {
-    flex-direction: column;
+  .niche-evidence {
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+  .niche-reason {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  /* 人设 */
+  .persona-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .persona-card {
+    padding: 14px;
+    border-radius: 14px;
+    background: #fff;
+    border: 1px solid #f5f5f5;
+  }
+  .persona-card.selected {
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-light);
+    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+  }
+  .persona-name {
+    font-size: 15px;
+  }
+  .persona-desc {
+    font-size: 12px;
+    line-height: 1.55;
+  }
+
+  /* 内容支柱 */
+  .pillars-input {
+    gap: 10px;
+  }
+  .pillar-row {
     gap: 8px;
   }
+  .pillar-name {
+    width: 70px;
+    font-size: 13px;
+  }
+  .pillar-percent {
+    width: 40px;
+    font-size: 13px;
+  }
+  .pillar-warning {
+    font-size: 12px;
+  }
+
+  /* 方案汇总 */
+  .summary-card {
+    background: #fff;
+    border: 1px solid #f5f5f5;
+    border-radius: 16px;
+    padding: 14px 16px;
+  }
+  .summary-row {
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 10px 0;
+    gap: 10px;
+  }
+  .summary-label {
+    width: 76px;
+    font-size: 13px;
+  }
+  .summary-value {
+    font-size: 14px;
+  }
+  .summary-pillars {
+    gap: 6px;
+  }
+  .summary-pillars :deep(.ant-tag) {
+    margin: 0;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--color-primary-bg);
+    border-color: var(--color-primary-light);
+    color: var(--color-primary);
+  }
   .summary-answer {
-    flex-direction: column;
-    gap: 4px;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 10px;
+    gap: 8px;
+  }
+  .answer-question {
+    font-size: 12px;
+  }
+  .answer-value {
+    font-size: 12px;
+  }
+  .summary-tip {
+    font-size: 12px;
+    padding: 10px 12px;
+    border-radius: 12px;
+  }
+
+  /* 底部操作 */
+  .onboarding-actions {
+    gap: 10px;
+    padding-bottom: 0;
+  }
+  .onboarding-actions .ant-btn {
+    flex: 1;
+    height: 46px;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  .onboarding-actions .ant-btn-primary {
+    flex: 2;
   }
 }
 </style>

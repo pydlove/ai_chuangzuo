@@ -9,6 +9,10 @@ export function getAccountDetail(userId) {
   return request.get(`/accounts/${userId}`).then((res) => res.data)
 }
 
+export function addCoinToUser(userId, data) {
+  return request.post(`/accounts/${userId}/add-coin`, data).then((res) => res.data)
+}
+
 export function listUserCoinRecords(userId, params) {
   return request.get(`/accounts/${userId}/coin-records`, { params }).then((res) => res.data)
 }

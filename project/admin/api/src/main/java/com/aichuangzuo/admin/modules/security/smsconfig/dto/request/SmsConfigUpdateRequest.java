@@ -25,7 +25,7 @@ public class SmsConfigUpdateRequest {
     @NotBlank(message = "短信模板 Code 不能为空")
     private String templateCode;
 
-    @NotBlank(message = "区域 ID 不能为空")
+    /** dypnsapi 不需要 RegionId，可选。 */
     private String regionId;
 
     @NotNull(message = "启用状态不能为空")

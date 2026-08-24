@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.earnings.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.earnings.dto.request.AccountQueryRequest;
+import com.aichuangzuo.admin.modules.earnings.dto.request.AddCoinRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserCoinRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserEarningsRecordQueryRequest;
 import com.aichuangzuo.admin.modules.earnings.dto.request.UserRewardRecordQueryRequest;
@@ -10,6 +11,7 @@ import com.aichuangzuo.admin.modules.earnings.vo.*;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -27,9 +29,9 @@ public class AccountAdminController {
     @GetMapping
     public Result<UserAccountPageVO> list(AccountQueryRequest request) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        log.info("管理员查询收益账户列表, adminUserId={}, userId={}, nickname={}, phone={}, email={}, page={}, size={}",
+        log.info("管理员查询收益账户列表, adminUserId={}, userId={}, nickname={}, phone={}, email={}, userType={}, page={}, size={}",
                 adminUserId, request.getUserId(), request.getNickname(), request.getPhone(),
-                request.getEmail(), request.getPage(), request.getSize());
+                request.getEmail(), request.getUserType(), request.getPage(), request.getSize());
         return Result.success(accountAdminService.listAccounts(request));
     }
 
@@ -39,6 +41,14 @@ public class AccountAdminController {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员查看收益账户详情, adminUserId={}, userId={}", adminUserId, userId);
         return Result.success(accountAdminService.getAccountDetail(userId));
+    }
+
+    @Operation(summary = "为机器人用户增加创作币")
+    @PostMapping("/{userId}/add-coin")
+    public Result<String> addCoin(@PathVariable Long userId, @Valid @RequestBody AddCoinRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员为机器人用户增加创作币, adminUserId={}, userId={}, amount={}", adminUserId, userId, request.getAmount());
+        return Result.success(accountAdminService.addCoinToRobot(userId, request));
     }
 
     @Operation(summary = "用户创作币明细")

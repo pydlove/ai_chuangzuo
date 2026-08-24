@@ -25,6 +25,8 @@ public class UserCoinRecord {
     private String remark;
     private LocalDateTime bizTime;
 
+    private Long tenantId;
+
     @TableLogic
     private Integer isDeleted;
 

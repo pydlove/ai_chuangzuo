@@ -123,6 +123,62 @@
             @click="copyTags"
           >复制全部标签</button>
         </div>
+
+        <!-- 一文多发方案 -->
+        <div class="meta-section-title" style="margin-top: 28px;">冷启动策略</div>
+        <div v-if="repostsLoading" class="reposts-loading">
+          <span class="reposts-loading-dot"></span>
+          小爱正在准备发布方案…
+        </div>
+        <div v-else-if="!coldStartPlan" class="reposts-empty">暂无冷启动策略</div>
+        <div v-else class="coldstart-card">
+          <div class="coldstart-duration">{{ coldStartPlan.duration || '发布后 30 分钟内' }}</div>
+          <ol class="coldstart-list">
+            <li v-for="(action, idx) in coldStartPlan.immediateActions" :key="idx">{{ action }}</li>
+          </ol>
+          <div v-if="coldStartPlan.sharingTips" class="coldstart-share">
+            💡 {{ coldStartPlan.sharingTips }}
+          </div>
+        </div>
+
+        <div class="meta-section-title" style="margin-top: 28px;">一文多发方案</div>
+        <div v-if="repostsLoading" class="reposts-loading">
+          <span class="reposts-loading-dot"></span>
+          小爱正在准备多平台发布方案…
+        </div>
+        <div v-else-if="repostsError" class="reposts-error">{{ repostsError }}</div>
+        <div v-else-if="!repostsPlan.length" class="reposts-empty">暂无多平台发布方案</div>
+        <div v-else class="reposts-list">
+          <div
+            v-for="(item, idx) in repostsPlan"
+            :key="item.platform + idx"
+            class="repost-card"
+          >
+            <div class="repost-header">
+              <span class="repost-platform">{{ item.platform }}</span>
+              <span class="repost-time">{{ item.publishTime }}</span>
+            </div>
+            <div class="repost-field">
+              <span class="repost-label">标题</span>
+              <span class="repost-value">{{ item.title || '-' }}</span>
+            </div>
+            <div class="repost-field">
+              <span class="repost-label">标签</span>
+              <div class="repost-tags">
+                <span
+                  v-for="tag in item.tags"
+                  :key="tag"
+                  class="repost-tag"
+                >{{ tag }}</span>
+                <span v-if="!item.tags?.length" class="repost-value">-</span>
+              </div>
+            </div>
+            <div class="repost-field">
+              <span class="repost-label">配图建议</span>
+              <span class="repost-value">{{ item.imageSuggestions || '-' }}</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -230,11 +286,16 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
+import { generatePublishPlan } from '@/api/selfMediaPlan.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
 const article = ref(null)
 const publishDesc = ref('')
 const publishTags = ref([])
+const repostsPlan = ref([])
+const repostsLoading = ref(false)
+const repostsError = ref('')
+const coldStartPlan = ref(null)
 
 // 会员权益：AI 标题优化仅 pro/flagship 可用
 const { hasBenefit, loadBenefits, loaded } = useBenefits()
@@ -411,9 +472,31 @@ const loadArticle = async () => {
     if (fresh.platform && tagPlatforms.some(p => p.key === fresh.platform)) {
       activeTagPlatform.value = fresh.platform
     }
+    // 一文多发方案：根据文章标题和平台生成
+    loadRepostsPlan(fresh.title, fresh.platform)
   } catch (e) {
     console.warn('preview 加载 article 失败', e)
     message.error('加载文章失败，请稍后重试')
+  }
+}
+
+const loadRepostsPlan = async (title, platform) => {
+  if (!title || !platform) return
+  repostsLoading.value = true
+  repostsError.value = ''
+  repostsPlan.value = []
+  coldStartPlan.value = null
+  try {
+    const platformMeta = tagPlatforms.find(p => p.key === platform)
+    const mainPlatform = platformMeta?.name || platform
+    const res = await generatePublishPlan({ articleTitle: title.trim(), mainPlatform: mainPlatform.trim() })
+    repostsPlan.value = res?.data?.reposts || []
+    coldStartPlan.value = res?.data?.coldStart || null
+  } catch (e) {
+    console.warn('加载一文多发方案失败', e)
+    repostsError.value = e?.message || '加载失败'
+  } finally {
+    repostsLoading.value = false
   }
 }
 
@@ -1173,6 +1256,149 @@ onMounted(() => {
   border-radius: 14px;
   font-size: 13px;
   color: #595959;
+}
+
+/* 一文多发方案 */
+.reposts-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #8c8c8c;
+  padding: 12px 0;
+}
+
+.reposts-loading-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff2442;
+  animation: reposts-dot-pulse 1s infinite ease-in-out;
+}
+
+@keyframes reposts-dot-pulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+.reposts-error {
+  font-size: 13px;
+  color: #ff4d4f;
+  padding: 12px 0;
+}
+
+.reposts-empty {
+  font-size: 13px;
+  color: #8c8c8c;
+  padding: 12px 0;
+}
+
+.reposts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.repost-card {
+  padding: 14px;
+  background: #fafafa;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+}
+
+.repost-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.repost-platform {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.repost-time {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #ff2442;
+  font-weight: 500;
+}
+
+.repost-field {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.repost-field + .repost-field {
+  margin-top: 6px;
+}
+
+.repost-label {
+  flex-shrink: 0;
+  color: #8c8c8c;
+  width: 60px;
+}
+
+.repost-value {
+  flex: 1;
+  color: #262626;
+}
+
+.repost-tags {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.repost-tag {
+  padding: 2px 8px;
+  background: #fff0f2;
+  color: #ff2442;
+  border-radius: 10px;
+  font-size: 12px;
+}
+
+/* 冷启动策略 */
+.coldstart-card {
+  padding: 14px;
+  background: #fff5f7;
+  border: 1px solid #ffd6dd;
+  border-radius: 8px;
+}
+
+.coldstart-duration {
+  font-size: 14px;
+  color: #ff2442;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.coldstart-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 13px;
+  color: #262626;
+  line-height: 1.7;
+}
+
+.coldstart-list li {
+  margin-bottom: 4px;
+}
+
+.coldstart-share {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #fff;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.5;
 }
 
 /* 浮动操作栏 */

@@ -9,6 +9,10 @@ public class AccountQueryRequest {
     private String nickname;
     private String phone;
     private String email;
+    /**
+     * 用户类型：0-机器人，1-真实用户；不传表示全部。
+     */
+    private Integer userType;
     private String sortBy;
 
     @Min(1)

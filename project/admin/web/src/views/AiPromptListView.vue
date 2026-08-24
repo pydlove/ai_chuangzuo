@@ -20,6 +20,15 @@
           <a-select-option value="admin">管理端</a-select-option>
           <a-select-option value="user">用户端</a-select-option>
         </a-select>
+        <a-select
+          v-model:value="query.category"
+          placeholder="分类"
+          allow-clear
+          style="width: 160px"
+          @change="handleSearch"
+        >
+          <a-select-option v-for="cat in categories" :key="cat" :value="cat">{{ cat }}</a-select-option>
+        </a-select>
         <a-input
           v-model:value="query.keyword"
           placeholder="编码/名称"
@@ -53,14 +62,6 @@
             <a-button type="link" size="small" @click="onToggleStatus(record)">
               {{ record.status === 1 ? '停用' : '启用' }}
             </a-button>
-            <a-popconfirm
-              title="确定删除此提示词？"
-              ok-text="删除"
-              cancel-text="取消"
-              @confirm="onDelete(record.id)"
-            >
-              <a-button type="link" size="small" danger>删除</a-button>
-            </a-popconfirm>
           </template>
         </template>
       </a-table>
@@ -90,12 +91,13 @@ import { useAiPrompt } from '@/composables/useAiPrompt.js'
 
 const router = useRouter()
 const {
-  list, total, loading, page, pageSize,
-  fetchList, remove, toggleStatus
+  list, total, loading, categories, page, pageSize,
+  fetchList, loadCategories, toggleStatus
 } = useAiPrompt()
 
 const query = reactive({
   module: undefined,
+  category: undefined,
   keyword: ''
 })
 
@@ -107,7 +109,7 @@ const columns = [
   { title: '分类', dataIndex: 'category', key: 'category', width: 140 },
   { title: '状态', key: 'status', width: 100 },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
-  { title: '操作', key: 'actions', fixed: 'right', width: 200 }
+  { title: '操作', key: 'actions', fixed: 'right', width: 150 }
 ]
 
 const handleSearch = () => {
@@ -117,6 +119,7 @@ const handleSearch = () => {
 
 const handleReset = () => {
   query.module = undefined
+  query.category = undefined
   query.keyword = ''
   page.value = 1
   pageSize.value = 20
@@ -139,16 +142,10 @@ const onToggleStatus = async (record) => {
   }
 }
 
-const onDelete = async (id) => {
-  try {
-    await remove(id)
-    await fetchList(query)
-  } catch (e) {
-    message.error(e.message || '删除失败')
-  }
-}
-
-onMounted(() => fetchList(query))
+onMounted(() => {
+  loadCategories()
+  fetchList(query)
+})
 </script>
 
 <style scoped>

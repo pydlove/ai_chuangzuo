@@ -46,7 +46,9 @@ public class AiPromptServiceImpl implements AiPromptService {
                 .like(AiPrompt::getPromptCode, keyword)
                 .or()
                 .like(AiPrompt::getPromptName, keyword));
-        wrapper.orderByDesc(AiPrompt::getUpdatedAt);
+        wrapper.orderByAsc(AiPrompt::getCategory)
+                .orderByAsc(AiPrompt::getSortOrder)
+                .orderByDesc(AiPrompt::getUpdatedAt);
 
         Page<AiPrompt> pageParam = new Page<>(page, pageSize);
         Page<AiPrompt> result = aiPromptMapper.selectPage(pageParam, wrapper);
@@ -57,6 +59,11 @@ public class AiPromptServiceImpl implements AiPromptService {
                 page,
                 pageSize
         );
+    }
+
+    @Override
+    public List<String> listCategories() {
+        return aiPromptMapper.selectCategories();
     }
 
     @Override
@@ -104,14 +111,6 @@ public class AiPromptServiceImpl implements AiPromptService {
         entity.setDescription(StringUtils.trimToNull(request.getDescription()));
         entity.setUpdatedBy(currentAdminIdOrZero());
 
-        aiPromptMapper.updateById(entity);
-    }
-
-    @Override
-    public void delete(Long id) {
-        AiPrompt entity = requireById(id);
-        entity.setIsDeleted(1);
-        entity.setUpdatedBy(currentAdminIdOrZero());
         aiPromptMapper.updateById(entity);
     }
 

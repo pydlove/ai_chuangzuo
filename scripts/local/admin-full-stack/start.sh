@@ -5,9 +5,11 @@
 # 环境变量（可选）：
 #   MYSQL_USERNAME / MYSQL_PASSWORD  数据库账号，默认 root / 123456
 #   ADMIN_JWT_SECRET                 管理端 JWT Secret，默认仅开发使用
+#   JASYPT_ENCRYPTOR_PASSWORD        解密 ENC(...) 及加密短信密钥的主密钥
 #
 # 如需自定义敏感配置，可在同级目录建 .env 文件（已被 git 忽略），格式：
 #   ADMIN_JWT_SECRET=...
+#   JASYPT_ENCRYPTOR_PASSWORD=...
 
 set -e
 
@@ -35,6 +37,9 @@ export MYSQL_PASSWORD="${MYSQL_PASSWORD:-123456}"
 
 # 管理端 JWT Secret（开发默认值，生产必须通过环境变量注入）
 export ADMIN_JWT_SECRET="${ADMIN_JWT_SECRET:-dev-admin-jwt-secret-must-be-replaced-in-production-2026}"
+
+# Jasypt 主密钥（与 application-*.yml 中 ENC(...) 及短信 AccessKeySecret 加密配对）
+export JASYPT_ENCRYPTOR_PASSWORD="${JASYPT_ENCRYPTOR_PASSWORD:-MySecretKey2024}"
 
 # 获取本机局域网 IP（macOS/Linux 兼容）
 get_lan_ip() {
