@@ -206,8 +206,15 @@ const recommendOptions = ref([])
 const recommending = ref(false)
 const isRestoring = ref(false)
 
-const ACCOUNT_CHECK_LAST_KEY = 'aichuangzuo_account_check_last'
-const ACCOUNT_RECOMMEND_LAST_KEY = 'aichuangzuo_account_recommend_last'
+const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
+const ACCOUNT_CHECK_LAST_KEY = `aichuangzuo_account_check_last_${currentUserId || 'anonymous'}`
+const ACCOUNT_RECOMMEND_LAST_KEY = `aichuangzuo_account_recommend_last_${currentUserId || 'anonymous'}`
+
+// 清理旧版未区分用户的缓存，避免切换账号后看到他人数据
+if (currentUserId) {
+  localStorage.removeItem('aichuangzuo_account_check_last')
+  localStorage.removeItem('aichuangzuo_account_recommend_last')
+}
 
 function buildPositioning() {
   const { platform, niche, persona, goal, pillars } = plan
@@ -541,6 +548,34 @@ async function recommendAccountName() {
 }
 .recommend-btn {
   border-radius: var(--radius-md);
+}
+
+/* 主题色覆盖，避免使用 Ant Design 默认蓝色 */
+:global(.account-check-modal .ant-btn-primary) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+:global(.account-check-modal .ant-btn-primary:hover),
+:global(.account-check-modal .ant-btn-primary:focus) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+:global(.account-check-modal .ant-radio-checked .ant-radio-inner) {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+:global(.account-check-modal .ant-radio-wrapper:hover .ant-radio),
+:global(.account-check-modal .ant-radio:hover .ant-radio-inner) {
+  border-color: var(--color-primary);
+}
+:global(.account-check-modal .ant-input:hover),
+:global(.account-check-modal .ant-input:focus),
+:global(.account-check-modal .ant-input-focused) {
+  border-color: var(--color-primary);
+}
+:global(.account-check-modal .ant-input:focus),
+:global(.account-check-modal .ant-input-focused) {
+  box-shadow: 0 0 0 2px var(--color-primary-bg);
 }
 
 @media (max-width: 576px) {

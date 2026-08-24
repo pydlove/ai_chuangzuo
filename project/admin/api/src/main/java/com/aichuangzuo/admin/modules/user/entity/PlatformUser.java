@@ -16,6 +16,7 @@ public class PlatformUser {
     private String bizNo;
     private String nickname;
     private String email;
+    private String phone;
     private String passwordHash;
     private String avatarUrl;
     private String inviteCode;

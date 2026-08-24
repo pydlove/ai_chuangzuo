@@ -1,4 +1,4 @@
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -354,6 +354,20 @@ export function usePricing() {
     return plan[keyMap[activeCycle.value]]?.savings || null
   }
 
+  const maxYearSavings = computed(() => {
+    let max = 0
+    for (const plan of plans.value) {
+      const year = plan.year
+      if (year?.savings != null) {
+        const value = Number(year.savings)
+        if (!isNaN(value) && value > max) {
+          max = value
+        }
+      }
+    }
+    return max
+  })
+
   const cellValue = (cell) => (cell == null ? null : cell.value)
 
   const getCell = (row, col) => {
@@ -396,6 +410,7 @@ export function usePricing() {
     getPrice,
     getArticles,
     getSavings,
+    maxYearSavings,
     cellValue,
     getCell,
     getPlanButton,

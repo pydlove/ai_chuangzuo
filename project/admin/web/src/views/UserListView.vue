@@ -10,7 +10,7 @@
       <div class="user-list-toolbar">
         <a-input
           v-model:value="keyword"
-          placeholder="账号或邮箱"
+          placeholder="手机号/邮箱/昵称/邀请码"
           allow-clear
           style="width: 200px"
           @press-enter="handleSearch"
@@ -65,11 +65,23 @@
         :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'email'">
-            <span>{{ record.email }}</span>
-            <a-button type="link" size="small" class="email-copy-btn" @click="copyEmail(record.email)">
-              <template #icon><CopyOutlined /></template>
-            </a-button>
+          <template v-if="column.key === 'contact'">
+            <div class="contact-cell">
+              <div class="contact-text">
+                <div v-if="record.phone">{{ record.phone }}</div>
+                <div v-if="record.email" class="contact-email">{{ record.email }}</div>
+              </div>
+              <a-button
+                v-if="record.phone || record.email"
+                type="link"
+                size="small"
+                class="email-copy-btn"
+                @click="copyContact(record)"
+              >
+                <template #icon><CopyOutlined /></template>
+              </a-button>
+              <span v-else style="color: #8c8c8c">—</span>
+            </div>
           </template>
           <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 'enabled' ? 'green' : 'red'">
@@ -725,7 +737,7 @@ const {
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
-  { title: '邮箱/账号', dataIndex: 'email', key: 'email', width: 220 },
+  { title: '手机/邮箱', key: 'contact', width: 240 },
   { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 140 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
   { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
@@ -920,10 +932,13 @@ const formatDateTime = (s) => {
   return s.replace('T', ' ').slice(0, 19)
 }
 
-const copyEmail = async (email) => {
+const copyContact = async (record) => {
   try {
-    await copyToClipboard(email)
-    message.success('邮箱已复制')
+    const parts = []
+    if (record.phone) parts.push(`手机：${record.phone}`)
+    if (record.email) parts.push(`邮箱：${record.email}`)
+    await copyToClipboard(parts.join(' '))
+    message.success('联系方式已复制')
   } catch (error) {
     message.error('复制失败')
   }
@@ -1455,6 +1470,22 @@ onMounted(() => {
 
 .email-copy-btn:hover {
   color: #07c160;
+}
+
+.contact-cell {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.contact-text {
+  display: inline-block;
+  line-height: 1.5;
+}
+
+.contact-email {
+  color: #8c8c8c;
+  font-size: 12px;
 }
 
 .invite-code-copy-btn {

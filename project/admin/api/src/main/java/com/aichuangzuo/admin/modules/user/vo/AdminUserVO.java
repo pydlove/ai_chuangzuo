@@ -9,6 +9,7 @@ public class AdminUserVO {
     private Long id;
     private String account;
     private String email;
+    private String phone;
     private String nickname;
     private String status;
     private String userType;

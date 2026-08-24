@@ -750,7 +750,7 @@ async function loadPlan() {
 
 function goToOnboarding(reset = false) {
   if (!hasMembership.value) {
-    message.info('制定运营方案需要开通会员，请先订阅套餐')
+    message.warning('制定运营方案需要开通会员，请先订阅套餐')
     router.push('/pricing')
     return
   }
@@ -1099,6 +1099,11 @@ async function loadPublishPlan(record) {
 }
 
 function openCreateChoice() {
+  if (!hasMembership.value) {
+    message.warning('开始创作需要开通会员，请先订阅套餐')
+    router.push('/pricing')
+    return
+  }
   createChoiceVisible.value = true
 }
 

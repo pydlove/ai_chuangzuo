@@ -19,7 +19,7 @@
             @click="setCycle(cycle.key)"
           >
             {{ cycle.label }}
-            <span v-if="cycle.key === 'year'" class="toggle-badge">最高立省 ¥359</span>
+            <span v-if="cycle.key === 'year' && maxYearSavings" class="toggle-badge">最高立省 ¥{{ maxYearSavings }}</span>
           </button>
         </div>
 
@@ -225,6 +225,7 @@ const {
   getPrice,
   getArticles,
   getSavings,
+  maxYearSavings,
   getCell,
   getPlanButton,
   handleSubscribe,

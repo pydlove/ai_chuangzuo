@@ -36,7 +36,7 @@ export default defineConfig({
       name: 'static-uploads',
       configureServer(server) {
         server.middlewares.use('/uploads', (req, res, next) => {
-          const uploadRoot = resolve(__dirname, '../../../data/uploads')
+          const uploadRoot = resolve(__dirname, '../../api/data/uploads')
           const filePath = path.join(uploadRoot, req.url.replace(/^\/uploads/, ''))
           if (!filePath.startsWith(uploadRoot)) {
             res.statusCode = 403
@@ -75,7 +75,7 @@ export default defineConfig({
       }
     },
     fs: {
-      allow: ['..', '../../data/uploads']
+      allow: ['..', '../../api/data/uploads']
     }
   }
 })

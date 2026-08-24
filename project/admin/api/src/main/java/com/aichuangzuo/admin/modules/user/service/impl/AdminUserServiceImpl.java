@@ -272,6 +272,8 @@ public class AdminUserServiceImpl implements AdminUserService {
             String kw = keyword.trim();
             wrapper.and(w -> w.like(PlatformUser::getEmail, kw)
                     .or()
+                    .like(PlatformUser::getPhone, kw)
+                    .or()
                     .like(PlatformUser::getNickname, kw)
                     .or()
                     .like(PlatformUser::getInviteCode, kw));
@@ -473,6 +475,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setId(user.getId());
         vo.setAccount(user.getEmail());
         vo.setEmail(user.getEmail());
+        vo.setPhone(user.getPhone());
         vo.setNickname(user.getNickname());
         vo.setStatus(user.getUserStatus() == 1 ? "enabled" : "disabled");
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");

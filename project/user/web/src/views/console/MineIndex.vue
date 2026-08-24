@@ -2,6 +2,7 @@
   <div class="mine-page">
     <!-- 用户卡 -->
     <section class="mine-user-card">
+      <div class="mine-user-accent"></div>
       <div class="mine-user-main">
         <div class="mine-user-avatar" @click="triggerAvatarUpload">
           <img
@@ -11,6 +12,7 @@
             class="mine-avatar-img"
           />
           <span v-else>{{ avatarLetter }}</span>
+          <span class="mine-avatar-ring"></span>
         </div>
         <input
           ref="mineAvatarInput"
@@ -22,6 +24,8 @@
         <div class="mine-user-info">
           <div class="mine-user-name-row">
             <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
+          </div>
+          <div class="mine-user-meta-row">
             <span
               :class="[
                 'mine-user-vip',
@@ -32,16 +36,28 @@
               <CrownOutlined v-if="hasMembership" class="mine-user-vip-icon" />
               {{ membershipLevel || '免费版' }}
             </span>
+            <span v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
+              剩余 {{ membershipDaysLeft }} 天
+            </span>
           </div>
-          <div class="mine-user-email">{{ emailForm.email || '未绑定邮箱' }}</div>
-          <div class="mine-user-phone">{{ phoneForm.phone || '未绑定手机号' }}</div>
-          <div v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
-            有效期至 {{ membershipExpiry }}
+          <div class="mine-user-contact">
+            <span v-if="emailForm.email" class="mine-contact-item">
+              <MailOutlined class="mine-contact-icon" />
+              {{ emailForm.email }}
+            </span>
+            <span v-else-if="phoneForm.phone" class="mine-contact-item">
+              <PhoneOutlined class="mine-contact-icon" />
+              {{ phoneForm.phone }}
+            </span>
+            <span v-else class="mine-contact-item mine-contact-item--placeholder">
+              完善资料，解锁更多权益
+            </span>
           </div>
         </div>
       </div>
       <button class="mine-edit-btn" @click="actions.openProfileModal">
-        <EditOutlined />
+        <EditOutlined class="mine-edit-icon" />
+        <span>编辑资料</span>
       </button>
     </section>
 
@@ -235,6 +251,7 @@ import {
   LogoutOutlined,
   UserAddOutlined
 } from '@ant-design/icons-vue'
+import dayjs from 'dayjs'
 import { getMonthlyCount } from '@/api/article'
 import { getMyCoupons } from '@/api/lottery'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
@@ -262,8 +279,13 @@ const avatarLetter = computed(() => {
   return name.charAt(0).toUpperCase()
 })
 
-// 本月已生成：从后端统计接口读取
-const monthlyWorks = ref(0)
+// 会员剩余天数
+const membershipDaysLeft = computed(() => {
+  if (!membershipExpiry.value) return 0
+  const end = dayjs(membershipExpiry.value)
+  const now = dayjs()
+  return Math.max(0, end.diff(now, 'day'))
+})
 // 优惠券数量
 const couponCount = ref(0)
 onMounted(async () => {

@@ -55,7 +55,7 @@
           <a-modal
             v-model:open="inviteVisible"
             :footer="null"
-            :width="640"
+            :width="720"
             centered
             class="invite-modal"
             :mask-style="{ background: 'transparent' }"
@@ -1356,7 +1356,6 @@ import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feed
 import { getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
-  EditOutlined,
   LoadingOutlined,
   EyeOutlined,
   FolderOutlined,
@@ -1530,7 +1529,6 @@ const goToNewcomerOffer = () => {
 }
 const navItems = [
   { path: '/console/workbench', label: '工作台', icon: DashboardOutlined },
-  { path: '/console/create', label: '创作', icon: EditOutlined },
   { path: '/console/commission', label: '约稿中心', icon: FileTextOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
