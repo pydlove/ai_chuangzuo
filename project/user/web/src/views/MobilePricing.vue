@@ -147,7 +147,7 @@
     <!-- 底部 -->
     <footer class="mp-footer">
       <div>© 2026 爱创作 · 杭州爱启云网络科技有限公司</div>
-      <div>浙ICP备XXXXXXXX号-1</div>
+      <div>浙ICP备2025200943号-2</div>
     </footer>
 
     <!-- 升级确认弹框 -->

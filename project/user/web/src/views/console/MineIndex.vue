@@ -2,8 +2,7 @@
   <div class="mine-page">
     <!-- 用户卡 -->
     <section class="mine-user-card">
-      <div class="mine-user-accent"></div>
-      <div class="mine-user-main">
+      <div class="mine-user-header">
         <div class="mine-user-avatar" @click="triggerAvatarUpload">
           <img
             v-if="profileForm.avatarUrl"
@@ -12,7 +11,6 @@
             class="mine-avatar-img"
           />
           <span v-else>{{ avatarLetter }}</span>
-          <span class="mine-avatar-ring"></span>
         </div>
         <input
           ref="mineAvatarInput"
@@ -24,191 +22,174 @@
         <div class="mine-user-info">
           <div class="mine-user-name-row">
             <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
-          </div>
-          <div class="mine-user-meta-row">
-            <span
-              :class="[
-                'mine-user-vip',
-                { 'mine-user-vip-pro': membershipLevel === '专业版会员', 'mine-user-vip-free': !hasMembership }
-              ]"
-              @click="router.push('/console/benefits')"
-            >
-              <CrownOutlined v-if="hasMembership" class="mine-user-vip-icon" />
-              {{ membershipLevel || '免费版' }}
-            </span>
-            <span v-if="hasMembership && membershipExpiry" class="mine-user-expiry">
-              剩余 {{ membershipDaysLeft }} 天
+            <span v-if="hasMembership" class="mine-user-vip">
+              <CrownOutlined class="mine-user-vip-icon" />
+              会员
             </span>
           </div>
-          <div class="mine-user-contact">
-            <span v-if="emailForm.email" class="mine-contact-item">
-              <MailOutlined class="mine-contact-icon" />
-              {{ emailForm.email }}
-            </span>
-            <span v-else-if="phoneForm.phone" class="mine-contact-item">
-              <PhoneOutlined class="mine-contact-icon" />
-              {{ phoneForm.phone }}
-            </span>
-            <span v-else class="mine-contact-item mine-contact-item--placeholder">
-              完善资料，解锁更多权益
-            </span>
-          </div>
+          <div class="mine-user-id">{{ phoneForm.phone || emailForm.email || '完善资料，解锁更多权益' }}</div>
+        </div>
+        <div class="mine-user-actions-top">
+          <button class="mine-header-icon-btn" @click="router.push('/console/messages')">
+            <BellOutlined />
+          </button>
+          <button class="mine-header-icon-btn" @click="settingsModalVisible = true">
+            <SettingOutlined />
+          </button>
         </div>
       </div>
-      <button class="mine-edit-btn" @click="actions.openProfileModal">
-        <EditOutlined class="mine-edit-icon" />
-        <span>编辑资料</span>
-      </button>
+
+      <!-- 核心数据 -->
+      <div class="mine-user-stats">
+        <div class="mine-user-stat" @click="router.push('/console/earnings')">
+          <div class="mine-user-stat-value">{{ coinBalance }}</div>
+          <div class="mine-user-stat-label">创作币</div>
+        </div>
+        <div class="mine-user-stat" @click="router.push('/console/benefits')">
+          <div class="mine-user-stat-value">{{ hasMembership ? benefitCount : 0 }}</div>
+          <div class="mine-user-stat-label">会员权益</div>
+        </div>
+        <div class="mine-user-stat" @click="router.push('/console/coupons')">
+          <div class="mine-user-stat-value">{{ couponCount }}</div>
+          <div class="mine-user-stat-label">优惠券</div>
+        </div>
+        <div class="mine-user-stat" @click="router.push('/console/invite')">
+          <div class="mine-user-stat-value">{{ inviteStats.invitedCount }}</div>
+          <div class="mine-user-stat-label">已邀请</div>
+        </div>
+      </div>
     </section>
 
-    <!-- 数据卡 -->
-    <section class="mine-stats-card">
-      <div class="mine-stat-item" @click="router.push('/console/works')">
-        <div class="mine-stat-value">{{ monthlyWorks }}</div>
-        <div class="mine-stat-label">本月已生成</div>
+    <!-- VIP 卡片 -->
+    <section class="mine-vip-card">
+      <div class="mine-vip-card-top" @click="router.push('/console/benefits')">
+        <div class="mine-vip-content">
+          <div class="mine-vip-title">
+            <CrownOutlined class="mine-vip-title-icon" />
+            {{ hasMembership ? (membershipLevel + '会员') : '开通会员' }}
+          </div>
+          <div class="mine-vip-desc">
+            {{ hasMembership ? '畅享全部 AI 创作权益' : '解锁更多高级功能' }}
+          </div>
+        </div>
+        <div class="mine-vip-mascot">
+          <img
+            v-for="(src, idx) in catFrames"
+            :key="src"
+            :src="src"
+            class="mine-vip-mascot-img"
+            :style="{ animationDelay: `${idx * 3}s` }"
+            alt="会员 mascot"
+          />
+        </div>
       </div>
-      <div class="mine-stat-divider"></div>
-      <div class="mine-stat-item mine-stat-item-coin" @click="router.push('/console/earnings')">
-        <div class="mine-stat-value">{{ coinBalance }}</div>
-        <div class="mine-stat-label">创作币余额</div>
+
+      <div class="mine-vip-order-grid">
+        <div class="mine-vip-order-item" @click="showComingSoon">
+          <div class="mine-vip-order-icon mine-vip-order-icon--img">
+            <img src="/assets/images/待支付-v1.png" alt="待支付" />
+          </div>
+          <span class="mine-vip-order-label">待支付</span>
+        </div>
+        <div class="mine-vip-order-item" @click="showComingSoon">
+          <div class="mine-vip-order-icon mine-vip-order-icon--img">
+            <img src="/assets/images/已支付-v1.jpg" alt="已支付" />
+          </div>
+          <span class="mine-vip-order-label">已支付</span>
+        </div>
+        <div class="mine-vip-order-item" @click="showComingSoon">
+          <div class="mine-vip-order-icon mine-vip-order-icon--img">
+            <img src="/assets/images/全部订单-v1.jpg" alt="全部订单" />
+          </div>
+          <span class="mine-vip-order-label">全部订单</span>
+        </div>
       </div>
-      <div class="mine-stat-divider"></div>
-      <div class="mine-stat-item" @click="router.push('/console/invite')">
-        <div class="mine-stat-value">{{ inviteStats.invitedCount }}</div>
-        <div class="mine-stat-label">已邀请</div>
+    </section>
+
+    <!-- 热门服务 -->
+    <section class="mine-block mine-hot-services-block">
+      <div class="mine-section-header">
+        <h3 class="mine-section-title">热门服务</h3>
       </div>
-      <div class="mine-stat-divider"></div>
-      <div class="mine-stat-item mine-stat-item-coupon" @click="router.push('/console/coupons')">
-        <div class="mine-stat-value">{{ couponCount }}</div>
-        <div class="mine-stat-label">优惠券</div>
+      <div class="mine-hot-services">
+        <div class="mine-hot-service-item" @click="$router.push('/console/works')">
+          <div class="mine-hot-service-info">
+            <div class="mine-hot-service-title">我的作品</div>
+            <div class="mine-hot-service-subtitle">查看全部创作内容</div>
+          </div>
+          <div class="mine-hot-service-icon mine-hot-service-icon--img">
+            <img src="/assets/images/我的作品-v1.jpg" alt="我的作品" />
+          </div>
+        </div>
+        <div class="mine-hot-service-item" @click="$router.push('/console/skills')">
+          <div class="mine-hot-service-info">
+            <div class="mine-hot-service-title">我的提示词</div>
+            <div class="mine-hot-service-subtitle">管理常用 Prompt</div>
+          </div>
+          <div class="mine-hot-service-icon mine-hot-service-icon--img">
+            <img src="/assets/images/我的提示词-v1.jpg" alt="我的提示词" />
+          </div>
+        </div>
+        <div class="mine-hot-service-item" @click="accountModalVisible = true">
+          <div class="mine-hot-service-info">
+            <div class="mine-hot-service-title">账号检测</div>
+            <div class="mine-hot-service-subtitle">检测账号健康状态</div>
+          </div>
+          <div class="mine-hot-service-icon mine-hot-service-icon--img">
+            <img src="/assets/images/账号检测-v1.jpg" alt="账号检测" />
+          </div>
+        </div>
+        <div class="mine-hot-service-item" @click="$router.push('/console/hot-search')">
+          <div class="mine-hot-service-info">
+            <div class="mine-hot-service-title">热搜榜</div>
+            <div class="mine-hot-service-subtitle">获取实时热点灵感</div>
+          </div>
+          <div class="mine-hot-service-icon mine-hot-service-icon--img">
+            <img src="/assets/images/热搜榜-v1.jpg" alt="热搜榜" />
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- 常用功能 -->
-    <section class="mine-block">
-      <h3 class="mine-section-title">常用功能</h3>
+    <section class="mine-block mine-common-functions-block">
+      <div class="mine-section-header">
+        <h3 class="mine-section-title">常用功能</h3>
+      </div>
       <div class="mine-grid">
-        <div class="mine-grid-item" @click="$router.push('/console/works')">
-          <div class="mine-grid-icon mine-grid-icon--works"><ContainerOutlined /></div>
-          <span class="mine-grid-label">我的作品</span>
+        <div class="mine-grid-item" @click="actions.openInviteBindingModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/绑定邀请人_compressed-v1.jpg" alt="绑定邀请人" /></div>
+          <span class="mine-grid-label">绑定邀请人</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/earnings')">
-          <div class="mine-grid-icon mine-grid-icon--earnings"><DollarOutlined /></div>
-          <span class="mine-grid-label">我的账户</span>
+        <div class="mine-grid-item" @click="actions.openTutorialModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/教程与帮助_compressed-v1.jpg" alt="教程与帮助" /></div>
+          <span class="mine-grid-label">教程与帮助</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/benefits')">
-          <div class="mine-grid-icon mine-grid-icon--benefits"><CrownOutlined /></div>
-          <span class="mine-grid-label">我的权益</span>
+        <div class="mine-grid-item" @click="actions.openFeedbackModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/意见反馈_compressed-v1.jpg" alt="意见反馈" /></div>
+          <span class="mine-grid-label">意见反馈</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/invite')">
-          <div class="mine-grid-icon mine-grid-icon--invite">
-            <GiftOutlined />
-            <span class="mine-grid-gift-badge">🎁</span>
-          </div>
-          <span class="mine-grid-label">邀请有礼</span>
+        <div class="mine-grid-item" @click="actions.openAboutModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关于我们_compressed-v1.jpg" alt="关于我们" /></div>
+          <span class="mine-grid-label">关于我们</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/skills')">
-          <div class="mine-grid-icon mine-grid-icon--skills"><SmileOutlined /></div>
-          <span class="mine-grid-label">我的提示词</span>
+        <div class="mine-grid-item" @click="actions.openTermsModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/用户协议_compressed-v1.jpg" alt="用户协议" /></div>
+          <span class="mine-grid-label">用户协议</span>
         </div>
-        <div class="mine-grid-item" @click="accountModalVisible = true">
-          <div class="mine-grid-icon mine-grid-icon--check"><SafetyCertificateOutlined /></div>
-          <span class="mine-grid-label">账号检测</span>
+        <div class="mine-grid-item" @click="actions.openPrivacyModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/隐私政策_compressed-v1.jpg" alt="隐私政策" /></div>
+          <span class="mine-grid-label">隐私政策</span>
         </div>
-        <div class="mine-grid-item" @click="$router.push('/console/hot-search')">
-          <div class="mine-grid-icon mine-grid-icon--hot"><FireOutlined /></div>
-          <span class="mine-grid-label">热搜榜</span>
+        <div class="mine-grid-item" @click="actions.openWechatModal">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关注微信_compressed-v1.jpg" alt="关注微信" /></div>
+          <span class="mine-grid-label">关注微信</span>
         </div>
-        <div class="mine-grid-item" @click="actions.openRedeemModal">
-          <div class="mine-grid-icon mine-grid-icon--redeem"><TagOutlined /></div>
-          <span class="mine-grid-label">兑换码</span>
+        <div class="mine-grid-item" @click="openOfficialSite">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/访问官网_compressed-v1.jpg" alt="访问官网" /></div>
+          <span class="mine-grid-label">访问官网</span>
         </div>
       </div>
-    </section>
-
-    <!-- 服务与帮助 -->
-    <section class="mine-block">
-      <h3 class="mine-section-title">服务与帮助</h3>
-      <ul class="mine-list">
-        <li
-          v-if="actions.profile?.value?.inviterUserId == null"
-          class="mine-list-item"
-          @click="actions.openInviteBindingModal"
-        >
-          <UserAddOutlined class="mine-list-icon" />
-          <span class="mine-list-label">绑定邀请人</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li v-else class="mine-list-item">
-          <UserAddOutlined class="mine-list-icon" />
-          <span class="mine-list-label">我的邀请人</span>
-          <span class="mine-list-extra">{{ actions.profile?.value?.inviterNickname || '已绑定' }}</span>
-        </li>
-        <li class="mine-list-item" @click="actions.openTutorialModal">
-          <BookOutlined class="mine-list-icon" />
-          <span class="mine-list-label">教程与帮助</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openFeedbackModal">
-          <MessageOutlined class="mine-list-icon" />
-          <span class="mine-list-label">意见反馈</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-      </ul>
-    </section>
-
-    <!-- 设置 -->
-    <section class="mine-block">
-      <h3 class="mine-section-title">设置</h3>
-      <ul class="mine-list">
-        <li class="mine-list-item" @click="actions.openPasswordModal">
-          <LockOutlined class="mine-list-icon" />
-          <span class="mine-list-label">修改密码</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openEmailModal">
-          <MailOutlined class="mine-list-icon" />
-          <span class="mine-list-label">修改邮箱</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openPhoneModal">
-          <PhoneOutlined class="mine-list-icon" />
-          <span class="mine-list-label">修改手机号</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-      </ul>
-    </section>
-
-    <!-- 关于 -->
-    <section class="mine-block">
-      <h3 class="mine-section-title">关于</h3>
-      <ul class="mine-list">
-        <li class="mine-list-item" @click="actions.openAboutModal">
-          <InfoCircleOutlined class="mine-list-icon" />
-          <span class="mine-list-label">关于我们</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openTermsModal">
-          <FileTextOutlined class="mine-list-icon" />
-          <span class="mine-list-label">用户协议</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openPrivacyModal">
-          <SafetyOutlined class="mine-list-icon" />
-          <span class="mine-list-label">隐私政策</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="actions.openWechatModal">
-          <WechatOutlined class="mine-list-icon mine-list-icon-wechat" />
-          <span class="mine-list-label">关注微信</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-        <li class="mine-list-item" @click="openOfficialSite">
-          <GlobalOutlined class="mine-list-icon" />
-          <span class="mine-list-label">访问官网</span>
-          <RightOutlined class="mine-list-arrow" />
-        </li>
-      </ul>
     </section>
 
     <button class="mine-logout" @click="confirmLogout">
@@ -217,6 +198,45 @@
     </button>
 
     <p class="mine-footer">© 2026 爱创作 · 杭州爱启云网络科技有限公司</p>
+    <p class="mine-icp">浙ICP备2025200943号-2</p>
+    <a-modal
+      v-model:open="settingsModalVisible"
+      title="设置"
+      :footer="null"
+      :width="360"
+      centered
+      class="mine-settings-modal"
+    >
+      <div class="mine-settings-content">
+        <div class="mine-settings-avatar" @click="triggerAvatarUpload">
+          <img
+            v-if="profileForm.avatarUrl"
+            :src="profileForm.avatarUrl"
+            alt="avatar"
+          />
+          <span v-else>{{ avatarLetter }}</span>
+          <div class="mine-settings-avatar-text">
+            {{ profileForm.avatarUrl ? '更换头像' : '上传头像' }}
+          </div>
+        </div>
+        <div class="mine-settings-item" @click="openProfileFromSettings">
+          <span class="mine-settings-label">昵称</span>
+          <span class="mine-settings-value">{{ profileForm.nickname || '未设置' }}</span>
+          <RightOutlined class="mine-settings-arrow" />
+        </div>
+        <div class="mine-settings-item" @click="openPhoneFromSettings">
+          <span class="mine-settings-label">手机号</span>
+          <span class="mine-settings-value">{{ phoneForm.phone || '未绑定' }}</span>
+          <RightOutlined class="mine-settings-arrow" />
+        </div>
+        <div class="mine-settings-item" @click="openEmailFromSettings">
+          <span class="mine-settings-label">邮箱</span>
+          <span class="mine-settings-value">{{ emailForm.email || '未绑定' }}</span>
+          <RightOutlined class="mine-settings-arrow" />
+        </div>
+      </div>
+    </a-modal>
+
     <AccountCheckModal v-model:visible="accountModalVisible" />
   </div>
 </template>
@@ -227,32 +247,15 @@ import { useRouter } from 'vue-router'
 import { inject } from 'vue'
 import { Modal } from 'ant-design-vue'
 import { useUserProfile } from '@/composables/useUserProfile.js'
+import { useBenefits } from '@/composables/useBenefits.js'
 import {
   CrownOutlined,
-  EditOutlined,
-  DollarOutlined,
-  ContainerOutlined,
-  SmileOutlined,
-  SafetyCertificateOutlined,
-  FireOutlined,
-  GiftOutlined,
-  TagOutlined,
-  BookOutlined,
-  MessageOutlined,
-  LockOutlined,
-  MailOutlined,
-  PhoneOutlined,
-  InfoCircleOutlined,
-  FileTextOutlined,
-  SafetyOutlined,
-  WechatOutlined,
-  GlobalOutlined,
+  BellOutlined,
+  SettingOutlined,
   RightOutlined,
-  LogoutOutlined,
-  UserAddOutlined
+  LogoutOutlined
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
-import { getMonthlyCount } from '@/api/article'
 import { getMyCoupons } from '@/api/lottery'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
 
@@ -260,8 +263,18 @@ const router = useRouter()
 const actions = inject('consoleActions')
 
 const accountModalVisible = ref(false)
+const settingsModalVisible = ref(false)
+
+const catFrames = [
+  '/assets/images/猫咪1-v1.svg',
+  '/assets/images/猫咪2-v1.svg',
+  '/assets/images/猫咪3-v1.svg',
+  '/assets/images/猫咪4-v1.svg',
+  '/assets/images/猫咪5-v1.svg'
+]
 
 const userProfile = useUserProfile()
+const { benefits, loadBenefits } = useBenefits()
 const mineAvatarInput = ref(null)
 
 const profileForm = actions.profileForm
@@ -286,14 +299,14 @@ const membershipDaysLeft = computed(() => {
   const now = dayjs()
   return Math.max(0, end.diff(now, 'day'))
 })
+
+// 已开通权益数量
+const benefitCount = computed(() => Object.keys(benefits.value || {}).length)
+
 // 优惠券数量
 const couponCount = ref(0)
 onMounted(async () => {
-  try {
-    monthlyWorks.value = await getMonthlyCount()
-  } catch {
-    monthlyWorks.value = 0
-  }
+  loadBenefits()
   try {
     const coupons = await getMyCoupons()
     couponCount.value = (coupons.data || []).length
@@ -312,6 +325,30 @@ const confirmLogout = () => {
     centered: true,
     onOk: () => actions.handleLogout()
   })
+}
+
+const showComingSoon = () => {
+  Modal.info({
+    title: '即将上线',
+    content: '订单功能正在开发中，敬请期待',
+    okText: '知道了',
+    centered: true
+  })
+}
+
+const openProfileFromSettings = () => {
+  settingsModalVisible.value = false
+  actions.openProfileModal()
+}
+
+const openPhoneFromSettings = () => {
+  settingsModalVisible.value = false
+  actions.openPhoneModal()
+}
+
+const openEmailFromSettings = () => {
+  settingsModalVisible.value = false
+  actions.openEmailModal()
 }
 
 const openOfficialSite = () => {
@@ -336,73 +373,54 @@ const onMineAvatarChange = async (e) => {
 
 <style scoped>
 .mine-page {
-  padding: 16px 12px calc(80px + env(safe-area-inset-bottom));
   max-width: 720px;
   margin: 0 auto;
   box-sizing: border-box;
+  background: #F5F6FA;
+  min-height: 100vh;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+  color: #1a1a1a;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* ========== 用户卡 ========== */
+/* ========== 用户卡（参考图头部布局） ========== */
 .mine-user-card {
   position: relative;
+  background:
+    radial-gradient(circle at 18% 22%, transparent 22px, rgba(255, 36, 66, 0.08) 23px, rgba(255, 36, 66, 0.08) 42px, transparent 43px),
+    radial-gradient(circle at 82% 78%, transparent 30px, rgba(255, 36, 66, 0.06) 31px, rgba(255, 36, 66, 0.06) 54px, transparent 55px),
+    radial-gradient(circle at 78% 18%, transparent 16px, rgba(255, 36, 66, 0.07) 17px, rgba(255, 36, 66, 0.07) 34px, transparent 35px),
+    linear-gradient(135deg, #FFF8FA 0%, #FFEBEF 100%);
+  padding: 20px 16px 44px;
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.12);
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 22px 18px;
-  background: linear-gradient(135deg, #FF2442 0%, #FF4D6F 100%);
-  border-radius: 20px;
-  color: #fff;
+  flex-direction: column;
+  gap: 18px;
   overflow: hidden;
-  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.22);
 }
 
-.mine-user-card::before {
-  content: '';
-  position: absolute;
-  top: -50px;
-  right: -40px;
-  width: 160px;
-  height: 160px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 50%;
-}
-
-.mine-user-card::after {
-  content: '';
-  position: absolute;
-  bottom: -40px;
-  left: -30px;
-  width: 120px;
-  height: 120px;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 50%;
-}
-
-.mine-user-main {
+.mine-user-header {
   display: flex;
   align-items: center;
-  gap: 14px;
-  position: relative;
-  z-index: 1;
-  min-width: 0;
+  gap: 12px;
+  width: 100%;
 }
 
 .mine-user-avatar {
-  flex-shrink: 0;
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.22);
-  border: 2px solid rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
-  color: #fff;
+  color: #FF2442;
   overflow: hidden;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .mine-avatar-img {
@@ -414,179 +432,370 @@ const onMineAvatarChange = async (e) => {
 .mine-user-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
 }
 
 .mine-user-name-row {
   display: flex;
   align-items: center;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .mine-user-name {
   font-size: 18px;
   font-weight: 700;
-  color: #fff;
+  color: #1a1a1a;
+  letter-spacing: -0.2px;
 }
 
 .mine-user-vip {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-  font-size: 11px;
+  gap: 2px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  font-size: 10px;
   font-weight: 600;
   color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  cursor: pointer;
-  transition: opacity 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.mine-user-vip:active {
-  opacity: 0.8;
-}
-
-.mine-user-vip-pro {
-  background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%);
-  color: #5a2a00;
-  border-color: rgba(255, 215, 0, 0.6);
-}
-
-.mine-user-vip-free {
-  background: rgba(255, 255, 255, 0.18);
-  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.4;
 }
 
 .mine-user-vip-icon {
-  font-size: 11px;
+  font-size: 10px;
 }
 
-.mine-user-email {
-  margin-top: 5px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.85);
+.mine-user-id {
+  font-size: 13px;
+  color: #999;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.mine-user-phone {
-  margin-top: 3px;
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.75);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.mine-user-expiry {
-  margin-top: 2px;
-  font-size: 11px;
-  color: rgba(255, 255, 255, 0.75);
-}
-
-.mine-edit-btn {
+.mine-user-actions-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
-  width: 34px;
-  height: 34px;
+}
+
+.mine-header-icon-btn {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.15);
-  color: #fff;
-  font-size: 14px;
-  cursor: pointer;
+  border: none;
+  background: rgba(255, 36, 66, 0.08);
+  color: #FF2442;
+  font-size: 18px;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: all 0.2s;
-  position: relative;
-  z-index: 1;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mine-edit-btn:active {
-  background: rgba(255, 255, 255, 0.3);
+.mine-header-icon-btn:active {
+  background: rgba(255, 36, 66, 0.16);
 }
 
-/* ========== 数据卡 ========== */
-.mine-stats-card {
+/* ========== 核心数据 ========== */
+.mine-user-stats {
   display: flex;
-  align-items: stretch;
-  background: #fff;
-  border-radius: 18px;
-  padding: 18px 6px;
-  margin-top: 12px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0 8px;
 }
 
-.mine-stat-item {
+.mine-user-stat {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   transition: opacity 0.15s;
   -webkit-tap-highlight-color: transparent;
   min-width: 0;
 }
 
-.mine-stat-item:active {
-  opacity: 0.7;
+.mine-user-stat:active {
+  opacity: 0.75;
 }
 
-.mine-stat-value {
-  font-size: 20px;
+.mine-user-stat-value {
+  font-size: 18px;
   font-weight: 700;
   color: #1a1a1a;
-  line-height: 1.1;
+  line-height: 1.2;
+  letter-spacing: -0.3px;
 }
 
-.mine-stat-item-coin .mine-stat-value {
-  color: #FF2442;
+.mine-user-stat-label {
+  font-size: 12px;
+  color: #999;
 }
 
-.mine-stat-item-coupon .mine-stat-value {
-  color: #fa8c16;
+/* ========== VIP 卡片 ========== */
+.mine-vip-card {
+  position: relative;
+  z-index: 1;
+  margin: -24px 12px 0;
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 18% 22%, transparent 20px, rgba(255, 255, 255, 0.06) 21px, rgba(255, 255, 255, 0.06) 38px, transparent 39px),
+    radial-gradient(circle at 82% 78%, transparent 26px, rgba(255, 255, 255, 0.05) 27px, rgba(255, 255, 255, 0.05) 48px, transparent 49px),
+    radial-gradient(circle at 78% 18%, transparent 14px, rgba(255, 255, 255, 0.05) 15px, rgba(255, 255, 255, 0.05) 30px, transparent 31px),
+    linear-gradient(135deg, #FF6B7D 0%, #FF2442 45%, #E61E3A 100%);
+  box-shadow: 0 6px 18px rgba(255, 36, 66, 0.25);
+  display: flex;
+  flex-direction: column;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.mine-stat-label {
-  font-size: 11px;
-  color: #8c8c8c;
+.mine-vip-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 90px;
+  padding: 0 16px;
+  cursor: pointer;
+  transition: transform 0.15s;
 }
 
-.mine-stat-divider {
-  width: 1px;
-  background: #f0f0f0;
-  margin: 4px 0;
+.mine-vip-card-top:active {
+  transform: translateY(1px);
+}
+
+.mine-vip-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mine-vip-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.2;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.mine-vip-title-icon {
+  font-size: 14px;
+}
+
+.mine-vip-desc {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.3;
+}
+
+.mine-vip-mascot {
+  position: relative;
+  width: 100px;
+  height: 100px;
   flex-shrink: 0;
+  margin-top: -40px;
+  margin-right: -8px;
+}
+
+.mine-vip-mascot-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  opacity: 0;
+  animation: cat-blink 15s infinite;
+  pointer-events: none;
+}
+
+.mine-vip-order-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  height: 80px;
+  padding: 0;
+  background: linear-gradient(135deg, #FFF0F3 0%, #fff 30%, #fff 100%);
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.mine-vip-order-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 2px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-vip-order-item:active {
+  background: #F5F6FA;
+}
+
+.mine-vip-order-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: #FF2442;
+  background: #FFF5F7;
+}
+
+.mine-vip-order-icon--img {
+  background: transparent;
+}
+
+.mine-vip-order-icon--img img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.mine-vip-order-label {
+  font-size: 12px;
+  color: #595959;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@keyframes cat-blink {
+  0%, 18% { opacity: 1; }
+  20%, 100% { opacity: 0; }
 }
 
 /* ========== 通用 section ========== */
 .mine-block {
+  margin-top: 12px;
+}
+
+.mine-user-card + .mine-block,
+.mine-vip-card + .mine-block {
   margin-top: 16px;
 }
 
+.mine-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 4px 10px;
+}
+
 .mine-section-title {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
   color: #1a1a1a;
-  padding: 10px 12px;
-  margin-bottom: 0;
-  letter-spacing: 0.5px;
+  margin: 0;
+  letter-spacing: -0.2px;
+}
+
+/* ========== 热门服务 ========== */
+.mine-hot-services-block {
+  margin-left: 12px;
+  margin-right: 12px;
+}
+
+.mine-hot-services {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  background: #fff;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.mine-hot-service-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 12px;
+  background: #FFF8FA;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-hot-service-item:active {
+  background: #FFEBEF;
+}
+
+.mine-hot-service-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mine-hot-service-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.mine-hot-service-subtitle {
+  font-size: 11px;
+  color: #999;
+}
+
+.mine-hot-service-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.mine-hot-service-icon--img {
+  background: transparent;
+}
+
+.mine-hot-service-icon--img img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+/* ========== 常用功能 ========== */
+.mine-common-functions-block {
+  margin-left: 12px;
+  margin-right: 12px;
 }
 
 /* ========== 常用功能网格 ========== */
 .mine-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 10px;
+  gap: 8px;
   background: #fff;
-  border-radius: 18px;
+  border-radius: 16px;
   padding: 16px 10px;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 
 .mine-grid-item {
@@ -594,123 +803,45 @@ const onMineAvatarChange = async (e) => {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 8px 4px;
-  border-radius: 12px;
+  padding: 6px 2px;
+  border-radius: 10px;
   cursor: pointer;
   transition: background 0.15s;
   -webkit-tap-highlight-color: transparent;
 }
 
 .mine-grid-item:active {
-  background: #f5f5f5;
+  background: #F5F6FA;
 }
 
 .mine-grid-icon {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px;
   color: #FF2442;
   background: #FFF5F7;
 }
 
-.mine-grid-icon--works { background: #FFF5F7; color: #FF2442; }
-.mine-grid-icon--earnings { background: #FFF5F7; color: #FF2442; }
-.mine-grid-icon--benefits { background: #FFF5F7; color: #FF2442; }
-.mine-grid-icon--invite { background: #FFF7F0; color: #fa8c16; position: relative; }
-
-.mine-grid-gift-badge {
-  position: absolute;
-  top: -4px;
-  right: -4px;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #FF2442;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  line-height: 1;
-  box-shadow: 0 2px 5px rgba(255, 36, 66, 0.35);
-  border: 2px solid #fff;
+.mine-grid-icon--img {
+  background: transparent;
 }
-.mine-grid-icon--skills { background: #F0F9FF; color: #1890ff; }
-.mine-grid-icon--check { background: #F6FFED; color: #52c41a; }
-.mine-grid-icon--hot { background: #FFF5F7; color: #FF2442; }
-.mine-grid-icon--coupon { background: #FFF7F0; color: #fa8c16; }
-.mine-grid-icon--redeem { background: #F6FFED; color: #52c41a; }
+
+.mine-grid-icon--img img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+  border-radius: 8px;
+}
 
 .mine-grid-label {
   font-size: 12px;
-  color: #262626;
+  color: #666;
   text-align: center;
   line-height: 1.2;
-}
-
-/* ========== 列表项 ========== */
-.mine-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-}
-
-.mine-list-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 14px;
-  cursor: pointer;
-  transition: background 0.15s;
-  user-select: none;
-}
-
-.mine-list-item:active {
-  background: #f5f5f5;
-}
-
-.mine-list-item + .mine-list-item {
-  border-top: 1px solid #f5f5f5;
-}
-
-.mine-list-icon {
-  flex-shrink: 0;
-  width: 22px;
-  height: 22px;
-  font-size: 18px;
-  color: #FF2442;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mine-list-icon-wechat {
-  color: #07c160;
-}
-
-.mine-list-label {
-  flex: 1;
-  font-size: 14px;
-  color: #262626;
-}
-
-.mine-list-extra {
-  font-size: 13px;
-  color: #8c8c8c;
-}
-
-.mine-list-arrow {
-  flex-shrink: 0;
-  font-size: 12px;
-  color: #bfbfbf;
 }
 
 /* ========== 退出登录 ========== */
@@ -718,169 +849,256 @@ const onMineAvatarChange = async (e) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
-  width: 100%;
-  margin-top: 24px;
-  padding: 16px 20px;
+  gap: 8px;
+  width: calc(100% - 24px);
+  margin: 24px 12px 0;
+  padding: 14px 20px;
   background: #fff;
-  color: #FF2442;
-  border: 1px solid rgba(255, 36, 66, 0.2);
+  color: #FF4D4F;
+  border: none;
   border-radius: 16px;
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 4px 18px rgba(255, 36, 66, 0.08);
-  transition: all 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: background 0.15s;
 }
 
 .mine-logout:active {
-  background: #FFF5F7;
-  transform: scale(0.99);
+  background: #FFF2F0;
 }
 
 .mine-logout-icon {
-  font-size: 18px;
+  font-size: 16px;
 }
 
 .mine-footer {
   margin-top: 16px;
   text-align: center;
   font-size: 11px;
-  color: #bfbfbf;
+  color: #999;
+}
+
+.mine-icp {
+  margin-top: 8px;
+  text-align: center;
+  font-size: 11px;
+  color: #999;
+}
+
+/* ========== 设置弹框 ========== */
+.mine-settings-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 8px 0 16px;
+  gap: 8px;
+}
+
+.mine-settings-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+
+.mine-settings-avatar img,
+.mine-settings-avatar span {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #F5F6FA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 700;
+  color: #999;
+}
+
+.mine-settings-avatar-text {
+  font-size: 13px;
+  color: #FF2442;
+}
+
+.mine-settings-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #F5F6FA;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-settings-item:active {
+  background: #EBEDF0;
+}
+
+.mine-settings-label {
+  flex-shrink: 0;
+  width: 56px;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.mine-settings-value {
+  flex: 1;
+  font-size: 14px;
+  color: #999;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mine-settings-arrow {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: #999;
 }
 
 /* ========== PC 端适配 ========== */
 @media (min-width: 769px) {
-  .mine-page {
-    padding: 24px 16px calc(80px + env(safe-area-inset-bottom));
-  }
-
-  .mine-user-card {
-    padding: 26px 24px;
-  }
-
-  .mine-user-avatar {
-    width: 68px;
-    height: 68px;
-    font-size: 26px;
-  }
-
   .mine-user-name {
     font-size: 20px;
   }
 
   .mine-grid {
-    grid-template-columns: repeat(7, 1fr);
-    padding: 18px 16px;
-  }
-
-  .mine-grid-icon {
-    width: 50px;
-    height: 50px;
-    font-size: 22px;
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
 /* ========== 暗色主题 ========== */
+body[data-theme="dark"] .mine-page {
+  background: #141414;
+}
+
 body[data-theme="dark"] .mine-user-card {
-  background: linear-gradient(135deg, #ff4d6f 0%, #e61e3a 100%);
-  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.25);
+  background:
+    radial-gradient(circle at 18% 22%, transparent 22px, rgba(255, 36, 66, 0.12) 23px, rgba(255, 36, 66, 0.12) 42px, transparent 43px),
+    radial-gradient(circle at 82% 78%, transparent 30px, rgba(255, 36, 66, 0.09) 31px, rgba(255, 36, 66, 0.09) 54px, transparent 55px),
+    radial-gradient(circle at 78% 18%, transparent 16px, rgba(255, 36, 66, 0.1) 17px, rgba(255, 36, 66, 0.1) 34px, transparent 35px),
+    linear-gradient(135deg, #2A1518 0%, #1F0F12 100%);
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .mine-stats-card,
-body[data-theme="dark"] .mine-list,
-body[data-theme="dark"] .mine-grid {
+body[data-theme="dark"] .mine-grid,
+body[data-theme="dark"] .mine-logout {
   background: #1f1f1f;
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
-body[data-theme="dark"] .mine-stat-value {
-  color: #f5f5f5;
+body[data-theme="dark"] .mine-user-avatar {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(255, 255, 255, 0.4);
+  color: #FF2442;
 }
 
-body[data-theme="dark"] .mine-stat-item-coin .mine-stat-value {
-  color: #ff6b81;
+body[data-theme="dark"] .mine-user-name,
+body[data-theme="dark"] .mine-section-title,
+body[data-theme="dark"] .mine-grid-label,
+body[data-theme="dark"] .mine-user-stat-value {
+  color: #f0f0f0;
 }
 
-body[data-theme="dark"] .mine-stat-item-coupon .mine-stat-value {
-  color: #ffc53d;
+body[data-theme="dark"] .mine-user-id,
+body[data-theme="dark"] .mine-user-stat-label,
+body[data-theme="dark"] .mine-stat-label,
+body[data-theme="dark"] .mine-footer,
+body[data-theme="dark"] .mine-icp {
+  color: #737373;
 }
 
-body[data-theme="dark"] .mine-stat-divider {
+body[data-theme="dark"] .mine-header-icon-btn {
+  background: rgba(255, 36, 66, 0.12);
+  color: #FF4D6D;
+}
+
+body[data-theme="dark"] .mine-header-icon-btn:active {
+  background: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .mine-vip-card {
+  background:
+    radial-gradient(circle at 18% 22%, transparent 20px, rgba(255, 255, 255, 0.08) 21px, rgba(255, 255, 255, 0.08) 38px, transparent 39px),
+    radial-gradient(circle at 82% 78%, transparent 26px, rgba(255, 255, 255, 0.06) 27px, rgba(255, 255, 255, 0.06) 48px, transparent 49px),
+    radial-gradient(circle at 78% 18%, transparent 14px, rgba(255, 255, 255, 0.07) 15px, rgba(255, 255, 255, 0.07) 30px, transparent 31px),
+    linear-gradient(135deg, #D43A4E 0%, #8B1221 50%, #6B0E1A 100%);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+
+body[data-theme="dark"] .mine-vip-title {
+  color: #fff;
+}
+
+body[data-theme="dark"] .mine-vip-desc {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+body[data-theme="dark"] .mine-vip-order-grid {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1f1f1f 30%, #1f1f1f 100%);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+body[data-theme="dark"] .mine-vip-order-item:active {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .mine-vip-order-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #FF4D6D;
+}
+
+body[data-theme="dark"] .mine-vip-order-icon--img {
+  background: transparent;
+}
+
+body[data-theme="dark"] .mine-vip-order-label {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mine-grid-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #FF4D6D;
+}
+
+body[data-theme="dark"] .mine-hot-services {
+  background: #1f1f1f;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .mine-hot-service-item {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .mine-hot-service-item:active {
   background: #303030;
 }
 
-body[data-theme="dark"] .mine-section-title {
-  color: #f5f5f5;
+body[data-theme="dark"] .mine-hot-service-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .mine-hot-service-subtitle {
+  color: #737373;
+}
+
+body[data-theme="dark"] .mine-hot-service-icon--img {
+  background: transparent;
 }
 
 body[data-theme="dark"] .mine-grid-item:active {
   background: #2a2a2a;
 }
 
-body[data-theme="dark"] .mine-grid-label {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .mine-grid-icon {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .mine-grid-icon--works { background: rgba(255, 36, 66, 0.12); color: #ff6b81; }
-body[data-theme="dark"] .mine-grid-icon--invite { background: rgba(250, 140, 22, 0.12); color: #ffc53d; position: relative; }
-
-body[data-theme="dark"] .mine-grid-gift-badge {
-  background: #ff4d6f;
-  color: #fff;
-  border-color: #1f1f1f;
-  box-shadow: 0 2px 5px rgba(255, 77, 111, 0.35);
-}
-body[data-theme="dark"] .mine-grid-icon--skills { background: rgba(24, 144, 255, 0.12); color: #69c0ff; }
-body[data-theme="dark"] .mine-grid-icon--check { background: rgba(82, 196, 26, 0.12); color: #95de64; }
-body[data-theme="dark"] .mine-grid-icon--coupon { background: rgba(250, 140, 22, 0.12); color: #ffc53d; }
-body[data-theme="dark"] .mine-grid-icon--redeem { background: rgba(82, 196, 26, 0.12); color: #95de64; }
-
-body[data-theme="dark"] .mine-list-item + .mine-list-item {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .mine-list-item:active {
-  background: #2a2a2a;
-}
-
-body[data-theme="dark"] .mine-list-label {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .mine-list-extra {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .mine-list-arrow {
-  color: #666;
-}
-
-body[data-theme="dark"] .mine-list-icon {
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .mine-list-icon-wechat {
-  color: #10b981;
-}
-
-body[data-theme="dark"] .mine-logout {
-  background: #1f1f1f;
-  color: #ff6b81;
-  border-color: rgba(255, 77, 111, 0.4);
-  box-shadow: 0 4px 18px rgba(255, 77, 111, 0.1);
-}
-
 body[data-theme="dark"] .mine-logout:active {
-  background: rgba(255, 77, 111, 0.08);
-}
-
-body[data-theme="dark"] .mine-footer {
-  color: #666;
+  background: rgba(255, 77, 79, 0.12);
 }
 </style>

@@ -266,7 +266,7 @@
     <!-- 底部 -->
     <footer class="home-footer">
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备XXXXXXXX号-1</span>
+      <span>浙ICP备2025200943号-2</span>
     </footer>
   </div>
 </template>

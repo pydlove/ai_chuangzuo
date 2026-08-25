@@ -974,30 +974,57 @@
       <!-- 底部 -->
       <footer class="console-footer">
         <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-        <span>浙ICP备XXXXXXXX号-1</span>
+        <span>浙ICP备2025200943号-2</span>
       </footer>
     </div>
 
     <!-- 手机端底部 TabBar（只在 ≤768px 显示） -->
     <nav class="console-tabbar" :class="{ 'tabbar-hidden': isMobile && !isTabbarPage }" aria-label="主导航">
-      <router-link
-        v-for="tab in tabbarItems"
-        :key="tab.path"
-        :to="tab.path"
-        class="console-tabbar-item"
-        :class="{ active: isActive(tab.path) }"
-      >
-        <span class="console-tabbar-icon-wrap">
-          <component :is="tab.icon" class="console-tabbar-icon" />
-          <span
-            v-if="tab.path === '/console/messages' && unreadCount > 0"
-            class="console-tabbar-badge"
-          >
-            {{ unreadCount > 99 ? '99+' : unreadCount }}
+      <div class="console-tabbar-group">
+        <router-link
+          v-for="tab in leftTabs"
+          :key="tab.path"
+          :to="tab.path"
+          class="console-tabbar-item"
+          :class="{ active: isActive(tab.path) }"
+        >
+          <span class="console-tabbar-icon-wrap">
+            <component :is="tab.icon" class="console-tabbar-icon" />
+            <span
+              v-if="tab.path === '/console/messages' && unreadCount > 0"
+              class="console-tabbar-badge"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
           </span>
-        </span>
-        <span class="console-tabbar-label">{{ tab.label }}</span>
-      </router-link>
+          <span class="console-tabbar-label">{{ tab.label }}</span>
+        </router-link>
+      </div>
+
+      <button class="console-tabbar-ai" @click="goToCreate" aria-label="AI 创作">
+        <img src="/assets/images/AI-2-v1.png" alt="AI 创作" />
+      </button>
+
+      <div class="console-tabbar-group">
+        <router-link
+          v-for="tab in rightTabs"
+          :key="tab.path"
+          :to="tab.path"
+          class="console-tabbar-item"
+          :class="{ active: isActive(tab.path) }"
+        >
+          <span class="console-tabbar-icon-wrap">
+            <component :is="tab.icon" class="console-tabbar-icon" />
+            <span
+              v-if="tab.path === '/console/messages' && unreadCount > 0"
+              class="console-tabbar-badge"
+            >
+              {{ unreadCount > 99 ? '99+' : unreadCount }}
+            </span>
+          </span>
+          <span class="console-tabbar-label">{{ tab.label }}</span>
+        </router-link>
+      </div>
     </nav>
   </div>
 
@@ -1329,6 +1356,8 @@
     </div>
   </a-modal>
 
+  <CreateFlowLauncher ref="createLauncherRef" @taskCreated="onTaskCreated" />
+
 </template>
 
 <script setup>
@@ -1339,6 +1368,7 @@ import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import CreateFlowLauncher from '@/components/CreateFlowLauncher.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi, sendSmsCode as sendSmsCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
@@ -1550,11 +1580,26 @@ const navItems = [
 // 手机端底部 TabBar：只保留 4 个高频入口，其余功能内聚到 "我的"
 // 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
 const tabbarItems = [
-  { path: '/console/workbench', label: '工作台', icon: DashboardOutlined },
+  { path: '/console/workbench', label: '控制台', icon: DashboardOutlined },
   { path: '/console/activities', label: '活动', icon: GiftOutlined },
   { path: '/console/messages', label: '消息', icon: MessageOutlined },
   { path: '/console/mine', label: '我的', icon: UserOutlined }
 ]
+
+const leftTabs = computed(() => tabbarItems.slice(0, 2))
+const rightTabs = computed(() => tabbarItems.slice(2))
+const createLauncherRef = ref(null)
+const goToCreate = () => createLauncherRef.value?.openCreateChoice()
+
+// 创作任务创建后通知感兴趣的子页面（如工作台刷新生成记录）
+const createTaskCallbacks = new Set()
+const registerCreateTaskCallback = (cb) => {
+  createTaskCallbacks.add(cb)
+  return () => createTaskCallbacks.delete(cb)
+}
+const onTaskCreated = (task) => {
+  createTaskCallbacks.forEach(cb => cb(task))
+}
 
 const isActive = (path) => {
   return route.path === path || route.path.startsWith(path + '/')
@@ -2894,6 +2939,8 @@ provide('consoleActions', {
   openProfileModal,
   openEmailModal,
   openPhoneModal,
+  openCreateChoice: () => createLauncherRef.value?.openCreateChoice(),
+  registerCreateTaskCallback,
   handleLogout,
   // 用户状态（响应式，子页面读它会跟着变）
   profileForm,
@@ -6236,11 +6283,11 @@ body[data-theme="dark"] .phone-submit:hover {
     display: none;
   }
 
-  /* 主内容区占满宽度，底部留出 tabbar + 安全区高度 */
+  /* 主内容区占满宽度，底部留出 tabbar + AI 凸起 + 安全区高度 */
   .console-main {
     width: 100%;
     min-height: 100vh;
-    padding-bottom: calc(60px + env(safe-area-inset-bottom));
+    padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
 
   /* 简化 header：隐藏所有图标按钮 / 头像 / 会员徽章
@@ -6305,23 +6352,97 @@ body[data-theme="dark"] .phone-submit:hover {
     overflow: hidden;
   }
 
+  .console-content .pull-content {
+    margin-bottom: 10px;
+  }
+
   /* ============ 底部 TabBar ============ */
   .console-tabbar {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    height: calc(60px + env(safe-area-inset-bottom));
+    height: calc(64px + env(safe-area-inset-bottom));
     padding-bottom: env(safe-area-inset-bottom);
+    background: transparent;
+    z-index: 50;
+  }
+
+  .console-tabbar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: #fff;
     border-top: 1px solid #f0f0f0;
+    border-radius: 20px 20px 0 0;
     box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.04);
-    z-index: 50;
+    mask-image: radial-gradient(circle 47px at 50% -1px, transparent 98%, black 100%);
+    -webkit-mask-image: radial-gradient(circle 47px at 50% -1px, transparent 98%, black 100%);
+    z-index: -1;
+    pointer-events: none;
   }
 
   .console-tabbar.tabbar-hidden {
     display: none;
+  }
+
+  .console-tabbar-group {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 64px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .console-tabbar-ai {
+    position: relative;
+    top: -34px;
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    z-index: 2;
+    transition: transform 0.15s;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .console-tabbar-ai::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    right: -3px;
+    bottom: -3px;
+    border-radius: 50%;
+    background: transparent;
+    z-index: -1;
+  }
+
+  .console-tabbar-ai img {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 1;
+  }
+
+  .console-tabbar-ai:active {
+    transform: scale(0.95);
+  }
+
+  .console-tabbar-ai:active::before {
+    box-shadow: none;
   }
 
   .console-tabbar-item {
@@ -6535,10 +6656,19 @@ body[data-theme="dark"] .phone-submit:hover {
 }
 
 /* 暗色主题 tabbar */
-body[data-theme="dark"] .console-tabbar {
+body[data-theme="dark"] .console-tabbar::before {
   background: #1f1f1f;
   border-top-color: #303030;
   box-shadow: 0 -2px 12px rgba(0, 0, 0, 0.5);
+}
+
+body[data-theme="dark"] .console-tabbar-ai::before {
+  background: transparent;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .console-tabbar-ai:active::before {
+  box-shadow: none;
 }
 
 body[data-theme="dark"] .console-tabbar-item {

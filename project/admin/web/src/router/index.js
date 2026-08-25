@@ -234,6 +234,11 @@ const routes = [
         path: 'scheduled-tasks',
         name: 'AdminScheduledTask',
         component: () => import('@/views/ScheduledTaskView.vue')
+      },
+      {
+        path: 'tools',
+        name: 'AdminToolManagement',
+        component: () => import('@/views/ToolManagementView.vue')
       }
     ]
   },

@@ -325,7 +325,7 @@ export function usePricing() {
         cycle: data.cycle || cycle,
         expiresAt: data.expiresAt
       }
-      router.push('/console/create')
+      router.push('/console/workbench')
     } catch (err) {
       message.error(err.message || '订阅失败，请重试')
     } finally {

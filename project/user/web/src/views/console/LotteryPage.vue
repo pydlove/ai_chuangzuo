@@ -3,7 +3,7 @@
     <NavBar v-if="showNavBar" :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 活动头图 -->
-    <section class="lottery-hero" :style="heroStyle">
+    <section class="lottery-hero" :class="{ 'has-image': hasHeroImage }" :style="heroStyle">
       <div class="lottery-hero__mask" :style="maskStyle" />
       <div class="lottery-hero__content">
         <span class="lottery-hero__badge"><GiftOutlined /> 幸运抽奖</span>
@@ -179,7 +179,7 @@
     <!-- 底部 -->
     <footer class="lottery-footer">
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备XXXXXXXX号-1</span>
+      <span>浙ICP备2025200943号-2</span>
     </footer>
 
     <!-- 中奖结果弹窗 -->
@@ -301,10 +301,20 @@ const sortedTiers = computed(() => {
 })
 const hasMoreTiers = computed(() => (campaign.value?.tiers?.length || 0) > PREVIEW_COUNT)
 
+const LOTTERY_HERO_IMAGE = 'https://foruda.gitee.com/images/1787578298608980753/dfb1def2_8060302.png'
+
+const isConsoleLottery = computed(() => route.name === 'ConsoleLottery')
+
+const heroImageUrl = computed(() => {
+  if (isConsoleLottery.value) return campaign.value?.imageUrl || ''
+  return campaign.value?.imageUrl || LOTTERY_HERO_IMAGE
+})
+const hasHeroImage = computed(() => !!heroImageUrl.value)
+
 const heroStyle = computed(() => {
   const style = {}
-  if (campaign.value?.imageUrl) {
-    style.backgroundImage = `url(${campaign.value.imageUrl})`
+  if (heroImageUrl.value) {
+    style.backgroundImage = `url(${heroImageUrl.value})`
   } else {
     style.backgroundImage = 'linear-gradient(180deg, #FFE5EB 0%, #fff 100%)'
   }
@@ -315,7 +325,7 @@ const heroStyle = computed(() => {
 })
 
 const maskStyle = computed(() => {
-  if (campaign.value?.imageUrl) {
+  if (hasHeroImage.value) {
     return { background: 'linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.5) 100%)' }
   }
   return { background: 'linear-gradient(180deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 100%)' }
@@ -690,6 +700,16 @@ function formatTime(t) {
   font-size: 13px;
   margin: 0;
   color: #8c8c8c;
+}
+
+.lottery-hero.has-image .lottery-hero__title,
+.lottery-hero.has-image .lottery-hero__desc,
+.lottery-hero.has-image .lottery-hero__time {
+  color: #fff;
+}
+
+.lottery-hero.has-image .lottery-hero__badge {
+  background: rgba(255, 255, 255, 0.95);
 }
 
 .lottery-body {

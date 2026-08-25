@@ -111,6 +111,7 @@
               {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
             </button>
           </div>
+          <p v-if="registerMode === 'phone'" class="sms-provider">短信服务由 恒创联众 提供支持</p>
         </div>
 
         <div class="form-item">
@@ -178,7 +179,7 @@
     <!-- 底部 -->
     <footer class="login-footer">
       <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备XXXXXXXX号-1</span>
+      <span>浙ICP备2025200943号-2</span>
     </footer>
 
     <!-- 注册流程：发送邮箱验证码前的人机验证弹框 -->
@@ -455,6 +456,17 @@ onBeforeUnmount(() => {
 .captcha-row {
   display: flex;
   gap: 10px;
+}
+
+.sms-provider {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+body[data-theme="dark"] .sms-provider {
+  color: #666;
 }
 
 .captcha-input {

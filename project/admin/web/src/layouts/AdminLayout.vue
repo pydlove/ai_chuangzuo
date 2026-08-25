@@ -77,7 +77,7 @@ import {
   BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined,
   UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined,
   TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, AppstoreOutlined,
-  ClockCircleOutlined, DownOutlined, RightOutlined
+  ClockCircleOutlined, DownOutlined, RightOutlined, ToolOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
@@ -203,6 +203,7 @@ const menuGroups = [
       { key: '/console/messages', title: '消息管理', icon: MessageOutlined },
       { key: '/console/feedbacks', title: '用户反馈', icon: CommentOutlined },
       { key: '/console/security-settings', title: '安全设置', icon: SafetyOutlined },
+      { key: '/console/tools', title: '工具管理', icon: ToolOutlined },
       { key: '/console/sms-config', title: '短信配置', icon: MessageOutlined },
       { key: '/console/scheduled-tasks', title: '定时任务', icon: ClockCircleOutlined },
       { key: '/console/audit-logs', title: '操作审计', icon: FileSearchOutlined }

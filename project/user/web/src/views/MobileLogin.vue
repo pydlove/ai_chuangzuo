@@ -111,6 +111,7 @@
               {{ codeCountdown > 0 ? `${codeCountdown}s` : '获取验证码' }}
             </button>
           </div>
+          <p v-if="registerMode === 'phone'" class="ml-sms-provider">短信服务由 恒创联众 提供支持</p>
         </div>
 
         <div class="ml-field">
@@ -392,6 +393,17 @@ const {
 .ml-captcha {
   display: flex;
   gap: 10px;
+}
+
+.ml-sms-provider {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+body[data-theme="dark"] .ml-sms-provider {
+  color: #666;
 }
 
 .ml-captcha .ml-field__input {

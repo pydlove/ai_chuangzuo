@@ -9,13 +9,17 @@
             <div class="welcome-dialogue">
               <a-avatar
                 :size="62"
-                src="/assets/images/小爱.png"
+                src="/assets/images/小爱-v1.png"
                 alt="小爱"
                 class="ai-avatar"
               />
               <div class="dialogue-bubble">
                 <div class="dialogue-title">
                   尊敬的{{ userInfo.nickname ? userInfo.nickname + '老师' : '老师' }}您好，我是您的专属自媒体顾问小爱
+                </div>
+                <div class="mobile-dialogue-title">
+                  <span class="mobile-title-main">嗨！我是小爱！</span>
+                  <span class="mobile-title-tag">自媒体顾问</span>
                 </div>
                 <div class="dialogue-greeting">
                   <span v-if="!hasPlan" class="todo-text">
@@ -25,6 +29,11 @@
                   <span v-else class="todo-text">今日任务还没完成，点击「开始今日创作」去写一篇吧</span>
                 </div>
               </div>
+            </div>
+
+            <!-- 移动端右侧人物图 -->
+            <div class="welcome-mascot">
+              <img src="/assets/images/墨墨-V1.png" alt="墨墨" />
             </div>
 
             <!-- 中间：个人信息区域 -->
@@ -77,14 +86,48 @@
         </a-card>
 
         <div class="create-section">
-          <a-button type="primary" size="large" class="create-main-btn" @click="openCreateChoice">
+          <a-button type="primary" size="large" class="create-main-btn" @click="consoleActions.openCreateChoice?.()">
             <EditOutlined />
             开始今日创作{{ quotaText }}
           </a-button>
-          <a-button size="large" class="weekly-data-btn" @click="weeklyDataVisible = true">
-            <BarChartOutlined />
-            本周数据
-          </a-button>
+        </div>
+
+        <!-- 手机端功能栏 -->
+        <div class="feature-bar">
+          <div class="feature-top-row">
+            <div class="feature-large-card" @click="router.push('/console/commission')">
+              <div class="feature-large-info">
+                <div class="feature-large-title">约稿中心</div>
+                <div class="feature-large-desc">精选任务赚创作币</div>
+              </div>
+              <div class="feature-large-icon">
+                <img src="/assets/images/约稿任务-v1.png" alt="约稿中心" />
+              </div>
+            </div>
+            <div class="feature-large-card" @click="router.push('/console/skill-market')">
+              <div class="feature-large-info">
+                <div class="feature-large-title">提示词市场</div>
+                <div class="feature-large-desc">发现优质 Prompt</div>
+              </div>
+              <div class="feature-large-icon">
+                <img src="/assets/images/提示词市场-v1.png" alt="提示词市场" />
+              </div>
+            </div>
+          </div>
+
+          <div class="feature-grid">
+            <div
+              v-for="item in featureItems"
+              :key="item.label"
+              class="feature-grid-item"
+              @click="item.action ? item.action() : router.push(item.path)"
+            >
+              <div class="feature-grid-icon">
+                <img :src="item.image" :alt="item.label" />
+              </div>
+              <span class="feature-grid-label">{{ item.label }}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -483,47 +526,6 @@
       </div>
     </a-modal>
 
-    <CreateFlowModal v-model:visible="createFlowVisible" :plan="plan" @success="onCreateStart" />
-    <FreeCreateModal v-model:visible="freeCreateVisible" :plan="plan" @success="onFreeCreateSuccess" />
-
-    <!-- 创作方式选择弹窗 -->
-    <a-modal
-      v-model:open="createChoiceVisible"
-      title="开始今日创作"
-      width="640px"
-      :footer="null"
-      centered
-      class="create-choice-modal"
-      @cancel="createChoiceVisible = false"
-    >
-      <div class="create-choice-body">
-        <div class="create-choice-options">
-          <div class="create-choice-card recommended" @click="chooseRecommended">
-            <div class="choice-icon-wrap">
-              <CompassOutlined class="choice-icon" />
-            </div>
-            <div class="choice-title">按小爱推荐的方式创作</div>
-            <div class="choice-desc">小爱针对你的运营方案，推荐选题、观点、字数等进行创作。</div>
-            <div class="choice-tags">
-              <span class="choice-tag">小爱推荐选题</span>
-              <span class="choice-tag">低粉高赞案例</span>
-            </div>
-          </div>
-
-          <div class="create-choice-card free" @click="chooseFreeCreate">
-            <div class="choice-icon-wrap">
-              <EditOutlined class="choice-icon" />
-            </div>
-            <div class="choice-title">自由创作</div>
-            <div class="choice-desc">自己设置标题和核心观点，自主选择平台与字数，适合已有明确想法的人。</div>
-            <div class="choice-tags">
-              <span class="choice-tag">自定义标题</span>
-              <span class="choice-tag">自主观点</span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </a-modal>
     <!-- 制定自媒体方案弹框 -->
     <a-modal
       v-model:open="planModalVisible"
@@ -567,7 +569,7 @@
 </template>
 
 <script setup>
-import { reactive, ref, computed, onMounted, watch } from 'vue'
+import { reactive, ref, computed, onMounted, onUnmounted, watch, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -589,14 +591,13 @@ import {
   CreditCardOutlined,
   SafetyOutlined,
   TagOutlined,
-  CompassOutlined,
   QuestionCircleOutlined,
   PlusOutlined,
   DeleteOutlined,
-  ReloadOutlined
+  ReloadOutlined,
+  GiftOutlined,
+  TeamOutlined
 } from '@ant-design/icons-vue'
-import CreateFlowModal from './create/CreateFlowModal.vue'
-import FreeCreateModal from './create/FreeCreateModal.vue'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
 import { fetchCurrentPlan, generatePublishPlan } from '@/api/selfMediaPlan.js'
 import { getMyProfile } from '@/api/user.js'
@@ -609,6 +610,8 @@ import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
 const router = useRouter()
+
+const consoleActions = inject('consoleActions', {})
 
 const userInfo = reactive({
   nickname: '',
@@ -792,21 +795,31 @@ onMounted(() => {
       planModalVisible.value = true
     }
   })
+  unregisterCreateTaskCallback = consoleActions.registerCreateTaskCallback?.((task) => {
+    setTodayDone()
+    loadGenerationRecords()
+  })
 })
 
-const createFlowVisible = ref(false)
-const createChoiceVisible = ref(false)
-const freeCreateVisible = ref(false)
+onUnmounted(() => {
+  if (unregisterCreateTaskCallback) {
+    unregisterCreateTaskCallback()
+    unregisterCreateTaskCallback = null
+  }
+})
+
 const accountModalVisible = ref(false)
 const weeklyDataVisible = ref(false)
 const weeklyLoading = ref(false)
 const withdrawModalVisible = ref(false)
 const adjustPlanConfirmVisible = ref(false)
 
+let unregisterCreateTaskCallback = null
+
 const withdrawTasks = [
-  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', img: '/assets/images/约稿任务.png' },
-  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', img: '/assets/images/提示词市场.png' },
-  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', img: '/assets/images/邀请有礼.png' }
+  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', img: '/assets/images/约稿任务-v1.png' },
+  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', img: '/assets/images/提示词市场-v1.png' },
+  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', img: '/assets/images/邀请有礼-v1.png' }
 ]
 
 function goWithdrawTask(path) {
@@ -902,42 +915,49 @@ const shortcuts = [
   }
 ]
 
+const featureItems = [
+  { label: '账号检测', image: '/assets/images/账号检测-v1.jpg', action: () => { accountModalVisible.value = true } },
+  { path: '/console/leaderboard', label: '收益排行榜', image: '/assets/images/收益排行榜-v1.png' },
+  { path: '/console/lottery', label: '幸运抽奖', image: '/assets/images/幸运抽奖-v1.png' },
+  { path: '/console/invite', label: '邀请有礼', image: '/assets/images/邀请有礼-v1.png' }
+]
+
 const activities = [
   {
     label: '幸运抽奖',
     desc: '每日免费抽奖，创作币、会员时长、限定模板等好礼送不停',
     path: '/console/lottery',
-    img: '/assets/images/幸运抽奖.png'
+    img: '/assets/images/幸运抽奖-v1.png'
   },
   {
     label: '约稿任务',
     desc: '精选品牌与创作者对接，完成任务即可获得丰厚创作币奖励',
     path: '/console/commission',
-    img: '/assets/images/约稿任务.png'
+    img: '/assets/images/约稿任务-v1.png'
   },
   {
     label: '提示词市场',
     desc: '上传原创提示词，被他人使用即可持续获得收益分成',
     path: '/console/skill-market',
-    img: '/assets/images/提示词市场.png'
+    img: '/assets/images/提示词市场-v1.png'
   },
   {
     label: '邀请有礼',
     desc: '邀请好友加入，双方均可获得创作币与会员权益奖励',
     path: '/console/invite',
-    img: '/assets/images/邀请有礼.png'
+    img: '/assets/images/邀请有礼-v1.png'
   },
   {
     label: '收益排行榜',
     desc: '实时查看平台创作者收益榜单，学习头部创作者的变现路径',
     path: '/console/leaderboard',
-    img: '/assets/images/收益排行榜.png'
+    img: '/assets/images/收益排行榜-v1.png'
   },
   {
     label: '创作学院',
     desc: '从选题、标题到爆款结构，系统化课程帮你快速提升创作能力',
     path: '/console/learn',
-    img: '/assets/images/创作学院.png'
+    img: '/assets/images/创作学院-v1.png'
   }
 ]
 
@@ -1095,41 +1115,6 @@ async function loadPublishPlan(record) {
     message.error(err?.message || '生成发布计划失败，请重试')
   } finally {
     publishPlanLoading.value = false
-  }
-}
-
-function openCreateChoice() {
-  if (!hasMembership.value) {
-    message.warning('开始创作需要开通会员，请先订阅套餐')
-    router.push('/pricing')
-    return
-  }
-  createChoiceVisible.value = true
-}
-
-function chooseRecommended() {
-  createChoiceVisible.value = false
-  createFlowVisible.value = true
-}
-
-function chooseFreeCreate() {
-  createChoiceVisible.value = false
-  freeCreateVisible.value = true
-}
-
-function onCreateStart(task) {
-  setTodayDone()
-  loadGenerationRecords()
-  if (task?.id) {
-    message.success('文章生成任务已创建')
-  }
-}
-
-function onFreeCreateSuccess(task) {
-  setTodayDone()
-  loadGenerationRecords()
-  if (task?.id) {
-    message.success('文章生成任务已创建')
   }
 }
 
@@ -1485,6 +1470,13 @@ function statusText(status) {
 }
 .balance-progress :deep(.ant-progress-bg) {
   background: var(--color-primary) !important;
+}
+
+/* 移动端欢迎卡片与功能栏专用元素，PC 端隐藏 */
+.mobile-dialogue-title,
+.welcome-mascot,
+.feature-bar {
+  display: none;
 }
 .balance-tip {
   font-size: var(--font-caption);
@@ -2103,75 +2095,6 @@ function statusText(status) {
   font-size: 12px;
 }
 
-/* 创作方式选择弹窗 */
-.create-choice-modal :deep(.ant-modal-body) {
-  padding: var(--space-lg);
-}
-.create-choice-body {
-  padding: 8px 4px;
-}
-.create-choice-options {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-lg);
-}
-.create-choice-card {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  padding: var(--space-lg);
-  background: var(--color-bg-card);
-  border: 1.5px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  cursor: pointer;
-  transition: all 0.25s ease;
-}
-.create-choice-card:hover {
-  border-color: var(--color-primary);
-  box-shadow: 0 8px 24px rgba(7, 193, 96, 0.12);
-  transform: translateY(-2px);
-}
-.choice-icon-wrap {
-  width: 52px;
-  height: 52px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-bg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: var(--space-md);
-}
-.choice-icon {
-  font-size: 26px;
-  color: var(--color-primary);
-}
-.choice-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-text-primary);
-  margin-bottom: 8px;
-}
-.choice-desc {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-  line-height: 1.6;
-  margin-bottom: var(--space-md);
-  flex: 1;
-}
-.choice-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.choice-tag {
-  font-size: var(--font-caption);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-  border: 1px solid var(--color-primary-light);
-  padding: 3px 10px;
-  border-radius: var(--radius-full);
-}
-
 /* 本周数据弹窗 */
 .weekly-data-modal :deep(.ant-modal-body) {
   padding: var(--space-lg);
@@ -2491,7 +2414,7 @@ function statusText(status) {
 }
 @media (max-width: 768px) {
   .workbench-index {
-    padding: 14px 12px calc(20px + env(safe-area-inset-bottom));
+    padding: 0 0 calc(20px + env(safe-area-inset-bottom));
     background:
       radial-gradient(140% 90% at 50% -8%, var(--color-primary-bg) 0%, transparent 55%),
       var(--color-bg-page);
@@ -2503,12 +2426,13 @@ function statusText(status) {
     gap: 14px;
   }
 
-  /* 卡片：更圆润、更柔和的阴影 */
+  /* 卡片：更圆润、更柔和的阴影，自带外边距 */
   .wb-card {
     border-radius: 18px;
     background: var(--color-bg-card);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.03);
+    margin: 14px 12px;
   }
   .wb-card :deep(.ant-card-body),
   .wb-card :deep(.ant-card-head) {
@@ -2525,11 +2449,15 @@ function statusText(status) {
     letter-spacing: -0.2px;
   }
 
-  /* 欢迎区：改成居中的英雄卡片 */
+  /* 欢迎区：左侧标题+tag+副标题，右侧人物图，背景甜甜圈装饰 */
   .welcome-card {
     position: relative;
     overflow: hidden;
-    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    min-height: 170px;
+    background:
+      radial-gradient(circle at 12% 28%, transparent 14px, rgba(255, 36, 66, 0.12) 15px, rgba(255, 36, 66, 0.12) 30px, transparent 31px),
+      radial-gradient(circle at 22% 72%, transparent 18px, rgba(255, 36, 66, 0.10) 19px, rgba(255, 36, 66, 0.10) 36px, transparent 37px),
+      linear-gradient(135deg, #ffffff 0%, #FFEBEF 100%);
     border: 1px solid rgba(255, 36, 66, 0.06);
     box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
     border-radius: 20px;
@@ -2537,51 +2465,60 @@ function statusText(status) {
   .welcome-card::before {
     content: '';
     position: absolute;
-    top: -50px;
-    right: -40px;
-    width: 140px;
-    height: 140px;
-    background: radial-gradient(circle, rgba(255, 36, 66, 0.1) 0%, transparent 70%);
+    top: -60px;
+    right: -50px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255, 36, 66, 0.08) 0%, transparent 70%);
     border-radius: 50%;
     pointer-events: none;
   }
   .welcome-card :deep(.ant-card-body) {
     position: relative;
-    padding: 18px;
+    padding: 24px 18px;
   }
   .welcome-body {
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     gap: 12px;
-    text-align: center;
+    text-align: left;
   }
   .ai-avatar {
-    width: 64px;
-    height: 64px;
-    margin-top: 0;
-    flex-shrink: 0;
-    border-radius: 50%;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
-  }
-  .ai-avatar :deep(.ant-avatar) {
-    width: 64px !important;
-    height: 64px !important;
+    display: none;
   }
   .dialogue-bubble {
-    background: rgba(255, 255, 255, 0.82);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: 16px;
-    padding: 14px 16px;
-    gap: 6px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.6);
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    border-radius: 0;
+    padding: 0;
+    gap: 8px;
+    box-shadow: none;
+    border: none;
   }
   .dialogue-title {
-    font-size: 16px;
+    display: none;
+  }
+  .mobile-dialogue-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .mobile-title-main {
+    font-size: 20px;
     font-weight: 700;
     color: var(--color-text-primary);
-    line-height: 1.45;
+    line-height: 1.3;
+  }
+  .mobile-title-tag {
+    font-size: 12px;
+    font-weight: 500;
+    color: #fff;
+    background: var(--color-primary);
+    padding: 3px 9px;
+    border-radius: var(--radius-full);
+    line-height: 1.4;
   }
   .dialogue-greeting {
     font-size: 13px;
@@ -2591,6 +2528,122 @@ function statusText(status) {
   .plan-link {
     color: var(--color-primary);
     font-weight: 600;
+  }
+  .welcome-mascot {
+    display: block;
+    width: 96px;
+    height: 96px;
+    flex-shrink: 0;
+  }
+  .welcome-mascot img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* 欢迎卡片：通栏无圆角 */
+  .welcome-card.wb-card {
+    margin: 0;
+    border-radius: 0;
+  }
+
+  /* 手机端功能栏 */
+  .feature-bar {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin: 0 12px;
+    padding: 14px;
+    background: var(--color-bg-card);
+    border-radius: 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+  }
+  .feature-top-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .feature-large-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 36, 66, 0.06);
+    cursor: pointer;
+  }
+  .feature-large-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .feature-large-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+  .feature-large-desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+  .feature-large-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+    border-radius: 16px;
+    font-size: 20px;
+    overflow: hidden;
+  }
+  .feature-large-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 3px;
+  }
+  .feature-grid {
+    display: flex;
+    justify-content: space-between;
+  }
+  .feature-grid-item {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+  }
+  .feature-grid-label {
+    font-size: 12px;
+    color: var(--color-text-primary);
+    white-space: nowrap;
+  }
+  .feature-grid-icon {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-primary-bg);
+    color: var(--color-primary);
+    border-radius: 16px;
+    font-size: 22px;
+    overflow: hidden;
+  }
+  .feature-grid-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 6px;
+  }
+  .feature-grid-label {
+    font-size: 12px;
+    color: var(--color-text-primary);
   }
 
   /* 隐藏个人信息与账户 */
@@ -2603,7 +2656,7 @@ function statusText(status) {
   .create-section {
     flex-direction: column;
     gap: 10px;
-    margin-top: 0;
+    margin: 0 12px;
   }
   .create-main-btn.ant-btn-primary {
     height: 54px;
@@ -2872,11 +2925,6 @@ function statusText(status) {
     max-width: 100%;
     margin: 0 auto;
   }
-  :global(.create-choice-modal .ant-modal) {
-    width: calc(100vw - 32px) !important;
-    max-width: 100%;
-    margin: 0 auto;
-  }
 
   /* 本周数据弹窗 */
   .weekly-data-item {
@@ -2896,51 +2944,6 @@ function statusText(status) {
     height: 42px;
     border-radius: 12px;
     font-weight: 600;
-  }
-
-  /* 创作方式选择 */
-  .create-choice-options {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-  .create-choice-card {
-    padding: 16px;
-    border-radius: 16px;
-    border-width: 1px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-  }
-  .create-choice-card:active {
-    transform: scale(0.99);
-  }
-  .create-choice-card.recommended {
-    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
-    border-color: var(--color-primary-light);
-  }
-  .create-choice-card.recommended .choice-icon-wrap {
-    background: var(--color-primary);
-  }
-  .create-choice-card.recommended .choice-icon {
-    color: #ffffff;
-  }
-  .choice-icon-wrap {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-  }
-  .choice-icon {
-    font-size: 22px;
-  }
-  .choice-title {
-    font-size: 15px;
-    font-weight: 700;
-  }
-  .choice-desc {
-    font-size: 12px;
-    line-height: 1.6;
-  }
-  .choice-tag {
-    font-size: 11px;
-    padding: 3px 10px;
   }
 }
 
