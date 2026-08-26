@@ -36,27 +36,41 @@ export default defineConfig({
       name: 'static-uploads',
       configureServer(server) {
         server.middlewares.use('/uploads', (req, res, next) => {
-          const uploadRoot = resolve(__dirname, '../api/data/uploads')
-          const filePath = path.join(uploadRoot, req.url.replace(/^\/uploads/, ''))
-          if (!filePath.startsWith(uploadRoot)) {
-            res.statusCode = 403
-            res.end('Forbidden')
-            return
-          }
-          fs.readFile(filePath, (err, data) => {
-            if (err) {
+          const relativePath = req.url.replace(/^\/uploads/, '')
+          const roots = [
+            resolve(__dirname, '../api/data/uploads'),
+            resolve(__dirname, '../../admin/api/data/uploads')
+          ]
+
+          function trySend(index) {
+            if (index >= roots.length) {
               res.statusCode = 404
               res.end('Not found')
               return
             }
-            const ext = path.extname(filePath).toLowerCase()
-            const mime = ext === '.png' ? 'image/png'
-              : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
-              : ext === '.gif' ? 'image/gif'
-              : 'application/octet-stream'
-            res.setHeader('Content-Type', mime)
-            res.end(data)
-          })
+            const uploadRoot = roots[index]
+            const filePath = path.join(uploadRoot, relativePath)
+            if (!filePath.startsWith(uploadRoot)) {
+              res.statusCode = 403
+              res.end('Forbidden')
+              return
+            }
+            fs.readFile(filePath, (err, data) => {
+              if (err) {
+                trySend(index + 1)
+                return
+              }
+              const ext = path.extname(filePath).toLowerCase()
+              const mime = ext === '.png' ? 'image/png'
+                : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
+                : ext === '.gif' ? 'image/gif'
+                : 'application/octet-stream'
+              res.setHeader('Content-Type', mime)
+              res.end(data)
+            })
+          }
+
+          trySend(0)
         })
       }
     }

@@ -675,4 +675,132 @@ body[data-theme="dark"] .skill-card__action-btn--success:disabled {
 body[data-theme="dark"] .skill-card__featured-badge {
   background: var(--color-primary);
 }
+
+@media (max-width: 768px) {
+  .skill-card--default,
+  .skill-card--compact {
+    padding: 10px 12px;
+    border-radius: 12px;
+    min-height: auto;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto auto;
+    gap: 4px 8px;
+    align-items: center;
+  }
+
+  .skill-card__featured-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    font-size: 9px;
+    padding: 1px 6px;
+    border-radius: 4px;
+  }
+
+  .skill-card__head {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: block;
+    margin: 0;
+  }
+  .skill-card__avatar {
+    display: none;
+  }
+  .skill-card__title-row {
+    margin-bottom: 4px;
+  }
+  .skill-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    padding-right: 56px;
+  }
+  .skill-card--compact .skill-card__title {
+    font-size: 13px;
+  }
+  .skill-card__meta {
+    font-size: 11px;
+  }
+
+  .skill-card__scope-list {
+    display: none;
+  }
+
+  .skill-card__prompt {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: -webkit-box;
+    font-size: 11px;
+    line-height: 1.5;
+    color: #595959;
+    margin: 0;
+    white-space: normal;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-height: 1.6em;
+  }
+  .skill-card__prompt--desc {
+    color: #595959;
+  }
+
+  .skill-card__extra {
+    grid-column: 1;
+    grid-row: 3;
+    margin: 0;
+  }
+  :deep(.skill-card__extra-row),
+  :deep(.skill-card__published) {
+    font-size: 11px;
+  }
+
+  .skill-card__footer {
+    grid-column: 2;
+    grid-row: 3;
+    margin: 0;
+    padding: 0;
+    align-items: center;
+  }
+  .skill-card__actions {
+    gap: 4px;
+    margin: 0;
+  }
+  .skill-card__action-btn {
+    padding: 4px 10px;
+    font-size: 12px;
+    border-radius: 6px;
+  }
+  .skill-card__actions .skill-card__action-btn:not(:first-child) {
+    display: none;
+  }
+  .skill-card__action-btn--primary {
+    background: var(--color-primary);
+    color: #fff;
+    border: none;
+  }
+  .skill-card__action-btn--primary:hover {
+    background: var(--color-primary-hover);
+  }
+
+  :deep(.skill-card__creator) {
+    font-size: 11px;
+  }
+  :deep(.skill-card__creator-avatar) {
+    width: 16px;
+    height: 16px;
+    font-size: 8px;
+  }
+  :deep(.skill-card__creator-name) {
+    max-width: 90px;
+  }
+  :deep(.skill-card__tag-compact) {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+  :deep(.skill-card__tag-more),
+  :deep(.skill-card__mine-compact) {
+    font-size: 10px;
+  }
+}
 </style>

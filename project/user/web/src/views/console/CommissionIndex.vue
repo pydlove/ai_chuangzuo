@@ -18,22 +18,43 @@
     <!-- 手机端头部、统计 -->
     <template v-if="isMobile">
       <header class="commission-header">
-        <h1 class="commission-header__title">约稿中心</h1>
-        <p class="commission-header__subtitle">挑选合适的任务，使用你在爱创作中生成完成的文章参与投稿。稿件采纳后，奖励全额发放。</p>
+        <div class="commission-header__left">
+          <div class="commission-header__donuts" aria-hidden="true">
+            <span></span>
+            <span></span>
+          </div>
+          <img
+            src="/assets/images/约稿中心logo-v3.png?v=3"
+            alt="约稿中心"
+            class="commission-header__logo"
+          />
+          <p class="commission-header__subtitle">挑选合适任务，用已生成的文章投稿，采纳后奖励全额发放。</p>
+        </div>
+        <img
+          src="/assets/images/约稿中心宣传图-v1.png"
+          alt=""
+          class="commission-header__illustration"
+        />
       </header>
 
       <section class="commission-stats">
         <div class="stat-card">
+          <span class="stat-card__label">进行中</span>
           <strong>{{ activeTaskCount }}</strong>
-          <span>进行中</span>
+          <img
+            src="/assets/images/进行中的投稿-v1.png"
+            alt=""
+            class="stat-card__icon-img"
+          />
         </div>
         <div class="stat-card">
+          <span class="stat-card__label">我的投稿</span>
           <strong>{{ mySubmissionCount }}</strong>
-          <span>我的投稿</span>
-        </div>
-        <div class="stat-card">
-          <strong>{{ earnedCoinTotal }}</strong>
-          <span>已获得</span>
+          <img
+            src="/assets/images/我的投稿-v1.png"
+            alt=""
+            class="stat-card__icon-img"
+          />
         </div>
       </section>
     </template>
@@ -54,19 +75,20 @@
     </section>
 
     <div class="commission-tabs" role="tablist">
-      <button :class="{ active: tab === 'all' }" role="tab" @click="tab = 'all'">全部任务</button>
-      <button :class="{ active: tab === 'mine' }" role="tab" @click="tab = 'mine'">我投稿的</button>
-    </div>
-
-    <div v-if="tab === 'all'" class="commission-filter">
-      <button v-for="item in filters" :key="String(item.value)" :class="['filter-chip', { active: status === item.value }]" @click="status = item.value">
+      <button
+        v-for="item in tabItems"
+        :key="item.key"
+        :class="{ active: activeTab === item.key }"
+        role="tab"
+        @click="activeTab = item.key"
+      >
         {{ item.label }}
       </button>
     </div>
 
     <div v-if="loading" class="empty-block">加载中...</div>
-    <div v-else-if="visibleItems.length === 0" class="empty-block">{{ tab === 'mine' ? '还没有投递过稿件' : '暂无约稿任务' }}</div>
-    <div v-else-if="tab === 'all'" class="task-list">
+    <div v-else-if="visibleItems.length === 0" class="empty-block">{{ activeTab === 'mine' ? '还没有投递过稿件' : '暂无约稿任务' }}</div>
+    <div v-else-if="activeTab !== 'mine'" class="task-list">
       <article v-for="item in visibleItems" :key="item.id" class="task-card" @click="goDetail(item.taskId || item.id)">
         <div class="task-card-top">
           <span :class="['status-tag', `status-${item.status}`]">{{ taskStatus(item.status) }}</span>
@@ -77,7 +99,7 @@
         <div class="task-facts">
           <span>{{ wordRangeText(item) }}</span>
           <span>采纳 {{ item.adoptedCount }}/{{ item.neededCount }} 篇</span>
-          <span>{{ item.submissionCount || 0 }} 人投稿</span>
+          <span class="task-submission-count">{{ item.submissionCount || 0 }} 人投稿</span>
         </div>
         <div class="task-card-bottom"><span>{{ deadlineText(item) }}</span><span class="detail-link">查看详情 <span>→</span></span></div>
       </article>
@@ -122,17 +144,23 @@ import { useIsMobile } from '@/composables/useMobile.js'
 const router = useRouter()
 const isMobile = useIsMobile()
 const { tasks, mySubmissions, stats, loading, page, pageSize, total, loadTasks, loadMySubmissions, loadStats } = useCommission()
-const tab = ref('all')
-const status = ref(null)
+const activeTab = ref('all')
 const rulesExpanded = ref(!isMobile.value)
-const filters = [
-  { label: '全部', value: null },
-  { label: '投递中', value: 0 },
-  { label: '评选中', value: 1 },
-  { label: '已完成', value: 2 }
+const tabItems = [
+  { key: 'all', label: '全部' },
+  { key: 'pending', label: '投递中' },
+  { key: 'selecting', label: '评选中' },
+  { key: 'completed', label: '已完成' },
+  { key: 'mine', label: '我投稿的' }
 ]
+const statusMap = {
+  all: null,
+  pending: 0,
+  selecting: 1,
+  completed: 2
+}
 
-const visibleItems = computed(() => tab.value === 'mine' ? mySubmissions.value : tasks.value)
+const visibleItems = computed(() => activeTab.value === 'mine' ? mySubmissions.value : tasks.value)
 
 const activeTaskCount = computed(() => Number(stats.value?.activeTaskCount) || 0)
 const mySubmissionCount = computed(() => Number(stats.value?.mySubmissionCount) || 0)
@@ -140,8 +168,8 @@ const earnedCoinTotal = computed(() => Number(stats.value?.earnedCoinTotal) || 0
 
 async function refresh() {
   try {
-    if (tab.value === 'mine') await loadMySubmissions()
-    else await loadTasks({ status: status.value })
+    if (activeTab.value === 'mine') await loadMySubmissions()
+    else await loadTasks({ status: statusMap[activeTab.value] })
   } catch (error) {
     message.error(error.message || '约稿任务加载失败')
   }
@@ -150,7 +178,7 @@ async function refresh() {
 onMounted(async () => {
   await Promise.all([refresh(), loadStats()])
 })
-watch([tab, status], () => {
+watch(activeTab, () => {
   page.value = 1
   refresh()
 })
@@ -215,46 +243,106 @@ function goDetail(id) {
 
 /* Header */
 .commission-header {
-  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: -16px -16px 16px;
+  padding: 20px 18px;
+  background: linear-gradient(180deg, #FFF5F7 0%, #fff 100%);
+  border-bottom: 1px solid #f0f0f0;
 }
-.commission-header__title {
-  font-size: 24px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0 0 8px;
+.commission-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.commission-header__logo {
+  height: 48px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
 }
 .commission-header__subtitle {
-  font-size: 14px;
-  color: #595959;
-  line-height: 1.6;
+  font-size: 13px;
+  color: #8c8c8c;
+  line-height: 1.5;
   margin: 0;
+  position: relative;
+  z-index: 1;
+}
+.commission-header__donuts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.commission-header__donuts span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 42%, rgba(255, 36, 66, 0.12) 43%, rgba(255, 36, 66, 0.12) 66%, transparent 67%);
+}
+.commission-header__donuts span:nth-child(1) {
+  width: 56px;
+  height: 56px;
+  top: -10px;
+  left: 95px;
+}
+.commission-header__donuts span:nth-child(2) {
+  width: 92px;
+  height: 92px;
+  bottom: -30px;
+  left: -22px;
+}
+.commission-header__illustration {
+  height: 110px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 
 /* Stats */
 .commission-stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   margin-bottom: 16px;
 }
 .stat-card {
-  background: #fff;
+  position: relative;
+  background: linear-gradient(180deg, #FFF0F3 0%, #fff 100%);
   border-radius: 16px;
-  padding: 16px 12px;
-  text-align: center;
+  padding: 16px;
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
   gap: 4px;
+  overflow: hidden;
+}
+.stat-card__label {
+  font-size: 13px;
+  color: #8c8c8c;
 }
 .stat-card strong {
-  font-size: 22px;
+  font-size: 26px;
   font-weight: 700;
-  color: var(--color-primary, #ff2442);
+  color: #1a1a1a;
 }
-.stat-card span {
-  font-size: 12px;
-  color: #8c8c8c;
+.stat-card__icon-img {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+  border-radius: 10px;
 }
 
 /* Rules */
@@ -302,57 +390,33 @@ function goDetail(id) {
   top: 0;
   z-index: 10;
   display: flex;
-  gap: 8px;
+  gap: 4px;
   padding: 4px;
   background: #f5f5f5;
   border-radius: 999px;
   margin-bottom: 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.commission-tabs::-webkit-scrollbar { display: none; }
 .commission-tabs button {
-  flex: 1;
-  padding: 9px 16px;
+  flex: 0 0 auto;
+  padding: 8px 14px;
   border: 0;
   background: transparent;
-  font-size: 14px;
+  font-size: 13px;
   color: #595959;
   border-radius: 999px;
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
+  white-space: nowrap;
 }
 .commission-tabs button.active {
   background: #fff;
   color: var(--color-primary, #ff2442);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-/* Filters */
-.commission-filter {
-  display: flex;
-  flex-wrap: nowrap;
-  gap: 8px;
-  margin-bottom: 12px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 4px;
-}
-.commission-filter::-webkit-scrollbar { display: none; }
-.filter-chip {
-  flex: 0 0 auto;
-  padding: 6px 14px;
-  border: 1px solid #e8e8e8;
-  border-radius: 999px;
-  background: #fff;
-  color: #595959;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-.filter-chip.active {
-  background: var(--color-primary, #ff2442);
-  color: #fff;
-  border-color: transparent;
 }
 
 /* Task list */
@@ -441,6 +505,13 @@ function goDetail(id) {
   font-size: 12px;
   margin-bottom: 12px;
 }
+.task-submission-count {
+  color: var(--color-primary, #ff2442);
+  font-weight: 600;
+  background: rgba(255, 36, 66, 0.08);
+  padding: 2px 8px;
+  border-radius: 999px;
+}
 .task-card-bottom {
   margin-top: auto;
   padding-top: 12px;
@@ -517,21 +588,24 @@ function goDetail(id) {
 
 /* 暗色主题 */
 body[data-theme="dark"] .commission-page { background: #141414; }
-body[data-theme="dark"] .commission-header__title { color: #f5f5f5; }
+body[data-theme="dark"] .commission-header {
+  background: linear-gradient(180deg, #2a1f22 0%, #141414 100%);
+  border-bottom-color: #2a2a2a;
+}
 body[data-theme="dark"] .commission-header__subtitle { color: #a6a6a6; }
-body[data-theme="dark"] .stat-card,
+body[data-theme="dark"] .commission-header__donuts span { background: radial-gradient(circle, transparent 42%, rgba(255, 36, 66, 0.22) 43%, rgba(255, 36, 66, 0.22) 66%, transparent 67%); }
+body[data-theme="dark"] .stat-card { background: linear-gradient(180deg, #2a1f22 0%, #1f1f1f 100%); }
+body[data-theme="dark"] .stat-card__label { color: #a6a6a6; }
+body[data-theme="dark"] .stat-card strong { color: #f5f5f5; }
 body[data-theme="dark"] .commission-rules,
-body[data-theme="dark"] .filter-chip,
 body[data-theme="dark"] .task-card,
 body[data-theme="dark"] .submission-card,
 body[data-theme="dark"] .empty-block { background: #1f1f1f; }
-body[data-theme="dark"] .stat-card span { color: #8c8c8c; }
 body[data-theme="dark"] .commission-rules__header h3 { color: #f5f5f5; }
 body[data-theme="dark"] .commission-rules li { color: #a6a6a6; }
 body[data-theme="dark"] .commission-tabs { background: #262626; }
 body[data-theme="dark"] .commission-tabs button { color: #a6a6a6; }
 body[data-theme="dark"] .commission-tabs button.active { background: #1f1f1f; }
-body[data-theme="dark"] .filter-chip { border-color: #404040; color: #d9d9d9; }
 body[data-theme="dark"] .task-card h2,
 body[data-theme="dark"] .submission-task-title { color: #f5f5f5; }
 body[data-theme="dark"] .task-desc,
@@ -539,6 +613,10 @@ body[data-theme="dark"] .task-facts,
 body[data-theme="dark"] .submission-meta,
 body[data-theme="dark"] .task-card-bottom { color: #a6a6a6; }
 body[data-theme="dark"] .task-card-bottom { border-top-color: #303030; }
+body[data-theme="dark"] .task-submission-count {
+  background: rgba(255, 36, 66, 0.15);
+  color: #ff4d6f;
+}
 body[data-theme="dark"] .status-2 { color: #a6a6a6; background: #262626; }
 body[data-theme="dark"] .submission-2 { color: #a6a6a6; background: #262626; }
 body[data-theme="dark"] .submission-3 { color: #8c8c8c; background: #1a1a1a; }
@@ -679,12 +757,6 @@ body[data-theme="dark"] .pagination-bar :deep(.ant-select-item-option-selected) 
   .commission-tabs button {
     flex: 0 0 auto;
     padding: 8px 22px;
-  }
-
-  .commission-filter {
-    flex-wrap: wrap;
-    overflow-x: visible;
-    margin-bottom: 16px;
   }
 
   .task-list {

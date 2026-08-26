@@ -1,5 +1,7 @@
 <template>
+  <!-- 弹框模式 -->
   <a-modal
+    v-if="!pageMode"
     :open="visible"
     title="自由创作"
     width="760px"
@@ -70,10 +72,102 @@
     <WordCountModal />
     <TemplateModal />
   </a-modal>
+
+  <!-- 页面模式（手机端二级页面） -->
+  <div v-else class="free-create-page">
+    <div class="free-create-page-header">
+      <div class="free-create-page-back" @click="close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </div>
+      <div class="free-create-page-header-right">
+        <!-- 右侧 icon 占位，后续替换为真实图标 -->
+        <div class="free-create-header-icon-placeholder"></div>
+      </div>
+    </div>
+
+    <div class="free-create-hero">
+      <div class="free-create-hero-main">
+        <img
+          class="free-create-hero-logo"
+          src="/assets/images/自由创作宣传页-v1.png"
+          alt="自由创作"
+        />
+        <p class="free-create-hero-desc">
+          填写标题和核心观点，AI 将完全按照你的想法生成文章。
+        </p>
+      </div>
+      <div class="free-create-hero-icon-wrap">
+        <img
+          class="free-create-hero-icon"
+          src="/assets/images/自由创作宣传页-v2.png"
+          alt="自由创作"
+        />
+      </div>
+    </div>
+
+    <div class="free-create-page-body">
+      <div class="free-create-card" :class="{ focused: heroFocused }">
+        <input
+          v-model="customTitle"
+          type="text"
+          class="free-create-title"
+          placeholder="输入标题或想法，例如：职场新人快速提升效率的 5 个方法"
+          @focus="heroFocused = true"
+          @blur="heroFocused = false"
+        />
+        <div class="free-create-textarea-wrap">
+          <textarea
+            ref="requirementEl"
+            v-model="customRequirement"
+            class="free-create-textarea"
+            rows="4"
+            placeholder="补充要求：观点、案例、情节、目标读者..."
+            :maxlength="REQUIREMENT_MAX"
+            @input="autoGrow"
+            @focus="heroFocused = true"
+            @blur="heroFocused = false"
+          ></textarea>
+          <div class="free-create-textarea-meta">
+            <span class="free-create-char-count" :class="{ warning: requirementChars >= REQUIREMENT_MAX * 0.9 }">
+              {{ requirementChars }}/{{ REQUIREMENT_MAX }}
+            </span>
+          </div>
+        </div>
+
+        <div class="free-create-divider"></div>
+
+        <div class="free-create-chips">
+          <button class="settings-chip" @click="wordCountVisible = true">
+            <span>{{ currentWordCount.count }} 字 · {{ currentWordCount.label }}</span><span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="styleVisible = true">
+            <span>{{ currentSkill?.name || '选择提示词' }}</span><span class="chip-caret">▾</span>
+          </button>
+          <button class="settings-chip" @click="templateVisible = true">
+            <span>{{ currentTemplate?.name || '选择导出模板' }}</span><span class="chip-caret">▾</span>
+          </button>
+        </div>
+
+        <div class="free-create-actions">
+          <a-button type="primary" size="large" :disabled="!canGenerate" @click="handleGenerate">
+            <ThunderboltOutlined />
+            生成文章
+          </a-button>
+        </div>
+      </div>
+    </div>
+
+    <SkillModal />
+    <WordCountModal />
+    <TemplateModal />
+  </div>
 </template>
 
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import { ThunderboltOutlined } from '@ant-design/icons-vue'
 import { useCreateForm } from './useCreateForm.js'
@@ -90,9 +184,12 @@ import TemplateModal from './modals/TemplateModal.vue'
 
 const props = defineProps({
   visible: Boolean,
-  plan: Object
+  plan: Object,
+  pageMode: Boolean
 })
 const emit = defineEmits(['update:visible', 'success'])
+
+const router = useRouter()
 
 const {
   customTitle, customRequirement,
@@ -145,11 +242,15 @@ const isCurrentSkillAvailable = () => {
 }
 
 const close = () => {
+  if (props.pageMode) {
+    router.back()
+    return
+  }
   emit('update:visible', false)
 }
 
 const handleGenerate = async () => {
-  if (!props.visible) return
+  if (!props.pageMode && !props.visible) return
   if (planKey.value === 'free') {
     Modal.confirm({
       title: '需要订阅套餐',
@@ -200,7 +301,11 @@ const handleGenerate = async () => {
     loadQueue()
     queueOpen.value = true
     loadBenefits()
-    close()
+    if (!props.pageMode) {
+      emit('update:visible', false)
+    } else {
+      router.back()
+    }
     emit('success', task)
   } catch (e) {
     message.error(e?.message || '提交失败，请稍后重试')
@@ -220,10 +325,10 @@ const handleGenerate = async () => {
   padding: 8px 4px;
 }
 .free-create-tips {
-  font-size: var(--font-small);
+  font-size: 12px;
   color: var(--color-text-secondary);
   margin-bottom: var(--space-md);
-  line-height: 1.6;
+  line-height: 1.5;
 }
 .free-create-card {
   background: var(--color-bg-card);
@@ -337,6 +442,7 @@ const handleGenerate = async () => {
   color: #fff;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   padding: 0 28px;
   font-weight: 600;
@@ -360,6 +466,21 @@ const handleGenerate = async () => {
   box-shadow: none;
 }
 
+/* 页面模式 */
+.free-create-page {
+  min-height: 100%;
+  background: var(--color-bg-page);
+}
+.free-create-page-header {
+  display: none;
+}
+.free-create-hero {
+  display: none;
+}
+.free-create-page-body {
+  padding: 16px;
+}
+
 @media (max-width: 768px) {
   .free-create-chips {
     flex-wrap: nowrap;
@@ -375,6 +496,118 @@ const handleGenerate = async () => {
   }
   .free-create-actions .ant-btn {
     width: 100%;
+  }
+
+  .free-create-page {
+    background: var(--color-bg-card);
+  }
+  .free-create-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    height: 56px;
+    padding: 0;
+    margin: 0;
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border-light);
+  }
+  .free-create-page-back {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 56px;
+    height: 56px;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .free-create-page-back svg {
+    width: 24px;
+    height: 24px;
+  }
+  .free-create-page-header-right {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .free-create-header-icon-placeholder {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--color-bg-page);
+  }
+
+  .free-create-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 16px 12px;
+    background: linear-gradient(135deg, #fff5f7 0%, #ffe8ed 50%, #fff0f3 100%);
+    border-bottom: 1px solid var(--color-border-light);
+    position: relative;
+    overflow: hidden;
+  }
+  .free-create-hero::before,
+  .free-create-hero::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 16px solid rgba(255, 36, 66, 0.08);
+    pointer-events: none;
+  }
+  .free-create-hero::before {
+    width: 120px;
+    height: 120px;
+    bottom: -40px;
+    left: -30px;
+  }
+  .free-create-hero::after {
+    width: 90px;
+    height: 90px;
+    top: -30px;
+    left: 50%;
+    border-width: 14px;
+    border-color: rgba(255, 36, 66, 0.06);
+  }
+  .free-create-hero-main {
+    flex: 1;
+    min-width: 0;
+  }
+  .free-create-hero-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+  }
+  .free-create-hero-desc {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+  .free-create-hero-icon-wrap {
+    width: 110px;
+    height: 110px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .free-create-hero-icon {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .free-create-page-body {
+    padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
+  }
+  .free-create-page-body .free-create-tips {
+    display: none;
   }
 }
 </style>

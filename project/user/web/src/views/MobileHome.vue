@@ -54,11 +54,11 @@
     <section class="mh-hero">
       <div class="mh-hero__badge">
         <span class="mh-hero__badge-dot"></span>
-        AI 写作助手 · 多平台变现
+        AI 写作助手 · 多平台变现 · 账号长期增值
       </div>
       <h1 class="mh-hero__title">会增值的自媒体账号，从第一篇文章开始</h1>
       <p class="mh-hero__desc">
-        3 分钟产出一篇能直接发布的文章，让你的自媒体账号像滚雪球一样越做越值钱。
+        不知道写什么、怎么发、怎么变现？AI 先帮你定平台、定赛道、定人设，再把个人素材变成可发布的多平台文章，3 分钟成稿，边写边赚，让账号持续增值。
       </p>
       <div class="mh-hero__actions">
         <router-link to="/console/workbench" class="mh-btn mh-btn--primary">立即开始创作</router-link>
@@ -90,6 +90,10 @@
     <!-- 快速数据 -->
     <section class="mh-stats">
       <div class="mh-stats__item">
+        <div class="mh-stats__num">¥ 800 万 +</div>
+        <div class="mh-stats__label">累计为创作者带来收益</div>
+      </div>
+      <div class="mh-stats__item">
         <div class="mh-stats__num">5000+</div>
         <div class="mh-stats__label">累计注册账号</div>
       </div>
@@ -119,7 +123,7 @@
           </div>
           <div class="mh-feature-card__text">
             <div class="mh-feature-card__name">3 分钟成稿</div>
-            <div class="mh-feature-card__desc">输入方向，AI 自动完成标题、结构和正文</div>
+            <div class="mh-feature-card__desc">输入方向并注入个人素材，AI 自动完成标题、结构和正文，降低 AI 大路货同质化</div>
           </div>
         </div>
 
@@ -178,27 +182,30 @@
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">1</div>
           <div class="mh-earn-card__name">创作币奖励</div>
-          <div class="mh-earn-card__desc">完成任务、活动、上榜，1 元 = 10 创作币，可抵扣会员或提现</div>
+          <div class="mh-earn-card__desc">完成任务、活动、上榜，1 创作币 = 1 元，可抵扣会员或提现</div>
         </div>
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">2</div>
           <div class="mh-earn-card__name">邀请好友返利</div>
-          <div class="mh-earn-card__desc">邀请 3 人得 3 天会员，好友首单再返 10%</div>
+          <div class="mh-earn-card__desc">好友验证后双方得币；首单返 10%、后续返 5%；3 人 +30 币、5 人 +50 币</div>
         </div>
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">3</div>
           <div class="mh-earn-card__name">排行榜奖金</div>
-          <div class="mh-earn-card__desc">月榜 TOP3 奖 500 创作币，写得好就上榜</div>
+          <div class="mh-earn-card__desc">创作币榜月度 TOP10 各奖 100 币；自媒体收入榜记录真实收益</div>
         </div>
         <div class="mh-earn-card">
           <div class="mh-earn-card__icon">4</div>
           <div class="mh-earn-card__name">自媒体收入申报</div>
-          <div class="mh-earn-card__desc">公众号、小红书、抖音、百家号、头条、知乎收益都能记录</div>
+          <div class="mh-earn-card__desc">申报公众号、小红书、抖音等平台真实收入，审核通过后计入榜单</div>
         </div>
       </div>
 
       <router-link to="/guide" class="mh-link-btn">查看完整玩法 →</router-link>
     </section>
+
+    <!-- 用户评价 -->
+    <TestimonialCarousel :testimonials="testimonials" />
 
     <!-- 使用步骤 -->
     <section class="mh-section mh-section--steps">
@@ -226,8 +233,8 @@
 
     <!-- 最终 CTA -->
     <section class="mh-cta">
-      <h2 class="mh-cta__title">现在起号，3 个月后看复利</h2>
-      <p class="mh-cta__desc">内容慢慢写，账号先到位。等你准备好赚钱时，雪球已经在滚。</p>
+      <h2 class="mh-cta__title">现在起号，搭一条可执行的自媒体流水线</h2>
+      <p class="mh-cta__desc">先定位，再创作，持续迭代。3 分钟成稿，边写边赚，让账号资产开始滚雪球。</p>
       <router-link to="/console/workbench" class="mh-btn mh-btn--primary">立即开始创作</router-link>
       <router-link to="/guide" class="mh-btn mh-btn--secondary">查看玩法指南</router-link>
     </section>
@@ -242,7 +249,8 @@
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-import { fetchHomeBanners } from '@/api/home.js'
+import TestimonialCarousel from '@/components/testimonial/TestimonialCarousel.vue'
+import { fetchHomeBanners, fetchHomeTestimonials } from '@/api/home.js'
 
 const route = useRoute()
 const menuOpen = ref(false)
@@ -257,6 +265,7 @@ const navLinks = [
 ]
 
 const banners = ref([])
+const testimonials = ref([])
 const activeBannerIndex = ref(0)
 let bannerTimer = null
 
@@ -265,6 +274,14 @@ async function loadBanners() {
     banners.value = await fetchHomeBanners()
   } catch (e) {
     banners.value = []
+  }
+}
+
+async function loadTestimonials() {
+  try {
+    testimonials.value = await fetchHomeTestimonials()
+  } catch (e) {
+    testimonials.value = []
   }
 }
 
@@ -294,6 +311,7 @@ watch(banners, (newBanners) => {
 
 onMounted(() => {
   loadBanners()
+  loadTestimonials()
 })
 
 onUnmounted(() => {
@@ -558,7 +576,9 @@ onUnmounted(() => {
 /* 数据区 */
 .mh-stats {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-around;
+  gap: 16px 8px;
   padding: 28px 16px;
   background: #fff;
   border-bottom: 1px solid #f5f5f5;

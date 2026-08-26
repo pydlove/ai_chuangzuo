@@ -16,8 +16,9 @@
           </div>
           <h1 class="hero-title">会增值的自媒体账号<br />从第一篇文章开始</h1>
           <p class="hero-desc">
-            3 分钟产出一篇能直接发的文章，平台内多重赚钱机制，<br />
-            让你的自媒体账号像滚雪球一样，越做越大、越来越值钱。
+            不知道写什么、怎么发、怎么变现？<br />
+            AI 先帮你定平台、定赛道、定人设，再把个人素材变成可发布的多平台文章，<br />
+            3 分钟成稿，边写边赚，让账号持续增值。
           </p>
           <div class="hero-actions">
             <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
@@ -27,9 +28,6 @@
             <span class="check-item"><span class="check-icon">✓</span>单篇 3 分钟成稿</span>
             <span class="check-item"><span class="check-icon">✓</span>多平台一稿多发变现</span>
             <span class="check-item"><span class="check-icon">✓</span>账号越久越值钱</span>
-          </div>
-          <div class="hero-guide-link">
-            <router-link to="/guide">不知道怎么变现？先看看玩法指南 →</router-link>
           </div>
         </div>
         <div v-if="banners.length" class="hero-banner-carousel" @mouseenter="stopBannerCarousel" @mouseleave="startBannerCarousel">
@@ -64,14 +62,18 @@
     <section class="stats">
       <div class="stats-inner">
         <div class="stat-item reveal" data-reveal-delay="0">
+          <div class="stat-num">¥ 800 万 +</div>
+          <div class="stat-label">累计为创作者带来收益</div>
+        </div>
+        <div class="stat-item reveal" data-reveal-delay="120">
           <div class="stat-num">5000 +</div>
           <div class="stat-label">累计注册账号</div>
         </div>
-        <div class="stat-item reveal" data-reveal-delay="120">
+        <div class="stat-item reveal" data-reveal-delay="240">
           <div class="stat-num">6 大主流</div>
           <div class="stat-label">已覆盖变现平台</div>
         </div>
-        <div class="stat-item reveal" data-reveal-delay="240">
+        <div class="stat-item reveal" data-reveal-delay="360">
           <div class="stat-num">3 分钟</div>
           <div class="stat-label">平均成稿时间</div>
         </div>
@@ -95,7 +97,7 @@
               </svg>
             </div>
             <div class="feature-name">3 分钟成稿</div>
-            <div class="feature-desc">输入写作方向，AI 自动完成标题、结构、正文。告别 3 小时憋一篇文。</div>
+            <div class="feature-desc">输入方向并注入个人素材，AI 自动完成标题、结构和正文，降低 AI 大路货同质化。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="200">
             <div class="feature-icon">
@@ -182,7 +184,7 @@
               </svg>
             </div>
             <div class="feature-name">创作币奖励</div>
-            <div class="feature-desc">完成任务、活动、上榜，1 元 = 10 创作币。抵扣会员购买、满 1000 可提现到支付宝。</div>
+            <div class="feature-desc">完成任务、活动、上榜，1 创作币 = 1 元。可抵扣会员购买，满 100 创作币提现到支付宝。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="200">
             <div class="feature-icon">
@@ -194,7 +196,7 @@
               </svg>
             </div>
             <div class="feature-name">邀请好友返利</div>
-            <div class="feature-desc">邀请 3 人 → 3 天会员；好友首单 10% 返利。老带新，你赚会员天数和创作币。</div>
+            <div class="feature-desc">被邀请人完成邮箱验证双方得创作币；好友购买会员首单返 10%、后续返 5%；累计邀请 3 人 +30 币、5 人 +50 币。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="300">
             <div class="feature-icon">
@@ -203,7 +205,7 @@
               </svg>
             </div>
             <div class="feature-name">排行榜奖金</div>
-            <div class="feature-desc">创作币榜月榜 TOP3 奖 500 创作币 —— 写得好就上榜。</div>
+            <div class="feature-desc">创作币榜月度 TOP10 各奖 100 创作币；自媒体收入榜记录真实平台收益。</div>
           </div>
           <div class="feature-card reveal" data-reveal-delay="400">
             <div class="feature-icon">
@@ -214,12 +216,15 @@
               </svg>
             </div>
             <div class="feature-name">自媒体收入申报</div>
-            <div class="feature-desc">公众号、小红书、抖音、百家号、头条、知乎 收益申报，记录你的自媒体收入轨迹。</div>
+            <div class="feature-desc">申报公众号、小红书、抖音、百家号、头条、知乎等平台真实收入，审核通过后计入榜单。</div>
           </div>
         </div>
         <router-link to="/guide" class="section-cta reveal" data-reveal-delay="500">查看完整玩法 · 看看别人赚了多少 →</router-link>
       </div>
     </section>
+
+    <!-- 用户评价 -->
+    <TestimonialCarousel :testimonials="testimonials" />
 
     <!-- 使用步骤 -->
     <section class="steps">
@@ -251,10 +256,10 @@
     <!-- 最终 CTA -->
     <section class="cta-section">
       <div class="cta-card reveal" data-reveal-delay="0">
-        <h2 class="cta-title">现在起号，3 个月后看复利</h2>
+        <h2 class="cta-title">现在起号，搭一条可执行的自媒体流水线</h2>
         <p class="cta-desc">
-          内容慢慢写，账号先到位 ——<br />
-          等你准备好赚钱时，雪球已经在滚。
+          先定位，再创作，持续迭代。<br />
+          3 分钟成稿，边写边赚，让账号资产开始滚雪球。
         </p>
         <div class="cta-actions">
           <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
@@ -275,8 +280,9 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import MobileHome from '@/views/MobileHome.vue'
+import TestimonialCarousel from '@/components/testimonial/TestimonialCarousel.vue'
 import { useDevice } from '@/composables/useDevice.js'
-import { fetchHomeBanners } from '@/api/home.js'
+import { fetchHomeBanners, fetchHomeTestimonials } from '@/api/home.js'
 
 const { isMobile } = useDevice()
 
@@ -292,6 +298,7 @@ const ctaTo = '/console/workbench'
 const ctaLabel = '开始创作'
 
 const banners = ref([])
+const testimonials = ref([])
 const activeBannerIndex = ref(0)
 let bannerTimer = null
 
@@ -300,6 +307,14 @@ async function loadBanners() {
     banners.value = await fetchHomeBanners()
   } catch (e) {
     banners.value = []
+  }
+}
+
+async function loadTestimonials() {
+  try {
+    testimonials.value = await fetchHomeTestimonials()
+  } catch (e) {
+    testimonials.value = []
   }
 }
 
@@ -364,6 +379,7 @@ function onScroll() {
 
 onMounted(() => {
   loadBanners()
+  loadTestimonials()
   // 等 DOM 渲染完再注册观察器
   requestAnimationFrame(initScrollReveal)
   window.addEventListener('scroll', onScroll, { passive: true })
@@ -511,16 +527,6 @@ onUnmounted(() => {
   margin-top: 28px;
   flex-wrap: wrap;
 }
-.hero-guide-link {
-  margin-top: 20px;
-  font-size: 14px;
-}
-.hero-guide-link a {
-  color: #ff2442;
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-.hero-guide-link a:hover { color: #e61e3a; }
 
 .hero-actions {
   display: flex;
@@ -1000,7 +1006,6 @@ body[data-theme="dark"] .hero-btn {
 }
 body[data-theme="dark"] .hero-btn:hover { box-shadow: 0 14px 36px rgba(255, 36, 66, 0.4); }
 body[data-theme="dark"] .check-icon { background: #ff4d6f; }
-body[data-theme="dark"] .hero-guide-link a { color: #ff4d6f; }
 body[data-theme="dark"] .hero-btn-secondary {
   background: rgba(31,31,31,0.7);
   color: #ff4d6f;
@@ -1102,7 +1107,6 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
   .hero-btn { padding: 14px 32px; border-radius: 24px; font-size: 16px; }
   .hero-checkmarks { flex-direction: column; gap: 10px; margin-top: 24px; }
   .check-item { justify-content: center; }
-  .hero-guide-link { margin-top: 24px; }
   .hero-actions { flex-direction: column; gap: 12px; }
   .hero-btn-secondary { padding: 12px 28px; font-size: 15px; border-radius: 24px; }
 

@@ -554,11 +554,18 @@ async function recommendAccountName() {
 :global(.account-check-modal .ant-btn-primary) {
   background: var(--color-primary);
   border-color: var(--color-primary);
+  color: #fff;
 }
 :global(.account-check-modal .ant-btn-primary:hover),
 :global(.account-check-modal .ant-btn-primary:focus) {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
+  color: #fff;
+}
+:global(.account-check-modal .ant-btn-primary:disabled) {
+  color: rgba(0, 0, 0, 0.25);
+  background: #f5f5f5;
+  border-color: #d9d9d9;
 }
 :global(.account-check-modal .ant-radio-checked .ant-radio-inner) {
   border-color: var(--color-primary);

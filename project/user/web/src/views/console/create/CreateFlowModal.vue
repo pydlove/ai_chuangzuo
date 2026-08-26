@@ -1,5 +1,6 @@
 <template>
   <a-modal
+    v-if='!pageMode'
     :open='visible'
     :title='modalTitle'
     width='900px'
@@ -334,10 +335,385 @@
       </div>
     </div>
   </a-modal>
+  <div v-else class='create-flow-page'>
+    <div class='create-flow-page-header'>
+      <div class='create-flow-page-back' @click='close'>
+        <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+          <polyline points='15 18 9 12 15 6'></polyline>
+        </svg>
+        <span>返回</span>
+      </div>
+      <div class='create-flow-page-title'>{{ modalTitle }}</div>
+    </div>
+    <div class='create-flow-page-body'>
+      <div class='create-flow create-flow--page'>
+        <div class='flow-header'>
+          <div class='flow-loading' v-if='loading'>
+            <a-spin />
+            <span>正在为你制定今日创作任务...</span>
+          </div>
+        </div>
+
+        <div class='flow-steps'>
+          <div class='flow-line-bg'></div>
+          <div
+            class='flow-line-progress'
+            :style='{ width: ((flowData.step - 1) / (steps.length - 1) * 80) + "%" }'
+          ></div>
+          <div
+            v-for='(s, idx) in steps'
+            :key='idx'
+            :class='["flow-step", { active: flowData.step >= idx + 1, current: flowData.step === idx + 1 }]'
+          >
+            <div class='flow-step-num'>{{ idx + 1 }}</div>
+            <div class='flow-step-title'>{{ s.title }}</div>
+          </div>
+        </div>
+
+        <div v-if='flowData.step === 1' class='flow-panel flow-panel--topics'>
+          <div class='panel-title'>第一步：选择今日创作方向</div>
+          <div class='panel-desc'>基于你的「{{ plan?.niche || '运营方案' }}」方案，从低粉高赞案例中挑了 {{ topicOptions.length }} 个选题</div>
+          <div class='topic-options'>
+            <div
+              v-for='topic in topicOptions'
+              :key='topic.id'
+              :class='["topic-option", { selected: flowData.selectedTopic?.id === topic.id }]'
+              @click='selectTopic(topic)'
+            >
+              <div class='topic-option-title'>{{ topic.title }}</div>
+              <div class='topic-option-meta'>
+                <a-tag :color='riskColor(topic.risk)'>{{ topic.riskLabel }}</a-tag>
+                <span><FireOutlined /> {{ topic.caseCount }} 篇案例</span>
+              </div>
+              <div class='topic-option-angle'>
+                <BulbOutlined /> 推荐角度：{{ topic.recommendedAngle }}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-if='flowData.step === 2' class='flow-panel flow-panel--angles'>
+          <div class='panel-title'>第二步：确定文章观点</div>
+          <div class='panel-desc'>建议最多选择 3 个观点组合；选中后可编辑成你的表达</div>
+          <div class='angle-options angle-options--mobile'>
+            <div
+              v-for='angle in generatedAngleList'
+              :key='angle.id'
+              :class='["angle-card", { selected: isAngleSelected(angle.id) }]'
+              @click='toggleAngle(angle)'
+            >
+              <div class='angle-card-check'>
+                <div :class='["angle-card-checkbox", { checked: isAngleSelected(angle.id) }]'>
+                  <svg v-if='isAngleSelected(angle.id)' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'>
+                    <polyline points='20 6 9 17 4 12'></polyline>
+                  </svg>
+                </div>
+              </div>
+              <div class='angle-card-body'>
+                <div class='angle-card-text'>{{ angle.text }}</div>
+                <div v-if='isAngleSelected(angle.id)' class='angle-card-actions'>
+                  <button class='angle-card-edit-btn' @click.stop='openAngleEdit(angle)'>编辑观点</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class='mobile-angle-summary' v-if='flowData.selectedAngleIds.length'>
+            <div class='mobile-angle-summary-title'>已选 {{ flowData.selectedAngleIds.length }}/3 个观点</div>
+            <div class='mobile-angle-chips'>
+              <div
+                v-for='chip in selectedAngleChips'
+                :key='chip.id'
+                class='mobile-angle-chip'
+              >
+                <span class='mobile-angle-chip-text'>{{ chip.label }}</span>
+                <span class='mobile-angle-chip-remove' @click.stop='removeSelectedAngle(chip.id)'>
+                  <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
+                    <line x1='18' y1='6' x2='6' y2='18'></line>
+                    <line x1='6' y1='6' x2='18' y2='18'></line>
+                  </svg>
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <a-modal
+            :open='angleEditModalVisible'
+            title='编辑观点'
+            :footer='null'
+            :mask-closable='false'
+            class='angle-edit-modal'
+            :width='560'
+            centered
+            @cancel='cancelAngleEdit'
+          >
+            <div class='angle-edit-body'>
+              <a-textarea
+                v-model:value='editingAngleDraft'
+                :rows='5'
+                placeholder='改成更贴近你风格的表达...'
+                show-count
+                :maxlength='120'
+              />
+              <div class='angle-edit-actions'>
+                <a-button size='large' block @click='cancelAngleEdit'>取消</a-button>
+                <a-button type='primary' size='large' block @click='saveAngleEdit'>保存</a-button>
+              </div>
+            </div>
+          </a-modal>
+        </div>
+
+        <div v-if='flowData.step === 3' class='flow-panel flow-panel--words'>
+          <div class='panel-title'>第三步：选择文章字数</div>
+          <div class='panel-desc'>
+            基于「{{ currentPlatform?.name || '当前平台' }}」推荐字数选择，会员可设置更高上限
+          </div>
+          <div class='word-presets'>
+            <a-button
+              v-for='p in platformWordCounts'
+              :key='p.count'
+              :type='flowData.wordCount === p.count ? "primary" : "default"'
+              :disabled='p.count > wordCountLimit'
+              @click='flowData.wordCount = p.count'
+            >
+              {{ p.label }}（{{ p.count }} 字）
+            </a-button>
+          </div>
+          <div class='word-slider'>
+            <span>自定义：</span>
+            <a-slider v-model:value='flowData.wordCount' :min='1' :max='wordCountLimit' :step='100' style='flex: 1' />
+            <span class='word-count'>{{ flowData.wordCount }} 字</span>
+          </div>
+          <div class='word-limit-tip'>当前会员等级字数上限：{{ wordCountLimit }} 字</div>
+        </div>
+
+        <div v-if='flowData.step === 4' class='flow-panel flow-panel--prompts'>
+          <div class='panel-title'>第四步：选择创作提示词</div>
+          <a-alert
+            class='prompt-market-tip'
+            type='info'
+            show-icon
+            :message='"提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。"'
+          />
+          <a-tabs v-model:activeKey='flowData.promptTab'>
+            <a-tab-pane key='mine' tab='我的'>
+              <div class='prompt-grid'>
+                <SkillCard
+                  v-for='skill in pagedPromptList'
+                  :key='skill.bizNo || skill.name'
+                  :name='skill.name'
+                  :prompt='promptSummary(skill.prompt)'
+                  :scope='skill.scope'
+                  size='compact'
+                  :selected='selectedSkillName === skill.name'
+                  clickable
+                  show-view-btn
+                  @click='selectPrompt(skill)'
+                  @view='openPromptModal(skill)'
+                >
+                  <template #meta>
+                    <span>{{ skill.desc || "我的提示词" }}</span>
+                    <span class='prompt-card-meta-dot'>·</span>
+                    <span>已用 {{ skill.count || 0 }} 次</span>
+                  </template>
+                </SkillCard>
+                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('mine') }}</div>
+              </div>
+              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
+                <a-pagination
+                  :current='promptPages.mine'
+                  :page-size='PROMPT_PAGE_SIZE'
+                  :total='promptTotal'
+                  size='small'
+                  @change='onPromptPageChange'
+                />
+              </div>
+            </a-tab-pane>
+            <a-tab-pane key='learn' tab='学习'>
+              <div class='prompt-grid'>
+                <SkillCard
+                  v-for='skill in pagedPromptList'
+                  :key='skill.bizNo || skill.name'
+                  :name='skill.name'
+                  :prompt='promptSummary(skill.prompt)'
+                  :scope='skill.scope'
+                  size='compact'
+                  avatar-variant='learned'
+                  :selected='selectedSkillName === skill.name'
+                  clickable
+                  show-view-btn
+                  @click='selectPrompt(skill)'
+                  @view='openPromptModal(skill)'
+                >
+                  <template #meta>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</template>
+                </SkillCard>
+                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('learn') }}</div>
+              </div>
+              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
+                <a-pagination
+                  :current='promptPages.learn'
+                  :page-size='PROMPT_PAGE_SIZE'
+                  :total='promptTotal'
+                  size='small'
+                  @change='onPromptPageChange'
+                />
+              </div>
+            </a-tab-pane>
+            <a-tab-pane key='favorite' tab='收藏'>
+              <div class='prompt-grid'>
+                <SkillCard
+                  v-for='skill in pagedPromptList'
+                  :key='skill.id || skill.name'
+                  :name='skill.name'
+                  :prompt='promptSummary(skill.prompt)'
+                  :scope='skill.scope'
+                  size='compact'
+                  :selected='selectedSkillName === skill.name'
+                  :clickable='skill.status === "approved"'
+                  :class='{ "favorite-offline": skill.status !== "approved" }'
+                  show-view-btn
+                  @click='selectPrompt(skill)'
+                  @view='openPromptModal(skill)'
+                >
+                  <template #meta>
+                    <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
+                      {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
+                    </span>
+                  </template>
+                </SkillCard>
+                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('favorite') }}</div>
+              </div>
+              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
+                <a-pagination
+                  :current='promptPages.favorite'
+                  :page-size='PROMPT_PAGE_SIZE'
+                  :total='promptTotal'
+                  size='small'
+                  @change='onPromptPageChange'
+                />
+              </div>
+            </a-tab-pane>
+            <a-tab-pane key='system' tab='系统'>
+              <div class='prompt-grid'>
+                <SkillCard
+                  v-for='skill in pagedPromptList'
+                  :key='skill.bizNo || skill.name'
+                  :name='skill.name'
+                  :prompt='promptSummary(skill.prompt)'
+                  :scope='skill.scope'
+                  size='compact'
+                  :selected='selectedSkillName === skill.name'
+                  clickable
+                  show-view-btn
+                  @click='selectPrompt(skill)'
+                  @view='openPromptModal(skill)'
+                >
+                  <template #meta>{{ skill.desc || "系统预设" }}</template>
+                </SkillCard>
+                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('system') }}</div>
+              </div>
+              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
+                <a-pagination
+                  :current='promptPages.system'
+                  :page-size='PROMPT_PAGE_SIZE'
+                  :total='promptTotal'
+                  size='small'
+                  @change='onPromptPageChange'
+                />
+              </div>
+            </a-tab-pane>
+          </a-tabs>
+
+          <a-modal
+            class='skill-prompt-modal'
+            :open='promptModalVisible'
+            :title='viewingSkill?.name'
+            :footer='null'
+            :width='560'
+            centered
+            @cancel='closePromptModal'
+          >
+            <div v-if='viewingSkill' class='skill-prompt-body'>
+              <div class='skill-prompt-meta'>
+                <span v-if='viewingSkill.desc'>{{ viewingSkill.desc }}</span>
+                <span v-else-if='typeof viewingSkill.count === "number"'>自定义提示词 · 已用 {{ viewingSkill.count }} 次</span>
+                <span v-else-if='viewingSkill.createdAt'>学习 · {{ viewingSkill.createdAt.slice(0, 10) }}</span>
+                <span v-else-if='viewingSkill.creatorName'>by {{ viewingSkill.creatorName }}</span>
+              </div>
+              <div v-if='parseScopeTags(viewingSkill.scope).length' class='skill-prompt-scope-list'>
+                <span v-for='tag in parseScopeTags(viewingSkill.scope)' :key='tag' class='skill-prompt-scope'>{{ tag }}</span>
+              </div>
+              <div class='skill-prompt-text'>{{ viewingSkill.prompt }}</div>
+              <div class='skill-prompt-actions'>
+                <button class='skill-prompt-use-btn' @click='useFromPromptModal'>应用</button>
+                <button class='skill-prompt-close-btn' @click='closePromptModal'>关闭</button>
+              </div>
+            </div>
+          </a-modal>
+        </div>
+
+        <div v-if='flowData.step === 5' class='flow-panel flow-panel--templates'>
+          <div class='panel-title'>第五步：选择导出模板</div>
+          <div class='template-tabs'>
+            <button
+              v-for='tab in templatePlatformTabs'
+              :key='tab.key'
+              :class='["template-tab", { active: templatePlatformTab === tab.key }]'
+              @click='templatePlatformTab = tab.key'
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <div class='template-body'>
+            <div class='template-preview-pane' v-html='currentTemplatePreview'></div>
+            <div class='template-list-pane'>
+              <div
+                v-for='t in filteredTemplates'
+                :key='t.key'
+                :class='["template-row", { selected: flowData.selectedTemplate === t.key, locked: !t.accessible }]'
+                @click='selectTemplate(t)'
+              >
+                <div v-if='!t.accessible' class='template-row-badge'>{{ isFreePlan ? '需订阅' : '需升级' }}</div>
+                <div class='template-row-info'>
+                  <div class='template-row-name'>{{ t.name }}</div>
+                  <div class='template-row-desc'>{{ t.desc }}</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class='flow-footer'>
+          <a-button v-if='flowData.step > 1' size='large' :disabled='loading || submitting' @click='prevStep'>上一步</a-button>
+          <a-button
+            v-if='flowData.step < 5'
+            type='primary'
+            size='large'
+            :disabled='!canNext || loading || submitting'
+            :loading='loading'
+            @click='nextStep'
+          >
+            下一步
+          </a-button>
+          <a-button
+            v-if='flowData.step === 5'
+            type='primary'
+            size='large'
+            :disabled='!canNext || loading || submitting'
+            :loading='submitting'
+            @click='finish'
+          >
+            生成文章
+          </a-button>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { FireOutlined, BulbOutlined } from '@ant-design/icons-vue'
 import {
@@ -365,10 +741,13 @@ import { buildLargePreview } from '@/utils/articleTemplates.js'
 
 const props = defineProps({
   visible: Boolean,
-  plan: Object
+  plan: Object,
+  pageMode: Boolean
 })
 
 const emit = defineEmits(['update:visible', 'success'])
+
+const router = useRouter()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -392,6 +771,9 @@ const flowData = reactive({
 })
 
 const editingAngleId = ref(null)
+const angleEditModalVisible = ref(false)
+const editingAngleDraft = ref('')
+const editingAngleOriginalText = ref('')
 const selectedSkillName = ref('')
 const promptModalVisible = ref(false)
 const viewingSkill = ref(null)
@@ -466,6 +848,13 @@ const selectedAngleTexts = computed(() => {
     .map(a => a.text)
 })
 
+const selectedAngleChips = computed(() => {
+  return flowData.selectedAngleIds
+    .map(id => generatedAngleList.value.find(a => a.id === id))
+    .filter(Boolean)
+    .map(a => ({ id: a.id, label: a.text }))
+})
+
 const modalTitle = computed(() => `今日创作 · ${steps[flowData.step - 1].title}`)
 
 function riskColor(risk) {
@@ -501,6 +890,46 @@ function toggleEdit(angle) {
   } else {
     if (!isAngleSelected(angle.id)) return
     editingAngleId.value = angle.id
+  }
+}
+
+function openAngleEdit(angle) {
+  if (!isAngleSelected(angle.id)) return
+  editingAngleId.value = angle.id
+  editingAngleOriginalText.value = angle.text
+  editingAngleDraft.value = angle.text
+  angleEditModalVisible.value = true
+}
+
+function saveAngleEdit() {
+  const target = generatedAngleList.value.find(a => a.id === editingAngleId.value)
+  if (target) {
+    const text = editingAngleDraft.value.trim()
+    if (text) {
+      target.text = text
+    }
+  }
+  angleEditModalVisible.value = false
+  editingAngleId.value = null
+  editingAngleDraft.value = ''
+  editingAngleOriginalText.value = ''
+}
+
+function cancelAngleEdit() {
+  const target = generatedAngleList.value.find(a => a.id === editingAngleId.value)
+  if (target && editingAngleOriginalText.value !== undefined) {
+    target.text = editingAngleOriginalText.value
+  }
+  angleEditModalVisible.value = false
+  editingAngleId.value = null
+  editingAngleDraft.value = ''
+  editingAngleOriginalText.value = ''
+}
+
+function removeSelectedAngle(id) {
+  const idx = flowData.selectedAngleIds.indexOf(id)
+  if (idx > -1) {
+    flowData.selectedAngleIds.splice(idx, 1)
   }
 }
 
@@ -612,7 +1041,11 @@ async function finish() {
     const task = await submitRecommendedGeneration()
     clearRecommendedSession().catch(() => {})
     emit('success', task)
-    close()
+    if (props.pageMode) {
+      router.back()
+    } else {
+      close()
+    }
   } catch (err) {
     message.error(err?.message || '提交生成失败，请重试')
   } finally {
@@ -621,6 +1054,10 @@ async function finish() {
 }
 
 function close() {
+  if (props.pageMode) {
+    router.back()
+    return
+  }
   emit('update:visible', false)
 }
 
@@ -769,6 +1206,12 @@ async function initSession() {
 
 watch(() => props.visible, (val) => {
   if (val) {
+    initSession()
+  }
+})
+
+onMounted(() => {
+  if (props.pageMode) {
     initSession()
   }
 })
@@ -956,6 +1399,136 @@ watch(() => props.visible, (val) => {
   font-size: 13px;
   color: #237804;
   line-height: 1.6;
+}
+.angle-options--mobile {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.angle-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  border: 1.5px solid var(--color-border);
+  border-radius: 14px;
+  background: var(--color-bg-card);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.angle-card:hover {
+  border-color: var(--color-primary-light);
+}
+.angle-card.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-bg);
+  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
+}
+.angle-card-check {
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+.angle-card-checkbox {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  border: 2px solid #d9d9d9;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+.angle-card-checkbox svg {
+  width: 13px;
+  height: 13px;
+  color: #fff;
+}
+.angle-card.selected .angle-card-checkbox {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.angle-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.angle-card-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  word-break: break-word;
+}
+.angle-card-actions {
+  margin-top: 10px;
+}
+.angle-card-edit-btn {
+  font-size: 13px;
+  color: var(--color-primary);
+  background: transparent;
+  border: 1px solid var(--color-primary-light);
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.angle-card-edit-btn:hover {
+  background: var(--color-primary-bg);
+}
+.mobile-angle-summary {
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--color-primary-bg);
+  border: 1px solid var(--color-primary-light);
+  border-radius: 14px;
+}
+.mobile-angle-summary-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary);
+  margin-bottom: 10px;
+}
+.mobile-angle-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.mobile-angle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 6px 10px;
+  background: #fff;
+  border: 1px solid var(--color-primary-light);
+  border-radius: 20px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+.mobile-angle-chip-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 220px;
+}
+.mobile-angle-chip-remove {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  color: var(--color-text-tertiary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mobile-angle-chip-remove:hover {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+.mobile-angle-chip-remove svg {
+  width: 12px;
+  height: 12px;
 }
 .word-presets {
   display: flex;
@@ -1264,6 +1837,222 @@ watch(() => props.visible, (val) => {
   .prompt-grid {
     grid-template-columns: 1fr;
   }
+
+  /* 页面模式各步骤移动端优化 */
+  .flow-panel--topics .topic-options {
+    gap: 10px;
+  }
+  .flow-panel--topics .topic-option {
+    padding: 14px;
+    border-radius: 14px;
+    border-width: 1.5px;
+  }
+  .flow-panel--topics .topic-option-title {
+    font-size: 15px;
+    margin-bottom: 10px;
+  }
+  .flow-panel--topics .topic-option-meta {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .flow-panel--topics .topic-option-angle {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+  }
+
+  .flow-panel--words .word-presets {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .flow-panel--words .word-presets .ant-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .flow-panel--words .word-slider {
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .flow-panel--words .word-slider span:first-child {
+    font-size: 13px;
+    white-space: nowrap;
+  }
+
+  .flow-panel--prompts .prompt-market-tip {
+    margin-bottom: 10px;
+    padding: 8px 10px;
+    font-size: 12px;
+  }
+  .flow-panel--prompts .prompt-market-tip .ant-alert-message {
+    font-size: 12px;
+  }
+  .flow-panel--prompts .prompt-grid {
+    gap: 10px;
+    margin-top: 8px;
+    min-height: auto;
+  }
+  .flow-panel--prompts .prompt-pagination {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .flow-panel--prompts :deep(.skill-card--compact) {
+    padding: 10px 12px;
+    border-radius: 12px;
+    min-height: auto;
+  }
+  .flow-panel--prompts :deep(.skill-card__head) {
+    margin-bottom: 6px;
+  }
+  .flow-panel--prompts :deep(.skill-card__avatar) {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+    border-radius: 8px;
+  }
+  .flow-panel--prompts :deep(.skill-card__title) {
+    font-size: 14px;
+  }
+  .flow-panel--prompts :deep(.skill-card__meta) {
+    font-size: 11px;
+  }
+  .flow-panel--prompts :deep(.skill-card__prompt) {
+    font-size: 12px;
+    line-height: 1.5;
+    margin-bottom: 6px;
+    -webkit-line-clamp: 2;
+    flex: 0 0 auto;
+    max-height: 3em;
+  }
+  .flow-panel--prompts :deep(.skill-card__action-btn) {
+    padding: 3px 8px;
+    font-size: 11px;
+    border-radius: 6px;
+  }
+
+  .flow-panel--templates .template-tabs {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+  .flow-panel--templates .template-preview-pane {
+    height: calc(100vh - 400px);
+    min-height: 180px;
+    max-height: 520px;
+    border-radius: 12px;
+  }
+  .flow-panel--templates .template-list-pane {
+    max-height: 96px;
+    gap: 8px;
+  }
+  .flow-panel--templates .template-row {
+    flex: 0 0 116px;
+    padding: 10px;
+  }
+}
+
+/* 页面模式 */
+.create-flow-page {
+  min-height: 100%;
+  background: var(--color-bg-page);
+  display: flex;
+  flex-direction: column;
+}
+.create-flow-page-header {
+  display: none;
+}
+.create-flow-page-body {
+  flex: 1;
+  padding: 16px;
+  overflow-y: auto;
+}
+
+@media (max-width: 768px) {
+  .create-flow-page {
+    background: var(--color-bg-card);
+  }
+  .create-flow-page-header {
+    display: flex;
+    align-items: center;
+    position: relative;
+    height: 48px;
+    padding: 0 12px;
+    background: var(--color-bg-card);
+    border-bottom: 1px solid var(--color-border-light);
+    flex-shrink: 0;
+  }
+  .create-flow-page-back {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+  }
+  .create-flow-page-back svg {
+    width: 20px;
+    height: 20px;
+  }
+  .create-flow-page-title {
+    flex: 1;
+    text-align: center;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .create-flow-page-body {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 12px calc(12px + env(safe-area-inset-bottom));
+    overflow: hidden;
+  }
+  .create-flow.create-flow--page {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+  .create-flow--page .flow-steps {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    background: var(--color-bg-card);
+  }
+  .create-flow--page .flow-panel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 2px;
+    padding-bottom: 8px;
+  }
+  .create-flow--page .flow-footer {
+    flex-shrink: 0;
+    display: flex;
+    gap: 12px;
+    padding: 12px 0 0;
+    margin-top: 12px;
+    background: var(--color-bg-card);
+    border-top: 1px solid var(--color-border-light);
+  }
+  .create-flow--page .flow-footer .ant-btn {
+    flex: 1;
+    height: 44px;
+    border-radius: 10px;
+    font-size: 15px;
+  }
+  .create-flow--page .panel-title {
+    font-size: 17px;
+    margin-bottom: 6px;
+  }
+  .create-flow--page .panel-desc {
+    font-size: 13px;
+    margin-bottom: 14px;
+  }
 }
 </style>
 
@@ -1423,6 +2212,82 @@ watch(() => props.visible, (val) => {
   }
 }
 
+/* 观点编辑弹框 */
+.angle-edit-modal.ant-modal {
+  max-width: 560px;
+}
+
+.angle-edit-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 16px 20px 20px;
+}
+
+.angle-edit-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.angle-edit-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.angle-edit-actions .ant-btn {
+  flex: 1;
+  border-radius: 10px;
+}
+
+@media (max-width: 768px) {
+  .angle-edit-modal.ant-modal {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0 !important;
+    transform: none !important;
+    padding: 0;
+  }
+
+  .angle-edit-modal .ant-modal-content {
+    border-radius: 20px 20px 0 0;
+    height: auto;
+    max-height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .angle-edit-modal .ant-modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 14px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .angle-edit-modal .ant-modal-body {
+    flex: 1;
+    max-height: none;
+    overflow: hidden;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .angle-edit-body {
+    height: 100%;
+    padding: 0;
+  }
+
+  .angle-edit-actions {
+    padding-top: 4px;
+  }
+
+  .angle-edit-actions .ant-btn {
+    padding: 12px 20px;
+    border-radius: 12px;
+    height: auto;
+  }
+}
+
 body[data-theme="dark"] .skill-prompt-modal .ant-modal-content,
 body[data-theme="dark"] .skill-prompt-modal .ant-modal-header {
   background: #1f1f1f !important;
@@ -1482,5 +2347,30 @@ body[data-theme="dark"] .skill-prompt-close-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .angle-edit-modal .ant-modal-content,
+body[data-theme="dark"] .angle-edit-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
+}
+
+body[data-theme="dark"] .angle-edit-modal .ant-modal-title {
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .angle-edit-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .angle-edit-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
+}
+
+body[data-theme="dark"] .mobile-angle-chip {
+  background: #2a2a2a;
+  border-color: rgba(255, 36, 66, 0.25);
+  color: #d9d9d9;
 }
 </style>

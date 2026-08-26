@@ -833,7 +833,7 @@ body[data-theme="dark"] .learn-locked__sub { color: rgba(255, 255, 255, 0.55); }
     margin-bottom: 16px;
   }
 
-  .learn-breadcrumb { margin-bottom: 8px; }
+  .learn-breadcrumb { margin-top: 12px; margin-bottom: 8px; }
   .learn-content-title { font-size: 20px; }
   .learn-content-summary { font-size: 13px; }
 

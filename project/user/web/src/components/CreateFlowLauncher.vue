@@ -3,12 +3,14 @@ import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { CompassOutlined, EditOutlined } from '@ant-design/icons-vue'
+import { useDevice } from '@/composables/useDevice.js'
 import CreateFlowModal from '@/views/console/create/CreateFlowModal.vue'
 import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { getMyMembership } from '@/api/membership.js'
 
 const router = useRouter()
+const { isMobile } = useDevice()
 
 const createChoiceVisible = ref(false)
 const createFlowVisible = ref(false)
@@ -70,11 +72,19 @@ function openCreateChoice() {
 
 function chooseRecommended() {
   createChoiceVisible.value = false
+  if (isMobile.value) {
+    router.push('/console/create/recommended')
+    return
+  }
   createFlowVisible.value = true
 }
 
 function chooseFreeCreate() {
   createChoiceVisible.value = false
+  if (isMobile.value) {
+    router.push('/console/create/free')
+    return
+  }
   freeCreateVisible.value = true
 }
 

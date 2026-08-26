@@ -181,6 +181,11 @@ const routes = [
         component: () => import('@/views/HomeBannerView.vue')
       },
       {
+        path: 'home-testimonials',
+        name: 'AdminHomeTestimonials',
+        component: () => import('@/views/HomeTestimonialView.vue')
+      },
+      {
         path: 'orders/list',
         name: 'AdminOrderList',
         component: () => import('@/views/OrderListView.vue')

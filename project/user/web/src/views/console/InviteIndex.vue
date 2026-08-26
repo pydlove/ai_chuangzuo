@@ -182,7 +182,7 @@ const loadShareConfig = async () => {
 }
 
 const inviteLink = computed(() => {
-  return `${window.location.origin}/login?ref=${inviteCode.value}`
+  return `https://www.ichuang.top/login?ref=${inviteCode.value}`
 })
 
 const inviteShareText = computed(() => {

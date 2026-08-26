@@ -28,6 +28,7 @@ public class SecurityConfig {
                 // TODO 测试用：手动抓取接口免鉴权，正式发布前移除
                 .requestMatchers("/api/v1/admin/hot-search/crawl").permitAll()
                 .requestMatchers("/admin/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
+                .requestMatchers("/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

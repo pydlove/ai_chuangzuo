@@ -1,3 +1,4 @@
+com/aichuangzuo/user/modules/testimonial/entity/TestimonialEntity.class
 com/aichuangzuo/user/modules/auth/service/AuthService.class
 com/aichuangzuo/user/modules/selfmedia/vo/PublishPlanGuideVO.class
 com/aichuangzuo/user/modules/generation/mapper/UserPromptTemplateMapper.class
@@ -21,6 +22,7 @@ com/aichuangzuo/user/modules/earnings/service/EarningsService.class
 com/aichuangzuo/user/modules/earnings/dto/request/RealNameRequest.class
 com/aichuangzuo/user/modules/auth/mapper/UserLoginLogMapper.class
 com/aichuangzuo/user/modules/leaderboard/controller/LeaderboardController.class
+com/aichuangzuo/user/modules/membership/controller/OrderController.class
 com/aichuangzuo/user/modules/commission/entity/CommissionTask.class
 com/aichuangzuo/user/modules/exporttemplate/mapper/ExportTemplateMapper.class
 com/aichuangzuo/user/modules/selfmedia/mapper/SelfMediaPlanQuestionMapper.class
@@ -29,6 +31,7 @@ com/aichuangzuo/user/modules/skill/controller/UserSkillController.class
 com/aichuangzuo/user/modules/recommendedcreation/vo/AngleOptionVO.class
 com/aichuangzuo/user/modules/selfmedia/dto/request/RecommendPersonasRequest.class
 com/aichuangzuo/user/modules/user/service/impl/UserInviteBindingServiceImpl.class
+com/aichuangzuo/user/modules/membership/vo/OrderVO.class
 com/aichuangzuo/user/modules/commission/dto/request/CommissionSubmitRequest.class
 com/aichuangzuo/user/modules/audit/dto/request/AuditLogCleanupRequest.class
 com/aichuangzuo/user/modules/article/service/TitleOptimizeAiService.class
@@ -76,6 +79,7 @@ com/aichuangzuo/user/modules/share/service/impl/ShareConfigServiceImpl.class
 com/aichuangzuo/user/modules/commission/vo/CommissionTaskDetailVO.class
 com/aichuangzuo/user/modules/leaderboard/mapper/LeaderboardRewardConfigMapper.class
 com/aichuangzuo/user/modules/earnings/controller/EarningsInternalController.class
+com/aichuangzuo/user/modules/testimonial/controller/HomeTestimonialController.class
 com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketMapper.class
 com/aichuangzuo/user/modules/user/converter/UserConverter.class
 com/aichuangzuo/user/modules/article/service/impl/ArticleServiceImpl$1.class
@@ -89,6 +93,7 @@ com/aichuangzuo/user/modules/selfmedia/service/PublishPlanAiService.class
 com/aichuangzuo/user/modules/leaderboard/entity/IncomeSubmission.class
 com/aichuangzuo/user/modules/membership/dto/request/SubscribeRequest.class
 com/aichuangzuo/user/modules/earnings/enums/WithdrawErrorCode.class
+com/aichuangzuo/user/modules/testimonial/mapper/TestimonialMapper.class
 com/aichuangzuo/user/modules/skill/market/controller/SkillMarketInternalController.class
 com/aichuangzuo/user/modules/article/vo/DraftPageVO.class
 com/aichuangzuo/user/modules/generation/service/GenerationBenefitResolver.class
@@ -130,6 +135,7 @@ com/aichuangzuo/user/modules/lottery/dto/request/LotteryDrawRequest.class
 com/aichuangzuo/user/modules/message/entity/MessageScope.class
 com/aichuangzuo/user/modules/selfmedia/vo/QuestionOptionVO.class
 com/aichuangzuo/user/modules/message/enums/MessageErrorCode.class
+com/aichuangzuo/user/modules/membership/dto/request/ListOrderRequest.class
 com/aichuangzuo/user/modules/skill/market/service/UserMarketFavoriteService.class
 com/aichuangzuo/user/modules/skill/market/mapper/UserMarketFavoriteMapper.class
 com/aichuangzuo/user/modules/learn/vo/LearnArticleVO.class
@@ -162,7 +168,9 @@ com/aichuangzuo/user/modules/security/accesscontrol/vo/AccessControlSnapshot.cla
 com/aichuangzuo/user/modules/workbench/mapper/WeeklyArticleMapper.class
 com/aichuangzuo/user/modules/lottery/mapper/LotteryCampaignMapper.class
 com/aichuangzuo/user/modules/feedback/vo/FeedbackVO.class
+com/aichuangzuo/user/modules/testimonial/service/TestimonialService.class
 com/aichuangzuo/user/modules/membership/enums/MembershipCycle.class
+com/aichuangzuo/user/modules/membership/service/impl/OrderServiceImpl.class
 com/aichuangzuo/user/modules/message/vo/MessageVO.class
 com/aichuangzuo/user/modules/learn/vo/LearnRecommendedArticleVO.class
 com/aichuangzuo/user/modules/audit/mapper/UserAuditLogMapper.class
@@ -209,12 +217,14 @@ com/aichuangzuo/user/modules/generation/dto/request/GenerationSubmitRequest.clas
 com/aichuangzuo/user/modules/topic/entity/TopicTitleUsage.class
 com/aichuangzuo/user/modules/feedback/enums/FeedbackErrorCode.class
 com/aichuangzuo/user/modules/recommendedcreation/service/RecommendedCreationService.class
+com/aichuangzuo/user/modules/testimonial/vo/TestimonialVO.class
 com/aichuangzuo/user/modules/skill/market/vo/MarketSkillVO.class
 com/aichuangzuo/user/modules/lottery/mapper/LotteryDrawRecordMapper.class
 com/aichuangzuo/user/modules/leaderboard/dto/request/CoinRecordGrantRequest.class
 com/aichuangzuo/user/modules/hotsearch/mapper/HotSearchDailyMapper.class
 com/aichuangzuo/user/modules/user/dto/request/ChangePasswordRequest.class
 com/aichuangzuo/user/modules/lottery/vo/LotteryCampaignVO.class
+com/aichuangzuo/user/modules/membership/vo/OrderPageVO.class
 com/aichuangzuo/user/modules/lottery/service/impl/UserCouponServiceImpl.class
 com/aichuangzuo/user/modules/selfmedia/service/impl/NicknameCheckAiServiceImpl.class
 com/aichuangzuo/user/config/CaffeineConfig.class
@@ -266,6 +276,7 @@ com/aichuangzuo/user/modules/user/dto/request/BindInviteCodeRequest.class
 com/aichuangzuo/user/modules/lottery/service/LotteryDisplayService.class
 com/aichuangzuo/user/modules/skill/market/controller/SkillMarketController.class
 com/aichuangzuo/user/modules/recommendedcreation/vo/TopicOptionVO.class
+com/aichuangzuo/user/modules/membership/service/OrderService.class
 com/aichuangzuo/user/modules/selfmedia/mapper/SelfMediaPlanPublishGuideMapper.class
 com/aichuangzuo/user/modules/generation/controller/GenerationTaskInternalController.class
 com/aichuangzuo/user/modules/commission/enums/CommissionTaskStatus.class
@@ -425,8 +436,10 @@ com/aichuangzuo/user/config/AuthProperties$Jwt.class
 com/aichuangzuo/user/modules/article/entity/Draft.class
 com/aichuangzuo/user/modules/lottery/controller/LotteryDisplayController.class
 com/aichuangzuo/user/modules/exporttemplate/vo/ExportTemplateVO.class
+com/aichuangzuo/user/modules/membership/service/impl/OrderServiceImpl$1.class
 com/aichuangzuo/user/modules/benefit/service/impl/BenefitServiceImpl.class
 com/aichuangzuo/user/modules/scheduler/executor/ScheduledTaskStatusUpdater.class
+com/aichuangzuo/user/modules/testimonial/service/impl/TestimonialServiceImpl.class
 com/aichuangzuo/user/modules/lottery/mapper/UserMembershipPendingMapper.class
 com/aichuangzuo/user/modules/membership/mapper/PlanMapper.class
 com/aichuangzuo/user/modules/skill/enums/SkillErrorCode.class

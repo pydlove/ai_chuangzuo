@@ -67,6 +67,18 @@ const routes = [
         component: () => import('@/views/console/CreateIndex.vue')
       },
       {
+        path: 'create/recommended',
+        name: 'ConsoleCreateRecommended',
+        component: () => import('@/views/console/CreateRecommendedPage.vue'),
+        meta: { title: '小爱推荐', hideMobileSubpageHeader: true }
+      },
+      {
+        path: 'create/free',
+        name: 'ConsoleCreateFree',
+        component: () => import('@/views/console/CreateFreePage.vue'),
+        meta: { title: '自由创作', hideMobileSubpageHeader: true }
+      },
+      {
         path: 'queue',
         redirect: '/console/create'
       },
@@ -136,6 +148,18 @@ const routes = [
         component: () => import('@/views/console/MineIndex.vue')
       },
       {
+        path: 'account-check',
+        name: 'ConsoleAccountCheck',
+        component: () => import('@/views/console/AccountCheckIndex.vue'),
+        meta: { title: '平台账号检测' }
+      },
+      {
+        path: 'weekly-data',
+        name: 'ConsoleWeeklyData',
+        component: () => import('@/views/console/WeeklyDataIndex.vue'),
+        meta: { title: '录入本周数据' }
+      },
+      {
         path: 'benefits',
         name: 'ConsoleBenefits',
         component: () => import('@/views/console/BenefitsIndex.vue')
@@ -176,6 +200,12 @@ const routes = [
         name: 'ConsoleCoupons',
         component: () => import('@/views/console/CouponIndex.vue'),
         meta: { title: '我的优惠券' }
+      },
+      {
+        path: 'orders',
+        name: 'ConsoleOrders',
+        component: () => import('@/views/console/OrderIndex.vue'),
+        meta: { title: '我的订单' }
       }
     ]
   }

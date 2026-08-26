@@ -104,6 +104,7 @@ com/aichuangzuo/admin/modules/commission/enums/AdminCommissionErrorCode.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchConfigService.class
 com/aichuangzuo/admin/modules/plan/entity/Plan.class
 com/aichuangzuo/admin/modules/lottery/mapper/LotteryDisplayWinnerMapper.class
+com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialStatusRequest.class
 com/aichuangzuo/admin/modules/lottery/entity/LotteryDrawRecord.class
 com/aichuangzuo/admin/modules/feedback/vo/AdminFeedbackVO.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationHistoryMapper.class
@@ -146,6 +147,7 @@ com/aichuangzuo/admin/modules/generation/pipeline/steps/DraftStep.class
 com/aichuangzuo/admin/modules/generation/service/PromptTemplateRenderService.class
 com/aichuangzuo/admin/modules/commission/dto/request/CommissionSubmissionBatchCreateRequest.class
 com/aichuangzuo/admin/modules/platform/vo/PlatformVO$2.class
+com/aichuangzuo/admin/modules/testimonial/mapper/TestimonialMapper.class
 com/aichuangzuo/admin/modules/article/mapper/ArticleMapper.class
 com/aichuangzuo/admin/modules/security/smsconfig/service/SmsConfigService.class
 com/aichuangzuo/admin/modules/security/ratelimit/dto/request/RateLimitConfigUpdateRequest.class
@@ -173,6 +175,7 @@ com/aichuangzuo/admin/modules/learn/dto/request/LearnArticlePageQuery.class
 com/aichuangzuo/admin/modules/leaderboard/mapper/RewardRecordMapper.class
 com/aichuangzuo/admin/modules/user/mapper/PlatformUserMapper.class
 com/aichuangzuo/admin/modules/message/dto/request/MessageQueryRequest.class
+com/aichuangzuo/admin/modules/testimonial/controller/TestimonialAdminController.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnArticleServiceImpl.class
 com/aichuangzuo/admin/modules/leaderboard/service/impl/LeaderboardReviewServiceImpl.class
 com/aichuangzuo/admin/modules/commission/service/AdminCommissionService.class
@@ -184,6 +187,7 @@ com/aichuangzuo/admin/modules/skill/analyze/config/mapper/SkillAnalyzeConfigMapp
 com/aichuangzuo/admin/modules/lottery/dto/request/LotteryDisplayWinnerSaveRequest.class
 com/aichuangzuo/admin/modules/auth/entity/AdminLoginLog.class
 com/aichuangzuo/admin/modules/user/entity/PlatformUserLoginLog.class
+com/aichuangzuo/admin/infrastructure/storage/LocalFileStorage.class
 com/aichuangzuo/admin/infrastructure/cache/CacheValue.class
 com/aichuangzuo/admin/modules/lottery/entity/LotteryDisplayWinner.class
 com/aichuangzuo/admin/modules/message/service/NotifyOutboxService.class
@@ -212,6 +216,7 @@ com/aichuangzuo/admin/modules/hotsearch/dto/request/HotSearchDailyQueryRequest.c
 com/aichuangzuo/admin/modules/scheduler/service/ScheduledTaskService.class
 com/aichuangzuo/admin/modules/reminder/service/ReminderMailService.class
 com/aichuangzuo/admin/modules/earnings/mapper/EarningsRecordMapper.class
+com/aichuangzuo/admin/modules/testimonial/entity/TestimonialEntity.class
 com/aichuangzuo/admin/modules/lottery/dto/request/LotteryCampaignQueryRequest.class
 com/aichuangzuo/admin/modules/generation/service/GenerationTaskService.class
 com/aichuangzuo/admin/modules/generation/pipeline/PromptTemplateStageValidator.class
@@ -294,6 +299,7 @@ com/aichuangzuo/admin/modules/leaderboard/service/impl/LeaderboardAwardServiceIm
 com/aichuangzuo/admin/modules/reminder/service/impl/ExpireReminderServiceImpl.class
 com/aichuangzuo/admin/infrastructure/ai/KimiProviderClient.class
 com/aichuangzuo/admin/modules/exporttemplate/dto/request/ExportTemplateSaveRequest.class
+com/aichuangzuo/admin/modules/testimonial/exception/TestimonialErrorCode.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationConfigMapper.class
 com/aichuangzuo/admin/modules/skill/preset/dto/request/CreateGlobalSkillRequest.class
 com/aichuangzuo/admin/modules/learn/vo/LearnCategoryTreeNode.class
@@ -348,6 +354,7 @@ com/aichuangzuo/admin/modules/hotsearch/config/HotSearchSchedulerConfig.class
 com/aichuangzuo/admin/modules/skill/review/service/impl/SkillReviewServiceImpl.class
 com/aichuangzuo/admin/modules/auth/entity/AdminUser.class
 com/aichuangzuo/admin/modules/message/handler/SkillUsageHandler.class
+com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialUpdateRequest.class
 com/aichuangzuo/admin/modules/exporttemplate/controller/ExportTemplateController.class
 com/aichuangzuo/admin/modules/earnings/dto/request/AddCoinRequest.class
 com/aichuangzuo/admin/modules/commission/vo/CommissionTaskImportResultVO.class
@@ -425,7 +432,9 @@ com/aichuangzuo/admin/modules/leaderboard/config/mapper/LeaderboardRewardConfigM
 com/aichuangzuo/admin/modules/auth/vo/AdminUserVO.class
 com/aichuangzuo/admin/modules/user/dto/request/BatchDeleteUserRequest.class
 com/aichuangzuo/admin/modules/leaderboard/vo/RewardRecordAdminVO.class
+com/aichuangzuo/admin/modules/testimonial/vo/TestimonialVO.class
 com/aichuangzuo/admin/modules/platform/vo/PlatformVO.class
+com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialCreateRequest.class
 com/aichuangzuo/admin/modules/aiprompt/vo/AiPromptVO.class
 com/aichuangzuo/admin/modules/security/accesscontrol/vo/AccessControlVO.class
 com/aichuangzuo/admin/modules/message/vo/MessageAudienceVO.class
@@ -443,6 +452,7 @@ com/aichuangzuo/admin/modules/platform/service/PlatformAdminService.class
 com/aichuangzuo/admin/modules/reminder/entity/ReminderSendLog.class
 com/aichuangzuo/admin/modules/modelconfig/mapper/ModelConfigMapper.class
 com/aichuangzuo/admin/modules/generation/pipeline/Placeholder$PlaceholderBuilder.class
+com/aichuangzuo/admin/modules/testimonial/service/impl/TestimonialServiceImpl.class
 com/aichuangzuo/admin/modules/order/dto/request/MembershipAdjustRequest.class
 com/aichuangzuo/admin/modules/learn/entity/LearnCategoryEntity.class
 com/aichuangzuo/admin/modules/auth/entity/Role.class
@@ -529,6 +539,7 @@ com/aichuangzuo/admin/modules/message/dto/request/MessageUpdateRequest.class
 com/aichuangzuo/admin/modules/share/controller/ShareConfigAdminController.class
 com/aichuangzuo/admin/modules/skill/analyze/config/service/SkillAnalyzeConfigService.class
 com/aichuangzuo/admin/modules/aiprompt/controller/AiPromptController.class
+com/aichuangzuo/admin/modules/testimonial/service/TestimonialService.class
 com/aichuangzuo/admin/modules/leaderboard/entity/SubmissionStatus.class
 com/aichuangzuo/admin/modules/scheduler/entity/ScheduledTaskEntity.class
 com/aichuangzuo/admin/modules/user/entity/UserInviteRelation.class

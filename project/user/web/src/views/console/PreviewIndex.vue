@@ -1849,13 +1849,13 @@ body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled:hover {
     padding-top: 20px;
   }
 
-  /* 浮动操作栏在手机端占据底部，左=0，叠加在 tabbar 之上 */
+  /* 浮动操作栏在手机端贴底（预览页无底部 tabbar） */
   .floating-action-bar {
     left: 0;
     right: 0;
-    bottom: 60px;
+    bottom: 0;
     gap: 6px;
-    padding: 8px 12px;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     overflow-x: auto;
     flex-wrap: nowrap;
     justify-content: flex-start;
@@ -1876,8 +1876,8 @@ body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled:hover {
   .edit-floating-bar {
     left: 0;
     right: 0;
-    bottom: 60px;
-    padding: 8px 12px;
+    bottom: 0;
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
     gap: 6px;
   }
 

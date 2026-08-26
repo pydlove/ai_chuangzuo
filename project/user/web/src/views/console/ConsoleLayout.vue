@@ -1,5 +1,5 @@
 <template>
-  <div class="console-layout">
+  <div class="console-layout" :class="{ 'tabbar-page': isTabbarPage, 'no-tabbar-page': !isTabbarPage }">
     <!-- 侧边栏：创作页隐藏，保持专注写作 -->
     <aside v-if="!hideSidebar" class="console-sidebar">
       <div class="console-sidebar-brand">
@@ -696,6 +696,25 @@
                   </div>
                 </div>
               </a-tab-pane>
+              <a-tab-pane key="reviews" tab="评价">
+                <a-spin :spinning="reviewsLoading">
+                  <div v-if="!reviewsLoading && filteredReviews.length === 0" class="history-empty">
+                    <p>暂无用户评价</p>
+                  </div>
+                  <div v-else class="reviews-list">
+                    <TestimonialCard
+                      v-for="item in filteredReviews"
+                      :key="item.id"
+                      :avatar-url="item.avatarUrl"
+                      :name="item.name"
+                      :title="item.title"
+                      :star-rating="item.starRating"
+                      :review-text="item.reviewText"
+                      class="reviews-list-item"
+                    />
+                  </div>
+                </a-spin>
+              </a-tab-pane>
             </a-tabs>
           </a-modal>
 
@@ -945,7 +964,7 @@
       </header>
 
       <!-- 手机端子页面头部（只在非 TabBar 页面显示） -->
-      <div v-if="isMobile && !isTabbarPage" class="mobile-subpage-header">
+      <div v-if="isMobile && !isTabbarPage && !hideMobileSubpageHeader" class="mobile-subpage-header">
         <div class="mobile-subpage-back" @click="goBack">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="15 18 9 12 15 6"></polyline>
@@ -1383,6 +1402,8 @@ import { normalizeMessageLink } from '@/utils/messageLink'
 import { getMyMembership } from '@/api/membership'
 import { getNewcomerOffer } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
+import { fetchHomeTestimonials } from '@/api/home'
+import TestimonialCard from '@/components/testimonial/TestimonialCard.vue'
 import { getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
@@ -1398,9 +1419,8 @@ import {
   CrownOutlined,
   FileTextOutlined,
   CaretRightOutlined,
-  GiftOutlined,
   MessageOutlined,
-  BookOutlined,
+  ReadOutlined,
   TagsOutlined,
   DashboardOutlined,
 } from '@ant-design/icons-vue'
@@ -1423,11 +1443,16 @@ const { benefits, loadBenefits } = useBenefits()
 const isMobile = useIsMobile()
 
 // 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
-const tabbarPaths = ['/console/workbench', '/console/activities', '/console/messages', '/console/mine']
+const tabbarPaths = ['/console/workbench', '/console/learn', '/console/messages', '/console/mine']
 const isTabbarPage = computed(() => tabbarPaths.includes(route.path))
 
 // 创作页隐藏侧边栏菜单，保持专注写作
-const hideSidebar = computed(() => route.path === '/console/create')
+const hideSidebar = computed(() => {
+  const path = route.path
+  return path === '/console/create' ||
+    path === '/console/create/recommended' ||
+    path === '/console/create/free'
+})
 
 // 手机端子页面顶部返回标题
 const pageTitleMap = {
@@ -1445,14 +1470,18 @@ const pageTitleMap = {
   '/console/leaderboard': '收益排行榜',
   '/console/messages': '消息中心',
   '/console/mine': '我的',
+  '/console/account-check': '平台账号检测',
+  '/console/weekly-data': '录入本周数据',
   '/console/edit': '编辑文章',
   '/console/preview': '预览文章',
   '/console/coin': '创作币',
   '/console/commission': '约稿中心',
   '/console/commission/:id': '约稿详情',
-  '/console/coupons': '我的优惠券'
+  '/console/coupons': '我的优惠券',
+  '/console/orders': '我的订单'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')
+const hideMobileSubpageHeader = computed(() => route.meta?.hideMobileSubpageHeader === true)
 const goBack = () => router.back()
 
 // 处理从提现页面"返回邀请有礼"时自动打开邀请弹框
@@ -1563,7 +1592,7 @@ const navItems = [
   { path: '/console/skill-market', label: '提示词市场', icon: ShopOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
   { path: '/console/hot-search', label: '热搜榜', icon: FireOutlined },
-  { path: '/console/learn', label: '创作学院', icon: BookOutlined },
+  { path: '/console/learn', label: '创作学院', icon: ReadOutlined },
   {
     label: '我的',
     icon: UserOutlined,
@@ -1581,7 +1610,7 @@ const navItems = [
 // 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
 const tabbarItems = [
   { path: '/console/workbench', label: '控制台', icon: DashboardOutlined },
-  { path: '/console/activities', label: '活动', icon: GiftOutlined },
+  { path: '/console/learn', label: '创作学院', icon: ReadOutlined },
   { path: '/console/messages', label: '消息', icon: MessageOutlined },
   { path: '/console/mine', label: '我的', icon: UserOutlined }
 ]
@@ -1686,6 +1715,22 @@ const feedbackType = ref('功能建议')
 const feedbackTypes = ['功能建议', '问题反馈', '其他']
 const feedbackContent = ref('')
 const feedbackSubmitting = ref(false)
+const reviews = ref([])
+const reviewsLoading = ref(false)
+
+const filteredReviews = computed(() => reviews.value.filter((r) => r.starRating >= 4))
+
+const loadReviews = async () => {
+  if (reviews.value.length > 0) return
+  reviewsLoading.value = true
+  try {
+    reviews.value = await fetchHomeTestimonials()
+  } catch (e) {
+    message.error(e?.message || '加载评价失败')
+  } finally {
+    reviewsLoading.value = false
+  }
+}
 
 const loadHistory = async () => {
   historyLoading.value = true
@@ -1728,11 +1773,15 @@ const closeFeedbackModal = () => {
   historyList.value = []
   historyPage.value = 1
   historyFilter.value = 'all'
+  reviews.value = []
 }
 
 watch(feedbackTab, (t) => {
   if (t === 'history' && historyList.value.length === 0 && !historyDetail.value) {
     loadHistory()
+  }
+  if (t === 'reviews') {
+    loadReviews()
   }
 })
 
@@ -2403,7 +2452,7 @@ const userId = computed(() => userProfile.profile.value?.userId || '88886666')
 const inviteCode = computed(() => userProfile.profile.value?.inviteCode || '')
 
 const inviteLink = computed(() => {
-  return `${window.location.origin}/login?ref=${inviteCode.value}`
+  return `https://www.ichuang.top/login?ref=${inviteCode.value}`
 })
 
 const inviteShareText = computed(() => {
@@ -3893,6 +3942,20 @@ provide('consoleActions', {
 .detail-content-admin { background: #fff0f2; }
 .history-pending-hint {
   text-align: center; color: #8c8c8c; padding: 16px 0; font-size: 13px;
+}
+
+.reviews-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 4px 4px;
+}
+.reviews-list-item {
+  width: 100%;
+  min-height: auto;
+}
+.reviews-list-item :deep(.testimonial-text) {
+  -webkit-line-clamp: 3;
 }
 
 .feedback-panel {
@@ -6283,11 +6346,20 @@ body[data-theme="dark"] .phone-submit:hover {
     display: none;
   }
 
-  /* 主内容区占满宽度，底部留出 tabbar + AI 凸起 + 安全区高度 */
+  /* 主内容区占满宽度 */
   .console-main {
     width: 100%;
     min-height: 100vh;
+  }
+
+  /* TabBar 页面底部留出 tabbar + AI 凸起 + 安全区高度 */
+  .console-layout.tabbar-page .console-main {
     padding-bottom: calc(75px + env(safe-area-inset-bottom));
+  }
+
+  /* 非 TabBar 页面只留安全区高度 */
+  .console-layout.no-tabbar-page .console-main {
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
   /* 简化 header：隐藏所有图标按钮 / 头像 / 会员徽章
@@ -6452,7 +6524,7 @@ body[data-theme="dark"] .phone-submit:hover {
     align-items: center;
     justify-content: center;
     gap: 2px;
-    color: #8c8c8c;
+    color: #1a1a1a;
     text-decoration: none;
     transition: color 0.2s;
     -webkit-tap-highlight-color: transparent;

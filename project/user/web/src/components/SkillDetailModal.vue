@@ -89,7 +89,6 @@
             >
               {{ isFavorite ? '♥ 已收藏' : '♡ 收藏' }}
             </button>
-            <button class="skill-detail-btn-use" @click.stop="$emit('use')">使用</button>
           </slot>
         </div>
       </div>
@@ -211,7 +210,12 @@ const formatTimeAgo = (value) => {
   gap: 10px;
   margin-bottom: 18px;
 }
-.skill-detail-stat { text-align: center; }
+.skill-detail-stat {
+  text-align: center;
+  background: #FFF0F3;
+  border-radius: 12px;
+  padding: 12px 8px;
+}
 .skill-detail-stat-value {
   font-size: 18px;
   font-weight: 600;
@@ -219,9 +223,9 @@ const formatTimeAgo = (value) => {
   font-variant-numeric: tabular-nums;
 }
 .skill-detail-stat-label {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-text-placeholder);
-  margin-top: 2px;
+  margin-top: 4px;
 }
 
 .skill-detail-section {
@@ -341,6 +345,9 @@ body[data-theme="dark"] .skill-detail-footer {
 body[data-theme="dark"] .skill-detail-footer-meta {
   color: #a6a6a6;
 }
+body[data-theme="dark"] .skill-detail-stat {
+  background: rgba(255, 36, 66, 0.12);
+}
 body[data-theme="dark"] .skill-detail-btn-use,
 body[data-theme="dark"] :slotted(.skill-detail-btn-use) {
   background: var(--color-primary);
@@ -399,6 +406,7 @@ body[data-theme="dark"] :slotted(.skill-detail-btn-fav.active) {
   .skill-detail-modal .ant-modal-body {
     height: 60vh;
     max-height: 60vh;
+    padding: 0;
   }
 }
 

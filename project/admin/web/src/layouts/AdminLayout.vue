@@ -188,7 +188,8 @@ const menuGroups = [
     icon: RocketOutlined,
     children: [
       { key: '/console/share-config', title: '分享管理', icon: ShareAltOutlined },
-      { key: '/console/lottery', title: '抽奖活动', icon: FireOutlined }
+      { key: '/console/lottery', title: '抽奖活动', icon: FireOutlined },
+      { key: '/console/home-testimonials', title: '首页评价', icon: CommentOutlined }
     ]
   },
   {

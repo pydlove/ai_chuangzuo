@@ -1,5 +1,28 @@
 <template>
   <div class="market-page">
+    <!-- 手机端 header：参考约稿中心 -->
+    <div class="market-banner-mobile-header">
+      <div class="market-banner-mobile-header__left">
+        <div class="market-banner-mobile-header__donuts" aria-hidden="true">
+          <span></span>
+          <span></span>
+        </div>
+        <img
+          src="/assets/images/提示词市场logo-v1.png"
+          alt="提示词市场"
+          class="market-banner-mobile-header__logo"
+        />
+        <p class="market-banner-mobile-header__subtitle">
+          官方运营 · 精选创作者提示词 · 使用即获收益分成
+        </p>
+      </div>
+      <img
+        src="/assets/images/提示词市场宣传-v1.png"
+        alt=""
+        class="market-banner-mobile-header__illustration"
+      />
+    </div>
+
     <!-- ① 平台 Banner 区 -->
     <section class="market-banner">
       <div class="market-banner-text">
@@ -43,18 +66,65 @@
           <div class="market-banner-stat-label">累计发放币</div>
         </div>
       </div>
-    </section>
-    <div class="market-content-wrapper">
-      <div class="market-main">
 
-        <!-- ② 上传激励卡 -->
+      <div class="market-banner-mobile-stats">
+        <div class="market-banner-mobile-stat">
+          <div class="market-banner-mobile-stat__text">
+            <span class="market-banner-mobile-stat__label">已上架款</span>
+            <strong>{{ marketStats.approvedCount }}</strong>
+          </div>
+          <img
+            src="/assets/images/已上架-v1.png"
+            alt=""
+            class="market-banner-mobile-stat__icon-img"
+          />
+        </div>
+        <div class="market-banner-mobile-stat">
+          <div class="market-banner-mobile-stat__text">
+            <span class="market-banner-mobile-stat__label">累计使用次</span>
+            <strong>{{ formatUses(marketStats.totalUses) }}</strong>
+          </div>
+          <img
+            src="/assets/images/累计使用-v1.png"
+            alt=""
+            class="market-banner-mobile-stat__icon-img"
+          />
+        </div>
+        <div class="market-banner-mobile-stat">
+          <div class="market-banner-mobile-stat__text">
+            <span class="market-banner-mobile-stat__label">累计发放币</span>
+            <strong>{{ formatCoins(marketStats.totalEarnings) }}</strong>
+          </div>
+          <img
+            src="/assets/images/累计发布-v1.png"
+            alt=""
+            class="market-banner-mobile-stat__icon-img"
+          />
+        </div>
+      </div>
+    </section>
+    <div class="market-body">
+      <div class="market-content-wrapper">
+        <div class="market-main">
+
+          <!-- ② 上传激励卡 -->
         <section class="market-upload-card" @click="goUpload">
-          <div class="market-upload-icon">＋</div>
+          <div class="market-upload-icon-wrap">
+            <img
+              src="/assets/images/立即上架-v1.png"
+              alt=""
+              class="market-upload-icon-img"
+            />
+          </div>
           <div class="market-upload-body">
             <div class="market-upload-title">上传你的提示词，开始赚创作币</div>
             <div class="market-upload-sub">每被他人使用一次，获得{{ formatCoinInt(pricePerUse) }}创作币的收益</div>
           </div>
-          <button class="market-upload-cta" @click.stop="goUpload">立即上架</button>
+          <div class="market-upload-arrow">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
         </section>
 
         <!-- ⑤ 全部提示词区 -->
@@ -102,8 +172,7 @@
               :show-avatar="false"
               clickable
               :actions="[
-                { label: '使用', type: 'primary', handler: () => handleUse(s) },
-                { label: isFavorite(s.id) ? '♥' : '♡', active: isFavorite(s.id), handler: () => handleToggleFavorite(s.id) },
+                { label: isFavorite(s.id) ? '取消收藏' : '收藏', type: isFavorite(s.id) ? undefined : 'primary', handler: () => handleFavoriteClick(s) },
                 { label: '查看', handler: () => openStyleDetail(s) },
                 { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) },
                 { label: '下架', visible: s.creatorId === currentUserId, handler: () => handleDelete(s) }
@@ -167,6 +236,7 @@
       </div>
     </div>
   </div>
+</div>
 
   <!-- 收益规则弹框 — 保留 v1 写法 -->
   <a-modal
@@ -189,6 +259,24 @@
     <div class="style-market-rules-footer">* 活动最终解释权归平台所有。</div>
   </a-modal>
 
+  <!-- 收藏提示弹框 -->
+  <a-modal
+    v-model:open="favoriteTipVisible"
+    class="favorite-tip-modal"
+    title="收藏成功"
+    :footer="null"
+    :width="400"
+    centered
+    @ok="favoriteTipVisible = false"
+  >
+    <p class="favorite-tip-content">
+      可以在推荐创作和自由创作中-提示词-收藏页，选择收藏的提示词，好的提示词可以让文章生成的质量更高。
+    </p>
+    <div class="favorite-tip-footer">
+      <button class="favorite-tip-btn" @click="favoriteTipVisible = false">我知道了</button>
+    </div>
+  </a-modal>
+
   <!-- 提示词详情 modal -->
   <SkillDetailModal
     v-if="selectedStyle"
@@ -197,7 +285,6 @@
     :current-user-id="currentUserId"
     :is-favorite="isFavorite(selectedStyle.id)"
     @update:visible="onStyleDetailVisibleChange"
-    @use="handleUse(selectedStyle)"
     @toggle-favorite="handleToggleFavorite(selectedStyle.id)"
   >
     <template #footer-actions>
@@ -208,7 +295,6 @@
       >
         {{ isFavorite(selectedStyle.id) ? '♥ 已收藏' : '♡ 收藏' }}
       </button>
-      <button class="skill-detail-btn-use" @click="handleUse(selectedStyle)">使用</button>
       <button
         v-if="String(selectedStyle?.creatorId) === String(currentUserId)"
         class="skill-detail-btn-fav"
@@ -244,6 +330,15 @@ import SkillDetailModal from '@/components/SkillDetailModal.vue'
 const router = useRouter()
 const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
 const rulesVisible = ref(false)
+const favoriteTipVisible = ref(false)
+
+const handleFavoriteClick = async (s) => {
+  const wasFavorite = isFavorite(s.id)
+  await toggleFavorite(s.id)
+  if (!wasFavorite) {
+    favoriteTipVisible.value = true
+  }
+}
 
 const formatCoins = (n) => Number(n || 0).toFixed(2)
 const formatCoinInt = (n) => String(Math.round(Number(n || 0)))
@@ -381,13 +476,17 @@ onMounted(() => {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: var(--space-lg) var(--space-xl);
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: var(--space-xl);
   box-sizing: border-box;
   background: #fafafa;
   min-height: 100%;
+}
+
+.market-body {
+  padding: var(--space-lg) var(--space-xl);
 }
 
 .market-banner {
@@ -462,6 +561,123 @@ onMounted(() => {
   font-size: var(--font-small);
   color: var(--color-text-secondary);
   margin-top: var(--space-xs);
+}
+
+/* 手机端 header：参考约稿中心 */
+.market-banner-mobile-header,
+.market-banner-mobile-stats {
+  display: none;
+}
+
+.market-banner-mobile-header {
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: linear-gradient(180deg, #FFF0F3 0%, #fff 100%);
+  border-radius: 0;
+  padding: 20px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.market-banner-mobile-header__left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  z-index: 1;
+}
+.market-banner-mobile-header__logo {
+  height: 48px;
+  width: auto;
+  max-width: 150px;
+  object-fit: contain;
+  border-radius: 10px;
+  position: relative;
+  z-index: 1;
+}
+.market-banner-mobile-header__subtitle {
+  font-size: 13px;
+  color: #8c8c8c;
+  line-height: 1.5;
+  margin: 0;
+  padding-left: 2px;
+  position: relative;
+  z-index: 1;
+}
+.market-banner-mobile-header__donuts {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+.market-banner-mobile-header__donuts span {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, transparent 42%, rgba(255, 36, 66, 0.12) 43%, rgba(255, 36, 66, 0.12) 66%, transparent 67%);
+}
+.market-banner-mobile-header__donuts span:nth-child(1) {
+  width: 56px;
+  height: 56px;
+  top: -10px;
+  left: 95px;
+}
+.market-banner-mobile-header__donuts span:nth-child(2) {
+  width: 92px;
+  height: 92px;
+  bottom: -30px;
+  left: -22px;
+}
+.market-banner-mobile-header__illustration {
+  height: 110px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.market-banner-mobile-stats {
+  display: none;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding-top: 16px;
+  width: 100%;
+}
+.market-banner-mobile-stat {
+  background: linear-gradient(180deg, #FFF8FA 0%, #fff 100%);
+  border-radius: 16px;
+  padding: 10px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+}
+.market-banner-mobile-stat__text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.market-banner-mobile-stat__label {
+  font-size: 11px;
+  color: #8c8c8c;
+  white-space: nowrap;
+}
+.market-banner-mobile-stat strong {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+.market-banner-mobile-stat__icon-img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 8px;
+  justify-self: end;
+  align-self: center;
 }
 
 /* ⑤ 占位防 build break（实样式在本区块内） */
@@ -701,6 +917,16 @@ body[data-theme="dark"] .market-tab.active {
 }
 body[data-theme="dark"] .market-empty { background: #1f1f1f; color: #8c8c8c; }
 
+body[data-theme="dark"] .market-banner-mobile-header {
+  background: linear-gradient(180deg, #2a1f22 0%, #141414 100%);
+  border-bottom-color: #2a2a2a;
+}
+body[data-theme="dark"] .market-banner-mobile-header__subtitle { color: #a6a6a6; }
+body[data-theme="dark"] .market-banner-mobile-header__donuts span { background: radial-gradient(circle, transparent 42%, rgba(255, 36, 66, 0.22) 43%, rgba(255, 36, 66, 0.22) 66%, transparent 67%); }
+body[data-theme="dark"] .market-banner-mobile-stats .market-banner-mobile-stat { background: linear-gradient(180deg, #2a1f22 0%, #1f1f1f 100%); }
+body[data-theme="dark"] .market-banner-mobile-stat__label { color: #a6a6a6; }
+body[data-theme="dark"] .market-banner-mobile-stat strong { color: #f5f5f5; }
+
 body[data-theme="dark"] .market-grid :deep(.skill-card) {
   background: #1f1f1f;
   border-color: #303030;
@@ -803,54 +1029,160 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   gap: var(--space-xl);
 }
 
+
+/* === ③ 全部提示词区标题 === */
+.market-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-md);
+}
+.market-section-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.market-section-title {
+  font-size: var(--font-h2);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin: 0;
+}
+.market-section-sub {
+  font-size: var(--font-body);
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+/* === ② 上传激励卡 === */
+.market-upload-card {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--space-lg);
+  background: linear-gradient(135deg, #FFF8FA 0%, #fff 100%);
+  border-radius: var(--radius-xl);
+  padding: var(--space-lg) var(--space-xl);
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.2s;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+}
+.market-upload-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.market-upload-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: #FFF0F3;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.market-upload-icon-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.market-upload-body { min-width: 0; }
+.market-upload-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-xs);
+}
+.market-upload-sub {
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+.market-upload-arrow {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--color-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.12);
+  flex-shrink: 0;
+}
+.market-upload-arrow svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ② 暗色 */
+body[data-theme="dark"] .market-upload-card { background: linear-gradient(135deg, #2a1f22 0%, #1f1f1f 100%); }
+body[data-theme="dark"] .market-upload-icon-wrap { background: #2a1f22; }
+body[data-theme="dark"] .market-upload-title { color: var(--color-text-primary); }
+body[data-theme="dark"] .market-upload-sub { color: var(--color-text-secondary); }
+body[data-theme="dark"] .market-upload-arrow {
+  background: #1f1f1f;
+  color: #ff6b81;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ① 暗色 */
+body[data-theme="dark"] .market-page { background: #141414; }
+body[data-theme="dark"] .market-banner { background: #1f1f1f; }
+body[data-theme="dark"] .market-banner-title { color: #ff6b81; }
+body[data-theme="dark"] .market-banner-sub { color: var(--color-text-secondary); }
+body[data-theme="dark"] .market-banner-stat { background: #141414; }
+body[data-theme="dark"] .market-banner-stat-num { color: var(--color-text-primary); }
+body[data-theme="dark"] .market-banner-stat-label { color: var(--color-text-secondary); }
+
 /* === 响应式 ≤768px === */
 @media (max-width: 768px) {
   .market-page {
+    padding: 0;
+    gap: 0;
+  }
+  .market-body {
     padding: 16px;
-    gap: 16px;
   }
   .market-banner {
-    grid-template-columns: 1fr;
-    padding: 18px;
-    border-radius: 20px;
-    gap: 16px;
+    display: flex;
+    flex-direction: column;
+    padding: 0 16px;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+    gap: 0;
   }
-  .market-banner-title-wrap {
-    margin-bottom: 4px;
-  }
-  .market-banner-title {
-    font-size: 22px;
-  }
-  .market-banner-sub {
-    font-size: 13px;
-    gap: 8px;
-  }
-  .market-banner-help-icon {
-    font-size: 16px;
-  }
+  .market-banner-text,
   .market-banner-stats {
+    display: none;
+  }
+  .market-banner-mobile-header,
+  .market-banner-mobile-stats {
+    display: flex;
+  }
+  .market-banner-mobile-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 10px;
-    overflow-x: visible;
-    mask-image: none;
-    -webkit-mask-image: none;
-    padding-bottom: 0;
+    gap: 8px;
+    padding-top: 16px;
+    width: 100%;
   }
-  .market-banner-stat {
-    flex: none;
-    min-width: auto;
-    padding: 14px 8px;
-    border-radius: 16px;
-    text-align: center;
+  .market-banner-mobile-stat {
+    padding: 16px 12px;
+    min-height: 88px;
+    align-items: center;
   }
-  .market-banner-stat-num {
+  .market-banner-mobile-stat__icon-img {
+    display: none;
+  }
+  .market-banner-mobile-stat strong {
     font-size: 20px;
-    color: var(--color-primary, #ff2442);
   }
-  .market-banner-stat-label {
-    font-size: 11px;
-    margin-top: 2px;
+  .market-banner-mobile-stat__label {
+    font-size: 12px;
   }
 
   .market-content-wrapper {
@@ -858,27 +1190,44 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   }
 
   .market-upload-card {
-    grid-template-columns: auto 1fr;
-    padding: 16px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    padding: 10px 4px;
     border-radius: 18px;
-    gap: 12px;
+    gap: 8px;
+    min-height: 72px;
   }
-  .market-upload-icon {
-    width: 44px;
-    height: 44px;
-    font-size: 20px;
+  .market-upload-body {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .market-upload-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+  }
+  .market-upload-icon-img {
+    width: 38px;
+    height: 38px;
   }
   .market-upload-title {
     font-size: 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .market-upload-sub {
     font-size: 12px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .market-upload-cta {
-    grid-column: 1 / -1;
-    width: 100%;
-    height: 38px;
-    margin-top: 4px;
+  .market-upload-arrow {
+    width: 24px;
+    height: 24px;
+  }
+  .market-upload-arrow svg {
+    width: 14px;
+    height: 14px;
   }
 
   .market-section-head {
@@ -900,10 +1249,17 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
     flex: 1;
     min-width: 0;
     max-width: none;
-    height: 38px;
+    height: 40px;
+    border: 1px solid var(--color-primary);
+    background: var(--color-bg-card);
+    box-shadow: 0 2px 8px rgba(255, 36, 66, 0.08);
+  }
+  .market-search-input:focus {
+    border-color: var(--color-primary);
+    box-shadow: 0 2px 12px rgba(255, 36, 66, 0.14);
   }
   .market-search-btn {
-    height: 38px;
+    height: 40px;
   }
 
   .market-tabs {
@@ -948,103 +1304,6 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
     border-radius: 18px;
   }
 }
-
-/* === ③ 全部提示词区标题 === */
-.market-section-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: var(--space-md);
-}
-.market-section-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.market-section-title {
-  font-size: var(--font-h2);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-.market-section-sub {
-  font-size: var(--font-body);
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
-
-/* === ② 上传激励卡 === */
-.market-upload-card {
-  display: grid;
-  grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: var(--space-lg);
-  background: var(--color-bg-card);
-  border-left: 4px solid var(--color-primary);
-  border-radius: var(--radius-xl);
-  padding: var(--space-lg) var(--space-xl);
-  cursor: pointer;
-  transition: box-shadow 0.2s, transform 0.2s;
-  box-shadow: var(--shadow-sm2);
-}
-.market-upload-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-.market-upload-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-xl);
-  background: var(--color-primary-light);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--font-h2);
-  font-weight: 600;
-}
-.market-upload-body { min-width: 0; }
-.market-upload-title {
-  font-size: var(--font-h3);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin-bottom: var(--space-xs);
-}
-.market-upload-sub {
-  font-size: var(--font-small);
-  color: var(--color-text-secondary);
-}
-.market-upload-cta {
-  background: var(--color-primary);
-  color: #fff;
-  border: 0;
-  border-radius: var(--radius-lg);
-  height: 40px;
-  padding: 0 var(--space-lg);
-  font-size: var(--font-body);
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-.market-upload-cta:hover { background: var(--color-primary-hover); }
-
-/* ② 暗色 */
-body[data-theme="dark"] .market-upload-card { background: #1f1f1f; }
-body[data-theme="dark"] .market-upload-icon {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-body[data-theme="dark"] .market-upload-title { color: var(--color-text-primary); }
-body[data-theme="dark"] .market-upload-sub { color: var(--color-text-secondary); }
-
-/* ① 暗色 */
-body[data-theme="dark"] .market-page { background: #141414; }
-body[data-theme="dark"] .market-banner { background: #1f1f1f; }
-body[data-theme="dark"] .market-banner-title { color: #ff6b81; }
-body[data-theme="dark"] .market-banner-sub { color: var(--color-text-secondary); }
-body[data-theme="dark"] .market-banner-stat { background: #141414; }
-body[data-theme="dark"] .market-banner-stat-num { color: var(--color-text-primary); }
-body[data-theme="dark"] .market-banner-stat-label { color: var(--color-text-secondary); }
 </style>
 
 <style>
@@ -1086,5 +1345,34 @@ body[data-theme="dark"] .rules-modal .ant-modal-close:hover {
 }
 
 body[data-theme="dark"] .style-market-rules-list { color: #a6a6a6; }
+
+/* 收藏提示弹框 */
+.favorite-tip-content {
+  margin: 0;
+  font-size: var(--font-body);
+  color: var(--color-text-regular);
+  line-height: 1.7;
+}
+.favorite-tip-footer {
+  margin-top: var(--space-lg);
+  display: flex;
+  justify-content: flex-end;
+}
+.favorite-tip-btn {
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-md);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: var(--font-body);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.favorite-tip-btn:hover { background: var(--color-primary-hover); }
+
+body[data-theme="dark"] .favorite-tip-content { color: #a6a6a6; }
+body[data-theme="dark"] .favorite-tip-btn { background: var(--color-primary); color: #fff; }
+body[data-theme="dark"] .favorite-tip-btn:hover { background: var(--color-primary-hover); }
 
 </style>

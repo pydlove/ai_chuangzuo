@@ -19,7 +19,7 @@
                 </div>
                 <div class="mobile-dialogue-title">
                   <span class="mobile-title-main">嗨！我是小爱！</span>
-                  <span class="mobile-title-tag">自媒体顾问</span>
+                  <span class="mobile-title-tag">专属自媒体顾问</span>
                 </div>
                 <div class="dialogue-greeting">
                   <span v-if="!hasPlan" class="todo-text">
@@ -86,10 +86,13 @@
         </a-card>
 
         <div class="create-section">
-          <a-button type="primary" size="large" class="create-main-btn" @click="consoleActions.openCreateChoice?.()">
+          <a-button type="primary" size="large" class="create-main-btn desktop-create-btn" @click="consoleActions.openCreateChoice?.()">
             <EditOutlined />
             开始今日创作{{ quotaText }}
           </a-button>
+          <div class="mobile-create-btn" @click="consoleActions.openCreateChoice?.()">
+            <span class="mobile-create-text">开始今日创作{{ quotaText }}</span>
+          </div>
         </div>
 
         <!-- 手机端功能栏 -->
@@ -97,17 +100,17 @@
           <div class="feature-top-row">
             <div class="feature-large-card" @click="router.push('/console/commission')">
               <div class="feature-large-info">
-                <div class="feature-large-title">约稿中心</div>
+                <div class="feature-large-title">赚创作币</div>
                 <div class="feature-large-desc">精选任务赚创作币</div>
               </div>
               <div class="feature-large-icon">
-                <img src="/assets/images/约稿任务-v1.png" alt="约稿中心" />
+                <img src="/assets/images/约稿任务-v1.png" alt="赚创作币" />
               </div>
             </div>
             <div class="feature-large-card" @click="router.push('/console/skill-market')">
               <div class="feature-large-info">
                 <div class="feature-large-title">提示词市场</div>
-                <div class="feature-large-desc">发现优质 Prompt</div>
+                <div class="feature-large-desc">提升创作质量</div>
               </div>
               <div class="feature-large-icon">
                 <img src="/assets/images/提示词市场-v1.png" alt="提示词市场" />
@@ -232,7 +235,7 @@
               v-for="record in recentRecords"
               :key="record.id"
               class="generation-item"
-              @click="record.status === 'completed' ? openPublishGuide(record) : router.push('/console/works')"
+              @click="record.status === 'completed' ? openArticleView(record) : router.push('/console/works')"
             >
               <div class="generation-main">
                 <div class="generation-title">{{ record.title }}</div>
@@ -583,7 +586,6 @@ import {
   FireOutlined,
   RightOutlined,
   SafetyCertificateOutlined,
-  BarChartOutlined,
   BulbOutlined,
   TrophyOutlined,
   BookOutlined,
@@ -610,6 +612,8 @@ import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 
 const router = useRouter()
+
+const isMobile = () => window.innerWidth <= 768
 
 const consoleActions = inject('consoleActions', {})
 
@@ -897,7 +901,7 @@ async function saveWeeklyData() {
 }
 
 const shortcuts = [
-  { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { accountModalVisible.value = true } },
+  { label: '账号名检测', icon: SafetyCertificateOutlined, action: () => { isMobile() ? router.push('/console/account-check') : (accountModalVisible.value = true) } },
   { path: '/console/commission', label: '约稿中心', icon: ShopOutlined },
   { path: '/console/skill-market', label: '提示词市场', icon: BulbOutlined },
   { path: '/console/leaderboard', label: '收益排行榜', icon: TrophyOutlined },
@@ -916,10 +920,11 @@ const shortcuts = [
 ]
 
 const featureItems = [
-  { label: '账号检测', image: '/assets/images/账号检测-v1.jpg', action: () => { accountModalVisible.value = true } },
+  { label: '账号检测', image: '/assets/images/账号检测-v1.jpg', action: () => { isMobile() ? router.push('/console/account-check') : (accountModalVisible.value = true) } },
   { path: '/console/leaderboard', label: '收益排行榜', image: '/assets/images/收益排行榜-v1.png' },
   { path: '/console/lottery', label: '幸运抽奖', image: '/assets/images/幸运抽奖-v1.png' },
-  { path: '/console/invite', label: '邀请有礼', image: '/assets/images/邀请有礼-v1.png' }
+  { path: '/console/invite', label: '邀请有礼', image: '/assets/images/邀请有礼-v1.png' },
+  { label: '本周数据', image: '/assets/images/本周数据.png', action: () => { isMobile() ? router.push('/console/weekly-data') : (weeklyDataVisible.value = true) } }
 ]
 
 const activities = [
@@ -1661,21 +1666,11 @@ function statusText(status) {
 .create-main-btn :deep(.anticon) {
   font-size: 20px;
 }
-.weekly-data-btn {
-  width: 140px;
-  height: 56px;
-  font-size: 15px;
-  font-weight: 500;
-  border-radius: var(--radius-xl);
-  border-color: var(--color-border-default);
-  color: var(--color-text-primary);
+.desktop-create-btn {
+  display: inline-flex;
 }
-.weekly-data-btn:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-.weekly-data-btn :deep(.anticon) {
-  font-size: 18px;
+.mobile-create-btn {
+  display: none;
 }
 
 /* 第二行：快捷操作 + 生成记录 + 占位卡片 */
@@ -2425,14 +2420,17 @@ function statusText(status) {
   .left-column {
     gap: 14px;
   }
+  .top-row {
+    margin-bottom: 14px;
+  }
 
-  /* 卡片：更圆润、更柔和的阴影，自带外边距 */
+  /* 卡片：更圆润、更柔和的阴影，水平居中 */
   .wb-card {
     border-radius: 18px;
     background: var(--color-bg-card);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.03);
-    margin: 14px 12px;
+    margin: 0 12px;
   }
   .wb-card :deep(.ant-card-body),
   .wb-card :deep(.ant-card-head) {
@@ -2449,29 +2447,37 @@ function statusText(status) {
     letter-spacing: -0.2px;
   }
 
-  /* 欢迎区：左侧标题+tag+副标题，右侧人物图，背景甜甜圈装饰 */
+  /* 欢迎区：左侧标题+tag+副标题，右侧人物图，左侧甜甜圈装饰 */
   .welcome-card {
     position: relative;
     overflow: hidden;
     min-height: 170px;
-    background:
-      radial-gradient(circle at 12% 28%, transparent 14px, rgba(255, 36, 66, 0.12) 15px, rgba(255, 36, 66, 0.12) 30px, transparent 31px),
-      radial-gradient(circle at 22% 72%, transparent 18px, rgba(255, 36, 66, 0.10) 19px, rgba(255, 36, 66, 0.10) 36px, transparent 37px),
-      linear-gradient(135deg, #ffffff 0%, #FFEBEF 100%);
+    background: linear-gradient(135deg, #ffffff 0%, #FFEBEF 100%);
     border: 1px solid rgba(255, 36, 66, 0.06);
     box-shadow: 0 8px 28px rgba(255, 36, 66, 0.08);
     border-radius: 20px;
   }
-  .welcome-card::before {
+  .welcome-card::before,
+  .welcome-card::after {
     content: '';
     position: absolute;
-    top: -60px;
-    right: -50px;
-    width: 160px;
-    height: 160px;
-    background: radial-gradient(circle, rgba(255, 36, 66, 0.08) 0%, transparent 70%);
     border-radius: 50%;
+    border: 18px solid rgba(255, 36, 66, 0.08);
     pointer-events: none;
+  }
+  .welcome-card::before {
+    width: 120px;
+    height: 120px;
+    bottom: -30px;
+    left: -30px;
+  }
+  .welcome-card::after {
+    width: 80px;
+    height: 80px;
+    top: -20px;
+    left: 60px;
+    border-width: 14px;
+    border-color: rgba(255, 36, 66, 0.06);
   }
   .welcome-card :deep(.ant-card-body) {
     position: relative;
@@ -2658,6 +2664,61 @@ function statusText(status) {
     gap: 10px;
     margin: 0 12px;
   }
+  .desktop-create-btn {
+    display: none;
+  }
+  .mobile-create-btn {
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 54px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #ff2442 0%, #ff5c7c 35%, #ff9eb0 70%, #fff0f3 100%);
+    box-shadow: 0 6px 18px rgba(255, 36, 66, 0.28), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+    cursor: pointer;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    overflow: hidden;
+  }
+  .mobile-create-btn:active {
+    transform: scale(0.98);
+    box-shadow: 0 3px 10px rgba(255, 36, 66, 0.22), inset 0 1px 1px rgba(255, 255, 255, 0.35);
+  }
+  .mobile-create-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 52%;
+    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.05));
+    border-radius: 999px 999px 0 0;
+    pointer-events: none;
+  }
+  .mobile-create-btn::after {
+    content: '';
+    position: absolute;
+    top: 18%;
+    left: -20%;
+    width: 80%;
+    height: 35%;
+    background: linear-gradient(120deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    transform: rotate(-45deg);
+    pointer-events: none;
+  }
+  .mobile-create-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 16px;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    pointer-events: none;
+  }
   .create-main-btn.ant-btn-primary {
     height: 54px;
     font-size: 16px;
@@ -2674,26 +2735,6 @@ function statusText(status) {
   }
   .create-main-btn :deep(.anticon) {
     font-size: 20px;
-  }
-  .weekly-data-btn {
-    width: 100%;
-    height: 44px;
-    font-size: 14px;
-    font-weight: 500;
-    border-radius: 14px;
-    background: #ffffff;
-    border: 1px solid #eeeeee;
-    color: #595959;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-  }
-  .weekly-data-btn:hover {
-    background: #fff9fb;
-    border-color: var(--color-primary-light);
-    color: var(--color-primary);
-  }
-  .weekly-data-btn :deep(.anticon) {
-    font-size: 16px;
-    color: var(--color-primary);
   }
 
   /* 运营方案：做成信息块 */

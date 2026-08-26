@@ -1,5 +1,14 @@
 <template>
   <div class="lottery-page">
+    <div v-if="fallingConfetti" class="falling-confetti" aria-hidden="true">
+      <span
+        v-for="i in FALLING_COUNT"
+        :key="`fall-${i}`"
+        class="falling-ribbon"
+        :style="fallingStyle(i)"
+      />
+    </div>
+
     <NavBar v-if="showNavBar" :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
 
     <!-- 活动头图 -->
@@ -63,7 +72,7 @@
             >
               <div class="chest">
                 <div class="chest-glow" />
-                <img src="/gift-box.svg" class="gift-box-img" alt="礼盒" />
+                <img src="/assets/images/幸运抽奖icon-v1.png" class="gift-box-img" alt="礼盒" />
               </div>
               <div class="chest-label">礼盒 {{ n }}</div>
 
@@ -266,12 +275,14 @@ const resultIcon = ref(GiftOutlined)
 const selectedBox = ref(null)
 const highlightedBox = ref(null)
 const boxState = ref('idle')
+const fallingConfetti = ref(false)
 const rulesExpanded = ref(false)
 const prizeModalVisible = ref(false)
 const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 const shareConfig = ref(null)
 
 const BOX_COUNT = 10
+const FALLING_COUNT = 28
 const boxes = Array.from({ length: BOX_COUNT }, (_, i) => i + 1)
 const MIN_ANIMATION_MS = 2200
 
@@ -301,7 +312,7 @@ const sortedTiers = computed(() => {
 })
 const hasMoreTiers = computed(() => (campaign.value?.tiers?.length || 0) > PREVIEW_COUNT)
 
-const LOTTERY_HERO_IMAGE = 'https://foruda.gitee.com/images/1787578298608980753/dfb1def2_8060302.png'
+const LOTTERY_HERO_IMAGE = ''
 
 const isConsoleLottery = computed(() => route.name === 'ConsoleLottery')
 
@@ -484,6 +495,7 @@ async function performDraw(targetBox, roll = false) {
 
     setResultData(res.data)
     boxState.value = 'revealing'
+    fallingConfetti.value = true
     setTimeout(() => {
       resultVisible.value = true
       loadChances()
@@ -533,6 +545,7 @@ function setResultData(data) {
 function resetBox() {
   drawing.value = false
   boxState.value = 'idle'
+  fallingConfetti.value = false
   selectedBox.value = null
   highlightedBox.value = null
 }
@@ -549,6 +562,31 @@ function confettiStyle(index) {
     transform: `translate(-50%, -50%) rotate(${rotate}deg)`,
     '--tx': `${tx}px`,
     '--ty': `${ty}px`
+  }
+}
+
+function fallingStyle(index) {
+  const left = (index / FALLING_COUNT) * 100 + (Math.random() * 6 - 3)
+  const delay = Math.random() * 1.1
+  const duration = 1.6 + Math.random() * 1.6
+  const width = 4 + Math.random() * 6
+  const height = 22 + Math.random() * 34
+  const rotate = Math.random() * 360
+  const gradients = [
+    'linear-gradient(180deg, #DA22FF 0%, #9733EE 100%)',
+    'linear-gradient(180deg, #B06AB3 0%, #4568DC 100%)',
+    'linear-gradient(180deg, #F093FB 0%, #F5576C 100%)',
+    'linear-gradient(180deg, #E0C3FC 0%, #8EC5FC 100%)',
+    'linear-gradient(180deg, #a18cd1 0%, #fbc2eb 100%)'
+  ]
+  return {
+    left: `${Math.max(0, Math.min(100, left))}%`,
+    width: `${width}px`,
+    height: `${height}px`,
+    background: gradients[index % gradients.length],
+    animationDelay: `${delay}s`,
+    animationDuration: `${duration}s`,
+    '--start-rotate': `${rotate}deg`
   }
 }
 
@@ -1282,6 +1320,39 @@ function formatTime(t) {
 @keyframes confetti-burst {
   0% { transform: translate(-50%, -50%) rotate(0deg) scale(1); opacity: 1; }
   100% { transform: translate(var(--tx), var(--ty)) rotate(720deg) scale(0.4); opacity: 0; }
+}
+
+.falling-confetti {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+
+.falling-ribbon {
+  --start-rotate: 0deg;
+  position: absolute;
+  top: -60px;
+  border-radius: 999px;
+  opacity: 0.92;
+  box-shadow: 0 0 8px rgba(186, 85, 211, 0.35);
+  transform: rotate(var(--start-rotate));
+  animation: ribbon-fall linear forwards;
+}
+
+@keyframes ribbon-fall {
+  0% {
+    transform: translateY(0) rotate(var(--start-rotate));
+    opacity: 0.92;
+  }
+  100% {
+    transform: translateY(110vh) rotate(calc(var(--start-rotate) + 720deg));
+    opacity: 0;
+  }
 }
 
 .code-list {

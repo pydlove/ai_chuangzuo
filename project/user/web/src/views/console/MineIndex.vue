@@ -85,19 +85,19 @@
       </div>
 
       <div class="mine-vip-order-grid">
-        <div class="mine-vip-order-item" @click="showComingSoon">
+        <div class="mine-vip-order-item" @click="router.push({ path: '/console/orders', query: { status: 'pending' } })">
           <div class="mine-vip-order-icon mine-vip-order-icon--img">
             <img src="/assets/images/待支付-v1.png" alt="待支付" />
           </div>
           <span class="mine-vip-order-label">待支付</span>
         </div>
-        <div class="mine-vip-order-item" @click="showComingSoon">
+        <div class="mine-vip-order-item" @click="router.push({ path: '/console/orders', query: { status: 'paid' } })">
           <div class="mine-vip-order-icon mine-vip-order-icon--img">
             <img src="/assets/images/已支付-v1.jpg" alt="已支付" />
           </div>
           <span class="mine-vip-order-label">已支付</span>
         </div>
-        <div class="mine-vip-order-item" @click="showComingSoon">
+        <div class="mine-vip-order-item" @click="router.push('/console/orders')">
           <div class="mine-vip-order-icon mine-vip-order-icon--img">
             <img src="/assets/images/全部订单-v1.jpg" alt="全部订单" />
           </div>
@@ -130,7 +130,7 @@
             <img src="/assets/images/我的提示词-v1.jpg" alt="我的提示词" />
           </div>
         </div>
-        <div class="mine-hot-service-item" @click="accountModalVisible = true">
+        <div class="mine-hot-service-item" @click="openAccountCheck">
           <div class="mine-hot-service-info">
             <div class="mine-hot-service-title">账号检测</div>
             <div class="mine-hot-service-subtitle">检测账号健康状态</div>
@@ -157,6 +157,10 @@
         <h3 class="mine-section-title">常用功能</h3>
       </div>
       <div class="mine-grid">
+        <div class="mine-grid-item" @click="router.push('/console/orders')">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/全部订单-v1.jpg" alt="我的订单" /></div>
+          <span class="mine-grid-label">我的订单</span>
+        </div>
         <div class="mine-grid-item" @click="actions.openInviteBindingModal">
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/绑定邀请人_compressed-v1.jpg" alt="绑定邀请人" /></div>
           <span class="mine-grid-label">绑定邀请人</span>
@@ -263,6 +267,14 @@ const router = useRouter()
 const actions = inject('consoleActions')
 
 const accountModalVisible = ref(false)
+
+function openAccountCheck() {
+  if (window.innerWidth <= 768) {
+    router.push('/console/account-check')
+  } else {
+    accountModalVisible.value = true
+  }
+}
 const settingsModalVisible = ref(false)
 
 const catFrames = [
@@ -324,15 +336,6 @@ const confirmLogout = () => {
     okButtonProps: { danger: true },
     centered: true,
     onOk: () => actions.handleLogout()
-  })
-}
-
-const showComingSoon = () => {
-  Modal.info({
-    title: '即将上线',
-    content: '订单功能正在开发中，敬请期待',
-    okText: '知道了',
-    centered: true
   })
 }
 
@@ -972,6 +975,13 @@ const onMineAvatarChange = async (e) => {
 
   .mine-grid {
     grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* ========== 手机端适配 ========== */
+@media (max-width: 768px) {
+  .mine-icp {
+    margin-bottom: 38px;
   }
 }
 

@@ -16,6 +16,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/infrastructure/security/JwtAuthenticationFilter.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/infrastructure/security/JwtUtil.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/infrastructure/security/SecurityAdminContext.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/infrastructure/storage/LocalFileStorage.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/aiprompt/controller/AiPromptController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/aiprompt/dto/request/AiPromptCreateRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/aiprompt/dto/request/AiPromptQueryRequest.java
@@ -561,6 +562,16 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/service/SkillReviewService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/service/impl/SkillReviewServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/vo/SkillReviewVO.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/controller/TestimonialAdminController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialCreateRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialStatusRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialUpdateRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/entity/TestimonialEntity.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/exception/TestimonialErrorCode.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/mapper/TestimonialMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/service/TestimonialService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/service/impl/TestimonialServiceImpl.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/vo/TestimonialVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/topictitle/config/TopicTitleTaskExecutorConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/topictitle/controller/TopicTitleAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/topictitle/dto/request/BatchDeleteTopicTitleRequest.java
