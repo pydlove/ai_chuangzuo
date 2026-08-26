@@ -1067,21 +1067,7 @@ body[data-theme="dark"] .article-category {
   }
 
   .category-detail-head {
-    background: #fff;
-    border-radius: 18px;
-    padding: 16px;
-    margin-bottom: 12px;
-    border-bottom: 0;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
-  }
-
-  .category-breadcrumb {
-    margin-top: 12px;
-    margin-bottom: 6px;
-  }
-
-  .category-detail-title {
-    font-size: 17px;
+    display: none;
   }
 
   .article-list {
@@ -1229,7 +1215,6 @@ body[data-theme="dark"] .article-category {
     background: linear-gradient(to right, transparent, #141414 70%);
     color: #8c8c8c;
   }
-  body[data-theme="dark"] .category-detail-head,
   body[data-theme="dark"] .console-learn-empty,
   body[data-theme="dark"] .console-learn-loading {
     background: #1f1f1f;

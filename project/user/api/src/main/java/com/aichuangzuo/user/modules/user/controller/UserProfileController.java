@@ -7,6 +7,7 @@ import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdateProfileRequest;
 import com.aichuangzuo.user.modules.user.service.UserInviteBindingService;
 import com.aichuangzuo.user.modules.user.service.UserProfileService;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
@@ -67,6 +68,20 @@ public class UserProfileController {
         Long userId = SecurityUserContext.getCurrentUserId();
         log.info("修改昵称, userId={}, nickname={}", userId, request.getNickname());
         return Result.success(userProfileService.updateNickname(request));
+    }
+
+    /**
+     * 修改个人资料（昵称、简介、性别、生日、所在地）。
+     *
+     * @param request 个人资料请求
+     * @return 更新后的 UserProfileVO
+     */
+    @Operation(summary = "修改个人资料")
+    @PutMapping("/profile")
+    public Result<UserProfileVO> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("修改个人资料, userId={}", userId);
+        return Result.success(userProfileService.updateProfile(request));
     }
 
     /**

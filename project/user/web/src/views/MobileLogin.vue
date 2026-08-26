@@ -1,8 +1,9 @@
 <template>
   <div class="mobile-login">
+    <!-- 顶部导航 -->
     <header class="ml-header">
       <router-link to="/" class="ml-header__logo">
-        <img src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png" alt="爱创作" class="ml-header__logo-img" />
+        <img src="/favicon.png" alt="爱创作" class="ml-header__logo-img" />
         <span class="ml-header__brand">爱创作</span>
       </router-link>
       <router-link to="/" class="ml-header__home">
@@ -13,9 +14,11 @@
       </router-link>
     </header>
 
+    <!-- 表单卡片 -->
     <main class="ml-main">
-      <h1 class="ml-title">{{ activeTab === 'login' ? '欢迎回来' : '创建账号' }}</h1>
-      <p class="ml-subtitle">{{ activeTab === 'login' ? '登录后即可开始创作' : '注册后即可开始生成文章' }}</p>
+      <h1 class="ml-title">
+        Hey! {{ activeTab === 'login' ? '欢迎回到爱创作' : '欢迎来到爱创作' }}
+      </h1>
 
       <!-- 标签切换 -->
       <div class="ml-tabs">
@@ -36,26 +39,46 @@
       <!-- 登录表单 -->
       <div v-show="activeTab === 'login'" class="ml-form">
         <div class="ml-field">
-          <label class="ml-field__label">手机号 / 邮箱</label>
-          <input
-            v-model="loginForm.identifier"
-            type="text"
-            class="ml-field__input"
-            placeholder="请输入手机号或邮箱"
-            autocomplete="off"
-          />
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <polyline points="2 7 12 13 22 7"/>
+            </svg>
+            <input
+              v-model="loginForm.identifier"
+              type="text"
+              class="ml-field__input"
+              placeholder="请输入手机号或邮箱"
+              autocomplete="off"
+            />
+          </div>
         </div>
 
-       <div class="ml-field">
-         <label class="ml-field__label">密码</label>
-         <input
-           v-model="loginForm.password"
-           type="password"
-           class="ml-field__input"
-           placeholder="请输入密码"
-           autocomplete="current-password"
-         />
-       </div>
+        <div class="ml-field">
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input
+              v-model="loginForm.password"
+              :type="loginShowPassword ? 'text' : 'password'"
+              class="ml-field__input"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
+            <button type="button" class="ml-eye-btn" @click="loginShowPassword = !loginShowPassword">
+              <svg v-if="loginShowPassword" class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg v-else class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+        </div>
 
         <div class="ml-field remember-row">
           <label class="remember-label">
@@ -66,14 +89,14 @@
             />
             <span class="remember-text">记住我</span>
           </label>
+          <span class="ml-forgot" @click="$router.push('/forgot')">忘记密码？</span>
         </div>
 
-       <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
+        <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
 
         <button class="ml-submit" @click="handleLogin">登录</button>
 
         <div class="ml-footer-links">
-          <span @click="$router.push('/forgot')">忘记密码？</span>
           <span @click="activeTab = 'register'">还没有账号，去注册</span>
         </div>
       </div>
@@ -81,19 +104,27 @@
       <!-- 注册表单 -->
       <div v-show="activeTab === 'register'" class="ml-form">
         <div class="ml-field">
-          <label class="ml-field__label">手机号 / 邮箱</label>
-          <input
-            v-model="registerForm.identifier"
-            type="text"
-            class="ml-field__input"
-            placeholder="请输入手机号或邮箱"
-            autocomplete="off"
-          />
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="5" width="20" height="14" rx="2"/>
+              <polyline points="2 7 12 13 22 7"/>
+            </svg>
+            <input
+              v-model="registerForm.identifier"
+              type="text"
+              class="ml-field__input"
+              placeholder="请输入手机号或邮箱"
+              autocomplete="off"
+            />
+          </div>
         </div>
 
         <div class="ml-field">
-          <label class="ml-field__label">{{ registerMode === 'email' ? '邮箱验证码' : registerMode === 'phone' ? '短信验证码' : '验证码' }}</label>
-          <div class="ml-captcha">
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
+              <polyline points="22 6 12 13 2 6"/>
+            </svg>
             <input
               v-model="registerForm.code"
               type="text"
@@ -115,25 +146,45 @@
         </div>
 
         <div class="ml-field">
-          <label class="ml-field__label">设置密码</label>
-          <input
-            v-model="registerForm.password"
-            type="password"
-            class="ml-field__input"
-            placeholder="6-20 位密码"
-            autocomplete="new-password"
-          />
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input
+              v-model="registerForm.password"
+              :type="registerShowPassword ? 'text' : 'password'"
+              class="ml-field__input"
+              placeholder="6-20 位密码"
+              autocomplete="new-password"
+            />
+            <button type="button" class="ml-eye-btn" @click="registerShowPassword = !registerShowPassword">
+              <svg v-if="registerShowPassword" class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg v-else class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div class="ml-field">
-          <label class="ml-field__label">确认密码</label>
-          <input
-            v-model="registerForm.confirmPassword"
-            type="password"
-            class="ml-field__input"
-            placeholder="再次输入密码"
-            autocomplete="new-password"
-          />
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input
+              v-model="registerForm.confirmPassword"
+              :type="registerShowPassword ? 'text' : 'password'"
+              class="ml-field__input"
+              placeholder="再次输入密码"
+              autocomplete="new-password"
+            />
+          </div>
         </div>
 
         <a-alert
@@ -159,16 +210,18 @@
         </a-alert>
 
         <div class="ml-field">
-          <label class="ml-field__label">
-            邀请码 <span class="ml-field__optional">（选填）</span>
-          </label>
-          <input
-            v-model="registerForm.inviteCode"
-            type="text"
-            class="ml-field__input"
-            placeholder="如没有可留空"
-            maxlength="6"
-          />
+          <div class="ml-input-wrap">
+            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+            <input
+              v-model="registerForm.inviteCode"
+              type="text"
+              class="ml-field__input"
+              placeholder="邀请码（选填）"
+              maxlength="6"
+            />
+          </div>
         </div>
 
         <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
@@ -219,6 +272,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
@@ -229,6 +283,7 @@ const {
   showInviteBanner,
   agreed,
   agreementShakeCount,
+  registerMode,
   loginForm,
   registerForm,
   sliderModalVisible,
@@ -238,19 +293,36 @@ const {
   codeCountdown,
   openSliderModal,
   handleLogin,
-   handleRegister,
-   rememberMe
+  handleRegister,
+  rememberMe
 } = useLogin()
+
+const loginShowPassword = ref(false)
+const registerShowPassword = ref(false)
 </script>
 
 <style scoped>
 .mobile-login {
   min-height: 100dvh;
-  background: linear-gradient(180deg, #fff5f7 0%, #fff 100%);
+  background: linear-gradient(180deg, rgba(255, 245, 247, 0.2) 0%, rgba(255, 255, 255, 0.6) 55%, rgba(255, 255, 255, 0.85) 100%);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
+.mobile-login::before {
+  content: '';
+  position: absolute;
+  top: 60px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: url('/assets/images/登录背景图-v4.png') no-repeat center center / cover;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* 顶部导航 */
 .ml-header {
   display: flex;
   align-items: center;
@@ -258,9 +330,10 @@ const {
   padding: 12px 16px;
   position: sticky;
   top: 0;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(8px);
-  z-index: 10;
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
 }
 
 .ml-header__logo {
@@ -274,6 +347,7 @@ const {
   height: 28px;
   width: auto;
   object-fit: contain;
+  border-radius: 6px;
 }
 
 .ml-header__brand {
@@ -289,7 +363,7 @@ const {
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background: #f5f5f5;
+  background: rgba(245, 245, 245, 0.85);
   color: #595959;
 }
 
@@ -298,39 +372,43 @@ const {
   height: 18px;
 }
 
+/* 表单区域 */
 .ml-main {
-  flex: 1;
-  padding: 24px 20px 40px;
+  margin-top: auto;
+  padding: 20px 16px 24px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: 24px 24px 0 0;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: 0 -4px 40px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 1;
 }
 
 .ml-title {
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 700;
   color: #1a1a1a;
-  margin: 0 0 8px;
-}
-
-.ml-subtitle {
-  font-size: 14px;
-  color: #8c8c8c;
-  margin: 0 0 28px;
+  margin: 0 0 16px;
+  line-height: 1.3;
 }
 
 .ml-tabs {
   display: flex;
   gap: 8px;
-  margin-bottom: 24px;
-  background: #f5f5f5;
+  margin-bottom: 18px;
+  background: rgba(245, 245, 245, 0.85);
   padding: 4px;
-  border-radius: 10px;
+  border-radius: 12px;
 }
 
 .ml-tab {
   flex: 1;
-  padding: 10px;
+  padding: 9px;
   border: none;
   background: transparent;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 500;
   color: #595959;
@@ -339,7 +417,7 @@ const {
 }
 
 .ml-tab.active {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.95);
   color: #1a1a1a;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -347,7 +425,7 @@ const {
 .ml-form {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
 .ml-field {
@@ -356,26 +434,30 @@ const {
   gap: 6px;
 }
 
-.ml-field__label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #262626;
+.ml-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
 }
 
-.ml-field__optional {
+.ml-field__icon {
+  position: absolute;
+  left: 14px;
+  width: 18px;
+  height: 18px;
   color: #8c8c8c;
-  font-weight: 400;
+  pointer-events: none;
 }
 
 .ml-field__input {
   width: 100%;
-  padding: 14px 16px;
-  border: 1px solid #d9d9d9;
-  border-radius: 10px;
+  padding: 12px 16px 12px 44px;
+  border: 1px solid rgba(232, 232, 232, 0.8);
+  border-radius: 12px;
   font-size: 15px;
   color: #1a1a1a;
-  background: #fff;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  background: rgba(250, 250, 250, 0.65);
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
   box-sizing: border-box;
   -webkit-appearance: none;
 }
@@ -383,6 +465,7 @@ const {
 .ml-field__input:focus {
   outline: none;
   border-color: #FF2442;
+  background: rgba(255, 255, 255, 0.9);
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
 }
 
@@ -390,33 +473,41 @@ const {
   color: #bfbfbf;
 }
 
-.ml-captcha {
-  display: flex;
-  gap: 10px;
-}
-
-.ml-sms-provider {
-  margin: 4px 0 0;
-  font-size: 12px;
+.ml-eye-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 4px;
+  cursor: pointer;
   color: #8c8c8c;
-  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-body[data-theme="dark"] .ml-sms-provider {
-  color: #666;
+.ml-eye-btn:hover {
+  color: #595959;
 }
 
-.ml-captcha .ml-field__input {
-  flex: 1;
+.ml-eye-icon {
+  width: 18px;
+  height: 18px;
 }
 
 .ml-captcha__btn {
-  padding: 0 16px;
-  background: #fff;
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.7);
   border: 1px solid #FF2442;
-  border-radius: 10px;
+  border-radius: 8px;
   color: #FF2442;
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   white-space: nowrap;
@@ -434,27 +525,42 @@ body[data-theme="dark"] .ml-sms-provider {
   cursor: not-allowed;
 }
 
+.ml-sms-provider {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+body[data-theme="dark"] .ml-sms-provider {
+  color: #666;
+}
+
 .ml-submit {
   width: 100%;
-  padding: 15px;
-  margin-top: 8px;
-  background: #FF2442;
+  padding: 13px;
+  margin-top: 4px;
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
   color: #fff;
   border: none;
-  border-radius: 10px;
+  border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
+  box-shadow: 0 6px 20px rgba(255, 36, 66, 0.25);
 }
 
 .ml-submit:hover {
-  background: #E61E3A;
+  background: linear-gradient(135deg, #FF2442 0%, #E61E3A 100%);
+  box-shadow: 0 8px 24px rgba(255, 36, 66, 0.35);
 }
 
-/* 记住我 */
+/* 记住我与忘记密码 */
 .remember-row {
-  margin: 4px 0;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .remember-label {
@@ -480,19 +586,31 @@ body[data-theme="dark"] .ml-sms-provider {
   flex: 1;
 }
 
+.ml-forgot {
+  font-size: 13px;
+  color: #FF2442;
+  cursor: pointer;
+}
+
 body[data-theme="dark"] .remember-label {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .ml-forgot {
+  color: #ff4d6f;
+}
+
 .ml-footer-links {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   font-size: 13px;
   color: #FF2442;
+  margin-top: 4px;
 }
 
 .ml-footer-links span {
   cursor: pointer;
+  font-weight: 500;
 }
 
 .ml-invite-banner {
@@ -530,11 +648,15 @@ body[data-theme="dark"] .remember-label {
 
 /* 暗色主题 */
 body[data-theme="dark"] .mobile-login {
-  background: linear-gradient(180deg, #1a1a1a 0%, #141414 100%);
+  background: linear-gradient(180deg, rgba(20, 14, 16, 0.65) 0%, rgba(20, 20, 20, 0.85) 55%, rgba(20, 20, 20, 0.95) 100%);
+}
+
+body[data-theme="dark"] .mobile-login::before {
+  background: url('/assets/images/登录背景图-v4.png') no-repeat center center / cover;
 }
 
 body[data-theme="dark"] .ml-header {
-  background: rgba(20, 20, 20, 0.95);
+  background: rgba(20, 20, 20, 0.55);
 }
 
 body[data-theme="dark"] .ml-header__brand {
@@ -542,20 +664,21 @@ body[data-theme="dark"] .ml-header__brand {
 }
 
 body[data-theme="dark"] .ml-header__home {
-  background: #262626;
+  background: rgba(38, 38, 38, 0.85);
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .ml-main {
+  background: rgba(31, 31, 31, 0.72);
+  border-color: rgba(255, 255, 255, 0.08);
 }
 
 body[data-theme="dark"] .ml-title {
   color: #e0e0e0;
 }
 
-body[data-theme="dark"] .ml-subtitle {
-  color: #a6a6a6;
-}
-
 body[data-theme="dark"] .ml-tabs {
-  background: #262626;
+  background: rgba(38, 38, 38, 0.85);
 }
 
 body[data-theme="dark"] .ml-tab {
@@ -563,26 +686,19 @@ body[data-theme="dark"] .ml-tab {
 }
 
 body[data-theme="dark"] .ml-tab.active {
-  background: #1f1f1f;
+  background: rgba(31, 31, 31, 0.95);
   color: #e0e0e0;
-}
-
-body[data-theme="dark"] .ml-field__label {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .ml-field__optional {
-  color: #8c8c8c;
 }
 
 body[data-theme="dark"] .ml-field__input {
-  background: #1f1f1f;
-  border-color: #404040;
+  background: rgba(38, 38, 38, 0.6);
+  border-color: rgba(64, 64, 64, 0.8);
   color: #e0e0e0;
 }
 
 body[data-theme="dark"] .ml-field__input:focus {
   border-color: #ff4d6f;
+  background: rgba(38, 38, 38, 0.85);
   box-shadow: 0 0 0 3px rgba(255, 77, 111, 0.2);
 }
 
@@ -590,8 +706,20 @@ body[data-theme="dark"] .ml-field__input::placeholder {
   color: #666;
 }
 
+body[data-theme="dark"] .ml-field__icon {
+  color: #737373;
+}
+
+body[data-theme="dark"] .ml-eye-btn {
+  color: #737373;
+}
+
+body[data-theme="dark"] .ml-eye-btn:hover {
+  color: #a6a6a6;
+}
+
 body[data-theme="dark"] .ml-captcha__btn {
-  background: #1f1f1f;
+  background: rgba(31, 31, 31, 0.6);
   border-color: #ff4d6f;
   color: #ff4d6f;
 }
@@ -608,6 +736,7 @@ body[data-theme="dark"] .ml-captcha__btn:disabled {
 
 body[data-theme="dark"] .ml-submit {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+  box-shadow: 0 6px 20px rgba(255, 36, 66, 0.3);
 }
 
 body[data-theme="dark"] .ml-submit:hover {
@@ -628,5 +757,14 @@ body[data-theme="dark"] .ml-slider-tip b {
 
 body[data-theme="dark"] .ml-invite-trigger {
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .ml-invite-banner {
+  background: rgba(255, 36, 66, 0.12) !important;
+  border-color: rgba(255, 77, 111, 0.4) !important;
+}
+
+body[data-theme="dark"] .ml-invite-banner :deep(.ant-alert-message) {
+  color: #e0e0e0 !important;
 }
 </style>

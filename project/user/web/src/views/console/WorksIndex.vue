@@ -1,5 +1,7 @@
 <template>
   <div class="works-index">
+    <MobileConsoleHeader />
+
     <div class="works-header">
       <h2 class="works-title">我的作品</h2>
 
@@ -155,6 +157,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
+import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
 import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 

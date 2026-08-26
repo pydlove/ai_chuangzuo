@@ -1,5 +1,7 @@
 <template>
   <div ref="stylesIndexRef" class="styles-index">
+    <MobileConsoleHeader />
+
     <div class="styles-header">
       <div>
         <h2 class="styles-title">我的提示词</h2>
@@ -797,6 +799,7 @@ import { FullscreenOutlined } from '@ant-design/icons-vue'
 import { publishSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
+import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
 
 const SKILL_PROMPT_MAX_LENGTH = 1200
 
@@ -2428,6 +2431,10 @@ body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover 
 @media (max-width: 768px) {
   .styles-index {
     padding: 16px 12px;
+  }
+
+  .mobile-console-header {
+    margin-top: -16px !important;
   }
 
   .styles-empty,

@@ -29,6 +29,14 @@ public class User {
     private String passwordHash;
     /** 头像 URL；可为空，UI 层空时回退到昵称首字母。 */
     private String avatarUrl;
+    /** 个人简介。 */
+    private String bio;
+    /** 性别：0-保密 / 1-男 / 2-女。 */
+    private Integer gender;
+    /** 生日。 */
+    private java.time.LocalDate birthday;
+    /** 所在地。 */
+    private String location;
     /** 真实姓名；提现实名认证时填写。 */
     private String realName;
     /** 身份证号；提现实名认证时填写。 */

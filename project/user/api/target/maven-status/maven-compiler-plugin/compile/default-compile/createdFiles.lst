@@ -340,6 +340,7 @@ com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlanPersona.class
 com/aichuangzuo/user/modules/article/dto/request/SaveArticleRequest.class
 com/aichuangzuo/user/config/AuthProperties.class
 com/aichuangzuo/user/modules/user/service/impl/InviteRewardServiceImpl.class
+com/aichuangzuo/user/modules/user/dto/request/UpdateProfileRequest.class
 com/aichuangzuo/user/modules/audit/controller/UserAuditLogInternalController.class
 com/aichuangzuo/user/modules/earnings/service/impl/WithdrawServiceImpl.class
 com/aichuangzuo/user/modules/lottery/enums/LotteryErrorCode.class

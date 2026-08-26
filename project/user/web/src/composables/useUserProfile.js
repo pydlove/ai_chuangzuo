@@ -3,6 +3,7 @@ import { message } from 'ant-design-vue'
 import {
   getMyProfile,
   updateNickname,
+  updateProfile,
   updateEmail,
   updatePhone,
   changePassword,
@@ -50,6 +51,25 @@ export function useUserProfile() {
       await updateNickname(trimmed)
       if (profile.value) profile.value.nickname = trimmed
       message.success('昵称已更新')
+    } catch (e) {
+      message.error(errMsg(e))
+      throw e
+    }
+  }
+
+  async function saveProfile(payload) {
+    try {
+      const res = await updateProfile(payload)
+      const data = res.data || res
+      if (profile.value) {
+        profile.value.nickname = data.nickname ?? profile.value.nickname
+        profile.value.bio = data.bio ?? profile.value.bio
+        profile.value.gender = data.gender ?? profile.value.gender
+        profile.value.birthday = data.birthday ?? profile.value.birthday
+        profile.value.location = data.location ?? profile.value.location
+      }
+      message.success('个人信息已更新')
+      return data
     } catch (e) {
       message.error(errMsg(e))
       throw e
@@ -126,6 +146,7 @@ export function useUserProfile() {
     loading,
     loadProfile,
     saveNickname,
+    saveProfile,
     saveEmail,
     savePhone,
     savePassword,

@@ -4,7 +4,7 @@
       <div class="account-check-hero-main">
         <img
           class="account-check-hero-logo"
-          src="/assets/images/账号检测logo-v1.png"
+          src="/assets/images/账号检测logo-v2.png"
           alt="账号检测"
         />
         <p class="account-check-hero-desc">

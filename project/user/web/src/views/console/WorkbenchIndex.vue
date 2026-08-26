@@ -134,11 +134,9 @@
         </div>
       </div>
 
-      <a-card class="wb-card plan-card" :bordered="false">
-        <template #title>
-          <span>运营方案</span>
-        </template>
-        <template #extra>
+      <div class="plan-section">
+        <div class="plan-section-header">
+          <span class="plan-section-title">运营方案</span>
           <a-button
             v-if="hasPlan"
             size="small"
@@ -147,37 +145,43 @@
           >
             调整方案{{ planAdjustText }}
           </a-button>
-        </template>
-        <div v-if="hasPlan" class="plan-content">
-          <div class="plan-grid">
-            <div class="plan-row">
-              <span class="plan-label">主攻平台</span>
-              <span class="plan-value plan-platform">{{ plan.platform }}</span>
-            </div>
-            <div class="plan-row">
-              <span class="plan-label">细分赛道</span>
-              <span class="plan-value">{{ plan.niche }}</span>
-            </div>
-            <div class="plan-row">
-              <span class="plan-label">人设定位</span>
-              <span class="plan-value">{{ plan.persona }}</span>
-            </div>
-          </div>
-          <div class="plan-pillars-inline">
-            <span class="plan-label">内容支柱</span>
-            <div class="plan-pillar-tags">
-              <a-tag v-for="p in plan.pillars" :key="p.name" size="small">{{ p.name }} {{ p.percent }}%</a-tag>
-            </div>
-          </div>
         </div>
-        <div v-else class="plan-empty">
-          <div class="plan-empty-title">您还没有还没有专属运营方案，</div>
-          <div class="plan-empty-desc">
-            您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧，
-            <a href="javascript:;" class="plan-link" @click="goToOnboarding()">立即制定</a>
+        <a-card class="wb-card plan-card" :bordered="false">
+          <div v-if="hasPlan" class="plan-content">
+            <div class="plan-grid">
+              <div class="plan-row">
+                <span class="plan-label">主攻平台</span>
+                <div class="plan-platform">
+                  <span class="plan-platform-text">{{ plan.platform }}</span>
+                  <img class="plan-platform-icon" src="/assets/images/运营方案图标-v2.png" alt="" />
+                </div>
+              </div>
+              <div class="plan-row">
+                <span class="plan-label">细分赛道</span>
+                <span class="plan-value">{{ plan.niche }}</span>
+              </div>
+              <div class="plan-row">
+                <span class="plan-label">人设定位</span>
+                <span class="plan-value">{{ plan.persona }}</span>
+              </div>
+            </div>
+            <div class="plan-pillars-inline">
+              <span class="plan-label">内容支柱</span>
+              <div class="plan-pillar-tags">
+                <a-tag v-for="p in plan.pillars" :key="p.name" size="small">{{ p.name }} {{ p.percent }}%</a-tag>
+              </div>
+            </div>
           </div>
-        </div>
-      </a-card>
+          <div v-else class="plan-empty">
+            <img class="plan-empty-icon" src="/assets/images/运营方案空状态-v1.png" alt="运营方案" />
+            <div class="plan-empty-title">您还没有专属运营方案</div>
+            <div class="plan-empty-desc">
+              您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧，
+              <a href="javascript:;" class="plan-link" @click="goToOnboarding()">立即制定</a>
+            </div>
+          </div>
+        </a-card>
+      </div>
     </div>
 
     <!-- 第二行：左侧（快捷操作 + 生成记录）+ 右侧占位卡片 -->
@@ -235,13 +239,16 @@
               v-for="record in recentRecords"
               :key="record.id"
               class="generation-item"
+              :class="record.status"
               @click="record.status === 'completed' ? openArticleView(record) : router.push('/console/works')"
             >
               <div class="generation-main">
-                <div class="generation-title">{{ record.title }}</div>
+                <div class="generation-header">
+                  <div class="generation-title">{{ record.title }}</div>
+                </div>
                 <div class="generation-meta">
-                  <span>{{ record.createdAt }}</span>
-                  <span class="dot-separator">·</span>
+                  <ClockCircleOutlined class="generation-time-icon" />
+                  <span>{{ formatRecordTime(record.createdAtTimestamp) }}</span>
                   <span class="generation-status" :class="record.status">{{ statusText(record.status) }}</span>
                 </div>
                 <a-progress
@@ -532,7 +539,7 @@
     <!-- 制定自媒体方案弹框 -->
     <a-modal
       v-model:open="planModalVisible"
-      title="制定你的自媒体方案"
+      title="定制你的自媒体方案"
       width="560px"
       :footer="null"
       centered
@@ -598,7 +605,8 @@ import {
   DeleteOutlined,
   ReloadOutlined,
   GiftOutlined,
-  TeamOutlined
+  TeamOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons-vue'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
 import { fetchCurrentPlan, generatePublishPlan } from '@/api/selfMediaPlan.js'
@@ -1216,6 +1224,29 @@ async function openArticleView(record) {
   router.push(`/console/preview/${bizNo}`)
 }
 
+function formatRecordTime(ts) {
+  if (!ts) return ''
+  const now = new Date()
+  const time = new Date(ts)
+  const diff = Math.floor((now.getTime() - time.getTime()) / 1000)
+
+  if (diff < 60) return '刚刚'
+  if (diff < 3600) return `${Math.floor(diff / 60)}分钟前`
+  if (diff < 86400) return `${Math.floor(diff / 3600)}小时前`
+
+  const yesterday = new Date(now)
+  yesterday.setDate(yesterday.getDate() - 1)
+  if (
+    time.getFullYear() === yesterday.getFullYear() &&
+    time.getMonth() === yesterday.getMonth() &&
+    time.getDate() === yesterday.getDate()
+  ) {
+    return `昨天 ${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`
+  }
+
+  return `${time.getMonth() + 1}月${time.getDate()}日 ${String(time.getHours()).padStart(2, '0')}:${String(time.getMinutes()).padStart(2, '0')}`
+}
+
 function statusText(status) {
   const map = { pending: '排队中', generating: '生成中', completed: '已完成', failed: '生成失败' }
   return map[status] || status
@@ -1497,16 +1528,35 @@ function statusText(status) {
 }
 
 /* 运营方案卡 */
-.plan-card {
+.plan-section {
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.plan-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-sm);
+}
+.plan-section-title {
+  font-size: var(--font-h3);
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.plan-card {
+  flex: 1;
   min-height: 0;
   max-height: 220px;
+}
+.plan-card :deep(.ant-card-head) {
+  display: none;
 }
 .plan-card :deep(.ant-card-body) {
   padding-top: 8px;
   display: flex;
   flex-direction: column;
-  height: calc(100% - 54px);
+  height: 100%;
   overflow-y: auto;
 }
 .plan-content {
@@ -1537,6 +1587,12 @@ function statusText(status) {
 .plan-platform {
   color: var(--color-primary);
   font-weight: 600;
+}
+.plan-platform-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .plan-pillars-inline {
   display: flex;
@@ -1700,6 +1756,9 @@ function statusText(status) {
   padding: 12px var(--space-lg);
   display: flex;
   flex-direction: column;
+}
+.generation-card :deep(.ant-card-head) {
+  border-bottom: none;
 }
 .activity-card-wrapper {
   display: flex;
@@ -1874,7 +1933,7 @@ function statusText(status) {
 }
 .generation-item {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-md);
   padding: 12px 0;
   border-bottom: 1px solid var(--color-border-light);
@@ -1895,10 +1954,19 @@ function statusText(status) {
   flex: 1;
   min-width: 0;
 }
+.generation-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-sm);
+}
 .generation-title {
+  flex: 1;
+  min-width: 0;
   font-size: var(--font-body);
   font-weight: 600;
   color: var(--color-text-primary);
+  text-align: left;
   margin-bottom: 4px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1909,22 +1977,56 @@ function statusText(status) {
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: flex-start;
+  gap: 4px;
+  text-align: left;
+}
+.generation-meta .generation-time-icon {
+  font-size: 12px;
+  color: var(--color-text-placeholder);
 }
 .dot-separator {
   opacity: 0.6;
 }
+.generation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: var(--font-caption);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.generation-status::before {
+  content: '';
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+}
 .generation-status.generating {
   color: var(--color-warning);
-  font-weight: 500;
+  background: #fff7e6;
+}
+.generation-status.generating::before {
+  background: var(--color-warning);
 }
 .generation-status.completed {
   color: var(--color-success);
-  font-weight: 500;
+  background: #e6f7ed;
+}
+.generation-status.completed::before {
+  background: var(--color-success);
 }
 .generation-status.failed {
   color: var(--color-error);
-  font-weight: 500;
+  background: #fff1f0;
+}
+.generation-status.failed::before {
+  background: var(--color-error);
+}
+.generation-actions {
+  align-self: flex-end;
 }
 .generation-progress {
   margin-top: 6px;
@@ -2737,17 +2839,43 @@ function statusText(status) {
     font-size: 20px;
   }
 
-  /* 运营方案：做成信息块 */
+  /* 运营方案：更高级的卡片 */
+  .plan-section {
+    margin: 0 12px;
+  }
+  .plan-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding: 0 16px;
+  }
+  .plan-section-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
   .plan-card {
     max-height: none;
+    margin: 0;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    border: none;
+    overflow: hidden;
+  }
+  .plan-card :deep(.ant-card-head) {
+    display: none;
   }
   .plan-card :deep(.ant-card-body) {
-    padding: 14px 16px 16px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
   }
   .plan-content {
+    display: flex;
+    flex-direction: column;
     gap: 10px;
   }
   .plan-grid {
@@ -2755,15 +2883,35 @@ function statusText(status) {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
-  .plan-row {
+  .plan-grid .plan-row {
     flex-direction: column;
     align-items: flex-start;
-    gap: 4px;
-    background: #f8f9fa;
-    padding: 10px 12px;
-    border-radius: 12px;
+    gap: 6px;
+    padding: 14px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    border: 1px solid rgba(255, 36, 66, 0.06);
+    border-radius: 14px;
     font-size: 14px;
     line-height: 1.4;
+  }
+  .plan-grid .plan-row:first-child {
+    grid-column: 1 / -1;
+    position: relative;
+    padding: 14px 90px 14px 16px;
+    background: linear-gradient(135deg, var(--color-primary-bg) 0%, #ffffff 100%);
+    border: 1px solid rgba(255, 36, 66, 0.08);
+  }
+  .plan-grid .plan-row:first-child .plan-platform-icon {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 72px;
+    height: 72px;
+  }
+  .plan-grid .plan-row:first-child .plan-platform-text {
+    font-size: 20px;
+    font-weight: 700;
   }
   .plan-label {
     font-size: 11px;
@@ -2776,16 +2924,25 @@ function statusText(status) {
     text-align: left;
   }
   .plan-platform {
+    display: flex;
+    align-items: center;
+    gap: 10px;
     color: var(--color-primary);
-    font-size: 15px;
+  }
+  .plan-platform-icon {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
   }
   .plan-pillars-inline {
     flex-direction: column;
     align-items: flex-start;
-    gap: 8px;
-    background: #f8f9fa;
-    padding: 10px 12px;
-    border-radius: 12px;
+    gap: 10px;
+    padding: 14px;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+    border: 1px solid rgba(255, 36, 66, 0.06);
+    border-radius: 14px;
     font-size: 14px;
   }
   .plan-pillar-tags {
@@ -2803,17 +2960,40 @@ function statusText(status) {
     font-size: 12px;
     margin: 0;
   }
+  .plan-btn {
+    height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: transparent;
+    border: 1px solid var(--color-border-light);
+  }
+  .plan-btn:hover {
+    color: var(--color-primary);
+    border-color: var(--color-primary-light);
+    background: var(--color-primary-bg);
+  }
   .plan-empty {
     align-items: center;
     text-align: center;
-    gap: 8px;
-    padding: 18px 8px;
-    background: #f8f9fa;
-    border-radius: 12px;
+    gap: 10px;
+    padding: 32px 20px;
+    background: var(--color-bg-page);
+    border-radius: 14px;
+    border: none;
+  }
+  .plan-empty-icon {
+    width: 96px;
+    height: 96px;
+    object-fit: contain;
+    margin-bottom: 4px;
   }
   .plan-empty-title {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 600;
+    color: var(--color-text-primary);
   }
   .plan-empty-desc {
     font-size: 12px;
@@ -2828,9 +3008,19 @@ function statusText(status) {
     display: none;
   }
 
-  /* 生成记录：卡片化 */
+  /* 生成记录：与运营方案卡片风格统一 */
+  .generation-card {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+  }
+  .generation-card :deep(.ant-card-head) {
+    background: transparent;
+    border-bottom: none;
+  }
   .generation-card :deep(.ant-card-body) {
-    padding: 8px;
+    padding: 0;
+    background: transparent;
     height: auto;
   }
   .generation-empty {
@@ -2842,116 +3032,120 @@ function statusText(status) {
     gap: 8px;
   }
   .generation-item {
+    position: relative;
     flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 14px;
+    gap: 6px;
+    padding: 10px 16px;
     margin: 0;
-    border: 1px solid #f5f5f5;
-    border-radius: 14px;
     background: #ffffff;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    border: 1px solid rgba(255, 36, 66, 0.06);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
+    overflow: hidden;
+  }
+  .generation-item.completed {
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+  }
+  .generation-item.generating {
+    background: #fffbe6;
+  }
+  .generation-item.failed {
+    background: #fff1f0;
   }
   .generation-item:last-child {
-    border-bottom: 1px solid #f5f5f5;
+    border-bottom: 1px solid rgba(255, 36, 66, 0.06);
   }
   .generation-item:active {
     transform: scale(0.995);
   }
   .generation-item:hover {
     margin: 0;
-    padding: 14px;
+    padding: 10px 16px;
     background: #ffffff;
-    border-color: var(--color-primary-light);
-    box-shadow: 0 6px 18px rgba(255, 36, 66, 0.08);
+    border-color: rgba(255, 36, 66, 0.12);
+    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+  }
+  .generation-item.completed:hover {
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
+  }
+  .generation-item.generating:hover {
+    background: #fffbe6;
+  }
+  .generation-item.failed:hover {
+    background: #fff1f0;
   }
   .generation-main {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .generation-header {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
   }
   .generation-title {
+    flex: 1;
+    min-width: 0;
     font-size: 15px;
     font-weight: 600;
     color: var(--color-text-primary);
-    margin-bottom: 6px;
+    text-align: left;
     line-height: 1.4;
     overflow: hidden;
     text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    white-space: normal;
+    white-space: nowrap;
   }
   .generation-meta {
     font-size: 12px;
     color: var(--color-text-secondary);
     display: flex;
     align-items: center;
-    gap: 6px;
+    justify-content: flex-start;
+    gap: 4px;
+    text-align: left;
+  }
+  .generation-meta .generation-time-icon {
+    font-size: 11px;
+    color: var(--color-text-placeholder);
   }
   .generation-status {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: 999px;
+    padding: 3px 9px;
     font-size: 11px;
-    font-weight: 600;
-  }
-  .generation-status::before {
-    content: '';
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-  }
-  .generation-status.generating {
-    color: var(--color-warning);
-    background: #fff7e6;
-  }
-  .generation-status.generating::before {
-    background: var(--color-warning);
-  }
-  .generation-status.completed {
-    color: var(--color-success);
-    background: #e6f7ed;
-  }
-  .generation-status.completed::before {
-    background: var(--color-success);
-  }
-  .generation-status.failed {
-    color: var(--color-error);
-    background: #fff1f0;
-  }
-  .generation-status.failed::before {
-    background: var(--color-error);
   }
   .generation-progress {
-    margin-top: 8px;
+    margin-top: 4px;
   }
   .generation-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 6px;
+    padding-top: 4px;
   }
   .repost-btn.ant-btn-link,
   .view-article-btn.ant-btn-link {
-    height: 28px;
-    padding: 0 10px;
-    border-radius: 8px;
+    height: 26px;
+    padding: 0 8px;
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
-    line-height: 28px;
+    line-height: 26px;
     border: none;
   }
   .repost-btn.ant-btn-link {
-    background: var(--color-primary-bg);
+    background: #ffffff;
     color: var(--color-primary);
+    border: 1px solid var(--color-primary-light);
   }
   .view-article-btn.ant-btn-link {
-    background: #f5f5f5;
-    color: #595959;
+    background: #ffffff;
+    color: var(--color-text-secondary);
+    border: 1px solid rgba(0, 0, 0, 0.06);
   }
 
   /* 弹框统一宽度 */

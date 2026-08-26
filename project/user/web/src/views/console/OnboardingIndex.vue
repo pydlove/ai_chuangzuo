@@ -1,8 +1,27 @@
 <template>
   <div class="onboarding-index">
     <div class="onboarding-header">
-      <h2 class="onboarding-title">制定你的自媒体方案</h2>
+      <h2 class="onboarding-title">定制你的自媒体方案</h2>
       <p class="onboarding-subtitle">别再瞎折腾了！只要设置一次，让你拥有一个24小时在线的自媒体运营总监，你不再关心明天要发什么，怎么写，几点发，发到哪，怎么蹭热点……我们都会给你安排好。</p>
+    </div>
+
+    <!-- 手机端宣传头图 -->
+    <div class="onboarding-hero-mobile">
+      <div class="onboarding-hero-mobile__text">
+        <img
+          class="onboarding-hero-mobile__logo"
+          :src="'/assets/images/运营方案logo-v1.png'"
+          alt="定制你的自媒体方案"
+        />
+        <p class="onboarding-hero-mobile__desc">让 AI 为你定制专属运营方案</p>
+      </div>
+      <div class="onboarding-hero-mobile__icon-wrap">
+        <img
+          class="onboarding-hero-mobile__icon"
+          src="/assets/images/运营方案icon-v2.png"
+          alt="定制你的自媒体方案"
+        />
+      </div>
     </div>
 
     <div class="onboarding-steps">
@@ -18,12 +37,13 @@
       </div>
     </div>
 
-    <div class="onboarding-card">
+    <div class="onboarding-card" :class="{ 'onboarding-card--platform': step === 1 }">
       <!-- Step 1: 选平台 -->
-      <div v-if="step === 1" class="step-panel">
+      <div v-if="step === 1" class="step-panel step-panel--platform">
         <h3 class="step-title">你想在哪个平台做自媒体？</h3>
         <p class="step-desc">每个平台的内容形式、用户群体、变现方式和收入空间都不同，了解清楚再选。</p>
-        <div class="platform-grid">
+        <!-- 桌面端：网格卡片 -->
+        <div class="platform-grid platform-grid--desktop">
           <div
             v-for="p in platforms"
             :key="p.key"
@@ -88,6 +108,59 @@
               <CheckOutlined />
             </div>
           </div>
+        </div>
+
+        <!-- 手机端：京东风格横向滑动卡片 -->
+        <div class="platform-swiper platform-swiper--mobile">
+          <div class="platform-swiper-track">
+            <div
+              v-for="p in platforms"
+              :key="p.key"
+              :class="['platform-swiper-card', { selected: selectedPlatform === p.key }]"
+              @click="selectPlatform(p.key)"
+            >
+              <div class="platform-swiper-card__header">
+                <div class="platform-icon">
+                  <img :src="p.iconImg" :alt="p.name" />
+                </div>
+                <div class="platform-title">
+                  <div class="platform-name">{{ p.name }}</div>
+                  <a-tag :class="difficultyClass(p.difficulty)">{{ p.difficulty }}难度</a-tag>
+                </div>
+              </div>
+              <div class="platform-swiper-card__tagline">{{ p.tagline }}</div>
+              <div class="platform-swiper-card__metrics">
+                <div class="platform-metric">
+                  <div class="platform-metric__label">变现难度</div>
+                  <div class="platform-metric__value" :class="earnClass(p.monetizationEase)">{{ p.monetizationEase }}</div>
+                </div>
+                <div class="platform-metric">
+                  <div class="platform-metric__label">预计周期</div>
+                  <div class="platform-metric__value">{{ p.timeToIncome }}</div>
+                </div>
+                <div class="platform-metric">
+                  <div class="platform-metric__label">收入空间</div>
+                  <div class="platform-metric__value">{{ p.incomeRange }}</div>
+                </div>
+              </div>
+              <div v-if="selectedPlatform === p.key" class="selected-check">
+                <CheckOutlined />
+              </div>
+            </div>
+          </div>
+          <div class="platform-swiper-dots">
+            <span
+              v-for="p in platforms"
+              :key="p.key"
+              :class="['swiper-dot', { active: selectedPlatform === p.key }]"
+            />
+          </div>
+        </div>
+
+        <!-- 手机端选中平台提示 -->
+        <div class="platform-reason-mobile">
+          <BulbOutlined />
+          <span>{{ selectedPlatformDetail?.reason || '左右滑动查看各平台特点，点击卡片选择你想做的平台' }}</span>
         </div>
       </div>
 
@@ -503,6 +576,7 @@ const isLoadingNext = ref(false)
 const selectedNicheName = computed(() => nicheOptions.value.find((n) => n.key === selectedNiche.value)?.name || '')
 const selectedPersonaName = computed(() => personaOptions.value.find((p) => p.key === selectedPersona.value)?.name || '')
 const platformLabels = computed(() => platforms.value.find((p) => p.key === selectedPlatform.value)?.name || '')
+const selectedPlatformDetail = computed(() => platforms.value.find((p) => p.key === selectedPlatform.value))
 const pillarTotal = computed(() => pillars.reduce((sum, p) => sum + p.percent, 0))
 
 const answerList = computed(() => {
@@ -759,6 +833,11 @@ async function confirm() {
   font-size: 15px;
   margin: 0;
 }
+
+/* 手机端宣传头图（默认隐藏） */
+.onboarding-hero-mobile {
+  display: none;
+}
 .onboarding-steps {
   margin-bottom: 24px;
 }
@@ -839,6 +918,13 @@ async function confirm() {
   grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
   gap: 16px;
 }
+
+/* 手机端平台选择（京东风格）默认隐藏 */
+.platform-swiper--mobile,
+.platform-reason-mobile {
+  display: none;
+}
+
 .platform-card {
   position: relative;
   border: 1px solid #f0f0f0;
@@ -1270,15 +1356,89 @@ async function confirm() {
 
 @media (max-width: 768px) {
   .onboarding-index {
-    padding: 16px 14px calc(24px + env(safe-area-inset-bottom));
+    padding: 0 0 calc(24px + env(safe-area-inset-bottom));
     background:
       radial-gradient(140% 90% at 50% -8%, var(--color-primary-bg) 0%, transparent 55%),
       var(--color-bg-page);
   }
   .onboarding-header {
-    text-align: left;
-    margin-bottom: 18px;
+    display: none;
   }
+
+  .onboarding-hero-mobile {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    height: 170px;
+    margin: 0 0 12px;
+    padding: 0 20px 0 22px;
+    border-radius: 0;
+    background: linear-gradient(45deg, #ffe8ec 0%, #fff0f3 40%, #fff5f7 70%, #fffafc 100%);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .onboarding-hero-mobile::before,
+  .onboarding-hero-mobile::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 18px solid rgba(255, 36, 66, 0.08);
+    pointer-events: none;
+  }
+
+  .onboarding-hero-mobile::before {
+    width: 120px;
+    height: 120px;
+    bottom: -30px;
+    left: -30px;
+  }
+
+  .onboarding-hero-mobile::after {
+    width: 80px;
+    height: 80px;
+    top: -20px;
+    left: 60px;
+    border-width: 14px;
+    border-color: rgba(255, 36, 66, 0.06);
+  }
+
+  .onboarding-hero-mobile__text {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .onboarding-hero-mobile__logo {
+    height: 48px;
+    width: auto;
+    display: block;
+  }
+
+  .onboarding-hero-mobile__desc {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #595959;
+  }
+
+  .onboarding-hero-mobile__icon-wrap {
+    width: 130px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+  }
+
+  .onboarding-hero-mobile__icon {
+    width: 120px;
+    height: 120px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
   .onboarding-title {
     font-size: 24px;
     font-weight: 800;
@@ -1293,6 +1453,7 @@ async function confirm() {
 
   .onboarding-steps {
     margin-bottom: 16px;
+    padding: 0 14px;
   }
   .step-bar::before {
     left: 12%;
@@ -1326,8 +1487,24 @@ async function confirm() {
     padding: 18px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.03);
-    margin-bottom: 16px;
+    margin: 0 14px 16px;
   }
+
+  /* 平台选择步骤：去掉外层 onboarding-card 卡片 */
+  .onboarding-card--platform {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .step-panel--platform .step-title,
+  .step-panel--platform .step-desc {
+    padding: 0;
+  }
+
   .step-title {
     font-size: 18px;
     font-weight: 700;
@@ -1340,96 +1517,163 @@ async function confirm() {
     line-height: 1.55;
   }
 
-  /* 平台选择 */
-  .platform-grid {
-    grid-template-columns: 1fr;
+  /* 平台选择：桌面端网格隐藏，手机端京东风格横向滑动卡片 */
+  .platform-grid--desktop {
+    display: none;
+  }
+
+  .platform-swiper--mobile {
+    display: block;
+  }
+
+  .platform-swiper-track {
+    display: flex;
     gap: 12px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    padding: 4px 14px 16px;
   }
-  .platform-card {
-    padding: 14px;
-    border-radius: 16px;
-    gap: 10px;
+
+  .platform-swiper-track::-webkit-scrollbar {
+    display: none;
+  }
+
+  .platform-swiper-card {
+    flex: 0 0 calc(100vw - 56px);
+    max-width: 320px;
+    min-height: 240px;
+    scroll-snap-align: start;
+    position: relative;
+    border-radius: 20px;
+    padding: 20px;
     background: #fff;
-    border: 1px solid #f5f5f5;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
   }
-  .platform-card.selected {
-    background: var(--color-primary-bg);
-    border-color: var(--color-primary-light);
-    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+
+  .platform-swiper-card.selected {
+    border-color: var(--color-primary, #FF2442);
+    box-shadow: 0 6px 24px rgba(255, 36, 66, 0.12);
   }
-  .platform-card-header {
+
+  .platform-swiper-card__header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     gap: 10px;
+    text-align: center;
   }
-  .platform-icon {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
+
+  .platform-swiper-card .platform-icon {
+    width: 64px;
+    height: 64px;
+    border-radius: 18px;
   }
-  .platform-name {
-    font-size: 17px;
+
+  .platform-swiper-card .platform-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
   }
-  .platform-tagline {
-    font-size: 12px;
+
+  .platform-swiper-card .platform-name {
+    font-size: 20px;
+    font-weight: 700;
+  }
+
+  .platform-swiper-card__tagline {
+    font-size: 13px;
+    color: #595959;
     line-height: 1.55;
+    text-align: center;
   }
-  .platform-meta {
-    padding: 10px;
-    gap: 6px;
-    background: #f8f9fa;
-    border-radius: 10px;
-  }
-  .meta-row {
-    font-size: 12px;
+
+  .platform-swiper-card__metrics {
+    display: flex;
     gap: 8px;
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid #f5f5f5;
   }
-  .meta-label {
-    width: 52px;
+
+  .platform-metric {
+    flex: 1;
+    text-align: center;
   }
-  .meta-tags :deep(.ant-tag) {
+
+  .platform-metric__label {
     font-size: 11px;
-    padding: 1px 6px;
-    margin: 0;
+    color: #8c8c8c;
+    margin-bottom: 6px;
   }
-  .platform-reason {
-    font-size: 12px;
-    padding: 8px 10px;
-    border-radius: 10px;
+
+  .platform-metric__value {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1a1a1a;
   }
-  .platform-earn {
-    padding: 10px;
-    border-radius: 10px;
-  }
-  .earn-title {
-    font-size: 12px;
-    margin-bottom: 8px;
-  }
-  .earn-metrics {
-    flex-direction: row;
-    gap: 6px;
-  }
-  .earn-metric {
-    background: #fff;
-    border-radius: 8px;
-    padding: 6px 2px;
-  }
-  .earn-metric-label {
-    font-size: 10px;
-  }
-  .earn-metric-value {
-    font-size: 12px;
-  }
-  .selected-check {
-    top: 10px;
-    right: 10px;
-    width: 22px;
-    height: 22px;
+
+  .platform-swiper-card .selected-check {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: var(--color-primary);
+    background: var(--color-primary, #FF2442);
     color: #fff;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 12px;
+    font-size: 14px;
+  }
+
+  .platform-swiper-dots {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 2px;
+  }
+
+  .swiper-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #d9d9d9;
+    transition: all 0.2s;
+  }
+
+  .swiper-dot.active {
+    width: 18px;
+    border-radius: 3px;
+    background: var(--color-primary, #FF2442);
+  }
+
+  .platform-reason-mobile {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 16px 14px 0;
+    padding: 14px;
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    font-size: 13px;
+    line-height: 1.55;
+    color: #595959;
+  }
+
+  .platform-reason-mobile .anticon {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--color-primary, #FF2442);
   }
 
   /* 问题选项 */
@@ -1589,6 +1833,7 @@ async function confirm() {
   /* 底部操作 */
   .onboarding-actions {
     gap: 10px;
+    padding: 0 14px;
     padding-bottom: 0;
   }
   .onboarding-actions .ant-btn {
@@ -1600,6 +1845,50 @@ async function confirm() {
   }
   .onboarding-actions .ant-btn-primary {
     flex: 2;
+  }
+
+  /* 手机端暗色主题 */
+  body[data-theme="dark"] .onboarding-hero-mobile {
+    background: linear-gradient(45deg, #2a181b 0%, #221416 40%, #1a1113 70%, #150f10 100%);
+  }
+  body[data-theme="dark"] .onboarding-hero-mobile::before,
+  body[data-theme="dark"] .onboarding-hero-mobile::after {
+    border-color: rgba(255, 77, 111, 0.1);
+  }
+  body[data-theme="dark"] .onboarding-hero-mobile__desc {
+    color: #8c8c8c;
+  }
+  body[data-theme="dark"] .platform-swiper-card {
+    background: #1f1f1f;
+    border-color: transparent;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  body[data-theme="dark"] .platform-swiper-card.selected {
+    border-color: rgba(255, 77, 111, 0.5);
+    box-shadow: 0 6px 24px rgba(255, 36, 66, 0.18);
+  }
+  body[data-theme="dark"] .platform-swiper-card__metrics {
+    border-top-color: #333;
+  }
+  body[data-theme="dark"] .platform-swiper-card__tagline,
+  body[data-theme="dark"] .platform-reason-mobile {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  body[data-theme="dark"] .platform-reason-mobile {
+    background: #1f1f1f;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  }
+  body[data-theme="dark"] .platform-metric__label {
+    color: rgba(255, 255, 255, 0.45);
+  }
+  body[data-theme="dark"] .platform-metric__value {
+    color: rgba(255, 255, 255, 0.9);
+  }
+  body[data-theme="dark"] .swiper-dot {
+    background: #595959;
+  }
+  body[data-theme="dark"] .swiper-dot.active {
+    background: var(--color-primary, #FF2442);
   }
 }
 </style>

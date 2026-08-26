@@ -1,5 +1,7 @@
 <template>
   <div class="hot-search-page">
+    <MobileConsoleHeader />
+
     <!-- 日期选择 -->
     <div class="date-bar">
       <button
@@ -64,6 +66,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch'
+import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
 
 const { platforms, list, loading, loadPlatforms, loadList } = useHotSearch()
 
@@ -399,6 +402,10 @@ body[data-theme="dark"] .hot-search-item:hover {
 @media (max-width: 768px) {
   .hot-search-page {
     padding: 16px 12px;
+  }
+
+  .mobile-console-header {
+    margin-top: -16px !important;
   }
 
   .hot-search-header {

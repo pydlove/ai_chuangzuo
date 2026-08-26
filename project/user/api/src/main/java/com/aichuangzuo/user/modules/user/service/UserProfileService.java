@@ -4,6 +4,7 @@ import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdateProfileRequest;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -22,6 +23,15 @@ public interface UserProfileService {
      * @throws com.aichuangzuo.shared.exception.BusinessException USER_NOT_FOUND 当用户不存在或已被删除
      */
     UserProfileVO getMyProfile();
+
+    /**
+     * 修改个人资料（昵称、简介、性别、生日、所在地）。
+     *
+     * @param request 个人资料请求（已通过 Bean Validation）
+     * @return 更新后的 UserProfileVO
+     * @throws com.aichuangzuo.shared.exception.BusinessException USER_NOT_FOUND
+     */
+    UserProfileVO updateProfile(UpdateProfileRequest request);
 
     /**
      * 修改昵称。

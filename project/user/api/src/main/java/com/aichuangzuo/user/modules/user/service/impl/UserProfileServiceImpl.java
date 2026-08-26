@@ -15,6 +15,7 @@ import com.aichuangzuo.user.modules.user.dto.request.ChangePasswordRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateEmailRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdateNicknameRequest;
 import com.aichuangzuo.user.modules.user.dto.request.UpdatePhoneRequest;
+import com.aichuangzuo.user.modules.user.dto.request.UpdateProfileRequest;
 import com.aichuangzuo.user.modules.user.service.UserProfileService;
 import com.aichuangzuo.user.modules.user.vo.UserProfileVO;
 import lombok.RequiredArgsConstructor;
@@ -63,6 +64,40 @@ public class UserProfileServiceImpl implements UserProfileService {
         if (user == null) {
             throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
         }
+        return fillInviter(userConverter.toProfileVO(user), user.getId());
+    }
+
+    /**
+     * 修改当前用户的个人资料（昵称、简介、性别、生日、所在地）。
+     *
+     * @param request 个人资料请求（已通过 Bean Validation）
+     * @return 更新后的视图对象
+     * @throws BusinessException USER_NOT_FOUND
+     */
+    @Override
+    public UserProfileVO updateProfile(UpdateProfileRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);
+        }
+        if (request.getNickname() != null) {
+            user.setNickname(request.getNickname().trim());
+        }
+        if (request.getBio() != null) {
+            user.setBio(request.getBio().trim());
+        }
+        if (request.getGender() != null) {
+            user.setGender(request.getGender());
+        }
+        if (request.getBirthday() != null) {
+            user.setBirthday(request.getBirthday());
+        }
+        if (request.getLocation() != null) {
+            user.setLocation(request.getLocation().trim());
+        }
+        userMapper.updateById(user);
+        log.info("个人资料已修改 userId={}", userId);
         return fillInviter(userConverter.toProfileVO(user), user.getId());
     }
 

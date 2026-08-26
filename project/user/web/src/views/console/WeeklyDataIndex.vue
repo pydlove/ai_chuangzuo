@@ -1,5 +1,25 @@
 <template>
   <div class="weekly-data-page">
+    <div class="weekly-data-hero">
+      <div class="weekly-data-hero-main">
+        <img
+          class="weekly-data-hero-logo"
+          src="/assets/images/本周数据logo-v1.png"
+          alt="本周数据"
+        />
+        <p class="weekly-data-hero-desc">
+          记录本周发布文章的阅读量，生成专属数据周报
+        </p>
+      </div>
+      <div class="weekly-data-hero-icon-wrap">
+        <img
+          class="weekly-data-hero-icon"
+          src="/assets/images/本周数据宣传页-v1.png"
+          alt="本周数据"
+        />
+      </div>
+    </div>
+
     <div class="weekly-data-page-body">
       <div v-if="articlesLoading" class="weekly-data-loading">
         <a-spin tip="加载中..." />
@@ -114,7 +134,7 @@ onMounted(() => {
   background: var(--color-bg-page);
 }
 
-.weekly-data-mobile-header {
+.weekly-data-hero {
   display: none;
 }
 
@@ -224,6 +244,74 @@ onMounted(() => {
   .weekly-data-page {
     background: var(--color-bg-card);
   }
+  .weekly-data-hero {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0;
+    padding: 22px 12px;
+    background: linear-gradient(135deg, #fff5f7 0%, #ffe8ed 50%, #fff0f3 100%);
+    border-bottom: 1px solid var(--color-border-light);
+    position: relative;
+    overflow: hidden;
+    min-height: 130px;
+  }
+  .weekly-data-hero::before,
+  .weekly-data-hero::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 16px solid rgba(255, 36, 66, 0.08);
+    pointer-events: none;
+  }
+  .weekly-data-hero::before {
+    width: 120px;
+    height: 120px;
+    bottom: -40px;
+    left: -30px;
+  }
+  .weekly-data-hero::after {
+    width: 90px;
+    height: 90px;
+    top: -30px;
+    left: 50%;
+    border-width: 14px;
+    border-color: rgba(255, 36, 66, 0.06);
+  }
+  .weekly-data-hero-main {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    min-width: 0;
+  }
+  .weekly-data-hero-logo {
+    height: 36px;
+    width: auto;
+    display: block;
+  }
+  .weekly-data-hero-desc {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--color-text-secondary);
+  }
+  .weekly-data-hero-icon-wrap {
+    width: 100px;
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .weekly-data-hero-icon {
+    width: 100px;
+    height: 100px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
   .weekly-data-page-body {
     padding: 16px 12px calc(16px + env(safe-area-inset-bottom));
   }
@@ -253,18 +341,18 @@ onMounted(() => {
 </style>
 
 <style>
-:global(.weekly-data-page .weekly-data-save-btn.ant-btn-primary) {
+.weekly-data-page .weekly-data-save-btn.ant-btn-primary {
   background-color: var(--color-primary, #FF2442);
   border-color: var(--color-primary, #FF2442);
   color: #fff;
 }
-:global(.weekly-data-page .weekly-data-save-btn.ant-btn-primary:hover),
-:global(.weekly-data-page .weekly-data-save-btn.ant-btn-primary:focus) {
+.weekly-data-page .weekly-data-save-btn.ant-btn-primary:hover,
+.weekly-data-page .weekly-data-save-btn.ant-btn-primary:focus {
   background-color: var(--color-primary-hover, #e61e3a);
   border-color: var(--color-primary-hover, #e61e3a);
   color: #fff;
 }
-:global(.weekly-data-page .weekly-data-save-btn.ant-btn-primary[disabled]) {
+.weekly-data-page .weekly-data-save-btn.ant-btn-primary[disabled] {
   color: rgba(255, 255, 255, 0.6);
   background-color: rgba(255, 36, 66, 0.4);
   border-color: transparent;

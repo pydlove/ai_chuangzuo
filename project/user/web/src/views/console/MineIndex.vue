@@ -27,7 +27,10 @@
               会员
             </span>
           </div>
-          <div class="mine-user-id">{{ phoneForm.phone || emailForm.email || '完善资料，解锁更多权益' }}</div>
+          <div v-if="profileForm.bio" class="mine-user-id">{{ phoneForm.phone || emailForm.email || '完善资料，解锁更多权益' }}</div>
+          <div class="mine-user-bio" :class="{ empty: !profileForm.bio }" @click="actions.openProfileModal">
+            {{ profileForm.bio || '点击添加简介' }}
+          </div>
         </div>
         <div class="mine-user-actions-top">
           <button class="mine-header-icon-btn" @click="router.push('/console/messages')">
@@ -157,10 +160,6 @@
         <h3 class="mine-section-title">常用功能</h3>
       </div>
       <div class="mine-grid">
-        <div class="mine-grid-item" @click="router.push('/console/orders')">
-          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/全部订单-v1.jpg" alt="我的订单" /></div>
-          <span class="mine-grid-label">我的订单</span>
-        </div>
         <div class="mine-grid-item" @click="actions.openInviteBindingModal">
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/绑定邀请人_compressed-v1.jpg" alt="绑定邀请人" /></div>
           <span class="mine-grid-label">绑定邀请人</span>
@@ -224,7 +223,7 @@
           </div>
         </div>
         <div class="mine-settings-item" @click="openProfileFromSettings">
-          <span class="mine-settings-label">昵称</span>
+          <span class="mine-settings-label">修改个人信息</span>
           <span class="mine-settings-value">{{ profileForm.nickname || '未设置' }}</span>
           <RightOutlined class="mine-settings-arrow" />
         </div>
@@ -478,6 +477,23 @@ const onMineAvatarChange = async (e) => {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.mine-user-bio {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #666;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  cursor: pointer;
+}
+
+.mine-user-bio.empty {
+  color: #999;
 }
 
 .mine-user-actions-top {
@@ -946,9 +962,11 @@ const onMineAvatarChange = async (e) => {
 
 .mine-settings-label {
   flex-shrink: 0;
-  width: 56px;
+  min-width: 56px;
+  width: auto;
   font-size: 14px;
   color: #1a1a1a;
+  white-space: nowrap;
 }
 
 .mine-settings-value {
@@ -1019,6 +1037,7 @@ body[data-theme="dark"] .mine-user-stat-value {
 }
 
 body[data-theme="dark"] .mine-user-id,
+body[data-theme="dark"] .mine-user-bio,
 body[data-theme="dark"] .mine-user-stat-label,
 body[data-theme="dark"] .mine-stat-label,
 body[data-theme="dark"] .mine-footer,

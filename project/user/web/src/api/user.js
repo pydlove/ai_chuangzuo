@@ -9,6 +9,15 @@ export function getMyProfile() {
 }
 
 /**
+ * 修改个人资料（昵称、简介、性别、生日、所在地）。
+ * @param {{nickname?:string, bio?:string, gender?:number, birthday?:string, location?:string}} payload
+ * @returns {Promise<{userId:string, nickname:string, email:string, avatarUrl:string|null, emailVerified:number, phoneVerified:number, inviterUserId:number|null, inviterNickname:string|null}>}
+ */
+export function updateProfile(payload) {
+  return api.put('/me/profile', payload)
+}
+
+/**
  * 修改昵称。
  * @param {string} nickname 新昵称，1-20 字符
  * @returns {Promise<{userId:string, nickname:string, email:string, avatarUrl:string|null, emailVerified:number, phoneVerified:number, inviterUserId:number|null, inviterNickname:string|null}>}

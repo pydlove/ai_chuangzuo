@@ -1,0 +1,8 @@
+SET NAMES utf8mb4;
+
+-- 为用户表增加个人资料扩展字段
+ALTER TABLE u_user
+    ADD COLUMN bio VARCHAR(256) DEFAULT NULL COMMENT '个人简介' AFTER avatar_url,
+    ADD COLUMN gender TINYINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '性别：0-保密，1-男，2-女' AFTER bio,
+    ADD COLUMN birthday DATE DEFAULT NULL COMMENT '生日' AFTER gender,
+    ADD COLUMN location VARCHAR(128) DEFAULT NULL COMMENT '所在地' AFTER birthday;

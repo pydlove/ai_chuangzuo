@@ -81,6 +81,7 @@
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </div>
+      <div class="free-create-page-title">自由创作</div>
       <div class="free-create-page-header-right">
         <!-- 右侧 icon 占位，后续替换为真实图标 -->
         <div class="free-create-header-icon-placeholder"></div>
@@ -525,6 +526,15 @@ const handleGenerate = async () => {
   .free-create-page-back svg {
     width: 24px;
     height: 24px;
+  }
+  .free-create-page-title {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    line-height: 56px;
   }
   .free-create-page-header-right {
     width: 56px;

@@ -446,6 +446,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/dto/request/UpdateEmailRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/dto/request/UpdateNicknameRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/dto/request/UpdatePhoneRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/dto/request/UpdateProfileRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/service/InviteRewardService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/service/UserInviteBindingService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/user/api/src/main/java/com/aichuangzuo/user/modules/user/service/UserProfileService.java

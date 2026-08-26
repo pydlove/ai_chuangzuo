@@ -16,6 +16,10 @@ import lombok.Data;
  *   <li>phone - 当前手机号；空表示未绑定</li>
  *   <li>phoneVerified - 0/1；改手机成功后置 1</li>
  *   <li>avatarUrl - 头像 URL；空时前端用通用图标兜底</li>
+ *   <li>bio - 个人简介</li>
+ *   <li>gender - 性别：0-保密，1-男，2-女</li>
+ *   <li>birthday - 生日，格式 yyyy-MM-dd</li>
+ *   <li>location - 所在地</li>
  *   <li>inviterUserId - 邀请人用户主键 ID；null 表示未绑定，用于前端控制"绑定邀请人"入口</li>
  *   <li>inviterNickname - 邀请人展示名；优先返回昵称，未设置时退化为邮箱；null 表示未绑定或邀请人不存在</li>
  * </ul>
@@ -29,6 +33,10 @@ public class UserProfileVO {
     private String phone;
     private Integer phoneVerified;
     private String avatarUrl;
+    private String bio;
+    private Integer gender;
+    private String birthday;
+    private String location;
     private Long inviterUserId;
     private String inviterNickname;
     /** 个人邀请码，6 位字母数字。 */

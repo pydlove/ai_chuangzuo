@@ -1162,10 +1162,10 @@
     </div>
   </a-modal>
 
-  <!-- 修改昵称弹框 -->
+  <!-- 修改个人信息弹框 -->
   <a-modal
     v-model:open="profileVisible"
-    title="修改昵称"
+    title="修改个人信息"
     :footer="null"
     :width="400"
     centered
@@ -1175,24 +1175,68 @@
       <div class="profile-avatar-item" @click="triggerAvatarUpload">
         <div class="profile-avatar-preview">
           <img
-            v-if="profileForm.avatarUrl"
-            :src="profileForm.avatarUrl"
+            v-if="profileEditForm.avatarUrl"
+            :src="profileEditForm.avatarUrl"
             alt="avatar"
           />
           <UserOutlined v-else />
         </div>
-        <span class="profile-avatar-text">{{ profileForm.avatarUrl ? '更换头像' : '上传头像' }}</span>
+        <span class="profile-avatar-text">{{ profileEditForm.avatarUrl ? '更换头像' : '上传头像' }}</span>
       </div>
       <div class="profile-item">
         <label class="profile-label">昵称</label>
         <input
-          v-model="profileForm.nickname"
+          v-model="profileEditForm.nickname"
           type="text"
           class="profile-input"
           placeholder="请输入昵称"
           maxlength="20"
         />
       </div>
+      <div class="profile-item">
+        <label class="profile-label">简介</label>
+        <textarea
+          v-model="profileEditForm.bio"
+          class="profile-textarea"
+          placeholder="写点什么介绍自己"
+          maxlength="256"
+          rows="3"
+        />
+      </div>
+      <div class="profile-item">
+        <label class="profile-label">性别</label>
+        <div class="profile-gender-row">
+          <button
+            v-for="opt in genderOptions"
+            :key="opt.value"
+            class="profile-gender-btn"
+            :class="{ active: profileEditForm.gender === opt.value }"
+            @click="profileEditForm.gender = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+      <div class="profile-item">
+        <label class="profile-label">生日</label>
+        <input
+          v-model="profileEditForm.birthday"
+          type="date"
+          class="profile-input"
+          placeholder="请选择生日"
+        />
+      </div>
+      <div class="profile-item">
+        <label class="profile-label">所在地</label>
+        <input
+          v-model="profileEditForm.location"
+          type="text"
+          class="profile-input"
+          placeholder="请输入所在地"
+          maxlength="128"
+        />
+      </div>
+      <div class="profile-platform-no">平台号：AI-20260826-001</div>
       <button class="profile-submit" @click="handleProfileSubmit">保存</button>
     </div>
   </a-modal>
@@ -1481,7 +1525,11 @@ const pageTitleMap = {
   '/console/orders': '我的订单'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')
-const hideMobileSubpageHeader = computed(() => route.meta?.hideMobileSubpageHeader === true)
+const customMobileHeaderPaths = ['/console/works', '/console/hot-search', '/console/skills']
+const hideMobileSubpageHeader = computed(() => {
+  if (route.meta?.hideMobileSubpageHeader === true) return true
+  return customMobileHeaderPaths.includes(route.path)
+})
 const goBack = () => router.back()
 
 // 处理从提现页面"返回邀请有礼"时自动打开邀请弹框
@@ -1601,7 +1649,8 @@ const navItems = [
       { path: '/console/skills', label: '我的提示词', icon: SmileOutlined },
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
       { path: '/console/benefits', label: '我的权益', icon: CrownOutlined },
-      { path: '/console/coupons', label: '我的优惠券', icon: TagsOutlined }
+      { path: '/console/coupons', label: '我的优惠券', icon: TagsOutlined },
+      { path: '/console/orders', label: '我的订单', icon: ShopOutlined }
     ]
   }
 ]
@@ -1888,6 +1937,12 @@ const handleInviteBindingSubmit = () => {
   })
 }
 
+const genderOptions = [
+  { value: 0, label: '保密' },
+  { value: 1, label: '男' },
+  { value: 2, label: '女' }
+]
+
 // 表单字段直接派生自 profile：profile 没加载时为 ''，加载后双向绑定。
 // 用 getter/setter 而非 computed：computed 在 reactive 里只读。
 const profileForm = reactive({
@@ -1895,8 +1950,26 @@ const profileForm = reactive({
   set nickname(v) { userProfile.profile.value && (userProfile.profile.value.nickname = v) },
   get avatarUrl() { return userProfile.profile.value?.avatarUrl ?? '' },
   set avatarUrl(v) { userProfile.profile.value && (userProfile.profile.value.avatarUrl = v) },
+  get bio() { return userProfile.profile.value?.bio ?? '' },
+  set bio(v) { userProfile.profile.value && (userProfile.profile.value.bio = v) },
+  get gender() { return userProfile.profile.value?.gender ?? 0 },
+  set gender(v) { userProfile.profile.value && (userProfile.profile.value.gender = v) },
+  get birthday() { return userProfile.profile.value?.birthday ?? '' },
+  set birthday(v) { userProfile.profile.value && (userProfile.profile.value.birthday = v) },
+  get location() { return userProfile.profile.value?.location ?? '' },
+  set location(v) { userProfile.profile.value && (userProfile.profile.value.location = v) },
   get phone() { return userProfile.profile.value?.phone ?? '' },
   set phone(v) { /* 当前手机号通过 savePhone 成功后重新拉取 profile 更新 */ }
+})
+
+// 修改个人信息弹框的本地编辑状态，避免编辑时直接影响共享的 profileForm（ Mine 页背景昵称等不会实时变）
+const profileEditForm = reactive({
+  nickname: '',
+  avatarUrl: '',
+  bio: '',
+  gender: 0,
+  birthday: '',
+  location: ''
 })
 
 const emailForm = reactive({
@@ -2024,7 +2097,16 @@ watch(phoneSliderPassed, async (val) => {
 
 const openProfileModal = () => {
   userCenterVisible.value = false
-  // 表单字段已经是 profile 的派生值，无需重置
+  // 打开时从共享 profile 复制一份到本地编辑态，编辑过程中不影响背景页面
+  const p = userProfile.profile.value
+  if (p) {
+    profileEditForm.nickname = p.nickname ?? ''
+    profileEditForm.avatarUrl = p.avatarUrl ?? ''
+    profileEditForm.bio = p.bio ?? ''
+    profileEditForm.gender = p.gender ?? 0
+    profileEditForm.birthday = p.birthday ?? ''
+    profileEditForm.location = p.location ?? ''
+  }
   profileVisible.value = true
 }
 
@@ -2054,7 +2136,7 @@ const copyAccountUserId = async () => {
 }
 
 const handleProfileSubmit = async () => {
-  const trimmed = profileForm.nickname.trim()
+  const trimmed = profileEditForm.nickname.trim()
   if (!trimmed) {
     message.warning('昵称不能为空')
     return
@@ -2064,7 +2146,13 @@ const handleProfileSubmit = async () => {
     return
   }
   try {
-    await userProfile.saveNickname(profileForm.nickname)
+    await userProfile.saveProfile({
+      nickname: trimmed,
+      bio: profileEditForm.bio.trim(),
+      gender: profileEditForm.gender,
+      birthday: profileEditForm.birthday || undefined,
+      location: profileEditForm.location.trim()
+    })
     profileVisible.value = false
   } catch {
     // composable 已 message.error，弹框保持打开让用户修改
@@ -2080,7 +2168,11 @@ const onAvatarFileChange = async (e) => {
   if (!file) return
   e.target.value = ''
   try {
-    await userProfile.saveAvatar(file)
+    const avatarUrl = await userProfile.saveAvatar(file)
+    // 如果在修改个人信息弹框里上传头像，同步更新本地编辑态
+    if (profileVisible.value && avatarUrl) {
+      profileEditForm.avatarUrl = avatarUrl
+    }
   } catch {
     // composable 已 message.error
   }
@@ -4622,7 +4714,7 @@ body[data-theme="dark"] .about-footer {
   opacity: 0.75;
 }
 
-/* 修改昵称 */
+/* 修改个人信息 */
 .profile-modal-content {
   padding: 8px 0;
 }
@@ -4692,6 +4784,56 @@ body[data-theme="dark"] .about-footer {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.profile-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+  resize: vertical;
+  font-family: inherit;
+  line-height: 1.5;
+}
+
+.profile-textarea:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
+}
+
+.profile-gender-row {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-gender-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  background: #fff;
+  color: #595959;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-gender-btn.active {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+
+.profile-platform-no {
+  text-align: center;
+  font-size: 12px;
+  color: #8c8c8c;
+  margin: 4px 0 16px;
 }
 
 .profile-submit {
@@ -4902,6 +5044,7 @@ body[data-theme="dark"] .phone-label {
 }
 
 body[data-theme="dark"] .profile-input,
+body[data-theme="dark"] .profile-textarea,
 body[data-theme="dark"] .email-input,
 body[data-theme="dark"] .phone-input {
   background: #262626;
@@ -4910,10 +5053,27 @@ body[data-theme="dark"] .phone-input {
 }
 
 body[data-theme="dark"] .profile-input:focus,
+body[data-theme="dark"] .profile-textarea:focus,
 body[data-theme="dark"] .email-input:focus,
 body[data-theme="dark"] .phone-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .profile-gender-btn {
+  background: #262626;
+  border-color: #404040;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .profile-gender-btn.active {
+  border-color: #ff4d6f;
+  color: #ff6b81;
+  background: rgba(255, 36, 66, 0.12);
+}
+
+body[data-theme="dark"] .profile-platform-no {
+  color: #737373;
 }
 
 body[data-theme="dark"] .email-code-btn,
