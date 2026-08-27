@@ -17,6 +17,12 @@ const routes = [
     component: () => import('@/views/Forgot.vue')
   },
   {
+    path: '/qr-login/:qrCode',
+    name: 'QrLoginScan',
+    component: () => import('@/views/QrLoginScan.vue'),
+    meta: { title: '扫码登录' }
+  },
+  {
     path: '/pricing',
     name: 'Pricing',
     component: () => import('@/views/Pricing.vue')
@@ -35,6 +41,36 @@ const routes = [
     path: '/guide',
     name: 'Guide',
     component: () => import('@/views/GuideIndex.vue')
+  },
+  {
+    path: '/tools/cutout',
+    name: 'CutoutTool',
+    component: () => import('@/views/CutoutToolView.vue'),
+    meta: { title: 'AI 抠图' }
+  },
+  {
+    path: '/tools/text-to-image',
+    name: 'TextToImageTool',
+    component: () => import('@/views/TextToImageToolView.vue'),
+    meta: { title: '文字转图片' }
+  },
+  {
+    path: '/tools/image-compress',
+    name: 'ImageCompress',
+    component: () => import('@/views/MobileImageCompress.vue'),
+    meta: { title: '图片压缩' }
+  },
+  {
+    path: '/tools/qrcode',
+    name: 'QrCode',
+    component: () => import('@/views/MobileQrCode.vue'),
+    meta: { title: '二维码生成' }
+  },
+  {
+    path: '/tools/watermark-remove',
+    name: 'WatermarkRemove',
+    component: () => import('@/views/MobileWatermarkRemove.vue'),
+    meta: { title: 'AI 去水印' }
   },
   {
     path: '/lottery',
@@ -113,6 +149,12 @@ const routes = [
         component: () => import('@/views/console/PreviewIndex.vue')
       },
       {
+        path: 'profile/edit',
+        name: 'ConsoleProfileEdit',
+        component: () => import('@/views/console/ProfileEditIndex.vue'),
+        meta: { title: '修改个人信息' }
+      },
+      {
         path: 'coin',
         name: 'ConsoleCoin',
         component: () => import('@/views/console/WithdrawIndex.vue')
@@ -162,7 +204,8 @@ const routes = [
       {
         path: 'benefits',
         name: 'ConsoleBenefits',
-        component: () => import('@/views/console/BenefitsIndex.vue')
+        component: () => import('@/views/console/BenefitsIndex.vue'),
+        meta: { title: '我的权益', hideMobileSubpageHeader: true }
       },
       {
         path: 'invite',

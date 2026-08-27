@@ -47,7 +47,9 @@ public class UserCouponServiceImpl implements UserCouponService {
         vo.setApplicableCycle(e.getApplicableCycle());
         vo.setApplicablePlan(e.getApplicablePlan());
         String status = e.getStatus();
-        if ("unused".equals(status) && e.getValidEnd() != null && e.getValidEnd().isBefore(now)) {
+        if (e.getUsedOrderId() != null) {
+            status = "used";
+        } else if ("unused".equals(status) && e.getValidEnd() != null && e.getValidEnd().isBefore(now)) {
             status = "expired";
         }
         vo.setStatus(status);

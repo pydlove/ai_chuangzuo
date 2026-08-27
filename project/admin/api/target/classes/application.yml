@@ -17,6 +17,10 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
     table: admin_flyway_schema_history
+  web:
+    resources:
+      cache:
+        period: 7d
   mail:
     host: ${SPRING_MAIL_HOST:127.0.0.1}
     port: ${SPRING_MAIL_PORT:3025}

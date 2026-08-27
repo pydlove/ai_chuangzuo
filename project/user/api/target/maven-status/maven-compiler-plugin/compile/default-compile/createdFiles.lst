@@ -6,6 +6,7 @@ com/aichuangzuo/user/modules/message/mapper/MessageMapper.class
 com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlan.class
 com/aichuangzuo/user/modules/selfmedia/vo/PublishPlanGuideVO$ColdStartPlan.class
 com/aichuangzuo/user/modules/security/accesscontrol/service/AccessControlService.class
+com/aichuangzuo/user/modules/auth/dto/request/QrLoginScanRequest.class
 com/aichuangzuo/user/modules/exporttemplate/service/ExportTemplateService.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateEmailRequest.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/IncomeSubmissionServiceImpl$1.class
@@ -25,6 +26,7 @@ com/aichuangzuo/user/modules/leaderboard/controller/LeaderboardController.class
 com/aichuangzuo/user/modules/membership/controller/OrderController.class
 com/aichuangzuo/user/modules/commission/entity/CommissionTask.class
 com/aichuangzuo/user/modules/exporttemplate/mapper/ExportTemplateMapper.class
+com/aichuangzuo/user/modules/auth/dto/request/QrLoginAuthorizeRequest.class
 com/aichuangzuo/user/modules/selfmedia/mapper/SelfMediaPlanQuestionMapper.class
 com/aichuangzuo/user/modules/earnings/entity/EarningsRecord.class
 com/aichuangzuo/user/modules/skill/controller/UserSkillController.class
@@ -43,6 +45,7 @@ com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketQueryServiceIm
 com/aichuangzuo/user/modules/lottery/entity/LotteryCampaign.class
 com/aichuangzuo/user/modules/membership/mapper/UserMembershipMapper.class
 com/aichuangzuo/user/modules/article/dto/request/SaveDraftRequest.class
+com/aichuangzuo/user/modules/auth/service/impl/QrLoginServiceImpl.class
 com/aichuangzuo/user/modules/homebanner/controller/HomeBannerController.class
 com/aichuangzuo/user/modules/benefit/vo/UserBenefitVO$BenefitItem.class
 com/aichuangzuo/user/modules/feedback/service/FeedbackService.class
@@ -72,11 +75,13 @@ com/aichuangzuo/user/modules/earnings/mapper/EarningsRecordMapper.class
 com/aichuangzuo/user/modules/commission/entity/CommissionSubmission.class
 com/aichuangzuo/user/modules/membership/service/PlanLookupService.class
 com/aichuangzuo/user/modules/selfmedia/mapper/SelfMediaPlanPersonaMapper.class
+com/aichuangzuo/user/modules/auth/vo/QrLoginStatusVO.class
 com/aichuangzuo/user/modules/workbench/service/WeeklyArticleService.class
 com/aichuangzuo/user/modules/message/enums/MessageSubType.class
 com/aichuangzuo/user/modules/selfmedia/service/impl/SelfMediaPlanServiceImpl$4.class
 com/aichuangzuo/user/modules/share/service/impl/ShareConfigServiceImpl.class
 com/aichuangzuo/user/modules/commission/vo/CommissionTaskDetailVO.class
+com/aichuangzuo/user/modules/auth/vo/QrLoginCreateVO.class
 com/aichuangzuo/user/modules/leaderboard/mapper/LeaderboardRewardConfigMapper.class
 com/aichuangzuo/user/modules/earnings/controller/EarningsInternalController.class
 com/aichuangzuo/user/modules/testimonial/controller/HomeTestimonialController.class
@@ -289,6 +294,7 @@ com/aichuangzuo/user/modules/topic/vo/TopicTitleVO.class
 com/aichuangzuo/user/modules/user/converter/UserConverterImpl.class
 com/aichuangzuo/user/config/SecurityConfig.class
 com/aichuangzuo/user/modules/audit/interceptor/UserAuditLogInterceptor.class
+com/aichuangzuo/user/modules/auth/mapper/QrLoginSessionMapper.class
 com/aichuangzuo/user/modules/hotsearch/service/HotSearchService.class
 com/aichuangzuo/user/modules/workbench/dto/request/SaveWeeklyArticlesRequest.class
 com/aichuangzuo/user/modules/lottery/entity/LotteryDrawRecord.class
@@ -339,6 +345,7 @@ com/aichuangzuo/user/modules/feedback/mapper/FeedbackMapper.class
 com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlanPersona.class
 com/aichuangzuo/user/modules/article/dto/request/SaveArticleRequest.class
 com/aichuangzuo/user/config/AuthProperties.class
+com/aichuangzuo/user/modules/auth/entity/QrLoginSession.class
 com/aichuangzuo/user/modules/user/service/impl/InviteRewardServiceImpl.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateProfileRequest.class
 com/aichuangzuo/user/modules/audit/controller/UserAuditLogInternalController.class
@@ -428,6 +435,7 @@ com/aichuangzuo/user/modules/article/service/impl/ArticleServiceImpl.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO$2.class
 com/aichuangzuo/user/modules/message/mapper/MessageReadMapper.class
 com/aichuangzuo/user/modules/earnings/enums/EarningsType.class
+com/aichuangzuo/user/modules/auth/service/QrLoginService.class
 com/aichuangzuo/user/modules/benefit/service/impl/PlanCatalogServiceImpl$1.class
 com/aichuangzuo/user/modules/user/service/UserProfileService.class
 com/aichuangzuo/user/modules/lottery/vo/LotteryRedemptionResultVO.class
@@ -449,6 +457,7 @@ com/aichuangzuo/user/modules/exporttemplate/service/impl/ExportTemplateServiceIm
 com/aichuangzuo/user/modules/scheduler/entity/ScheduledTaskEntity.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO$1.class
 com/aichuangzuo/user/config/WebMvcConfig.class
+com/aichuangzuo/user/modules/auth/controller/QrLoginController.class
 com/aichuangzuo/user/modules/learn/service/LearnBrowseService.class
 com/aichuangzuo/user/modules/security/smsconfig/entity/SmsConfig.class
 com/aichuangzuo/user/infrastructure/persistence/handler/MybatisPlusMetaObjectHandler.class
@@ -465,6 +474,7 @@ com/aichuangzuo/user/modules/lottery/controller/LotteryRedemptionController.clas
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardServiceImpl.class
 com/aichuangzuo/user/modules/recommendedcreation/dto/request/UpdateSessionRequest.class
 com/aichuangzuo/user/infrastructure/cache/CacheUtil.class
+com/aichuangzuo/user/modules/auth/enums/QrLoginStatus.class
 com/aichuangzuo/user/modules/topic/controller/TopicTitleController.class
 com/aichuangzuo/user/modules/learn/mapper/LearnBannerMapper.class
 com/aichuangzuo/user/modules/audit/vo/UserAuditLogPageVO.class

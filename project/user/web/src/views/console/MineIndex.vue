@@ -28,7 +28,7 @@
             </span>
           </div>
           <div v-if="profileForm.bio" class="mine-user-id">{{ phoneForm.phone || emailForm.email || '完善资料，解锁更多权益' }}</div>
-          <div class="mine-user-bio" :class="{ empty: !profileForm.bio }" @click="actions.openProfileModal">
+          <div class="mine-user-bio" :class="{ empty: !profileForm.bio }" @click="router.push('/console/profile/edit')">
             {{ profileForm.bio || '点击添加简介' }}
           </div>
         </div>
@@ -70,6 +70,12 @@
           <div class="mine-vip-title">
             <CrownOutlined class="mine-vip-title-icon" />
             {{ hasMembership ? (membershipLevel + '会员') : '开通会员' }}
+            <img
+              v-if="vipIconSrc"
+              :src="vipIconSrc"
+              class="mine-vip-title-badge"
+              alt=""
+            />
           </div>
           <div class="mine-vip-desc">
             {{ hasMembership ? '畅享全部 AI 创作权益' : '解锁更多高级功能' }}
@@ -311,6 +317,16 @@ const membershipDaysLeft = computed(() => {
   return Math.max(0, end.diff(now, 'day'))
 })
 
+// 会员等级图标
+const vipIconSrc = computed(() => {
+  const level = String(membershipLevel.value || '')
+  const upper = level.toUpperCase()
+  if (upper.includes('SSVIP') || level.includes('旗舰')) return '/assets/images/vip/SSVIP.svg'
+  if (upper.includes('SVIP') || level.includes('专业')) return '/assets/images/vip/SVIP.svg'
+  if (upper.includes('VIP') || level.includes('基础')) return '/assets/images/vip/VIP.svg'
+  return ''
+})
+
 // 已开通权益数量
 const benefitCount = computed(() => Object.keys(benefits.value || {}).length)
 
@@ -340,7 +356,7 @@ const confirmLogout = () => {
 
 const openProfileFromSettings = () => {
   settingsModalVisible.value = false
-  actions.openProfileModal()
+  router.push('/console/profile/edit')
 }
 
 const openPhoneFromSettings = () => {
@@ -599,6 +615,7 @@ const onMineAvatarChange = async (e) => {
 }
 
 .mine-vip-title {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -607,10 +624,20 @@ const onMineAvatarChange = async (e) => {
   color: #fff;
   line-height: 1.2;
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  padding-right: 80px;
 }
 
 .mine-vip-title-icon {
   font-size: 14px;
+}
+.mine-vip-title-badge {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 76px;
+  height: 38px;
+  object-fit: contain;
 }
 
 .mine-vip-desc {

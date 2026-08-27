@@ -9,6 +9,7 @@ public class FeedbackVO {
     private Long id;
     private String type;
     private String content;
+    private Integer starRating;
     private String replyContent;
     private LocalDateTime repliedAt;
     private LocalDateTime createdAt;

@@ -1,16 +1,21 @@
 <template>
   <div class="works-index">
-    <MobileConsoleHeader />
+    <MobileConsoleHero
+      title="我的作品"
+      desc="管理已生成的文章和草稿，随时查看、编辑或导出。"
+      logo-url="/assets/images/我的作品logo-v1.png"
+      image-url="/assets/images/我的作品宣传图-v1.png"
+    />
 
     <div class="works-header">
       <h2 class="works-title">我的作品</h2>
 
       <div class="works-filter-bar">
-        <a-input-search
-          v-model:value="searchKeyword"
+        <input
+          v-model="searchKeyword"
+          type="text"
+          class="works-search-input"
           placeholder="搜索标题关键词"
-          class="works-search"
-          allow-clear
         />
         <a-select
           v-model:value="selectedPlatforms"
@@ -57,7 +62,7 @@
     <div v-if="activeTab === 'works'" class="works-list">
       <div v-if="worksList.length === 0 && !searchKeyword.trim()" class="works-empty">
         <a-empty description="还没有生成的文章">
-          <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+          <button class="empty-btn" @click="$router.push('/console/workbench')">去创作</button>
         </a-empty>
       </div>
       <div v-else-if="worksList.length === 0 && searchKeyword.trim()" class="works-empty">
@@ -106,7 +111,7 @@
     <div v-if="activeTab === 'drafts'" class="drafts-list">
       <div v-if="draftsList.length === 0 && !searchKeyword.trim()" class="works-empty">
         <a-empty description="草稿箱是空的">
-          <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
+          <button class="empty-btn" @click="$router.push('/console/workbench')">去创作</button>
         </a-empty>
       </div>
       <div v-else-if="draftsList.length === 0 && searchKeyword.trim()" class="works-empty">
@@ -157,7 +162,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
-import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
+import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 
@@ -691,14 +696,21 @@ body[data-theme="dark"] .works-pagination {
   margin: 0 24px;
 }
 
-.works-search {
+.works-search-input {
   width: 220px;
+  height: 40px;
+  padding: 0 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  box-sizing: border-box;
+  background: #fff;
+  outline: none;
 }
 
-.works-search :deep(.ant-input-affix-wrapper-focused),
-.works-search :deep(.ant-input:focus) {
-  border-color: #ff2442 !important;
-  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15) !important;
+.works-search-input:focus {
+  border-color: #ff2442;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
 }
 
 .works-filter-select {
@@ -790,41 +802,19 @@ body[data-theme="dark"] .draft-card {
   border-color: #5c2a30;
 }
 
-body[data-theme="dark"] .works-search :deep(.ant-input-affix-wrapper),
-body[data-theme="dark"] .works-search :deep(.ant-input) {
-  background: #2a2a2a !important;
-  border-color: #434343 !important;
-  color: #f0f0f0 !important;
+body[data-theme="dark"] .works-search-input {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #f0f0f0;
 }
 
-body[data-theme="dark"] .works-search :deep(.ant-input::placeholder) {
-  color: #737373 !important;
+body[data-theme="dark"] .works-search-input::placeholder {
+  color: #737373;
 }
 
-body[data-theme="dark"] .works-search :deep(.ant-input-group-addon) {
-  background: #2a2a2a !important;
-  border-color: #434343 !important;
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .works-search :deep(.ant-input-search-button) {
-  background: #2a2a2a !important;
-  border-color: #434343 !important;
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .works-search :deep(.ant-input-search-button:hover) {
-  background: #303030 !important;
-  border-color: var(--color-primary) !important;
-  color: var(--color-primary) !important;
-}
-
-body[data-theme="dark"] .works-search :deep(.ant-input-search-icon) {
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .works-search :deep(.ant-input-search-icon:hover) {
-  color: var(--color-primary) !important;
+body[data-theme="dark"] .works-search-input:focus {
+  border-color: #ff2442;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
 }
 
 body[data-theme="dark"] .works-filter-select :deep(.ant-select-selector) {
@@ -872,7 +862,7 @@ body[data-theme="dark"] :deep(.ant-empty-description) {
 */
 @media (max-width: 768px) {
   .works-index {
-    padding: 12px;
+    padding: 0 12px 12px;
   }
 
   .works-header {
@@ -886,6 +876,10 @@ body[data-theme="dark"] :deep(.ant-empty-description) {
     font-size: 18px;
   }
 
+  .works-title {
+    display: none;
+  }
+
   .works-tabs {
     align-self: flex-end;
   }
@@ -893,17 +887,30 @@ body[data-theme="dark"] :deep(.ant-empty-description) {
   .works-filter-bar {
     flex-wrap: wrap;
     margin: 0;
-    gap: 8px;
+    gap: 10px;
   }
 
-  .works-search {
+  .works-search-input {
     flex: 1 1 100%;
     width: 100%;
+    min-width: 0;
+    max-width: none;
+    height: 44px;
+    padding: 0 12px;
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    font-size: 14px;
+    box-sizing: border-box;
+    background: #fff;
+    outline: none;
+  }
+
+  .works-search-input:focus {
+    border-color: #ff2442;
   }
 
   .works-filter-select {
-    flex: 1 1 calc(50% - 4px);
-    min-width: 0;
+    display: none;
   }
 
   .works-filter-time {

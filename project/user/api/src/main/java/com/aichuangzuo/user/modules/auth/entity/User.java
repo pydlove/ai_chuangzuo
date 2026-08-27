@@ -37,6 +37,8 @@ public class User {
     private java.time.LocalDate birthday;
     /** 所在地。 */
     private String location;
+    /** 职业。 */
+    private String occupation;
     /** 真实姓名；提现实名认证时填写。 */
     private String realName;
     /** 身份证号；提现实名认证时填写。 */

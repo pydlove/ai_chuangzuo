@@ -37,7 +37,13 @@ public enum UserAuthErrorCode implements ErrorCode {
     SMS_CONFIG_NOT_ENABLED(111030, "短信验证未启用"),
     PHONE_OR_EMAIL_REQUIRED(111031, "邮箱或手机号至少填写一项"),
     AVATAR_FILE_INVALID(111032, "头像必须是 jpg/png 且不超过 5MB"),
-    PHONE_SAME_AS_OLD(111033, "新手机号与原手机号相同");
+    PHONE_SAME_AS_OLD(111033, "新手机号与原手机号相同"),
+    QR_LOGIN_SESSION_NOT_FOUND(111040, "二维码不存在或已过期"),
+    QR_LOGIN_SESSION_EXPIRED(111041, "二维码已过期，请刷新重试"),
+    QR_LOGIN_SESSION_ALREADY_USED(111042, "二维码已被使用"),
+    QR_LOGIN_SESSION_ALREADY_SCANNED(111043, "二维码已被其他设备扫描"),
+    QR_LOGIN_STATUS_INVALID(111044, "二维码状态异常"),
+    QR_LOGIN_UNAUTHORIZED(111045, "请先登录手机端");
 
     private final int code;
     private final String message;

@@ -335,6 +335,7 @@ com/aichuangzuo/admin/modules/learn/entity/LearnBannerEntity.class
 com/aichuangzuo/admin/modules/reminder/config/ReminderSchedulerConfig.class
 com/aichuangzuo/admin/modules/security/smsconfig/dto/request/SmsConfigUpdateRequest.class
 com/aichuangzuo/admin/modules/scheduler/vo/ScheduledTaskPageVO.class
+com/aichuangzuo/admin/modules/testimonial/util/TestimonialExcelImportUtil$TestimonialImportListener.class
 com/aichuangzuo/admin/modules/learn/mapper/LearnArticleMapper.class
 com/aichuangzuo/admin/modules/plan/service/impl/PlanAdminServiceImpl.class
 com/aichuangzuo/admin/modules/hotsearch/crawler/CdpHotSearchFetcher.class
@@ -368,6 +369,7 @@ com/aichuangzuo/admin/modules/commission/dto/request/CommissionSubmissionCreateR
 com/aichuangzuo/admin/modules/modelconfig/service/ModelConfigService.class
 com/aichuangzuo/admin/modules/homebanner/entity/HomeBannerEntity.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField$Option.class
+com/aichuangzuo/admin/modules/testimonial/vo/TestimonialImportRowErrorVO.class
 com/aichuangzuo/admin/modules/order/controller/AdminOrderController.class
 com/aichuangzuo/admin/modules/learn/dto/request/LearnSortReq.class
 com/aichuangzuo/admin/modules/skill/market/vo/SkillMarketVO.class
@@ -447,6 +449,7 @@ com/aichuangzuo/admin/modules/generation/dto/request/PromptTemplateStageSaveItem
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateStageVO$StageConfigFieldVO.class
 com/aichuangzuo/admin/modules/skill/entity/UserSkillAggregate.class
 com/aichuangzuo/admin/modules/earnings/dto/request/UserRewardRecordQueryRequest.class
+com/aichuangzuo/admin/modules/testimonial/util/TestimonialExcelImportUtil.class
 com/aichuangzuo/admin/modules/benefit/entity/Benefit.class
 com/aichuangzuo/admin/modules/platform/service/PlatformAdminService.class
 com/aichuangzuo/admin/modules/reminder/entity/ReminderSendLog.class
@@ -480,6 +483,7 @@ com/aichuangzuo/admin/modules/reminder/dto/request/ExpiringUserPageQuery.class
 com/aichuangzuo/admin/modules/security/accesscontrol/service/AccessControlService.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/IntentAnchorStep.class
 com/aichuangzuo/admin/modules/hotsearch/crawler/HotSearchItem.class
+com/aichuangzuo/admin/modules/aiprompt/dto/request/AiPromptTestRequest.class
 com/aichuangzuo/admin/modules/reminder/job/ExpireReminderJob.class
 com/aichuangzuo/admin/modules/modelconfig/entity/ModelConfig.class
 com/aichuangzuo/admin/modules/skill/analyze/config/controller/SkillAnalyzeConfigAdminController.class
@@ -487,6 +491,7 @@ com/aichuangzuo/admin/modules/generation/mapper/PromptTemplateStageMapper.class
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateStageVO.class
 com/aichuangzuo/admin/modules/aiprompt/vo/AiPromptDetailVO$AiPromptVariableVO.class
 com/aichuangzuo/admin/modules/security/smsconfig/entity/SmsConfig.class
+com/aichuangzuo/admin/modules/testimonial/vo/TestimonialImportResultVO.class
 com/aichuangzuo/admin/modules/generation/job/GenerationRetentionJob.class
 com/aichuangzuo/admin/modules/auth/mapper/AdminUserMapper.class
 com/aichuangzuo/admin/modules/skill/market/dto/SkillMarketTopPublisherDTO.class
@@ -497,6 +502,8 @@ com/aichuangzuo/admin/modules/scheduler/executor/ScheduledTaskExecutor.class
 com/aichuangzuo/admin/modules/audit/job/AuditLogCleanupJob.class
 com/aichuangzuo/admin/modules/earnings/vo/UserAccountPageVO.class
 com/aichuangzuo/admin/modules/generation/mapper/PromptTemplateVersionMapper.class
+com/aichuangzuo/admin/modules/aiprompt/vo/AiPromptTestVO.class
+com/aichuangzuo/admin/modules/testimonial/dto/excel/TestimonialImportExcelRowData.class
 com/aichuangzuo/admin/modules/generation/pipeline/PipelineStage.class
 com/aichuangzuo/admin/modules/generation/controller/GenerationTaskAdminController.class
 com/aichuangzuo/admin/modules/skill/preset/mapper/GlobalSkillAggregateMapper.class

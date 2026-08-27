@@ -5,12 +5,19 @@ import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptCreateRequest;
 import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptQueryRequest;
 import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptUpdateRequest;
 import com.aichuangzuo.admin.modules.aiprompt.mapper.AiPromptMapper;
+import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptService;
 import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptDetailVO;
+import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptTestVO;
 import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptVO;
+import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
+import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
+import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
+import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.shared.entity.AiPrompt;
 import com.aichuangzuo.shared.enums.error.AdminAiPromptErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -30,6 +37,9 @@ public class AiPromptServiceImpl implements AiPromptService {
 
     private final AiPromptMapper aiPromptMapper;
     private final ObjectMapper objectMapper;
+    private final AiPromptRenderService aiPromptRenderService;
+    private final ModelConfigMapper modelConfigMapper;
+    private final GenerationAiService generationAiService;
 
     @Override
     public PageResult list(AiPromptQueryRequest request) {
@@ -122,6 +132,40 @@ public class AiPromptServiceImpl implements AiPromptService {
     @Override
     public void disable(Long id) {
         updateStatus(id, 0);
+    }
+
+    @Override
+    public AiPromptTestVO test(Long id, Map<String, Object> variables) {
+        AiPrompt prompt = requireById(id);
+        if (prompt.getStatus() == null || prompt.getStatus() != 1) {
+            throw new BusinessException(AdminAiPromptErrorCode.AI_PROMPT_DISABLED);
+        }
+
+        AiPromptRendered rendered = aiPromptRenderService.render(prompt.getPromptCode(), variables);
+
+        List<ModelConfig> activeConfigs = modelConfigMapper.selectActiveByPriority();
+        if (activeConfigs.isEmpty()) {
+            throw new BusinessException(AdminAiPromptErrorCode.AI_PROMPT_MODEL_UNAVAILABLE);
+        }
+        ModelConfig modelConfig = activeConfigs.get(0);
+
+        AiCallResult result = generationAiService.call(
+                modelConfig.getId(),
+                rendered.systemRole(),
+                rendered.userPrompt(),
+                null,
+                false
+        );
+
+        AiPromptTestVO vo = new AiPromptTestVO();
+        vo.setContent(result.getContent());
+        vo.setPromptTokens(result.getPromptTokens());
+        vo.setCompletionTokens(result.getCompletionTokens());
+        vo.setTotalTokens(result.getTotalTokens());
+        vo.setRenderedSystemRole(rendered.systemRole());
+        vo.setRenderedUserPrompt(rendered.userPrompt());
+        vo.setModelConfigId(modelConfig.getId());
+        return vo;
     }
 
     private void updateStatus(Long id, int status) {

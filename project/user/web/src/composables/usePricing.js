@@ -28,7 +28,7 @@ export function usePricing() {
   const router = useRouter()
   const route = useRoute()
 
-  const { coinBalance, loadInviteStats, adjustCoinBalance } = useInviteStats()
+  const { coinBalance, loadInviteStats } = useInviteStats()
 
   const COIN_TO_YUAN_RATIO = 10
   const modalVisible = ref(false)
@@ -309,7 +309,8 @@ export function usePricing() {
       })
       const data = res.data
       message.success(upgradePreview.value ? '升级成功' : '订阅成功')
-      adjustCoinBalance(-(data.coinAmount || selectedCoinAmount.value))
+      // 余额以服务端为准，订阅成功后重新拉取
+      loadInviteStats()
       selectedCoinAmount.value = 0
       localStorage.setItem('aichuangzuo_membership', JSON.stringify({
         level: planKeyToName[data.level] || plan.name,

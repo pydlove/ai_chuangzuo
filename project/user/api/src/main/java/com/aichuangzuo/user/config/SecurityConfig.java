@@ -27,6 +27,7 @@ public class SecurityConfig {
         http
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
+                .requestMatchers("/api/v1/user/auth/qr-login/scan").authenticated()
                 .requestMatchers("/api/v1/user/auth/**").permitAll()
                 .requestMatchers("/api/v1/user/learn/**").permitAll()
                 .requestMatchers("/api/v1/user/plans").permitAll()

@@ -13,18 +13,12 @@
           :src="'/assets/images/运营方案logo-v1.png'"
           alt="定制你的自媒体方案"
         />
-        <p class="onboarding-hero-mobile__desc">让 AI 为你定制专属运营方案</p>
-      </div>
-      <div class="onboarding-hero-mobile__icon-wrap">
-        <img
-          class="onboarding-hero-mobile__icon"
-          src="/assets/images/运营方案icon-v2.png"
-          alt="定制你的自媒体方案"
-        />
+        <p class="onboarding-hero-mobile__desc">别再瞎折腾了！只要设置一次，让你拥有一个24小时在线的自媒体运营总监，你不再关心明天要发什么，怎么写，几点发，发到哪，怎么蹭热点……我们都会给你安排好。</p>
       </div>
     </div>
 
-    <div class="onboarding-steps">
+    <div class="onboarding-body">
+      <div class="onboarding-steps">
       <div class="step-bar">
         <div
           v-for="(s, idx) in steps"
@@ -37,7 +31,7 @@
       </div>
     </div>
 
-    <div class="onboarding-card" :class="{ 'onboarding-card--platform': step === 1 }">
+    <div class="onboarding-card" :class="{ 'onboarding-card--platform': step === 1, 'onboarding-card--niche': step === 3, 'onboarding-card--persona': step === 4, 'onboarding-card--summary': step === 5 }">
       <!-- Step 1: 选平台 -->
       <div v-if="step === 1" class="step-panel step-panel--platform">
         <h3 class="step-title">你想在哪个平台做自媒体？</h3>
@@ -112,7 +106,7 @@
 
         <!-- 手机端：京东风格横向滑动卡片 -->
         <div class="platform-swiper platform-swiper--mobile">
-          <div class="platform-swiper-track">
+          <div ref="trackRef" class="platform-swiper-track">
             <div
               v-for="p in platforms"
               :key="p.key"
@@ -129,6 +123,24 @@
                 </div>
               </div>
               <div class="platform-swiper-card__tagline">{{ p.tagline }}</div>
+              <div class="platform-swiper-card__info">
+                <div class="info-row">
+                  <span class="info-label">内容形式</span>
+                  <span class="info-value">{{ p.contentForm.join('、') }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">主要收益</span>
+                  <span class="info-value">{{ p.monetization.join('、') }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">变现门槛</span>
+                  <span class="info-value">{{ p.threshold }}</span>
+                </div>
+                <div class="info-row">
+                  <span class="info-label">适合谁</span>
+                  <span class="info-value">{{ p.bestFor }}</span>
+                </div>
+              </div>
               <div class="platform-swiper-card__metrics">
                 <div class="platform-metric">
                   <div class="platform-metric__label">变现难度</div>
@@ -152,7 +164,7 @@
             <span
               v-for="p in platforms"
               :key="p.key"
-              :class="['swiper-dot', { active: selectedPlatform === p.key }]"
+              :class="['swiper-dot', { active: visiblePlatformKey === p.key }]"
             />
           </div>
         </div>
@@ -264,10 +276,12 @@
         <div class="form-block">
           <div class="form-label">内容支柱比例（默认推荐）</div>
           <div class="pillars-input">
-            <div v-for="pillar in pillars" :key="pillar.name" class="pillar-row">
-              <span class="pillar-name">{{ pillar.name }}</span>
+            <div v-for="pillar in pillars" :key="pillar.name" class="pillar-card">
+              <div class="pillar-card-header">
+                <span class="pillar-name">{{ pillar.name }}</span>
+                <span class="pillar-percent">{{ pillar.percent }}%</span>
+              </div>
               <a-slider v-model:value="pillar.percent" :min="0" :max="100" />
-              <span class="pillar-percent">{{ pillar.percent }}%</span>
             </div>
           </div>
           <div v-if="pillarTotal !== 100" class="pillar-warning">三项比例之和需等于 100%</div>
@@ -319,11 +333,12 @@
       <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" :loading="isLoadingNext" @click="next">下一步</a-button>
       <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
     </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import {
@@ -339,13 +354,17 @@ import {
   recommendPersonas,
   savePlan as apiSavePlan
 } from '@/api/selfMediaPlan.js'
+import { getMyProfile } from '@/api/user.js'
 
 const router = useRouter()
 const route = useRoute()
 const step = ref(1)
 const steps = ['选平台', '答问题', '选赛道', '做人设', '出方案']
-const DRAFT_KEY = 'aichuangzuo_onboarding_draft'
+let DRAFT_KEY = 'aichuangzuo_onboarding_draft'
+let DONE_KEY = 'aichuangzuo_onboarding_done'
 const isRestoringDraft = ref(false)
+const trackRef = ref(null)
+const visiblePlatformKey = ref('')
 
 function platformIconUrl(key) {
   return `/platforms/${key}.png`
@@ -486,6 +505,7 @@ const platforms = computed(() => {
 })
 
 onMounted(async () => {
+  await initUserKeys()
   const hasDraft = loadDraft()
   if (route.query.reset === '1') {
     if (!hasDraft) {
@@ -497,6 +517,7 @@ onMounted(async () => {
     if (step.value >= 3) await loadNicheOptions()
     if (step.value >= 4) await loadPersonaOptions()
     router.replace({ query: {} })
+    await nextTick(initTrackScroll)
     return
   }
   if (hasDraft) {
@@ -504,12 +525,14 @@ onMounted(async () => {
     if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
     if (step.value >= 3) await loadNicheOptions()
     if (step.value >= 4) await loadPersonaOptions()
+    await nextTick(initTrackScroll)
     return
   }
   await checkExistingPlan()
   if (step.value !== 5) {
     await loadPlatforms()
   }
+  await nextTick(initTrackScroll)
 })
 async function checkExistingPlan() {
   try {
@@ -517,7 +540,7 @@ async function checkExistingPlan() {
     const data = res?.data ?? null
     if (!data || !data.platformKey) return
 
-    localStorage.setItem('aichuangzuo_onboarding_done', '1')
+    localStorage.setItem(DONE_KEY, '1')
     selectedPlatform.value = data.platformKey
     await loadQuestions()
 
@@ -599,7 +622,47 @@ const answerSummary = computed(() => {
 
 function selectPlatform(key) {
   selectedPlatform.value = selectedPlatform.value === key ? '' : key
+  scrollTrackToPlatform(key)
 }
+
+function scrollTrackToPlatform(key) {
+  const track = trackRef.value
+  if (!track) return
+  const idx = platforms.value.findIndex(p => p.key === key)
+  if (idx < 0) return
+  const cardWidth = track.clientWidth - 32
+  const gap = 12
+  track.scrollTo({ left: idx * (cardWidth + gap), behavior: 'smooth' })
+}
+
+function updateVisibleFromScroll() {
+  const track = trackRef.value
+  if (!track) return
+  const cardWidth = track.clientWidth - 32
+  const gap = 12
+  const index = Math.max(0, Math.min(platforms.value.length - 1, Math.round(track.scrollLeft / (cardWidth + gap))))
+  const p = platforms.value[index]
+  if (p) visiblePlatformKey.value = p.key
+}
+
+function initTrackScroll() {
+  const track = trackRef.value
+  if (!track) return
+  if (selectedPlatform.value) {
+    const idx = platforms.value.findIndex(p => p.key === selectedPlatform.value)
+    if (idx >= 0) {
+      const cardWidth = track.clientWidth - 32
+      const gap = 12
+      track.scrollTo({ left: idx * (cardWidth + gap), behavior: 'instant' })
+    }
+  }
+  updateVisibleFromScroll()
+  track.addEventListener('scroll', updateVisibleFromScroll, { passive: true })
+}
+
+onBeforeUnmount(() => {
+  trackRef.value?.removeEventListener('scroll', updateVisibleFromScroll)
+})
 
 function saveDraft() {
   const draft = {
@@ -643,6 +706,19 @@ function loadDraft() {
 
 function clearDraft() {
   localStorage.removeItem(DRAFT_KEY)
+}
+
+async function initUserKeys() {
+  try {
+    const res = await getMyProfile()
+    const userId = res?.data?.userId || res?.userId
+    if (userId) {
+      DRAFT_KEY = `aichuangzuo_onboarding_draft:${userId}`
+      DONE_KEY = `aichuangzuo_onboarding_done:${userId}`
+    }
+  } catch (e) {
+    // 未登录或获取失败时继续使用通用 key
+  }
 }
 
 watch(step, saveDraft)
@@ -752,6 +828,7 @@ async function next() {
       okText: '确认',
       cancelText: '取消',
       centered: true,
+      okButtonProps: { danger: true },
       onOk: () => proceedNext()
     })
     return
@@ -800,7 +877,7 @@ async function confirm() {
       answers: answerList.value
     })
     message.success('自媒体方案已生成')
-    localStorage.setItem('aichuangzuo_onboarding_done', '1')
+    localStorage.setItem(DONE_KEY, '1')
     clearDraft()
     router.push('/console/workbench')
   } catch (e) {
@@ -1227,38 +1304,50 @@ async function confirm() {
   flex-direction: column;
   gap: 12px;
 }
-.pillar-row {
+.pillar-card {
+  background: #fff;
+  border: 1px solid #f5f5f5;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+.pillar-card-header {
   display: flex;
+  justify-content: space-between;
   align-items: center;
+  margin-bottom: 10px;
   gap: 12px;
 }
 .pillar-name {
-  width: 80px;
-  font-size: 14px;
+  font-size: 15px;
+  font-weight: 600;
   color: #1a1a1a;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.pillar-row :deep(.ant-slider) {
-  flex: 1;
+.pillar-percent {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--color-primary, #FF2442);
+  white-space: nowrap;
+  flex-shrink: 0;
 }
-.pillar-row :deep(.ant-slider-track) {
+.pillar-card :deep(.ant-slider) {
+  margin: 0;
+}
+.pillar-card :deep(.ant-slider-track) {
   background: var(--color-primary, #FF2442);
 }
-.pillar-row :deep(.ant-slider-handle) {
+.pillar-card :deep(.ant-slider-handle) {
   border-color: var(--color-primary, #FF2442);
 }
-.pillar-row :deep(.ant-slider-handle:focus),
-.pillar-row :deep(.ant-slider-handle.ant-tooltip-open) {
+.pillar-card :deep(.ant-slider-handle:focus),
+.pillar-card :deep(.ant-slider-handle.ant-tooltip-open) {
   border-color: var(--color-primary, #FF2442);
   box-shadow: 0 0 0 4px rgba(255, 36, 66, 0.2);
 }
-.pillar-row :deep(.ant-slider-dot-active) {
+.pillar-card :deep(.ant-slider-dot-active) {
   border-color: var(--color-primary, #FF2442);
-}
-.pillar-percent {
-  width: 48px;
-  text-align: right;
-  font-size: 14px;
-  color: #1a1a1a;
 }
 .pillar-warning {
   margin-top: 8px;
@@ -1280,11 +1369,7 @@ async function confirm() {
 }
 .summary-row {
   display: flex;
-  padding: 12px 0;
-  border-bottom: 1px solid #f0f0f0;
-}
-.summary-row:last-child {
-  border-bottom: none;
+  padding: 10px 0;
 }
 .summary-label {
   width: 100px;
@@ -1422,23 +1507,6 @@ async function confirm() {
     color: #595959;
   }
 
-  .onboarding-hero-mobile__icon-wrap {
-    width: 130px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    z-index: 1;
-  }
-
-  .onboarding-hero-mobile__icon {
-    width: 120px;
-    height: 120px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
-
   .onboarding-title {
     font-size: 24px;
     font-weight: 800;
@@ -1451,9 +1519,12 @@ async function confirm() {
     color: #8c8c8c;
   }
 
+  .onboarding-body {
+    padding: 0 14px;
+  }
+
   .onboarding-steps {
     margin-bottom: 16px;
-    padding: 0 14px;
   }
   .step-bar::before {
     left: 12%;
@@ -1472,12 +1543,12 @@ async function confirm() {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
   }
   .step-label {
-    display: none;
+    display: block;
     font-size: 10px;
     white-space: nowrap;
+    color: #8c8c8c;
   }
   .step-item.active .step-label {
-    display: block;
     color: var(--color-primary);
     font-weight: 600;
   }
@@ -1487,11 +1558,38 @@ async function confirm() {
     padding: 18px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.03);
-    margin: 0 14px 16px;
+    margin-bottom: 16px;
   }
 
   /* 平台选择步骤：去掉外层 onboarding-card 卡片 */
   .onboarding-card--platform {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .onboarding-card--niche {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .onboarding-card--persona {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    border-radius: 0;
+    margin: 0;
+  }
+
+  .onboarding-card--summary {
     background: transparent;
     box-shadow: none;
     border: none;
@@ -1532,7 +1630,7 @@ async function confirm() {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
-    padding: 4px 14px 16px;
+    padding: 4px 0 16px;
   }
 
   .platform-swiper-track::-webkit-scrollbar {
@@ -1540,13 +1638,13 @@ async function confirm() {
   }
 
   .platform-swiper-card {
-    flex: 0 0 calc(100vw - 56px);
+    flex: 0 0 calc(100% - 32px);
     max-width: 320px;
     min-height: 240px;
     scroll-snap-align: start;
     position: relative;
     border-radius: 20px;
-    padding: 20px;
+    padding: 18px;
     background: #fff;
     border: 2px solid transparent;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
@@ -1554,7 +1652,7 @@ async function confirm() {
     transition: all 0.25s ease;
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
   }
 
   .platform-swiper-card.selected {
@@ -1564,42 +1662,69 @@ async function confirm() {
 
   .platform-swiper-card__header {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
-    gap: 10px;
-    text-align: center;
+    gap: 12px;
+    text-align: left;
   }
 
   .platform-swiper-card .platform-icon {
-    width: 64px;
-    height: 64px;
-    border-radius: 18px;
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    flex-shrink: 0;
   }
 
   .platform-swiper-card .platform-title {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 6px;
+    align-items: flex-start;
+    gap: 4px;
   }
 
   .platform-swiper-card .platform-name {
-    font-size: 20px;
+    font-size: 18px;
     font-weight: 700;
   }
 
   .platform-swiper-card__tagline {
-    font-size: 13px;
+    font-size: 12px;
     color: #595959;
-    line-height: 1.55;
-    text-align: center;
+    line-height: 1.5;
+    text-align: left;
+  }
+
+  .platform-swiper-card__info {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  .info-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .info-label {
+    font-size: 11px;
+    color: #8c8c8c;
+    white-space: nowrap;
+  }
+
+  .info-value {
+    color: #262626;
+    overflow-wrap: break-word;
   }
 
   .platform-swiper-card__metrics {
     display: flex;
     gap: 8px;
     margin-top: auto;
-    padding-top: 14px;
+    padding-top: 10px;
     border-top: 1px solid #f5f5f5;
   }
 
@@ -1618,6 +1743,23 @@ async function confirm() {
     font-size: 13px;
     font-weight: 600;
     color: #1a1a1a;
+    white-space: nowrap;
+  }
+
+  .platform-metric__value.tag-easy {
+    color: #237804;
+    background: transparent;
+    border-color: transparent;
+  }
+  .platform-metric__value.tag-medium {
+    color: #fa8c16;
+    background: transparent;
+    border-color: transparent;
+  }
+  .platform-metric__value.tag-hard {
+    color: #ff6b6b;
+    background: transparent;
+    border-color: transparent;
   }
 
   .platform-swiper-card .selected-check {
@@ -1660,7 +1802,7 @@ async function confirm() {
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    margin: 16px 14px 0;
+    margin: 16px 0;
     padding: 14px;
     background: #fff;
     border-radius: 16px;
@@ -1765,16 +1907,19 @@ async function confirm() {
   .pillars-input {
     gap: 10px;
   }
-  .pillar-row {
+  .pillar-card {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .pillar-card-header {
+    margin-bottom: 8px;
     gap: 8px;
   }
   .pillar-name {
-    width: 70px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .pillar-percent {
-    width: 40px;
-    font-size: 13px;
+    font-size: 14px;
   }
   .pillar-warning {
     font-size: 12px;
@@ -1828,12 +1973,12 @@ async function confirm() {
     font-size: 12px;
     padding: 10px 12px;
     border-radius: 12px;
+    margin-bottom: 16px;
   }
 
   /* 底部操作 */
   .onboarding-actions {
     gap: 10px;
-    padding: 0 14px;
     padding-bottom: 0;
   }
   .onboarding-actions .ant-btn {
@@ -1873,6 +2018,15 @@ async function confirm() {
   body[data-theme="dark"] .platform-swiper-card__tagline,
   body[data-theme="dark"] .platform-reason-mobile {
     color: rgba(255, 255, 255, 0.55);
+  }
+  body[data-theme="dark"] .platform-swiper-card__info {
+    color: rgba(255, 255, 255, 0.55);
+  }
+  body[data-theme="dark"] .info-label {
+    color: rgba(255, 255, 255, 0.45);
+  }
+  body[data-theme="dark"] .info-value {
+    color: rgba(255, 255, 255, 0.75);
   }
   body[data-theme="dark"] .platform-reason-mobile {
     background: #1f1f1f;

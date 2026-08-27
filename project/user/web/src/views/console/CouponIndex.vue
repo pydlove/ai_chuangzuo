@@ -1,83 +1,90 @@
 <template>
   <div class="coupon-page">
-   <!-- 顶部栏 -->
-   <header class="coupon-header">
-      <div class="coupon-header__left">
-        <h1 class="coupon-header__title">我的优惠券</h1>
-        <span class="coupon-header__count">共 <em>{{ filteredCoupons.length }}</em> 张</span>
+    <!-- PC 端页面标题与操作 -->
+    <header class="coupon-page-header">
+      <div class="coupon-page-title-wrap">
+        <h1 class="coupon-page-title">我的优惠券</h1>
+        <p class="coupon-page-subtitle">查看活动获得的优惠券与抵扣记录</p>
       </div>
-      <button class="coupon-header__action" @click="router.push('/lottery')">去参与活动</button>
-   </header>
+      <button class="coupon-page__action" @click="router.push('/lottery')">去参与活动</button>
+    </header>
 
-    <!-- 状态筛选标签 -->
-    <div class="coupon-desktop-tabs">
+    <!-- 状态筛选 -->
+    <div class="coupon-tabs">
       <button
-        v-for="s in statusStats"
-        :key="s.value"
-        class="coupon-desktop-tab"
-        :class="{ active: currentStatus === s.value }"
-        @click="currentStatus = s.value"
+        v-for="tab in tabs"
+        :key="tab.value"
+        class="coupon-tab"
+        :class="{ active: activeTab === tab.value }"
+        @click="activeTab = tab.value"
       >
-        {{ s.label }}
-        <span class="coupon-desktop-tab__count">{{ s.count }}</span>
+        {{ tab.label }}
+        <span class="coupon-tab__count">{{ couponCounts[tab.value] }}</span>
       </button>
     </div>
 
-    <!-- 加载中 -->
-    <div v-if="loading" class="coupon-empty">
-      <a-skeleton active :paragraph="{ rows: 4 }" />
-    </div>
+    <div class="coupon-page-body">
+      <!-- 桌面端：表格 -->
+      <div class="coupon-desktop-table">
+        <a-table
+          :columns="columns"
+          :data-source="coupons"
+          :row-key="record => record.id"
+          :pagination="false"
+          :loading="loading"
+          :scroll="{ x: 760 }"
+          :locale="tableLocale"
+          class="coupon-table"
+        />
+      </div>
 
-    <!-- 空状态 -->
-    <div v-else-if="filteredCoupons.length === 0" class="coupon-empty">
-      <div class="coupon-empty__icon"><TagsOutlined /></div>
-      <div class="coupon-empty__title">您暂时没有优惠券</div>
-      <p class="coupon-empty__desc">参与抽奖或活动，有机会获得会员、创作币等优惠券</p>
-      <button class="coupon-empty__btn" @click="router.push('/lottery')">去参与活动</button>
-    </div>
-
-    <!-- 优惠券表格 -->
-    <div v-else class="coupon-table-wrapper">
-      <table class="coupon-table">
-        <thead>
-          <tr>
-            <th>优惠内容</th>
-            <th>券码</th>
-            <th>适用范围</th>
-            <th>状态</th>
-            <th>有效期至</th>
-            <th class="coupon-table__action-col">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            v-for="coupon in filteredCoupons"
+      <!-- 移动端：卡片列表 -->
+      <div v-show="coupons.length > 0 || loading" class="coupon-mobile-list">
+        <div v-if="loading" class="coupon-skeleton">
+          <a-skeleton v-for="i in 3" :key="i" active :paragraph="{ rows: 3 }" />
+        </div>
+        <div v-else class="coupon-list">
+          <div
+            v-for="coupon in coupons"
             :key="coupon.id"
-            :class="coupon.status"
+            class="coupon-card"
           >
-            <td>
-              <div class="coupon-table__value">{{ couponValueText(coupon) }}</div>
-              <div class="coupon-table__type">{{ couponTypeText(coupon) }}</div>
-            </td>
-            <td class="coupon-table__code">{{ coupon.couponCode }}</td>
-            <td class="coupon-table__scope">{{ scopeText(coupon) }}</td>
-            <td>
-              <span class="coupon-table__status" :class="coupon.status">{{ statusLabel(coupon.status) }}</span>
-            </td>
-            <td class="coupon-table__time">{{ formatTime(coupon.validEnd) }}</td>
-            <td class="coupon-table__action-col">
-              <button v-if="coupon.status === 'unused'" class="coupon-table__btn" @click="handleUse(coupon)">去使用</button>
-              <span v-else class="coupon-table__noop">—</span>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+            <div class="coupon-card__header">
+              <span class="coupon-card__code">{{ coupon.couponCode }}</span>
+              <span class="coupon-card__status" :class="coupon.status">
+                {{ statusLabel(coupon.status) }}
+              </span>
+            </div>
+            <div class="coupon-card__body">
+              <div class="coupon-card__value-wrap">
+                <span class="coupon-card__value">{{ couponValueText(coupon) }}</span>
+                <span class="coupon-card__type">{{ couponTypeText(coupon) }}</span>
+              </div>
+              <div class="coupon-card__scope">{{ scopeText(coupon) }}</div>
+            </div>
+            <div class="coupon-card__footer">
+              <span class="coupon-card__time">有效期至 {{ formatTime(coupon.validEnd) }}</span>
+              <button v-if="coupon.status === 'unused'" class="coupon-card__btn" @click="handleUse(coupon)">
+                去使用
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 移动端空状态 -->
+      <div v-if="coupons.length === 0 && !loading" class="coupon-empty coupon-empty--mobile">
+        <div class="coupon-empty__icon"><TagsOutlined /></div>
+        <div class="coupon-empty__title">暂无{{ currentTabLabel }}优惠券</div>
+        <p class="coupon-empty__desc">参与抽奖或活动，有机会获得会员、创作币等优惠券</p>
+        <button class="coupon-empty__btn" @click="router.push('/lottery')">去参与活动</button>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { TagsOutlined } from '@ant-design/icons-vue'
@@ -85,28 +92,77 @@ import { getMyCoupons } from '@/api/lottery'
 import dayjs from 'dayjs'
 
 const router = useRouter()
-const coupons = ref([])
+
+const tabs = [
+  { value: 'all', label: '全部' },
+  { value: 'unused', label: '未使用' },
+  { value: 'used', label: '已使用' },
+  { value: 'expired', label: '已失效' }
+]
+
+const activeTab = ref('all')
+const allCoupons = ref([])
 const loading = ref(false)
-const currentStatus = ref('all')
 let expiryTimer = null
 
-const filteredCoupons = computed(() => {
-  if (currentStatus.value === 'all') return coupons.value
-  return coupons.value.filter(c => c.status === currentStatus.value)
+const coupons = computed(() => {
+  if (activeTab.value === 'all') return allCoupons.value
+  return allCoupons.value.filter(c => c.status === activeTab.value)
 })
 
-const statusStats = computed(() => {
-  const all = coupons.value.length
-  const unused = coupons.value.filter(c => c.status === 'unused').length
-  const used = coupons.value.filter(c => c.status === 'used').length
-  const expired = coupons.value.filter(c => c.status === 'expired').length
-  return [
-    { value: 'all', label: '全部', count: all },
-    { value: 'unused', label: '未使用', count: unused },
-    { value: 'used', label: '已使用', count: used },
-    { value: 'expired', label: '已失效', count: expired }
-  ]
+const couponCounts = computed(() => {
+  const counts = { all: allCoupons.value.length, unused: 0, used: 0, expired: 0 }
+  allCoupons.value.forEach((c) => {
+    if (counts[c.status] !== undefined) counts[c.status]++
+  })
+  return counts
 })
+
+const currentTabLabel = computed(() => {
+  const tab = tabs.find((t) => t.value === activeTab.value)
+  return tab ? tab.label : ''
+})
+
+const tableLocale = computed(() => ({
+  emptyText: h('div', { class: 'coupon-table-empty' }, [
+    h('div', { class: 'coupon-table-empty__text' }, `暂无${currentTabLabel.value}优惠券`),
+    h('div', { class: 'coupon-table-empty__desc' }, '参与抽奖或活动，有机会获得会员、创作币等优惠券'),
+    h('button', { class: 'coupon-empty__btn coupon-table-empty__btn', onClick: () => router.push('/lottery') }, '去参与活动')
+  ])
+}))
+
+const columns = [
+  {
+    title: '优惠内容',
+    key: 'value',
+    width: 140,
+    customRender: ({ record }) => h('div', { class: 'coupon-table__value-wrap' }, [
+      h('div', { class: 'coupon-table__value' }, couponValueText(record)),
+      h('div', { class: 'coupon-table__type' }, couponTypeText(record))
+    ])
+  },
+  { title: '券码', dataIndex: 'couponCode', key: 'couponCode', width: 170 },
+  { title: '适用范围', key: 'scope', customRender: ({ record }) => scopeText(record) },
+  {
+    title: '状态',
+    dataIndex: 'status',
+    key: 'status',
+    width: 100,
+    customRender: ({ text }) => h('span', { class: ['coupon-table__status', text] }, statusLabel(text))
+  },
+  { title: '有效期至', dataIndex: 'validEnd', key: 'validEnd', width: 160, customRender: ({ text }) => formatTime(text) },
+  {
+    title: '操作',
+    key: 'action',
+    width: 100,
+    customRender: ({ record }) => {
+      if (record.status === 'unused') {
+        return h('button', { class: 'coupon-table__btn', onClick: (e) => { e.stopPropagation(); handleUse(record); } }, '去使用')
+      }
+      return h('span', { class: 'coupon-table__noop' }, '—')
+    }
+  }
+]
 
 function couponValueText(coupon) {
   if (coupon.couponType === 'percent') {
@@ -142,7 +198,7 @@ function handleUse(coupon) {
 function checkExpiryReminder() {
   const now = dayjs()
   const threshold = 24 * 60 * 60 * 1000
-  coupons.value
+  allCoupons.value
     .filter(c => c.status === 'unused' && c.validEnd)
     .forEach(c => {
       const end = dayjs(c.validEnd)
@@ -161,7 +217,7 @@ async function loadCoupons() {
   loading.value = true
   try {
     const res = await getMyCoupons()
-    coupons.value = res.data || []
+    allCoupons.value = res.data || []
     checkExpiryReminder()
   } catch (e) {
     message.error('加载优惠券失败')
@@ -183,224 +239,185 @@ onUnmounted(() => {
 <style scoped>
 .coupon-page {
   min-height: 100%;
-  background: #fafafa;
-  padding: 16px 12px calc(80px + env(safe-area-inset-bottom));
-  max-width: 1200px;
+  background: #f5f6fa;
+  padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
   box-sizing: border-box;
 }
 
-/* 顶部栏 */
-.coupon-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 14px;
-  gap: 12px;
+/* 页面标题：PC 端显示 */
+.coupon-page-header {
+  display: none;
 }
 
-.coupon-header__left {
+.coupon-page-title-wrap {
   display: flex;
-  align-items: baseline;
-  gap: 12px;
+  flex-direction: column;
+  gap: 4px;
 }
 
-.coupon-header__title {
+.coupon-page-title {
   font-size: 22px;
   font-weight: 700;
   color: #1a1a1a;
   margin: 0;
 }
 
-.coupon-header__count {
+.coupon-page-subtitle {
   font-size: 14px;
   color: #8c8c8c;
+  margin: 0;
 }
 
-.coupon-header__count em {
-  font-style: normal;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.coupon-header__action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px 14px;
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.coupon-header__action:active {
-  background: var(--color-primary-active);
-}
-
-/* 状态筛选标签 */
-.coupon-desktop-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 16px;
-  border-bottom: 1px solid #f0f0f0;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.coupon-desktop-tabs::-webkit-scrollbar {
+.coupon-page__action {
   display: none;
 }
 
-.coupon-desktop-tab {
-  position: relative;
-  padding: 10px 12px;
-  background: transparent;
+/* 状态筛选 */
+.coupon-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 12px;
+  background: #fff;
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.coupon-tab {
+  flex: 1;
+  padding: 10px 8px;
   border: none;
-  border-bottom: 2px solid transparent;
+  border-radius: 10px;
+  background: transparent;
   color: #595959;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  margin-bottom: -1px;
-  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.coupon-desktop-tab.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
-}
-
-.coupon-desktop-tab__count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  background: #f5f5f5;
-  color: #8c8c8c;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 700;
-}
-
-.coupon-desktop-tab.active .coupon-desktop-tab__count {
+.coupon-tab.active {
   background: var(--color-primary);
   color: #fff;
 }
 
-/* 优惠券表格 */
-.coupon-table-wrapper {
-  display: block;
+.coupon-tab__count {
+  display: none;
+}
+
+.coupon-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.coupon-skeleton :deep(.ant-skeleton) {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  overflow-x: auto;
+  padding: 16px;
 }
 
-.coupon-table {
-  width: 100%;
-  min-width: 560px;
-  border-collapse: collapse;
-  font-size: 13px;
+.coupon-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.coupon-table th {
-  padding: 12px;
-  text-align: left;
-  font-weight: 600;
-  color: #8c8c8c;
-  background: #fafafa;
-  border-bottom: 1px solid #f0f0f0;
-  font-size: 12px;
-  white-space: nowrap;
+.coupon-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 14px 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  cursor: default;
+  transition: transform 0.15s, box-shadow 0.15s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.coupon-table td {
-  padding: 12px;
-  border-bottom: 1px solid #f5f5f5;
-  vertical-align: middle;
+.coupon-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
 }
 
-.coupon-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.coupon-table tbody tr.used,
-.coupon-table tbody tr.expired {
-  opacity: 0.75;
-}
-
-.coupon-table__value {
-  font-size: 14px;
-  font-weight: 700;
-  color: #1a1a1a;
-}
-
-.coupon-table__type {
-  font-size: 11px;
-  color: #8c8c8c;
-  margin-top: 2px;
-}
-
-.coupon-table__code {
+.coupon-card__code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 12px;
-  color: #595959;
-  word-break: break-all;
+  color: #8c8c8c;
 }
 
-.coupon-table__scope {
-  font-size: 12px;
-  color: #595959;
-}
-
-.coupon-table__status {
+.coupon-card__status {
   display: inline-flex;
   align-items: center;
   padding: 3px 8px;
   border-radius: 999px;
   font-size: 11px;
   font-weight: 600;
-  white-space: nowrap;
 }
 
-.coupon-table__status.unused {
+.coupon-card__status.unused {
   color: var(--color-primary);
   background: var(--color-primary-light);
 }
 
-.coupon-table__status.used {
+.coupon-card__status.used {
   color: #8c8c8c;
   background: #f5f5f5;
 }
 
-.coupon-table__status.expired {
+.coupon-card__status.expired {
   color: #ff4d4f;
   background: #fff1f0;
 }
 
-.coupon-table__time {
-  font-size: 12px;
-  color: #595959;
-  white-space: nowrap;
+.coupon-card__body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.coupon-table__action-col {
-  width: 80px;
+.coupon-card__value-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.coupon-card__value {
+  font-size: 17px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.coupon-card__type {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
+.coupon-card__scope {
+  font-size: 12px;
+  color: #595959;
   text-align: right;
 }
 
-.coupon-table__btn {
+.coupon-card__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid #f5f5f5;
+}
+
+.coupon-card__time {
+  font-size: 12px;
+  color: #bfbfbf;
+}
+
+.coupon-card__btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -410,16 +427,16 @@ onUnmounted(() => {
   font-size: 12px;
   font-weight: 600;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.coupon-table__noop {
-  color: #bfbfbf;
+.coupon-card__btn:active {
+  background: var(--color-primary-active);
 }
 
-/* 空状态 */
 .coupon-empty {
   text-align: center;
   padding: 56px 16px;
@@ -474,136 +491,246 @@ onUnmounted(() => {
   background: var(--color-primary-active);
 }
 
+.coupon-desktop-table {
+  display: none;
+}
+
+.coupon-mobile-list {
+  display: block;
+}
+
 @media (min-width: 769px) {
   .coupon-page {
-    padding: 32px 24px calc(80px + env(safe-area-inset-bottom));
+    background: transparent;
+    padding: 24px 32px calc(32px + env(safe-area-inset-bottom));
+    max-width: 1280px;
   }
 
-  .coupon-header {
+  .coupon-page-header {
+    display: flex;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 20px;
   }
 
-  .coupon-header__action {
+  .coupon-page__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     padding: 8px 18px;
+    background: var(--color-primary);
+    color: #fff;
     font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
   }
 
-  .coupon-header__action:hover {
+  .coupon-page__action:hover {
     background: var(--color-primary-hover);
   }
 
-  .coupon-desktop-tabs {
+  .coupon-tabs {
+    display: flex;
+    gap: 0;
     margin-bottom: 20px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border-bottom: 1px solid #f0f0f0;
+    overflow-x: auto;
+    scrollbar-width: none;
   }
 
-  .coupon-desktop-tab {
+  .coupon-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .coupon-tab {
+    flex: 0 0 auto;
+    position: relative;
     padding: 12px 16px;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #595959;
     font-size: 14px;
-    gap: 6px;
+    font-weight: 600;
+    margin-bottom: -1px;
+    white-space: nowrap;
   }
 
-  .coupon-desktop-tab:hover {
+  .coupon-tab.active {
+    background: transparent;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  .coupon-tab:hover:not(.active) {
     color: #1a1a1a;
   }
 
-  .coupon-desktop-tab__count {
+  .coupon-tab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-width: 18px;
     height: 18px;
     padding: 0 5px;
+    margin-left: 6px;
+    background: #f5f5f5;
+    color: #8c8c8c;
     border-radius: 9px;
     font-size: 11px;
+    font-weight: 700;
   }
 
-  .coupon-table-wrapper {
+  .coupon-tab.active .coupon-tab__count {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  .coupon-page-body {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
     overflow: hidden;
   }
 
+  .coupon-desktop-table {
+    display: block;
+    overflow-x: auto;
+  }
+
+  .coupon-mobile-list {
+    display: none;
+  }
+
   .coupon-table {
+    min-width: 760px;
+  }
+
+  .coupon-empty--mobile {
+    display: none;
+  }
+
+  .coupon-table-empty {
+    padding: 48px 24px;
+    text-align: center;
+  }
+
+  .coupon-table-empty__text {
     font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 6px;
   }
 
-  .coupon-table th {
-    padding: 14px 16px;
+  .coupon-table-empty__desc {
     font-size: 13px;
+    color: #8c8c8c;
+    margin-bottom: 16px;
   }
 
-  .coupon-table td {
-    padding: 16px;
-  }
-
-  .coupon-table tbody tr:hover {
-    background: #fafafa;
-  }
-
-  .coupon-table__value {
-    font-size: 16px;
-  }
-
-  .coupon-table__type {
-    font-size: 12px;
-  }
-
-  .coupon-table__code {
+  .coupon-table-empty__btn {
     font-size: 13px;
+    padding: 7px 18px;
   }
+}
 
-  .coupon-table__scope {
-    font-size: 13px;
-  }
+/* 桌面端表格 */
+.coupon-desktop-table .coupon-table {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+}
 
-  .coupon-table__status {
-    padding: 4px 10px;
-    font-size: 12px;
-  }
+.coupon-table :deep(.ant-table-thead > tr > th) {
+  background: #fafafa;
+  font-weight: 600;
+  color: #595959;
+  border-bottom: 1px solid #f0f0f0;
+  white-space: nowrap;
+}
 
-  .coupon-table__time {
-    font-size: 13px;
-  }
+.coupon-table :deep(.ant-table-tbody > tr > td) {
+  border-bottom: 1px solid #f5f5f5;
+}
 
-  .coupon-table__action-col {
-    width: 100px;
-  }
+.coupon-table :deep(.ant-table-tbody > tr:hover > td) {
+  background: #f7f7f7;
+}
 
-  .coupon-table__btn {
-    padding: 6px 16px;
-    font-size: 13px;
-  }
+.coupon-table :deep(.ant-table-tbody > tr:last-child > td) {
+  border-bottom: none;
+}
 
-  .coupon-table__btn:hover {
-    background: var(--color-primary-hover);
-  }
+.coupon-table__value-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
 
-  .coupon-empty {
-    padding: 80px 16px;
-  }
+.coupon-table__value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
 
-  .coupon-empty__icon {
-    width: 88px;
-    height: 88px;
-  }
+.coupon-table__type {
+  font-size: 12px;
+  color: #8c8c8c;
+}
 
-  .coupon-empty__icon :deep(svg) {
-    width: 40px;
-    height: 40px;
-  }
+.coupon-table__status {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
 
-  .coupon-empty__title {
-    font-size: 20px;
-  }
+.coupon-table__status.unused {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
 
-  .coupon-empty__desc {
-    font-size: 14px;
-  }
+.coupon-table__status.used {
+  color: #8c8c8c;
+  background: #f5f5f5;
+}
 
-  .coupon-empty__btn {
-    padding: 12px 32px;
-    font-size: 15px;
-  }
+.coupon-table__status.expired {
+  color: #ff4d4f;
+  background: #fff1f0;
+}
 
-  .coupon-empty__btn:hover {
-    background: var(--color-primary-hover);
-  }
+.coupon-table__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 10px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.coupon-table__btn:hover {
+  background: var(--color-primary-hover);
+}
+
+.coupon-table__noop {
+  color: #bfbfbf;
+  font-size: 13px;
 }
 
 /* 暗色主题 */
@@ -611,84 +738,85 @@ body[data-theme="dark"] .coupon-page {
   background: #141414;
 }
 
-body[data-theme="dark"] .coupon-header__title,
-body[data-theme="dark"] .coupon-empty__title {
-  color: #f5f5f5;
+body[data-theme="dark"] .coupon-tabs,
+body[data-theme="dark"] .coupon-card,
+body[data-theme="dark"] .coupon-skeleton :deep(.ant-skeleton) {
+  background: #1f1f1f;
 }
 
-body[data-theme="dark"] .coupon-header__count,
-body[data-theme="dark"] .coupon-empty__desc {
+body[data-theme="dark"] .coupon-tab {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .coupon-header__action {
-  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
-}
-
-body[data-theme="dark"] .coupon-header__action:hover {
-  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
-}
-
-body[data-theme="dark"] .coupon-desktop-tabs {
-  border-bottom-color: #303030;
-}
-
-body[data-theme="dark"] .coupon-desktop-tab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .coupon-desktop-tab:hover {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .coupon-desktop-tab.active {
-  color: #ff6b81;
-  border-bottom-color: #ff4d6f;
-}
-
-body[data-theme="dark"] .coupon-desktop-tab__count {
-  background: #2a2a2a;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .coupon-desktop-tab.active .coupon-desktop-tab__count {
-  background: #ff4d6f;
+body[data-theme="dark"] .coupon-tab.active {
+  background: var(--color-primary);
   color: #fff;
 }
 
-body[data-theme="dark"] .coupon-table-wrapper {
-  background: #1f1f1f;
-  box-shadow: none;
-}
-
-body[data-theme="dark"] .coupon-table th {
-  background: #141414;
-  color: #a6a6a6;
-  border-bottom-color: #303030;
-}
-
-body[data-theme="dark"] .coupon-table td {
-  border-bottom-color: #2a2a2a;
-}
-
-body[data-theme="dark"] .coupon-table tbody tr:hover {
-  background: #262626;
-}
-
-body[data-theme="dark"] .coupon-table__value {
+body[data-theme="dark"] .coupon-card__value,
+body[data-theme="dark"] .coupon-empty__title,
+body[data-theme="dark"] .coupon-page-title {
   color: #f0f0f0;
 }
 
-body[data-theme="dark"] .coupon-table__type,
-body[data-theme="dark"] .coupon-table__scope,
-body[data-theme="dark"] .coupon-table__time,
-body[data-theme="dark"] .coupon-table__code {
+body[data-theme="dark"] .coupon-card__code,
+body[data-theme="dark"] .coupon-card__type,
+body[data-theme="dark"] .coupon-card__scope,
+body[data-theme="dark"] .coupon-empty__desc,
+body[data-theme="dark"] .coupon-page-subtitle {
   color: #a6a6a6;
 }
 
+body[data-theme="dark"] .coupon-card__time {
+  color: #737373;
+}
+
+body[data-theme="dark"] .coupon-card__footer {
+  border-top-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .coupon-card__status.unused {
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
+
+body[data-theme="dark"] .coupon-card__status.used {
+  color: #a6a6a6;
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .coupon-card__status.expired {
+  color: #ff7875;
+  background: rgba(255, 77, 79, 0.12);
+}
+
+body[data-theme="dark"] .coupon-empty__icon {
+  background: var(--color-primary-bg);
+  color: var(--color-primary);
+}
+
+body[data-theme="dark"] .coupon-desktop-table .coupon-table {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .coupon-table :deep(.ant-table-thead > tr > th) {
+  background: #262626;
+  color: #a6a6a6;
+  border-bottom-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .coupon-table :deep(.ant-table-tbody > tr > td) {
+  border-bottom-color: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .coupon-table :deep(.ant-table-tbody > tr:hover > td) {
+  background: #262626;
+}
+
 body[data-theme="dark"] .coupon-table__status.unused {
-  color: #ff6b81;
-  background: rgba(255, 36, 66, 0.12);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
 body[data-theme="dark"] .coupon-table__status.used {
@@ -705,20 +833,47 @@ body[data-theme="dark"] .coupon-table__noop {
   color: #666;
 }
 
-body[data-theme="dark"] .coupon-table__btn {
-  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+body[data-theme="dark"] .coupon-table-empty__text {
+  color: #f0f0f0;
 }
 
-body[data-theme="dark"] .coupon-table__btn:hover {
-  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+body[data-theme="dark"] .coupon-table-empty__desc {
+  color: #a6a6a6;
 }
 
-body[data-theme="dark"] .coupon-empty__icon {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
+@media (min-width: 769px) {
+  body[data-theme="dark"] .coupon-page {
+    background: transparent;
+  }
 
-body[data-theme="dark"] .coupon-empty__btn:hover {
-  background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+  body[data-theme="dark"] .coupon-tabs {
+    background: transparent;
+    border-bottom-color: #303030;
+  }
+
+  body[data-theme="dark"] .coupon-tab {
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .coupon-tab.active {
+    background: transparent;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
+  }
+
+  body[data-theme="dark"] .coupon-tab__count {
+    background: #303030;
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .coupon-tab.active .coupon-tab__count {
+    background: var(--color-primary);
+    color: #fff;
+  }
+
+  body[data-theme="dark"] .coupon-page-body {
+    background: #1f1f1f;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
 }
 </style>

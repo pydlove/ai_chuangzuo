@@ -68,7 +68,7 @@ public class UserProfileServiceImpl implements UserProfileService {
     }
 
     /**
-     * 修改当前用户的个人资料（昵称、简介、性别、生日、所在地）。
+     * 修改当前用户的个人资料（昵称、简介、性别、生日、所在地、职业）。
      *
      * @param request 个人资料请求（已通过 Bean Validation）
      * @return 更新后的视图对象
@@ -95,6 +95,9 @@ public class UserProfileServiceImpl implements UserProfileService {
         }
         if (request.getLocation() != null) {
             user.setLocation(request.getLocation().trim());
+        }
+        if (request.getOccupation() != null) {
+            user.setOccupation(request.getOccupation().trim());
         }
         userMapper.updateById(user);
         log.info("个人资料已修改 userId={}", userId);

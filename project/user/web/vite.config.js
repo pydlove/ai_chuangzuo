@@ -2,12 +2,48 @@ import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
+
+function getLocalIp() {
+  const nets = os.networkInterfaces()
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address
+      }
+    }
+  }
+  return 'localhost'
+}
+
+function qrBaseUrlPlugin() {
+  let baseUrl = ''
+  return {
+    name: 'qr-base-url',
+    configureServer(server) {
+      server.httpServer?.on('listening', () => {
+        const address = server.httpServer.address()
+        if (address && typeof address === 'object') {
+          baseUrl = `http://${getLocalIp()}:${address.port}`
+        }
+      })
+    },
+    transformIndexHtml(html, ctx) {
+      if (!ctx.bundle && baseUrl && html.includes('</head>')) {
+        const script = `  <script>window.__QR_BASE_URL__ = ${JSON.stringify(baseUrl)}</script>\n  </head>`
+        return html.replace('</head>', script)
+      }
+      return html
+    }
+  }
+}
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
+    qrBaseUrlPlugin(),
     {
       name: 'build-version',
       transformIndexHtml(html, ctx) {

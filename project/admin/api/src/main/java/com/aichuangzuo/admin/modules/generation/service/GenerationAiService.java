@@ -52,9 +52,10 @@ public class GenerationAiService {
      * 调用模型，返回 AI 原始 assistant content + token 消耗。
      *
      * @param modelParams 可选；非空时 merge 进请求体（覆盖默认 temperature）
+     * @param requireJson 是否强制 JSON 输出；true 时加入 response_format=json_object
      */
     public AiCallResult call(Long modelConfigId, String systemMessage, String userMessage,
-                       Map<String, Object> modelParams) {
+                       Map<String, Object> modelParams, boolean requireJson) {
         ModelConfig cfg = modelConfigMapper.selectById(modelConfigId);
         if (cfg == null || cfg.getIsActive() == null || cfg.getIsActive() != 1) {
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
@@ -107,7 +108,9 @@ public class GenerationAiService {
         // 多数 OpenAI 兼容厂商（含 chatcompletion_v2）支持；不支持时会静默忽略，
         // 不至于报错崩任务。配合解析器侧开启 ALLOW_UNQUOTED_FIELD_NAMES 等
         // 兜底，覆盖绝大多数 M3 输出瑕疵。
-        body.put("response_format", Map.of("type", "json_object"));
+        if (requireJson) {
+            body.put("response_format", Map.of("type", "json_object"));
+        }
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -128,6 +131,12 @@ public class GenerationAiService {
                     cfg.getProviderType(), url, e.getMessage());
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_AI_PROVIDER_ERROR);
         }
+    }
+
+    /** 保留旧 4 参签名（向后兼容），内部 delegate 到 5 参版本，默认强制 JSON。 */
+    public AiCallResult call(Long modelConfigId, String systemMessage, String userMessage,
+                       Map<String, Object> modelParams) {
+        return call(modelConfigId, systemMessage, userMessage, modelParams, true);
     }
 
     /** 保留旧 3 参签名（向后兼容），内部 delegate 到 4 参版本。 */

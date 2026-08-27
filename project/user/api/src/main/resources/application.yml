@@ -16,6 +16,10 @@ spring:
     multipart:
       max-file-size: 5MB
       max-request-size: 10MB
+  web:
+    resources:
+      cache:
+        period: 7d
   mail:
     host: ${SPRING_MAIL_HOST:127.0.0.1}
     port: ${SPRING_MAIL_PORT:3025}

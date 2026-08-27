@@ -42,6 +42,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         fb.setUserId(userId);
         fb.setType(request.getType());
         fb.setContent(request.getContent());
+        fb.setStarRating(request.getStarRating());
         fb.setStatus(0);
         fb.setTenantId(0L);
         fb.setCreatedBy(userId);
@@ -70,6 +71,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         vo.setId(fb.getId());
         vo.setType(fb.getType());
         vo.setContent(fb.getContent());
+        vo.setStarRating(fb.getStarRating());
         vo.setStatus(fb.getStatus());
         vo.setReplyContent(fb.getReplyContent());
         vo.setRepliedAt(fb.getRepliedAt());

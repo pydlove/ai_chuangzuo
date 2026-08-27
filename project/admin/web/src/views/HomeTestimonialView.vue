@@ -2,7 +2,24 @@
   <div class="home-testimonial-view">
     <a-card title="首页评价管理" :bordered="false">
       <template #extra>
-        <a-button type="primary" @click="onCreate">新增评价</a-button>
+        <a-space>
+          <a-button @click="onDownloadTemplate">
+            <template #icon><DownloadOutlined /></template>
+            下载导入模板
+          </a-button>
+          <a-upload
+            accept=".xlsx"
+            :show-upload-list="false"
+            :before-upload="beforeImport"
+            :custom-request="handleImport"
+          >
+            <a-button :loading="importing">
+              <template #icon><UploadOutlined /></template>
+              导入评价
+            </a-button>
+          </a-upload>
+          <a-button type="primary" @click="onCreate">新增评价</a-button>
+        </a-space>
       </template>
       <a-table :columns="columns" :data-source="testimonials" :loading="loading" row-key="id" :pagination="false">
         <template #bodyCell="{ column, record }">
@@ -86,20 +103,54 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <a-modal
+      v-model:open="importResultVisible"
+      title="导入结果"
+      :footer="null"
+      :width="560"
+    >
+      <div v-if="importResult">
+        <p v-if="importResult.success" class="import-success">
+          成功导入 {{ importResult.importedCount }} 条评价。
+        </p>
+        <template v-else>
+          <p class="import-failed">导入失败，共发现 {{ importResult.errors?.length || 0 }} 条错误：</p>
+          <a-list
+            :data-source="importResult.errors"
+            size="small"
+            class="import-error-list"
+          >
+            <template #renderItem="{ item }">
+              <a-list-item>
+                <div class="import-error-item">
+                  <div class="import-error-title">第 {{ item.rowIndex }} 行 · {{ item.name || '未知姓名' }}</div>
+                  <ul>
+                    <li v-for="(err, idx) in item.errors" :key="idx">{{ err }}</li>
+                  </ul>
+                </div>
+              </a-list-item>
+            </template>
+          </a-list>
+        </template>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
-import { UploadOutlined } from '@ant-design/icons-vue'
+import { UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import {
   listTestimonials,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
   updateTestimonialStatus,
-  uploadTestimonialAvatar
+  uploadTestimonialAvatar,
+  downloadTestimonialImportTemplate,
+  importTestimonials
 } from '@/api/homeTestimonial.js'
 
 const testimonials = ref([])
@@ -107,6 +158,9 @@ const loading = ref(false)
 const modalOpen = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
+const importing = ref(false)
+const importResultVisible = ref(false)
+const importResult = ref(null)
 const editing = ref(null)
 const formRef = ref()
 
@@ -193,6 +247,52 @@ async function onToggleStatus(record, checked) {
     message.success('已更新')
   } catch (e) {
     message.error(e?.message || '更新失败')
+  }
+}
+
+async function onDownloadTemplate() {
+  try {
+    const res = await downloadTestimonialImportTemplate()
+    const blob = new Blob([res], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '评价导入模板.xlsx'
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    message.error(e?.message || '下载模板失败')
+  }
+}
+
+function beforeImport(file) {
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    message.error('请上传 .xlsx 格式的 Excel 文件')
+    return false
+  }
+  if (file.size > 10 * 1024 * 1024) {
+    message.error('文件大小不能超过 10MB')
+    return false
+  }
+  return true
+}
+
+async function handleImport({ file }) {
+  importing.value = true
+  try {
+    const result = await importTestimonials(file)
+    importResult.value = result
+    importResultVisible.value = true
+    if (result.success) {
+      message.success(`成功导入 ${result.importedCount} 条评价`)
+      await load()
+    }
+  } catch (e) {
+    message.error(e?.message || '导入失败')
+  } finally {
+    importing.value = false
   }
 }
 
@@ -316,5 +416,35 @@ onMounted(load)
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.import-success {
+  color: #52c41a;
+  font-size: 16px;
+  text-align: center;
+  padding: 24px 0;
+}
+.import-failed {
+  color: #ff4d4f;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+.import-error-list {
+  max-height: 360px;
+  overflow-y: auto;
+}
+.import-error-item {
+  width: 100%;
+}
+.import-error-title {
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.import-error-item ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #595959;
+}
+.import-error-item li {
+  margin-bottom: 2px;
 }
 </style>

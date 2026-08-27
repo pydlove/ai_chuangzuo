@@ -71,7 +71,7 @@ public class UserProfileController {
     }
 
     /**
-     * 修改个人资料（昵称、简介、性别、生日、所在地）。
+     * 修改个人资料（昵称、简介、性别、生日、所在地、职业）。
      *
      * @param request 个人资料请求
      * @return 更新后的 UserProfileVO

@@ -3,9 +3,11 @@ package com.aichuangzuo.admin.modules.aiprompt.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptCreateRequest;
 import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptQueryRequest;
+import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptTestRequest;
 import com.aichuangzuo.admin.modules.aiprompt.dto.request.AiPromptUpdateRequest;
 import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptService;
 import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptDetailVO;
+import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptTestVO;
 import com.aichuangzuo.admin.modules.aiprompt.vo.AiPromptVO;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
@@ -90,6 +92,15 @@ public class AiPromptController {
         log.info("管理员停用 AI 提示词, adminUserId={}, id={}", adminUserId, id);
         aiPromptService.disable(id);
         return Result.success();
+    }
+
+    @Operation(summary = "测试提示词")
+    @PostMapping("/{id}/actions/test")
+    public Result<AiPromptTestVO> test(@PathVariable("id") Long id,
+                                       @Valid @RequestBody AiPromptTestRequest request) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员测试 AI 提示词, adminUserId={}, id={}", adminUserId, id);
+        return Result.success(aiPromptService.test(id, request.getVariables()));
     }
 
     private Long checkSuperAdmin() {

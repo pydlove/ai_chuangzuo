@@ -27,3 +27,7 @@ export function enableAiPrompt(id) {
 export function disableAiPrompt(id) {
   return request.post(`/ai-prompts/${id}/actions/disable`)
 }
+
+export function testAiPrompt(id, data) {
+  return request.post(`/ai-prompts/${id}/actions/test`, data).then((res) => res.data)
+}

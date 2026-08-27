@@ -28,4 +28,8 @@ public class UpdateProfileRequest {
     /** 所在地；最大 128 字符。 */
     @Size(max = 128, message = "所在地不能超过 128 个字符")
     private String location;
+
+    /** 职业；最大 128 字符。 */
+    @Size(max = 128, message = "职业不能超过 128 个字符")
+    private String occupation;
 }

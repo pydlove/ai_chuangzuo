@@ -7,7 +7,8 @@ import {
   createAiPrompt,
   updateAiPrompt,
   enableAiPrompt,
-  disableAiPrompt
+  disableAiPrompt,
+  testAiPrompt
 } from '@/api/aiPrompt.js'
 
 export function useAiPrompt() {
@@ -51,9 +52,11 @@ export function useAiPrompt() {
     if (id) {
       await updateAiPrompt(id, data)
       message.success('更新成功')
+      return id
     } else {
-      await createAiPrompt(data)
+      const res = await createAiPrompt(data)
       message.success('创建成功')
+      return res?.data?.id
     }
   }
 
@@ -67,6 +70,10 @@ export function useAiPrompt() {
     }
   }
 
+  const testPrompt = async (id, variables) => {
+    return await testAiPrompt(id, { variables })
+  }
+
   return {
     list,
     total,
@@ -78,6 +85,7 @@ export function useAiPrompt() {
     loadCategories,
     getDetail,
     save,
-    toggleStatus
+    toggleStatus,
+    testPrompt
   }
 }

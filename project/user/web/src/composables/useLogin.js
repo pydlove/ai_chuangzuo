@@ -21,13 +21,25 @@ const USER_SCOPED_KEYS = [
   'aichuangzuo_create_form',
   'aichuangzuo_create_mode',
   'aichuangzuo_create_last_skill',
-  'aichuangzuo_earnings_records',
   'aichuangzuo_selfmedia_plan_modal_dismissed',
-  'aichuangzuo_coin_balance',
   'aichuangzuo_redeem_codes',
   'aichuangzuo_redeem_history',
   'aichuangzuo_withdraw_agreement_accepted'
 ]
+
+export function persistTokens(data) {
+  const prevUserId = localStorage.getItem(USER_ID_KEY)
+  const newUserId = data.user?.id != null ? String(data.user.id) : null
+  if (newUserId && prevUserId && prevUserId !== newUserId) {
+    USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key))
+  }
+  localStorage.setItem('aichuangzuo_access_token', data.accessToken)
+  localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
+  localStorage.setItem('aichuangzuo_remember_me', data.rememberMe ? 'true' : 'false')
+  if (newUserId) {
+    localStorage.setItem(USER_ID_KEY, newUserId)
+  }
+}
 
 export function useLogin() {
   const router = useRouter()
@@ -185,20 +197,6 @@ export function useLogin() {
         countdownTimer = null
       }
     }, 1000)
-  }
-
-  const persistTokens = (data) => {
-    const prevUserId = localStorage.getItem(USER_ID_KEY)
-    const newUserId = data.user?.id != null ? String(data.user.id) : null
-    if (newUserId && prevUserId && prevUserId !== newUserId) {
-      USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key))
-    }
-    localStorage.setItem('aichuangzuo_access_token', data.accessToken)
-    localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
-    localStorage.setItem('aichuangzuo_remember_me', data.rememberMe ? 'true' : 'false')
-    if (newUserId) {
-      localStorage.setItem(USER_ID_KEY, newUserId)
-    }
   }
 
   const handleLogin = () => {

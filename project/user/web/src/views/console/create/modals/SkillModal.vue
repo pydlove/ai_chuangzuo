@@ -259,8 +259,7 @@ import {
 } from '@/composables/useSkills.js'
 import {
   favoriteSkills,
-  loadFavoriteSkills,
-  useMarketSkill
+  loadFavoriteSkills
 } from '@/composables/useSkillMarket.js'
 import { useCreateForm } from '../useCreateForm.js'
 import SkillCard from '@/components/SkillCard.vue'
@@ -430,8 +429,6 @@ const applySkillLocal = () => {
       message.warning('该提示词已下架，无法使用')
       return
     }
-    // 收藏的市场提示词：先记录使用 + 创作者收益，再应用到当前任务
-    try { useMarketSkill(s.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
   }
   applySkill(s)
   styleVisible.value = false
@@ -445,7 +442,6 @@ const useFromPromptModal = () => {
       message.warning('该提示词已下架，无法使用')
       return
     }
-    try { useMarketSkill(viewingSkill.value.id) } catch (e) { console.warn('[useMarketSkill]', e?.message || e) }
   }
   selectedStyleName.value = viewingSkill.value.name
   applySkill(viewingSkill.value)

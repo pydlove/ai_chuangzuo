@@ -697,23 +697,26 @@
                 </div>
               </a-tab-pane>
               <a-tab-pane key="reviews" tab="评价">
-                <a-spin :spinning="reviewsLoading">
-                  <div v-if="!reviewsLoading && filteredReviews.length === 0" class="history-empty">
-                    <p>暂无用户评价</p>
+                <div class="feedback-panel">
+                  <div class="feedback-title">写下你的评价</div>
+                  <div class="feedback-rating">
+                    <label class="feedback-label">总体评分</label>
+                    <a-rate v-model:value="reviewRating" :count="5" class="feedback-rate" />
                   </div>
-                  <div v-else class="reviews-list">
-                    <TestimonialCard
-                      v-for="item in filteredReviews"
-                      :key="item.id"
-                      :avatar-url="item.avatarUrl"
-                      :name="item.name"
-                      :title="item.title"
-                      :star-rating="item.starRating"
-                      :review-text="item.reviewText"
-                      class="reviews-list-item"
-                    />
+                  <div class="feedback-content">
+                    <label class="feedback-label">评价内容</label>
+                    <textarea
+                      v-model="reviewContent"
+                      class="feedback-textarea"
+                      placeholder="分享你的使用体验..."
+                      rows="5"
+                      maxlength="500"
+                    ></textarea>
                   </div>
-                </a-spin>
+                  <button class="feedback-submit" :disabled="reviewSubmitting" @click="submitReview">
+                    {{ reviewSubmitting ? '提交中...' : '提交评价' }}
+                  </button>
+                </div>
               </a-tab-pane>
             </a-tabs>
           </a-modal>
@@ -823,6 +826,12 @@
               </div>
             </template>
             <span class="console-membership-badge has-membership" :class="membershipPlanKey">
+              <img
+                v-if="membershipBadgeIcon"
+                :src="membershipBadgeIcon"
+                class="console-membership-badge-icon"
+                alt=""
+              />
               {{ membershipLevel }}
             </span>
           </a-popover>
@@ -890,7 +899,7 @@
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
                     </span>
                   </div>
-                  <div class="user-row" @click="openProfileModal">
+                  <div class="user-row" @click="userCenterVisible = false; router.push('/console/profile/edit')">
                     <span class="user-row-label">昵称</span>
                     <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.nickname || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
                   </div>
@@ -926,6 +935,13 @@
                 <!-- 快捷操作 -->
                 <div class="user-section">
                   <div class="user-section-title">设置</div>
+                  <div class="user-action" @click="openProfileEditModal">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    编辑资料
+                  </div>
                   <div class="user-action" @click="openPasswordModal">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
                       <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
@@ -1162,85 +1178,6 @@
     </div>
   </a-modal>
 
-  <!-- 修改个人信息弹框 -->
-  <a-modal
-    v-model:open="profileVisible"
-    title="修改个人信息"
-    :footer="null"
-    :width="400"
-    centered
-    class="profile-modal"
-  >
-    <div class="profile-modal-content">
-      <div class="profile-avatar-item" @click="triggerAvatarUpload">
-        <div class="profile-avatar-preview">
-          <img
-            v-if="profileEditForm.avatarUrl"
-            :src="profileEditForm.avatarUrl"
-            alt="avatar"
-          />
-          <UserOutlined v-else />
-        </div>
-        <span class="profile-avatar-text">{{ profileEditForm.avatarUrl ? '更换头像' : '上传头像' }}</span>
-      </div>
-      <div class="profile-item">
-        <label class="profile-label">昵称</label>
-        <input
-          v-model="profileEditForm.nickname"
-          type="text"
-          class="profile-input"
-          placeholder="请输入昵称"
-          maxlength="20"
-        />
-      </div>
-      <div class="profile-item">
-        <label class="profile-label">简介</label>
-        <textarea
-          v-model="profileEditForm.bio"
-          class="profile-textarea"
-          placeholder="写点什么介绍自己"
-          maxlength="256"
-          rows="3"
-        />
-      </div>
-      <div class="profile-item">
-        <label class="profile-label">性别</label>
-        <div class="profile-gender-row">
-          <button
-            v-for="opt in genderOptions"
-            :key="opt.value"
-            class="profile-gender-btn"
-            :class="{ active: profileEditForm.gender === opt.value }"
-            @click="profileEditForm.gender = opt.value"
-          >
-            {{ opt.label }}
-          </button>
-        </div>
-      </div>
-      <div class="profile-item">
-        <label class="profile-label">生日</label>
-        <input
-          v-model="profileEditForm.birthday"
-          type="date"
-          class="profile-input"
-          placeholder="请选择生日"
-        />
-      </div>
-      <div class="profile-item">
-        <label class="profile-label">所在地</label>
-        <input
-          v-model="profileEditForm.location"
-          type="text"
-          class="profile-input"
-          placeholder="请输入所在地"
-          maxlength="128"
-        />
-      </div>
-      <div class="profile-platform-no">平台号：AI-20260826-001</div>
-      <button class="profile-submit" @click="handleProfileSubmit">保存</button>
-    </div>
-  </a-modal>
-
   <!-- 修改邮箱弹框 -->
   <a-modal
     v-model:open="emailVisible"
@@ -1419,7 +1356,156 @@
     </div>
   </a-modal>
 
+  <!-- 编辑资料弹框 -->
+  <a-modal
+    v-model:open="profileEditVisible"
+    title="编辑资料"
+    :footer="null"
+    :width="480"
+    centered
+    class="profile-edit-modal"
+    @cancel="closeProfileEditModal"
+  >
+    <div class="profile-edit-modal-body">
+      <div class="profile-edit-avatar" @click="triggerAvatarUpload">
+        <div class="profile-edit-avatar-preview">
+          <img
+            v-if="profileEditForm.avatarUrl"
+            :src="profileEditForm.avatarUrl"
+            alt="avatar"
+          />
+          <UserOutlined v-else />
+        </div>
+        <span class="profile-edit-avatar-text">{{ profileEditForm.avatarUrl ? '更换头像' : '上传头像' }}</span>
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">平台ID</label>
+        <div class="profile-edit-userid-row">
+          <input
+            v-model="profileEditForm.userId"
+            type="text"
+            class="profile-edit-input profile-edit-userid-input"
+            readonly
+          />
+          <button class="profile-edit-copy-btn" @click="copyProfileUserId">
+            <CopyOutlined />
+            <span>复制</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">昵称 <span class="profile-edit-required">*</span></label>
+        <input
+          v-model="profileEditForm.nickname"
+          type="text"
+          class="profile-edit-input"
+          placeholder="请输入昵称"
+          maxlength="20"
+        />
+      </div>
+
+      <div class="profile-edit-item">
+        <div class="profile-edit-label-row">
+          <label class="profile-edit-label">简介</label>
+          <span class="profile-edit-bio-count">{{ profileEditForm.bio.length }}/50</span>
+        </div>
+        <textarea
+          v-model="profileEditForm.bio"
+          class="profile-edit-textarea"
+          placeholder="写点什么介绍自己"
+          maxlength="50"
+          rows="3"
+        />
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">性别</label>
+        <div class="profile-edit-gender-row">
+          <button
+            v-for="opt in genderOptions"
+            :key="opt.value"
+            class="profile-edit-gender-btn"
+            :class="{ active: profileEditForm.gender === opt.value }"
+            @click="profileEditForm.gender = opt.value"
+          >
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">生日</label>
+        <a-date-picker
+          v-model:value="profileEditForm.birthday"
+          format="YYYY-MM-DD"
+          value-format="YYYY-MM-DD"
+          placeholder="请选择生日"
+          class="profile-edit-birthday-picker"
+          :allow-clear="true"
+        />
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">所在地</label>
+        <input
+          v-model="profileEditForm.location"
+          type="text"
+          class="profile-edit-input"
+          placeholder="请输入所在地"
+          maxlength="128"
+        />
+      </div>
+
+      <div class="profile-edit-item">
+        <label class="profile-edit-label">职业</label>
+        <input
+          v-model="profileEditForm.occupation"
+          type="text"
+          class="profile-edit-input"
+          placeholder="请输入职业"
+          maxlength="128"
+        />
+      </div>
+
+      <button class="profile-edit-submit" @click="handleProfileEditSubmit">保存</button>
+    </div>
+  </a-modal>
+
   <CreateFlowLauncher ref="createLauncherRef" @taskCreated="onTaskCreated" />
+
+  <!-- 手机端扫码入口 -->
+  <button
+    v-if="!isMobile"
+    class="console-mobile-entry"
+    aria-label="手机扫码访问"
+    @click="openMobileQr"
+  >
+    <img
+      src="/assets/images/手机-v1.png"
+      alt="手机扫码访问"
+      class="console-mobile-entry-img"
+    />
+  </button>
+
+  <a-modal
+    v-model:open="mobileQrVisible"
+    :footer="null"
+    :width="360"
+    centered
+    class="mobile-qr-modal"
+    @cancel="mobileQrVisible = false"
+  >
+    <div class="mobile-qr-panel">
+      <div class="mobile-qr-title">手机扫码访问</div>
+      <div class="mobile-qr-code">
+        <img v-if="mobileQrUrl" :src="mobileQrUrl" alt="手机访问二维码" />
+        <div v-else class="mobile-qr-placeholder">二维码生成中...</div>
+      </div>
+      <p class="mobile-qr-hint">微信或浏览器扫一扫，手机端继续使用</p>
+    </div>
+  </a-modal>
 
 </template>
 
@@ -1446,8 +1532,6 @@ import { normalizeMessageLink } from '@/utils/messageLink'
 import { getMyMembership } from '@/api/membership'
 import { getNewcomerOffer } from '@/api/membership'
 import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
-import { fetchHomeTestimonials } from '@/api/home'
-import TestimonialCard from '@/components/testimonial/TestimonialCard.vue'
 import { getMonthlyCount } from '@/api/article'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
@@ -1467,6 +1551,7 @@ import {
   ReadOutlined,
   TagsOutlined,
   DashboardOutlined,
+  CopyOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1522,14 +1607,12 @@ const pageTitleMap = {
   '/console/commission': '约稿中心',
   '/console/commission/:id': '约稿详情',
   '/console/coupons': '我的优惠券',
-  '/console/orders': '我的订单'
+  '/console/orders': '我的订单',
+  '/console/onboarding': '定制你的自媒体方案',
+  '/console/profile/edit': '修改个人信息'
 }
 const subpageTitle = computed(() => pageTitleMap[route.path] || '')
-const customMobileHeaderPaths = ['/console/works', '/console/hot-search', '/console/skills']
-const hideMobileSubpageHeader = computed(() => {
-  if (route.meta?.hideMobileSubpageHeader === true) return true
-  return customMobileHeaderPaths.includes(route.path)
-})
+const hideMobileSubpageHeader = computed(() => route.meta?.hideMobileSubpageHeader === true)
 const goBack = () => router.back()
 
 // 处理从提现页面"返回邀请有礼"时自动打开邀请弹框
@@ -1764,22 +1847,9 @@ const feedbackType = ref('功能建议')
 const feedbackTypes = ['功能建议', '问题反馈', '其他']
 const feedbackContent = ref('')
 const feedbackSubmitting = ref(false)
-const reviews = ref([])
-const reviewsLoading = ref(false)
-
-const filteredReviews = computed(() => reviews.value.filter((r) => r.starRating >= 4))
-
-const loadReviews = async () => {
-  if (reviews.value.length > 0) return
-  reviewsLoading.value = true
-  try {
-    reviews.value = await fetchHomeTestimonials()
-  } catch (e) {
-    message.error(e?.message || '加载评价失败')
-  } finally {
-    reviewsLoading.value = false
-  }
-}
+const reviewRating = ref(0)
+const reviewContent = ref('')
+const reviewSubmitting = ref(false)
 
 const loadHistory = async () => {
   historyLoading.value = true
@@ -1822,15 +1892,13 @@ const closeFeedbackModal = () => {
   historyList.value = []
   historyPage.value = 1
   historyFilter.value = 'all'
-  reviews.value = []
+  reviewRating.value = 0
+  reviewContent.value = ''
 }
 
 watch(feedbackTab, (t) => {
   if (t === 'history' && historyList.value.length === 0 && !historyDetail.value) {
     loadHistory()
-  }
-  if (t === 'reviews') {
-    loadReviews()
   }
 })
 
@@ -1865,6 +1933,41 @@ const submitFeedback = async () => {
   }
 }
 
+const submitReview = async () => {
+  if (!reviewRating.value) {
+    message.warning('请选择评分')
+    return
+  }
+  if (!reviewContent.value.trim()) {
+    message.warning('请填写评价内容')
+    return
+  }
+  if (reviewSubmitting.value) return
+  reviewSubmitting.value = true
+  try {
+    await submitFeedbackApi({
+      type: '评价',
+      content: reviewContent.value,
+      starRating: reviewRating.value
+    })
+    message.success('评价已提交，感谢你的反馈')
+    reviewRating.value = 0
+    reviewContent.value = ''
+    feedbackTab.value = 'history'
+    historyPage.value = 1
+    historyList.value = []
+    await loadHistory()
+  } catch (e) {
+    if (e?.code === 117001) {
+      message.warning(e.message || '今日评价次数已达上限，明天再来')
+    } else {
+      message.error(e?.message || '提交失败，请稍后再试')
+    }
+  } finally {
+    reviewSubmitting.value = false
+  }
+}
+
 // ---------- 关于我们 ----------
 const aboutVisible = ref(false)
 
@@ -1888,7 +1991,6 @@ const termsVisible = ref(false)
 const privacyVisible = ref(false)
 const wechatVisible = ref(false)
 const passwordVisible = ref(false)
-const profileVisible = ref(false)
 const avatarInput = ref(null)
 const emailVisible = ref(false)
 const emailSliderVisible = ref(false)
@@ -1901,6 +2003,7 @@ let phoneSliderSending = false
 const phoneCountdown = ref(0)
 let phoneCountdownTimer = null
 const inviteBindingVisible = ref(false)
+const profileEditVisible = ref(false)
 
 const inviteBindingForm = reactive({
   inviteCode: ''
@@ -1937,12 +2040,6 @@ const handleInviteBindingSubmit = () => {
   })
 }
 
-const genderOptions = [
-  { value: 0, label: '保密' },
-  { value: 1, label: '男' },
-  { value: 2, label: '女' }
-]
-
 // 表单字段直接派生自 profile：profile 没加载时为 ''，加载后双向绑定。
 // 用 getter/setter 而非 computed：computed 在 reactive 里只读。
 const profileForm = reactive({
@@ -1958,19 +2055,90 @@ const profileForm = reactive({
   set birthday(v) { userProfile.profile.value && (userProfile.profile.value.birthday = v) },
   get location() { return userProfile.profile.value?.location ?? '' },
   set location(v) { userProfile.profile.value && (userProfile.profile.value.location = v) },
+  get occupation() { return userProfile.profile.value?.occupation ?? '' },
+  set occupation(v) { userProfile.profile.value && (userProfile.profile.value.occupation = v) },
   get phone() { return userProfile.profile.value?.phone ?? '' },
   set phone(v) { /* 当前手机号通过 savePhone 成功后重新拉取 profile 更新 */ }
 })
 
-// 修改个人信息弹框的本地编辑状态，避免编辑时直接影响共享的 profileForm（ Mine 页背景昵称等不会实时变）
+const genderOptions = [
+  { value: 0, label: '保密' },
+  { value: 1, label: '男' },
+  { value: 2, label: '女' }
+]
+
 const profileEditForm = reactive({
+  userId: '',
   nickname: '',
   avatarUrl: '',
   bio: '',
   gender: 0,
   birthday: '',
-  location: ''
+  location: '',
+  occupation: ''
 })
+
+function syncProfileEditForm() {
+  const p = userProfile.profile.value
+  if (!p) return
+  profileEditForm.userId = p.userId ?? ''
+  profileEditForm.nickname = p.nickname ?? ''
+  profileEditForm.avatarUrl = p.avatarUrl ?? ''
+  profileEditForm.bio = p.bio ?? ''
+  profileEditForm.gender = p.gender ?? 0
+  profileEditForm.birthday = p.birthday ?? ''
+  profileEditForm.location = p.location ?? ''
+  profileEditForm.occupation = p.occupation ?? ''
+}
+
+const openProfileEditModal = () => {
+  userCenterVisible.value = false
+  syncProfileEditForm()
+  profileEditVisible.value = true
+}
+
+const closeProfileEditModal = () => {
+  profileEditVisible.value = false
+}
+
+const copyProfileUserId = async () => {
+  if (!profileEditForm.userId) return
+  try {
+    await navigator.clipboard.writeText(profileEditForm.userId)
+    message.success('平台ID已复制')
+  } catch {
+    message.error('复制失败')
+  }
+}
+
+const handleProfileEditSubmit = async () => {
+  const trimmed = profileEditForm.nickname.trim()
+  if (!trimmed) {
+    message.warning('昵称不能为空')
+    return
+  }
+  if (trimmed.length > 20) {
+    message.warning('昵称长度不能超过 20 个字符')
+    return
+  }
+  if (profileEditForm.bio.trim().length > 50) {
+    message.warning('简介长度不能超过 50 个字符')
+    return
+  }
+  try {
+    await userProfile.saveProfile({
+      nickname: trimmed,
+      bio: profileEditForm.bio.trim(),
+      gender: profileEditForm.gender,
+      birthday: profileEditForm.birthday || undefined,
+      location: profileEditForm.location.trim(),
+      occupation: profileEditForm.occupation.trim()
+    })
+    profileEditVisible.value = false
+  } catch {
+    // composable 已 message.error
+  }
+}
 
 const emailForm = reactive({
   // 当前邮箱：只读展示，修改邮箱弹框里不要回填旧邮箱
@@ -2095,21 +2263,6 @@ watch(phoneSliderPassed, async (val) => {
   }
 })
 
-const openProfileModal = () => {
-  userCenterVisible.value = false
-  // 打开时从共享 profile 复制一份到本地编辑态，编辑过程中不影响背景页面
-  const p = userProfile.profile.value
-  if (p) {
-    profileEditForm.nickname = p.nickname ?? ''
-    profileEditForm.avatarUrl = p.avatarUrl ?? ''
-    profileEditForm.bio = p.bio ?? ''
-    profileEditForm.gender = p.gender ?? 0
-    profileEditForm.birthday = p.birthday ?? ''
-    profileEditForm.location = p.location ?? ''
-  }
-  profileVisible.value = true
-}
-
 const openEmailModal = () => {
   userCenterVisible.value = false
   emailForm.newEmail = ''  // 新邮箱每次重新输入，不默认填旧邮箱
@@ -2135,30 +2288,6 @@ const copyAccountUserId = async () => {
   }
 }
 
-const handleProfileSubmit = async () => {
-  const trimmed = profileEditForm.nickname.trim()
-  if (!trimmed) {
-    message.warning('昵称不能为空')
-    return
-  }
-  if (trimmed.length > 20) {
-    message.warning('昵称长度不能超过 20 个字符')
-    return
-  }
-  try {
-    await userProfile.saveProfile({
-      nickname: trimmed,
-      bio: profileEditForm.bio.trim(),
-      gender: profileEditForm.gender,
-      birthday: profileEditForm.birthday || undefined,
-      location: profileEditForm.location.trim()
-    })
-    profileVisible.value = false
-  } catch {
-    // composable 已 message.error，弹框保持打开让用户修改
-  }
-}
-
 const triggerAvatarUpload = () => {
   avatarInput.value?.click()
 }
@@ -2169,8 +2298,7 @@ const onAvatarFileChange = async (e) => {
   e.target.value = ''
   try {
     const avatarUrl = await userProfile.saveAvatar(file)
-    // 如果在修改个人信息弹框里上传头像，同步更新本地编辑态
-    if (profileVisible.value && avatarUrl) {
+    if (profileEditVisible.value) {
       profileEditForm.avatarUrl = avatarUrl
     }
   } catch {
@@ -2297,6 +2425,19 @@ const membershipPlanKey = computed(() => {
   if (level.includes('专业')) return 'pro'
   if (level.includes('基础')) return 'basic'
   return 'free'
+})
+
+const membershipBadgeIcon = computed(() => {
+  const key = membershipPlanKey.value
+  if (key === 'flagship') return '/assets/images/vip/SSVIP.svg'
+  if (key === 'pro') return '/assets/images/vip/SVIP.svg'
+  if (key === 'basic') return '/assets/images/vip/VIP.svg'
+  // 兜底：按 membershipLevel 文本判断
+  const level = String(membershipLevel.value || '').toUpperCase()
+  if (level.includes('SSVIP')) return '/assets/images/vip/SSVIP.svg'
+  if (level.includes('SVIP')) return '/assets/images/vip/SVIP.svg'
+  if (level.includes('VIP')) return '/assets/images/vip/VIP.svg'
+  return ''
 })
 
 const loadMembership = () => {
@@ -2539,6 +2680,22 @@ const withdrawAmount = ref(null)
 const withdrawAccount = ref('')
 const withdrawName = ref('')
 const shareConfig = ref(null)
+
+// 手机端扫码访问
+const mobileQrVisible = ref(false)
+const mobileQrUrl = ref('')
+const mobileQrLink = computed(() => {
+  if (typeof window === 'undefined') return ''
+  const baseUrl = window.__QR_BASE_URL__ || window.location.origin
+  return `${baseUrl}${window.location.pathname}${window.location.search}`
+})
+const openMobileQr = async () => {
+  mobileQrVisible.value = true
+  if (!mobileQrUrl.value && mobileQrLink.value) {
+    mobileQrUrl.value = await buildQrDataUrl(mobileQrLink.value)
+  }
+}
+
 const userId = computed(() => userProfile.profile.value?.userId || '88886666')
 
 const inviteCode = computed(() => userProfile.profile.value?.inviteCode || '')
@@ -3077,7 +3234,6 @@ provide('consoleActions', {
   openPrivacyModal,
   openWechatModal,
   openPasswordModal,
-  openProfileModal,
   openEmailModal,
   openPhoneModal,
   openCreateChoice: () => createLauncherRef.value?.openCreateChoice(),
@@ -3258,6 +3414,9 @@ provide('consoleActions', {
 }
 
 .console-membership-badge {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
   border-radius: 12px;
   font-size: 12px;
@@ -3265,7 +3424,19 @@ provide('consoleActions', {
   transition: all 0.2s;
 }
 
+.console-membership-badge-icon {
+  position: absolute;
+  left: 62%;
+  top: 50%;
+  transform: translateY(-50%);
+  margin-left: -8px;
+  width: 38px;
+  object-fit: contain;
+}
+
 .console-membership-badge.has-membership {
+  width: 100px;
+  justify-content: left;
   background: #f5f5f5;
   color: #8c8c8c;
   border: 1px solid #d9d9d9;
@@ -4036,20 +4207,6 @@ provide('consoleActions', {
   text-align: center; color: #8c8c8c; padding: 16px 0; font-size: 13px;
 }
 
-.reviews-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 0 4px 4px;
-}
-.reviews-list-item {
-  width: 100%;
-  min-height: auto;
-}
-.reviews-list-item :deep(.testimonial-text) {
-  -webkit-line-clamp: 3;
-}
-
 .feedback-panel {
   width: 100%;
   background: #fff;
@@ -4067,6 +4224,15 @@ provide('consoleActions', {
   font-weight: 600;
   color: #1a1a1a;
   margin-bottom: 14px;
+}
+
+.feedback-rating {
+  margin-bottom: 12px;
+}
+
+.feedback-rate {
+  color: #ff2442;
+  font-size: 24px;
 }
 
 .feedback-label {
@@ -4456,6 +4622,10 @@ body[data-theme="dark"] .feedback-title {
   color: #e0e0e0;
 }
 
+body[data-theme="dark"] .feedback-rate {
+  color: #ff4d6f;
+}
+
 body[data-theme="dark"] .feedback-label {
   color: #a6a6a6;
 }
@@ -4714,146 +4884,6 @@ body[data-theme="dark"] .about-footer {
   opacity: 0.75;
 }
 
-/* 修改个人信息 */
-.profile-modal-content {
-  padding: 8px 0;
-}
-
-.profile-avatar-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 20px;
-  cursor: pointer;
-}
-
-.profile-avatar-preview {
-  width: 72px;
-  height: 72px;
-  border-radius: 50%;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  overflow: hidden;
-}
-
-.profile-avatar-preview img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.profile-avatar-text {
-  font-size: 13px;
-  color: var(--color-primary);
-  font-weight: 500;
-}
-
-.profile-avatar-item:hover .profile-avatar-text {
-  opacity: 0.75;
-}
-
-.profile-item {
-  margin-bottom: 16px;
-}
-
-.profile-label {
-  display: block;
-  font-size: 13px;
-  color: #595959;
-  margin-bottom: 8px;
-  font-weight: 500;
-}
-
-.profile-input {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #1a1a1a;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-}
-
-.profile-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.profile-textarea {
-  width: 100%;
-  padding: 10px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #1a1a1a;
-  transition: border-color 0.2s, box-shadow 0.2s;
-  box-sizing: border-box;
-  resize: vertical;
-  font-family: inherit;
-  line-height: 1.5;
-}
-
-.profile-textarea:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.1);
-}
-
-.profile-gender-row {
-  display: flex;
-  gap: 10px;
-}
-
-.profile-gender-btn {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #d9d9d9;
-  border-radius: 8px;
-  background: #fff;
-  color: #595959;
-  font-size: 14px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.profile-gender-btn.active {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.profile-platform-no {
-  text-align: center;
-  font-size: 12px;
-  color: #8c8c8c;
-  margin: 4px 0 16px;
-}
-
-.profile-submit {
-  width: 100%;
-  padding: 10px;
-  background: var(--color-primary);
-  color: #fff;
-  border: none;
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  margin-top: 8px;
-  transition: background 0.2s;
-}
-
-.profile-submit:hover {
-  background: var(--color-primary-hover);
-}
-
 /* 修改邮箱 */
 .email-modal-content,
 .phone-modal-content {
@@ -5028,6 +5058,206 @@ body[data-theme="dark"] .about-footer {
   background: var(--color-primary-hover);
 }
 
+/* 编辑资料弹框 */
+.profile-edit-modal-body {
+  padding: 8px 4px 4px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.profile-edit-avatar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  cursor: pointer;
+}
+
+.profile-edit-avatar-preview {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  color: #8c8c8c;
+  font-size: 28px;
+}
+
+.profile-edit-avatar-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-edit-avatar-text {
+  font-size: 13px;
+  color: var(--color-primary);
+}
+
+.profile-edit-item {
+  margin-bottom: 18px;
+}
+
+.profile-edit-label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.profile-edit-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.profile-edit-label-row .profile-edit-label {
+  margin-bottom: 0;
+}
+
+.profile-edit-bio-count {
+  font-size: 12px;
+  color: #999;
+}
+
+.profile-edit-userid-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.profile-edit-userid-input {
+  flex: 1;
+  background: #f5f5f5 !important;
+  color: #595959 !important;
+  cursor: default;
+}
+
+.profile-edit-copy-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px;
+  height: 40px;
+  border: 1px solid var(--color-primary);
+  background: #fff;
+  border-radius: 8px;
+  color: var(--color-primary);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.profile-edit-copy-btn:hover {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.profile-edit-input,
+.profile-edit-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #1a1a1a;
+  background: #fff;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.profile-edit-input:focus,
+.profile-edit-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
+}
+
+.profile-edit-birthday-picker {
+  width: 100%;
+}
+
+.profile-edit-birthday-picker.ant-picker {
+  width: 100%;
+  height: 40px;
+  border-radius: 8px;
+  border: 1px solid #d9d9d9;
+  padding: 0 12px;
+  background: #fff;
+}
+
+.profile-edit-birthday-picker.ant-picker-focused,
+.profile-edit-birthday-picker.ant-picker:hover {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
+}
+
+.profile-edit-birthday-picker :deep(.ant-picker-suffix) {
+  color: #ff2442;
+}
+
+:global(.ant-picker-dropdown [class*="ant-picker-cell-selected"] [class*="ant-picker-cell-inner"]) {
+  background: #ff2442 !important;
+}
+
+:global(.ant-picker-dropdown [class*="ant-picker-cell-today"] [class*="ant-picker-cell-inner"]::before) {
+  border-color: #ff2442 !important;
+}
+
+:global(.ant-picker-dropdown [class*="ant-picker-today-btn"]) {
+  color: #ff2442 !important;
+}
+
+.profile-edit-textarea {
+  resize: vertical;
+}
+
+.profile-edit-gender-row {
+  display: flex;
+  gap: 10px;
+}
+
+.profile-edit-gender-btn {
+  padding: 8px 20px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.profile-edit-gender-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.profile-edit-submit {
+  width: 100%;
+  padding: 12px;
+  background: var(--color-primary);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.profile-edit-submit:hover {
+  background: var(--color-primary-hover);
+}
+
 body[data-theme="dark"] .slider-modal-tip {
   color: #a6a6a6;
 }
@@ -5043,8 +5273,6 @@ body[data-theme="dark"] .phone-label {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .profile-input,
-body[data-theme="dark"] .profile-textarea,
 body[data-theme="dark"] .email-input,
 body[data-theme="dark"] .phone-input {
   background: #262626;
@@ -5052,28 +5280,10 @@ body[data-theme="dark"] .phone-input {
   color: #e0e0e0;
 }
 
-body[data-theme="dark"] .profile-input:focus,
-body[data-theme="dark"] .profile-textarea:focus,
 body[data-theme="dark"] .email-input:focus,
 body[data-theme="dark"] .phone-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
-}
-
-body[data-theme="dark"] .profile-gender-btn {
-  background: #262626;
-  border-color: #404040;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .profile-gender-btn.active {
-  border-color: #ff4d6f;
-  color: #ff6b81;
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .profile-platform-no {
-  color: #737373;
 }
 
 body[data-theme="dark"] .email-code-btn,
@@ -5161,6 +5371,60 @@ body[data-theme="dark"] .user-action {
 
 body[data-theme="dark"] .user-action svg {
   color: #666;
+}
+
+body[data-theme="dark"] .profile-edit-avatar-preview {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .profile-edit-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .profile-edit-input,
+body[data-theme="dark"] .profile-edit-textarea {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .profile-edit-birthday-picker :deep(.ant-picker) {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .profile-edit-birthday-picker :deep(.ant-picker-input > input) {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .profile-edit-birthday-picker :deep(.ant-picker-suffix) {
+  color: #ff2442;
+}
+
+body[data-theme="dark"] .profile-edit-input:focus,
+body[data-theme="dark"] .profile-edit-textarea:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .profile-edit-userid-input {
+  background: #1f1f1f !important;
+  border-color: #434343 !important;
+  color: #a6a6a6 !important;
+}
+
+body[data-theme="dark"] .profile-edit-gender-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .profile-edit-gender-btn.active {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
 }
 
 /* 修改密码弹框 */
@@ -7013,7 +7277,6 @@ body[data-theme="dark"] .notif-modal .ant-modal-content,
 body[data-theme="dark"] .tutorial-modal .ant-modal-content,
 body[data-theme="dark"] .feedback-modal .ant-modal-content,
 body[data-theme="dark"] .about-modal .ant-modal-content,
-body[data-theme="dark"] .profile-modal .ant-modal-content,
 body[data-theme="dark"] .email-modal .ant-modal-content,
 body[data-theme="dark"] .phone-modal .ant-modal-content,
 body[data-theme="dark"] .redeem-modal .ant-modal-content,
@@ -7097,7 +7360,6 @@ body[data-theme="dark"] .notif-modal .ant-modal-close,
 body[data-theme="dark"] .tutorial-modal .ant-modal-close,
 body[data-theme="dark"] .feedback-modal .ant-modal-close,
 body[data-theme="dark"] .about-modal .ant-modal-close,
-body[data-theme="dark"] .profile-modal .ant-modal-close,
 body[data-theme="dark"] .email-modal .ant-modal-close,
 body[data-theme="dark"] .phone-modal .ant-modal-close,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-close,
@@ -7112,7 +7374,6 @@ body[data-theme="dark"] .notif-modal .ant-modal-close:hover,
 body[data-theme="dark"] .tutorial-modal .ant-modal-close:hover,
 body[data-theme="dark"] .feedback-modal .ant-modal-close:hover,
 body[data-theme="dark"] .about-modal .ant-modal-close:hover,
-body[data-theme="dark"] .profile-modal .ant-modal-close:hover,
 body[data-theme="dark"] .email-modal .ant-modal-close:hover,
 body[data-theme="dark"] .phone-modal .ant-modal-close:hover,
 body[data-theme="dark"] .invite-binding-modal .ant-modal-close:hover,
@@ -7124,8 +7385,7 @@ body[data-theme="dark"] .password-modal .ant-modal-close:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 
-/* 修改昵称 / 修改邮箱 / 修改密码 / 绑定邀请人 的 Ant 标题头在暗色下需改为深底 */
-body[data-theme="dark"] .profile-modal .ant-modal-header,
+/* 修改邮箱 / 修改密码 / 绑定邀请人 的 Ant 标题头在暗色下需改为深底 */
 body[data-theme="dark"] .email-modal .ant-modal-header,
 body[data-theme="dark"] .phone-modal .ant-modal-header,
 body[data-theme="dark"] .password-modal .ant-modal-header,
@@ -7136,7 +7396,6 @@ body[data-theme="dark"] .phone-slider-modal .ant-modal-header {
   border-bottom-color: #303030;
 }
 
-body[data-theme="dark"] .profile-modal .ant-modal-title,
 body[data-theme="dark"] .email-modal .ant-modal-title,
 body[data-theme="dark"] .phone-modal .ant-modal-title,
 body[data-theme="dark"] .password-modal .ant-modal-title,
@@ -7185,6 +7444,105 @@ body[data-theme="dark"] .terms-content::-webkit-scrollbar {
 body[data-theme="dark"] .terms-content::-webkit-scrollbar-thumb {
   background: #434343;
   border-radius: 2px;
+}
+
+/* 手机端扫码入口 */
+.console-mobile-entry {
+  position: fixed;
+  right: 24px;
+  bottom: 65px;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.console-mobile-entry:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+}
+
+.console-mobile-entry:active {
+  transform: scale(0.95);
+}
+
+.console-mobile-entry-img {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.mobile-qr-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  height: 360px;
+  box-sizing: border-box;
+}
+
+.mobile-qr-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+.mobile-qr-code {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-qr-code img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mobile-qr-placeholder {
+  font-size: 14px;
+  color: #999;
+}
+
+.mobile-qr-hint {
+  margin-top: 20px;
+  font-size: 14px;
+  color: #595959;
+  text-align: center;
+  line-height: 1.6;
+}
+
+@media (max-width: 768px) {
+  .console-mobile-entry {
+    display: none;
+  }
+}
+
+/* 手机端扫码弹框暗色主题 */
+body[data-theme="dark"] .mobile-qr-panel .mobile-qr-title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mobile-qr-panel .mobile-qr-hint {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mobile-qr-panel .mobile-qr-placeholder {
+  color: #a6a6a6;
 }
 
 /* 客服微信弹框暗色主题 */

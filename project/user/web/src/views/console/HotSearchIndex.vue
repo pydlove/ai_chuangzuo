@@ -1,6 +1,11 @@
 <template>
   <div class="hot-search-page">
-    <MobileConsoleHeader />
+    <MobileConsoleHero
+      title="全网热搜榜"
+      desc="聚合抖音、今日头条、B 站、微博、百度五大平台实时热点，追热点快人一步。"
+      logo-url="/assets/images/热搜榜logo-v1.png"
+      image-url="/assets/images/热搜榜宣传图-v1.png"
+    />
 
     <!-- 日期选择 -->
     <div class="date-bar">
@@ -66,7 +71,7 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch'
-import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
+import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 
 const { platforms, list, loading, loadPlatforms, loadList } = useHotSearch()
 
@@ -401,17 +406,11 @@ body[data-theme="dark"] .hot-search-item:hover {
 
 @media (max-width: 768px) {
   .hot-search-page {
-    padding: 16px 12px;
-  }
-
-  .mobile-console-header {
-    margin-top: -16px !important;
+    padding: 0 12px 16px;
   }
 
   .hot-search-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
+    display: none;
   }
 
   .hot-search-current {

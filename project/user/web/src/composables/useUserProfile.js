@@ -67,6 +67,7 @@ export function useUserProfile() {
         profile.value.gender = data.gender ?? profile.value.gender
         profile.value.birthday = data.birthday ?? profile.value.birthday
         profile.value.location = data.location ?? profile.value.location
+        profile.value.occupation = data.occupation ?? profile.value.occupation
       }
       message.success('个人信息已更新')
       return data

@@ -59,6 +59,7 @@
           </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" @click="gotoEdit(record.id)">编辑</a-button>
+            <a-button type="link" size="small" @click="openTestModal(record)">测试</a-button>
             <a-button type="link" size="small" @click="onToggleStatus(record)">
               {{ record.status === 1 ? '停用' : '启用' }}
             </a-button>
@@ -78,21 +79,28 @@
           @show-size-change="handlePageChange"
         />
       </div>
+
+      <AiPromptTestModal
+        v-model:open="modalVisible"
+        :prompt="selectedPrompt"
+        @close="selectedPrompt = null"
+      />
     </a-card>
   </div>
 </template>
 
 <script setup>
-import { reactive, onMounted } from 'vue'
+import { reactive, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { PlusOutlined } from '@ant-design/icons-vue'
 import { useAiPrompt } from '@/composables/useAiPrompt.js'
+import AiPromptTestModal from '@/components/AiPromptTestModal.vue'
 
 const router = useRouter()
 const {
   list, total, loading, categories, page, pageSize,
-  fetchList, loadCategories, toggleStatus
+  fetchList, loadCategories, toggleStatus, getDetail
 } = useAiPrompt()
 
 const query = reactive({
@@ -100,6 +108,9 @@ const query = reactive({
   category: undefined,
   keyword: ''
 })
+
+const modalVisible = ref(false)
+const selectedPrompt = ref(null)
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
@@ -109,7 +120,7 @@ const columns = [
   { title: '分类', dataIndex: 'category', key: 'category', width: 140 },
   { title: '状态', key: 'status', width: 100 },
   { title: '更新时间', dataIndex: 'updatedAt', key: 'updatedAt', width: 170 },
-  { title: '操作', key: 'actions', fixed: 'right', width: 150 }
+  { title: '操作', key: 'actions', fixed: 'right', width: 200 }
 ]
 
 const handleSearch = () => {
@@ -132,6 +143,16 @@ const handlePageChange = () => {
 
 const gotoCreate = () => router.push('/console/ai-prompts/new')
 const gotoEdit = (id) => router.push(`/console/ai-prompts/${id}`)
+
+const openTestModal = async (record) => {
+  try {
+    const detail = await getDetail(record.id)
+    selectedPrompt.value = detail
+    modalVisible.value = true
+  } catch (e) {
+    message.error(e.message || '加载提示词详情失败')
+  }
+}
 
 const onToggleStatus = async (record) => {
   try {

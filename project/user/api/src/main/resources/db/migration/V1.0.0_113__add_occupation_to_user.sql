@@ -1,0 +1,3 @@
+SET NAMES utf8mb4;
+
+ALTER TABLE u_user ADD COLUMN occupation VARCHAR(128) NULL DEFAULT NULL COMMENT '职业' AFTER location;

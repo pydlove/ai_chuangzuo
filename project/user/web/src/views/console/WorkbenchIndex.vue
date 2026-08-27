@@ -147,6 +147,19 @@
           </a-button>
         </div>
         <a-card class="wb-card plan-card" :bordered="false">
+          <template #title>
+            <span class="plan-section-title">运营方案</span>
+          </template>
+          <template #extra>
+            <a-button
+              v-if="hasPlan"
+              size="small"
+              class="plan-btn"
+              @click="openAdjustPlanConfirm"
+            >
+              调整方案{{ planAdjustText }}
+            </a-button>
+          </template>
           <div v-if="hasPlan" class="plan-content">
             <div class="plan-grid">
               <div class="plan-row">
@@ -202,6 +215,27 @@
             </div>
           </div>
         </a-card>
+
+        <div class="toolbox-section">
+          <div class="toolbox-section-header">
+            <span class="toolbox-section-title">创作工具箱</span>
+          </div>
+          <a-card class="wb-card toolbox-card" :bordered="false" title="创作工具箱">
+            <div class="toolbox-grid">
+              <div
+                v-for="item in toolboxItems"
+                :key="item.label"
+                class="toolbox-item"
+                @click="item.action ? item.action() : router.push(item.path)"
+              >
+                <div class="toolbox-icon-wrap">
+                  <img :src="item.image" :alt="item.label" class="toolbox-icon-img" />
+                </div>
+                <span class="toolbox-label">{{ item.label }}</span>
+              </div>
+            </div>
+          </a-card>
+        </div>
 
         <a-card class="wb-card generation-card" :bordered="false">
           <template #title>
@@ -935,6 +969,14 @@ const featureItems = [
   { label: '本周数据', image: '/assets/images/本周数据.png', action: () => { isMobile() ? router.push('/console/weekly-data') : (weeklyDataVisible.value = true) } }
 ]
 
+const toolboxItems = [
+  { label: 'AI抠图', image: '/assets/images/AI抠图icon.png', action: () => router.push('/tools/cutout') },
+  { label: '图片压缩', image: '/assets/images/图片压缩icon.png', action: () => router.push('/tools/image-compress') },
+  { label: '二维码生成', image: '/assets/images/二维码icon.png', action: () => router.push('/tools/qrcode') },
+  { label: 'AI去水印', image: '/assets/images/AI去水印icon.png', action: () => router.push('/tools/watermark-remove') },
+  { label: '文本转图', image: '/assets/images/文本转图icon.png', action: () => router.push('/tools/text-to-image') }
+]
+
 const activities = [
   {
     label: '幸运抽奖',
@@ -1338,8 +1380,8 @@ function statusText(status) {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: var(--space-lg);
-  margin-bottom: var(--space-lg);
   align-items: stretch;
+  margin-bottom: var(--space-lg);
 }
 .left-column {
   display: flex;
@@ -1534,23 +1576,18 @@ function statusText(status) {
   flex-direction: column;
 }
 .plan-section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: var(--space-sm);
+  display: none;
 }
 .plan-section-title {
   font-size: var(--font-h3);
   font-weight: 700;
   color: var(--color-text-primary);
+  padding-left: 10px;
 }
 .plan-card {
   flex: 1;
   min-height: 0;
   max-height: 220px;
-}
-.plan-card :deep(.ant-card-head) {
-  display: none;
 }
 .plan-card :deep(.ant-card-body) {
   padding-top: 8px;
@@ -1622,7 +1659,6 @@ function statusText(status) {
   color: var(--color-primary);
 }
 .plan-empty {
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1641,6 +1677,9 @@ function statusText(status) {
   color: var(--color-text-secondary);
   line-height: 1.6;
   max-width: 260px;
+}
+.plan-empty-icon {
+  display: none;
 }
 
 /* 制定方案弹框 */
@@ -1724,6 +1763,9 @@ function statusText(status) {
 }
 .desktop-create-btn {
   display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 .mobile-create-btn {
   display: none;
@@ -1872,6 +1914,61 @@ function statusText(status) {
   color: var(--color-text-primary);
   font-weight: 500;
   white-space: nowrap;
+}
+
+/* 创作工具箱 */
+.toolbox-section {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: -18px;
+}
+.toolbox-section-header {
+  display: none;
+}
+.toolbox-section-title {
+  font-size: var(--font-h3);
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.toolbox-card {
+  height: fit-content;
+  margin: 0;
+}
+.toolbox-card :deep(.ant-card-body) {
+  padding: var(--space-md) var(--space-lg);
+}
+.toolbox-grid {
+  display: flex;
+  justify-content: space-between;
+}
+.toolbox-item {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+.toolbox-icon-wrap {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-primary-bg);
+  border-radius: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.toolbox-icon-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  padding: 6px;
+}
+.toolbox-label {
+  font-size: 12px;
+  color: var(--color-text-primary);
 }
 
 /* 生成记录 */
@@ -2521,9 +2618,13 @@ function statusText(status) {
   .bottom-row,
   .left-column {
     gap: 14px;
+    margin-bottom: 0;
   }
-  .top-row {
-    margin-bottom: 14px;
+  .bottom-row > .left-column {
+    display: flex;
+    flex-direction: column;
+    /* gap: var(--space-lg); */
+    gap: 0;
   }
 
   /* 卡片：更圆润、更柔和的阴影，水平居中 */
@@ -2851,8 +2952,8 @@ function statusText(status) {
     padding: 0 16px;
   }
   .plan-section-title {
-    font-size: 16px;
-    font-weight: 700;
+    font-size: var(--font-h3);
+    font-weight: 600;
     color: var(--color-text-primary);
   }
   .plan-card {
@@ -2985,10 +3086,7 @@ function statusText(status) {
     border: none;
   }
   .plan-empty-icon {
-    width: 96px;
-    height: 96px;
-    object-fit: contain;
-    margin-bottom: 4px;
+    display: none;
   }
   .plan-empty-title {
     font-size: 15px;
@@ -3000,6 +3098,73 @@ function statusText(status) {
     line-height: 1.65;
     max-width: none;
     color: var(--color-text-secondary);
+  }
+
+  /* 创作工具箱 */
+  .toolbox-section {
+    margin: 0 12px;
+  }
+  .toolbox-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    margin-bottom: 10px;
+    padding: 0 16px;
+  }
+  .toolbox-section-title {
+    font-size: var(--font-h3);
+    font-weight: 600;
+    color: var(--color-text-primary);
+  }
+  .toolbox-card {
+    margin: 0;
+    background: #ffffff;
+    border-radius: 20px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
+    border: none;
+    overflow: hidden;
+  }
+  .toolbox-card :deep(.ant-card-head) {
+    display: none;
+  }
+  .toolbox-card :deep(.ant-card-body) {
+    padding: 16px;
+  }
+  .toolbox-grid {
+    display: flex;
+    justify-content: space-between;
+  }
+  .toolbox-item {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .toolbox-item:hover {
+    box-shadow: none;
+    border-color: transparent;
+  }
+  .toolbox-icon-wrap {
+    width: 56px;
+    height: 56px;
+    background: var(--color-primary-bg);
+    border-radius: 16px;
+  }
+  .toolbox-icon-img {
+    width: 100%;
+    height: 100%;
+    padding: 6px;
+  }
+  .toolbox-label {
+    font-size: 12px;
+    color: var(--color-text-primary);
   }
 
   /* 手机端隐藏快捷操作和热门活动 */
@@ -3039,7 +3204,7 @@ function statusText(status) {
     margin: 0;
     background: #ffffff;
     border: 1px solid rgba(255, 36, 66, 0.06);
-    border-radius: 12px;
+    border-radius: 20px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
     transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
     cursor: pointer;

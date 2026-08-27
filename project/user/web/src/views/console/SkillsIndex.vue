@@ -1,6 +1,11 @@
 <template>
   <div ref="stylesIndexRef" class="styles-index">
-    <MobileConsoleHeader />
+    <MobileConsoleHero
+      title="我的提示词"
+      desc="管理你的专属提示词，创作时一键选用。"
+      logo-url="/assets/images/我的提示词logo-v1.png"
+      image-url="/assets/images/我的提示词宣传图-v1.png"
+    />
 
     <div class="styles-header">
       <div>
@@ -310,7 +315,6 @@
           :prompt="promptSummary(s.prompt)"
           :show-avatar="false"
           :actions="[
-            { label: '使用', type: 'primary', handler: () => useStyle(s) },
             { label: '查看完整提示词', handler: () => openMyStylePromptModal(s, 'system') }
           ]"
         >
@@ -696,6 +700,7 @@
   >
     <template #footer-actions>
       <button
+        v-if="selectedMyStyleSource !== 'system'"
         class="skill-detail-btn-use"
         :disabled="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved'"
         :title="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved' ? '该提示词已下架' : ''"
@@ -786,7 +791,6 @@ import {
 import {
   marketSkills,
   toggleFavorite,
-  useMarketSkill,
   loadMarketSkills,
   loadFavoriteSkills,
   unpublishSkill,
@@ -799,7 +803,7 @@ import { FullscreenOutlined } from '@ant-design/icons-vue'
 import { publishSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
-import MobileConsoleHeader from '@/components/MobileConsoleHeader.vue'
+import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 
 const SKILL_PROMPT_MAX_LENGTH = 1200
 
@@ -1306,12 +1310,7 @@ const useFavoriteStyle = (style) => {
     message.warning('该提示词已下架，无法使用')
     return
   }
-  try {
-    useMarketSkill(style.id)
-    router.push(`/console/create?marketSkillId=${style.id}`)
-  } catch (err) {
-    alert(err.message)
-  }
+  router.push(`/console/create?marketSkillId=${style.id}`)
 }
 
 const deleteSkill = (name) => {
@@ -2430,16 +2429,17 @@ body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover 
 */
 @media (max-width: 768px) {
   .styles-index {
-    padding: 16px 12px;
+    padding: 0 12px 16px;
   }
 
-  .mobile-console-header {
-    margin-top: -16px !important;
+  .styles-header {
+    display: none;
   }
 
   .styles-empty,
   .styles-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .styles-tabs {

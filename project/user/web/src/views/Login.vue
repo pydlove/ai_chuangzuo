@@ -27,6 +27,12 @@
         >
           注册
         </button>
+        <button
+          :class="['auth-tab', { active: activeTab === 'qr' }]"
+          @click="switchToQr"
+        >
+          扫码登录
+        </button>
       </div>
 
       <!-- 登录表单 -->
@@ -174,6 +180,40 @@
 
         <button class="submit-btn" @click="handleRegister">注册</button>
       </div>
+
+      <!-- 扫码登录 -->
+      <div v-show="activeTab === 'qr'" class="auth-form qr-login-form">
+        <h2 class="form-title">扫码登录</h2>
+        <p class="form-subtitle">使用手机爱创作扫描二维码，授权后可直接登录</p>
+
+        <div class="qr-login-box">
+          <div v-if="qrDataUrl" class="qr-code-wrapper">
+            <img :src="qrDataUrl" alt="扫码登录" class="qr-code-img" />
+            <div v-if="isExpired" class="qr-code-overlay">
+              <span>二维码已过期</span>
+              <button class="qr-refresh-btn" @click="refreshQr">刷新</button>
+            </div>
+          </div>
+          <div v-else class="qr-code-placeholder">
+            <span v-if="qrLoading">二维码生成中...</span>
+            <span v-else-if="qrError">{{ qrError }}</span>
+            <button v-else class="qr-refresh-btn" @click="generateQr">生成二维码</button>
+          </div>
+
+          <p class="qr-status-text">
+            <span v-if="isPending">请使用手机扫描上方二维码</span>
+            <span v-else-if="isScanned">手机「{{ scannerNickname || '未知设备' }}」请求授权访问</span>
+            <span v-else-if="isAuthorized">授权成功，正在登录...</span>
+            <span v-else-if="isCancelled">已取消授权，请刷新重试</span>
+            <span v-else-if="isExpired">二维码已过期</span>
+          </p>
+
+          <div v-if="isScanned" class="qr-actions">
+            <button class="submit-btn qr-confirm-btn" :disabled="qrLoading" @click="authorizeQr">确定授权</button>
+            <button class="qr-cancel-btn" @click="cancelQr">取消</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- 底部 -->
@@ -221,7 +261,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
@@ -230,7 +270,11 @@ import MobileLogin from '@/views/MobileLogin.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { useLogin } from '@/composables/useLogin.js'
+import { useQrLogin } from '@/composables/useQrLogin.js'
+import { persistTokens } from '@/composables/useLogin.js'
+import { useRouter } from 'vue-router'
 
+const router = useRouter()
 const { isMobile } = useDevice()
 
 const {
@@ -253,6 +297,59 @@ const {
   handleRegister,
   rememberMe
 } = useLogin()
+
+const {
+  qrDataUrl,
+  scannerNickname,
+  isPending,
+  isScanned,
+  isAuthorized,
+  isCancelled,
+  isExpired,
+  generateQr,
+  refreshQr,
+  authorize,
+  cancel,
+  reset: resetQr,
+} = useQrLogin({
+  onAuthorized: (data) => {
+    persistTokens(data)
+    router.push('/console/workbench')
+  }
+})
+
+const qrLoading = ref(false)
+const qrError = ref('')
+
+const switchToQr = async () => {
+  activeTab.value = 'qr'
+  qrError.value = ''
+  qrLoading.value = true
+  try {
+    await generateQr()
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+const authorizeQr = async () => {
+  qrLoading.value = true
+  try {
+    await authorize()
+  } finally {
+    qrLoading.value = false
+  }
+}
+
+const cancelQr = async () => {
+  await cancel()
+}
+
+watch(activeTab, (val) => {
+  if (val !== 'qr') {
+    resetQr()
+  }
+})
 
 const navLinks = [
   { to: '/', label: '首页' },
@@ -792,5 +889,134 @@ body[data-theme="dark"] .slider-modal :deep(.ant-modal-title) {
 
 body[data-theme="dark"] .invite-coin-trigger {
   color: #ff4d6f;
+}
+
+/* ========== 扫码登录 ========== */
+.qr-login-form {
+  text-align: center;
+}
+
+.qr-login-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.qr-code-wrapper {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #f5f5f5;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.qr-code-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.qr-code-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.92);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.qr-code-overlay span {
+  font-size: 14px;
+  color: #595959;
+}
+
+.qr-code-placeholder {
+  width: 200px;
+  height: 200px;
+  border-radius: 12px;
+  background: #f5f5f5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #999;
+  font-size: 14px;
+}
+
+.qr-refresh-btn {
+  padding: 6px 16px;
+  border-radius: 16px;
+  border: none;
+  background: #07c160;
+  color: #fff;
+  font-size: 13px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.qr-refresh-btn:hover {
+  opacity: 0.9;
+}
+
+.qr-status-text {
+  font-size: 14px;
+  color: #595959;
+  margin: 0;
+}
+
+.qr-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 240px;
+}
+
+.qr-confirm-btn {
+  margin-top: 0;
+}
+
+.qr-cancel-btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+  background: #fff;
+  color: #595959;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+
+.qr-cancel-btn:hover {
+  border-color: #07c160;
+  color: #07c160;
+}
+
+body[data-theme="dark"] .qr-code-wrapper,
+body[data-theme="dark"] .qr-code-placeholder {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .qr-code-overlay {
+  background: rgba(30, 30, 30, 0.92);
+}
+
+body[data-theme="dark"] .qr-code-overlay span,
+body[data-theme="dark"] .qr-status-text,
+body[data-theme="dark"] .qr-code-placeholder {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .qr-cancel-btn {
+  background: #1f1f1f;
+  border-color: #303030;
+  color: #a6a6a6;
 }
 </style>

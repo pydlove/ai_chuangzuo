@@ -26,7 +26,7 @@
       <div class="console-learn-hero-mobile__icon-wrap">
         <img
           class="console-learn-hero-mobile__icon"
-          src="/assets/images/创作学院-v2.png?v=1"
+          src="/assets/images/创作学院宣传图-v4.png"
           alt="创作学院"
         />
       </div>

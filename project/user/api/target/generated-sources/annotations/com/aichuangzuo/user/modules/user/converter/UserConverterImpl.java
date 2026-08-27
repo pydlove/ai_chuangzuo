@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-08-26T13:38:54+0800",
+    date = "2026-08-27T12:24:50+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 17.0.12 (Oracle Corporation)"
 )
 @Component
@@ -37,6 +37,7 @@ public class UserConverterImpl implements UserConverter {
         userProfileVO.setBio( user.getBio() );
         userProfileVO.setGender( user.getGender() );
         userProfileVO.setLocation( user.getLocation() );
+        userProfileVO.setOccupation( user.getOccupation() );
         userProfileVO.setInviteCode( user.getInviteCode() );
 
         return userProfileVO;

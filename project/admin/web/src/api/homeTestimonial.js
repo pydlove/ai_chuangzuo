@@ -31,3 +31,19 @@ export function uploadTestimonialAvatar(file) {
     })
     .then((res) => res.data)
 }
+
+export function downloadTestimonialImportTemplate() {
+  return request.get(`${BASE}/import-template`, {
+    responseType: 'blob'
+  })
+}
+
+export function importTestimonials(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request
+    .post(`${BASE}/import-excel`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    .then((res) => res.data)
+}

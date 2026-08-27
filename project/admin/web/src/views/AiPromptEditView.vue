@@ -101,12 +101,19 @@
           <a-form-item>
             <a-space>
               <a-button type="primary" :loading="submitting" @click="onSubmit">保存</a-button>
+              <a-button :disabled="!editingId" @click="openTestModal">测试</a-button>
               <a-button @click="goBack">取消</a-button>
             </a-space>
           </a-form-item>
         </a-form>
       </a-spin>
     </a-card>
+
+    <AiPromptTestModal
+      v-model:open="modalVisible"
+      :prompt="form"
+      @close="modalVisible = false"
+    />
   </div>
 </template>
 
@@ -115,6 +122,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { useAiPrompt } from '@/composables/useAiPrompt.js'
+import AiPromptTestModal from '@/components/AiPromptTestModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,8 +137,10 @@ const editingId = computed(() => {
 const loading = ref(false)
 const submitting = ref(false)
 const formRef = ref()
+const modalVisible = ref(false)
 
 const form = reactive({
+  id: null,
   promptCode: '',
   promptName: '',
   module: 'admin',
@@ -186,6 +196,7 @@ const loadDetail = async () => {
   try {
     const data = await getDetail(editingId.value)
     Object.assign(form, {
+      id: data.id,
       promptCode: data.promptCode,
       promptName: data.promptName,
       module: data.module,
@@ -220,13 +231,19 @@ const onSubmit = async () => {
       sortOrder: form.sortOrder,
       description: form.description || undefined
     }
-    await save(editingId.value, payload)
-    goBack()
+    const savedId = await save(editingId.value, payload)
+    if (!editingId.value && savedId) {
+      router.replace(`/console/ai-prompts/${savedId}`)
+    }
   } catch (e) {
     message.error(e.message || '保存失败')
   } finally {
     submitting.value = false
   }
+}
+
+const openTestModal = () => {
+  modalVisible.value = true
 }
 
 const goBack = () => router.push('/console/ai-prompts')

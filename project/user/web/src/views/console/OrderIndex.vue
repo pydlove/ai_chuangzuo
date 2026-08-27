@@ -1,10 +1,13 @@
 <template>
   <div class="order-page">
-    <!-- 页面标题：PC 端显示 -->
-    <div class="order-page-header">
-      <h1 class="order-page-title">我的订单</h1>
-      <p class="order-page-subtitle">查看会员套餐订单与支付记录</p>
-    </div>
+    <!-- PC 端页面标题与操作 -->
+    <header class="order-page-header">
+      <div class="order-page-title-wrap">
+        <h1 class="order-page-title">我的订单</h1>
+        <p class="order-page-subtitle">查看会员套餐订单与支付记录</p>
+      </div>
+      <button class="order-page__action" @click="router.push('/pricing')">去开通会员</button>
+    </header>
 
     <!-- 状态筛选 -->
     <div class="order-tabs">
@@ -16,28 +19,24 @@
         @click="activeTab = tab.value"
       >
         {{ tab.label }}
+        <span class="order-tab__count">{{ orderCounts[tab.value] }}</span>
       </button>
     </div>
 
-    <!-- 空状态 -->
-    <div v-if="orders.length === 0 && !loading" class="order-empty">
-      <div class="order-empty__icon"><FileTextOutlined /></div>
-      <div class="order-empty__title">暂无{{ currentTabLabel }}订单</div>
-      <p class="order-empty__desc">您可以在会员页面选择套餐下单</p>
-      <button class="order-empty__btn" @click="router.push('/pricing')">去开通会员</button>
-    </div>
-
-    <!-- 桌面端：表格 -->
-    <div v-show="orders.length > 0 || loading" class="order-desktop-table">
-      <a-table
-        :columns="columns"
-        :data-source="orders"
-        :pagination="false"
-        :custom-row="customRow"
-        :loading="loading"
-        class="order-table"
-      />
-    </div>
+    <div class="order-page-body">
+   <!-- 桌面端：表格 -->
+   <div class="order-desktop-table">
+     <a-table
+       :columns="columns"
+       :data-source="orders"
+       :pagination="false"
+       :custom-row="customRow"
+       :loading="loading"
+       :scroll="{ x: 760 }"
+        :locale="tableLocale"
+       class="order-table"
+     />
+   </div>
 
     <!-- 移动端：卡片列表 -->
     <div v-show="orders.length > 0 || loading" class="order-mobile-list">
@@ -75,6 +74,13 @@
           </div>
         </div>
       </div>
+    </div>
+    <div v-if="orders.length === 0 && !loading" class="order-empty order-empty--mobile">
+      <div class="order-empty__icon"><FileTextOutlined /></div>
+      <div class="order-empty__title">暂无{{ currentTabLabel }}订单</div>
+      <p class="order-empty__desc">您可以在会员页面选择套餐下单</p>
+      <button class="order-empty__btn" @click="router.push('/pricing')">去开通会员</button>
+    </div>
     </div>
 
     <!-- 订单详情弹框 -->
@@ -161,6 +167,14 @@ const orders = ref([])
 const loading = ref(false)
 const detailVisible = ref(false)
 const currentOrder = ref(null)
+const orderCounts = computed(() => {
+  const counts = { all: orders.value.length, pending: 0, paid: 0 }
+  orders.value.forEach((o) => {
+    if (o.status === 0) counts.pending++
+    else if (o.status === 1) counts.paid++
+  })
+  return counts
+})
 
 const modalWidth = ref(360)
 
@@ -198,6 +212,13 @@ const currentTabLabel = computed(() => {
   const tab = tabs.find((t) => t.value === activeTab.value)
   return tab ? tab.label : ''
 })
+const tableLocale = computed(() => ({
+  emptyText: h('div', { class: 'order-table-empty' }, [
+    h('div', { class: 'order-table-empty__text' }, `暂无${currentTabLabel.value}订单`),
+    h('div', { class: 'order-table-empty__desc' }, '您可以在会员页面选择套餐下单'),
+    h('button', { class: 'order-empty__btn order-table-empty__btn', onClick: () => router.push('/pricing') }, '去开通会员')
+  ])
+}))
 
 const statusMap = {
   all: undefined,
@@ -286,23 +307,41 @@ onBeforeUnmount(() => {
   min-height: 100%;
   background: #f5f6fa;
   padding: 12px 12px calc(24px + env(safe-area-inset-bottom));
-  max-width: 720px;
+  width: 100%;
+  max-width: 1280px;
   margin: 0 auto;
   box-sizing: border-box;
 }
 
+/* 页面标题：PC 端显示 */
 .order-page-header {
   display: none;
 }
 
-.order-desktop-table {
+.order-page-title-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.order-page-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.order-page-subtitle {
+  font-size: 14px;
+  color: #8c8c8c;
+  margin: 0;
+}
+
+.order-page__action {
   display: none;
 }
 
-.order-mobile-list {
-  display: block;
-}
-
+/* 状态筛选 */
 .order-tabs {
   display: flex;
   gap: 0;
@@ -329,6 +368,10 @@ onBeforeUnmount(() => {
 .order-tab.active {
   background: var(--color-primary);
   color: #fff;
+}
+
+.order-tab__count {
+  display: none;
 }
 
 .order-skeleton {
@@ -525,104 +568,221 @@ onBeforeUnmount(() => {
   background: var(--color-primary-active);
 }
 
+.order-desktop-table {
+  display: none;
+}
+
+.order-mobile-list {
+  display: block;
+}
+
 @media (min-width: 769px) {
   .order-page {
-    padding: 24px;
-    max-width: none;
+    background: transparent;
+    padding: 24px 32px calc(32px + env(safe-area-inset-bottom));
+    max-width: 1280px;
   }
 
   .order-page-header {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     margin-bottom: 20px;
   }
 
-  .order-page-title {
-    font-size: 22px;
-    font-weight: 700;
-    color: #1a1a1a;
-    margin: 0 0 6px;
+  .order-page__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 18px;
+    background: var(--color-primary);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s;
   }
 
-  .order-page-subtitle {
-    font-size: 14px;
-    color: #8c8c8c;
-    margin: 0;
+  .order-page__action:hover {
+    background: var(--color-primary-hover);
   }
 
   .order-tabs {
-    margin-bottom: 16px;
+    display: flex;
+    gap: 0;
+    margin-bottom: 20px;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    border-bottom: 1px solid #f0f0f0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .order-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .order-tab {
+    flex: 0 0 auto;
+    position: relative;
     padding: 12px 16px;
-    font-size: 15px;
+    border: none;
+    border-radius: 0;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    color: #595959;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: -1px;
+    white-space: nowrap;
   }
 
-  .order-desktop-table {
-    display: block;
-  }
-
-  .order-mobile-list {
-    display: none;
+  .order-tab.active {
+    background: transparent;
+    color: var(--color-primary);
+    border-bottom-color: var(--color-primary);
   }
 
   .order-tab:hover:not(.active) {
     color: #1a1a1a;
   }
 
-  .order-card {
-    padding: 16px 20px;
+  .order-tab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    background: #f5f5f5;
+    color: #8c8c8c;
+    border-radius: 9px;
+    font-size: 11px;
+    font-weight: 700;
   }
 
-  .order-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  .order-tab.active .order-tab__count {
+    background: var(--color-primary);
+    color: #fff;
   }
 
-  .order-card__name {
-    font-size: 16px;
+  .order-page-body {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+    overflow: hidden;
   }
 
-  .order-card__amount-value {
-    font-size: 18px;
+  .order-desktop-table {
+    display: block;
+    overflow-x: auto;
   }
 
-  .order-empty {
-    padding: 80px 16px;
+  .order-mobile-list {
+    display: none;
+  }
+
+  .order-table {
+    min-width: 760px;
+  }
+
+ .order-empty {
+   padding: 64px 24px;
+ }
+.order-empty--inline {
+  padding: 48px 24px;
+}
+.order-empty--inline .order-empty__icon {
+  width: 56px;
+  height: 56px;
+  margin-bottom: 12px;
+}
+.order-empty--inline .order-empty__icon :deep(svg) {
+  width: 24px;
+  height: 24px;
+}
+.order-empty--inline .order-empty__title {
+  font-size: 16px;
+}
+.order-empty--inline .order-empty__desc {
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+.order-empty--inline .order-empty__btn {
+  border-radius: 8px;
+  padding: 8px 20px;
+}
+.order-empty--mobile {
+  display: none;
+}
+ .order-empty--mobile {
+   display: none;
+ }
+  .order-table-empty {
+    padding: 48px 24px;
+    text-align: center;
+  }
+
+  .order-table-empty__text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1a1a1a;
+    margin-bottom: 6px;
+  }
+
+  .order-table-empty__desc {
+    font-size: 13px;
+    color: #8c8c8c;
+    margin-bottom: 16px;
+  }
+
+  .order-table-empty__btn {
+    font-size: 13px;
+    padding: 7px 18px;
   }
 
   .order-empty__icon {
-    width: 88px;
-    height: 88px;
+    width: 64px;
+    height: 64px;
+    margin-bottom: 16px;
   }
 
   .order-empty__icon :deep(svg) {
-    width: 40px;
-    height: 40px;
+    width: 28px;
+    height: 28px;
   }
 
   .order-empty__title {
-    font-size: 20px;
+    font-size: 18px;
   }
 
   .order-empty__desc {
     font-size: 14px;
   }
 
+  .order-empty__btn {
+    border-radius: 8px;
+    padding: 9px 24px;
+  }
+
   .order-empty__btn:hover {
     background: var(--color-primary-hover);
   }
 
-  .order-card__pay-btn:hover {
-    background: var(--color-primary-hover);
+  .order-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 }
 
 /* 桌面端表格 */
 .order-desktop-table .order-table {
   background: #fff;
-  border-radius: 14px;
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .order-table :deep(.ant-table-thead > tr > th) {
@@ -782,14 +942,16 @@ body[data-theme="dark"] .order-tab.active {
 
 body[data-theme="dark"] .order-card__name,
 body[data-theme="dark"] .order-empty__title,
-body[data-theme="dark"] .order-card__amount-value {
+body[data-theme="dark"] .order-card__amount-value,
+body[data-theme="dark"] .order-page-title {
   color: #f0f0f0;
 }
 
 body[data-theme="dark"] .order-card__no,
 body[data-theme="dark"] .order-card__cycle,
 body[data-theme="dark"] .order-card__amount-label,
-body[data-theme="dark"] .order-empty__desc {
+body[data-theme="dark"] .order-empty__desc,
+body[data-theme="dark"] .order-page-subtitle {
   color: #a6a6a6;
 }
 
@@ -842,14 +1004,6 @@ body[data-theme="dark"] .order-detail__status.paid {
   background: rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .order-page-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .order-page-subtitle {
-  color: #a6a6a6;
-}
-
 body[data-theme="dark"] .order-desktop-table .order-table {
   background: #1f1f1f;
 }
@@ -881,5 +1035,71 @@ body[data-theme="dark"] .order-table__status.paid {
 
 body[data-theme="dark"] .order-table__view {
   color: #737373;
+}
+body[data-theme="dark"] .order-table-empty__text {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .order-table-empty__desc {
+  color: #a6a6a6;
+}
+
+@media (min-width: 769px) {
+  body[data-theme="dark"] .order-page {
+    background: transparent;
+  }
+
+  body[data-theme="dark"] .order-tabs {
+    background: transparent;
+    border-bottom-color: #303030;
+  }
+
+  body[data-theme="dark"] .order-tab {
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .order-tab.active {
+    background: transparent;
+    color: #ff4d6f;
+    border-bottom-color: #ff4d6f;
+  }
+
+  body[data-theme="dark"] .order-tab__count {
+    background: #303030;
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .order-tab.active .order-tab__count {
+    background: #ff4d6f;
+    color: #fff;
+  }
+
+  body[data-theme="dark"] .order-page-body {
+    background: #1f1f1f;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+
+  body[data-theme="dark"] .order-empty__icon {
+    background: rgba(255, 36, 66, 0.12);
+    color: #ff6b81;
+  }
+
+  body[data-theme="dark"] .order-empty__title,
+  body[data-theme="dark"] .order-page-title {
+    color: #f0f0f0;
+  }
+
+  body[data-theme="dark"] .order-empty__desc,
+  body[data-theme="dark"] .order-page-subtitle {
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .order-empty__btn {
+    background: var(--color-primary);
+  }
+
+  body[data-theme="dark"] .order-empty__btn:hover {
+    background: var(--color-primary-hover);
+  }
 }
 </style>

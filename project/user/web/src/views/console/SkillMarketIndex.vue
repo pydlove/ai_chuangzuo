@@ -174,7 +174,6 @@
               :actions="[
                 { label: isFavorite(s.id) ? '取消收藏' : '收藏', type: isFavorite(s.id) ? undefined : 'primary', handler: () => handleFavoriteClick(s) },
                 { label: '查看', handler: () => openStyleDetail(s) },
-                { label: '模拟', visible: s.creatorId === currentUserId, handler: () => handleSimulate(s) },
                 { label: '下架', visible: s.creatorId === currentUserId, handler: () => handleDelete(s) }
               ]"
               @click="openStyleDetail(s)"
@@ -313,8 +312,6 @@ import {
   marketSkills,
   marketStats,
   pricePerUse,
-  useMarketSkill,
-  simulateExternalUse,
   toggleFavorite,
   isFavorite,
   loadMarketSkills,
@@ -349,12 +346,7 @@ const goUpload = () => {
 }
 
 const handleUse = (s) => {
-  try {
-    useMarketSkill(s.id)
-    router.push(`/console/create?marketSkillId=${s.id}`)
-  } catch (err) {
-    alert(err.message)
-  }
+  router.push(`/console/create?marketSkillId=${s.id}`)
 }
 
 const handleDelete = (s) => {
@@ -454,13 +446,6 @@ const formatTimeAgo = (isoStr) => {
 }
 
 const handleToggleFavorite = (id) => toggleFavorite(id)
-const handleSimulate = (s) => {
-  try {
-    simulateExternalUse(s.id)
-  } catch (err) {
-    alert(err.message)
-  }
-}
 
 onMounted(() => {
   loadMarketSkills()

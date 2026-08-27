@@ -260,9 +260,6 @@ watch(sliderPassed, async (val) => {
 
 onMounted(() => {
   loadTheme()
-  // 测试阶段预填内置管理员账号，避免反复输入
-  form.username = 'admin'
-  form.password = 'Root1qaz!QAZ'
 })
 </script>
 
