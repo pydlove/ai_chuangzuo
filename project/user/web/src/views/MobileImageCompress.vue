@@ -1,15 +1,6 @@
 <template>
   <div class="mobile-image-compress">
-    <!-- 子页面返回头：与 console/account-check 一致 -->
-    <header class="mic-subpage-header">
-      <div class="mic-subpage-back" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span>返回</span>
-      </div>
-      <div class="mic-subpage-title">图片压缩</div>
-    </header>
+    <MobileSubpageHeader title="图片压缩" />
 
     <!-- Header 宣传文案 -->
     <section class="mic-hero">

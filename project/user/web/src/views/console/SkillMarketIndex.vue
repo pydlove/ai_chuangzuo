@@ -158,9 +158,7 @@
           </div>
 
           <div v-if="loading" class="market-empty">加载中...</div>
-          <div v-else-if="pagedStyles.length === 0" class="market-empty">
-            暂无已上架提示词
-          </div>
+          <EmptyState v-else-if="pagedStyles.length === 0" title="暂无已上架提示词" compact size="sm" />
           <div v-else class="market-grid">
             <SkillCard
               v-for="s in pagedStyles"

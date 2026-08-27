@@ -120,6 +120,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { UserOutlined, CopyOutlined } from '@ant-design/icons-vue'
 import { useUserProfile } from '@/composables/useUserProfile.js'
+import { useCopy } from '@/composables/useCopy.js'
 
 const router = useRouter()
 const { profile, loadProfile, saveProfile, saveAvatar } = useUserProfile()
@@ -189,15 +190,11 @@ const handleProfileSubmit = async () => {
   }
 }
 
-const copyUserId = async () => {
-  if (!profileEditForm.userId) return
-  try {
-    await navigator.clipboard.writeText(profileEditForm.userId)
-    message.success('平台ID已复制')
-  } catch {
-    message.error('复制失败')
-  }
-}
+const { copy } = useCopy({
+  successText: '平台ID已复制',
+  errorText: '复制失败'
+})
+const copyUserId = () => copy(profileEditForm.userId)
 
 const triggerAvatarUpload = () => {
   avatarInput.value?.click()

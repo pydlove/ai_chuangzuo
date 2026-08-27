@@ -75,12 +75,15 @@
         </div>
       </div>
     </div>
-    <div v-if="orders.length === 0 && !loading" class="order-empty order-empty--mobile">
-      <div class="order-empty__icon"><FileTextOutlined /></div>
-      <div class="order-empty__title">暂无{{ currentTabLabel }}订单</div>
-      <p class="order-empty__desc">您可以在会员页面选择套餐下单</p>
-      <button class="order-empty__btn" @click="router.push('/pricing')">去开通会员</button>
-    </div>
+      <EmptyState
+        v-if="orders.length === 0 && !loading"
+        :icon="FileTextOutlined"
+        :title="`暂无${currentTabLabel}订单`"
+        description="您可以在会员页面选择套餐下单"
+        action-text="去开通会员"
+        action-to="/pricing"
+        size="lg"
+      />
     </div>
 
     <!-- 订单详情弹框 -->
@@ -151,6 +154,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { FileTextOutlined } from '@ant-design/icons-vue'
 import { getMyOrders } from '@/api/order'
+import EmptyState from '@/components/common/EmptyState.vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()

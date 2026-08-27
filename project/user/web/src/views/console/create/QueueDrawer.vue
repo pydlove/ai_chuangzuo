@@ -14,11 +14,13 @@
     <template #extra>
       <button class="queue-more-btn" @click="goWorks">查看更多 →</button>
     </template>
-    <div v-if="queueList.length === 0" class="queue-panel-empty">
-      <InboxOutlined class="empty-icon" />
-      <div class="empty-text">暂无生成任务</div>
-      <div class="empty-hint">点击「生成文章」开始创作</div>
-    </div>
+    <EmptyState
+      v-if="queueList.length === 0"
+      :icon="InboxOutlined"
+      title="暂无生成任务"
+      description="点击「生成文章」开始创作"
+      size="md"
+    />
     <div v-else class="queue-panel-list">
       <div
         v-for="item in queueList"
@@ -81,6 +83,7 @@ import { useGenerationQueue, statusText } from './useGenerationQueue.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { stopGenerationTask, retryGenerationTask } from '@/api/generation.js'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const props = defineProps({ open: Boolean })
 const emit = defineEmits(['update:open'])

@@ -152,7 +152,7 @@ import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import { useInviteStats } from '@/composables/useInviteStats.js'
 import { useUserProfile } from '@/composables/useUserProfile.js'
-import { copyToClipboard } from '@/utils/copy.js'
+import { useCopy } from '@/composables/useCopy.js'
 import { isWechatBrowser } from '@/utils/env.js'
 import { getShareConfig } from '@/api/shareConfig.js'
 
@@ -195,32 +195,21 @@ const inviteShareText = computed(() => {
   return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
 
-const copyUserId = async () => {
-  try {
-    await copyToClipboard(userId.value)
-    message.success('ID 已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
+const { copy: copyUserId } = useCopy({
+  successText: 'ID 已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyInviteCodeRaw } = useCopy({
+  successText: '邀请码已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyInviteLinkRaw } = useCopy({
+  successText: '邀请文案已复制',
+  errorText: '复制失败，请长按手动复制'
+})
 
-const copyInviteCode = async () => {
-  try {
-    await copyToClipboard(inviteCode.value)
-    message.success('邀请码已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
-
-const copyInviteLink = async () => {
-  try {
-    await copyToClipboard(inviteShareText.value)
-    message.success('邀请文案已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
+const copyInviteCode = () => copyInviteCodeRaw(inviteCode.value)
+const copyInviteLink = () => copyInviteLinkRaw(inviteShareText.value)
 
 const roundRect = (ctx, x, y, w, h, r) => {
   ctx.beginPath()

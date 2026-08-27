@@ -1,15 +1,7 @@
 <template>
   <div class="text2image-page">
     <!-- 子页面返回头 -->
-    <header class="t2i-subpage-header">
-      <div class="t2i-subpage-back" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span>返回</span>
-      </div>
-      <div class="t2i-subpage-title">文字转图片</div>
-    </header>
+    <MobileSubpageHeader title="文字转图片" />
 
     <header class="t2i-hero">
       <div class="t2i-hero-deco t2i-hero-deco-lg"></div>
@@ -129,9 +121,9 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
 import { toPng, toJpeg } from 'html-to-image'
 import { message } from 'ant-design-vue'
+import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
 import {
   DownloadOutlined,
   BoldOutlined,
@@ -149,8 +141,6 @@ import {
   FontColorsOutlined,
   BgColorsOutlined
 } from '@ant-design/icons-vue'
-
-const router = useRouter()
 
 const editorRef = ref(null)
 const bgInput = ref(null)
@@ -195,10 +185,6 @@ onBeforeUnmount(() => {
     URL.revokeObjectURL(bgImage.value)
   }
 })
-
-function goBack() {
-  router.back()
-}
 
 function onInput() {
   // 保留内容与编辑器同步即可，导出时直接读取 DOM
@@ -267,49 +253,6 @@ async function exportImage() {
   background: #f8f9fa;
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
-}
-
-/* 子页面返回头 */
-.t2i-subpage-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  height: 48px;
-  padding: 0 12px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #f0f0f0;
-  box-sizing: border-box;
-}
-.t2i-subpage-back {
-  position: absolute;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: #595959;
-  font-size: 14px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.t2i-subpage-back svg {
-  width: 20px;
-  height: 20px;
-}
-.t2i-subpage-title {
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 60px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
 }
 
 /* Hero */
@@ -605,12 +548,6 @@ async function exportImage() {
 
 /* 暗色主题 */
 body[data-theme="dark"] .text2image-page { background: #141414; color: #e0e0e0; }
-body[data-theme="dark"] .t2i-subpage-header {
-  background: rgba(20, 20, 20, 0.96);
-  border-bottom-color: #2a2a2a;
-}
-body[data-theme="dark"] .t2i-subpage-title { color: #e0e0e0; }
-body[data-theme="dark"] .t2i-subpage-back { color: #a6a6a6; }
 body[data-theme="dark"] .t2i-hero {
   background: linear-gradient(180deg, #2a1f22 0%, #1f1f1f 100%);
 }

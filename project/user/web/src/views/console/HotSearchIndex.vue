@@ -58,9 +58,7 @@
             <span class="hot-search-text" :title="item.title">{{ item.title }}</span>
             <span class="hot-search-heat">{{ item.hotValue }}</span>
           </div>
-          <div v-if="!loading && list.length === 0" class="hot-search-empty">
-            暂无数据，请稍后再试
-          </div>
+          <EmptyState v-if="!loading && list.length === 0" title="暂无数据，请稍后再试" compact size="sm" />
         </a-spin>
       </div>
     </div>
@@ -71,7 +69,9 @@
 import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch'
+import { useCopy } from '@/composables/useCopy.js'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const { platforms, list, loading, loadPlatforms, loadList } = useHotSearch()
 
@@ -103,13 +103,10 @@ const currentDateText = computed(() => {
   return item ? `${item.value} ${item.label}` : activeDate.value
 })
 
-const copyTitle = (title) => {
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(title).then(() => message.success('标题已复制'))
-  } else {
-    message.info(title)
-  }
-}
+const { copy: copyTitle } = useCopy({
+  successText: '标题已复制',
+  errorText: '复制失败'
+})
 
 const refresh = async () => {
   if (!activePlatform.value || !activeDate.value) return

@@ -1,15 +1,6 @@
 <template>
   <div class="mobile-qr-code">
-    <!-- 子页面返回头 -->
-    <header class="mqr-subpage-header">
-      <div class="mqr-subpage-back" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span>返回</span>
-      </div>
-      <div class="mqr-subpage-title">二维码生成</div>
-    </header>
+    <MobileSubpageHeader title="二维码生成" />
 
     <!-- 宣传文案 -->
     <section class="mqr-hero">

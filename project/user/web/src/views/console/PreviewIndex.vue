@@ -7,11 +7,14 @@
       <h2 class="preview-title-text">预览/导出</h2>
     </div>
 
-    <div v-if="!article" class="preview-empty">
-      <div class="empty-icon">📄</div>
-      <div class="empty-text">暂无文章内容</div>
-      <button class="empty-btn" @click="$router.push('/console/create')">去创作</button>
-    </div>
+    <EmptyState
+      v-if="!article"
+      icon="📄"
+      title="暂无文章内容"
+      action-text="去创作"
+      action-to="/console/create"
+      size="lg"
+    />
 
     <div v-else class="preview-content">
       <div class="preview-article" :style="{ background: templateStyle.bg, fontFamily: templateStyle.font }">
@@ -286,8 +289,10 @@ import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { generatePublishPlan } from '@/api/selfMediaPlan.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { useCopy } from '@/composables/useCopy.js'
 
 const article = ref(null)
 const publishDesc = ref('')
@@ -711,48 +716,26 @@ const formattedBody = computed(() => {
   return renderedWithOverrides
 })
 
-// 通用复制（兼容 HTTP 非安全上下文，navigator.clipboard 在 http 下为 undefined）
-const copyToClipboard = (text, successMsg, errorMsg) => {
-  if (!text) {
-    message.error(errorMsg || '复制内容为空')
-    return
-  }
+const { copy: copyArticleText } = useCopy({
+  successText: '已复制到剪贴板',
+  errorText: '复制失败'
+})
 
-  const writeWithFallback = async () => {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-      return
-    }
+const { copy: copyDescText } = useCopy({
+  successText: '描述已复制',
+  errorText: '复制失败'
+})
 
-    const textarea = document.createElement('textarea')
-    textarea.value = text
-    textarea.style.position = 'fixed'
-    textarea.style.left = '-9999px'
-    textarea.style.top = '0'
-    textarea.setAttribute('readonly', '')
-    document.body.appendChild(textarea)
-    textarea.focus()
-    textarea.select()
-    try {
-      const successful = document.execCommand('copy')
-      if (!successful) {
-        throw new Error('execCommand copy failed')
-      }
-    } finally {
-      document.body.removeChild(textarea)
-    }
-  }
-
-  writeWithFallback()
-    .then(() => message.success(successMsg || '复制成功'))
-    .catch(() => message.error(errorMsg || '复制失败'))
-}
+const { copy: copyTagsText } = useCopy({
+  successText: '标签已复制',
+  errorText: '复制失败'
+})
 
 // 复制正文
 const copyText = () => {
   if (!article.value) return
   const text = `${article.value.title}\n\n${article.value.body}`
-  copyToClipboard(text, '已复制到剪贴板', '复制失败')
+  copyArticleText(text)
 }
 
 // 导出 Word
@@ -790,7 +773,7 @@ const exportWord = () => {
 
 // 复制描述
 const copyDesc = () => {
-  copyToClipboard(publishDesc.value, '描述已复制', '复制失败')
+  copyDescText(publishDesc.value)
 }
 
 // 复制全部标签
@@ -799,7 +782,7 @@ const copyTags = () => {
     message.info(`推荐标签为${SEO_MIN_PLAN.name}功能，请升级套餐后使用`)
     return
   }
-  copyToClipboard(publishTags.value.join(' '), '标签已复制', '复制失败')
+  copyTagsText(publishTags.value.join(' '))
 }
 
 // AI优化标题：首次点击调后端大模型生成，之后后端返回首次缓存结果

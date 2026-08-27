@@ -303,9 +303,7 @@
       <div v-if="!canUseCustomStyles" class="styles-upgrade-banner">
         当前套餐不支持系统预设提示词，开通会员后即可解锁
       </div>
-      <div v-else-if="systemSkillsDisplay.length === 0" class="styles-empty">
-        没有找到匹配的系统预设提示词
-      </div>
+      <EmptyState v-else-if="systemSkillsDisplay.length === 0" title="没有找到匹配的系统预设提示词" compact size="sm" />
       <div v-else class="styles-grid">
         <SkillCard
           v-for="s in systemSkillsDisplay"
@@ -460,11 +458,7 @@
     <!-- 收藏的提示词 -->
     <div v-show="activeTab === 'favorites'" class="styles-content">
       <div v-if="favoriteSkillsDisplay.length === 0" class="styles-empty">
-        <a-empty description="还没有收藏的提示词">
-          <button class="empty-action-btn" @click="router.push('/console/skill-market')">
-            去收藏
-          </button>
-        </a-empty>
+        <EmptyState title="还没有收藏的提示词" action-text="去收藏" action-to="/console/skill-market" />
       </div>
       <div v-else class="styles-grid">
         <SkillCard
@@ -804,6 +798,7 @@ import { publishSkill } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const SKILL_PROMPT_MAX_LENGTH = 1200
 
@@ -1895,22 +1890,6 @@ const useSelectedStyle = (style, source) => {
   opacity: 0.7;
 }
 
-.empty-action-btn {
-  padding: 6px 12px;
-  background: #fff;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.empty-action-btn:hover {
-  background: var(--color-primary-bg);
-}
-
 .publish-confirm-body {
   padding: 8px 0 16px;
 }
@@ -2604,16 +2583,6 @@ body[data-theme="dark"] .style-card-status.offline {
 
 body[data-theme="dark"] .favorite-offline {
   opacity: 0.6;
-}
-
-body[data-theme="dark"] .empty-action-btn {
-  background: transparent;
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .empty-action-btn:hover {
-  background: rgba(255, 36, 66, 0.12);
 }
 
 body[data-theme="dark"] .publish-confirm-title {

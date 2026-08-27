@@ -49,10 +49,7 @@
         <div class="account-section-header">
           <span class="account-section-title">排行榜月度奖励</span>
         </div>
-        <div v-if="monthlyList.length === 0" class="account-empty">
-          <div>还没有收益</div>
-          <a href="/guide" target="_blank" class="guide-link">看看怎么赚创作币 →</a>
-        </div>
+        <EmptyState v-if="monthlyList.length === 0" title="还没有收益" description="看看怎么赚创作币" action-text="查看指南" :action-handler="openGuide" size="md" />
         <div v-else class="monthly-list">
           <div
             v-for="item in monthlyList"
@@ -172,9 +169,7 @@
       </div>
 
       <div v-if="activeFilter === 'monthly'" class="account-section">
-        <div v-if="monthlyList.length === 0" class="account-empty">
-          暂无排行榜月度奖励
-        </div>
+        <EmptyState v-if="monthlyList.length === 0" title="暂无排行榜月度奖励" compact size="sm" />
         <div v-else class="monthly-list">
           <div
             v-for="item in monthlyList"
@@ -196,9 +191,7 @@
       </div>
 
       <div v-else class="earnings-list">
-        <div v-if="filteredRecords.length === 0" class="account-empty">
-          暂无收益记录
-        </div>
+        <EmptyState v-if="filteredRecords.length === 0" title="暂无收益记录" compact size="sm" />
         <div
           v-for="r in filteredRecords"
           :key="r.id"
@@ -239,6 +232,8 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import { useEarnings } from '@/composables/useEarnings.js'
+import { useCopy } from '@/composables/useCopy.js'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
 const {
@@ -262,6 +257,10 @@ const goToWithdraw = () => {
   router.push('/console/coin?from=account')
 }
 
+const openGuide = () => {
+  window.open('/guide', '_blank')
+}
+
 const filteredRecords = computed(() => records.value)
 
 const formatTime = (iso) => {
@@ -278,14 +277,13 @@ const openDetail = (record) => {
   detailVisible.value = true
 }
 
-const copyBizNo = async () => {
+const { copy } = useCopy({
+  successText: '流水号已复制',
+  errorText: '复制失败'
+})
+const copyBizNo = () => {
   if (!detailRecord.value?.bizNo) return
-  try {
-    await navigator.clipboard.writeText(detailRecord.value.bizNo)
-    message.success('流水号已复制')
-  } catch {
-    message.error('复制失败')
-  }
+  copy(detailRecord.value.bizNo)
 }
 
 const detailPlanText = computed(() => {

@@ -336,15 +336,7 @@
     </div>
   </a-modal>
   <div v-else class='create-flow-page'>
-    <div class='create-flow-page-header'>
-      <div class='create-flow-page-back' @click='close'>
-        <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
-          <polyline points='15 18 9 12 15 6'></polyline>
-        </svg>
-        <span>返回</span>
-      </div>
-      <div class='create-flow-page-title'>{{ modalTitle }}</div>
-    </div>
+    <MobileSubpageHeader :title='modalTitle' :auto-back='false' @back='close' />
     <div class='create-flow-page-body'>
       <div class='create-flow create-flow--page'>
         <div class='flow-header'>

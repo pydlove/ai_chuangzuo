@@ -227,7 +227,7 @@
           >
             <div class="niche-header">
               <div class="niche-name">{{ n.name }}</div>
-              <a-tag :color="n.riskColor">{{ n.riskLabel }}</a-tag>
+              <a-tag :color="n.riskColor">{{ formatRiskLabel(n.riskLabel) }}</a-tag>
             </div>
             <div class="niche-meta">
               <span>目标人群：{{ n.audience }}</span>
@@ -582,6 +582,15 @@ function earnClass(ease) {
   return 'tag-hard'
 }
 
+function formatRiskLabel(label) {
+  const map = {
+    '高': '竞争激烈',
+    '中': '竞争中等',
+    '低': '竞争较小'
+  }
+  return map[label] || label
+}
+
 const selectedPlatform = ref('')
 const questions = ref([])
 const answers = reactive({})
@@ -829,7 +838,9 @@ async function next() {
       cancelText: '取消',
       centered: true,
       okButtonProps: { danger: true },
-      onOk: () => proceedNext()
+      onOk: () => {
+        proceedNext()
+      }
     })
     return
   }
@@ -1422,6 +1433,7 @@ async function confirm() {
   display: flex;
   justify-content: center;
   gap: 16px;
+  margin-top: 24px;
   padding-bottom: 48px;
 }
 .onboarding-actions .ant-btn-primary:not(.ant-btn-disabled) {

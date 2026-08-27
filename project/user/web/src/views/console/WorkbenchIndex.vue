@@ -189,8 +189,8 @@
             <img class="plan-empty-icon" src="/assets/images/运营方案空状态-v1.png" alt="运营方案" />
             <div class="plan-empty-title">您还没有专属运营方案</div>
             <div class="plan-empty-desc">
-              您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧，
-              <a href="javascript:;" class="plan-link" @click="goToOnboarding()">立即制定</a>
+              您的专属顾问小爱会为您量身定制一套专属的自媒体运营方案，陪您一起经营您的自媒体账号，快去行动吧。
+              <a href="javascript:;" class="plan-link plan-link--block" @click="goToOnboarding()">立即制定</a>
             </div>
           </div>
         </a-card>
@@ -652,6 +652,7 @@ import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
 import { getArticleByTaskId } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { useCopy } from '@/composables/useCopy.js'
 
 const router = useRouter()
 
@@ -753,12 +754,13 @@ function setTodayDone() {
   localStorage.setItem(todayKey.value, '1')
 }
 
+const { copy } = useCopy({
+  successText: '邀请码已复制',
+  errorText: '复制失败'
+})
 function copyInviteCode() {
-  navigator.clipboard.writeText(userInfo.inviteCode).then(() => {
-    message.success('邀请码已复制')
-  }).catch(() => {
-    message.error('复制失败')
-  })
+  if (!userInfo.inviteCode) return
+  copy(userInfo.inviteCode)
 }
 
 const plan = reactive({
@@ -1505,6 +1507,11 @@ function statusText(status) {
   color: var(--color-info, #1989fa);
   text-decoration: underline;
   cursor: pointer;
+}
+.plan-link--block {
+  display: block;
+  text-align: center;
+  margin-top: 4px;
 }
 .plan-link:hover {
   color: #1478d2;

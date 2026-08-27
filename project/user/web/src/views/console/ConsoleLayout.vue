@@ -1524,7 +1524,7 @@ import { useUserProfile } from '@/composables/useUserProfile'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { getShareConfig } from '@/api/shareConfig.js'
 import { useWithdraw } from '@/composables/useWithdraw'
-import { copyToClipboard } from '@/utils/copy.js'
+import { useCopy } from '@/composables/useCopy.js'
 import { isWechatBrowser } from '@/utils/env.js'
 import { useBenefits } from '@/composables/useBenefits'
 import { useMessages } from '@/composables/useMessages'
@@ -2101,14 +2101,9 @@ const closeProfileEditModal = () => {
   profileEditVisible.value = false
 }
 
-const copyProfileUserId = async () => {
+const copyProfileUserId = () => {
   if (!profileEditForm.userId) return
-  try {
-    await navigator.clipboard.writeText(profileEditForm.userId)
-    message.success('平台ID已复制')
-  } catch {
-    message.error('复制失败')
-  }
+  copyProfileUserIdRaw(profileEditForm.userId)
 }
 
 const handleProfileEditSubmit = async () => {
@@ -2277,15 +2272,10 @@ const openPhoneModal = () => {
   phoneVisible.value = true
 }
 
-const copyAccountUserId = async () => {
+const copyAccountUserId = () => {
   const id = userProfile.profile.value?.userId
   if (!id) return
-  try {
-    await navigator.clipboard.writeText(id)
-    message.success('用户ID已复制')
-  } catch {
-    message.error('复制失败')
-  }
+  copyAccountUserIdRaw(id)
 }
 
 const triggerAvatarUpload = () => {
@@ -3050,32 +3040,26 @@ const openInviteRulesDrawer = () => {
   inviteRulesVisible.value = true
 }
 
-const copyInviteCode = async () => {
-  try {
-    await copyToClipboard(inviteCode.value)
-    message.success('邀请码已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
-
-const copyInviteLink = async () => {
-  try {
-    await copyToClipboard(inviteShareText.value)
-    message.success('邀请文案已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
-
-const copyUserId = async () => {
-  try {
-    await copyToClipboard(userId.value)
-    message.success('ID 已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
+const { copy: copyInviteCode } = useCopy({
+  successText: '邀请码已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyInviteLink } = useCopy({
+  successText: '邀请文案已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyUserId } = useCopy({
+  successText: 'ID 已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyProfileUserIdRaw } = useCopy({
+  successText: '平台ID已复制',
+  errorText: '复制失败'
+})
+const { copy: copyAccountUserIdRaw } = useCopy({
+  successText: '用户ID已复制',
+  errorText: '复制失败'
+})
 
 const openWithdrawModal = () => {
   withdrawAmount.value = null

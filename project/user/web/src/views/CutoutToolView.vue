@@ -1,15 +1,6 @@
 <template>
   <div class="cutout-tool-page">
-    <!-- 子页面返回头：与二维码生成等二级页保持一致 -->
-    <header class="cutout-subpage-header">
-      <div class="cutout-subpage-back" @click="goBack">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-        <span>返回</span>
-      </div>
-      <div class="cutout-subpage-title">AI 抠图</div>
-    </header>
+    <MobileSubpageHeader title="AI 抠图" />
 
     <header class="cutout-hero">
       <div class="cutout-hero-deco cutout-hero-deco-lg"></div>

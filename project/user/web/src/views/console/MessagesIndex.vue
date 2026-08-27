@@ -43,16 +43,19 @@
         </div>
       </div>
 
-      <div v-else-if="filteredMessages.length === 0" class="messages-empty">
-        <div class="messages-empty__icon">
+      <EmptyState
+        v-else-if="filteredMessages.length === 0"
+        :title="emptyTitle"
+        description="有新活动或通知时，会第一时间出现在这里"
+        size="lg"
+      >
+        <template #icon>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
             <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
           </svg>
-        </div>
-        <div class="messages-empty__title">{{ emptyTitle }}</div>
-        <div class="messages-empty__desc">有新活动或通知时，会第一时间出现在这里</div>
-      </div>
+        </template>
+      </EmptyState>
 
       <div v-else class="messages-cards">
         <div
@@ -108,6 +111,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message as antMessage } from 'ant-design-vue'
 import { useMessages } from '@/composables/useMessages'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { normalizeMessageLink } from '@/utils/messageLink'
 
 const router = useRouter()

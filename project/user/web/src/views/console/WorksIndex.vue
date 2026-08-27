@@ -61,19 +61,13 @@
     <!-- 已生成列表 -->
     <div v-if="activeTab === 'works'" class="works-list">
       <div v-if="worksList.length === 0 && !searchKeyword.trim()" class="works-empty">
-        <a-empty description="还没有生成的文章">
-          <button class="empty-btn" @click="$router.push('/console/workbench')">去创作</button>
-        </a-empty>
+        <EmptyState title="还没有生成的文章" description="创作你的第一篇文章，开启 AI 创作之旅" action-text="去创作" action-to="/console/workbench" />
       </div>
       <div v-else-if="worksList.length === 0 && searchKeyword.trim()" class="works-empty">
-        <a-empty description="未找到匹配的作品">
-          <button class="empty-btn" @click="clearFilters">清空筛选</button>
-        </a-empty>
+        <EmptyState title="未找到匹配的作品" description="换个关键词试试，或清空筛选条件" action-text="清空筛选" :action-handler="clearFilters" />
       </div>
       <div v-else-if="filteredWorks.length === 0" class="works-empty">
-        <a-empty description="未找到匹配的作品">
-          <button class="empty-btn" @click="clearFilters">清空筛选</button>
-        </a-empty>
+        <EmptyState title="未找到匹配的作品" description="当前筛选条件下没有作品，调整后再试" action-text="清空筛选" :action-handler="clearFilters" />
       </div>
       <div v-else class="work-cards">
         <div v-for="work in filteredWorks" :key="work.id" class="work-card">
@@ -110,19 +104,13 @@
     <!-- 草稿箱 -->
     <div v-if="activeTab === 'drafts'" class="drafts-list">
       <div v-if="draftsList.length === 0 && !searchKeyword.trim()" class="works-empty">
-        <a-empty description="草稿箱是空的">
-          <button class="empty-btn" @click="$router.push('/console/workbench')">去创作</button>
-        </a-empty>
+        <EmptyState title="草稿箱是空的" description="暂存草稿会出现在这里，方便继续编辑" action-text="去创作" action-to="/console/workbench" />
       </div>
       <div v-else-if="draftsList.length === 0 && searchKeyword.trim()" class="works-empty">
-        <a-empty description="未找到匹配的草稿">
-          <button class="empty-btn" @click="clearFilters">清空筛选</button>
-        </a-empty>
+        <EmptyState title="未找到匹配的草稿" description="换个关键词试试，或清空筛选条件" action-text="清空筛选" :action-handler="clearFilters" />
       </div>
       <div v-else-if="filteredDrafts.length === 0" class="works-empty">
-        <a-empty description="未找到匹配的草稿">
-          <button class="empty-btn" @click="clearFilters">清空筛选</button>
-        </a-empty>
+        <EmptyState title="未找到匹配的草稿" description="当前筛选条件下没有草稿，调整后再试" action-text="清空筛选" :action-handler="clearFilters" />
       </div>
       <div v-else class="work-cards">
         <div v-for="draft in filteredDrafts" :key="draft.id" class="work-card draft-card">
@@ -163,6 +151,7 @@ import { Modal, message } from 'ant-design-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 
@@ -573,32 +562,6 @@ const editWork = (bizNo) => {
   align-items: center;
   justify-content: center;
   padding: 60px 0;
-}
-
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 14px;
-  color: #8c8c8c;
-  margin-bottom: 16px;
-}
-
-.empty-btn {
-  padding: 8px 20px;
-  background: #ff2442;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.empty-btn:hover {
-  background: #e61e3a;
 }
 
 .work-cards {

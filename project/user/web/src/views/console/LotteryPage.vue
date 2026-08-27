@@ -129,7 +129,7 @@
             <span>我的兑换码</span>
           </div>
           <div class="codes-card">
-            <a-empty v-if="!myCodes.length" description="还没有兑换码" />
+            <EmptyState v-if="!myCodes.length" title="还没有兑换码" compact size="sm" />
             <div v-else class="code-list">
               <div v-for="item in myCodes" :key="item.id" class="code-row">
                 <div class="code-row__main">
@@ -159,7 +159,7 @@
             <span>中奖展示墙</span>
           </div>
           <div class="winners-card">
-            <a-empty v-if="!displayWinners.length" description="暂无中奖记录" />
+            <EmptyState v-if="!displayWinners.length" title="暂无中奖记录" compact size="sm" />
             <div v-else class="winner-list">
               <div v-for="w in displayWinners" :key="w.id" class="winner-row">
                 <a-avatar :src="w.avatarUrl || defaultAvatar" />
@@ -177,11 +177,12 @@
 
     <div v-else class="lottery-body">
       <div class="lottery-content">
-        <div class="empty-state">
-          <div class="empty-state__icon"><GiftOutlined /></div>
-          <div class="empty-state__title">暂无进行中的抽奖活动</div>
-          <p class="empty-state__desc">活动筹备中，敬请期待下一次惊喜～</p>
-        </div>
+        <EmptyState
+          :icon="GiftOutlined"
+          title="暂无进行中的抽奖活动"
+          description="活动筹备中，敬请期待下一次惊喜～"
+          size="lg"
+        />
       </div>
     </div>
 
@@ -254,9 +255,10 @@ import MarkdownIt from 'markdown-it'
 import { GiftOutlined, CrownOutlined, MoneyCollectOutlined, TagsOutlined, SmileOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
 import { getCurrentCampaign, getChances, draw, getDisplayWinners, getMyCodes, redeem } from '@/api/lottery'
 import { getShareConfig } from '@/api/shareConfig'
-import { copyToClipboard } from '@/utils/copy.js'
 import { useUserProfile } from '@/composables/useUserProfile.js'
+import { useCopy } from '@/composables/useCopy.js'
 import NavBar from '@/components/layout/NavBar.vue'
+import EmptyState from '@/components/common/EmptyState.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -600,15 +602,14 @@ async function handleRedeem(code) {
   }
 }
 
-async function copyCode() {
-  if (!resultCode.value) return
-  try {
-    await copyToClipboard(resultCode.value)
-    message.success('已复制')
-  } catch {
-    message.error('复制失败，请长按手动复制')
-  }
-}
+const { copy: copyCode } = useCopy({
+  successText: '已复制',
+  errorText: '复制失败，请长按手动复制'
+})
+const { copy: copyShareText } = useCopy({
+  successText: '文案已复制',
+  errorText: '复制失败，请长按手动复制'
+})
 
 async function loadShareConfig() {
   try {
@@ -635,7 +636,7 @@ async function handleShare() {
     .replace(/{url}/g, url)
     .replace(/{code}/g, inviteCode.value || '')
   try {
-    await copyToClipboard(text)
+    await copyShareText(text)
     Modal.success({
       title: '文案已复制',
       content: '快去粘贴给好友吧～好友使用你的邀请码注册，还能额外获得一次抽奖机会！',
@@ -643,7 +644,7 @@ async function handleShare() {
       class: 'lottery-share-modal'
     })
   } catch {
-    message.error('复制失败，请长按手动复制')
+    // copy composable 已提示错误
   }
 }
 

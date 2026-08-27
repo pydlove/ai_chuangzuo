@@ -10,66 +10,68 @@
 
 用户端 web 存在**大量可抽取的重复 UI 模式**。最值得优先落地的五类是：**空状态、复制按钮、移动端返回头、Tab 切换头部、内联 SVG 图标**。这些模式重复最多、改造成本最低、收益最大。
 
+**当前进度**：`EmptyState` 空状态组件、`CopyButton` / `CopyRow` 复制组件已抽取并迁移完成。
+
 ---
 
 ## 一、高优先级（建议优先抽取）
 
-### 1. EmptyState 空状态组件
+### 1. EmptyState 空状态组件 ✅ 已落地
 
-**重复位置**:
-- `src/views/console/OrderIndex.vue:78-83`
-- `src/views/console/CouponIndex.vue:78`
-- `src/views/console/MessagesIndex.vue:46-55`
-- `src/views/console/HotSearchIndex.vue:62`
-- `src/views/console/LotteryPage.vue:162/182`
-- `src/views/console/EarningsIndex.vue:52`
-- `src/views/console/SkillsIndex.vue:306`
-- `src/views/console/SkillMarketIndex.vue:161`
-- `src/views/console/WorksIndex.vue:73/122`
-- `src/views/console/PreviewIndex.vue:10-14`
-- `src/views/console/create/QueueDrawer.vue:17-19`
+**组件位置**: `src/components/common/EmptyState.vue`
 
-**问题**: 几乎每页都有"暂无 xxx"的空状态，但实现不统一：有的用 `a-empty`，有的用自定义 div，有的带图标，有的带按钮。
+**能力**: 支持 `icon`（Ant Design Vue 图标组件 / emoji / 默认图标）、`title`、`description`、`actionText`、`actionTo`（路由跳转）、`actionHandler`（自定义回调）、`size`、`compact`，并提供 `#icon`、`#title`、`#description`、`#action` 插槽。
 
-**建议组件**:
-```vue
-<EmptyState
-  icon="inbox"
-  title="暂无订单"
-  description="有新订单时会第一时间出现在这里"
-  action-text="去逛逛"
-  action-to="/console/shop"
-/>
-```
+**已迁移位置**:
+- `src/views/console/PreviewIndex.vue`
+- `src/views/console/create/QueueDrawer.vue`
+- `src/views/console/OrderIndex.vue`
+- `src/views/console/CouponIndex.vue`
+- `src/views/console/MessagesIndex.vue`
+- `src/views/console/HotSearchIndex.vue`
+- `src/views/console/LotteryPage.vue`
+- `src/views/console/EarningsIndex.vue`
+- `src/views/console/SkillsIndex.vue`
+- `src/views/console/SkillMarketIndex.vue`
+- `src/views/console/WorksIndex.vue`
 
-**收益**: 统一空状态视觉和交互，减少重复模板代码。
+**收益**: 统一空状态视觉和交互，减少重复模板代码；移除各页面中 `<a-empty>` 与自定义空状态 div 的混用。`npm run build` 验证通过。
+
+**仍可继续迁移的位置**（本次未处理，后续可逐步替换）：
+- `src/views/console/WorkbenchIndex.vue`（多处带引导按钮的复杂空状态）
+- `src/views/console/EditIndex.vue`
+- `src/views/console/WeeklyDataIndex.vue`
+- `src/views/console/ConsoleLayout.vue`（消息下拉空状态）
 
 ---
 
-### 2. CopyButton / CopyRow 复制组件
+### 2. CopyButton / CopyRow 复制组件 ✅ 已落地
 
-**重复位置**:
-- `src/views/console/InviteIndex.vue:6-7/61/72`
-- `src/views/console/ProfileEditIndex.vue:24`
-- `src/views/console/EarningsIndex.vue:117/281`
-- `src/views/console/WorkbenchIndex.vue:64-67`
-- `src/components/AccountCheckModal.vue:69/73/113/117/299`
-- `src/views/console/PreviewIndex.vue:54/123/200/715`
-- `src/views/console/ConsoleLayout.vue:68/140/151/881/1391`
-- `src/views/console/LotteryPage.vue:211/606/638`
+**组件位置**: 
+- `src/components/common/CopyButton.vue`
+- `src/components/common/CopyRow.vue`
+- `src/composables/useCopy.js`
 
-**问题**: 复制邀请码、链接、用户ID、文本等逻辑大量重复，各自实现 clipboard 调用和 message 提示。
+**能力**: 
+- `useCopy` 封装复制逻辑（`navigator.clipboard` + `execCommand` 降级）、成功/失败 message 提示、空内容提示、支持异步获取文本。
+- `CopyButton` 提供默认/主要/文字/图标四种按钮形态，内置 `loading`、`disabled` 状态。
+- `CopyRow` 提供「标签 + 值 + 复制按钮」的一行展示，支持显示值与复制值不一致。
 
-**建议组件**:
-```vue
-<!-- 纯按钮 -->
-<CopyButton :text="inviteCode" success-msg="邀请码已复制" />
+**已迁移位置**:
+- `src/views/console/InviteIndex.vue`
+- `src/views/console/ProfileEditIndex.vue`
+- `src/views/console/EarningsIndex.vue`
+- `src/views/console/WorkbenchIndex.vue`
+- `src/components/AccountCheckModal.vue`
+- `src/views/console/AccountCheckIndex.vue`
+- `src/views/console/PreviewIndex.vue`
+- `src/views/console/ConsoleLayout.vue`
+- `src/views/console/LotteryPage.vue`
+- `src/views/console/HotSearchIndex.vue`
 
-<!-- 标签+值+复制 -->
-<CopyRow label="邀请码" :value="inviteCode" />
-```
+**收益**: 统一复制降级方案和成功/失败提示；移除各页面中直接调用 `navigator.clipboard` 与重复手写 `execCommand` 降级的代码。`npm run build` 验证通过。
 
-**收益**: 统一复制降级方案（`navigator.clipboard` + `execCommand`），统一成功/失败提示。
+**说明**: 对于已有强自定义样式的复制按钮（如「我的 ID」胶囊按钮、资料页复制按钮），保留原有 DOM 和样式，仅将复制逻辑替换为 `useCopy`，避免视觉回归。新功能可直接使用 `CopyButton` / `CopyRow`。
 
 ---
 
@@ -276,9 +278,9 @@ confirm({
 
 ### 推荐抽取顺序
 
-1. **Icon 图标组件** — 影响面最大，先统一图标
-2. **CopyButton** — 高频功能，立即减少重复
-3. **EmptyState** — 几乎每页都有
+1. **~~EmptyState~~** ✅ 已完成
+2. **~~CopyButton / CopyRow~~** ✅ 已完成
+3. **Icon 图标组件** — 影响面最大，先统一图标
 4. **MobileSubpageHeader** — 移动端体验统一
 5. **Tabs** — 减少大量自定义 tab 代码
 6. **SectionTitle / StatCard** — 提升页面一致性
@@ -301,6 +303,7 @@ src/components/common/
   └── ActionGroup.vue
 
 src/composables/
+  ├── useCopy.js
   └── useConfirm.js
 ```
 

@@ -144,6 +144,7 @@ import { message } from 'ant-design-vue'
 import { CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
+import { useCopy } from '@/composables/useCopy.js'
 
 const router = useRouter()
 
@@ -304,21 +305,10 @@ function selectSuggestion(s) {
   accountReason.value = ''
 }
 
-async function copyText(text) {
-  if (!text) return
-  try {
-    await navigator.clipboard.writeText(text)
-    message.success('已复制')
-  } catch {
-    const input = document.createElement('textarea')
-    input.value = text
-    document.body.appendChild(input)
-    input.select()
-    document.execCommand('copy')
-    document.body.removeChild(input)
-    message.success('已复制')
-  }
-}
+const { copy: copyText } = useCopy({
+  successText: '已复制',
+  errorText: '复制失败'
+})
 
 function saveLastCheckResult() {
   localStorage.setItem(ACCOUNT_CHECK_LAST_KEY, JSON.stringify({

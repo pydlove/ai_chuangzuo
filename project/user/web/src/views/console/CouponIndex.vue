@@ -73,12 +73,15 @@
       </div>
 
       <!-- 移动端空状态 -->
-      <div v-if="coupons.length === 0 && !loading" class="coupon-empty coupon-empty--mobile">
-        <div class="coupon-empty__icon"><TagsOutlined /></div>
-        <div class="coupon-empty__title">暂无{{ currentTabLabel }}优惠券</div>
-        <p class="coupon-empty__desc">参与抽奖或活动，有机会获得会员、创作币等优惠券</p>
-        <button class="coupon-empty__btn" @click="router.push('/lottery')">去参与活动</button>
-      </div>
+      <EmptyState
+        v-if="coupons.length === 0 && !loading"
+        :icon="TagsOutlined"
+        :title="`暂无${currentTabLabel}优惠券`"
+        description="参与抽奖或活动，有机会获得会员、创作币等优惠券"
+        action-text="去参与活动"
+        action-to="/lottery"
+        size="lg"
+      />
     </div>
   </div>
 </template>
@@ -89,6 +92,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { TagsOutlined } from '@ant-design/icons-vue'
 import { getMyCoupons } from '@/api/lottery'
+import EmptyState from '@/components/common/EmptyState.vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()
