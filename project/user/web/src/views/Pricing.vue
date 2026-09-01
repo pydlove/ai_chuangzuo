@@ -1109,7 +1109,6 @@ body[data-theme="dark"] .pay-agreement-confirm-body .paid-agreement-text {
 }
 
 .pay-agreement-confirm-body .paid-agreement-text {
-  font-size: 16px;
   color: #595959;
 }
 

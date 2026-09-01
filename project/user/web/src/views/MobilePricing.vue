@@ -1077,13 +1077,7 @@ body[data-theme="dark"] .mp-upgrade-tip {
 }
 
 .mp-pay-agreement-confirm-body .paid-agreement-text {
-  font-size: 16px;
   color: #595959;
-  line-height: 1.6;
-}
-
-.mp-pay-agreement-confirm-body .paid-agreement-link {
-  white-space: nowrap;
 }
 
 .mp-qr-pay {

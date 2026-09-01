@@ -1743,13 +1743,7 @@ body[data-theme="dark"] .mb-compare-plan-value.yes {
 }
 
 .mb-pay-agreement-confirm-body .paid-agreement-text {
-  font-size: 16px;
   color: #595959;
-  line-height: 1.6;
-}
-
-.mb-pay-agreement-confirm-body .paid-agreement-link {
-  white-space: nowrap;
 }
 
 .mb-qr-pay {

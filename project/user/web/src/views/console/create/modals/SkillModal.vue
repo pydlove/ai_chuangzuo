@@ -2,216 +2,114 @@
   <a-modal
     v-model:open="styleVisible"
     :footer="null"
-    :width="720"
+    :width="900"
     centered
-    class="style-modal"
+    class="skill-selector-modal"
   >
     <template #title>
       <div class="modal-title-wrap">
-        <div class="modal-title">提示词</div>
+        <div class="modal-title">选择提示词</div>
         <div class="modal-subtitle">选择一套提示词，让 AI 写出你想要的调性</div>
       </div>
     </template>
 
-    <div class="style-tabs">
-      <button
-        :class="['style-tab', { active: styleTab === 'my' }]"
-        @click="styleTab = 'my'"
-      >
-        我的
-      </button>
-      <button
-        :class="['style-tab', { active: styleTab === 'learned' }]"
-        @click="styleTab = 'learned'; loadLearnedSkillsTab()"
-      >
-        学习
-      </button>
-      <button
-        :class="['style-tab', { active: styleTab === 'favorites' }]"
-        @click="styleTab = 'favorites'; loadFavoriteSkillsTab()"
-      >
-        收藏
-      </button>
-      <button
-        :class="['style-tab', { active: styleTab === 'system' }]"
-        @click="styleTab = 'system'; loadSystemSkillsTab()"
-      >
-        系统
-      </button>
-    </div>
-
-    <div class="style-content">
-      <!-- 系统预设 -->
-      <div v-show="styleTab === 'system'" class="style-tab-pane">
-        <div class="style-grid">
-          <SkillCard
-            v-for="s in systemList"
-            :key="s.name"
-            :name="s.name"
-            :prompt="s.promptSummary"
-            :scope="s.scope"
-            size="compact"
-            :selected="selectedStyleName === s.name"
-            clickable
-            show-view-btn
-            @click="selectStyle(s)"
-            @view="openPromptModal(s)"
-          >
-            <template #meta>{{ s.desc }}</template>
-          </SkillCard>
-        </div>
-        <div v-if="systemTotal > systemPageSize" class="style-pagination">
-          <a-pagination
-            v-model:current="systemPage"
-            v-model:pageSize="systemPageSize"
-            :total="systemTotal"
-            :page-size-options="pageSizeOptions"
-            show-size-changer
-            show-quick-jumper
-            @change="onSystemPageChange"
-            @showSizeChange="onSystemPageSizeChange"
-          />
-        </div>
-      </div>
-
-      <!-- 我的提示词 -->
-      <div v-show="styleTab === 'my'" class="style-tab-pane">
-        <div class="style-grid">
-          <div class="style-add-card" @click="goToSkillsPage">
-            <div class="style-add-icon">+</div>
-            <div class="style-add-text">新建我的提示词</div>
+    <div class="skill-selector-body">
+      <div class="prompt-body">
+        <div class="prompt-preview-pane">
+          <div v-if="currentPrompt" class="prompt-preview">
+            <div class="prompt-preview-head">
+              <div class="prompt-preview-name">{{ currentPrompt.name }}</div>
+              <div class="prompt-preview-meta">
+                <span v-if="currentPrompt.desc">{{ currentPrompt.desc }}</span>
+                <span v-else-if="typeof currentPrompt.count === 'number'">自定义提示词 · 已用 {{ currentPrompt.count }} 次</span>
+                <span v-else-if="currentPrompt.createdAt">学习 · {{ currentPrompt.createdAt.slice(0, 10) }}</span>
+                <span v-else-if="currentPrompt.creatorName">by {{ currentPrompt.creatorName }}</span>
+                <span v-else>系统预设</span>
+              </div>
+              <div v-if="parseScopeTags(currentPrompt.scope).length" class="prompt-preview-scope-list">
+                <span v-for="tag in parseScopeTags(currentPrompt.scope)" :key="tag" class="prompt-preview-scope">{{ tag }}</span>
+              </div>
+            </div>
+            <div class="prompt-preview-text">{{ currentPrompt.prompt }}</div>
+            <div class="prompt-preview-actions">
+              <button
+                class="prompt-preview-use-btn"
+                :disabled="selectedStyleName !== currentPrompt.name"
+                @click="applySkillLocal"
+              >
+                应用
+              </button>
+              <button class="prompt-preview-view-btn" @click="openPromptModal(currentPrompt)">查看完整</button>
+            </div>
           </div>
-          <SkillCard
-            v-for="m in myList"
-            :key="m.name"
-            :name="m.name"
-            :prompt="promptSummary(m.prompt)"
-            :scope="m.scope"
-            size="compact"
-            :selected="selectedStyleName === m.name"
-            clickable
-            show-view-btn
-            @click="selectStyle(m)"
-            @view="openPromptModal(m)"
-          >
-            <template #meta>
-              <span>{{ m.desc }}</span>
-              <span class="style-card-meta-dot">·</span>
-              <span>已用 {{ m.count }} 次</span>
-            </template>
-          </SkillCard>
+          <div v-else class="prompt-preview-empty">当前分类暂无提示词</div>
         </div>
-        <div v-if="myTotal > myPageSize" class="style-pagination">
-          <a-pagination
-            v-model:current="myPage"
-            v-model:pageSize="myPageSize"
-            :total="myTotal"
-            :page-size-options="pageSizeOptions"
-            show-size-changer
-            show-quick-jumper
-            @change="onMyPageChange"
-            @showSizeChange="onMyPageSizeChange"
-          />
-        </div>
-      </div>
 
-      <!-- 学习的提示词 -->
-      <div v-show="styleTab === 'learned'" class="style-tab-pane">
-        <div class="style-grid">
-          <div
-            v-if="learnedList.length === 0"
-            class="style-empty style-empty-text"
-          >
-            还没有学习过的提示词，请前往「我的提示词」页面学习。
+        <div class="prompt-list-pane">
+          <div class="prompt-tabs">
+            <button
+              v-for="tab in tabs"
+              :key="tab.key"
+              :class="['prompt-tab', { active: styleTab === tab.key }]"
+              @click="switchTab(tab.key)"
+            >
+              {{ tab.label }}
+            </button>
           </div>
-          <SkillCard
-            v-for="l in learnedList"
-            v-else
-            :key="l.name"
-            :name="l.name"
-            :prompt="promptSummary(l.prompt)"
-            :scope="l.scope"
-            size="compact"
-            avatar-variant="learned"
-            :selected="selectedStyleName === l.name"
-            clickable
-            show-view-btn
-            @click="selectStyle(l)"
-            @view="openPromptModal(l)"
-          >
-            <template #meta>学习 · {{ (l.createdAt || '').slice(0, 10) }}</template>
-          </SkillCard>
-        </div>
-        <div v-if="learnedTotal > learnedPageSize" class="style-pagination">
-          <a-pagination
-            v-model:current="learnedPage"
-            v-model:pageSize="learnedPageSize"
-            :total="learnedTotal"
-            :page-size-options="pageSizeOptions"
-            show-size-changer
-            show-quick-jumper
-            @change="onLearnedPageChange"
-            @showSizeChange="onLearnedPageSizeChange"
-          />
-        </div>
-      </div>
 
-      <!-- 收藏的提示词 -->
-      <div v-show="styleTab === 'favorites'" class="style-tab-pane">
-        <div class="style-grid">
-          <div
-            v-if="favoriteList.length === 0"
-            class="style-empty style-empty-text"
-          >
-            还没有收藏的提示词，去
-            <button class="style-empty-link" @click="goToSkillMarket">提示词市场</button>
-            收藏喜欢的提示词吧。
+          <div class="prompt-rows">
+            <div v-if="styleTab === 'my'" class="prompt-row prompt-row--add" @click="goToSkillsPage">
+              <div class="prompt-row-add-icon">+</div>
+              <div class="prompt-row-add-text">新建我的提示词</div>
+            </div>
+
+            <div
+              v-for="skill in currentList"
+              :key="skill.bizNo || skill.name"
+              :class="['prompt-row', { selected: selectedStyleName === skill.name, offline: isOffline(skill) }]"
+              @click="selectSkill(skill)"
+            >
+              <div class="prompt-row-main">
+                <div class="prompt-row-name">{{ skill.name }}</div>
+                <div class="prompt-row-desc">{{ promptSummary(skill.prompt) }}</div>
+                <div class="prompt-row-meta">
+                  <template v-if="styleTab === 'my'">
+                    <span>{{ skill.desc || '我的提示词' }}</span>
+                    <span class="prompt-row-meta-dot">·</span>
+                    <span>已用 {{ skill.count || 0 }} 次</span>
+                  </template>
+                  <template v-else-if="styleTab === 'learned'">
+                    <span>学习 · {{ (skill.createdAt || '').slice(0, 10) }}</span>
+                  </template>
+                  <template v-else-if="styleTab === 'favorites'">
+                    <span :class="['favorite-status-badge', isOffline(skill) ? 'offline' : '']">
+                      {{ isOffline(skill) ? '已下架' : 'by ' + skill.creatorName }}
+                    </span>
+                  </template>
+                  <template v-else>
+                    <span>{{ skill.desc || '系统预设' }}</span>
+                  </template>
+                </div>
+              </div>
+              <div v-if="isOffline(skill)" class="prompt-row-badge">已下架</div>
+            </div>
+
+            <div v-if="!currentList.length && styleTab !== 'my'" class="prompt-empty">
+              {{ emptyText }}
+            </div>
           </div>
-          <SkillCard
-            v-for="f in favoriteList"
-            v-else
-            :key="f.id"
-            :name="f.name"
-            :prompt="promptSummary(f.prompt)"
-            :scope="f.scope"
-            size="compact"
-            :selected="selectedStyleName === f.name"
-            :clickable="f.status === 'approved'"
-            :class="{ 'favorite-offline': f.status !== 'approved' }"
-            show-view-btn
-            @click="selectFavoriteStyle(f)"
-            @view="openPromptModal(f)"
-          >
-            <template #meta>
-              <span :class="['favorite-status-badge', f.status !== 'approved' ? 'offline' : '']">
-                {{ f.status === 'approved' ? 'by ' + f.creatorName : '已下架' }}
-              </span>
-            </template>
-          </SkillCard>
-        </div>
-        <div v-if="favoriteTotal > favoritePageSize" class="style-pagination">
-          <a-pagination
-            v-model:current="favoritePage"
-            v-model:pageSize="favoritePageSize"
-            :total="favoriteTotal"
-            :page-size-options="pageSizeOptions"
-            show-size-changer
-            show-quick-jumper
-            @change="onFavoritePageChange"
-            @showSizeChange="onFavoritePageSizeChange"
-          />
+
+          <div v-if="currentTotal > currentPageSize" class="prompt-pagination">
+            <a-pagination
+              v-model:current="currentPage"
+              :page-size="currentPageSize"
+              :total="currentTotal"
+              size="small"
+              @change="onPageChange"
+            />
+          </div>
         </div>
       </div>
-    </div>
-
-    <div class="style-footer">
-      <button
-        class="style-apply-btn"
-        :disabled="!selectedStyleName"
-        @click="applySkillLocal"
-      >
-        应用
-      </button>
     </div>
 
     <!-- 提示词详情弹框 -->
@@ -231,7 +129,7 @@
           <span v-else-if="viewingSkill.createdAt">学习 · {{ viewingSkill.createdAt.slice(0, 10) }}</span>
           <span v-else-if="viewingSkill.creatorName">by {{ viewingSkill.creatorName }}</span>
         </div>
-        <div v-if="viewingSkill.scope" class="skill-prompt-scope-list">
+        <div v-if="parseScopeTags(viewingSkill.scope).length" class="skill-prompt-scope-list">
           <span v-for="tag in parseScopeTags(viewingSkill.scope)" :key="tag" class="skill-prompt-scope">{{ tag }}</span>
         </div>
         <div class="skill-prompt-text">{{ viewingSkill.prompt }}</div>
@@ -245,7 +143,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -262,7 +160,6 @@ import {
   loadFavoriteSkills
 } from '@/composables/useSkillMarket.js'
 import { useCreateForm } from '../useCreateForm.js'
-import SkillCard from '@/components/SkillCard.vue'
 
 const { styleVisible } = useCreateForm()
 const router = useRouter()
@@ -272,28 +169,67 @@ const selectedStyleName = ref(null)
 const promptModalVisible = ref(false)
 const viewingSkill = ref(null)
 
-const pageSizeOptions = ['8', '16', '24']
+const pageSizeOptions = ['8', '12', '16']
 
-// 各 tab 局部分页状态（不污染全局 ref）
+// 各 tab 局部分页状态
 const myPage = ref(1)
-const myPageSize = ref(8)
+const myPageSize = ref(12)
 const myTotal = ref(0)
 const myList = ref([])
 
 const systemPage = ref(1)
-const systemPageSize = ref(8)
+const systemPageSize = ref(12)
 const systemTotal = ref(0)
 const systemList = ref([])
 
 const learnedPage = ref(1)
-const learnedPageSize = ref(8)
+const learnedPageSize = ref(12)
 const learnedTotal = ref(0)
 const learnedList = ref([])
 
 const favoritePage = ref(1)
-const favoritePageSize = ref(8)
+const favoritePageSize = ref(12)
 const favoriteTotal = ref(0)
 const favoriteList = ref([])
+
+const tabs = [
+  { key: 'my', label: '我的' },
+  { key: 'learned', label: '学习' },
+  { key: 'favorites', label: '收藏' },
+  { key: 'system', label: '系统' }
+]
+
+const tabState = {
+  my: { page: myPage, pageSize: myPageSize, total: myTotal, list: myList, load: loadMySkillsTab },
+  learned: { page: learnedPage, pageSize: learnedPageSize, total: learnedTotal, list: learnedList, load: loadLearnedSkillsTab },
+  favorites: { page: favoritePage, pageSize: favoritePageSize, total: favoriteTotal, list: favoriteList, load: loadFavoriteSkillsTab },
+  system: { page: systemPage, pageSize: systemPageSize, total: systemTotal, list: systemList, load: loadSystemSkillsTab }
+}
+
+const currentList = computed(() => tabState[styleTab.value].list.value)
+const currentTotal = computed(() => tabState[styleTab.value].total.value)
+const currentPage = computed({
+  get: () => tabState[styleTab.value].page.value,
+  set: (val) => { tabState[styleTab.value].page.value = val }
+})
+const currentPageSize = computed(() => tabState[styleTab.value].pageSize.value)
+
+const currentPrompt = computed(() => {
+  const list = currentList.value
+  const selected = list.find(s => s.name === selectedStyleName.value)
+  if (selected) return selected
+  return list[0] || null
+})
+
+const emptyText = computed(() => {
+  const map = {
+    my: '你还没有保存自己的提示词',
+    learned: '还没有学习过的提示词，可去「我的提示词」页面学习',
+    favorites: '还没有收藏提示词，去提示词市场发现更多好风格',
+    system: '系统提示词加载中...'
+  }
+  return map[styleTab.value] || ''
+})
 
 const loadMySkillsTab = async () => {
   const result = await loadMySkills('', myPage.value, myPageSize.value, false)
@@ -319,91 +255,38 @@ const loadFavoriteSkillsTab = async () => {
   favoriteTotal.value = result.total || 0
 }
 
-const onMyPageChange = (page) => {
-  myPage.value = page
-  loadMySkillsTab()
+const switchTab = (key) => {
+  styleTab.value = key
+  tabState[key].load()
 }
 
-const onMyPageSizeChange = (current, size) => {
-  myPageSize.value = size
-  myPage.value = 1
-  loadMySkillsTab()
+const onPageChange = (page) => {
+  tabState[styleTab.value].page.value = page
+  tabState[styleTab.value].load()
 }
 
-const onSystemPageChange = (page) => {
-  systemPage.value = page
-  loadSystemSkillsTab()
+const isOffline = (skill) => {
+  if (styleTab.value !== 'favorites') return false
+  return skill.status && skill.status !== 'approved'
 }
 
-const onSystemPageSizeChange = (current, size) => {
-  systemPageSize.value = size
-  systemPage.value = 1
-  loadSystemSkillsTab()
-}
-
-const onLearnedPageChange = (page) => {
-  learnedPage.value = page
-  loadLearnedSkillsTab()
-}
-
-const onLearnedPageSizeChange = (current, size) => {
-  learnedPageSize.value = size
-  learnedPage.value = 1
-  loadLearnedSkillsTab()
-}
-
-const onFavoritePageChange = (page) => {
-  favoritePage.value = page
-  loadFavoriteSkillsTab()
-}
-
-const onFavoritePageSizeChange = (current, size) => {
-  favoritePageSize.value = size
-  favoritePage.value = 1
-  loadFavoriteSkillsTab()
-}
-
-// 弹框打开时重置并加载我的提示词
-watch(styleVisible, async (open) => {
-  if (!open) return
-  styleTab.value = 'my'
-  selectedStyleName.value = null
-  viewingSkill.value = null
-  promptModalVisible.value = false
-
-  // 重置分页
-  myPage.value = 1
-  myPageSize.value = 8
-  systemPage.value = 1
-  systemPageSize.value = 8
-  learnedPage.value = 1
-  learnedPageSize.value = 8
-  favoritePage.value = 1
-  favoritePageSize.value = 8
-
-  await Promise.all([
-    loadMySkillsTab(),
-    loadFavoriteSkillsTab(),
-    loadSystemSkillsTab(),
-    loadLearnedSkillsTab(),
-    // 全量加载到全局 ref，供 findSelectedSkill 跨分页查找
-    loadMySkills('', 1, 999),
-    loadFavoriteSkills(),
-    loadSystemSkills(),
-    loadLearnedSkills()
-  ])
-})
-
-const selectStyle = (s) => {
-  selectedStyleName.value = s.name
-}
-
-const selectFavoriteStyle = (f) => {
-  if (f.status !== 'approved') {
+const selectSkill = (skill) => {
+  if (isOffline(skill)) {
     message.warning('该提示词已下架，无法使用')
     return
   }
-  selectStyle(f)
+  selectedStyleName.value = skill.name
+}
+
+const applySkillLocal = () => {
+  const s = findSelectedSkill()
+  if (!s) return
+  if (isOffline(s)) {
+    message.warning('该提示词已下架，无法使用')
+    return
+  }
+  applySkill(s)
+  styleVisible.value = false
 }
 
 const findSelectedSkill = () => {
@@ -420,28 +303,11 @@ const findSelectedSkill = () => {
     || null
 }
 
-const applySkillLocal = () => {
-  const s = findSelectedSkill()
-  if (!s) return
-  if (s.id && favoriteSkills.value.some(x => x.id === s.id)) {
-    const favorite = favoriteSkills.value.find(x => x.id === s.id)
-    if (favorite && favorite.status !== 'approved') {
-      message.warning('该提示词已下架，无法使用')
-      return
-    }
-  }
-  applySkill(s)
-  styleVisible.value = false
-}
-
 const useFromPromptModal = () => {
   if (!viewingSkill.value) return
-  if (viewingSkill.value.id) {
-    const favorite = favoriteSkills.value.find(x => x.id === viewingSkill.value.id)
-    if (favorite && favorite.status !== 'approved') {
-      message.warning('该提示词已下架，无法使用')
-      return
-    }
+  if (isOffline(viewingSkill.value)) {
+    message.warning('该提示词已下架，无法使用')
+    return
   }
   selectedStyleName.value = viewingSkill.value.name
   applySkill(viewingSkill.value)
@@ -452,11 +318,6 @@ const useFromPromptModal = () => {
 const goToSkillsPage = () => {
   styleVisible.value = false
   router.push('/console/skills')
-}
-
-const goToSkillMarket = () => {
-  styleVisible.value = false
-  router.push('/console/skill-market')
 }
 
 const openPromptModal = (s) => {
@@ -478,295 +339,359 @@ const promptSummary = (prompt) => {
   if (!prompt) return ''
   return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
 }
+
+// 弹框打开时重置并加载我的提示词
+watch(styleVisible, async (open) => {
+  if (!open) return
+  styleTab.value = 'my'
+  selectedStyleName.value = null
+  viewingSkill.value = null
+  promptModalVisible.value = false
+
+  myPage.value = 1
+  myPageSize.value = 12
+  systemPage.value = 1
+  systemPageSize.value = 12
+  learnedPage.value = 1
+  learnedPageSize.value = 12
+  favoritePage.value = 1
+  favoritePageSize.value = 12
+
+  await Promise.all([
+    loadMySkillsTab(),
+    loadFavoriteSkillsTab(),
+    loadSystemSkillsTab(),
+    loadLearnedSkillsTab(),
+    loadMySkills('', 1, 999),
+    loadFavoriteSkills(),
+    loadSystemSkills(),
+    loadLearnedSkills()
+  ])
+})
 </script>
 
 <style scoped>
-/* skills 选择 */
-.style-tabs {
+.modal-title-wrap {
   display: flex;
-  gap: 24px;
-  border-bottom: 1px solid #eee;
-  margin-bottom: 20px;
+  flex-direction: column;
+  gap: 2px;
+}
+.modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.modal-subtitle {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-weight: 400;
 }
 
-.style-tab {
-  padding: 8px 0;
+.skill-selector-body {
+  padding: 8px 0 0;
+}
+
+.prompt-body {
+  display: flex;
+  gap: 16px;
+  height: 520px;
+}
+
+.prompt-preview-pane {
+  flex: 0 0 360px;
+  background: #f5f5f5;
+  border-radius: 12px;
+  overflow: hidden;
+  height: 100%;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+.prompt-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+}
+
+.prompt-preview-head {
+  flex-shrink: 0;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.prompt-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.prompt-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 10px;
+}
+
+.prompt-preview-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.prompt-preview-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+.prompt-preview-scope::before {
+  content: '#';
+  opacity: 0.8;
+}
+
+.prompt-preview-text {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
   font-size: 14px;
-  font-weight: 500;
-  color: #595959;
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
+  color: #262626;
+  line-height: 1.8;
+  overflow-y: auto;
+  white-space: pre-line;
+}
+
+.prompt-preview-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+}
+
+.prompt-preview-use-btn {
+  padding: 7px 16px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.style-tab.active {
-  color: var(--color-primary);
-  font-weight: 600;
-  border-bottom-color: var(--color-primary);
+.prompt-preview-use-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
-.style-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.style-content {
-  height: 60vh;
-  overflow-y: auto;
-  padding: 8px 0;
-}
-
-.style-tab-pane {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.style-pagination {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 8px;
-}
-
-.style-pagination :deep(.ant-pagination) {
-  color: var(--color-text-secondary);
-}
-
-.style-pagination :deep(.ant-pagination-item) {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-default);
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-}
-
-.style-pagination :deep(.ant-pagination-item a) {
-  color: var(--color-text-secondary);
-}
-
-.style-pagination :deep(.ant-pagination-item:hover) {
-  border-color: var(--color-primary);
-}
-
-.style-pagination :deep(.ant-pagination-item:hover a) {
-  color: var(--color-primary);
-}
-
-.style-pagination :deep(.ant-pagination-item-active) {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-.style-pagination :deep(.ant-pagination-item-active a) {
+.prompt-preview-use-btn:disabled {
+  background: rgba(255, 36, 66, 0.35);
+  border-color: rgba(255, 36, 66, 0.35);
   color: #fff;
-}
-
-.style-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-default);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-}
-
-.style-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
-  background: var(--color-bg-card);
-  border-color: var(--color-border-default);
-  color: var(--color-text-secondary);
-  border-radius: var(--radius-md);
-  transition: all 0.2s;
-}
-
-.style-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.style-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-.style-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
-  color: var(--color-text-placeholder);
-  border-color: var(--color-border-default);
   cursor: not-allowed;
 }
 
-.style-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
-  color: var(--color-text-placeholder);
-  border-color: var(--color-border-default);
-}
-
-.style-pagination :deep(.ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-link-icon),
-.style-pagination :deep(.ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-link-icon) {
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item) {
-  background: #1f1f1f;
-  border-color: #303030;
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item a) {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item:hover) {
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item:hover a) {
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item-active) {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-item-active a) {
-  color: #fff;
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-prev .ant-pagination-item-link) {
-  background: #1f1f1f;
-  border-color: #303030;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-next .ant-pagination-item-link) {
-  background: #1f1f1f;
-  border-color: #303030;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled .ant-pagination-item-link) {
+.prompt-preview-view-btn {
+  padding: 7px 16px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
   color: #595959;
-  border-color: #303030;
+  cursor: pointer;
+  transition: all 0.2s;
 }
 
-body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .ant-pagination-item-link) {
-  color: #595959;
-  border-color: #303030;
+.prompt-preview-view-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
 }
 
-.style-card-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-
-.style-add-card {
+.prompt-preview-empty {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-  border: 2px dashed #e8e8e8;
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.25s ease;
-  min-height: 200px;
-  box-sizing: border-box;
-  background: #fff;
+  height: 100%;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+
+.prompt-list-pane {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.prompt-tabs {
+  display: flex;
   gap: 8px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  flex-shrink: 0;
 }
 
-.style-add-card:hover {
-  border-color: var(--color-primary);
-  background: var(--color-primary-bg);
-  transform: translateY(-4px);
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.06);
+.prompt-tab {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #595959;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
 }
 
-.style-add-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+.prompt-tab.active {
+  border-color: #ff2442;
+  background: #fff0f2;
+  color: #ff2442;
+  font-weight: 600;
+}
+
+.prompt-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.prompt-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+
+.prompt-row:hover {
+  border-color: #ff2442;
+  background: #fff0f2;
+}
+
+.prompt-row.selected {
+  border-color: #ff2442;
+  background: #fff0f2;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.25);
+}
+
+.prompt-row.offline {
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+
+.prompt-row.offline:hover {
+  border-color: #e8e8e8;
+  background: #f5f5f5;
+}
+
+.prompt-row.offline .prompt-row-name,
+.prompt-row.offline .prompt-row-desc,
+.prompt-row.offline .prompt-row-meta {
+  opacity: 0.55;
+}
+
+.prompt-row--add {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-style: dashed;
+  background: #fff;
+}
+
+.prompt-row-add-icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
   background: #fff0f2;
   color: var(--color-primary);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
 }
 
-.style-add-text {
-  font-size: 13px;
+.prompt-row-add-text {
+  font-size: 14px;
   color: #595959;
   font-weight: 500;
 }
 
-.style-empty {
-  grid-column: 1 / -1;
-  text-align: center;
-  padding: 32px 0;
+.prompt-row-main {
+  flex: 1;
+  min-width: 0;
 }
 
-.style-empty-text {
-  color: #8c8c8c;
-  font-size: 14px;
-}
-
-.style-empty-link {
-  background: none;
-  border: none;
-  padding: 0;
-  color: var(--color-primary);
-  font-size: 14px;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.style-empty-link:hover {
-  color: var(--color-primary-hover);
-  text-decoration: underline;
-  text-underline-offset: 3px;
-}
-
-.style-footer {
-  padding: 12px 0 0;
-  border-top: 1px solid #f0f0f0;
-  margin-top: 16px;
-  display: flex;
-  justify-content: flex-end;
-}
-
-.style-apply-btn {
-  padding: 8px 24px;
-  border-radius: 8px;
-  border: none;
-  background: #d9d9d9;
-  color: #fff;
-  font-size: 14px;
+.prompt-row-name {
   font-weight: 600;
-  cursor: not-allowed;
+  color: #1a1a1a;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.4;
 }
 
-.style-apply-btn:not(:disabled) {
-  background: var(--color-primary);
-  cursor: pointer;
+.prompt-row-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.style-apply-btn:not(:disabled):hover {
-  background: var(--color-primary-hover);
+.prompt-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
 }
 
-.favorite-offline {
-  opacity: 0.7;
+.prompt-row-meta-dot {
+  color: #d9d9d9;
+  font-weight: 700;
+}
+
+.prompt-row-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 1;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #fff;
+  background: linear-gradient(135deg, #ff9a4d, #ff2442);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
 }
 
 .favorite-status-badge {
@@ -779,9 +704,43 @@ body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .
   font-weight: 500;
 }
 
-/* 移动端：底部滑上全屏面板 */
+.prompt-empty {
+  padding: 32px;
+  text-align: center;
+  color: #8c8c8c;
+  font-size: 14px;
+}
+
+.prompt-pagination {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  border-top: 1px solid #f0f0f0;
+  margin-top: 12px;
+  flex-shrink: 0;
+}
+
+.prompt-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+
+.prompt-pagination :deep(.ant-pagination-item-active a),
+.prompt-pagination :deep(.ant-pagination-item-active button) {
+  color: #fff;
+}
+
+.prompt-pagination :deep(.ant-pagination-item:hover) {
+  border-color: var(--color-primary);
+}
+
+.prompt-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary);
+}
+
 @media (max-width: 768px) {
-  :global(.style-modal .ant-modal) {
+  :global(.skill-selector-modal .ant-modal) {
     width: 100% !important;
     max-width: 100%;
     margin: 0;
@@ -791,21 +750,21 @@ body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .
     padding: 0;
   }
 
-  :global(.style-modal .ant-modal-content) {
+  :global(.skill-selector-modal .ant-modal-content) {
     border-radius: 20px 20px 0 0;
     height: 88vh;
     display: flex;
     flex-direction: column;
   }
 
-  :global(.style-modal .ant-modal-header) {
+  :global(.skill-selector-modal .ant-modal-header) {
     flex-shrink: 0;
     border-bottom: 1px solid #f0f0f0;
-    padding: 16px 18px;
+    padding: 14px 18px;
     border-radius: 20px 20px 0 0;
   }
 
-  :global(.style-modal .ant-modal-body) {
+  :global(.skill-selector-modal .ant-modal-body) {
     flex: 1;
     overflow: hidden;
     padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
@@ -813,102 +772,118 @@ body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .
     flex-direction: column;
   }
 
-  .style-tabs {
-    gap: 0;
-    margin-bottom: 12px;
-  }
-
-  .style-tab {
+  .skill-selector-body {
     flex: 1;
-    padding: 10px 0;
-    font-size: 13px;
-    text-align: center;
-    border-bottom-width: 2px;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
 
-  .style-content {
-    height: auto;
+  .prompt-body {
     flex: 1;
-    overflow-y: auto;
-  }
-
-  .style-grid {
-    grid-template-columns: 1fr;
+    min-height: 0;
+    flex-direction: column;
     gap: 12px;
+    height: auto;
   }
 
-  .style-add-card {
-    min-height: 120px;
-    padding: 16px;
-  }
-
-  .style-footer {
-    margin-top: 12px;
-    padding-top: 12px;
-  }
-
-  .style-apply-btn {
+  .prompt-preview-pane {
+    flex: none;
     width: 100%;
-    padding: 12px 24px;
-    border-radius: 12px;
+    height: 240px;
+    order: 2;
+  }
+
+  .prompt-preview-text {
+    font-size: 13px;
+    padding: 12px 14px;
+  }
+
+  .prompt-preview-head {
+    padding: 12px 14px;
+  }
+
+  .prompt-preview-name {
     font-size: 15px;
   }
 
-  /* 提示词详情弹框 */
-  .skill-prompt-modal .ant-modal {
-    width: 100% !important;
-    max-width: 100%;
-    margin: 0;
-    top: auto !important;
-    bottom: 0;
-    transform: none !important;
-    padding: 0;
+  .prompt-preview-actions {
+    padding: 10px 14px;
   }
 
-  .skill-prompt-modal .ant-modal-content {
-    border-radius: 20px 20px 0 0;
-    height: 82vh;
+  .prompt-preview-use-btn,
+  .prompt-preview-view-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+
+  .prompt-list-pane {
+    flex: none;
+    height: auto;
+    max-height: calc(100% - 260px);
+    order: 1;
+  }
+
+  .prompt-tabs {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+
+  .prompt-rows {
     display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .prompt-rows::-webkit-scrollbar {
+    display: none;
+  }
+
+  .prompt-row {
+    flex: 0 0 148px;
     flex-direction: column;
-  }
-
-  .skill-prompt-modal .ant-modal-header {
-    flex-shrink: 0;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 14px 18px;
-    border-radius: 20px 20px 0 0;
-  }
-
-  .skill-prompt-modal .ant-modal-body {
-    flex: 1;
-    overflow: hidden;
-    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
-  }
-
-  .skill-prompt-body {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
-  }
-
-  .skill-prompt-text {
-    flex: 1;
-    max-height: none;
-    overflow-y: auto;
-    margin-bottom: 16px;
-  }
-
-  .skill-prompt-actions {
-    padding-top: 12px;
-  }
-
-  .skill-prompt-use-btn,
-  .skill-prompt-close-btn {
-    flex: 1;
-    padding: 12px 20px;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+    margin-bottom: 0;
     border-radius: 12px;
   }
+
+  .prompt-row--add {
+    flex: 0 0 120px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .prompt-row-desc {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .prompt-row-meta {
+    font-size: 11px;
+  }
+
+  .prompt-pagination {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+}
+</style>
+
+<style>
+/* 提示词详情弹框 teleport 到 body，需非 scoped 全局覆盖 */
+.skill-prompt-modal .ant-modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
 }
 
 .skill-prompt-body {
@@ -1002,70 +977,81 @@ body[data-theme="dark"] .style-pagination :deep(.ant-pagination-disabled:hover .
   background: var(--color-primary-bg);
 }
 
-body[data-theme="dark"] .style-tabs {
-  border-bottom-color: #303030;
+@media (max-width: 768px) {
+  .skill-prompt-modal .ant-modal {
+    width: 100% !important;
+    max-width: 100%;
+    margin: 0;
+    top: auto !important;
+    bottom: 0;
+    transform: none !important;
+    padding: 0;
+  }
+
+  .skill-prompt-modal .ant-modal-content {
+    border-radius: 20px 20px 0 0;
+    height: 82vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .skill-prompt-modal .ant-modal-header {
+    flex-shrink: 0;
+    border-bottom: 1px solid #f0f0f0;
+    padding: 14px 18px;
+    border-radius: 20px 20px 0 0;
+  }
+
+  .skill-prompt-modal .ant-modal-body {
+    flex: 1;
+    max-height: none;
+    overflow: hidden;
+    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .skill-prompt-body {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  .skill-prompt-text {
+    flex: 1;
+    max-height: none;
+    overflow-y: auto;
+    margin-bottom: 16px;
+  }
+
+  .skill-prompt-actions {
+    padding-top: 12px;
+  }
+
+  .skill-prompt-use-btn,
+  .skill-prompt-close-btn {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 12px;
+  }
 }
 
-body[data-theme="dark"] .style-tab {
-  color: #a6a6a6;
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-content,
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-header {
+  background: #1f1f1f !important;
+  border-color: #303030 !important;
 }
 
-body[data-theme="dark"] .style-tab:hover {
-  color: #f0f0f0;
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-title {
+  color: #f0f0f0 !important;
 }
 
-body[data-theme="dark"] .style-tab.active {
-  color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-close-x {
+  color: #a6a6a6 !important;
 }
 
-body[data-theme="dark"] .style-card-meta-dot {
-  color: #595959;
-}
-
-body[data-theme="dark"] .style-add-card {
-  border-color: #434343;
-  background: transparent;
-}
-
-body[data-theme="dark"] .style-add-card:hover {
-  border-color: var(--color-primary);
-  background: rgba(255, 36, 66, 0.12);
-}
-
-body[data-theme="dark"] .style-add-icon {
-  background: rgba(255, 36, 66, 0.12);
-  color: #ff6b81;
-}
-
-body[data-theme="dark"] .style-add-text {
-  color: #d9d9d9;
-}
-
-body[data-theme="dark"] .style-empty-text {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-empty-link {
-  color: var(--color-primary);
-}
-
-body[data-theme="dark"] .style-footer {
-  border-top-color: #303030;
-}
-
-body[data-theme="dark"] .style-apply-btn {
-  background: #434343;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .style-apply-btn:not(:disabled) {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-body[data-theme="dark"] .style-apply-btn:not(:disabled):hover {
-  background: var(--color-primary-hover);
+body[data-theme="dark"] .skill-prompt-modal .ant-modal-close:hover {
+  background: #2a2a2a !important;
+  color: #f0f0f0 !important;
 }
 
 body[data-theme="dark"] .skill-prompt-meta {
@@ -1108,65 +1094,5 @@ body[data-theme="dark"] .skill-prompt-close-btn:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: rgba(255, 36, 66, 0.12);
-}
-</style>
-
-<style>
-/* 提示词详情弹框 teleport 到 body，需非 scoped 全局覆盖 */
-.skill-prompt-modal .ant-modal-body {
-  max-height: 70vh;
-  overflow-y: auto;
-}
-
-@media (max-width: 768px) {
-  .skill-prompt-modal .ant-modal {
-    width: 100% !important;
-    max-width: 100%;
-    margin: 0;
-    top: auto !important;
-    bottom: 0;
-    transform: none !important;
-    padding: 0;
-  }
-
-  .skill-prompt-modal .ant-modal-content {
-    border-radius: 20px 20px 0 0;
-    height: 82vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  .skill-prompt-modal .ant-modal-header {
-    flex-shrink: 0;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 14px 18px;
-    border-radius: 20px 20px 0 0;
-  }
-
-  .skill-prompt-modal .ant-modal-body {
-    flex: 1;
-    max-height: none;
-    overflow: hidden;
-    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
-  }
-}
-
-body[data-theme="dark"] .skill-prompt-modal .ant-modal-content,
-body[data-theme="dark"] .skill-prompt-modal .ant-modal-header {
-  background: #1f1f1f !important;
-  border-color: #303030 !important;
-}
-
-body[data-theme="dark"] .skill-prompt-modal .ant-modal-title {
-  color: #f0f0f0 !important;
-}
-
-body[data-theme="dark"] .skill-prompt-modal .ant-modal-close-x {
-  color: #a6a6a6 !important;
-}
-
-body[data-theme="dark"] .skill-prompt-modal .ant-modal-close:hover {
-  background: #2a2a2a !important;
-  color: #f0f0f0 !important;
 }
 </style>

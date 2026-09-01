@@ -60,7 +60,7 @@ const visible = ref(false)
 
 <style scoped>
 .paid-agreement-text {
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.5;
   color: #8c8c8c;
 }
