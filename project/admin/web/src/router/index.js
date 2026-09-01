@@ -39,6 +39,16 @@ const routes = [
         component: () => import('@/views/MarketSkillListView.vue')
       },
       {
+        path: 'market-skills/new',
+        name: 'AdminMarketSkillCreate',
+        component: () => import('@/views/MarketSkillEditView.vue')
+      },
+      {
+        path: 'market-skills/:id',
+        name: 'AdminMarketSkillEdit',
+        component: () => import('@/views/MarketSkillEditView.vue')
+      },
+      {
         path: 'model-configs',
         name: 'AdminModelConfig',
         component: () => import('@/views/ModelConfigView.vue')

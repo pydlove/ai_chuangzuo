@@ -151,7 +151,7 @@ const rules = {
 const fetchList = async () => {
   loading.value = true
   try {
-    const res = await listShareConfigs({ page: page.value, pageSize: pageSize.value })
+    const res = await listShareConfigs({ page: page.value, size: pageSize.value })
     items.value = res.items || []
     total.value = res.total || 0
   } finally {

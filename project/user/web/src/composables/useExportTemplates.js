@@ -35,8 +35,8 @@ function parseVisualStyle(v) {
 }
 
 export function useExportTemplates() {
-  const load = async () => {
-    if (loaded.value || loading.value) return
+  const load = async (force = false) => {
+    if (!force && (loaded.value || loading.value)) return
     loading.value = true
     try {
       const raw = await listExportTemplates()
@@ -57,10 +57,15 @@ export function useExportTemplates() {
       loaded.value = true
     } catch (e) {
       // 加载失败时由 loading 状态体现，不额外报错
+      if (force) {
+        loaded.value = false
+      }
     } finally {
       loading.value = false
     }
   }
+
+  const reload = () => load(true)
 
   const getByKey = (key) => {
     return templates.value.find(t => t.key === key) || null
@@ -84,5 +89,5 @@ export function useExportTemplates() {
       .map(t => t.signatureText)
   })
 
-  return { templates, loaded, loading, load, getByKey, getStyle, getSignature, allSignatureTexts }
+  return { templates, loaded, loading, load, reload, getByKey, getStyle, getSignature, allSignatureTexts }
 }

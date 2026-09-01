@@ -2,7 +2,6 @@ import { ref } from 'vue'
 import { message } from 'ant-design-vue'
 import {
   listMarketSkills,
-  createMarketSkill,
   updateMarketSkill,
   deleteMarketSkill,
   batchDeleteMarketSkills
@@ -57,21 +56,6 @@ export function useMarketStyleManagement() {
     fetch()
   }
 
-  const handleCreate = async (payload) => {
-    submitting.value = true
-    try {
-      await createMarketSkill(payload)
-      message.success('提示词市场条目已创建')
-      await fetch()
-      return true
-    } catch (error) {
-      message.error(error.message || '创建失败')
-      return false
-    } finally {
-      submitting.value = false
-    }
-  }
-
   const handleUpdate = async (bizNo, payload) => {
     submitting.value = true
     try {
@@ -115,7 +99,6 @@ export function useMarketStyleManagement() {
     list,
     total,
     loading,
-    submitting,
     page,
     pageSize,
     keyword,
@@ -125,7 +108,6 @@ export function useMarketStyleManagement() {
     handleSearch,
     handleReset,
     handlePageChange,
-    handleCreate,
     handleUpdate,
     handleDelete,
     handleBatchDelete

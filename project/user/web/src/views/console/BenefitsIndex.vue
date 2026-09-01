@@ -266,32 +266,103 @@
 
     <a-modal
       v-model:open="modalVisible"
-      :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
+      :title="modalTitle"
       :width="320"
       centered
       class="mb-subscribe-modal membership-confirm-modal"
-      @ok="handlePay"
-      :confirm-loading="subscribeLoading"
+      :closable="!payQrUrl"
+      :mask-closable="!payQrUrl"
+      :keyboard="!payQrUrl"
+      :footer="null"
+      @cancel="handleModalCancel"
     >
       <div class="mb-pay-panel">
-        <CoinDiscountPanel
-          v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
-          v-model:selectedCoinAmount="selectedCoinAmount"
-          :coinBalance="coinBalance"
-          :maxCoinAmount="getMaxCoinAmount()"
-          :coinToYuanRatio="COIN_TO_YUAN_RATIO"
-          :finalCash="getFinalCash()"
-        />
-        <p class="mb-pay-tip">
-          测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
-        </p>
-        <a-input
-          v-model:value="payCode"
-          placeholder="请输入 6 位支付码"
-          maxlength="6"
-          size="large"
-          @pressEnter="handlePay"
-        />
+        <template v-if="isTestMode()">
+          <CoinDiscountPanel
+            v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
+            v-model:selectedCoinAmount="selectedCoinAmount"
+            :coinBalance="coinBalance"
+            :maxCoinAmount="getMaxCoinAmount()"
+            :coinToYuanRatio="COIN_TO_YUAN_RATIO"
+            :finalCash="getFinalCash()"
+          />
+          <p class="mb-pay-tip">
+            测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
+          </p>
+          <a-input
+            v-model:value="payCode"
+            placeholder="请输入 6 位支付码"
+            maxlength="6"
+            size="large"
+            @pressEnter="handlePay"
+          />
+          <div class="mb-pay-actions">
+            <a-button type="primary" :loading="subscribeLoading" size="large" block @click="handlePay">
+              确认{{ upgradePreview ? '升级' : '订阅' }}
+            </a-button>
+          </div>
+        </template>
+        <template v-else-if="payQrUrl">
+          <div class="mb-qr-pay">
+            <div class="mb-qr-pay-amount">
+              <span class="mb-qr-pay-amount-label">微信支付</span>
+              <span class="mb-qr-pay-amount-value">¥{{ getFinalCash() }}</span>
+            </div>
+            <div class="mb-qr-code-wrap" :class="{ expired: qrExpired }">
+              <img :src="payQrUrl" alt="微信支付二维码" class="mb-qr-code-img" />
+              <img src="/assets/images/微信.png" alt="微信" class="mb-qr-code-logo" />
+              <div v-if="qrExpired" class="mb-qr-code-mask" @click="handlePay">
+                <div class="mb-qr-code-refresh">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                  </svg>
+                  <span>点击刷新</span>
+                </div>
+              </div>
+            </div>
+            <p v-if="!qrExpired" class="mb-qr-code-tip">
+              请使用微信扫一扫完成支付
+              <span class="mb-qr-code-countdown">（{{ qrExpireSeconds }} 秒后失效）</span>
+            </p>
+            <p v-else class="mb-qr-code-tip mb-qr-code-tip--refresh" @click="handlePay">
+              点击刷新二维码
+            </p>
+            <ul class="mb-qr-pay-terms">
+              <li>开通{{ selectedPlan?.name }}{{ cycleLabel[activeCycle] }}套餐</li>
+              <li>会员服务属于虚拟商品，一经支付无法退款，请你谅解</li>
+              <li>会员到期日前 7 天，系统将通过消息中心给您发送提醒消息</li>
+              <li>未成年用户请在监护人陪同下理性充值，避免过度消费</li>
+              <li>支付完成后会员将自动开通</li>
+            </ul>
+            <div class="mb-qr-pay-agreement">
+              <PaidServiceAgreement />
+            </div>
+          </div>
+          <div class="mb-pay-actions">
+            <a-button size="large" block @click="handleModalCancel">关闭</a-button>
+          </div>
+        </template>
+        <template v-else>
+          <CoinDiscountPanel
+            v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
+            v-model:selectedCoinAmount="selectedCoinAmount"
+            :coinBalance="coinBalance"
+            :maxCoinAmount="getMaxCoinAmount()"
+            :coinToYuanRatio="COIN_TO_YUAN_RATIO"
+            :finalCash="getFinalCash()"
+          />
+          <div class="mb-pay-agreement-confirm">
+            <div class="mb-pay-agreement-confirm-body">
+              <PaidServiceAgreement />
+            </div>
+          </div>
+          <div class="mb-pay-actions dual">
+            <a-button size="large" block @click="handleModalCancel">取消</a-button>
+            <a-button type="primary" :loading="subscribeLoading" size="large" block @click="handlePay">
+              同意并继续
+            </a-button>
+          </div>
+        </template>
       </div>
     </a-modal>
   </div>
@@ -304,6 +375,7 @@ import { useDevice } from '@/composables/useDevice.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { usePricing } from '@/composables/usePricing.js'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import PaidServiceAgreement from '@/components/PaidServiceAgreement.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
 import {
   CrownOutlined,
@@ -344,6 +416,7 @@ const {
   cycleLocked,
   setCycle,
   isCycleDisabled,
+  cycleLabel,
   getPeriodLabel,
   getPrice,
   getPlanButton,
@@ -353,16 +426,41 @@ const {
   payCode,
   subscribeLoading,
   selectedCoinAmount,
+  payQrUrl,
+  currentOrderNo,
+  qrExpireSeconds,
+  qrExpired,
+  resetQrExpire,
   upgradeModalVisible,
   upgradePreview,
   upgradeLoading,
   confirmUpgrade,
   handlePay,
+  stopPolling,
+  isTestMode,
   coinBalance,
   COIN_TO_YUAN_RATIO,
   getMaxCoinAmount,
   getFinalCash
 } = pricing
+
+const modalTitle = computed(() => {
+  if (payQrUrl.value) {
+    return '微信扫码支付'
+  }
+  if (upgradePreview.value) {
+    return '确认支付升级'
+  }
+  return '同意 爱创作工坊 的协议'
+})
+
+const handleModalCancel = () => {
+  modalVisible.value = false
+  payQrUrl.value = ''
+  currentOrderNo.value = ''
+  resetQrExpire()
+  stopPolling()
+}
 
 const PLAN_ORDER = ['basic', 'pro', 'flagship']
 const PLAN_NAMES = {
@@ -1026,8 +1124,9 @@ onMounted(() => {
   justify-content: center;
   height: 48px;
   padding: 0 12px;
-  background: linear-gradient(180deg, #3d2b1f 0%, #4a3326 100%);
-  color: #fff;
+  background: #fff;
+  color: #1a1a1a;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .mb-header-back {
@@ -1036,7 +1135,7 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 2px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #595959;
   font-size: 14px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
@@ -1050,15 +1149,15 @@ onMounted(() => {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
-  color: #fff;
+  color: #1a1a1a;
 }
 
-/* 深色头部 */
+/* 头部主题区 */
 .mb-hero {
   position: relative;
   padding: 16px 16px 24px;
-  background: linear-gradient(180deg, #4a3326 0%, #3d2b1f 100%);
-  color: #fff;
+  background: linear-gradient(180deg, #fff5f7 0%, #ffffff 100%);
+  color: #1a1a1a;
   overflow: hidden;
 }
 
@@ -1070,7 +1169,7 @@ onMounted(() => {
   width: 220px;
   height: 220px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(201, 168, 108, 0.22) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.12) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -1082,7 +1181,7 @@ onMounted(() => {
   width: 160px;
   height: 160px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(201, 168, 108, 0.14) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.08) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -1112,19 +1211,20 @@ onMounted(() => {
   padding: 0 22px;
   border: none;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
+  background: #fff;
+  color: #595959;
   font-size: 15px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
   -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .mb-tier-tab.active {
-  background: linear-gradient(135deg, #c9a86c 0%, #a67c47 100%);
-  color: #2b1e15;
-  box-shadow: 0 4px 14px rgba(201, 168, 108, 0.35);
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(255, 36, 66, 0.25);
 }
 
 .mb-tier-tab.current {
@@ -1138,8 +1238,8 @@ onMounted(() => {
   transform: translateY(-50%);
   padding: 2px 7px;
   border-radius: 999px;
-  background: rgba(43, 30, 21, 0.6);
-  color: #f5d9a8;
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
   font-size: 10px;
   font-weight: 600;
 }
@@ -1154,9 +1254,9 @@ onMounted(() => {
   gap: 16px;
   padding: 22px 20px;
   border-radius: 18px;
-  background: linear-gradient(135deg, #f5d9a8 0%, #c9a86c 60%, #a67c47 100%);
-  color: #2b1e15;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  background: #fff;
+  color: #1a1a1a;
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
@@ -1168,7 +1268,7 @@ onMounted(() => {
   width: 120px;
   height: 120px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(255, 255, 255, 0.35) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.1) 0%, transparent 70%);
   pointer-events: none;
 }
 
@@ -1193,7 +1293,7 @@ onMounted(() => {
 .mb-vip-name {
   font-size: 14px;
   font-weight: 700;
-  color: rgba(43, 30, 21, 0.8);
+  color: #595959;
 }
 
 .mb-vip-count {
@@ -1201,18 +1301,19 @@ onMounted(() => {
   font-weight: 800;
   margin-bottom: 6px;
   line-height: 1.2;
+  color: #1a1a1a;
 }
 
 .mb-vip-desc {
   font-size: 13px;
-  color: rgba(43, 30, 21, 0.75);
+  color: #8c8c8c;
   line-height: 1.4;
 }
 
 .mb-vip-expiry {
   margin-top: 8px;
   font-size: 12px;
-  color: rgba(43, 30, 21, 0.7);
+  color: #8c8c8c;
   line-height: 1.4;
 }
 
@@ -1223,12 +1324,12 @@ onMounted(() => {
   padding: 10px 20px;
   border: none;
   border-radius: 999px;
-  background: #2b1e15;
-  color: #f5d9a8;
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
   font-size: 14px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(43, 30, 21, 0.3);
+  box-shadow: 0 4px 12px rgba(255, 36, 66, 0.3);
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -1258,24 +1359,24 @@ onMounted(() => {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.12);
-  color: #f5d9a8;
+  background: #fff5f7;
+  color: #FF2442;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
-  border: 1px solid rgba(245, 217, 168, 0.25);
+  border: 1px solid #ffe5eb;
 }
 
 .mb-quick-label {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.9);
+  color: #1a1a1a;
   line-height: 1.2;
 }
 
 .mb-quick-value {
   font-size: 11px;
-  color: rgba(255, 255, 255, 0.6);
+  color: #8c8c8c;
 }
 
 .mb-rules-link {
@@ -1284,7 +1385,7 @@ onMounted(() => {
   text-align: center;
   margin-top: 16px;
   font-size: 13px;
-  color: rgba(245, 217, 168, 0.85);
+  color: #FF2442;
   text-decoration: underline;
   text-underline-offset: 3px;
   cursor: pointer;
@@ -1346,8 +1447,8 @@ onMounted(() => {
 }
 
 .mb-compare-tab.active {
-  background: #2b1e15;
-  color: #f5d9a8;
+  background: #FF2442;
+  color: #fff;
 }
 
 .mb-compare-list {
@@ -1411,6 +1512,7 @@ onMounted(() => {
   flex-direction: column;
   gap: 3px;
   min-width: 52px;
+  line-height: 40px;
 }
 
 .mb-compare-plan-name {
@@ -1430,11 +1532,11 @@ onMounted(() => {
 }
 
 .mb-compare-plan-value.yes {
-  color: #a67c47;
+  color: #FF2442;
 }
 
 body[data-theme="dark"] .mb-compare-plan-value.yes {
-  color: #c9a86c;
+  color: #ff4d6f;
 }
 
 .mb-compare-plan-value.no {
@@ -1614,6 +1716,166 @@ body[data-theme="dark"] .mb-compare-plan-value.yes {
   color: #ff2442;
 }
 
+.mb-pay-actions {
+  margin-top: 16px;
+}
+
+.mb-pay-actions.dual {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.mb-pay-actions.dual .ant-btn {
+  width: auto;
+  min-width: 110px;
+  flex: 0 0 auto;
+}
+
+.mb-pay-agreement-confirm {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.mb-pay-agreement-confirm-body {
+  display: inline-block;
+  text-align: center;
+}
+
+.mb-pay-agreement-confirm-body .paid-agreement-text {
+  font-size: 16px;
+  color: #595959;
+  line-height: 1.6;
+}
+
+.mb-pay-agreement-confirm-body .paid-agreement-link {
+  white-space: nowrap;
+}
+
+.mb-qr-pay {
+  text-align: center;
+}
+
+.mb-qr-pay-amount {
+  margin-bottom: 12px;
+}
+
+.mb-qr-pay-amount-label {
+  display: block;
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 2px;
+}
+
+.mb-qr-pay-amount-value {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.mb-qr-code-wrap {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 10px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 6px;
+  background: #fff;
+}
+
+.mb-qr-code-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mb-qr-code-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mb-qr-code-wrap.expired .mb-qr-code-img {
+  filter: blur(4px);
+  opacity: 0.4;
+}
+
+.mb-qr-code-mask {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mb-qr-code-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #FF2442;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.mb-qr-code-refresh svg {
+  width: 32px;
+  height: 32px;
+}
+
+.mb-qr-code-tip {
+  color: #8c8c8c;
+  font-size: 12px;
+  margin: 0 0 12px;
+}
+
+.mb-qr-code-countdown {
+  display: block;
+  color: #FF2442;
+}
+
+.mb-qr-code-tip--refresh {
+  color: #FF2442;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.mb-qr-code-tip--refresh:hover {
+  color: #E61E3A;
+}
+
+.mb-qr-pay-terms {
+  margin: 0 0 10px;
+  padding-left: 16px;
+  color: #595959;
+  font-size: 11px;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.mb-qr-pay-terms li {
+  margin-bottom: 4px;
+}
+
+.mb-qr-pay-agreement {
+  text-align: left;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
+}
+
 @media (max-width: 768px) {
   .benefits-index {
     padding: 16px 12px;
@@ -1768,16 +2030,70 @@ body[data-theme="dark"] .mobile-benefits {
 }
 
 body[data-theme="dark"] .mb-header {
-  background: linear-gradient(180deg, #2b1e15 0%, #3d2b1f 100%);
+  background: #1f1f1f;
+  border-bottom-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .mb-header-title,
+body[data-theme="dark"] .mb-header-back {
+  color: #e0e0e0;
 }
 
 body[data-theme="dark"] .mb-hero {
-  background: linear-gradient(180deg, #3d2b1f 0%, #2b1e15 100%);
+  background: linear-gradient(180deg, #2a0d12 0%, #141414 100%);
 }
 
 body[data-theme="dark"] .mb-compare {
   background: #1f1f1f;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .mb-tier-tab {
+  background: #2a2a2a;
+  color: #a6a6a6;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .mb-tier-tab.active {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+  color: #fff;
+}
+
+body[data-theme="dark"] .mb-vip-card {
+  background: #1f1f1f;
+  box-shadow: 0 4px 16px rgba(255, 36, 66, 0.15), 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .mb-vip-card::before {
+  background: radial-gradient(circle, rgba(255, 36, 66, 0.12) 0%, transparent 70%);
+}
+
+body[data-theme="dark"] .mb-vip-count {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .mb-vip-name,
+body[data-theme="dark"] .mb-vip-desc,
+body[data-theme="dark"] .mb-vip-expiry {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-quick-icon {
+  background: rgba(255, 36, 66, 0.12);
+  color: #ff4d6f;
+  border-color: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .mb-quick-label {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mb-quick-value {
+  color: #8c8c8c;
+}
+
+body[data-theme="dark"] .mb-rules-link {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .mb-compare-title,
@@ -1796,8 +2112,8 @@ body[data-theme="dark"] .mb-compare-tab {
 }
 
 body[data-theme="dark"] .mb-compare-tab.active {
-  background: #c9a86c;
-  color: #2b1e15;
+  background: #ff4d6f;
+  color: #fff;
 }
 
 body[data-theme="dark"] .mb-compare-row {
@@ -1812,6 +2128,10 @@ body[data-theme="dark"] .mb-compare-feature-tag {
 body[data-theme="dark"] .mb-footer-action {
   background: #1f1f1f;
   border-top-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .mb-footer-current {
+  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .mb-footer-cycle-btn {
@@ -1829,6 +2149,10 @@ body[data-theme="dark"] .mb-footer-cycle-btn.active {
 body[data-theme="dark"] .mb-footer-cycle-btn.disabled {
   border-color: #2a2a2a;
   color: #666;
+}
+
+body[data-theme="dark"] .mb-footer-btn:not(.disabled) {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
 }
 
 body[data-theme="dark"] .mb-footer-btn.disabled {
@@ -1856,5 +2180,38 @@ body[data-theme="dark"] .mb-upgrade-value {
 body[data-theme="dark"] .mb-upgrade-tip {
   background: rgba(255, 36, 66, 0.12);
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-pay-agreement-confirm-body .paid-agreement-text {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-qr-pay-amount-label {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-qr-pay-amount-value {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mb-qr-code-wrap {
+  background: #fff;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .mb-qr-code-mask {
+  background: rgba(20, 20, 20, 0.72);
+}
+
+body[data-theme="dark"] .mb-qr-code-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-qr-pay-terms {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mb-qr-pay-agreement {
+  border-top-color: #2a2a2a;
 }
 </style>

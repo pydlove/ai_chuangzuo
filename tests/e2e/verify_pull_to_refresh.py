@@ -10,6 +10,39 @@ SCREENSHOT_DIR = os.path.join(os.path.dirname(__file__), "screenshots")
 os.makedirs(SCREENSHOT_DIR, exist_ok=True)
 
 
+def mock_user_apis(page):
+    """Mock user API responses so the test token is not cleared by 401 errors."""
+
+    def handle_route(route, request):
+        url = request.url
+        # Common endpoints with shaped responses
+        if "/skills/system-skills" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{"items":[],"total":0}}')
+        elif "/notifications" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{"items":[],"unreadCount":0}}')
+        elif "/messages/unread-count" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":0}')
+        elif "/membership" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":null}')
+        elif "/profile" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{"userId":"test-user-id","nickname":"Tester","email":"","phone":"","avatar":"","membershipLevel":"","membershipExpiry":"","coinBalance":0}}')
+        elif "/invite/stats" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{"inviteCount":0,"inviteReward":0}}')
+        elif "/benefits" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":[]}')
+        elif "/works/monthly" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{"current":0,"limit":0}}')
+        elif "/products/newcomer" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":null}')
+        elif "/mine" in url:
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":{}}')
+        else:
+            # Generic success for any other user endpoint
+            route.fulfill(status=200, content_type="application/json", body='{"code":0,"data":null}')
+
+    page.route("**/api/v1/user/**", handle_route)
+
+
 def main():
     with sync_playwright() as p:
         browser = p.chromium.launch()
@@ -20,6 +53,7 @@ def main():
             user_agent="Mozilla/5.0 (iPhone; CPU iPhone OS 16_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.0 Mobile/15E148 Safari/604.1",
         )
         page = context.new_page()
+        mock_user_apis(page)
 
         page.goto(f"{BASE_URL}/login")
         page.evaluate("""

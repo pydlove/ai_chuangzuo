@@ -242,28 +242,50 @@
               <span class="mp-qr-pay-amount-label">微信支付</span>
               <span class="mp-qr-pay-amount-value">¥{{ getFinalCash() }}</span>
             </div>
-            <div class="mp-qr-code-wrap">
+            <div class="mp-qr-code-wrap" :class="{ expired: qrExpired }">
               <img :src="payQrUrl" alt="微信支付二维码" class="mp-qr-code-img" />
-              <div class="mp-qr-code-logo">微信</div>
+              <img src="/assets/images/微信.png" alt="微信" class="mp-qr-code-logo" />
+              <div v-if="qrExpired" class="mp-qr-code-mask" @click="handlePay">
+                <div class="mp-qr-code-refresh">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                  </svg>
+                  <span>点击刷新</span>
+                </div>
+              </div>
             </div>
-            <p class="mp-qr-code-tip">请使用微信扫一扫完成支付</p>
+            <p v-if="!qrExpired" class="mp-qr-code-tip">
+              请使用微信扫一扫完成支付
+              <span class="mp-qr-code-countdown">（{{ qrExpireSeconds }} 秒后失效）</span>
+            </p>
+            <p v-else class="mp-qr-code-tip mp-qr-code-tip--refresh" @click="handlePay">
+              点击刷新二维码
+            </p>
             <ul class="mp-qr-pay-terms">
               <li>开通{{ selectedPlan?.name }}{{ cycleLabel[activeCycle] }}套餐</li>
-              <li>会员服务属于虚拟商品，一经支付无法退款</li>
+              <li>会员服务属于虚拟商品，一经支付无法退款，请你谅解</li>
+              <li>会员到期日前 7 天，系统将通过消息中心给您发送提醒消息</li>
+              <li>未成年用户请在监护人陪同下理性充值，避免过度消费</li>
               <li>支付完成后会员将自动开通</li>
             </ul>
+            <div class="mp-qr-pay-agreement">
+              <PaidServiceAgreement />
+            </div>
           </div>
           <div class="mp-pay-actions">
             <a-button size="large" block @click="handleModalCancel">关闭</a-button>
           </div>
         </template>
         <template v-else>
-          <p class="mp-pay-tip">
-            确认{{ upgradePreview ? '升级' : '订阅' }}{{ selectedPlan?.name }}{{ cycleLabel[activeCycle] }}套餐，支付成功后会员将自动开通。
-          </p>
-          <div class="mp-pay-actions">
+          <div class="mp-pay-agreement-confirm">
+            <div class="mp-pay-agreement-confirm-body">
+              <PaidServiceAgreement />
+            </div>
+          </div>
+          <div class="mp-pay-actions dual">
+            <a-button size="large" block @click="handleModalCancel">取消</a-button>
             <a-button type="primary" :loading="subscribeLoading" size="large" block @click="handlePay">
-              微信支付
+              同意并继续
             </a-button>
           </div>
         </template>
@@ -276,6 +298,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import PaidServiceAgreement from '@/components/PaidServiceAgreement.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { usePricing } from '@/composables/usePricing.js'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
@@ -298,6 +321,9 @@ const {
   selectedCoinAmount,
   payQrUrl,
   currentOrderNo,
+  qrExpireSeconds,
+  qrExpired,
+  resetQrExpire,
   plans,
   compareRows,
   catalogLoading,
@@ -307,6 +333,7 @@ const {
   cycleLocked,
   setCycle,
   isCycleDisabled,
+  cycleLabel,
   isTestMode,
   upgradeModalVisible,
   upgradePreview,
@@ -335,13 +362,17 @@ const modalTitle = computed(() => {
   if (payQrUrl.value) {
     return '微信扫码支付'
   }
-  return upgradePreview.value ? '确认支付升级' : `确认订阅 ${selectedPlan.value ? selectedPlan.value.name : ''}`
+  if (upgradePreview.value) {
+    return '确认支付升级'
+  }
+  return '同意 爱创作工坊 的协议'
 })
 
 const handleModalCancel = () => {
   modalVisible.value = false
   payQrUrl.value = ''
   currentOrderNo.value = ''
+  resetQrExpire()
   stopPolling()
 }
 </script>
@@ -996,6 +1027,9 @@ body[data-theme="dark"] .mp-compare__value .yes,
 body[data-theme="dark"] .mp-pay-tip strong {
   color: #ff4d6f;
 }
+body[data-theme="dark"] .mp-pay-agreement-confirm-body .paid-agreement-text {
+  color: #a6a6a6;
+}
 body[data-theme="dark"] .mp-newcomer__btn {
   background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
 }
@@ -1020,36 +1054,68 @@ body[data-theme="dark"] .mp-upgrade-tip {
   margin-top: 16px;
 }
 
+.mp-pay-actions.dual {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.mp-pay-actions.dual .ant-btn {
+  width: auto;
+  min-width: 110px;
+  flex: 0 0 auto;
+}
+
+.mp-pay-agreement-confirm {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.mp-pay-agreement-confirm-body {
+  display: inline-block;
+  text-align: center;
+}
+
+.mp-pay-agreement-confirm-body .paid-agreement-text {
+  font-size: 16px;
+  color: #595959;
+  line-height: 1.6;
+}
+
+.mp-pay-agreement-confirm-body .paid-agreement-link {
+  white-space: nowrap;
+}
+
 .mp-qr-pay {
   text-align: center;
 }
 
 .mp-qr-pay-amount {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .mp-qr-pay-amount-label {
   display: block;
   font-size: 13px;
   color: #595959;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .mp-qr-pay-amount-value {
   display: block;
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: #1a1a1a;
 }
 
 .mp-qr-code-wrap {
   position: relative;
-  width: 180px;
-  height: 180px;
-  margin: 0 auto 12px;
+  width: 150px;
+  height: 150px;
+  margin: 0 auto 10px;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
-  padding: 8px;
+  padding: 6px;
   background: #fff;
 }
 
@@ -1064,35 +1130,84 @@ body[data-theme="dark"] .mp-upgrade-tip {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  width: 40px;
-  height: 40px;
-  background: #07c160;
-  color: #fff;
+  width: 34px;
+  height: 34px;
+  object-fit: contain;
   border-radius: 6px;
+  background: #fff;
+  padding: 2px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.mp-qr-code-wrap.expired .mp-qr-code-img {
+  filter: blur(4px);
+  opacity: 0.4;
+}
+
+.mp-qr-code-mask {
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.72);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.mp-qr-code-refresh {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: #FF2442;
+  font-size: 13px;
   font-weight: 600;
+}
+
+.mp-qr-code-refresh svg {
+  width: 32px;
+  height: 32px;
 }
 
 .mp-qr-code-tip {
   color: #8c8c8c;
   font-size: 12px;
-  margin: 0 0 16px;
+  margin: 0 0 12px;
+}
+
+.mp-qr-code-countdown {
+  display: block;
+  color: #FF2442;
+}
+
+.mp-qr-code-tip--refresh {
+  color: #FF2442;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.mp-qr-code-tip--refresh:hover {
+  color: #E61E3A;
 }
 
 .mp-qr-pay-terms {
-  margin: 0;
-  padding-left: 18px;
+  margin: 0 0 10px;
+  padding-left: 16px;
   color: #595959;
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 11px;
+  line-height: 1.55;
   text-align: left;
 }
 
 .mp-qr-pay-terms li {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
+}
+
+.mp-qr-pay-agreement {
+  text-align: left;
+  padding-top: 8px;
+  border-top: 1px solid #f0f0f0;
 }
 
 body[data-theme="dark"] .mp-qr-pay-amount-label {
@@ -1108,11 +1223,19 @@ body[data-theme="dark"] .mp-qr-code-wrap {
   border-color: #2a2a2a;
 }
 
+body[data-theme="dark"] .mp-qr-code-mask {
+  background: rgba(20, 20, 20, 0.72);
+}
+
 body[data-theme="dark"] .mp-qr-code-tip {
   color: #a6a6a6;
 }
 
 body[data-theme="dark"] .mp-qr-pay-terms {
   color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mp-qr-pay-agreement {
+  border-top-color: #2a2a2a;
 }
 </style>

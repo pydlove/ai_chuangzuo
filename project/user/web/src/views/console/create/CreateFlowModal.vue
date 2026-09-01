@@ -114,7 +114,7 @@
         <div class='word-limit-tip'>当前会员等级字数上限：{{ wordCountLimit }} 字</div>
       </div>
 
-      <div v-if='flowData.step === 4' class='flow-panel'>
+      <div v-if='flowData.step === 4' class='flow-panel flow-panel--prompts'>
         <div class='panel-title'>第四步：选择创作提示词</div>
         <a-alert
           class='prompt-market-tip'
@@ -122,134 +122,91 @@
           show-icon
           :message='"提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。"'
         />
-        <a-tabs v-model:activeKey='flowData.promptTab'>
-          <a-tab-pane key='mine' tab='我的'>
-            <div class='prompt-grid'>
-              <SkillCard
+        <div class='prompt-body'>
+          <div class='prompt-preview-pane'>
+            <div v-if='currentPrompt' class='prompt-preview'>
+              <div class='prompt-preview-head'>
+                <div class='prompt-preview-name'>{{ currentPrompt.name }}</div>
+                <div class='prompt-preview-meta'>
+                  <span v-if='currentPrompt.desc'>{{ currentPrompt.desc }}</span>
+                  <span v-else-if='typeof currentPrompt.count === "number"'>自定义提示词 · 已用 {{ currentPrompt.count }} 次</span>
+                  <span v-else-if='currentPrompt.createdAt'>学习 · {{ currentPrompt.createdAt.slice(0, 10) }}</span>
+                  <span v-else-if='currentPrompt.creatorName'>by {{ currentPrompt.creatorName }}</span>
+                  <span v-else>系统预设</span>
+                </div>
+                <div v-if='parseScopeTags(currentPrompt.scope).length' class='prompt-preview-scope-list'>
+                  <span v-for='tag in parseScopeTags(currentPrompt.scope)' :key='tag' class='prompt-preview-scope'>{{ tag }}</span>
+                </div>
+              </div>
+              <div class='prompt-preview-text'>{{ currentPrompt.prompt }}</div>
+              <div class='prompt-preview-actions'>
+                <button
+                  class='prompt-preview-use-btn'
+                  :disabled='selectedSkillName !== currentPrompt.name'
+                  @click='nextStep'
+                >
+                  应用并继续
+                </button>
+                <button class='prompt-preview-view-btn' @click='openPromptModal(currentPrompt)'>查看完整</button>
+              </div>
+            </div>
+            <div v-else class='prompt-preview-empty'>当前分类暂无提示词</div>
+          </div>
+          <div class='prompt-list-pane'>
+            <div class='prompt-tabs'>
+              <button
+                v-for='tab in promptTabs'
+                :key='tab.key'
+                :class='["prompt-tab", { active: flowData.promptTab === tab.key }]'
+                @click='flowData.promptTab = tab.key'
+              >
+                {{ tab.label }}
+              </button>
+            </div>
+            <div class='prompt-rows'>
+              <div
                 v-for='skill in pagedPromptList'
                 :key='skill.bizNo || skill.name'
-                :name='skill.name'
-                :prompt='promptSummary(skill.prompt)'
-                :scope='skill.scope'
-                size='compact'
-                :selected='selectedSkillName === skill.name'
-                clickable
-                show-view-btn
+                :class='["prompt-row", { selected: selectedSkillName === skill.name, offline: skill.status && skill.status !== "approved" }]'
                 @click='selectPrompt(skill)'
-                @view='openPromptModal(skill)'
               >
-                <template #meta>
-                  <span>{{ skill.desc || "我的提示词" }}</span>
-                  <span class='prompt-card-meta-dot'>·</span>
-                  <span>已用 {{ skill.count || 0 }} 次</span>
-                </template>
-              </SkillCard>
-              <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('mine') }}</div>
+                <div class='prompt-row-main'>
+                  <div class='prompt-row-name'>{{ skill.name }}</div>
+                  <div class='prompt-row-desc'>{{ promptSummary(skill.prompt) }}</div>
+                  <div class='prompt-row-meta'>
+                    <template v-if='flowData.promptTab === "mine"'>
+                      <span>{{ skill.desc || "我的提示词" }}</span>
+                      <span class='prompt-row-meta-dot'>·</span>
+                      <span>已用 {{ skill.count || 0 }} 次</span>
+                    </template>
+                    <template v-else-if='flowData.promptTab === "learn"'>
+                      <span>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</span>
+                    </template>
+                    <template v-else-if='flowData.promptTab === "favorite"'>
+                      <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
+                        {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
+                      </span>
+                    </template>
+                    <template v-else>
+                      <span>{{ skill.desc || "系统预设" }}</span>
+                    </template>
+                  </div>
+                </div>
+                <div v-if='skill.status && skill.status !== "approved"' class='prompt-row-badge'>已下架</div>
+              </div>
+              <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText(flowData.promptTab) }}</div>
             </div>
             <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
               <a-pagination
-                :current='promptPages.mine'
+                :current='promptPages[flowData.promptTab]'
                 :page-size='PROMPT_PAGE_SIZE'
                 :total='promptTotal'
                 size='small'
                 @change='onPromptPageChange'
               />
             </div>
-          </a-tab-pane>
-          <a-tab-pane key='learn' tab='学习'>
-            <div class='prompt-grid'>
-              <SkillCard
-                v-for='skill in pagedPromptList'
-                :key='skill.bizNo || skill.name'
-                :name='skill.name'
-                :prompt='promptSummary(skill.prompt)'
-                :scope='skill.scope'
-                size='compact'
-                avatar-variant='learned'
-                :selected='selectedSkillName === skill.name'
-                clickable
-                show-view-btn
-                @click='selectPrompt(skill)'
-                @view='openPromptModal(skill)'
-              >
-                <template #meta>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</template>
-              </SkillCard>
-              <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('learn') }}</div>
-            </div>
-            <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-              <a-pagination
-                :current='promptPages.learn'
-                :page-size='PROMPT_PAGE_SIZE'
-                :total='promptTotal'
-                size='small'
-                @change='onPromptPageChange'
-              />
-            </div>
-          </a-tab-pane>
-          <a-tab-pane key='favorite' tab='收藏'>
-            <div class='prompt-grid'>
-              <SkillCard
-                v-for='skill in pagedPromptList'
-                :key='skill.id || skill.name'
-                :name='skill.name'
-                :prompt='promptSummary(skill.prompt)'
-                :scope='skill.scope'
-                size='compact'
-                :selected='selectedSkillName === skill.name'
-                :clickable='skill.status === "approved"'
-                :class='{ "favorite-offline": skill.status !== "approved" }'
-                show-view-btn
-                @click='selectPrompt(skill)'
-                @view='openPromptModal(skill)'
-              >
-                <template #meta>
-                  <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
-                    {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
-                  </span>
-                </template>
-              </SkillCard>
-              <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('favorite') }}</div>
-            </div>
-            <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-              <a-pagination
-                :current='promptPages.favorite'
-                :page-size='PROMPT_PAGE_SIZE'
-                :total='promptTotal'
-                size='small'
-                @change='onPromptPageChange'
-              />
-            </div>
-          </a-tab-pane>
-          <a-tab-pane key='system' tab='系统'>
-            <div class='prompt-grid'>
-              <SkillCard
-                v-for='skill in pagedPromptList'
-                :key='skill.bizNo || skill.name'
-                :name='skill.name'
-                :prompt='promptSummary(skill.prompt)'
-                :scope='skill.scope'
-                size='compact'
-                :selected='selectedSkillName === skill.name'
-                clickable
-                show-view-btn
-                @click='selectPrompt(skill)'
-                @view='openPromptModal(skill)'
-              >
-                <template #meta>{{ skill.desc || "系统预设" }}</template>
-              </SkillCard>
-              <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('system') }}</div>
-            </div>
-            <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-              <a-pagination
-                :current='promptPages.system'
-                :page-size='PROMPT_PAGE_SIZE'
-                :total='promptTotal'
-                size='small'
-                @change='onPromptPageChange'
-              />
-            </div>
-          </a-tab-pane>
-        </a-tabs>
+          </div>
+        </div>
 
         <a-modal
           class='skill-prompt-modal'
@@ -482,134 +439,91 @@
             show-icon
             :message='"提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。"'
           />
-          <a-tabs v-model:activeKey='flowData.promptTab'>
-            <a-tab-pane key='mine' tab='我的'>
-              <div class='prompt-grid'>
-                <SkillCard
+          <div class='prompt-body'>
+            <div class='prompt-preview-pane'>
+              <div v-if='currentPrompt' class='prompt-preview'>
+                <div class='prompt-preview-head'>
+                  <div class='prompt-preview-name'>{{ currentPrompt.name }}</div>
+                  <div class='prompt-preview-meta'>
+                    <span v-if='currentPrompt.desc'>{{ currentPrompt.desc }}</span>
+                    <span v-else-if='typeof currentPrompt.count === "number"'>自定义提示词 · 已用 {{ currentPrompt.count }} 次</span>
+                    <span v-else-if='currentPrompt.createdAt'>学习 · {{ currentPrompt.createdAt.slice(0, 10) }}</span>
+                    <span v-else-if='currentPrompt.creatorName'>by {{ currentPrompt.creatorName }}</span>
+                    <span v-else>系统预设</span>
+                  </div>
+                  <div v-if='parseScopeTags(currentPrompt.scope).length' class='prompt-preview-scope-list'>
+                    <span v-for='tag in parseScopeTags(currentPrompt.scope)' :key='tag' class='prompt-preview-scope'>{{ tag }}</span>
+                  </div>
+                </div>
+                <div class='prompt-preview-text'>{{ currentPrompt.prompt }}</div>
+                <div class='prompt-preview-actions'>
+                  <button
+                    class='prompt-preview-use-btn'
+                    :disabled='selectedSkillName !== currentPrompt.name'
+                    @click='nextStep'
+                  >
+                    应用并继续
+                  </button>
+                  <button class='prompt-preview-view-btn' @click='openPromptModal(currentPrompt)'>查看完整</button>
+                </div>
+              </div>
+              <div v-else class='prompt-preview-empty'>当前分类暂无提示词</div>
+            </div>
+            <div class='prompt-list-pane'>
+              <div class='prompt-tabs'>
+                <button
+                  v-for='tab in promptTabs'
+                  :key='tab.key'
+                  :class='["prompt-tab", { active: flowData.promptTab === tab.key }]'
+                  @click='flowData.promptTab = tab.key'
+                >
+                  {{ tab.label }}
+                </button>
+              </div>
+              <div class='prompt-rows'>
+                <div
                   v-for='skill in pagedPromptList'
                   :key='skill.bizNo || skill.name'
-                  :name='skill.name'
-                  :prompt='promptSummary(skill.prompt)'
-                  :scope='skill.scope'
-                  size='compact'
-                  :selected='selectedSkillName === skill.name'
-                  clickable
-                  show-view-btn
+                  :class='["prompt-row", { selected: selectedSkillName === skill.name, offline: skill.status && skill.status !== "approved" }]'
                   @click='selectPrompt(skill)'
-                  @view='openPromptModal(skill)'
                 >
-                  <template #meta>
-                    <span>{{ skill.desc || "我的提示词" }}</span>
-                    <span class='prompt-card-meta-dot'>·</span>
-                    <span>已用 {{ skill.count || 0 }} 次</span>
-                  </template>
-                </SkillCard>
-                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('mine') }}</div>
+                  <div class='prompt-row-main'>
+                    <div class='prompt-row-name'>{{ skill.name }}</div>
+                    <div class='prompt-row-desc'>{{ promptSummary(skill.prompt) }}</div>
+                    <div class='prompt-row-meta'>
+                      <template v-if='flowData.promptTab === "mine"'>
+                        <span>{{ skill.desc || "我的提示词" }}</span>
+                        <span class='prompt-row-meta-dot'>·</span>
+                        <span>已用 {{ skill.count || 0 }} 次</span>
+                      </template>
+                      <template v-else-if='flowData.promptTab === "learn"'>
+                        <span>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</span>
+                      </template>
+                      <template v-else-if='flowData.promptTab === "favorite"'>
+                        <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
+                          {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
+                        </span>
+                      </template>
+                      <template v-else>
+                        <span>{{ skill.desc || "系统预设" }}</span>
+                      </template>
+                    </div>
+                  </div>
+                  <div v-if='skill.status && skill.status !== "approved"' class='prompt-row-badge'>已下架</div>
+                </div>
+                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText(flowData.promptTab) }}</div>
               </div>
               <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
                 <a-pagination
-                  :current='promptPages.mine'
+                  :current='promptPages[flowData.promptTab]'
                   :page-size='PROMPT_PAGE_SIZE'
                   :total='promptTotal'
                   size='small'
                   @change='onPromptPageChange'
                 />
               </div>
-            </a-tab-pane>
-            <a-tab-pane key='learn' tab='学习'>
-              <div class='prompt-grid'>
-                <SkillCard
-                  v-for='skill in pagedPromptList'
-                  :key='skill.bizNo || skill.name'
-                  :name='skill.name'
-                  :prompt='promptSummary(skill.prompt)'
-                  :scope='skill.scope'
-                  size='compact'
-                  avatar-variant='learned'
-                  :selected='selectedSkillName === skill.name'
-                  clickable
-                  show-view-btn
-                  @click='selectPrompt(skill)'
-                  @view='openPromptModal(skill)'
-                >
-                  <template #meta>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</template>
-                </SkillCard>
-                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('learn') }}</div>
-              </div>
-              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-                <a-pagination
-                  :current='promptPages.learn'
-                  :page-size='PROMPT_PAGE_SIZE'
-                  :total='promptTotal'
-                  size='small'
-                  @change='onPromptPageChange'
-                />
-              </div>
-            </a-tab-pane>
-            <a-tab-pane key='favorite' tab='收藏'>
-              <div class='prompt-grid'>
-                <SkillCard
-                  v-for='skill in pagedPromptList'
-                  :key='skill.id || skill.name'
-                  :name='skill.name'
-                  :prompt='promptSummary(skill.prompt)'
-                  :scope='skill.scope'
-                  size='compact'
-                  :selected='selectedSkillName === skill.name'
-                  :clickable='skill.status === "approved"'
-                  :class='{ "favorite-offline": skill.status !== "approved" }'
-                  show-view-btn
-                  @click='selectPrompt(skill)'
-                  @view='openPromptModal(skill)'
-                >
-                  <template #meta>
-                    <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
-                      {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
-                    </span>
-                  </template>
-                </SkillCard>
-                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('favorite') }}</div>
-              </div>
-              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-                <a-pagination
-                  :current='promptPages.favorite'
-                  :page-size='PROMPT_PAGE_SIZE'
-                  :total='promptTotal'
-                  size='small'
-                  @change='onPromptPageChange'
-                />
-              </div>
-            </a-tab-pane>
-            <a-tab-pane key='system' tab='系统'>
-              <div class='prompt-grid'>
-                <SkillCard
-                  v-for='skill in pagedPromptList'
-                  :key='skill.bizNo || skill.name'
-                  :name='skill.name'
-                  :prompt='promptSummary(skill.prompt)'
-                  :scope='skill.scope'
-                  size='compact'
-                  :selected='selectedSkillName === skill.name'
-                  clickable
-                  show-view-btn
-                  @click='selectPrompt(skill)'
-                  @view='openPromptModal(skill)'
-                >
-                  <template #meta>{{ skill.desc || "系统预设" }}</template>
-                </SkillCard>
-                <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText('system') }}</div>
-              </div>
-              <div v-if='promptTotal > PROMPT_PAGE_SIZE' class='prompt-pagination'>
-                <a-pagination
-                  :current='promptPages.system'
-                  :page-size='PROMPT_PAGE_SIZE'
-                  :total='promptTotal'
-                  size='small'
-                  @change='onPromptPageChange'
-                />
-              </div>
-            </a-tab-pane>
-          </a-tabs>
+            </div>
+          </div>
 
           <a-modal
             class='skill-prompt-modal'
@@ -725,7 +639,6 @@ import {
 import { favoriteSkills, loadFavoriteSkills } from '@/composables/useSkillMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { getWordCountLimit, getCurrentPlanKey } from '@/utils/membershipLimits.js'
-import SkillCard from '@/components/SkillCard.vue'
 import { buildLargePreview } from '@/utils/articleTemplates.js'
 
 const props = defineProps({
@@ -771,7 +684,7 @@ const topicOptions = ref([])
 const generatedAngleList = ref([])
 const lastGeneratedTopicId = ref('')
 
-const { templates: apiTemplates, load: loadExportTemplates } = useExportTemplates()
+const { templates: apiTemplates, reload: loadExportTemplates } = useExportTemplates()
 
 const wordCountLimit = computed(() => getWordCountLimit())
 const isFreePlan = computed(() => getCurrentPlanKey() === 'free')
@@ -807,6 +720,20 @@ const pagedPromptList = computed(() => {
 
 watch(() => flowData.promptTab, () => {
   promptPages[flowData.promptTab] = 1
+})
+
+const promptTabs = [
+  { key: 'mine', label: '我的' },
+  { key: 'learn', label: '学习' },
+  { key: 'favorite', label: '收藏' },
+  { key: 'system', label: '系统' }
+]
+
+const currentPrompt = computed(() => {
+  const list = currentPromptList.value
+  const selected = list.find(s => s.name === selectedSkillName.value)
+  if (selected) return selected
+  return list[0] || null
 })
 
 const templatePlatformTabs = [
@@ -1214,7 +1141,8 @@ onMounted(() => {
 .create-flow {
   display: flex;
   flex-direction: column;
-  height: 620px;
+  height: 760px;
+  max-height: 85vh;
   padding: 16px 20px;
   box-sizing: border-box;
 }
@@ -1548,19 +1476,245 @@ onMounted(() => {
 .prompt-market-tip {
   margin-bottom: 16px;
 }
-.prompt-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.prompt-body {
+  display: flex;
   gap: 16px;
-  margin-top: 12px;
-  min-height: 200px;
 }
-.prompt-card-meta-dot {
+.prompt-preview-pane {
+  flex: 0 0 360px;
+  background: #f5f5f5;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 420px;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+}
+.prompt-preview {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #fff;
+}
+.prompt-preview-head {
+  flex-shrink: 0;
+  padding: 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.prompt-preview-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.prompt-preview-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 10px;
+}
+.prompt-preview-scope-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.prompt-preview-scope {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-primary);
+  background: #fff5f7;
+  border: 1px solid #ffd1d9;
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.prompt-preview-scope::before {
+  content: '#';
+  opacity: 0.8;
+}
+.prompt-preview-text {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  font-size: 14px;
+  color: #262626;
+  line-height: 1.8;
+  overflow-y: auto;
+  white-space: pre-line;
+}
+.prompt-preview-actions {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid #f0f0f0;
+  background: #fff;
+}
+.prompt-preview-use-btn {
+  padding: 7px 16px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.prompt-preview-use-btn:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+.prompt-preview-use-btn:disabled {
+  background: rgba(255, 36, 66, 0.35);
+  border-color: rgba(255, 36, 66, 0.35);
+  color: #fff;
+  cursor: not-allowed;
+}
+.prompt-preview-view-btn {
+  padding: 7px 16px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.prompt-preview-view-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-bg);
+}
+.prompt-preview-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  font-size: 14px;
+  color: #8c8c8c;
+}
+.prompt-list-pane {
+  flex: 1;
+  min-width: 0;
+  height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+.prompt-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 0 0 14px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.prompt-tab {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  color: #595959;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+.prompt-tab.active {
+  border-color: #ff2442;
+  background: #fff0f2;
+  color: #ff2442;
+  font-weight: 600;
+}
+.prompt-rows {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.prompt-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 2px solid #e8e8e8;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 8px;
+}
+.prompt-row:hover {
+  border-color: #ff2442;
+  background: #fff0f2;
+}
+.prompt-row.selected {
+  border-color: #ff2442;
+  background: #fff0f2;
+  box-shadow: 0 0 0 2px rgba(255, 36, 66, 0.25);
+}
+.prompt-row.offline {
+  cursor: not-allowed;
+  background: #f5f5f5;
+}
+.prompt-row.offline:hover {
+  border-color: #e8e8e8;
+  background: #f5f5f5;
+}
+.prompt-row.offline .prompt-row-name,
+.prompt-row.offline .prompt-row-desc,
+.prompt-row.offline .prompt-row-meta {
+  opacity: 0.55;
+}
+.prompt-row-main {
+  flex: 1;
+  min-width: 0;
+}
+.prompt-row-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+.prompt-row-desc {
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.5;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prompt-row-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+.prompt-row-meta-dot {
   color: #d9d9d9;
   font-weight: 700;
 }
-.favorite-offline {
-  opacity: 0.7;
+.prompt-row-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  z-index: 1;
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: #fff;
+  background: linear-gradient(135deg, #ff9a4d, #ff2442);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  pointer-events: none;
 }
 .favorite-status-badge {
   font-size: 12px;
@@ -1829,8 +1983,52 @@ onMounted(() => {
   .word-presets {
     flex-direction: column;
   }
-  .prompt-grid {
-    grid-template-columns: 1fr;
+  .prompt-body {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .prompt-preview-pane {
+    flex: none;
+    width: 100%;
+    height: 240px;
+    order: 2;
+  }
+  .prompt-list-pane {
+    flex: none;
+    height: auto;
+    max-height: 180px;
+    order: 1;
+  }
+  .prompt-tabs {
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+  }
+  .prompt-rows {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+  .prompt-rows::-webkit-scrollbar {
+    display: none;
+  }
+  .prompt-row {
+    flex: 0 0 148px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 12px;
+    margin-bottom: 0;
+    border-radius: 12px;
+  }
+  .prompt-row-desc {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
   }
 
   /* 页面模式各步骤移动端优化 */
@@ -1882,47 +2080,59 @@ onMounted(() => {
   .flow-panel--prompts .prompt-market-tip .ant-alert-message {
     font-size: 12px;
   }
-  .flow-panel--prompts .prompt-grid {
+  .flow-panel--prompts .prompt-body {
     gap: 10px;
-    margin-top: 8px;
-    min-height: auto;
+  }
+  .flow-panel--prompts .prompt-preview-pane {
+    height: calc(100vh - 420px);
+    min-height: 180px;
+    max-height: 340px;
+    border-radius: 12px;
+  }
+  .flow-panel--prompts .prompt-preview-head {
+    padding: 12px 14px;
+  }
+  .flow-panel--prompts .prompt-preview-name {
+    font-size: 15px;
+  }
+  .flow-panel--prompts .prompt-preview-text {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+  .flow-panel--prompts .prompt-preview-actions {
+    padding: 10px 14px;
+  }
+  .flow-panel--prompts .prompt-preview-use-btn,
+  .flow-panel--prompts .prompt-preview-view-btn {
+    flex: 1;
+    padding: 9px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+  }
+  .flow-panel--prompts .prompt-list-pane {
+    max-height: 120px;
+  }
+  .flow-panel--prompts .prompt-tabs {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+  }
+  .flow-panel--prompts .prompt-row {
+    flex: 0 0 136px;
+    padding: 10px;
+  }
+  .flow-panel--prompts .prompt-row-name {
+    font-size: 13px;
+  }
+  .flow-panel--prompts .prompt-row-desc {
+    font-size: 11px;
+    -webkit-line-clamp: 2;
+  }
+  .flow-panel--prompts .prompt-row-meta {
+    font-size: 11px;
   }
   .flow-panel--prompts .prompt-pagination {
     margin-top: 8px;
     padding-top: 8px;
-  }
-  .flow-panel--prompts :deep(.skill-card--compact) {
-    padding: 10px 12px;
-    border-radius: 12px;
-    min-height: auto;
-  }
-  .flow-panel--prompts :deep(.skill-card__head) {
-    margin-bottom: 6px;
-  }
-  .flow-panel--prompts :deep(.skill-card__avatar) {
-    width: 32px;
-    height: 32px;
-    font-size: 13px;
-    border-radius: 8px;
-  }
-  .flow-panel--prompts :deep(.skill-card__title) {
-    font-size: 14px;
-  }
-  .flow-panel--prompts :deep(.skill-card__meta) {
-    font-size: 11px;
-  }
-  .flow-panel--prompts :deep(.skill-card__prompt) {
-    font-size: 12px;
-    line-height: 1.5;
-    margin-bottom: 6px;
-    -webkit-line-clamp: 2;
-    flex: 0 0 auto;
-    max-height: 3em;
-  }
-  .flow-panel--prompts :deep(.skill-card__action-btn) {
-    padding: 3px 8px;
-    font-size: 11px;
-    border-radius: 6px;
   }
 
   .flow-panel--templates .template-tabs {

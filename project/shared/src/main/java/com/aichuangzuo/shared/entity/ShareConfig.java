@@ -19,7 +19,7 @@ public class ShareConfig extends BaseEntity {
     @TableId(type = IdType.AUTO)
     private Long id;
 
-    /** 分享场景：lottery-抽奖活动，invite-邀请有礼。 */
+    /** 分享场景：lottery-抽奖活动，invite-邀请有礼，experience-体验会员。 */
     private String sceneKey;
 
     /** 配置标题（管理端展示用）。 */

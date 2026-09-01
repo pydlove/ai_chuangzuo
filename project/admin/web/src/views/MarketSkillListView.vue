@@ -30,7 +30,7 @@
             />
             <a-button type="primary" @click="handleSearch">查询</a-button>
             <a-button @click="handleReset">重置</a-button>
-            <a-button type="primary" @click="openCreateModal">
+            <a-button type="primary" @click="gotoCreate">
               <template #icon><PlusOutlined /></template>
               新建提示词
             </a-button>
@@ -73,7 +73,7 @@
               </template>
               <template v-else-if="column.key === 'actions'">
                 <a-button type="link" size="small" @click="openDetailModal(record)">详情</a-button>
-                <a-button type="link" size="small" @click="openEditModal(record)">编辑</a-button>
+                <a-button type="link" size="small" @click="gotoEdit(record)">编辑</a-button>
                 <a-popconfirm
                   :title="record.status === 'enabled' ? '确定下架此提示词？' : '确定上架此提示词？'"
                   ok-text="确定"
@@ -163,133 +163,6 @@
       </a-tabs>
     </a-card>
 
-    <!-- 新建 / 编辑 Modal -->
-    <a-modal
-      v-model:open="editorVisible"
-      :title="editingBizNo ? '编辑提示词市场条目' : '新建提示词市场条目'"
-      ok-text="保存"
-      cancel-text="取消"
-      :confirm-loading="submitting"
-      :width="720"
-      @ok="confirmSubmit"
-    >
-      <a-form :label-col="{ span: 4 }" :wrapper-col="{ span: 20 }">
-        <a-form-item label="提示词名称" required>
-          <a-input
-            v-model:value="form.skillName"
-            placeholder="例如：爆款情感文"
-            :maxlength="64"
-            show-count
-          />
-        </a-form-item>
-        <a-form-item label="发布者" required>
-          <a-select
-            v-model:value="form.publisherUserId"
-            placeholder="搜索并选择发布者"
-            show-search
-            :filter-option="false"
-            :options="publisherOptions"
-            :loading="publisherLoading"
-            @search="searchPublisher"
-            @dropdown-visible-change="onPublisherDropdownOpen"
-          />
-        </a-form-item>
-        <a-form-item label="简短描述">
-          <a-input
-            v-model:value="form.description"
-            placeholder="一句话描述，方便用户浏览"
-            :maxlength="256"
-          />
-        </a-form-item>
-        <a-form-item label="提示词" required>
-          <a-textarea
-            v-model:value="form.prompt"
-            placeholder="喂给 AI 的完整提示词"
-            :rows="6"
-          />
-        </a-form-item>
-        <a-form-item label="适用范围">
-          <div class="market-style-scope-tags">
-            <a-tag
-              v-for="tag in scopeTags"
-              :key="tag"
-              closable
-              :disable="!editingBizNo && scopeTags.length >= MAX_SCOPE_TAGS"
-              @close.prevent="removeTag(tag)"
-            >
-              {{ tag }}
-            </a-tag>
-            <input
-              v-if="scopeTags.length < MAX_SCOPE_TAGS"
-              v-model="scopeInput"
-              type="text"
-              class="market-style-scope-input"
-              placeholder="输入标签后按 Tab 或回车"
-              :maxlength="MAX_SCOPE_TAG_LENGTH"
-              @keydown.enter.prevent="addTag"
-              @keydown.tab="handleScopeTab"
-            />
-          </div>
-          <div class="market-style-scope-hint">
-            最多 {{ MAX_SCOPE_TAGS }} 个标签，每个不超过 {{ MAX_SCOPE_TAG_LENGTH }} 个字（可选）
-          </div>
-        </a-form-item>
-        <a-form-item label="累计使用">
-          <a-input-number
-            v-model:value="form.totalUses"
-            :min="0"
-            style="width: 160px"
-          />
-          <a-button
-            v-if="editingBizNo"
-            style="margin-left: 8px"
-            @click="openSimulateUsageModal"
-          >
-            +1
-          </a-button>
-        </a-form-item>
-        <a-form-item label="上架状态">
-          <a-switch
-            v-model:checked="form.enableStatus"
-            checked-children="上架"
-            un-checked-children="下架"
-          />
-        </a-form-item>
-        <a-form-item label="官方精选">
-          <a-switch
-            v-model:checked="form.featured"
-            checked-children="精选"
-            un-checked-children="普通"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
-    <!-- 模拟使用 Modal -->
-    <a-modal
-      v-model:open="simulateUsageVisible"
-      title="模拟使用一次"
-      ok-text="确认"
-      cancel-text="取消"
-      :confirm-loading="simulateUsageLoading"
-      @ok="confirmSimulateUsage"
-    >
-      <a-form :label-col="{ span: 5 }" :wrapper-col="{ span: 19 }">
-        <a-form-item label="选择使用者" required>
-          <a-select
-            v-model:value="simulateUsageUserId"
-            placeholder="搜索并选择使用者"
-            show-search
-            :filter-option="false"
-            :options="simulateUserOptions"
-            :loading="simulateUserLoading"
-            @search="searchSimulateUser"
-            @dropdown-visible-change="onSimulateUserDropdownOpen"
-          />
-        </a-form-item>
-      </a-form>
-    </a-modal>
-
     <!-- 详情 Modal -->
     <a-modal
       v-model:open="detailVisible"
@@ -361,7 +234,8 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { message, Modal } from 'ant-design-vue'
 import VChart from 'vue-echarts'
@@ -371,11 +245,10 @@ import { LineChart } from 'echarts/charts'
 import { TitleComponent, TooltipComponent, LegendComponent, GridComponent } from 'echarts/components'
 import { useMarketStyleManagement } from '@/composables/useMarketStyleManagement.js'
 import { useMarketSkillStats } from '@/composables/useMarketSkillStats.js'
-import { useScopeTags } from '@/composables/useScopeTags.js'
-import { listUserOptions } from '@/api/userOptions.js'
-import { simulateMarketSkillUsage } from '@/api/marketSkill.js'
 
 use([CanvasRenderer, LineChart, TitleComponent, TooltipComponent, LegendComponent, GridComponent])
+
+const router = useRouter()
 
 const activeTab = ref('list')
 const detailActiveTab = ref('basic')
@@ -392,7 +265,6 @@ const {
   list,
   total,
   loading,
-  submitting,
   page,
   pageSize,
   keyword,
@@ -402,7 +274,6 @@ const {
   handleSearch,
   handleReset,
   handlePageChange,
-  handleCreate,
   handleUpdate,
   handleDelete,
   handleBatchDelete
@@ -540,20 +411,8 @@ const columns = [
   { title: '操作', key: 'actions', width: 240, fixed: 'right' }
 ]
 
-const editorVisible = ref(false)
-const editingBizNo = ref(null)
-const publisherOptions = ref([])
-const publisherLoading = ref(false)
-const publisherKeyword = ref('')
-
 const detailVisible = ref(false)
 const detailRecord = ref({})
-const simulateUsageVisible = ref(false)
-const simulateUsageLoading = ref(false)
-const simulateUsageUserId = ref(null)
-const simulateUserOptions = ref([])
-const simulateUserLoading = ref(false)
-const simulateUserKeyword = ref('')
 
 const openDetailModal = (record) => {
   detailRecord.value = { ...record }
@@ -562,179 +421,8 @@ const openDetailModal = (record) => {
   resetUsageRecords()
 }
 
-const scopeRef = ref('')
-const {
-  scopeInput,
-  scopeTags,
-  scopeError,
-  addTag,
-  removeTag,
-  MAX_SCOPE_TAGS,
-  MAX_SCOPE_TAG_LENGTH
-} = useScopeTags(scopeRef)
-
-const form = reactive({
-  skillName: '',
-  publisherUserId: null,
-  description: '',
-  prompt: '',
-  totalUses: 0,
-  enableStatus: true,
-  featured: false
-})
-
-function resetForm() {
-  form.skillName = ''
-  form.publisherUserId = null
-  form.description = ''
-  form.prompt = ''
-  scopeRef.value = ''
-  scopeInput.value = ''
-  form.totalUses = 0
-  form.enableStatus = true
-  form.featured = false
-  publisherOptions.value = []
-}
-
-const searchPublisher = async (kw) => {
-  publisherKeyword.value = kw
-  await loadPublisherOptions(kw)
-}
-
-const handleScopeTab = (e) => {
-  const raw = scopeInput.value?.trim()
-  if (raw) {
-    e.preventDefault()
-    addTag()
-  }
-}
-
-const onPublisherDropdownOpen = async (open) => {
-  if (open && publisherOptions.value.length === 0) {
-    await loadPublisherOptions(publisherKeyword.value)
-  }
-}
-
-const loadPublisherOptions = async (kw = '') => {
-  publisherLoading.value = true
-  try {
-    const users = await listUserOptions(kw, 20)
-    publisherOptions.value = users.map((u) => ({
-      label: u.nickname ? `${u.nickname}（${u.email}）` : u.email,
-      value: u.id
-    }))
-  } catch (error) {
-    message.error(error.message || '加载发布者失败')
-  } finally {
-    publisherLoading.value = false
-  }
-}
-
-const openSimulateUsageModal = () => {
-  simulateUsageUserId.value = null
-  simulateUserOptions.value = []
-  simulateUserKeyword.value = ''
-  simulateUsageVisible.value = true
-}
-
-const searchSimulateUser = async (kw) => {
-  simulateUserKeyword.value = kw
-  await loadSimulateUserOptions(kw)
-}
-
-const onSimulateUserDropdownOpen = async (open) => {
-  if (open && simulateUserOptions.value.length === 0) {
-    await loadSimulateUserOptions(simulateUserKeyword.value)
-  }
-}
-
-const loadSimulateUserOptions = async (kw = '') => {
-  simulateUserLoading.value = true
-  try {
-    const users = await listUserOptions(kw, 20)
-    simulateUserOptions.value = users.map((u) => ({
-      label: u.nickname ? `${u.nickname}（${u.email}）` : u.email,
-      value: u.id
-    }))
-  } catch (error) {
-    message.error(error.message || '加载用户失败')
-  } finally {
-    simulateUserLoading.value = false
-  }
-}
-
-const confirmSimulateUsage = async () => {
-  if (!simulateUsageUserId.value) {
-    message.error('请选择使用者')
-    return
-  }
-  simulateUsageLoading.value = true
-  try {
-    await simulateMarketSkillUsage(editingBizNo.value, simulateUsageUserId.value)
-    message.success('已模拟使用一次，发布者已获得收益')
-    form.totalUses = (form.totalUses || 0) + 1
-    simulateUsageVisible.value = false
-    await fetch()
-  } catch (error) {
-    message.error(error.message || '模拟使用失败')
-  } finally {
-    simulateUsageLoading.value = false
-  }
-}
-const openCreateModal = () => {
-  editingBizNo.value = null
-  resetForm()
-  editorVisible.value = true
-}
-
-const openEditModal = (record) => {
-  editingBizNo.value = record.id
-  form.skillName = record.name || ''
-  form.publisherUserId = record.publisherUserId
-  form.description = record.description || ''
-  form.prompt = record.prompt || ''
-  scopeRef.value = record.scope || ''
-  scopeInput.value = ''
-  form.totalUses = record.totalUses || 0
-  form.enableStatus = record.status === 'enabled'
-  form.featured = record.featured === 1
-  publisherOptions.value = [{
-    label: record.publisherName ? `${record.publisherName}（${record.publisherUserId}）` : String(record.publisherUserId),
-    value: record.publisherUserId
-  }]
-  editorVisible.value = true
-}
-
-const confirmSubmit = async () => {
-  if (!form.skillName.trim() || !form.prompt.trim()) {
-    message.error('请填写提示词名称和提示词')
-    return
-  }
-  if (form.publisherUserId == null) {
-    message.error('请选择发布者')
-    return
-  }
-  if (scopeError.value) {
-    message.error(scopeError.value)
-    return
-  }
-  const payload = {
-    skillName: form.skillName.trim(),
-    publisherUserId: form.publisherUserId,
-    description: form.description || '',
-    prompt: form.prompt.trim(),
-    scope: scopeRef.value || '',
-    totalUses: form.totalUses || 0,
-    enableStatus: form.enableStatus ? 1 : 0,
-    featured: form.featured ? 1 : 0
-  }
-  const ok = editingBizNo.value
-    ? await handleUpdate(editingBizNo.value, payload)
-    : await handleCreate(payload)
-  if (ok) {
-    editorVisible.value = false
-  }
-}
+const gotoCreate = () => router.push('/console/market-skills/new')
+const gotoEdit = (record) => router.push(`/console/market-skills/${record.id}`)
 
 const confirmDelete = async (record) => {
   await handleDelete(record.id)
@@ -832,38 +520,6 @@ onMounted(() => {
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: middle;
-}
-
-.market-style-scope-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.market-style-scope-input {
-  min-width: 160px;
-  flex: 1;
-  padding: 4px 8px;
-  border: 1px dashed #d9d9d9;
-  border-radius: 4px;
-  font-size: 14px;
-  outline: none;
-  transition: border-color 0.2s;
-}
-
-.market-style-scope-input:focus {
-  border-color: #ff2442;
-}
-
-.market-style-scope-input::placeholder {
-  color: #bfbfbf;
-}
-
-.market-style-scope-hint {
-  margin-top: 4px;
-  font-size: 12px;
-  color: #8c8c8c;
 }
 
 .stats-panel {

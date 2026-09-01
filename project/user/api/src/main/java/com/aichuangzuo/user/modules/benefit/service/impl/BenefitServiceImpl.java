@@ -52,7 +52,7 @@ public class BenefitServiceImpl implements BenefitService {
 
     @Override
     public UserBenefitVO getMyBenefits(Long userId) {
-        String planKey = currentPlanKey(userId);
+        String planKey = getCurrentPlanKey(userId);
         UserBenefitVO vo = new UserBenefitVO();
         vo.setPlanKey(planKey);
 
@@ -96,7 +96,7 @@ public class BenefitServiceImpl implements BenefitService {
     @Override
     public BenefitCheckVO check(Long userId, String code) {
         Benefit benefit = requireBenefit(code);
-        String planKey = currentPlanKey(userId);
+        String planKey = getCurrentPlanKey(userId);
 
         BenefitCheckVO vo = new BenefitCheckVO();
         vo.setCode(code);
@@ -146,7 +146,7 @@ public class BenefitServiceImpl implements BenefitService {
             throw new BusinessException(BenefitErrorCode.NOT_QUOTA_BENEFIT);
         }
 
-        String planKey = currentPlanKey(userId);
+        String planKey = getCurrentPlanKey(userId);
         PlanBenefit planBenefit = findPlanBenefit(planKey, code);
         if (planBenefit == null) {
             throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED);
@@ -205,7 +205,7 @@ public class BenefitServiceImpl implements BenefitService {
             throw new BusinessException(BenefitErrorCode.NOT_QUOTA_BENEFIT);
         }
 
-        String planKey = currentPlanKey(userId);
+        String planKey = getCurrentPlanKey(userId);
         PlanBenefit planBenefit = findPlanBenefit(planKey, code);
         if (planBenefit == null) {
             throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED);
@@ -269,7 +269,7 @@ public class BenefitServiceImpl implements BenefitService {
 
     @Override
     public String getPlanBenefitValue(Long userId, String code, String defaultValue) {
-        String planKey = currentPlanKey(userId);
+        String planKey = getCurrentPlanKey(userId);
         if (FREE_PLAN_KEY.equals(planKey)) {
             return defaultValue;
         }
@@ -287,10 +287,8 @@ public class BenefitServiceImpl implements BenefitService {
 
     // ── private helpers ──
 
-    /**
-     * 当前有效套餐 key；无会员或已过期返回 free。
-     */
-    private String currentPlanKey(Long userId) {
+    @Override
+    public String getCurrentPlanKey(Long userId) {
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
         if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
             return FREE_PLAN_KEY;

@@ -102,7 +102,8 @@
 <script setup>
 import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { batchGenerateExperienceTokens, listExperienceTokens, listShareConfigs } from '@/api/experienceToken.js'
+import { batchGenerateExperienceTokens, listExperienceTokens } from '@/api/experienceToken.js'
+import { listShareConfigs } from '@/api/shareConfig.js'
 import dayjs from 'dayjs'
 
 const items = ref([])
@@ -212,7 +213,7 @@ const handleGenerate = async () => {
       count: generateForm.count,
       planKey: generateForm.planKey,
       membershipDays: generateForm.membershipDays,
-      expiresAt: generateForm.expiresAt ? generateForm.expiresAt.format('YYYY-MM-DD HH:mm:ss') : null
+      expiresAt: generateForm.expiresAt ? generateForm.expiresAt.format('YYYY-MM-DDTHH:mm:ss') : null
     }
     const tokens = await batchGenerateExperienceTokens(payload)
     message.success(`成功生成 ${tokens.length} 个体验令牌`)

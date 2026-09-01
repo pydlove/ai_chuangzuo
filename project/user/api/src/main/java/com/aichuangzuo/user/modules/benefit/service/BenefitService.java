@@ -80,4 +80,12 @@ public interface BenefitService {
      * @return 权益配置值
      */
     String getPlanBenefitValue(Long userId, String code, String defaultValue);
+
+    /**
+     * 读取当前用户的有效套餐 key；无会员或已过期返回 "free"。
+     *
+     * @param userId 用户ID
+     * @return 套餐 key：free / basic / pro / flagship
+     */
+    String getCurrentPlanKey(Long userId);
 }

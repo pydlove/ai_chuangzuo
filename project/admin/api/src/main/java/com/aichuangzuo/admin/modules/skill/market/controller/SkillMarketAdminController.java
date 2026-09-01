@@ -50,6 +50,14 @@ public class SkillMarketAdminController {
         return Result.success(skillMarketAdminService.page(request));
     }
 
+    @Operation(summary = "风格市场条目详情")
+    @GetMapping("/{bizNo}")
+    public Result<SkillMarketVO> getByBizNo(@PathVariable String bizNo) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询提示词市场条目详情, adminUserId={}, bizNo={}", adminUserId, bizNo);
+        return Result.success(skillMarketAdminService.getByBizNo(bizNo));
+    }
+
     @Operation(summary = "创建风格市场条目")
     @PostMapping
     public Result<String> create(@Valid @RequestBody CreateSkillMarketRequest request) {

@@ -249,6 +249,7 @@ com/aichuangzuo/user/modules/article/service/impl/TitleOptimizeServiceImpl.class
 com/aichuangzuo/user/modules/homebanner/vo/HomeBannerVO.class
 com/aichuangzuo/user/modules/earnings/dto/request/ListEarningsRequest.class
 com/aichuangzuo/user/modules/lottery/entity/LotteryPrizeTier.class
+com/aichuangzuo/user/modules/exporttemplate/service/impl/ExportTemplateServiceImpl$TemplateAccessPolicy.class
 com/aichuangzuo/user/modules/auth/vo/AuthTokenVO.class
 com/aichuangzuo/user/modules/skill/analyze/service/SkillAnalyzeDailyLimiter.class
 com/aichuangzuo/user/modules/hotsearch/controller/HotSearchController.class

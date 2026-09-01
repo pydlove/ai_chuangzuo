@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,13 @@ public class ExportTemplateServiceImpl implements ExportTemplateService {
 
     /** template_access 权益编码：逗号分隔的 template_key 列表。 */
     private static final String BENEFIT_TEMPLATE_ACCESS = "template_access";
+
+    /** 模板所需套餐层级 rank，用于 template_access 为空/失效时的兜底判断。 */
+    private static final Map<String, Integer> TIER_RANK = Map.of(
+            "basic", 0,
+            "pro", 1,
+            "flagship", 2
+    );
 
     private final ExportTemplateMapper exportTemplateMapper;
     private final BenefitService benefitService;
@@ -38,8 +46,9 @@ public class ExportTemplateServiceImpl implements ExportTemplateService {
                 .orderByAsc(ExportTemplate::getSortOrder);
         List<ExportTemplate> rows = exportTemplateMapper.selectList(wrapper);
         Set<String> accessibleKeys = resolveAccessibleKeys(userId);
+        TemplateAccessPolicy policy = buildAccessPolicy(userId, rows, accessibleKeys);
         return rows.stream()
-                .map(t -> toVO(t, accessibleKeys.contains(t.getTemplateKey())))
+                .map(t -> toVO(t, policy.isAccessible(t)))
                 .collect(Collectors.toList());
     }
 
@@ -59,6 +68,38 @@ public class ExportTemplateServiceImpl implements ExportTemplateService {
                 .map(String::trim)
                 .filter(s -> !s.isEmpty())
                 .collect(Collectors.toCollection(HashSet::new));
+    }
+
+    /**
+     * 构建模板访问策略。
+     * 正常情况以 template_access 逗号列表为准；当该权益为空或不含任何现有模板 key 时
+     *（例如旧枚举值 basic_8 / all_20 / all_custom 残留、管理端误清空），
+     * 按模板自身 tier 兜底：用户套餐 tier 等级 ≥ 模板 tier 等级即可访问。
+     */
+    private TemplateAccessPolicy buildAccessPolicy(Long userId, List<ExportTemplate> rows, Set<String> accessibleKeys) {
+        String planKey = userId == null ? "free" : benefitService.getCurrentPlanKey(userId);
+        if (!TIER_RANK.containsKey(planKey)) {
+            return new TemplateAccessPolicy(accessibleKeys, false, Integer.MAX_VALUE);
+        }
+        Set<String> templateKeys = rows.stream()
+                .map(ExportTemplate::getTemplateKey)
+                .collect(Collectors.toSet());
+        boolean fallbackByTier = accessibleKeys.isEmpty()
+                || Collections.disjoint(accessibleKeys, templateKeys);
+        return new TemplateAccessPolicy(accessibleKeys, fallbackByTier, TIER_RANK.get(planKey));
+    }
+
+    private record TemplateAccessPolicy(Set<String> explicitKeys, boolean fallbackByTier, int userTierRank) {
+        boolean isAccessible(ExportTemplate template) {
+            if (explicitKeys.contains(template.getTemplateKey())) {
+                return true;
+            }
+            if (!fallbackByTier) {
+                return false;
+            }
+            int templateRank = TIER_RANK.getOrDefault(template.getTier(), Integer.MAX_VALUE);
+            return templateRank <= userTierRank;
+        }
     }
 
     private ExportTemplateVO toVO(ExportTemplate entity, boolean accessible) {

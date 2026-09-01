@@ -42,6 +42,11 @@ public interface SkillMarketAdminService {
     int deleteBatch(List<String> bizNos);
 
     /**
+     * 根据 bizNo 查询风格市场条目详情。
+     */
+    SkillMarketVO getByBizNo(String bizNo);
+
+    /**
      * 提示词市场统计概览。
      */
     MarketSkillStatsVO stats();

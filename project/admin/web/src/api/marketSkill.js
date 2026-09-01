@@ -1,5 +1,9 @@
 import request from '@/utils/request.js'
 
+export function getMarketSkill(bizNo) {
+  return request.get(`/market-skills/${bizNo}`).then((body) => body.data)
+}
+
 export function listMarketSkills(params = {}) {
   const { keyword = '', pageNum = 1, pageSize = 20, enableStatus, featured } = params
   const query = { keyword, pageNum, pageSize }

@@ -7,7 +7,3 @@ export function batchGenerateExperienceTokens(data) {
 export function listExperienceTokens(params = {}) {
   return request.get('/experience-tokens', { params }).then((res) => res.data)
 }
-
-export function listShareConfigs(params = {}) {
-  return request.get('/share-config', { params }).then((res) => res.data)
-}

@@ -54,6 +54,7 @@ class ExportTemplateServiceImplTest {
                 template("wechat", "basic"),
                 template("magazine", "pro")
         ));
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("free");
         when(benefitService.getPlanBenefitValue(7L, "template_access", "")).thenReturn("");
 
         List<ExportTemplateVO> list = service.listEnabled(7L);
@@ -69,6 +70,7 @@ class ExportTemplateServiceImplTest {
                 template("magazine", "pro"),
                 template("xiaohongshu-emotion", "flagship")
         ));
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("pro");
         when(benefitService.getPlanBenefitValue(7L, "template_access", ""))
                 .thenReturn("wechat,business");
 
@@ -91,6 +93,7 @@ class ExportTemplateServiceImplTest {
                 template("wechat", "basic"),
                 template("magazine", "pro")
         ));
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("pro");
         when(benefitService.getPlanBenefitValue(7L, "template_access", ""))
                 .thenReturn(" wechat , magazine ");
 
@@ -106,6 +109,7 @@ class ExportTemplateServiceImplTest {
                 template("wechat", "basic")
         ));
         // 末尾逗号 + 空白：视为只有 wechat
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("basic");
         when(benefitService.getPlanBenefitValue(7L, "template_access", ""))
                 .thenReturn("wechat,, ,");
 
@@ -113,6 +117,41 @@ class ExportTemplateServiceImplTest {
 
         assertTrue(findByKey(list, "wechat").getAccessible());
         verify(benefitService).getPlanBenefitValue(eq(7L), eq("template_access"), eq(""));
+    }
+
+    @Test
+    void listEnabled_proUserWithEmptyTemplateAccess_fallsBackToTier() {
+        when(exportTemplateMapper.selectList(any())).thenReturn(rows(
+                template("wechat", "basic"),
+                template("magazine", "pro"),
+                template("xiaohongshu-emotion", "flagship")
+        ));
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("pro");
+        when(benefitService.getPlanBenefitValue(7L, "template_access", "")).thenReturn("");
+
+        List<ExportTemplateVO> list = service.listEnabled(7L);
+
+        assertTrue(findByKey(list, "wechat").getAccessible(), "basic 模板应对 pro 开放");
+        assertTrue(findByKey(list, "magazine").getAccessible(), "pro 模板应对 pro 开放");
+        assertFalse(findByKey(list, "xiaohongshu-emotion").getAccessible(), "flagship 模板不应对 pro 开放");
+    }
+
+    @Test
+    void listEnabled_proUserWithStaleEnumValue_fallsBackToTier() {
+        when(exportTemplateMapper.selectList(any())).thenReturn(rows(
+                template("wechat", "basic"),
+                template("magazine", "pro"),
+                template("xiaohongshu-emotion", "flagship")
+        ));
+        when(benefitService.getCurrentPlanKey(7L)).thenReturn("pro");
+        // 旧枚举值 all_20 不是有效 template_key，应触发 tier 兜底
+        when(benefitService.getPlanBenefitValue(7L, "template_access", "")).thenReturn("all_20");
+
+        List<ExportTemplateVO> list = service.listEnabled(7L);
+
+        assertTrue(findByKey(list, "wechat").getAccessible(), "basic 模板应对 pro 开放");
+        assertTrue(findByKey(list, "magazine").getAccessible(), "pro 模板应对 pro 开放");
+        assertFalse(findByKey(list, "xiaohongshu-emotion").getAccessible(), "flagship 模板不应对 pro 开放");
     }
 
     private ExportTemplateVO findByKey(List<ExportTemplateVO> list, String key) {

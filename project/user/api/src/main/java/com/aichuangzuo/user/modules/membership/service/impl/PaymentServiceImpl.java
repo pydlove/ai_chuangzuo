@@ -35,6 +35,7 @@ import com.aichuangzuo.user.modules.membership.vo.SubscribeResultVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.jasypt.encryption.StringEncryptor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -87,6 +88,7 @@ public class PaymentServiceImpl implements PaymentService {
     private final EarningsService earningsService;
     private final XunhupayClient xunhupayClient;
     private final MembershipMessageNotifier membershipMessageNotifier;
+    private final StringEncryptor encryptor;
 
     @Override
     public PaymentConfigVO getPaymentConfig() {
@@ -218,7 +220,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void handleXunhupayNotify(XunhupayNotifyParams params, String rawBody) {
-        PaymentConfig config = paymentConfigMapper.selectById(CONFIG_ID);
+        PaymentConfig config = loadConfig();
         if (config == null || !StringUtils.hasText(config.getAppSecret())) {
             log.warn("未配置支付密钥，无法处理回调");
             return;
@@ -261,9 +263,25 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private PaymentConfig getAndValidateConfig() {
-        PaymentConfig config = paymentConfigMapper.selectById(CONFIG_ID);
+        PaymentConfig config = loadConfig();
         if (config == null) {
             throw new BusinessException(MembershipErrorCode.PAYMENT_NOT_ENABLED);
+        }
+        return config;
+    }
+
+    private PaymentConfig loadConfig() {
+        PaymentConfig config = paymentConfigMapper.selectById(CONFIG_ID);
+        if (config == null) {
+            return null;
+        }
+        if (StringUtils.hasText(config.getAppSecret())) {
+            try {
+                config.setAppSecret(encryptor.decrypt(config.getAppSecret()));
+            } catch (Exception e) {
+                log.warn("支付 AppSecret 解密失败");
+                config.setAppSecret(null);
+            }
         }
         return config;
     }

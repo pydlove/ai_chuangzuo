@@ -3,7 +3,7 @@
     <div
       ref="contentRef"
       class="pull-content"
-      :class="{ 'is-pulling': pulling }"
+      :class="{ 'is-pulling': pulling, 'is-refreshing': refreshing }"
       :style="contentStyle"
     >
       <div class="pull-indicator">
@@ -26,6 +26,22 @@ const props = defineProps({
   fullPage: {
     type: Boolean,
     default: false
+  },
+  onRefresh: {
+    type: Function,
+    default: null
+  },
+  threshold: {
+    type: Number,
+    default: 70
+  },
+  maxDistance: {
+    type: Number,
+    default: 120
+  },
+  resistance: {
+    type: Number,
+    default: 0.55
   }
 })
 
@@ -35,17 +51,13 @@ const pulling = ref(false)
 const refreshing = ref(false)
 const distance = ref(0)
 
-const THRESHOLD = 70
-const MAX_DISTANCE = 120
-const RESISTANCE = 0.55
-
 const arrowStyle = computed(() => ({
-  transform: `rotate(${Math.min((distance.value / THRESHOLD) * 180, 180)}deg)`
+  transform: `rotate(${Math.min((distance.value / props.threshold) * 180, 180)}deg)`
 }))
 
 const indicatorText = computed(() => {
   if (refreshing.value) return '刷新中…'
-  return distance.value >= THRESHOLD ? '释放刷新' : '下拉刷新'
+  return distance.value >= props.threshold ? '释放刷新' : '下拉刷新'
 })
 
 const contentStyle = computed(() => {
@@ -57,44 +69,59 @@ const contentStyle = computed(() => {
 
 let startY = 0
 let startScrollTop = 0
+let currentY = 0
+
+function isAtTop() {
+  const el = contentRef.value
+  if (!el) return true
+  return el.scrollTop <= 0
+}
 
 function onTouchStart(e) {
   if (refreshing.value) return
   startY = e.touches[0].clientY
-  startScrollTop = contentRef.value ? contentRef.value.scrollTop : 0
+  currentY = startY
+  startScrollTop = isAtTop() ? 0 : contentRef.value.scrollTop
 }
 
 function onTouchMove(e) {
   if (refreshing.value) return
-  const el = contentRef.value
-  if (!el) return
 
-  const currentY = e.touches[0].clientY
+  currentY = e.touches[0].clientY
   const delta = currentY - startY
 
-  // 只有顶部下拉才触发刷新
-  if (delta > 0 && startScrollTop <= 0 && el.scrollTop <= 0) {
+  // 只有从顶部向下拉才触发刷新
+  if (delta > 0 && startScrollTop <= 0 && isAtTop()) {
     if (!pulling.value) pulling.value = true
     e.preventDefault()
-    distance.value = Math.min(delta * RESISTANCE, MAX_DISTANCE)
+    distance.value = Math.min(delta * props.resistance, props.maxDistance)
   }
 }
 
 function onTouchEnd() {
   if (!pulling.value) return
 
-  if (distance.value >= THRESHOLD) {
+  if (refreshing.value) return
+
+  if (distance.value >= props.threshold) {
     refreshing.value = true
-    distance.value = THRESHOLD
-    requestAnimationFrame(() => {
-      location.reload()
-    })
+    distance.value = props.threshold
+
+    const refreshFn = props.onRefresh
+    if (typeof refreshFn === 'function') {
+      Promise.resolve(refreshFn()).finally(resetPull)
+    } else {
+      requestAnimationFrame(() => {
+        location.reload()
+      })
+    }
   } else {
     resetPull()
   }
 }
 
 function onTouchCancel() {
+  if (!pulling.value) return
   resetPull()
 }
 
@@ -102,6 +129,9 @@ function resetPull() {
   pulling.value = false
   refreshing.value = false
   distance.value = 0
+  startY = 0
+  currentY = 0
+  startScrollTop = 0
 }
 
 onMounted(() => {
@@ -130,6 +160,7 @@ onUnmounted(() => {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  touch-action: none;
 }
 
 .pull-to-refresh.full-page {
@@ -145,6 +176,7 @@ onUnmounted(() => {
   overscroll-behavior-y: contain;
   -webkit-overflow-scrolling: touch;
   transition: transform 0.2s ease-out;
+  touch-action: pan-y;
 }
 
 .pull-content.is-pulling {
@@ -161,6 +193,7 @@ onUnmounted(() => {
   color: #8c8c8c;
   font-size: 13px;
   user-select: none;
+  pointer-events: none;
 }
 
 .pull-arrow {

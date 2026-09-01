@@ -184,6 +184,29 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     }
 
     @Override
+    public SkillMarketVO getByBizNo(String bizNo) {
+        SkillMarket market = loadByBizNo(bizNo);
+        PlatformUser user = platformUserMapper.selectById(market.getPublisherUserId());
+        SkillMarketVO vo = new SkillMarketVO();
+        vo.setId(market.getBizNo());
+        vo.setName(market.getSkillName());
+        vo.setDescription(market.getDescription());
+        vo.setPromptSummary(market.getPromptSummary());
+        vo.setPrompt(market.getPrompt());
+        vo.setScope(market.getScope());
+        vo.setPublisherUserId(market.getPublisherUserId());
+        vo.setPublisherName(user != null ? user.getNickname() : null);
+        vo.setTotalUses(market.getTotalUses());
+        vo.setWeeklyUses(market.getWeeklyUses());
+        vo.setWeeklyEarnings(market.getWeeklyEarnings());
+        vo.setMilestoneBonus(market.getMilestoneBonus());
+        vo.setStatus(market.getEnableStatus() != null && market.getEnableStatus() == 1 ? "enabled" : "disabled");
+        vo.setFeatured(market.getFeatured() != null && market.getFeatured() == 1 ? 1 : 0);
+        vo.setCreatedAt(market.getCreatedAt());
+        return vo;
+    }
+
+    @Override
     public MarketSkillStatsVO stats() {
         SkillMarketOverviewDTO overview = statsMapper.selectOverview();
         List<SkillMarketTopSkillDTO> topSkills = statsMapper.selectTopSkillsByTotalUses(10);

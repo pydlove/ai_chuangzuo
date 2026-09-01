@@ -12,6 +12,7 @@ import {
 } from '@/api/membership'
 import { getPaymentConfig, getOrderStatus } from '@/api/payment'
 import { useInviteStats } from '@/composables/useInviteStats'
+import { useDevice } from '@/composables/useDevice.js'
 
 const PLAN_RANK = {
   free: 0,
@@ -31,6 +32,7 @@ export function usePricing() {
   const route = useRoute()
 
   const { coinBalance, loadInviteStats } = useInviteStats()
+  const { isMobile } = useDevice()
 
   const COIN_TO_YUAN_RATIO = 10
   const modalVisible = ref(false)
@@ -41,6 +43,10 @@ export function usePricing() {
   const payQrUrl = ref('')
   const currentOrderNo = ref('')
   let pollTimer = null
+  let qrExpireTimer = null
+  const QR_EXPIRE_SECONDS = 60
+  const qrExpireSeconds = ref(QR_EXPIRE_SECONDS)
+  const qrExpired = ref(false)
 
   const plans = ref([])
   const compareRows = ref([])
@@ -314,6 +320,32 @@ export function usePricing() {
     }
   }
 
+  const stopQrExpireTimer = () => {
+    if (qrExpireTimer) {
+      clearInterval(qrExpireTimer)
+      qrExpireTimer = null
+    }
+  }
+
+  const startQrExpireTimer = () => {
+    stopQrExpireTimer()
+    qrExpireSeconds.value = QR_EXPIRE_SECONDS
+    qrExpired.value = false
+    qrExpireTimer = setInterval(() => {
+      qrExpireSeconds.value--
+      if (qrExpireSeconds.value <= 0) {
+        qrExpired.value = true
+        stopQrExpireTimer()
+      }
+    }, 1000)
+  }
+
+  const resetQrExpire = () => {
+    stopQrExpireTimer()
+    qrExpireSeconds.value = QR_EXPIRE_SECONDS
+    qrExpired.value = false
+  }
+
   const startOrderPolling = (orderNo, onSuccess) => {
     stopPolling()
     let attempts = 0
@@ -349,6 +381,7 @@ export function usePricing() {
     upgradePreview.value = null
     payQrUrl.value = ''
     currentOrderNo.value = ''
+    resetQrExpire()
     currentMembership.value = {
       hasMembership: true,
       level: data.level,
@@ -383,7 +416,7 @@ export function usePricing() {
 
       if (!isTestMode()) {
         currentOrderNo.value = data.orderNo || ''
-        if (isWechatBrowser() && data.payUrl) {
+        if (data.payUrl && (isWechatBrowser() || isMobile.value)) {
           window.location.href = data.payUrl
           startOrderPolling(currentOrderNo.value, () => {
             message.success(upgradePreview.value ? '升级成功' : '订阅成功')
@@ -393,6 +426,7 @@ export function usePricing() {
         }
         if (data.payQrUrl) {
           payQrUrl.value = data.payQrUrl
+          startQrExpireTimer()
           startOrderPolling(currentOrderNo.value, () => {
             message.success(upgradePreview.value ? '升级成功' : '订阅成功')
             finishSubscription(data, plan, cycle)
@@ -478,6 +512,9 @@ export function usePricing() {
     selectedCoinAmount,
     payQrUrl,
     currentOrderNo,
+    qrExpireSeconds,
+    qrExpired,
+    resetQrExpire,
     plans,
     compareRows,
     catalogLoading,
