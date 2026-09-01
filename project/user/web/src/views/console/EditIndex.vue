@@ -156,7 +156,6 @@ onMounted(async () => {
       }
     }, 0)
   } catch (e) {
-    console.warn('edit 加载 article 失败', e)
     message.error('加载文章失败，请稍后重试')
   }
   window.addEventListener('resize', onResize)
@@ -336,7 +335,6 @@ const save = async () => {
     message.success('内容已保存')
     router.push(`/console/preview/${bizNo}`)
   } catch (e) {
-    console.warn('edit 保存 article 失败', e)
     message.error('保存失败，请稍后重试')
   }
 }

@@ -9,7 +9,7 @@
     </div>
 
     <!-- 导航栏 -->
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <!-- 登录卡片 -->
     <div ref="cardRef" class="login-card">
@@ -140,6 +140,18 @@
           />
         </div>
 
+        <!-- 体验会员 banner（仅 experience 存在时显示） -->
+        <a-alert
+          v-if="showExperienceBanner"
+          type="success"
+          show-icon
+          class="invite-banner"
+        >
+          <template #message>
+            你获得了会员体验资格，注册后自动到账。
+          </template>
+        </a-alert>
+
         <!-- 邀请 banner（仅 ref 存在时显示） -->
         <a-alert
           v-if="showInviteBanner"
@@ -184,7 +196,7 @@
       <!-- 扫码登录 -->
       <div v-show="activeTab === 'qr'" class="auth-form qr-login-form">
         <h2 class="form-title">扫码登录</h2>
-        <p class="form-subtitle">使用手机爱创作扫描二维码，授权后可直接登录</p>
+        <p class="form-subtitle">使用手机爱创作工坊扫描二维码，授权后可直接登录</p>
 
         <div class="qr-login-box">
           <div v-if="qrDataUrl" class="qr-code-wrapper">
@@ -217,10 +229,7 @@
     </div>
 
     <!-- 底部 -->
-    <footer class="login-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter class="login-footer" />
 
     <!-- 注册流程：发送邮箱验证码前的人机验证弹框 -->
     <a-modal
@@ -263,6 +272,7 @@
 <script setup>
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
@@ -270,6 +280,7 @@ import MobileLogin from '@/views/MobileLogin.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { useLogin } from '@/composables/useLogin.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import { useQrLogin } from '@/composables/useQrLogin.js'
 import { persistTokens } from '@/composables/useLogin.js'
 import { useRouter } from 'vue-router'
@@ -280,6 +291,7 @@ const { isMobile } = useDevice()
 const {
   activeTab,
   showInviteBanner,
+  showExperienceBanner,
   agreed,
   agreementShakeCount,
   loginMode,
@@ -350,16 +362,6 @@ watch(activeTab, (val) => {
     resetQr()
   }
 })
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
 
 // ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移（仅 PC） ----------
 const cardRef = ref(null)
@@ -681,20 +683,7 @@ body[data-theme="dark"] .remember-label {
 /* 底部 */
 .login-footer {
   margin-top: auto;
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-  color: #595959;
-  font-size: 13px;
-  text-align: center;
-  background: #fff;
   width: 100%;
-  box-sizing: border-box;
-}
-
-.login-footer span + span::before {
-  content: '|';
-  margin: 0 12px;
-  color: #eee;
 }
 
 /* ========== 媒体查询：手机端 ≤768px ========== */
@@ -828,16 +817,6 @@ body[data-theme="dark"] .submit-btn {
 
 body[data-theme="dark"] .submit-btn:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
-}
-
-body[data-theme="dark"] .login-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .login-footer span + span::before {
-  color: #303030;
 }
 
 body[data-theme="dark"] .invite-banner {

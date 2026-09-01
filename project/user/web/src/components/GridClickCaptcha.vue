@@ -63,6 +63,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
+import { CAPTCHA_IDIOMS } from '@/data/captchaIdioms.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, default: false }
@@ -71,24 +72,8 @@ const emit = defineEmits(['update:modelValue'])
 
 const passed = computed(() => props.modelValue)
 
-// 4 字成语字库（成语内字不重复）
-const IDIOM_POOL = [
-  ['龙', '腾', '虎', '跃'],
-  ['春', '风', '化', '雨'],
-  ['山', '清', '水', '秀'],
-  ['鸟', '语', '花', '香'],
-  ['万', '紫', '千', '红'],
-  ['柳', '暗', '花', '明'],
-  ['心', '花', '怒', '放'],
-  ['风', '和', '日', '丽'],
-  ['繁', '荣', '昌', '盛'],
-  ['锦', '绣', '山', '河'],
-  ['大', '展', '宏', '图'],
-  ['壮', '志', '凌', '云'],
-  ['举', '一', '反', '三'],
-  ['喜', '笑', '颜', '开'],
-  ['福', '星', '高', '照']
-]
+// 4 字成语字库来自 captchaIdioms.js（成语内字不重复）
+const IDIOM_POOL = CAPTCHA_IDIOMS
 
 // 填充字库（避开成语字 + 形近字，避免用户在 9 格里同时看到「日」和「月」这种混淆）
 const FILLER_POOL = [
@@ -100,9 +85,10 @@ const FILLER_POOL = [
   '笙', '箫', '笛', '鼓', '兰', '志', '气', '魂'
 ]
 
-// 这些字很容易与成语字混淆（如「花」「风」「红」），不放进 filler
+// 这些字很容易与成语字混淆（如「花」「风」「红」「大」「日」「千」），不放进 filler
 const FUZZY_WITH_IDIOM = new Set([
-  '花', '风', '红', '云', '秀', '图', '明', '清', '化', '荣'
+  '花', '风', '红', '云', '秀', '图', '明', '清', '化', '荣',
+  '大', '富', '日', '千', '玉', '力'
 ])
 
 const targetWords = ref([])   // [{ text, state }]，state: pending | current | done
@@ -178,8 +164,9 @@ onMounted(() => {
   width: 100%;
   user-select: none;
   -webkit-user-select: none;
-  /* 阿里妈妈东方大楷（自带艺术感的楷体）→ 楷体 → 宋体 → 黑体 fallback */
-  font-family: 'AlimamaDongFangDaKai', 'STKaiti', 'KaiTi', '楷体', 'STSong', 'SimSun', 'Songti SC', 'Source Han Serif SC', 'Noto Serif SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  /* 统一使用系统黑体 */
+  font-family: 'PingFang SC', 'Microsoft YaHei', 'Noto Sans SC', 'Hiragino Sans GB', 'WenQuanYi Micro Hei', 'Helvetica Neue', sans-serif;
+  font-weight: 600;
 }
 
 /* ========== 顶部印章框 ========== */
@@ -192,12 +179,12 @@ onMounted(() => {
 }
 
 .grid-task-label {
-  color: #8c5a4a;
+  color: #FF2442;
   font-size: 13px;
   font-weight: 500;
   letter-spacing: 2px;
   flex-shrink: 0;
-  /* 标签用系统字体（13px 大楷体笔画粗略糊） */
+  /* 标签用系统字体 */
   font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
 }
 
@@ -206,10 +193,10 @@ onMounted(() => {
   align-items: center;
   gap: 6px;
   padding: 8px 12px;
-  border: 2px solid #c0392b;
+  border: 2px solid #FF2442;
   border-radius: 4px;
-  background: linear-gradient(135deg, rgba(192, 57, 43, 0.04) 0%, rgba(192, 57, 43, 0.09) 100%);
-  box-shadow: inset 0 0 0 1px rgba(192, 57, 43, 0.18);
+  background: linear-gradient(135deg, rgba(255, 36, 66, 0.04) 0%, rgba(255, 36, 66, 0.09) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 36, 66, 0.18);
 }
 
 .grid-task-word {
@@ -222,21 +209,21 @@ onMounted(() => {
   border: 1px solid transparent;
   border-radius: 4px;
   font-size: 20px;
-  /* 大楷体单字重，强行 font-weight 会模糊 */
-  color: #c0392b;
+  font-weight: 600;
+  color: #FF2442;
   letter-spacing: 4px;
   transition: all 0.25s;
 }
 
 .grid-task-word.is-done {
-  background: #c0392b;
+  background: #FF2442;
   color: #fff;
-  border-color: #c0392b;
+  border-color: #FF2442;
 }
 
 .grid-task-word.is-current {
-  background: rgba(192, 57, 43, 0.15);
-  border-color: #c0392b;
+  background: rgba(255, 36, 66, 0.15);
+  border-color: #FF2442;
   border-style: dashed;
 }
 
@@ -260,13 +247,12 @@ onMounted(() => {
 .grid-cell {
   position: relative;
   height: 72px;
-  background: #fdf6f3;
-  border: 2px solid #e8d4cf;
+  background: #FFF5F7;
+  border: 2px solid #FFE5EB;
   border-radius: 6px;
   font-size: 30px;
-  /* 大楷体笔画粗，30px 配 4px 字距更舒展 */
   letter-spacing: 4px;
-  color: #5d2a1f;
+  color: #FF2442;
   cursor: pointer;
   transition: all 0.2s;
   display: flex;
@@ -277,8 +263,8 @@ onMounted(() => {
 }
 
 .grid-cell:hover:not(:disabled) {
-  border-color: #c0392b;
-  background: rgba(192, 57, 43, 0.06);
+  border-color: #FF2442;
+  background: rgba(255, 36, 66, 0.06);
 }
 
 .grid-cell:active:not(:disabled) {
@@ -287,11 +273,11 @@ onMounted(() => {
 
 .grid-cell.is-clicked,
 .grid-cell.is-target {
-  background: #c0392b;
-  border-color: #c0392b;
+  background: #FF2442;
+  border-color: #FF2442;
   color: #fff;
   cursor: default;
-  box-shadow: 0 2px 8px rgba(192, 57, 43, 0.25);
+  box-shadow: 0 2px 8px rgba(255, 36, 66, 0.25);
 }
 
 .grid-cell.is-wrong {
@@ -308,7 +294,7 @@ onMounted(() => {
   width: 18px;
   height: 18px;
   background: #fff;
-  color: #c0392b;
+  color: #FF2442;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -346,13 +332,13 @@ onMounted(() => {
   cursor: pointer;
   border-radius: 4px;
   transition: all 0.2s;
-  /* 12px 大楷体会糊，按钮用系统字体 */
+  /* 按钮用系统字体 */
   font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif;
 }
 
 .grid-refresh:hover:not(:disabled) {
-  color: #c0392b;
-  background: rgba(192, 57, 43, 0.06);
+  color: #FF2442;
+  background: rgba(255, 36, 66, 0.06);
 }
 
 .grid-refresh:disabled {
@@ -367,45 +353,45 @@ onMounted(() => {
 
 /* ========== 暗色主题 ========== */
 body[data-theme="dark"] .grid-task-label {
-  color: #c9a89a;
+  color: #FF7A99;
 }
 
 body[data-theme="dark"] .grid-task-seal {
-  background: rgba(192, 57, 43, 0.1);
-  border-color: #e57368;
-  box-shadow: inset 0 0 0 1px rgba(229, 115, 104, 0.25);
+  background: rgba(255, 36, 66, 0.1);
+  border-color: #FF4D6F;
+  box-shadow: inset 0 0 0 1px rgba(255, 77, 111, 0.25);
 }
 
 body[data-theme="dark"] .grid-task-word {
-  color: #e57368;
+  color: #FF4D6F;
 }
 
 body[data-theme="dark"] .grid-task-word.is-done {
-  background: #e57368;
+  background: #FF4D6F;
   color: #1f1f1f;
-  border-color: #e57368;
+  border-color: #FF4D6F;
 }
 
 body[data-theme="dark"] .grid-task-word.is-current {
-  background: rgba(229, 115, 104, 0.18);
-  border-color: #e57368;
+  background: rgba(255, 77, 111, 0.18);
+  border-color: #FF4D6F;
 }
 
 body[data-theme="dark"] .grid-cell {
-  background: #2a1f1c;
-  border-color: #5d3a30;
-  color: #d4b8a8;
+  background: #2a1c1c;
+  border-color: rgba(255, 36, 66, 0.4);
+  color: #FF9EB0;
 }
 
 body[data-theme="dark"] .grid-cell:hover:not(:disabled) {
-  border-color: #e57368;
-  background: rgba(229, 115, 104, 0.1);
+  border-color: #FF4D6F;
+  background: rgba(255, 77, 111, 0.1);
 }
 
 body[data-theme="dark"] .grid-cell.is-clicked,
 body[data-theme="dark"] .grid-cell.is-target {
-  background: #e57368;
-  border-color: #e57368;
+  background: #FF4D6F;
+  border-color: #FF4D6F;
   color: #1f1f1f;
 }
 
@@ -417,7 +403,7 @@ body[data-theme="dark"] .grid-cell.is-wrong {
 
 body[data-theme="dark"] .grid-cell-mark {
   background: #1f1f1f;
-  color: #e57368;
+  color: #FF4D6F;
 }
 
 body[data-theme="dark"] .grid-refresh {
@@ -425,7 +411,7 @@ body[data-theme="dark"] .grid-refresh {
 }
 
 body[data-theme="dark"] .grid-refresh:hover:not(:disabled) {
-  color: #e57368;
-  background: rgba(229, 115, 104, 0.08);
+  color: #FF4D6F;
+  background: rgba(255, 77, 111, 0.08);
 }
 </style>

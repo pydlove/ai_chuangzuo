@@ -8,7 +8,7 @@
     </div>
 
     <!-- 导航栏 -->
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <!-- 重置密码卡片 -->
     <div ref="cardRef" class="forgot-card">
@@ -73,10 +73,7 @@
     </div>
 
     <!-- 底部 -->
-    <footer class="forgot-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter class="forgot-footer" />
 
     <!-- 发送邮箱验证码前的滑块弹框 -->
     <a-modal
@@ -122,23 +119,15 @@ import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import { sendEmailCode, sendSmsCode, resetPassword } from '@/api/auth'
 
 const router = useRouter()
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
 
 // ---------- 鼠标方向律动：卡片轻微朝鼠标方向平移 ----------
 // 在 window 上监听 mousemove，根据鼠标相对卡片中心的距离，
@@ -506,20 +495,7 @@ onBeforeUnmount(() => {
 /* 底部 */
 .forgot-footer {
   margin-top: auto;
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-  color: #595959;
-  font-size: 13px;
-  text-align: center;
-  background: #fff;
   width: 100%;
-  box-sizing: border-box;
-}
-
-.forgot-footer span + span::before {
-  content: '|';
-  margin: 0 12px;
-  color: #eee;
 }
 
 /* 邮箱/手机切换 */
@@ -662,13 +638,4 @@ body[data-theme="dark"] .submit-btn:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
 }
 
-body[data-theme="dark"] .forgot-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .forgot-footer span + span::before {
-  color: #303030;
-}
 </style>

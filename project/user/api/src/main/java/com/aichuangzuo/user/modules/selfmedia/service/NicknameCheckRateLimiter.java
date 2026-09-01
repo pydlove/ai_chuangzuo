@@ -3,7 +3,7 @@ package com.aichuangzuo.user.modules.selfmedia.service;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
 import com.aichuangzuo.user.modules.security.ratelimit.service.RateLimitConfigService;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

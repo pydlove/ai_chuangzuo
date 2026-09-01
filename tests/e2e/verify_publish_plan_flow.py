@@ -61,14 +61,35 @@ def main():
                     body='{"code":0,"message":"success","data":{"platformKey":"xiaohongshu","platformName":"小红书","nicheKey":"zhichang","nicheName":"职场转型","personaKey":"shizhan","personaName":"实战派博主","goalKey":"zhangfen","goalName":"涨粉","pillars":[{"name":"干货复盘","percent":60},{"name":"个人故事","percent":20},{"name":"热点解读","percent":20}]}}',
                 )
                 return
+            if "membership/me" in url:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"code":0,"message":"success","data":{"hasMembership":true,"levelName":"专业版","expiresAt":"2026-12-31T23:59:59"}}',
+                )
+                return
+            if "benefits/me" in url:
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"code":0,"message":"success","data":{"planKey":"pro","planName":"专业版","expiresAt":"2026-12-31T23:59:59","benefits":[{"code":"repost_plan","value":"true","remaining":0}]}}',
+                )
+                return
             if "generation-tasks" in url:
                 route.fulfill(
                     status=200,
                     content_type="application/json",
-                    body='{"code":0,"message":"success","data":{"list":[{"id":1001,"bizNo":"T202608210001","title":"35+ 被裁员后，我用这 3 个方法半年内转型自由职业","status":2,"inputParam":{"platform":"xiaohongshu"},"progressPct":100,"createdAt":"2026-08-21T10:00:00"}],"total":1,"page":1,"pageSize":20}}',
+                    body='{"code":0,"message":"success","data":{"list":[{"id":1001,"bizNo":"T202608210001","title":"35+ 被裁员后，我用这 3 个方法半年内转型自由职业","status":2,"inputParam":{"platform":"xiaohongshu"},"progressPct":100,"createdAt":"' + time.strftime("%Y-%m-%dT%H:%M:%S") + '"}],"total":1,"page":1,"pageSize":20}}',
                 )
                 return
             if re.search(r"/articles/[^/]+$", url):
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='{"code":0,"message":"success","data":{"bizNo":"T202608210001","title":"35+ 被裁员后，我用这 3 个方法半年内转型自由职业","body":"这是文章正文内容\\n\\n第一段介绍背景。\\n\\n第二段给出第一个方法。\\n\\n第三段总结。","wordCount":1200,"completedAt":"2026-08-21T10:00:00","platform":"xiaohongshu","skillName":"专业严谨","template":"xiaohongshu_default"}}',
+                )
+                return
+            if re.search(r"/articles/by-task/", url):
                 route.fulfill(
                     status=200,
                     content_type="application/json",
@@ -113,7 +134,7 @@ def main():
         page.wait_for_timeout(300)
 
         # Test 2: per-article "一文多发" button opens reposts modal
-        page.locator(".repost-btn").first.click()
+        page.locator(".action-group__btn", has_text="一文多发").first.click()
         page.wait_for_selector("text=一文多发方案", timeout=10000)
         page.wait_for_selector("text=公众号", timeout=10000)
         page.wait_for_selector("text=次日 07:30", timeout=10000)
@@ -123,19 +144,17 @@ def main():
         page.locator(".reposts-modal .ant-modal-close").click()
         page.wait_for_timeout(300)
 
-        # Test 3: per-article "查看" button opens article view modal
-        page.locator(".view-article-btn").first.click()
-        page.wait_for_selector("text=查看文章", timeout=10000)
-        page.wait_for_selector("text=35+ 被裁员后，我用这 3 个方法半年内转型自由职业", timeout=10000)
-        page.wait_for_selector("text=这是文章正文内容", timeout=10000)
+        # Test 3: per-article "查看" button navigates to article preview
+        page.locator(".action-group__btn", has_text="查看").first.click()
+        page.wait_for_url(re.compile(r"/console/preview/"), timeout=10000)
 
         assert publish_called["count"] >= 1, f"Expected at least 1 publish plan call, got {publish_called['count']}"
-        assert request_body.get("articleTitle"), f"Expected articleTitle, got {request_body}"
         assert request_body.get("mainPlatform") == "小红书", f"Expected mainPlatform 小红书, got {request_body}"
+        assert "articleTitle" not in request_body, f"Expected no articleTitle, got {request_body}"
 
         print(
-            f"Test passed: publish guide/reposts/article-view rendered, publish plan called with "
-            f"title={request_body['articleTitle']}, platform={request_body['mainPlatform']}"
+            f"Test passed: publish guide/reposts rendered and navigated, publish plan called with "
+            f"platform={request_body['mainPlatform']}"
         )
 
         browser.close()

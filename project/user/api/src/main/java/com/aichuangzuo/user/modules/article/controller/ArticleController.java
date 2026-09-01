@@ -118,6 +118,17 @@ public class ArticleController {
     }
 
     /**
+     * 生成单篇作品的临时导出 token，用于免登录下载 Word。
+     */
+    @Operation(summary = "生成作品导出 token")
+    @GetMapping("/{bizNo}/export-token")
+    public Result<String> generateExportToken(@PathVariable("bizNo") String bizNo) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("生成作品导出token, userId={}, bizNo={}", userId, bizNo);
+        return Result.success(articleService.generateExportToken(userId, bizNo));
+    }
+
+    /**
      * AI 标题优化：有权益的用户首次点击调用大模型生成，之后返回首次缓存结果。
      */
     @Operation(summary = "AI 标题优化")

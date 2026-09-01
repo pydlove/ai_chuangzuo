@@ -62,7 +62,6 @@
               v-for="(s, idx) in accountSuggestions"
               :key="idx"
               class="suggestion-card"
-              @click="selectSuggestion(s)"
             >
               <div class="suggestion-card-row">
                 <div class="suggestion-card-nickname">{{ s.nickname }}</div>
@@ -87,7 +86,7 @@
         </div>
         <div class="guide-doc-link">
           注册前可以查阅：
-          <a href="https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink" target="_blank" rel="noopener noreferrer">爱创作新手教程</a>
+          <a href="https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink" target="_blank" rel="noopener noreferrer">爱创作工坊新手教程</a>
         </div>
         <div class="recommend-row">
           <a-button
@@ -132,6 +131,7 @@ import { CheckCircleOutlined, InfoCircleOutlined } from '@ant-design/icons-vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { checkNickname, recommendNickname } from '@/api/accountCheck.js'
 import { useCopy } from '@/composables/useCopy.js'
+import { STORAGE_KEYS, getAccountCheckLastKey, getAccountRecommendLastKey } from '@/constants/storage.js'
 
 const visible = defineModel('visible', { type: Boolean, default: false })
 
@@ -166,7 +166,6 @@ async function loadPlan() {
       hasPlan.value = false
     }
   } catch (e) {
-    console.warn('加载运营方案失败', e)
     hasPlan.value = false
   } finally {
     planLoaded.value = true
@@ -207,14 +206,14 @@ const recommendOptions = ref([])
 const recommending = ref(false)
 const isRestoring = ref(false)
 
-const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
-const ACCOUNT_CHECK_LAST_KEY = `aichuangzuo_account_check_last_${currentUserId || 'anonymous'}`
-const ACCOUNT_RECOMMEND_LAST_KEY = `aichuangzuo_account_recommend_last_${currentUserId || 'anonymous'}`
+const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID) || ''
+const ACCOUNT_CHECK_LAST_KEY = getAccountCheckLastKey(currentUserId)
+const ACCOUNT_RECOMMEND_LAST_KEY = getAccountRecommendLastKey(currentUserId)
 
 // 清理旧版未区分用户的缓存，避免切换账号后看到他人数据
 if (currentUserId) {
-  localStorage.removeItem('aichuangzuo_account_check_last')
-  localStorage.removeItem('aichuangzuo_account_recommend_last')
+  localStorage.removeItem(STORAGE_KEYS.ACCOUNT_CHECK_LAST)
+  localStorage.removeItem(STORAGE_KEYS.ACCOUNT_RECOMMEND_LAST)
 }
 
 function buildPositioning() {
@@ -288,13 +287,6 @@ async function doCheckNickname(name) {
   } finally {
     checking.value = false
   }
-}
-
-function selectSuggestion(s) {
-  accountInfo.name = s.nickname || ''
-  accountValidation.value = ''
-  accountFit.value = null
-  accountReason.value = ''
 }
 
 const { copy: copyText } = useCopy({

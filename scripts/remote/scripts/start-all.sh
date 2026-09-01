@@ -3,21 +3,24 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/../lib/_remote-env.sh"
+
 echo "[INFO] 启动爱创作所有服务..."
 
 # 首次启动时初始化热搜抓取环境（Chrome 路径探测 + DLP CA truststore 生成）
 APP_DIR="/root/app/aichuangzuo"
-if [ -x "${APP_DIR}/scripts/setup-hotsearch-env.sh" ]; then
-    "${APP_DIR}/scripts/setup-hotsearch-env.sh"
+if run_cmd "[ -x '${APP_DIR}/scripts/setup-hotsearch-env.sh' ]"; then
+    run_cmd "${APP_DIR}/scripts/setup-hotsearch-env.sh"
 fi
 
-systemctl start aichuangzuo-user-api
-if systemctl list-unit-files | grep -q "^aichuangzuo-admin-api"; then
-    systemctl start aichuangzuo-admin-api
+run_cmd "systemctl start aichuangzuo-user-api"
+if run_cmd "systemctl list-unit-files | grep -q '^aichuangzuo-admin-api'"; then
+    run_cmd "systemctl start aichuangzuo-admin-api"
 fi
 
-nginx -s reload 2>/dev/null || nginx
+run_cmd "nginx -s reload 2>/dev/null || nginx"
 
 echo "[INFO] 服务启动完成"
-echo "  用户端: http://$(hostname -I | awk '{print $1}'):22345"
-echo "  管理端: http://$(hostname -I | awk '{print $1}'):22347"
+echo "  用户端: http://${SERVER_IP}:22345"
+echo "  管理端: http://${SERVER_IP}:22347"

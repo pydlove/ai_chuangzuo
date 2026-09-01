@@ -1,15 +1,15 @@
 package com.aichuangzuo.user.modules.leaderboard.service.impl;
 
+import com.aichuangzuo.shared.enums.error.SystemErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.leaderboard.entity.CoinDirection;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
-import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
+import com.aichuangzuo.shared.enums.error.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,7 +36,7 @@ public class CoinRecordServiceImpl implements CoinRecordService {
     @Transactional
     public String grant(Long userId, String bizType, BigDecimal amount, String refId, String remark) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("入账金额必须大于 0");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "入账金额必须大于 0");
         }
         if (refId != null && !refId.isBlank()) {
             UserCoinRecord existing = coinRecordMapper.selectOne(new LambdaQueryWrapper<UserCoinRecord>()
@@ -47,9 +47,7 @@ public class CoinRecordServiceImpl implements CoinRecordService {
             }
         }
 
-        userMapper.update(null, new LambdaUpdateWrapper<User>()
-                .setSql("coin_balance = coin_balance + " + amount.toPlainString())
-                .eq(User::getId, userId));
+        userMapper.addCoinBalance(userId, amount);
 
         User user = userMapper.selectById(userId);
         BigDecimal balanceAfter = user == null ? amount : user.getCoinBalance();
@@ -75,13 +73,10 @@ public class CoinRecordServiceImpl implements CoinRecordService {
     @Transactional
     public String spend(Long userId, String bizType, BigDecimal amount, String refId, String remark) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("扣减金额必须大于 0");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "扣减金额必须大于 0");
         }
 
-        int affected = userMapper.update(null, new LambdaUpdateWrapper<User>()
-                .setSql("coin_balance = coin_balance - " + amount.toPlainString())
-                .eq(User::getId, userId)
-                .ge(User::getCoinBalance, amount));
+        int affected = userMapper.subtractCoinBalance(userId, amount);
 
         if (affected == 0) {
             throw new BusinessException(LeaderboardErrorCode.COIN_BALANCE_INSUFFICIENT);

@@ -11,9 +11,10 @@ import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Date;
 import java.util.UUID;
 
 @Component
@@ -21,6 +22,7 @@ import java.util.UUID;
 public class JwtUtil {
 
     private static final String REMEMBER_ME_CLAIM = "remember_me";
+    private static final String EXPORT_BIZ_NO_CLAIM = "biz_no";
 
     private final AuthProperties authProperties;
 
@@ -41,7 +43,7 @@ public class JwtUtil {
 
     private String generateToken(Long userId, String secret, long expirationMillis,
                                  Map<String, Object> extraClaims) {
-        Date now = new Date();
+        Date now = Date.from(Instant.now());
         Date expiry = new Date(now.getTime() + expirationMillis);
         SecretKey key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         JwtBuilder builder = Jwts.builder()
@@ -61,6 +63,43 @@ public class JwtUtil {
 
     public Long parseRefreshToken(String token) {
         return parseToken(token, authProperties.getJwt().getRefreshSecret());
+    }
+
+    public String generateExportToken(String bizNo) {
+        long expirationMillis = authProperties.getJwt().getExportExpiration() * 1000;
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(EXPORT_BIZ_NO_CLAIM, bizNo);
+        return generateToken(0L, authProperties.getJwt().getExportSecret(), expirationMillis, claims);
+    }
+
+    public String parseExportToken(String token) {
+        Claims claims = parseExportClaims(token);
+        Object bizNo = claims.get(EXPORT_BIZ_NO_CLAIM);
+        if (bizNo == null) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        }
+        return bizNo.toString();
+    }
+
+    private Claims parseExportClaims(String token) {
+        try {
+            SecretKey key = Keys.hmacShaKeyFor(authProperties.getJwt().getExportSecret().getBytes(StandardCharsets.UTF_8));
+            return Jwts.parser()
+                    .verifyWith(key)
+                    .build()
+                    .parseSignedClaims(token)
+                    .getPayload();
+        } catch (ExpiredJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_EXPIRED);
+        } catch (SignatureException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        } catch (MalformedJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        } catch (UnsupportedJwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        } catch (JwtException e) {
+            throw new UnauthorizedException(UserAuthErrorCode.TOKEN_INVALID);
+        }
     }
 
     private Long parseToken(String token, String secret) {

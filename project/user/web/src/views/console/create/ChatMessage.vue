@@ -2,7 +2,7 @@
   <div class="chat-msg" :class="role">
     <div v-if="role === 'ai'" class="ai-info">
       <img class="chat-avatar" src="/ai-avatar.png" alt="AI" />
-      <div class="ai-name">灵犀同学</div>
+      <div class="ai-name">小爱</div>
     </div>
     <div class="chat-bubble">
       <slot />

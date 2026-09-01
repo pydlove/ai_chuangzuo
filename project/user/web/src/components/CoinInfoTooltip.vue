@@ -8,7 +8,7 @@
       <div class="invite-coin-tooltip-content">
         <div class="invite-coin-tooltip-title">💰 创作币说明</div>
         <div class="invite-coin-tooltip-desc">
-          创作币是爱创作推出的虚拟货币，<b>10 创作币 = 1 元人民币</b>。
+          创作币是爱创作工坊推出的虚拟货币，<b>10 创作币 = 1 元人民币</b>。
         </div>
 
         <div class="invite-coin-tooltip-section">

@@ -112,10 +112,7 @@
       </div>
     </main>
 
-    <footer class="t2i-footer">
-      <div>© 2026 爱创作 · 杭州爱启云网络科技有限公司</div>
-      <div>浙ICP备2025200943号-2</div>
-    </footer>
+    <AppFooter variant="mobile" />
   </div>
 </template>
 
@@ -124,6 +121,7 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { toPng, toJpeg } from 'html-to-image'
 import { message } from 'ant-design-vue'
 import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import {
   DownloadOutlined,
   BoldOutlined,
@@ -535,17 +533,6 @@ async function exportImage() {
   margin: 16px 0;
 }
 
-/* 底部 */
-.t2i-footer {
-  padding: 24px 20px 32px;
-  text-align: center;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.8;
-}
-
 /* 暗色主题 */
 body[data-theme="dark"] .text2image-page { background: #141414; color: #e0e0e0; }
 body[data-theme="dark"] .t2i-hero {
@@ -607,10 +594,5 @@ body[data-theme="dark"] .t2i-editor :deep(blockquote) {
 }
 body[data-theme="dark"] .t2i-editor :deep(hr) {
   border-top-color: #404040;
-}
-body[data-theme="dark"] .t2i-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #a6a6a6;
 }
 </style>

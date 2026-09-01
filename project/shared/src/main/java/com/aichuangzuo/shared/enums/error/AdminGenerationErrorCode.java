@@ -24,7 +24,8 @@ public enum AdminGenerationErrorCode implements ErrorCode {
     GENERATION_MODEL_PARAMS_INVALID(308014, "模板 AI 参数不合法：temperature ∈ [0,2]、max_tokens ∈ [1,8000]、top_p ∈ [0,1]"),
     GENERATION_MODEL_UNAVAILABLE(308015, "AI 模型暂不可用"),
     TOPIC_TITLE_GENERATE_FAILED(308016, "AI 生成失败，请重试"),
-    GENERATION_TASK_ARTICLE_NOT_FOUND(308017, "任务尚未生成文章或文章不存在");
+    GENERATION_TASK_ARTICLE_NOT_FOUND(308017, "任务尚未生成文章或文章不存在"),
+    PROMPT_TEMPLATE_STAGE_COUNT_INVALID(308018, "编辑模板时必须完整提交 13 个阶段");
 
     private final int code;
     private final String message;

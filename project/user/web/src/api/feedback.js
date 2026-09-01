@@ -7,3 +7,7 @@ export function submitFeedback(data) {
 export function pageMyFeedbacks(params) {
   return request.get('/feedback/mine', { params })
 }
+
+export function getMyReview() {
+  return request.get('/feedback/my-review')
+}

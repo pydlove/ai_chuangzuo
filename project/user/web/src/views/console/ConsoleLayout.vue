@@ -5,10 +5,10 @@
       <div class="console-sidebar-brand">
         <img
           :src="logoUrl"
-          alt="爱创作"
+          alt="爱创作工坊"
           class="brand-logo"
         />
-        <span class="brand-name">爱创作</span>
+        <span class="brand-name">爱创作工坊</span>
       </div>
       <nav class="console-sidebar-nav">
         <template v-for="item in navItems" :key="item.path || item.label">
@@ -68,10 +68,7 @@
                   <button class="invite-user-id" @click="copyUserId">
                     <span class="invite-user-id-label">我的 ID</span>
                     <b class="invite-user-id-value">{{ userId }}</b>
-                    <svg class="invite-user-id-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                    </svg>
+                    <Icon name="copy" class="invite-user-id-copy" :size="12" />
                   </button>
                 </a-tooltip>
               </div>
@@ -106,30 +103,21 @@
 
                 <!-- 统计卡片 -->
                 <div class="invite-stats">
-                  <div class="invite-stat-item">
-                    <div class="invite-stat-value">{{ inviteStats.invitedCount }}</div>
-                    <div class="invite-stat-label">已邀请</div>
-                  </div>
-                  <div class="invite-stat-item">
-                    <div class="invite-stat-value">{{ inviteStats.inviteCoinEarned }}</div>
-                    <div class="invite-stat-label">奖励创作币</div>
-                  </div>
-                  <div class="invite-stat-item invite-stat-item-coin">
-                    <div class="invite-stat-value">{{ coinBalance }}</div>
-                    <div class="invite-stat-label-row">
-                      <CoinInfoTooltip>
-                        <div class="invite-stat-label invite-stat-label-tooltip">
-                          <span>创作币余额</span>
-                          <svg class="invite-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="16" x2="12" y2="12"/>
-                            <line x1="12" y1="8" x2="12.01" y2="8"/>
-                          </svg>
-                        </div>
-                      </CoinInfoTooltip>
-                      <button class="invite-stat-go-withdraw" @click="goToWithdraw">去提现</button>
-                    </div>
-                  </div>
+                  <StatCard variant="muted" :value="inviteStats.invitedCount" label="已邀请" />
+                  <StatCard variant="muted" :value="inviteStats.inviteCoinEarned" label="奖励创作币" />
+                  <StatCard variant="muted" :value="coinBalance" label="创作币余额">
+                    <template #label>
+                      <div class="invite-stat-label-row">
+                        <CoinInfoTooltip>
+                          <div class="invite-stat-label invite-stat-label-tooltip">
+                            <span>创作币余额</span>
+                            <Icon name="info" class="invite-info-icon" :size="14" />
+                          </div>
+                        </CoinInfoTooltip>
+                        <button class="invite-stat-go-withdraw" @click="goToWithdraw">去提现</button>
+                      </div>
+                    </template>
+                  </StatCard>
                 </div>
 
                 <!-- 邀请链接 -->
@@ -296,7 +284,7 @@
                   <ul class="invite-rules-detail-list">
                     <li>根据业务发展和市场环境变化，活动规则可能调整，会通过官方渠道提前通知。</li>
                     <li>平台保留对违规刷量、虚假邀请、机器注册等行为的处理权。</li>
-                    <li>本活动最终解释权归爱创作所有，如有疑问请联系客服。</li>
+                    <li>本活动最终解释权归爱创作工坊所有，如有疑问请联系客服。</li>
                   </ul>
                 </section>
               </div>
@@ -515,10 +503,7 @@
           <div class="bell-wrap">
             <a-tooltip title="消息">
               <button class="console-icon-btn bell-btn" @click="openNotif">
-                <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/>
-                  <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>
-                </svg>
+                <Icon name="bell" class="console-icon" :size="18" :stroke-width="1.5" />
                 <span v-if="unreadCount > 0" class="bell-badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
               </button>
             </a-tooltip>
@@ -538,24 +523,16 @@
               </div>
               <div class="tutorial-item" @click="handleTutorial('doc')">
                 <div class="tutorial-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                    <line x1="16" y1="13" x2="8" y2="13"/>
-                    <line x1="16" y1="17" x2="8" y2="17"/>
-                    <polyline points="10 9 9 9 8 9"/>
-                  </svg>
+                  <Icon name="file" :size="20" :stroke-width="1.5" />
                 </div>
                 <div class="tutorial-body">
                   <div class="tutorial-name">帮助 / 文档</div>
-                  <div class="tutorial-desc">从基础到专业技巧的快速指南，助你充分利用爱创作的功能。</div>
+                  <div class="tutorial-desc">从基础到专业技巧的快速指南，助你充分利用爱创作工坊的功能。</div>
                 </div>
               </div>
               <div class="tutorial-item" @click="tutorialVisible = false; openWechatModal()">
                 <div class="tutorial-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
+                  <Icon name="message-square" :size="20" :stroke-width="1.5" />
                 </div>
                 <div class="tutorial-body">
                   <div class="tutorial-name">加入微信交流群</div>
@@ -568,10 +545,7 @@
           <!-- 教程按钮 -->
           <a-tooltip title="教程">
             <button class="console-icon-btn" @click="tutorialVisible = true">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-                <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-              </svg>
+              <Icon name="book-open" class="console-icon" :size="18" :stroke-width="1.5" />
             </button>
           </a-tooltip>
           <!-- 反馈弹框(提交 / 我的反馈 tabs) -->
@@ -698,24 +672,38 @@
               </a-tab-pane>
               <a-tab-pane key="reviews" tab="评价">
                 <div class="feedback-panel">
-                  <div class="feedback-title">写下你的评价</div>
-                  <div class="feedback-rating">
-                    <label class="feedback-label">总体评分</label>
-                    <a-rate v-model:value="reviewRating" :count="5" class="feedback-rate" />
-                  </div>
-                  <div class="feedback-content">
-                    <label class="feedback-label">评价内容</label>
-                    <textarea
-                      v-model="reviewContent"
-                      class="feedback-textarea"
-                      placeholder="分享你的使用体验..."
-                      rows="5"
-                      maxlength="500"
-                    ></textarea>
-                  </div>
-                  <button class="feedback-submit" :disabled="reviewSubmitting" @click="submitReview">
-                    {{ reviewSubmitting ? '提交中...' : '提交评价' }}
-                  </button>
+                  <a-spin :spinning="myReviewLoading">
+                    <template v-if="myReview">
+                      <div class="feedback-title">我的评价</div>
+                      <div class="my-review-card">
+                        <div class="my-review-rating">
+                          <a-rate :value="myReview.starRating" :count="5" disabled class="feedback-rate" />
+                        </div>
+                        <pre class="my-review-content">{{ myReview.content }}</pre>
+                        <div class="my-review-time">{{ formatTime(myReview.createdAt) }}</div>
+                      </div>
+                    </template>
+                    <template v-else>
+                      <div class="feedback-title">写下你的评价</div>
+                      <div class="feedback-rating">
+                        <label class="feedback-label">总体评分</label>
+                        <a-rate v-model:value="reviewRating" :count="5" class="feedback-rate" />
+                      </div>
+                      <div class="feedback-content">
+                        <label class="feedback-label">评价内容</label>
+                        <textarea
+                          v-model="reviewContent"
+                          class="feedback-textarea"
+                          placeholder="分享你的使用体验..."
+                          rows="5"
+                          maxlength="500"
+                        ></textarea>
+                      </div>
+                      <button class="feedback-submit" :disabled="reviewSubmitting" @click="submitReview">
+                        {{ reviewSubmitting ? '提交中...' : '提交评价' }}
+                      </button>
+                    </template>
+                  </a-spin>
                 </div>
               </a-tab-pane>
             </a-tabs>
@@ -724,9 +712,7 @@
           <!-- 反馈按钮 -->
           <a-tooltip title="反馈">
             <button class="console-icon-btn" @click="feedbackVisible = true">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-              </svg>
+              <Icon name="message-square" class="console-icon" :size="18" :stroke-width="1.5" />
             </button>
           </a-tooltip>
 
@@ -741,41 +727,34 @@
             <div class="about-panel">
               <div class="about-header">
                 <div class="about-logo">
-                  <img src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png" alt="爱创作" />
+                  <img src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png" alt="爱创作工坊" />
                 </div>
                 <div class="about-brand">
-                  <div class="about-name">爱创作</div>
+                  <div class="about-name">爱创作工坊</div>
                   <div class="about-tagline">创作者灵感旅程中的同行者</div>
                 </div>
               </div>
               <div class="about-desc">
-                <p>爱创作希望成为创作者灵感旅程中的同行者。我们希望让写作不再被"文笔"所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。</p>
+                <p>爱创作工坊希望成为创作者灵感旅程中的同行者。我们希望让写作不再被"文笔"所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。</p>
                 <p>AI 在这里不是替代者，而是帮助作者整理思路、激发灵感、拓展想象的辅助工具。</p>
                 <p>我们珍惜每一位作者投入在作品里的情绪、时间与热爱，也尊重原创应有的价值。</p>
               </div>
               <div class="about-links">
                 <button class="about-link-btn" @click="openTermsModal">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                    <polyline points="14 2 14 8 20 8"/>
-                  </svg>
+                  <Icon name="file-minus" :size="20" :stroke-width="1.5" />
                   用户协议
                 </button>
                 <button class="about-link-btn" @click="openPrivacyModal">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
-                  </svg>
+                  <Icon name="shield" :size="20" :stroke-width="1.5" />
                   隐私政策
                 </button>
                 <button class="about-link-btn" @click="openWechatModal">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                  </svg>
+                  <Icon name="message-square" :size="20" :stroke-width="1.5" />
                   关注微信
                 </button>
               </div>
               <div class="about-footer">
-                © 2026 爱创作 · All Rights Reserved
+                © 2026 爱创作工坊 · All Rights Reserved
               </div>
             </div>
           </a-modal>
@@ -783,20 +762,12 @@
           <!-- 关于我们按钮 -->
           <a-tooltip title="关于我们">
             <button class="console-icon-btn" @click="aboutVisible = true">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 16v-4"/>
-                <path d="M12 8h.01"/>
-              </svg>
+              <Icon name="info" class="console-icon" :size="18" :stroke-width="1.5" />
             </button>
           </a-tooltip>
           <a-tooltip title="官网">
             <router-link to="/" class="console-icon-btn">
-              <svg class="console-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/>
-                <path d="M2 12h20"/>
-              </svg>
+              <Icon name="globe" class="console-icon" :size="18" :stroke-width="1.5" />
             </router-link>
           </a-tooltip>
 
@@ -880,10 +851,7 @@
                     <span class="user-row-label">用户ID</span>
                     <span class="user-row-value user-row-copy" @click="copyAccountUserId">
                       {{ userProfile.profile.value?.userId || '—' }}
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
-                      </svg>
+                      <Icon name="copy" :size="14" />
                     </span>
                   </div>
                   <div class="user-row" @click="triggerAvatarUpload">
@@ -896,20 +864,20 @@
                         class="user-center-avatar-preview"
                       />
                       <span v-else>点击上传</span>
-                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      <Icon name="edit" :size="14" />
                     </span>
                   </div>
                   <div class="user-row" @click="userCenterVisible = false; router.push('/console/profile/edit')">
                     <span class="user-row-label">昵称</span>
-                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.nickname || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.nickname || '点击设置' }} <Icon name="edit" :size="14" /></span>
                   </div>
                   <div class="user-row" @click="openEmailModal">
                     <span class="user-row-label">邮箱</span>
-                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.email || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.email || '点击设置' }} <Icon name="edit" :size="14" /></span>
                   </div>
                   <div class="user-row" @click="openPhoneModal">
                     <span class="user-row-label">手机</span>
-                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.phone || '点击设置' }} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">{{ userProfile.profile.value?.phone || '点击设置' }} <Icon name="edit" :size="14" /></span>
                   </div>
                   <div
                     v-if="userProfile.profile.value?.inviterUserId == null"
@@ -917,7 +885,7 @@
                     @click="openInviteBindingModal"
                   >
                     <span class="user-row-label">邀请人</span>
-                    <span class="user-row-value user-row-edit">点击绑定 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></span>
+                    <span class="user-row-value user-row-edit">点击绑定 <Icon name="edit" :size="14" /></span>
                   </div>
                   <div
                     v-else
@@ -936,33 +904,19 @@
                 <div class="user-section">
                   <div class="user-section-title">设置</div>
                   <div class="user-action" @click="openProfileEditModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
+                    <Icon name="edit" :size="18" />
                     编辑资料
                   </div>
                   <div class="user-action" @click="openPasswordModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                    </svg>
+                    <Icon name="lock" :size="18" />
                     修改密码
                   </div>
                   <div class="user-action" @click="openRedeemModal">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M2 9a3 3 0 0 1 3-3h.93a2 2 0 0 0 1.66-.9l.82-1.2A2 2 0 0 1 11.07 2h1.86a2 2 0 0 1 1.66.9l.82 1.2a2 2 0 0 0 1.66.9H19a3 3 0 0 1 3 3"/>
-                      <path d="M2 9v9a3 3 0 0 0 3 3h14a3 3 0 0 0 3-3V9"/>
-                      <path d="M8 16h.01"/>
-                    </svg>
+                    <Icon name="ticket" :size="18" />
                     兑换码
                   </div>
                   <div class="user-action user-action-logout" @click="handleLogout">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
-                      <polyline points="16 17 21 12 16 7"/>
-                      <line x1="21" y1="12" x2="9" y2="12"/>
-                    </svg>
+                    <Icon name="log-out" :size="18" />
                     退出登录
                   </div>
                 </div>
@@ -982,9 +936,7 @@
       <!-- 手机端子页面头部（只在非 TabBar 页面显示） -->
       <div v-if="isMobile && !isTabbarPage && !hideMobileSubpageHeader" class="mobile-subpage-header">
         <div class="mobile-subpage-back" @click="goBack">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 18 9 12 15 6"></polyline>
-          </svg>
+          <Icon name="chevron-left" :size="20" :stroke-width="2" />
           <span>返回</span>
         </div>
         <div v-if="subpageTitle" class="mobile-subpage-title">{{ subpageTitle }}</div>
@@ -1007,10 +959,7 @@
       </div>
 
       <!-- 底部 -->
-      <footer class="console-footer">
-        <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-        <span>浙ICP备2025200943号-2</span>
-      </footer>
+      <AppFooter class="console-footer" />
     </div>
 
     <!-- 手机端底部 TabBar（只在 ≤768px 显示） -->
@@ -1073,9 +1022,9 @@
     class="terms-modal legal-modal"
   >
     <div class="terms-content">
-      <p>欢迎使用爱创作服务（以下简称"本服务"）。在您使用本服务之前，请仔细阅读本用户协议。</p>
+      <p>欢迎使用爱创作工坊服务（以下简称"本服务"）。在您使用本服务之前，请仔细阅读本用户协议。</p>
       <h4>一、服务说明</h4>
-      <p>爱创作是一款 AI 自媒体写作助手，通过人工智能技术帮助用户生成文章内容。</p>
+      <p>爱创作工坊是一款 AI 自媒体写作助手，通过人工智能技术帮助用户生成文章内容。</p>
       <h4>二、账号注册</h4>
       <p>您在使用本服务前需要注册账号。您承诺提供真实、准确、完整的注册信息，并及时更新。</p>
       <h4>三、使用规范</h4>
@@ -1104,7 +1053,7 @@
     class="privacy-modal legal-modal"
   >
     <div class="terms-content">
-      <p>我们非常重视您的个人隐私保护，在您使用爱创作服务时，我们会按照本隐私政策的规定收集、使用、存储和保护您的个人信息。</p>
+      <p>我们非常重视您的个人隐私保护，在您使用爱创作工坊服务时，我们会按照本隐私政策的规定收集、使用、存储和保护您的个人信息。</p>
       <h4>一、信息收集</h4>
       <p>我们收集的信息包括：账号信息（邮箱）、创作内容、使用记录等。</p>
       <h4>二、信息使用</h4>
@@ -1516,8 +1465,12 @@ import { message, Modal } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
 import CreateFlowLauncher from '@/components/CreateFlowLauncher.vue'
+import Icon from '@/components/common/Icon.vue'
+import StatCard from '@/components/common/StatCard.vue'
+import StatCardGroup from '@/components/common/StatCardGroup.vue'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { logout as logoutApi, sendEmailCode as sendEmailCodeApi, sendSmsCode as sendSmsCodeApi } from '@/api/auth'
 import { useUserProfile } from '@/composables/useUserProfile'
@@ -1531,8 +1484,9 @@ import { useMessages } from '@/composables/useMessages'
 import { normalizeMessageLink } from '@/utils/messageLink'
 import { getMyMembership } from '@/api/membership'
 import { getNewcomerOffer } from '@/api/membership'
-import { submitFeedback as submitFeedbackApi, pageMyFeedbacks } from '@/api/feedback'
+import { submitFeedback as submitFeedbackApi, pageMyFeedbacks, getMyReview } from '@/api/feedback'
 import { getMonthlyCount } from '@/api/article'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 const logoUrl = 'https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png'
 import {
   LoadingOutlined,
@@ -1558,10 +1512,10 @@ const route = useRoute()
 const router = useRouter()
 
 // 「我的」分组默认折叠，展开状态写入 localStorage 跨会话保留
-const mineExpanded = ref(localStorage.getItem('aichuangzuo_mine_nav_expanded') === '1')
+const mineExpanded = ref(localStorage.getItem(STORAGE_KEYS.MINE_NAV_EXPANDED) === '1')
 const toggleMineGroup = () => {
   mineExpanded.value = !mineExpanded.value
-  localStorage.setItem('aichuangzuo_mine_nav_expanded', mineExpanded.value ? '1' : '0')
+  localStorage.setItem(STORAGE_KEYS.MINE_NAV_EXPANDED, mineExpanded.value ? '1' : '0')
 }
 
 const userProfile = useUserProfile()
@@ -1638,22 +1592,19 @@ const readMonthlyWorks = async () => {
 const monthlyWorks = ref(0)
 
 // ---------- 新人首冲优惠横幅 ----------
-const NEWCOMER_BANNER_DISMISSED_KEY = 'aichuangzuo_newcomer_banner_dismissed'
-const NEWCOMER_MODAL_DISMISSED_KEY = 'aichuangzuo_newcomer_modal_dismissed'
-const INVITE_MODAL_DISMISSED_KEY = 'aichuangzuo_invite_modal_dismissed'
 const newcomerOffer = ref({ eligible: false })
 const newcomerBannerVisible = ref(false)
 const newcomerModalVisible = ref(false)
 const newcomerModalDontShow = ref(false)
 
 const loadNewcomerOffer = async () => {
-  if (!localStorage.getItem('aichuangzuo_access_token')) return
+  if (!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) return
   try {
     const res = await getNewcomerOffer()
     const data = res.data || res
     if (data && data.eligible) {
       newcomerOffer.value = data
-      newcomerBannerVisible.value = !localStorage.getItem(NEWCOMER_BANNER_DISMISSED_KEY)
+      newcomerBannerVisible.value = !localStorage.getItem(STORAGE_KEYS.NEWCOMER_BANNER_DISMISSED)
     }
   } catch {
     newcomerOffer.value = { eligible: false }
@@ -1662,8 +1613,8 @@ const loadNewcomerOffer = async () => {
 
 const tryShowNewcomerModal = () => {
   if (route.path !== '/console/create') return
-  if (!localStorage.getItem('aichuangzuo_access_token')) return
-  if (localStorage.getItem(NEWCOMER_MODAL_DISMISSED_KEY)) return
+  if (!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) return
+  if (localStorage.getItem(STORAGE_KEYS.NEWCOMER_MODAL_DISMISSED)) return
   if (newcomerOffer.value.eligible) {
     newcomerModalVisible.value = true
   }
@@ -1672,9 +1623,9 @@ const tryShowNewcomerModal = () => {
 const closeNewcomerModal = () => {
   newcomerModalVisible.value = false
   if (newcomerModalDontShow.value) {
-    localStorage.setItem(NEWCOMER_MODAL_DISMISSED_KEY, '1')
+    localStorage.setItem(STORAGE_KEYS.NEWCOMER_MODAL_DISMISSED, '1')
   }
-  if (route.path === '/console/create' && localStorage.getItem('aichuangzuo_access_token') && !localStorage.getItem(INVITE_MODAL_DISMISSED_KEY)) {
+  if (route.path === '/console/create' && localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN) && !localStorage.getItem(STORAGE_KEYS.INVITE_MODAL_DISMISSED)) {
     inviteAutoOpened.value = true
     openInviteModal()
   }
@@ -1695,7 +1646,7 @@ const onInviteFriendPageChange = (page) => {
 
 const handleInviteClose = () => {
   if (inviteAutoOpened.value && inviteModalDontShow.value) {
-    localStorage.setItem(INVITE_MODAL_DISMISSED_KEY, '1')
+    localStorage.setItem(STORAGE_KEYS.INVITE_MODAL_DISMISSED, '1')
   }
   inviteAutoOpened.value = false
   inviteModalDontShow.value = false
@@ -1704,14 +1655,14 @@ const handleInviteClose = () => {
 const newcomerModalGoToPricing = () => {
   newcomerModalVisible.value = false
   if (newcomerModalDontShow.value) {
-    localStorage.setItem(NEWCOMER_MODAL_DISMISSED_KEY, '1')
+    localStorage.setItem(STORAGE_KEYS.NEWCOMER_MODAL_DISMISSED, '1')
   }
   openPricing('newcomer=1')
 }
 
 const dismissNewcomerBanner = () => {
   newcomerBannerVisible.value = false
-  localStorage.setItem(NEWCOMER_BANNER_DISMISSED_KEY, '1')
+  localStorage.setItem(STORAGE_KEYS.NEWCOMER_BANNER_DISMISSED, '1')
 }
 
 const goToNewcomerOffer = () => {
@@ -1767,11 +1718,10 @@ const isActive = (path) => {
 }
 
 // ---------- 主题切换 ----------
-const THEME_KEY = 'aichuangzuo_theme'
 const currentTheme = ref('light')
 
 const loadTheme = () => {
-  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  const saved = localStorage.getItem(STORAGE_KEYS.THEME) || 'light'
   currentTheme.value = saved
   document.body.setAttribute('data-theme', saved)
 }
@@ -1850,6 +1800,8 @@ const feedbackSubmitting = ref(false)
 const reviewRating = ref(0)
 const reviewContent = ref('')
 const reviewSubmitting = ref(false)
+const myReview = ref(null)
+const myReviewLoading = ref(false)
 
 const loadHistory = async () => {
   historyLoading.value = true
@@ -1886,6 +1838,18 @@ const closeHistoryDetail = () => {
   historyDetail.value = null
 }
 
+const loadMyReview = async () => {
+  myReviewLoading.value = true
+  try {
+    const res = await getMyReview()
+    myReview.value = res.data || null
+  } catch (e) {
+    myReview.value = null
+  } finally {
+    myReviewLoading.value = false
+  }
+}
+
 const closeFeedbackModal = () => {
   feedbackTab.value = 'submit'
   historyDetail.value = null
@@ -1894,11 +1858,15 @@ const closeFeedbackModal = () => {
   historyFilter.value = 'all'
   reviewRating.value = 0
   reviewContent.value = ''
+  myReview.value = null
 }
 
 watch(feedbackTab, (t) => {
   if (t === 'history' && historyList.value.length === 0 && !historyDetail.value) {
     loadHistory()
+  }
+  if (t === 'reviews' && myReview.value === null) {
+    loadMyReview()
   }
 })
 
@@ -1951,14 +1919,21 @@ const submitReview = async () => {
       starRating: reviewRating.value
     })
     message.success('评价已提交，感谢你的反馈')
+    myReview.value = {
+      starRating: reviewRating.value,
+      content: reviewContent.value,
+      createdAt: new Date().toISOString()
+    }
     reviewRating.value = 0
     reviewContent.value = ''
-    feedbackTab.value = 'history'
     historyPage.value = 1
     historyList.value = []
-    await loadHistory()
   } catch (e) {
-    if (e?.code === 117001) {
+    if (e?.code === 117003) {
+      message.warning(e.message || '你已提交过评价，仅可评价一次')
+      // 如果后端返回已存在，刷新展示已有评价
+      await loadMyReview()
+    } else if (e?.code === 117001) {
       message.warning(e.message || '今日评价次数已达上限，明天再来')
     } else {
       message.error(e?.message || '提交失败，请稍后再试')
@@ -1973,7 +1948,6 @@ const aboutVisible = ref(false)
 
 const handleAboutLink = (type) => {
   aboutVisible.value = false
-  console.log('关于链接:', type)
 }
 
 // ---------- 个人中心 ----------
@@ -2387,15 +2361,14 @@ const handleLogout = async () => {
   } catch (err) {
     // 退出接口失败也继续清理本地状态
   }
-  localStorage.removeItem('aichuangzuo_access_token')
-  localStorage.removeItem('aichuangzuo_refresh_token')
-  localStorage.removeItem('aichuangzuo_remember_me')
-  localStorage.removeItem('aichuangzuo_membership')
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REMEMBER_ME)
+  localStorage.removeItem(STORAGE_KEYS.MEMBERSHIP)
   router.push('/login')
 }
 
 // ---------- 会员 ----------
-const MEMBERSHIP_KEY = 'aichuangzuo_membership'
 const hasMembership = ref(false)
 const membershipLevel = ref('会员')
 const membershipExpiry = ref('')
@@ -2431,14 +2404,14 @@ const membershipBadgeIcon = computed(() => {
 })
 
 const loadMembership = () => {
-  const raw = localStorage.getItem(MEMBERSHIP_KEY)
+  const raw = localStorage.getItem(STORAGE_KEYS.MEMBERSHIP)
   if (!raw) {
     hasMembership.value = false
     return
   }
   // 清理旧的演示数据（仅一个“年会员”字符串）
   if (raw === '年会员') {
-    localStorage.removeItem(MEMBERSHIP_KEY)
+    localStorage.removeItem(STORAGE_KEYS.MEMBERSHIP)
     hasMembership.value = false
     return
   }
@@ -2459,7 +2432,7 @@ const loadMembership = () => {
   membershipExpiry.value = fallbackExpiry
   hasMembership.value = true
   // 写入新格式
-  localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+  localStorage.setItem(STORAGE_KEYS.MEMBERSHIP, JSON.stringify({
     level: membershipLevel.value,
     expiresAt: membershipExpiry.value
   }))
@@ -2522,7 +2495,7 @@ const extendMembership = (days, level) => {
   membershipExpiry.value = isoDate
   hasMembership.value = true
 
-  localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+  localStorage.setItem(STORAGE_KEYS.MEMBERSHIP, JSON.stringify({
     level: membershipLevel.value,
     expiresAt: isoDate
   }))
@@ -2536,7 +2509,7 @@ const refreshMembershipFromApi = async () => {
       membershipLevel.value = data.levelName || data.level
       membershipExpiry.value = data.expiresAt
       hasMembership.value = true
-      localStorage.setItem(MEMBERSHIP_KEY, JSON.stringify({
+      localStorage.setItem(STORAGE_KEYS.MEMBERSHIP, JSON.stringify({
         level: membershipLevel.value,
         expiresAt: membershipExpiry.value
       }))
@@ -2545,7 +2518,7 @@ const refreshMembershipFromApi = async () => {
       hasMembership.value = false
       membershipLevel.value = '会员'
       membershipExpiry.value = ''
-      localStorage.removeItem(MEMBERSHIP_KEY)
+      localStorage.removeItem(STORAGE_KEYS.MEMBERSHIP)
     }
   } catch (err) {
     // 静默失败，继续使用本地缓存
@@ -2555,8 +2528,8 @@ const refreshMembershipFromApi = async () => {
 // ---------- 邀请有礼 ----------
 
 // ---------- 兑换码 ----------
-const REDEEM_USED_KEY = 'aichuangzuo_redeem_codes'
-const REDEEM_HISTORY_KEY = 'aichuangzuo_redeem_history'
+const REDEEM_USED_KEY = STORAGE_KEYS.REDEEM_CODES
+const REDEEM_HISTORY_KEY = STORAGE_KEYS.REDEEM_HISTORY
 
 const redeemVisible = ref(false)
 const redeemCode = ref('')
@@ -2699,7 +2672,7 @@ const inviteShareText = computed(() => {
   const code = inviteCode.value
   let text = shareConfig.value?.content
   if (!text) {
-    text = `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
+    text = `推荐你一个 AI 创作神器「爱创作工坊」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
   }
   return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
@@ -2924,7 +2897,7 @@ const drawPoster = async (canvas, template, code, link) => {
   ctx.textAlign = 'center'
   ctx.fillStyle = template.textPrimary
   ctx.font = `bold ${Math.round(W * 0.075)}px sans-serif`
-  ctx.fillText('爱创作', W / 2, H * 0.27)
+  ctx.fillText('爱创作工坊', W / 2, H * 0.27)
 
   ctx.fillStyle = template.textSecondary
   ctx.font = `${Math.round(W * 0.038)}px sans-serif`
@@ -3195,6 +3168,14 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stopUnreadPolling()
+  if (countdownTimer) {
+    clearInterval(countdownTimer)
+    countdownTimer = null
+  }
+  if (phoneCountdownTimer) {
+    clearInterval(phoneCountdownTimer)
+    phoneCountdownTimer = null
+  }
 })
 
 // ---------- 向子页面（MineIndex）暴露弹框 / 主题 / 退出 / 用户状态 ----------
@@ -3739,22 +3720,6 @@ provide('consoleActions', {
 }
 .newcomer-modal-buy:hover {
   background: #e61e3a;
-}
-
-/* 底部 */
-.console-footer {
-  padding: 16px 24px;
-  border-top: 1px solid var(--color-border-light);
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  text-align: center;
-  background: var(--color-bg-card);
-}
-
-.console-footer span + span::before {
-  content: '|';
-  margin: 0 12px;
-  color: var(--color-border-light);
 }
 
 /* ========== 消息通知 ========== */
@@ -4302,6 +4267,33 @@ provide('consoleActions', {
   background: var(--color-primary-hover);
 }
 
+.my-review-card {
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  background: #fafafa;
+}
+
+.my-review-rating {
+  margin-bottom: 10px;
+}
+
+.my-review-content {
+  margin: 0 0 10px;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: inherit;
+}
+
+.my-review-time {
+  font-size: 12px;
+  color: #8c8c8c;
+  text-align: right;
+}
+
 /* ========== 关于我们面板 ========== */
 .about-panel {
   width: 100%;
@@ -4479,12 +4471,6 @@ body[data-theme="dark"] .newcomer-modal-later:hover {
   background: #3a3a3a;
 }
 
-body[data-theme="dark"] .console-footer {
-  background: #1f1f1f;
-  border-color: #303030;
-  color: #a6a6a6;
-}
-
 body[data-theme="dark"] .console-icon-btn {
   color: #e0e0e0;
 }
@@ -4631,6 +4617,19 @@ body[data-theme="dark"] .feedback-submit {
 
 body[data-theme="dark"] .feedback-submit:hover {
   background: linear-gradient(135deg, #FF4D6F 0%, #E61E3A 100%);
+}
+
+body[data-theme="dark"] .my-review-card {
+  background: #262626;
+  border-color: #404040;
+}
+
+body[data-theme="dark"] .my-review-content {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .my-review-time {
+  color: #a6a6a6;
 }
 
 body[data-theme="dark"] .type-btn {
@@ -5664,26 +5663,6 @@ body[data-theme="dark"] .password-input::placeholder {
   margin-top: 10px;
 }
 
-.invite-stat-item {
-  text-align: center;
-  padding: 14px;
-  background: #f8f9fa;
-  border-radius: 10px;
-}
-
-.invite-stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-primary);
-  line-height: 1.2;
-}
-
-.invite-stat-label {
-  font-size: 12px;
-  color: #595959;
-  margin-top: 4px;
-}
-
 .invite-stat-label-tooltip {
   display: inline-flex;
   align-items: center;
@@ -5707,12 +5686,6 @@ body[data-theme="dark"] .password-input::placeholder {
 
 .invite-stat-label-tooltip:hover .invite-info-icon {
   color: var(--color-primary);
-}
-
-.invite-stat-item-coin {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .invite-stat-label-row {
@@ -6451,11 +6424,6 @@ body[data-theme="dark"] .invite-user-id:hover .invite-user-id-copy {
   color: #ff4d6f;
 }
 
-body[data-theme="dark"] .invite-stat-item,
-body[data-theme="dark"] .invite-code-box {
-  background: #262626;
-}
-
 body[data-theme="dark"] .invite-stats {
   background: #141414;
 }
@@ -6544,7 +6512,6 @@ body[data-theme="dark"] .invite-rules-detail-callout b {
   color: #ff4d6f;
 }
 
-body[data-theme="dark"] .invite-stat-label,
 body[data-theme="dark"] .invite-code-label,
 body[data-theme="dark"] .invite-progress-desc,
 body[data-theme="dark"] .invite-progress-text,
@@ -7014,14 +6981,6 @@ body[data-theme="dark"] .phone-submit:hover {
     padding: 12px 16px;
   }
 
-  .invite-stat-item {
-    padding: 10px 6px;
-  }
-
-  .invite-stat-value {
-    font-size: 20px;
-  }
-
   .invite-stat-label,
   .invite-stat-label-tooltip {
     font-size: 11px;
@@ -7188,7 +7147,7 @@ body[data-theme="dark"] .mobile-subpage-title {
   padding: 24px 28px 8px;
 }
 
-/* 消息详情 / 续订弹框 primary 按钮统一用品牌红(#FF2442,小红书/爱创作主色),
+/* 消息详情 / 续订弹框 primary 按钮统一用品牌红(#FF2442,小红书/爱创作工坊主色),
    ant-design-vue 默认 primary 是蓝色,这里显式覆盖。 */
 .notif-detail-modal .ant-btn-primary,
 .renewal-modal .ant-btn-primary {

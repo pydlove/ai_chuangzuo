@@ -9,7 +9,7 @@ import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
 import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
 import com.aichuangzuo.user.modules.skill.entity.UserSkill;
-import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
+import com.aichuangzuo.shared.enums.error.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.mapper.UserSkillMapper;
 import com.aichuangzuo.user.modules.skill.vo.UserSkillVO;
 import org.junit.jupiter.api.AfterEach;

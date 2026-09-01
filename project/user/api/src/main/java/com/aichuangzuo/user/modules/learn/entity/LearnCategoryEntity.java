@@ -6,14 +6,16 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 /**
  * 用户端 - 创作学院分类只读实体，映射 {@code t_article_category}。
  */
-@Data
+@Getter
+@Setter
 @TableName("t_article_category")
 public class LearnCategoryEntity {
 

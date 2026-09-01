@@ -77,7 +77,7 @@ import {
   BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined,
   UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined,
   TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, AppstoreOutlined,
-  ClockCircleOutlined, DownOutlined, RightOutlined, ToolOutlined
+  ClockCircleOutlined, DownOutlined, RightOutlined, ToolOutlined, GiftOutlined, CloudUploadOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
@@ -188,6 +188,7 @@ const menuGroups = [
     icon: RocketOutlined,
     children: [
       { key: '/console/share-config', title: '分享管理', icon: ShareAltOutlined },
+      { key: '/console/experience-tokens', title: '体验会员管理', icon: GiftOutlined },
       { key: '/console/lottery', title: '抽奖活动', icon: FireOutlined },
       { key: '/console/home-testimonials', title: '首页评价', icon: CommentOutlined }
     ]
@@ -205,9 +206,11 @@ const menuGroups = [
       { key: '/console/feedbacks', title: '用户反馈', icon: CommentOutlined },
       { key: '/console/security-settings', title: '安全设置', icon: SafetyOutlined },
       { key: '/console/tools', title: '工具管理', icon: ToolOutlined },
+      { key: '/console/payment-config', title: '支付设置', icon: DollarOutlined },
       { key: '/console/sms-config', title: '短信配置', icon: MessageOutlined },
       { key: '/console/scheduled-tasks', title: '定时任务', icon: ClockCircleOutlined },
-      { key: '/console/audit-logs', title: '操作审计', icon: FileSearchOutlined }
+      { key: '/console/audit-logs', title: '操作审计', icon: FileSearchOutlined },
+      { key: '/console/upgrade-management', title: '升级管理', icon: CloudUploadOutlined }
     ]
   }
 ]

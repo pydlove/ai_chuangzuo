@@ -8,14 +8,16 @@ import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.aichuangzuo.user.modules.learn.enums.ArticleStatus;
 import com.aichuangzuo.user.modules.learn.enums.ContentType;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 
 /**
  * 用户端 - 创作学院文章只读实体，映射 {@code t_article}。
  */
-@Data
+@Getter
+@Setter
 @TableName("t_article")
 public class LearnArticleEntity {
 

@@ -190,7 +190,7 @@ const inviteShareText = computed(() => {
   const code = inviteCode.value
   let text = shareConfig.value?.content
   if (!text) {
-    text = `推荐你一个 AI 创作神器「爱创作」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
+    text = `推荐你一个 AI 创作神器「爱创作工坊」，注册即送 50 创作币，写公众号/小红书/头条都超方便！快来试试：\n{url}`
   }
   return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
@@ -250,7 +250,7 @@ const downloadPoster = async () => {
   ctx.textAlign = 'center'
   ctx.fillStyle = '#ff2442'
   ctx.font = 'bold 70px sans-serif'
-  ctx.fillText('爱创作', W / 2, 220)
+  ctx.fillText('爱创作工坊', W / 2, 220)
 
   ctx.fillStyle = '#595959'
   ctx.font = '36px sans-serif'
@@ -325,7 +325,7 @@ const downloadPoster = async () => {
   }
 
   const link = document.createElement('a')
-  link.download = `爱创作邀请海报-${inviteCode.value || 'invite'}.png`
+  link.download = `爱创作工坊邀请海报-${inviteCode.value || 'invite'}.png`
   link.href = dataUrl
   link.click()
 }

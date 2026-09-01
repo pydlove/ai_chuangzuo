@@ -136,6 +136,11 @@ const routes = [
         component: () => import('@/views/LotteryAdminView.vue')
       },
       {
+        path: 'experience-tokens',
+        name: 'AdminExperienceTokens',
+        component: () => import('@/views/ExperienceTokenView.vue')
+      },
+      {
         path: 'share-config',
         name: 'AdminShareConfig',
         component: () => import('@/views/ShareConfigView.vue')
@@ -206,6 +211,11 @@ const routes = [
         component: () => import('@/views/PlanListView.vue')
       },
       {
+        path: 'payment-config',
+        name: 'AdminPaymentConfig',
+        component: () => import('@/views/PaymentConfigView.vue')
+      },
+      {
         path: 'sms-config',
         name: 'AdminSmsConfig',
         component: () => import('@/views/SmsConfigView.vue')
@@ -244,6 +254,11 @@ const routes = [
         path: 'tools',
         name: 'AdminToolManagement',
         component: () => import('@/views/ToolManagementView.vue')
+      },
+      {
+        path: 'upgrade-management',
+        name: 'AdminUpgradeManagement',
+        component: () => import('@/views/UpgradeManagementView.vue')
       }
     ]
   },

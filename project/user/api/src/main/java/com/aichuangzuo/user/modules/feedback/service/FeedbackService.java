@@ -11,4 +11,6 @@ public interface FeedbackService {
     List<FeedbackVO> pageByUser(Long userId, Integer status, int page, int size);
 
     long countByUser(Long userId, Integer status);
+
+    FeedbackVO getMyReview(Long userId);
 }

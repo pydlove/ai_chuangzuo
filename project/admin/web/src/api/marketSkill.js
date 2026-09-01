@@ -31,6 +31,10 @@ export function deleteMarketSkill(bizNo) {
   return request.delete(`/market-skills/${bizNo}`)
 }
 
+export function batchDeleteMarketSkills(bizNos) {
+  return request.post('/market-skills/batch-delete', { bizNos })
+}
+
 export function getMarketSkillStats() {
   return request.get('/market-skills/stats').then((body) => body.data || {})
 }

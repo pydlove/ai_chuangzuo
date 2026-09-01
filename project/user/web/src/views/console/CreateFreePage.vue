@@ -3,6 +3,7 @@ import { reactive, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
+import { getTodayDoneKey } from '@/constants/storage.js'
 
 const router = useRouter()
 
@@ -38,9 +39,7 @@ onMounted(() => {
 })
 
 function setTodayDone() {
-  const date = new Date()
-  const key = `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
-  localStorage.setItem(key, '1')
+  localStorage.setItem(getTodayDoneKey(), '1')
 }
 
 function onSuccess(task) {

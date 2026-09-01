@@ -8,7 +8,7 @@ import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.skill.analyze.config.service.SkillAnalyzeConfigService;
 import com.aichuangzuo.user.modules.skill.analyze.service.SkillAnalyzeDailyLimiter;
-import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
+import com.aichuangzuo.shared.enums.error.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeAiService;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeService;
 import com.aichuangzuo.user.modules.skill.vo.SkillAnalyzeVO;

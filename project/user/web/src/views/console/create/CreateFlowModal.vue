@@ -396,9 +396,7 @@
             >
               <div class='angle-card-check'>
                 <div :class='["angle-card-checkbox", { checked: isAngleSelected(angle.id) }]'>
-                  <svg v-if='isAngleSelected(angle.id)' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'>
-                    <polyline points='20 6 9 17 4 12'></polyline>
-                  </svg>
+                  <Icon v-if='isAngleSelected(angle.id)' name='check' :size='13' :stroke-width='3' />
                 </div>
               </div>
               <div class='angle-card-body'>
@@ -420,10 +418,7 @@
               >
                 <span class='mobile-angle-chip-text'>{{ chip.label }}</span>
                 <span class='mobile-angle-chip-remove' @click.stop='removeSelectedAngle(chip.id)'>
-                  <svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'>
-                    <line x1='18' y1='6' x2='6' y2='18'></line>
-                    <line x1='6' y1='6' x2='18' y2='18'></line>
-                  </svg>
+                  <Icon name='close' :size='12' />
                 </span>
               </div>
             </div>
@@ -708,6 +703,8 @@ import { computed, reactive, ref, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { FireOutlined, BulbOutlined } from '@ant-design/icons-vue'
+import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
+import Icon from '@/components/common/Icon.vue'
 import {
   getRecommendedCreationSession,
   generateRecommendedTopics,
@@ -779,6 +776,10 @@ const { templates: apiTemplates, load: loadExportTemplates } = useExportTemplate
 const wordCountLimit = computed(() => getWordCountLimit())
 const isFreePlan = computed(() => getCurrentPlanKey() === 'free')
 const currentPlatform = computed(() => {
+  if (props.plan?.platformKey) {
+    const byKey = platforms.value.find(p => p.key === props.plan.platformKey)
+    if (byKey) return byKey
+  }
   if (props.plan?.platform) {
     const byName = platforms.value.find(p => p.name === props.plan.platform)
     if (byName) return byName
@@ -1579,8 +1580,10 @@ onMounted(() => {
 .prompt-pagination :deep(.ant-pagination-item-active) {
   background: var(--color-primary);
   border-color: var(--color-primary);
+  color: #fff;
 }
-.prompt-pagination :deep(.ant-pagination-item-active a) {
+.prompt-pagination :deep(.ant-pagination-item-active a),
+.prompt-pagination :deep(.ant-pagination-item-active button) {
   color: #fff;
 }
 .prompt-pagination :deep(.ant-pagination-item:hover) {
@@ -1949,9 +1952,6 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 }
-.create-flow-page-header {
-  display: none;
-}
 .create-flow-page-body {
   flex: 1;
   padding: 16px;
@@ -1961,39 +1961,6 @@ onMounted(() => {
 @media (max-width: 768px) {
   .create-flow-page {
     background: var(--color-bg-card);
-  }
-  .create-flow-page-header {
-    display: flex;
-    align-items: center;
-    position: relative;
-    height: 48px;
-    padding: 0 12px;
-    background: var(--color-bg-card);
-    border-bottom: 1px solid var(--color-border-light);
-    flex-shrink: 0;
-  }
-  .create-flow-page-back {
-    position: absolute;
-    left: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 14px;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-  }
-  .create-flow-page-back svg {
-    width: 20px;
-    height: 20px;
-  }
-  .create-flow-page-title {
-    flex: 1;
-    text-align: center;
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--color-text-primary);
   }
   .create-flow-page-body {
     display: flex;

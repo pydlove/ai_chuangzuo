@@ -21,7 +21,7 @@
         />
         <div class="mine-user-info">
           <div class="mine-user-name-row">
-            <span class="mine-user-name">{{ profileForm.nickname || '爱创作用户' }}</span>
+            <span class="mine-user-name">{{ profileForm.nickname || '爱创作工坊用户' }}</span>
             <span v-if="hasMembership" class="mine-user-vip">
               <CrownOutlined class="mine-user-vip-icon" />
               会员
@@ -206,7 +206,7 @@
       <span>退出登录</span>
     </button>
 
-    <p class="mine-footer">© 2026 爱创作 · 杭州爱启云网络科技有限公司</p>
+    <p class="mine-footer">© 2026 爱创作工坊 · 杭州爱启云网络科技有限公司</p>
     <p class="mine-icp">浙ICP备2025200943号-2</p>
     <a-modal
       v-model:open="settingsModalVisible"
@@ -305,7 +305,7 @@ const hasMembership = actions.hasMembership
 
 // 头像字母：取昵称第一个字符
 const avatarLetter = computed(() => {
-  const name = profileForm.nickname || '爱创作用户'
+  const name = profileForm.nickname || '爱创作工坊用户'
   return name.charAt(0).toUpperCase()
 })
 
@@ -475,11 +475,12 @@ const onMineAvatarChange = async (e) => {
   gap: 2px;
   padding: 2px 7px;
   border-radius: 4px;
-  background: rgba(255, 255, 255, 0.2);
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
   font-size: 10px;
   font-weight: 600;
   color: #fff;
   line-height: 1.4;
+  box-shadow: 0 2px 6px rgba(255, 36, 66, 0.25);
 }
 
 .mine-user-vip-icon {
@@ -1079,6 +1080,12 @@ body[data-theme="dark"] .mine-header-icon-btn {
 
 body[data-theme="dark"] .mine-header-icon-btn:active {
   background: rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .mine-user-vip {
+  background: linear-gradient(135deg, #FF6B8A 0%, #FF2442 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(255, 36, 66, 0.2);
 }
 
 body[data-theme="dark"] .mine-vip-card {

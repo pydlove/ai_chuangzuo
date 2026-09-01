@@ -158,12 +158,10 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import QRCode from 'qrcode'
 import MobileToolFooter from '@/components/common/MobileToolFooter.vue'
-
-const router = useRouter()
+import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
 
 const qrText = ref('')
 const generating = ref(false)
@@ -190,12 +188,8 @@ const errorLevelOptions = [
 const canGenerate = computed(() => qrText.value.trim().length > 0)
 const downloadName = computed(() => {
   const ts = Date.now()
-  return `爱创作二维码${ts}.png`
+  return `爱创作工坊二维码${ts}.png`
 })
-
-function goBack() {
-  router.back()
-}
 
 function openFullscreen() {
   fullscreenText.value = qrText.value
@@ -330,48 +324,6 @@ function onDownload() {
   background: #f8f9fa;
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
-}
-
-/* 子页面返回头 */
-.mqr-subpage-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  height: 48px;
-  padding: 0 12px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #f0f0f0;
-}
-.mqr-subpage-back {
-  position: absolute;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: #595959;
-  font-size: 14px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.mqr-subpage-back svg {
-  width: 20px;
-  height: 20px;
-}
-.mqr-subpage-title {
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 60px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
 }
 
 /* Hero */
@@ -820,16 +772,6 @@ function onDownload() {
 /* 暗色主题 */
 body[data-theme="dark"] .mobile-qr-code {
   background: #141414;
-  color: #e0e0e0;
-}
-body[data-theme="dark"] .mqr-subpage-header {
-  background: rgba(20, 20, 20, 0.96);
-  border-bottom-color: #2a2a2a;
-}
-body[data-theme="dark"] .mqr-subpage-back {
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .mqr-subpage-title {
   color: #e0e0e0;
 }
 body[data-theme="dark"] .mqr-hero {

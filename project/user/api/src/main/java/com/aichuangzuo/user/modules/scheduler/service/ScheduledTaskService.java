@@ -4,6 +4,8 @@ import com.aichuangzuo.user.modules.scheduler.entity.ScheduledTaskEntity;
 import com.aichuangzuo.user.modules.scheduler.executor.ScheduledTaskExecutor;
 import com.aichuangzuo.user.modules.scheduler.mapper.ScheduledTaskMapper;
 import com.aichuangzuo.user.modules.scheduler.registry.ScheduledTaskRegistry;
+import com.aichuangzuo.shared.enums.error.SystemErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,10 +35,10 @@ public class ScheduledTaskService {
         ScheduledTaskEntity task = taskMapper.selectOne(
                 new LambdaQueryWrapper<ScheduledTaskEntity>().eq(ScheduledTaskEntity::getTaskKey, taskKey));
         if (task == null || task.getIsDeleted() == 1) {
-            throw new RuntimeException("任务不存在");
+            throw new BusinessException(SystemErrorCode.RESOURCE_NOT_FOUND.getCode(), "任务不存在");
         }
         if (task.getEnabled() == null || task.getEnabled() == 0) {
-            throw new RuntimeException("任务已禁用");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "任务已禁用");
         }
         return executor.triggerManual(task, adminId);
     }

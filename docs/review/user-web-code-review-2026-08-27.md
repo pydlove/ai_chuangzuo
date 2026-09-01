@@ -112,27 +112,30 @@ import {
 
 ---
 
-### 6. 大量 `console.log/warn/error` 未清理
+### 6. 大量 `console.log/warn/error` 未清理 ✅ 已修复
 
 不完全统计约 30+ 处，典型位置：
 
-- `src/views/console/ConsoleLayout.vue:1976`
+- `src/views/console/ConsoleLayout.vue:1914` 的 `console.log('关于链接:', type)`
 - `src/composables/useSkillMarket.js` 多处
-- `src/views/console/WorksIndex.vue:312, 415, 433, 452, 510`
-- `src/views/console/PreviewIndex.vue:478, 496`
-- `src/views/console/WorkbenchIndex.vue:747, 795, 1067`
-- `src/views/console/CreateIndex.vue:103`
-- `src/utils/articleStorage.js:23, 37`
-- `src/components/AccountCheckModal.vue:168`
-- `src/views/console/AccountCheckIndex.vue:179`
-- 其他 `console.warn('加载...失败', e)` 等
+- `src/views/console/WorksIndex.vue` 多处
+- `src/views/console/PreviewIndex.vue` 多处
+- `src/views/console/WorkbenchIndex.vue` 多处
+- `src/views/console/CreateIndex.vue`
+- `src/utils/articleStorage.js`
+- `src/components/AccountCheckModal.vue`
+- `src/views/console/AccountCheckIndex.vue`
+- 其他 `console.warn('加载...失败', e)` / `console.error('...失败', e)` 等
 
-**修复建议**：
-- 生产代码不应保留 `console.*`。
-- 引入统一日志工具，按环境决定是否输出。
-- 或在构建时配置 `drop_console`。
+**修复内容**：
+- 删除 `project/user/web/src` 下所有 `console.log` / `console.warn` / `console.error` 调试输出，共清理 30+ 处。
+- 保留原有错误处理语义：
+  - 已调用 `message.error` / `message.success` 的保持 UI 提示；
+  - 仅含 `console` 的 `catch` 块改为空块并补充注释说明吞掉异常的原因；
+  - 返回默认值的保持返回默认值。
+- 本次不引入统一日志工具，按项目当前阶段直接移除生产调试输出。
 
----
+**验证**：`npm run build` 通过，无引用错误。
 
 ### 7. 硬编码外部资源与域名
 
@@ -155,7 +158,7 @@ import {
 
 ---
 
-### 8. localStorage key 零散，没有统一常量
+### 8. localStorage key 零散，没有统一常量 ✅ 已修复
 
 检索到约 30+ 个不同的 `aichuangzuo_*` key，分散在 20 多个文件中，例如：
 
@@ -164,8 +167,6 @@ import {
 - `aichuangzuo_remember_me`
 - `aichuangzuo_user_id`
 - `aichuangzuo_membership`
-- `aichuangzuo_earnings_records`
-- `aichuangzuo_coin_balance`
 - `aichuangzuo_current_article`
 - `aichuangzuo_drafts`
 - `aichuangzuo_create_form`
@@ -183,11 +184,18 @@ import {
 - `aichuangzuo_onboarding_draft:*, aichuangzuo_onboarding_done:*`
 - `aichuangzuo_mine_nav_expanded`
 
-**修复建议**：在 `src/utils/storage-keys.js` 中集中定义所有 key，禁止硬编码；涉及用户隔离的 key 统一拼接 `userId`。
+**修复内容**：
+1. 新增 `src/constants/storage.js`，集中定义 `STORAGE_KEYS` 常量对象，覆盖认证、用户、主题、创作、账户、新手引导、兑换码、自媒体方案等全部 key。
+2. 新增用户隔离 key helper：`getAccountCheckLastKey(userId)`、`getAccountRecommendLastKey(userId)`、`getOnboardingDraftKey(userId)`、`getOnboardingDoneKey(userId)`。
+3. 新增动态 key helper：`getTodayDoneKey(date)`、`getCouponWarnKey(couponId)`。
+4. 维护 `USER_SCOPED_STORAGE_KEYS` 数组，供登录态切换时统一清理用户相关缓存。
+5. 已迁移位置包括：`router/index.js`、`utils/request.js`、`utils/articleStorage.js`、`utils/membershipLimits.js`、`composables/useLogin.js`、`usePricing.js`、`useLearn.js`、`useSkills.js`、`views/console/create/useCreateForm.js`、`ConsoleLayout.vue`、`WorkbenchIndex.vue`、`CreateIndex.vue`、`WorksIndex.vue`、`SkillsIndex.vue`、`SkillMarketIndex.vue`、`AccountCheckIndex.vue`、`AccountCheckModal.vue`、`CouponIndex.vue`、`LotteryPage.vue`、`QrLoginScan.vue`、`NavBar.vue`、`LeaderboardPreview.vue`、`CreateFlowLauncher.vue`、`CreateFreePage.vue`、`CreateRecommendedPage.vue`、`OnboardingIndex.vue`、`WithdrawIndex.vue`。
+
+**验证**: `npm run build` 通过，`src` 下已无硬编码 `aichuangzuo_*` 字符串。
 
 ---
 
-### 9. 轮询/定时器清理不彻底
+### 9. 轮询/定时器清理不彻底 ✅ 已修复
 
 虽然大部分在 `onBeforeUnmount` 中清理，但仍有隐患：
 
@@ -196,10 +204,18 @@ import {
 - `src/views/console/CouponIndex.vue:231`：`expiryTimer` 需要确认页面离开时是否清理。
 - `src/views/console/ConsoleLayout.vue:2165, 2214`：邮箱/手机验证码倒计时需要确认。
 
-**修复建议**：
-- 所有 `watch` + 异步回调中检查组件是否仍挂载。
-- 使用 `onScopeDispose` 或 `takeUntil` 模式清理。
-- 所有 `setInterval/setTimeout` 必须有对应清理。
+**修复内容**：
+1. `src/composables/useLogin.js`：新增 `isMounted` 标志；在 `onBeforeUnmount` 中置为 `false`；在两个异步 `watch` 的每个 `await` 后增加 `if (!isMounted) return` 守卫，避免卸载后继续调用 `message`/`router.push`。
+2. `src/composables/useQrLogin.js`：新增 `isMounted` 守卫；轮询到达终端状态或过期时同时停止 polling 和 expire countdown；过期倒计时至 0 时自我清理。
+3. `src/views/QrLoginScan.vue`：新增 `isMounted` 守卫；连续轮询失败超过 5 次后自动停止并提示错误。
+4. `src/views/console/CouponIndex.vue`：`onUnmounted` 中清空 `expiryTimer` 后将其置为 `null`。
+5. `src/views/console/ConsoleLayout.vue`：`onUnmounted` 中同时清理邮箱/手机验证码倒计时定时器。
+6. `src/views/console/create/useGenerationQueue.js`：新增模块级 `pollRefCount` 引用计数和 `visibilitychange` 监听，页面切后台暂停轮询、切前台恢复；所有消费者停止后才真正清除 interval。
+7. `src/composables/useGenerationTask.js` + `src/api/generation.js`：`getGenerationTask` 支持 `signal`；轮询使用 `AbortController`，`stop()` 时中断正在进行的请求；新增 `MAX_RETRIES` 错误重试上限；新增 `visibilitychange` 暂停/恢复；防止重叠启动。
+8. `src/composables/useMessages.js`：`resumePolling` 在 `document.hidden` 时不启动 interval，避免后台无意义轮询。
+9. `src/views/console/LotteryPage.vue`：新增 `pageMounted` 标志；追踪并清理抽奖动画相关的 `shakeTimer`、`revealTimer`、`minAnimTimer`、`rollTimer`；在 `onBeforeUnmount` 中全部清除；动画递归步进和 `performDraw` 的异步回调均增加卸载守卫。
+
+**验证**: `npm run build` 通过，无引用错误。
 
 ---
 
@@ -228,13 +244,21 @@ import {
 
 ---
 
-### 12. 重复的工具函数
+### 12. 重复的工具函数 ✅ 已修复
 
-- `formatDate` 在 `WorksIndex.vue`、`PreviewIndex.vue` 等多个文件中重复实现。
+- `formatDate` 在 `WorksIndex.vue`、`PreviewIndex.vue`、`HotSearchIndex.vue`、`MobileLearn.vue`、`ConsoleLearnIndex.vue`、`LearnContent.vue` 等多个文件中重复实现。
 - `stripHtml` 在 `articleBlocks.js`、`PreviewIndex.vue` 中重复。
-- 平台映射 `platformMap` 在多个文件中出现。
+- 平台映射 `platformMap` / `platformNameMap` 在 `WorksIndex.vue`、`WorkbenchIndex.vue` 中重复。
 
-**修复建议**：抽到 `src/utils/format.js`、`src/utils/html.js`、`src/utils/platform.js`。
+**修复内容**：
+- 新建 `src/utils/format.js`：
+  - `formatDateTime(dateStr)` → "M月D日 HH:MM"，供 WorksIndex / PreviewIndex 使用；
+  - `formatDate(date)` → "YYYY-MM-DD"，供 HotSearchIndex / MobileLearn / ConsoleLearnIndex / LearnContent 使用。
+- 新建 `src/utils/html.js`：统一 `stripHtml(html)`，供 `articleBlocks.js` 和 `PreviewIndex.vue` 使用。
+- 新建 `src/utils/platform.js`：统一 `PLATFORM_NAME_MAP` 与 `PLATFORM_OPTIONS`，供 `WorksIndex.vue` 和 `WorkbenchIndex.vue` 使用。
+- 删除各文件中的本地重复定义，改为从对应 utils 文件导入。
+
+**验证**：`npm run build` 通过，无引用错误。
 
 ---
 
@@ -284,7 +308,7 @@ import {
 | 优先级 | 事项 |
 |--------|------|
 | P0 | 给 `v-html` / `MarkdownIt` 加 XSS 消毒；修 `static-uploads` 路径校验 |
-| P1 | 轮询加超时/暂停；清理 `console.*`；统一 localStorage key；移除外链硬编码 |
+| P1 | 轮询加超时/暂停；清理 `console.*`；~~统一 localStorage key~~；移除外链硬编码 |
 | P2 | 合并 PC/Mobile 重复代码；抽取公共工具函数；规范 import 顺序 |
 | P3 | 错误码常量化；补充 ESLint/类型检查；删除空目录 |
 

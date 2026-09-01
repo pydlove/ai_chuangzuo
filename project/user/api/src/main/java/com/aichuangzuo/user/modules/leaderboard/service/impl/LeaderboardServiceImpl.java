@@ -3,7 +3,7 @@ package com.aichuangzuo.user.modules.leaderboard.service;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
-import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
+import com.aichuangzuo.shared.enums.error.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.LeaderboardAggregateMapper;
 import com.aichuangzuo.user.modules.leaderboard.mapper.LeaderboardRewardConfigMapper;
 import com.aichuangzuo.user.modules.leaderboard.vo.CoinLeaderboardVO;

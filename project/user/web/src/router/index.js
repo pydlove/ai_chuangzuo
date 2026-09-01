@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const routes = [
   {
@@ -85,7 +86,7 @@ const routes = [
     children: [
       {
         path: '',
-        redirect: '/console/create'
+        redirect: '/console/workbench'
       },
       {
         path: 'workbench',
@@ -266,7 +267,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to) => {
-  const token = localStorage.getItem('aichuangzuo_access_token')
+  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
   if (token && to.path === '/login') {
     return { path: '/console' }
   }

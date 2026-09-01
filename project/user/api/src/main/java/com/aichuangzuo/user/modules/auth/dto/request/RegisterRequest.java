@@ -30,5 +30,8 @@ public class RegisterRequest {
     @Size(max = 6, message = "邀请码最多 6 位")
     private String inviteCode;
 
+    @Size(max = 32, message = "体验链接令牌长度错误")
+    private String experienceToken;
+
     private Boolean rememberMe;
 }

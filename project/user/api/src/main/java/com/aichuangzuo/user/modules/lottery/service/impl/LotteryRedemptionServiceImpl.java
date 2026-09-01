@@ -5,7 +5,7 @@ import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryRedemptionCode;
 import com.aichuangzuo.user.modules.lottery.entity.UserCoupon;
 import com.aichuangzuo.user.modules.lottery.entity.UserMembershipPending;
-import com.aichuangzuo.user.modules.lottery.enums.LotteryErrorCode;
+import com.aichuangzuo.shared.enums.error.LotteryErrorCode;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryRedemptionCodeMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.UserCouponMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.UserMembershipPendingMapper;

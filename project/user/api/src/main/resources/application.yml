@@ -1,5 +1,9 @@
 server:
   port: 25050
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain,text/css,text/javascript,application/javascript
+    min-response-size: 1024
 
 spring:
   application:
@@ -39,9 +43,12 @@ auth:
   jwt:
     access-secret: ${JWT_ACCESS_SECRET:please-change-this-access-secret-at-least-256-bits-long}
     refresh-secret: ${JWT_REFRESH_SECRET:please-change-this-refresh-secret-at-least-256-bits-long}
+    export-secret: ${JWT_EXPORT_SECRET:please-change-this-export-secret-at-least-256-bits-long}
+    admin-access-secret: ${ADMIN_JWT_ACCESS_SECRET:please-change-this-admin-access-secret-at-least-256-bits-long}
     access-expiration: 7200
     refresh-expiration: 604800
     remember-me-refresh-expiration: 2592000
+    export-expiration: 600
   register:
     max-per-ip: 10
 

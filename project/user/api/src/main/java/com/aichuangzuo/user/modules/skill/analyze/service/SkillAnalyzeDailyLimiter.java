@@ -49,7 +49,7 @@ public class SkillAnalyzeDailyLimiter {
             if (updated == 0) {
                 log.warn("用户 AI 提示词分析日次数已达上限 userId={}, date={}", userId, today);
                 throw new com.aichuangzuo.shared.exception.BusinessException(
-                        com.aichuangzuo.user.modules.skill.enums.SkillErrorCode.SKILL_ANALYZE_DAILY_LIMIT_EXCEEDED);
+                        com.aichuangzuo.shared.enums.error.SkillErrorCode.SKILL_ANALYZE_DAILY_LIMIT_EXCEEDED);
             }
             return currentCount(userId, today);
         }

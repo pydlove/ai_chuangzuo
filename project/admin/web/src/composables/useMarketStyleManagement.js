@@ -4,7 +4,8 @@ import {
   listMarketSkills,
   createMarketSkill,
   updateMarketSkill,
-  deleteMarketSkill
+  deleteMarketSkill,
+  batchDeleteMarketSkills
 } from '@/api/marketSkill.js'
 
 export function useMarketStyleManagement() {
@@ -98,6 +99,18 @@ export function useMarketStyleManagement() {
     }
   }
 
+  const handleBatchDelete = async (bizNos) => {
+    try {
+      await batchDeleteMarketSkills(bizNos)
+      message.success(`已批量删除 ${bizNos.length} 条`)
+      await fetch()
+      return true
+    } catch (error) {
+      message.error(error.message || '批量删除失败')
+      return false
+    }
+  }
+
   return {
     list,
     total,
@@ -114,6 +127,7 @@ export function useMarketStyleManagement() {
     handlePageChange,
     handleCreate,
     handleUpdate,
-    handleDelete
+    handleDelete,
+    handleBatchDelete
   }
 }

@@ -26,10 +26,10 @@
 - 适合人群：{{platformBestFor}}
 
 用户问答（JSON 数组，每个元素包含：
-- questionKey：问题的英文标识，如 time_commitment、monetization_goal、background 等
+- questionKey：问题的英文标识，如 time_commitment、monetization_goal、background、professional_qualification 等
 - text：问题显示文本
 - answer：用户所选选项的 key 或 label）
-{{questionsAnswersJson}}
+{{nicheQuestionAnswersJson}}
 
 # Output Format
 {"niches":[{"key":"英文标识","name":"中文赛道名","audience":"目标人群，20字以内","monetization":"主要变现方式，20字以内","riskLabel":"同质化风险低/中/高","riskColor":"success/warning/error","caseCount":10,"reason":"推荐理由，80字以内"}]}
@@ -47,8 +47,9 @@
 10. 必须结合用户问答中的 questionKey 和 answer 理解用户偏好（如时间投入、变现目标、专业背景、目标受众、年龄段、内容形式偏好等），再结合 {{platformName}} 的平台特点和 {{platformBestFor}} 的适合人群生成赛道。
 11. 本平台只支持图文创作，推荐的赛道必须能靠图文内容持续产出，不要出现短视频、出镜、直播、口播类赛道。
 12. 如果 {{platformContentForm}} 中包含非图文形式，应忽略，只基于图文内容形式推荐赛道。
-13. 避免推荐需要平台认证或专业资质才能发布内容的赛道（如财经、医疗、法律、教育、心理咨询等）。除非用户问答中明确表明用户具备相关专业背景或资质（例如 background 中体现“持证”“从业”“专业领域”等），且该资质可在平台完成认证，否则应选择无资质门槛的赛道。若用户背景中可能有相关经验但不明确是否持证，优先推荐无需认证的相邻方向。
-14. 若输入信息缺失或模糊，请基于 {{platformName}} 名称和图文平台通用逻辑合理推断；若用户问答缺乏关键信息，可基于常见情况做合理假设，但不要推荐与已知信息明显矛盾的赛道。
+13. 避免推荐需要平台认证或专业资质才能发布内容的赛道（如财经、医疗、法律、教育、心理咨询等）。仅当用户问答中 professional_qualification 的 answer 为具体资质方向（如 law_cert、medical_cert、finance_cert、education_cert）或 other_cert（且 other 填写内容属于需要资质的领域）时，才可考虑推荐此类赛道；若 answer 为 experienced_no_cert，只推荐无需资质认证的相邻方向；若 answer 为 no_background 或 not_sure，严禁推荐任何需要资质的赛道。
+14. 推荐的赛道必须避开容易引发平台限流、审核风险或违规敏感的领域，包括但不限于：时事政治、敏感社会议题、公共事件评论、政策法规争议、民族宗教、军事外交、虚假夸大宣传、人身攻击、隐私泄露等。赛道应聚焦在个人经历、专业知识、生活洞察、技能方法、兴趣圈层等安全可持续的图文创作方向。
+15. 若输入信息缺失或模糊，请基于 {{platformName}} 名称和图文平台通用逻辑合理推断；若用户问答缺乏关键信息，可基于常见情况做合理假设，但不要推荐与已知信息明显矛盾的赛道。
 15. 只输出 JSON，不要代码围栏和额外说明。
 
 # Examples

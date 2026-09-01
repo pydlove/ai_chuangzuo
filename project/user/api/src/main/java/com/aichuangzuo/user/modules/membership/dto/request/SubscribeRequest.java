@@ -21,8 +21,7 @@ public class SubscribeRequest {
     @NotBlank(message = "订阅周期不能为空")
     private String cycle;
 
-    /** 测试支付码。 */
-    @NotBlank(message = "支付码不能为空")
+    /** 测试支付码（仅在测试模式下必填）。 */
     private String payCode;
 
     /** 订单金额（取自 Pricing 页当前价格，抵扣后的现金金额）。 */

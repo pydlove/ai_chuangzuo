@@ -1,14 +1,15 @@
 package com.aichuangzuo.user.modules.article.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.utils.LlmJsonParser;
 import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.aichuangzuo.user.modules.article.entity.Article;
-import com.aichuangzuo.user.modules.article.enums.ArticleErrorCode;
+import com.aichuangzuo.shared.enums.error.ArticleErrorCode;
 import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.article.service.TitleOptimizeAiService;
 import com.aichuangzuo.user.modules.article.service.TitleOptimizeService;
 import com.aichuangzuo.user.modules.article.vo.TitleOptimizeVO;
-import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
+import com.aichuangzuo.shared.enums.error.BenefitErrorCode;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.aiprompt.service.AiPromptRenderService;
@@ -74,7 +75,7 @@ public class TitleOptimizeServiceImpl implements TitleOptimizeService {
         AiPromptRendered prompt = aiPromptRenderService.render("title_optimize_v1",
                 Map.of("title", article.getTitle(), "bodyExcerpt", excerpt(article.getBody())));
         String aiResp = aiService.call(prompt.systemRole(), prompt.userPrompt());
-        Map<String, List<String>> titles = parseTitles(stripCodeFence(aiResp));
+        Map<String, List<String>> titles = parseTitles(aiResp);
         if (titles == null || titles.isEmpty()) {
             log.warn("AI 标题优化结果解析失败 bizNo={}, resp={}", bizNo, abbreviate(aiResp));
             throw new BusinessException(ArticleErrorCode.TITLE_OPTIMIZE_FAILED);
@@ -119,7 +120,7 @@ public class TitleOptimizeServiceImpl implements TitleOptimizeService {
             return null;
         }
         try {
-            JsonNode root = objectMapper.readTree(raw);
+            JsonNode root = LlmJsonParser.parseLenient(objectMapper, raw);
             JsonNode titlesNode = root.path("titles");
             if (!titlesNode.isObject()) {
                 return null;
@@ -152,24 +153,6 @@ public class TitleOptimizeServiceImpl implements TitleOptimizeService {
             return "";
         }
         return body.length() <= BODY_EXCERPT_MAX ? body : body.substring(0, BODY_EXCERPT_MAX);
-    }
-
-    /** 防御：模型偶有 ```json 围栏输出，剥掉再解析。 */
-    private static String stripCodeFence(String text) {
-        if (text == null) {
-            return "";
-        }
-        String s = text.strip();
-        if (s.startsWith("```")) {
-            int firstNewline = s.indexOf('\n');
-            if (firstNewline > 0) {
-                s = s.substring(firstNewline + 1);
-            }
-            if (s.endsWith("```")) {
-                s = s.substring(0, s.length() - 3);
-            }
-        }
-        return s.strip();
     }
 
     private static String abbreviate(String s) {

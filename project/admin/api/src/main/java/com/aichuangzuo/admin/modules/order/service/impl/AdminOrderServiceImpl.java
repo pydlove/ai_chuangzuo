@@ -10,13 +10,18 @@ import com.aichuangzuo.admin.modules.order.enums.AdminOrderErrorCode;
 import com.aichuangzuo.admin.modules.order.enums.OrderStatus;
 import com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper;
 import com.aichuangzuo.admin.modules.order.mapper.AdminOrderMapper;
+import com.aichuangzuo.admin.modules.order.payment.xunhupay.client.XunhupayRefundClient;
+import com.aichuangzuo.admin.modules.order.payment.xunhupay.dto.XunhupayRefundResponse;
 import com.aichuangzuo.admin.modules.order.service.AdminOrderService;
 import com.aichuangzuo.admin.modules.order.vo.*;
+import com.aichuangzuo.admin.modules.settings.paymentconfig.entity.PaymentConfig;
+import com.aichuangzuo.admin.modules.settings.paymentconfig.service.PaymentConfigService;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -43,6 +48,13 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     private final AdminOrderMapper orderMapper;
     private final AdminMembershipMapper membershipMapper;
+    private final PaymentConfigService paymentConfigService;
+    private final XunhupayRefundClient xunhupayRefundClient;
+
+    private static final long PAYMENT_CONFIG_ID = 1L;
+    private static final String PAYMENT_METHOD_XUNHUPAY = "xunhupay";
+    private static final String REFUND_STATUS_COMPLETED = "CD";
+    private static final String REFUND_STATUS_PROCESSING = "RD";
 
     @Override
     public OrderPageVO listOrders(String keyword, String planKey, Integer status,
@@ -99,8 +111,40 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             throw new BusinessException(AdminOrderErrorCode.ORDER_STATUS_NOT_ALLOWED);
         }
 
+        String thirdPartyRefundId = null;
+        BigDecimal refundAmount = order.getAmount();
+
+        // 真实虎皮椒支付订单（有第三方交易号）需先调用网关退款
+        if (PAYMENT_METHOD_XUNHUPAY.equals(order.getPaymentMethod()) && StringUtils.hasText(order.getThirdPartyTradeId())) {
+            PaymentConfig config = paymentConfigService.getConfig(PAYMENT_CONFIG_ID);
+            if (config == null || !StringUtils.hasText(config.getAppId()) || !StringUtils.hasText(config.getAppSecret())) {
+                throw new BusinessException(AdminOrderErrorCode.PAYMENT_CONFIG_NOT_FOUND);
+            }
+
+            XunhupayRefundResponse response = xunhupayRefundClient.refund(config, order.getOrderNo(), reason);
+            if (response.getErrcode() == null || response.getErrcode() != 0) {
+                log.error("虎皮椒退款失败 orderId={}, orderNo={}, errcode={}, errmsg={}",
+                        id, order.getOrderNo(), response.getErrcode(), response.getErrmsg());
+                String msg = response.getErrmsg() != null ? response.getErrmsg() : "退款失败";
+                throw new BusinessException(AdminOrderErrorCode.REFUND_FAILED.getCode(), msg);
+            }
+
+            String refundStatus = response.getRefundStatus();
+            if (!REFUND_STATUS_COMPLETED.equals(refundStatus) && !REFUND_STATUS_PROCESSING.equals(refundStatus)) {
+                log.error("虎皮椒退款状态异常 orderId={}, orderNo={}, refundStatus={}",
+                        id, order.getOrderNo(), refundStatus);
+                String msg = "退款状态异常: " + (refundStatus == null ? "未知" : refundStatus);
+                throw new BusinessException(AdminOrderErrorCode.REFUND_FAILED.getCode(), msg);
+            }
+
+            thirdPartyRefundId = response.getOutRefundNo();
+            if (response.getRefundFee() != null) {
+                refundAmount = response.getRefundFee();
+            }
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        orderMapper.refund(id, reason, operatorId, now);
+        orderMapper.refund(id, reason, operatorId, now, thirdPartyRefundId, refundAmount);
 
         // 退款直接取消会员：expires_at 设为昨天
         AdminMembership membership = membershipMapper.selectByUserId(order.getUserId());
@@ -111,7 +155,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
             syncUserMembershipFields(order.getUserId(), yesterday, order.getCycle());
         }
 
-        log.info("管理员退款 orderId={}, operatorId={}, reason={}", id, operatorId, reason);
+        log.info("管理员退款 orderId={}, operatorId={}, reason={}, thirdPartyRefundId={}, refundAmount={}",
+                id, operatorId, reason, thirdPartyRefundId, refundAmount);
     }
 
     @Override
@@ -421,6 +466,8 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         vo.setStatus(row.getStatus());
         OrderStatus os = OrderStatus.of(row.getStatus());
         vo.setStatusName(os != null ? os.getDisplayName() : "未知");
+        vo.setPaymentMethod(row.getPaymentMethod());
+        vo.setThirdPartyTradeId(row.getThirdPartyTradeId());
         vo.setPaidAt(row.getPaidAt());
         vo.setRefundedAt(row.getRefundedAt());
         vo.setCreatedAt(row.getCreatedAt());
@@ -442,6 +489,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         vo.setStatus(row.getStatus());
         OrderStatus os = OrderStatus.of(row.getStatus());
         vo.setStatusName(os != null ? os.getDisplayName() : "未知");
+        vo.setPaymentMethod(row.getPaymentMethod());
+        vo.setThirdPartyTradeId(row.getThirdPartyTradeId());
+        vo.setThirdPartyRefundId(row.getThirdPartyRefundId());
+        vo.setRefundAmount(row.getRefundAmount());
         vo.setPaidAt(row.getPaidAt());
         vo.setRefundedAt(row.getRefundedAt());
         vo.setRefundReason(row.getRefundReason());

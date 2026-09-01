@@ -97,7 +97,7 @@ async function loadData() {
 
     weeklyArticles.splice(0, weeklyArticles.length, ...thisWeekArticles)
   } catch (err) {
-    console.warn('加载本周数据失败', err)
+    // 加载失败时保持列表为空
   } finally {
     articlesLoading.value = false
   }

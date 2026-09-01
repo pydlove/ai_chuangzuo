@@ -3,7 +3,7 @@ package com.aichuangzuo.admin.modules.generation.pipeline;
 import java.util.List;
 
 /**
- * 13 阶段流水线元信息（与设计文档 2026-07-09-de-ai-flavor-writing-pipeline-design.md 一一对应）。
+ * 14 阶段流水线元信息（与设计文档 2026-07-09-de-ai-flavor-writing-pipeline-design.md 一一对应）。
  *
  * <p>每个 {@code PipelineStage} 持有：
  * <ul>
@@ -14,7 +14,7 @@ import java.util.List;
  *   <li>该规则阶段的表单字段定义（仅规则阶段）</li>
  * </ul>
  *
- * <p>所有 13 个 stage 用 {@link #ALL} 数组持有，UI / API / 后续 executor 都从这一处读。
+ * <p>所有 14 个 stage 用 {@link #ALL} 数组持有，UI / API / 后续 executor 都从这一处读。
  */
 public enum PipelineStage {
 
@@ -266,6 +266,44 @@ public enum PipelineStage {
             List.of(
                     new Placeholder("draft", "分块初稿"),
                     new Placeholder("rhythmIssues", "韵律问题清单")
+            ),
+            List.of(),
+            9
+    ),
+
+    // ===== 6.1 人类化改写（AI，极速 3 阶段专用）=====
+    // 注意：该 stage 与 RHYTHM_REWRITE 共用 index=6，但不在 ALL 数组里，
+    // 因此不影响进度权重与默认模板；仅在 stage_key=humanize_rewrite 时
+    // 由 PromptTemplateService.toStageVo 读取其元数据。
+    // 实际提示词存放于 c_ai_prompt（prompt_code=article_humanize_rewrite_v1）。
+    HUMANIZE_REWRITE(
+            6, "humanize_rewrite", "人类化改写", StageType.AI_PROMPT,
+            "对第 4/5 阶段产出的初稿做一次整体人类化改写，降低 AI 检测率。",
+            """
+            你是一位资深编辑，专门把"AI 味"太重的文章改成真实博主的手感。
+
+            请改写下面的文章，目标是让它读起来像真人写的，降低 AI 检测率。
+
+            改写规则：
+            1. 句子长短错开，允许 5-10 字的短句。
+            2. 删掉"首先/其次/最后/综上所述/值得注意的是"。
+            3. 把部分书面连接词换成口语："不过""说实话""其实""有意思的是"。
+            4. 每 2-3 段加入一句主观感受或情绪。
+            5. 保留原意、段落结构和核心信息，不要扩写。
+            6. 允许少量不完美表达，但保持可读。
+
+            原文（JSON）：
+            {{draft}}
+
+            输出格式（严格 JSON）：
+            {
+              "draft": [
+                {"paragraph_index": 1, "responsibility": "...", "content": "..."}
+              ]
+            }""",
+            null,
+            List.of(
+                    new Placeholder("draft", "分块初稿")
             ),
             List.of(),
             9
@@ -540,6 +578,47 @@ public enum PipelineStage {
             3
     ),
 
+    // ===== 14. 质量评估（AI）=====
+    AI_DETECT(
+            14, "ai_detect", "质量检测", StageType.AI_PROMPT,
+            "用大模型对最终稿进行质量评分（0-100），并映射为低 / 中 / 高 / 极高四个等级。",
+            """
+            你是一位资深的文章质量评估专家。请对下面这篇文章进行质量检测，给出一个 0-100 的综合质量分数。
+
+            文章标题：{{title}}
+
+            最终稿（JSON 分块，paragraph_index 为段落序号，content 为段落正文）：
+            {{finalDraft}}
+
+            评分维度：
+            - 80-100：观点鲜明、结构清晰、表达自然、有具体细节或真实案例、无明显 AI 味
+            - 60-79：整体可读，但部分句子偏规整、连接词书面化、或缺少个人语气
+            - 40-59：套路感明显、空话较多、缺乏具体细节
+            - 0-39：逻辑混乱、大量套话、明显像 AI 生成
+
+            任务：
+            1. 给出一个 0-100 的整数分数（score），分数越高代表文章整体质量越好。
+            2. 用一句话总结整体判断（summary）。
+
+            输出格式（严格 JSON，不要 markdown 围栏）：
+            {
+              "score": 75,
+              "summary": "整体结构完整，但部分连接词偏书面，加入具体案例后可进一步提升。"
+            }
+
+            约束：
+            - 只输出合法 JSON，不要任何解释
+            - 不要编造数据、案例、人名
+            - score 必须是 0-100 的整数""",
+            null,
+            List.of(
+                    new Placeholder("title", "文章标题"),
+                    new Placeholder("finalDraft", "最终稿 JSON")
+            ),
+            List.of(),
+            2
+    ),
+
     // ===== 100. 落库（非 13 阶段之一，用于 GenerationPipeline 编排器排序）=====
     PERSIST_ARTICLE(
             100, "persist_article", "持久化文章", StageType.PASSTHROUGH,
@@ -551,13 +630,13 @@ public enum PipelineStage {
             2
     );
 
-    /** 所有 13 个 stage + persist 收尾阶段（按 index 升序）。 */
+    /** 所有 14 个 stage + persist 收尾阶段（按 index 升序）。 */
     public static final PipelineStage[] ALL = new PipelineStage[]{
             INTENT_ANCHOR, OUTLINE, MATERIAL_LIST, DRAFT,
             RHYTHM_DETECT, RHYTHM_REWRITE, EXTERNAL_REVIEW,
             TARGETED_REWRITE, RHYTHM_POLISH,
             WORD_COUNT, WORD_ADJUST, EXPORT_RENDER,
-            PUBLISH_META,
+            PUBLISH_META, AI_DETECT,
             PERSIST_ARTICLE
     };
 

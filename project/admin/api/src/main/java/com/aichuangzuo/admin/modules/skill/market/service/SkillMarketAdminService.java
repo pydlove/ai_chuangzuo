@@ -9,6 +9,8 @@ import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketR
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
+import java.util.List;
+
 /**
  * 管理端 - 风格市场服务。
  */
@@ -33,6 +35,11 @@ public interface SkillMarketAdminService {
      * 软删除（is_deleted=1）。
      */
     void delete(String bizNo);
+
+    /**
+     * 批量软删除。
+     */
+    int deleteBatch(List<String> bizNos);
 
     /**
      * 提示词市场统计概览。

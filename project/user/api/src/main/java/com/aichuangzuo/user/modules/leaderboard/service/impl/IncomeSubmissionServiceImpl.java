@@ -5,7 +5,7 @@ import com.aichuangzuo.user.infrastructure.storage.LocalFileStorage;
 import com.aichuangzuo.user.modules.leaderboard.dto.request.IncomeSubmissionUploadRequest;
 import com.aichuangzuo.user.modules.leaderboard.entity.IncomeSubmission;
 import com.aichuangzuo.user.modules.leaderboard.entity.SubmissionStatus;
-import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
+import com.aichuangzuo.shared.enums.error.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.IncomeSubmissionMapper;
 import com.aichuangzuo.user.modules.leaderboard.service.IncomeSubmissionService;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeSubmissionVO;

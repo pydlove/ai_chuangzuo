@@ -11,7 +11,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Component
 @RequiredArgsConstructor
@@ -33,13 +32,8 @@ public class RateLimitInterceptor implements HandlerInterceptor {
         int maxRequests = getMaxRequests(path);
         int windowSeconds = getWindowSeconds(path);
 
-        AtomicInteger counter = cacheUtil.get(key);
-        if (counter == null) {
-            counter = new AtomicInteger(0);
-            cacheUtil.set(key, counter, windowSeconds, TimeUnit.SECONDS);
-        }
-
-        if (counter.incrementAndGet() > maxRequests) {
+        int count = cacheUtil.incrementAndGet(key, windowSeconds, TimeUnit.SECONDS);
+        if (count > maxRequests) {
             throw new BusinessException(SystemErrorCode.RATE_LIMIT_ERROR);
         }
         return true;

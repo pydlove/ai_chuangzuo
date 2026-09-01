@@ -356,7 +356,7 @@
       <div v-if="learnedSkillsDisplay.length === 0" class="styles-empty">
         <div v-if="isLearning" class="style-add-card learning-progress-card">>
           <div class="style-add-icon"><a-spin /></div>
-          <div class="style-add-text learning-progress-text">灵犀同学正在帮您分析…</div>
+          <div class="style-add-text learning-progress-text">小爱正在帮您分析…</div>
         </div>
         <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
           <div class="style-add-icon">✓</div>
@@ -376,7 +376,7 @@
       <div v-else class="styles-grid">
         <div v-if="isLearning" class="style-add-card learning-progress-card">
           <div class="style-add-icon"><a-spin /></div>
-          <div class="style-add-text learning-progress-text">灵犀同学正在帮您分析…</div>
+          <div class="style-add-text learning-progress-text">小爱正在帮您分析…</div>
         </div>
         <div v-else-if="learnedResult && !isEditingLearned" class="style-add-card pending-result-card" @click="resumeImportDialog">
           <div class="style-add-icon">✓</div>
@@ -762,7 +762,9 @@
 <script setup>
 import { ref, reactive, computed, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { Modal, message } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import { useConfirm } from '@/composables/useConfirm.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import {
   systemSkills,
   mySkills,
@@ -804,8 +806,9 @@ const SKILL_PROMPT_MAX_LENGTH = 1200
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
+const { confirm } = useConfirm()
 const stylesIndexRef = ref(null)
-const currentUserId = localStorage.getItem('aichuangzuo_user_id') || ''
+const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID) || ''
 const activeTab = ref('my')
 const mySkillsPage = ref(1)
 const mySkillsPageSize = ref(12)
@@ -863,7 +866,7 @@ const learnTotal = computed(() => parseInt(benefitValue('skill_learn_analyze') |
 const canLearn = computed(() => learnRemaining.value > 0)
 const learnBannerText = computed(() => {
   if (isLearning.value) {
-    return '● ● ● 灵犀同学正在帮您分析，请稍候…'
+    return '● ● ● 小爱正在帮您分析，请稍候…'
   }
   if (!canLearn.value) {
     if (learnTotal.value <= 0) return '当前套餐不支持 AI 提示词学习，升级专业版/旗舰版后解锁'
@@ -890,7 +893,7 @@ onUnmounted(() => {
 
 const MAX_SCOPE_TAGS = 3
 const MAX_SCOPE_TAG_LENGTH = 8
-const loadingText = '灵犀同学正在帮您分析...'
+const loadingText = '小爱正在帮您分析...'
 const loadingChars = loadingText.split('')
 
 const parseScopeTags = (scopeStr) => {
@@ -1309,13 +1312,12 @@ const useFavoriteStyle = (style) => {
 }
 
 const deleteSkill = (name) => {
-  Modal.confirm({
+  confirm({
     title: '删除提示词',
     content: `确定要删除提示词「${name}」吗？删除后不可恢复。`,
     okText: '删除',
     cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await removeCustomSkill(name)
@@ -1496,13 +1498,12 @@ const saveLearnedResult = async () => {
 }
 
 const deleteLearnedStyle = (s) => {
-  Modal.confirm({
+  confirm({
     title: '删除提示词',
     content: `确定要删除「${s.name}」吗？删除后不可恢复，且不会恢复本月学习额度。`,
     okText: '删除',
     cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await removeLearnedSkill(s.bizNo)
@@ -1515,13 +1516,12 @@ const deleteLearnedStyle = (s) => {
 }
 
 const confirmUnfavorite = (s) => {
-  Modal.confirm({
+  confirm({
     title: '取消收藏',
     content: `确定要取消收藏「${s.name}」吗？`,
     okText: '取消收藏',
     cancelText: '再想想',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await toggleFavorite(s.id)
@@ -1585,13 +1585,12 @@ const closePublishConfirm = () => {
 }
 
 const confirmUnpublish = (style, sourceType) => {
-  Modal.confirm({
+  confirm({
     title: '下架提示词',
     content: `确定要下架已发布的提示词「${style.name}」吗？\n\n下架后：\n1. 其他人将无法在市场中看到该提示词；\n2. 本月发布额度将恢复 1 个；\n3. 已产生的收益不受影响。`,
     okText: '下架',
     cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await unpublishSkill(style.bizNo)

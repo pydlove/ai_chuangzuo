@@ -194,14 +194,21 @@
               <span v-if="q.isRequired" class="required-mark">*</span>
             </div>
             <div class="option-group">
-              <button
-                v-for="opt in q.options"
-                :key="opt.key"
-                :class="['option-btn', { selected: answers[q.key] === opt.key }]"
-                @click="answers[q.key] = opt.key"
-              >
-                {{ opt.label }}
-              </button>
+              <template v-for="opt in q.options" :key="opt.key">
+                <button
+                  :class="['option-btn', { selected: answers[q.key] === opt.key }]"
+                  @click="selectOption(q, opt)"
+                >
+                  {{ opt.label }}
+                </button>
+                <input
+                  v-if="q.allowOther && isOtherOption(opt.key) && answers[q.key] === opt.key"
+                  v-model="answers[q.key + '_other_text']"
+                  :maxlength="q.otherMaxLength || 100"
+                  class="other-input"
+                  placeholder="请填写..."
+                />
+              </template>
             </div>
           </div>
         </div>
@@ -329,7 +336,7 @@
     </div>
 
     <div class="onboarding-actions">
-      <a-button v-if="step > 1 && step !== 2" size="large" @click="prev">上一步</a-button>
+      <a-button v-if="step > 1" size="large" @click="prev">上一步</a-button>
       <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" :loading="isLoadingNext" @click="next">下一步</a-button>
       <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
     </div>
@@ -355,13 +362,15 @@ import {
   savePlan as apiSavePlan
 } from '@/api/selfMediaPlan.js'
 import { getMyProfile } from '@/api/user.js'
+import { getOnboardingDraftKey, getOnboardingDoneKey } from '@/constants/storage.js'
 
 const router = useRouter()
 const route = useRoute()
 const step = ref(1)
 const steps = ['选平台', '答问题', '选赛道', '做人设', '出方案']
-let DRAFT_KEY = 'aichuangzuo_onboarding_draft'
-let DONE_KEY = 'aichuangzuo_onboarding_done'
+const onboardingUserId = ref(null)
+const draftKey = computed(() => getOnboardingDraftKey(onboardingUserId.value))
+const doneKey = computed(() => getOnboardingDoneKey(onboardingUserId.value))
 const isRestoringDraft = ref(false)
 const trackRef = ref(null)
 const visiblePlatformKey = ref('')
@@ -540,13 +549,29 @@ async function checkExistingPlan() {
     const data = res?.data ?? null
     if (!data || !data.platformKey) return
 
-    localStorage.setItem(DONE_KEY, '1')
+    localStorage.setItem(doneKey.value, '1')
     selectedPlatform.value = data.platformKey
     await loadQuestions()
 
     if (Array.isArray(data.answers)) {
       data.answers.forEach((a) => {
-        answers[a.questionKey] = a.answer
+        const q = questions.value.find(q => q.key === a.questionKey)
+        if (q && q.allowOther) {
+          const matchingOpt = q.options.find(o => o.key === a.answer)
+          if (matchingOpt) {
+            answers[a.questionKey] = a.answer
+          } else {
+            const otherOpt = q.options.find(o => isOtherOption(o.key))
+            if (otherOpt) {
+              answers[a.questionKey] = otherOpt.key
+              answers[a.questionKey + '_other_text'] = a.answer
+            } else {
+              answers[a.questionKey] = a.answer
+            }
+          }
+        } else {
+          answers[a.questionKey] = a.answer
+        }
       })
     }
 
@@ -566,7 +591,7 @@ async function checkExistingPlan() {
 
     step.value = 5
   } catch (e) {
-    console.warn('加载已有方案失败', e)
+    // 已有方案加载失败时停留在当前步骤
   }
 }
 
@@ -600,6 +625,22 @@ const personaOptions = ref([])
 const selectedPersona = ref('')
 const pillars = reactive([])
 
+function isOtherOption(optionKey) {
+  return optionKey === 'other' || (typeof optionKey === 'string' && optionKey.startsWith('other_'))
+}
+
+function selectOption(q, opt) {
+  if (isOtherOption(opt.key)) {
+    answers[q.key] = opt.key
+    if (!answers[q.key + '_other_text']) {
+      answers[q.key + '_other_text'] = ''
+    }
+  } else {
+    answers[q.key] = opt.key
+    delete answers[q.key + '_other_text']
+  }
+}
+
 const isLoadingQuestions = ref(false)
 const isLoadingNiches = ref(false)
 const isLoadingPersonas = ref(false)
@@ -612,19 +653,32 @@ const selectedPlatformDetail = computed(() => platforms.value.find((p) => p.key 
 const pillarTotal = computed(() => pillars.reduce((sum, p) => sum + p.percent, 0))
 
 const answerList = computed(() => {
-  return questions.value.map(q => ({
-    questionKey: q.key,
-    answer: answers[q.key] || ''
-  })).filter(a => a.answer)
+  return questions.value.map(q => {
+    const selectedKey = answers[q.key]
+    const selectedOpt = q.options.find(o => o.key === selectedKey)
+    let answer = selectedKey || ''
+    if (selectedOpt && isOtherOption(selectedOpt.key)) {
+      answer = answers[q.key + '_other_text'] || ''
+    }
+    return {
+      questionKey: q.key,
+      answer
+    }
+  }).filter(a => a.answer)
 })
 
 const answerSummary = computed(() => {
   return questions.value.map(q => {
-    const opt = q.options.find(o => o.key === answers[q.key])
+    const selectedKey = answers[q.key]
+    const opt = q.options.find(o => o.key === selectedKey)
+    let answerLabel = opt?.label || answers[q.key] || '未回答'
+    if (opt && isOtherOption(opt.key)) {
+      answerLabel = answers[q.key + '_other_text'] || opt.label
+    }
     return {
       key: q.key,
       text: q.text,
-      answerLabel: opt?.label || answers[q.key] || '未回答'
+      answerLabel
     }
   })
 })
@@ -682,12 +736,12 @@ function saveDraft() {
     selectedPersona: selectedPersona.value,
     pillars: pillars.map((p) => ({ name: p.name, percent: p.percent }))
   }
-  localStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  localStorage.setItem(draftKey.value, JSON.stringify(draft))
 }
 
 function loadDraft() {
   try {
-    const raw = localStorage.getItem(DRAFT_KEY)
+    const raw = localStorage.getItem(draftKey.value)
     if (!raw) return false
     const draft = JSON.parse(raw)
     if (!draft || typeof draft.step !== 'number') return false
@@ -706,7 +760,6 @@ function loadDraft() {
     )
     return true
   } catch (e) {
-    console.warn('加载方案草稿失败', e)
     return false
   } finally {
     isRestoringDraft.value = false
@@ -714,7 +767,7 @@ function loadDraft() {
 }
 
 function clearDraft() {
-  localStorage.removeItem(DRAFT_KEY)
+  localStorage.removeItem(draftKey.value)
 }
 
 async function initUserKeys() {
@@ -722,8 +775,7 @@ async function initUserKeys() {
     const res = await getMyProfile()
     const userId = res?.data?.userId || res?.userId
     if (userId) {
-      DRAFT_KEY = `aichuangzuo_onboarding_draft:${userId}`
-      DONE_KEY = `aichuangzuo_onboarding_done:${userId}`
+      onboardingUserId.value = userId
     }
   } catch (e) {
     // 未登录或获取失败时继续使用通用 key
@@ -808,7 +860,15 @@ async function loadPersonaOptions() {
       selectedPersona.value = personaOptions.value[0]?.key || ''
     }
   } catch (e) {
-    message.error('人设推荐失败，请重试')
+    Modal.error({
+      title: '人设推荐失败',
+      content: 'AI 推荐暂未成功，请返回上一步后重新点击下一步再次尝试。',
+      okText: '返回上一步',
+      centered: true,
+      onOk: () => {
+        prev()
+      }
+    })
   } finally {
     isLoadingPersonas.value = false
   }
@@ -818,7 +878,16 @@ const canNext = computed(() => {
   if (isLoadingNext.value) return false
   if (step.value === 1) return !!selectedPlatform.value
   if (step.value === 2) {
-    return questions.value.every(q => !q.isRequired || !!answers[q.key])
+    return questions.value.every(q => {
+      if (!q.isRequired) return true
+      const selectedKey = answers[q.key]
+      if (!selectedKey) return false
+      const selectedOpt = q.options.find(o => o.key === selectedKey)
+      if (selectedOpt && isOtherOption(selectedOpt.key)) {
+        return !!(answers[q.key + '_other_text'] || '').trim()
+      }
+      return true
+    })
   }
   if (step.value === 3) return !!selectedNiche.value
   if (step.value === 4) return !!selectedPersona.value && pillarTotal.value === 100
@@ -888,7 +957,7 @@ async function confirm() {
       answers: answerList.value
     })
     message.success('自媒体方案已生成')
-    localStorage.setItem(DONE_KEY, '1')
+    localStorage.setItem(doneKey.value, '1')
     clearDraft()
     router.push('/console/workbench')
   } catch (e) {
@@ -1199,6 +1268,18 @@ async function confirm() {
   border-color: var(--color-primary, #FF2442);
   background: var(--color-primary, #FF2442);
   color: #fff;
+}
+.other-input {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.other-input:focus {
+  border-color: var(--color-primary, #FF2442);
 }
 .question-loading,
 .niche-loading,
@@ -1942,20 +2023,25 @@ async function confirm() {
     background: #fff;
     border: 1px solid #f5f5f5;
     border-radius: 16px;
-    padding: 14px 16px;
+    padding: 6px 16px;
   }
   .summary-row {
-    flex-direction: row;
+    flex-direction: column;
     align-items: flex-start;
-    padding: 10px 0;
-    gap: 10px;
+    padding: 12px 0;
+    gap: 4px;
+  }
+  .summary-row:not(:last-child) {
+    border-bottom: 1px solid #f5f5f5;
   }
   .summary-label {
-    width: 76px;
-    font-size: 13px;
+    width: auto;
+    font-size: 12px;
+    color: #8c8c8c;
   }
   .summary-value {
-    font-size: 14px;
+    font-size: 15px;
+    text-align: left;
   }
   .summary-pillars {
     gap: 6px;
@@ -1969,17 +2055,24 @@ async function confirm() {
     border-color: var(--color-primary-light);
     color: var(--color-primary);
   }
-  .summary-answer {
-    flex-direction: row;
-    align-items: center;
-    padding: 6px 10px;
+  .summary-answers {
+    width: 100%;
     gap: 8px;
+  }
+  .summary-answer {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 12px;
+    gap: 4px;
   }
   .answer-question {
     font-size: 12px;
+    color: #8c8c8c;
   }
   .answer-value {
-    font-size: 12px;
+    font-size: 14px;
+    color: #1a1a1a;
+    font-weight: 500;
   }
   .summary-tip {
     font-size: 12px;

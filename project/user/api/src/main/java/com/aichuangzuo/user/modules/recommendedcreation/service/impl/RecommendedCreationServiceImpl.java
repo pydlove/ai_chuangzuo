@@ -6,8 +6,10 @@ import com.aichuangzuo.user.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.recommendedcreation.dto.request.UpdateSessionRequest;
 import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationSession;
-import com.aichuangzuo.user.modules.recommendedcreation.enums.RecommendedCreationErrorCode;
+import com.aichuangzuo.shared.enums.error.RecommendedCreationErrorCode;
 import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationSessionMapper;
+import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationTopicHistory;
+import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationTopicHistoryMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.service.RecommendedCreationService;
 import com.aichuangzuo.user.modules.recommendedcreation.vo.AngleOptionVO;
 import com.aichuangzuo.user.modules.recommendedcreation.vo.RecommendedCreationSessionVO;
@@ -25,6 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -43,6 +46,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
     private final SelfMediaPlanService planService;
     private final GenerationTaskService generationTaskService;
     private final RecommendedCreationSessionMapper sessionMapper;
+    private final RecommendedCreationTopicHistoryMapper topicHistoryMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -59,6 +63,9 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
     public List<TopicOptionVO> generateTopics(Long userId) {
         SelfMediaPlanVO plan = requirePlan(userId);
         Map<String, Object> vars = planVars(plan);
+        List<String> recentTitles = topicHistoryMapper.selectTitlesByUserIdSince(userId, LocalDateTime.now().minusDays(14));
+        vars.put("recentlyRecommendedTitles", toJson(recentTitles));
+
         JsonNode root = aiService.callPrompt(PROMPT_TOPICS, vars);
         List<TopicOptionVO> topics = parseTopics(resolveArray(root, "topics"));
         if (topics.isEmpty()) {
@@ -77,6 +84,15 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         session.setAnglesJson(null);
         session.setSelectedAnglesJson(null);
         save(session);
+
+        for (TopicOptionVO topic : topics) {
+            RecommendedCreationTopicHistory history = new RecommendedCreationTopicHistory();
+            history.setUserId(userId);
+            history.setSessionId(session.getId());
+            history.setTitle(topic.getTitle());
+            history.setTenantId(session.getTenantId());
+            topicHistoryMapper.insert(history);
+        }
         return topics;
     }
 

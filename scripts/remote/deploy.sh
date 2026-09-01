@@ -8,13 +8,14 @@ set -e
 # ===================================================================
 
 # ============ 配置区（请按实际情况修改） ============
-SERVER_IP="101.126.15.58"           # 例如: 123.45.67.89
-SERVER_USER="root"                 # SSH 用户名
-SERVER_PASSWORD="Pydlove520smy@1"   # SSH 密码（或使用 SSH_KEY_PATH）
-SSH_KEY_PATH="~/.ssh/id_rsa"                    # 如使用密钥登录，填密钥路径，例如: ~/.ssh/id_rsa
-SERVER_DOMAIN="www.mmshuo.tech" # 你的域名（用于 nginx server_name）
-NGINX_SSL_CERT="/root/ssl/www.mmshuo.tech.pem"      # SSL 证书路径
-NGINX_SSL_KEY="/root/ssl/www.mmshuo.tech.key"          # SSL 私钥路径
+# 支持通过环境变量注入，便于管理端升级管理页面统一设置。
+SERVER_IP="${SERVER_IP:-101.126.15.58}"           # 例如: 123.45.67.89
+SERVER_USER="${SERVER_USER:-root}"                 # SSH 用户名
+SERVER_PASSWORD="${SERVER_PASSWORD:-}"             # SSH 密码（或使用 SSH_KEY_PATH）
+SSH_KEY_PATH="${SSH_KEY_PATH:-~/.ssh/id_rsa}"      # 如使用密钥登录，填密钥路径，例如: ~/.ssh/id_rsa
+SERVER_DOMAIN="${SERVER_DOMAIN:-www.mmshuo.tech}"  # 你的域名（用于 nginx server_name）
+NGINX_SSL_CERT="${NGINX_SSL_CERT:-/root/ssl/www.mmshuo.tech.pem}"  # SSL 证书路径
+NGINX_SSL_KEY="${NGINX_SSL_KEY:-/root/ssl/www.mmshuo.tech.key}"    # SSL 私钥路径
 
 # 业务端口
 USER_FRONTEND_PORT=22345
@@ -81,6 +82,7 @@ SSH_MUX_OPTS="-o ControlMaster=auto -o ControlPath=$SSH_MUX_PATH -o ControlPersi
 if [ -n "$SSH_KEY_PATH" ] && [ -f "$SSH_KEY_PATH" ]; then
   SSH_CMD="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $SSH_MUX_OPTS"
   SCP_CMD="scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $SSH_MUX_OPTS"
+  RSYNC_SSH="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no"
 else
   if ! command -v sshpass &> /dev/null; then
     log_error "未安装 sshpass，请执行: brew install sshpass (macOS) 或 apt-get install sshpass (Linux)"
@@ -89,9 +91,32 @@ else
   fi
   SSH_CMD="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 $SSH_MUX_OPTS"
   SCP_CMD="sshpass -p '$SERVER_PASSWORD' scp -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 $SSH_MUX_OPTS"
+  RSYNC_SSH="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
 fi
 
+if ! command -v rsync &> /dev/null; then
+  log_error "未安装 rsync，请执行: brew install rsync (macOS) 或 apt-get install rsync (Linux)"
+  exit 1
+fi
+
+function rsync_lib() {
+    local src=$1; local dst=$2
+    eval "rsync -avz --checksum --delete -e \"$RSYNC_SSH\" \"$src\" \"$dst\""
+}
+
 REMOTE_HOST="$SERVER_USER@$SERVER_IP"
+
+# 脚本退出时清理 SSH 连接复用，避免残留 master 连接导致下次执行挂起
+cleanup_ssh_mux() {
+  eval "$SSH_CMD -O exit $REMOTE_HOST" 2>/dev/null || true
+  rm -f "$SSH_MUX_PATH"
+}
+trap cleanup_ssh_mux EXIT
+
+# 如果存在旧的/失效的 mux socket，先清理
+if [ -S "$SSH_MUX_PATH" ]; then
+  $SSH_CMD -O check "$REMOTE_HOST" 2>/dev/null || rm -f "$SSH_MUX_PATH"
+fi
 
 # 参数校验
 if [ -z "$SERVER_IP" ]; then
@@ -306,8 +331,11 @@ if [ "$DEPLOY_USER_WEB" = true ] || [ "$DEPLOY_USER_API" = true ] || [ "$DEPLOY_
       $REMOTE_APP_DIR/user-web \
       $REMOTE_APP_DIR/admin-web \
       $REMOTE_APP_DIR/user-api \
+      $REMOTE_APP_DIR/user-api/lib \
       $REMOTE_APP_DIR/admin-api \
+      $REMOTE_APP_DIR/admin-api/lib \
       $REMOTE_APP_DIR/scripts \
+      $REMOTE_APP_DIR/lib \
       $REMOTE_APP_DIR/systemd \
       $REMOTE_APP_DIR/logs'"
 fi
@@ -329,17 +357,25 @@ if [ "$DEPLOY_ADMIN_WEB" = true ]; then
     fi
 fi
 
-# ============ 步骤4: 上传后端 JAR 包和配置 ============
+# ============ 步骤4: 上传后端 JAR 包、依赖 lib 和配置 ============
 USER_JAR="$PROJECT_DIR/project/user/api/target/user-api-1.0.0-SNAPSHOT.jar"
+USER_LIB="$PROJECT_DIR/project/user/api/target/lib"
 ADMIN_JAR="$PROJECT_DIR/project/admin/api/target/admin-api-1.0.0-SNAPSHOT.jar"
+ADMIN_LIB="$PROJECT_DIR/project/admin/api/target/lib"
 
 if [ "$DEPLOY_USER_API" = true ]; then
     if [ ! -f "$USER_JAR" ]; then
         log_error "用户端后端 JAR 不存在: $USER_JAR"
         exit 1
     fi
+    if [ ! -d "$USER_LIB" ]; then
+        log_error "用户端后端依赖目录不存在: $USER_LIB"
+        exit 1
+    fi
     log_step "上传用户端后端 JAR ..."
     retry_scp "$USER_JAR" "$REMOTE_HOST:$REMOTE_APP_DIR/user-api/user-api.jar"
+    log_step "同步用户端后端依赖 lib（首次全量，后续仅传变化）..."
+    rsync_lib "$USER_LIB/" "$REMOTE_HOST:$REMOTE_APP_DIR/user-api/lib/"
     if [ -f "$PROJECT_DIR/project/user/api/src/main/resources/application-prod.yml" ]; then
         retry_scp "$PROJECT_DIR/project/user/api/src/main/resources/application-prod.yml" "$REMOTE_HOST:$REMOTE_APP_DIR/user-api/"
     fi
@@ -353,8 +389,14 @@ if [ "$DEPLOY_ADMIN_API" = true ]; then
             log_error "管理端后端 JAR 不存在: $ADMIN_JAR"
             exit 1
         fi
+        if [ ! -d "$ADMIN_LIB" ]; then
+            log_error "管理端后端依赖目录不存在: $ADMIN_LIB"
+            exit 1
+        fi
         log_step "上传管理端后端 JAR ..."
         retry_scp "$ADMIN_JAR" "$REMOTE_HOST:$REMOTE_APP_DIR/admin-api/admin-api.jar"
+        log_step "同步管理端后端依赖 lib（首次全量，后续仅传变化）..."
+        rsync_lib "$ADMIN_LIB/" "$REMOTE_HOST:$REMOTE_APP_DIR/admin-api/lib/"
         if [ -f "$PROJECT_DIR/project/admin/api/src/main/resources/application-prod.yml" ]; then
             retry_scp "$PROJECT_DIR/project/admin/api/src/main/resources/application-prod.yml" "$REMOTE_HOST:$REMOTE_APP_DIR/admin-api/"
         fi
@@ -378,6 +420,7 @@ if [ "$DEPLOY_SCRIPTS" = true ]; then
     fi
 
     log_step "上传启停脚本..."
+    retry_scp "$DEPLOY_DIR/lib/_remote-env.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/lib/"
     retry_scp "$DEPLOY_DIR/scripts/start-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
     retry_scp "$DEPLOY_DIR/scripts/stop-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
     retry_scp "$DEPLOY_DIR/scripts/restart-all.sh" "$REMOTE_HOST:$REMOTE_APP_DIR/scripts/"
@@ -426,13 +469,6 @@ fi
 if [ "$DEPLOY_NGINX" = true ]; then
     log_step "重载 Nginx..."
     eval "$SSH_CMD $REMOTE_HOST 'nginx -s reload'"
-fi
-
-# 关闭 SSH 连接复用的 master 连接
-if [ "$DEPLOY_USER_WEB" = true ] || [ "$DEPLOY_USER_API" = true ] || [ "$DEPLOY_ADMIN_WEB" = true ] || [ "$DEPLOY_ADMIN_API" = true ] || [ "$DEPLOY_SCRIPTS" = true ] || [ "$DEPLOY_NGINX" = true ]; then
-    log_step "清理 SSH 连接复用..."
-    eval "$SSH_CMD -O exit $REMOTE_HOST" 2>/dev/null || true
-    rm -f "$SSH_MUX_PATH"
 fi
 
 # ============ 部署完成 ============

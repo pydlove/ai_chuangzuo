@@ -60,7 +60,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String absoluteBase = "file:" + Paths.get(storageBasePath).toAbsolutePath() + "/";
+        // 旧路径：兼容已上传文件
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + Paths.get(storageBasePath).toAbsolutePath() + "/");
+                .addResourceLocations(absoluteBase);
+        // 新路径：走 /api/v1/user 代理，避免线上 /uploads 未代理导致头像裂图
+        registry.addResourceHandler("/api/v1/user/uploads/**")
+                .addResourceLocations(absoluteBase);
     }
 }

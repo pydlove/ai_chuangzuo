@@ -1,6 +1,8 @@
 package com.aichuangzuo.admin.modules.generation.pipeline;
 
 import com.aichuangzuo.admin.modules.generation.service.PromptTemplateRenderService;
+import com.aichuangzuo.shared.utils.LlmJsonParser;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -155,22 +157,29 @@ public final class PipelineUtils {
      * @return 解析后的 JsonNode
      * @throws RuntimeException 解析失败时
      */
+    /**
+     * 解析 AI 返回的 JSON 字符串：先去掉 ```json 围栏，再用 LlmJsonParser 解析。
+     *
+     * <p>底层 MAPPER 已开启 {@code ALLOW_UNESCAPED_CONTROL_CHARS}（容忍字符串值内
+     * 字面换行/制表符）、{@code ALLOW_SINGLE_QUOTES}（容忍 'foo' 单引号定界）和
+     * {@code ALLOW_UNQUOTED_FIELD_NAMES}（容忍 {@code {a:1}} 裸 key），覆盖 M3 多类常见
+     * JSON 瑕疵；LlmJsonParser 在此基础上再提供：
+     * <ul>
+     *   <li>多 JSON 块时取最后一个能解析成功的对象/数组（避免模型复述 prompt 示例）</li>
+     *   <li>字符串包裹的 JSON 自动 unwrap</li>
+     *   <li>字符串值内未转义英文双引号兜底转义</li>
+     *   <li>trailing comma 容忍</li>
+     * </ul>
+     *
+     * @return 解析后的 JsonNode
+     * @throws RuntimeException 解析失败时
+     */
     public static JsonNode parseAiJson(String aiResp) {
-        String cleaned = stripCodeFence(aiResp);
         try {
-            return MAPPER.readTree(cleaned);
-        } catch (Exception first) {
-            String repaired = repairInnerQuotes(cleaned);
-            if (repaired.equals(cleaned)) {
-                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage()
-                        + truncationHint(first.getMessage()));
-            }
-            try {
-                return MAPPER.readTree(repaired);
-            } catch (Exception second) {
-                throw new RuntimeException("AI 返回 JSON 解析失败: " + first.getMessage()
-                        + truncationHint(first.getMessage()));
-            }
+            return LlmJsonParser.parseLenient(MAPPER, aiResp);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("AI 返回 JSON 解析失败: " + e.getMessage()
+                    + truncationHint(e.getMessage()));
         }
     }
 
@@ -187,56 +196,7 @@ public final class PipelineUtils {
         return "";
     }
 
-    /**
-     * 启发式修复字符串值内的裸 "：扫描字符流，跟踪 inString 状态；遇到 " 时
-     * 向后看一个非空白字符，若不是 JSON 结构符（, } ] :）就判定为内部引号，转义成 \"。
-     *
-     * <p>局限：内部引号后紧跟结构符（如 "text with ", more"）无法识别，会判定为闭合
-     * 引号导致修复失败——这种场景下 {@link #parseAiJson} 仍会抛原始异常。
-     *
-     * <p>已正确转义的 \" 不会被重复转义：进入 escaped 状态时跳过下一个字符。
-     */
-    private static String repairInnerQuotes(String json) {
-        if (json == null || json.isEmpty()) return json;
-        StringBuilder out = new StringBuilder(json.length() + 32);
-        boolean inString = false;
-        boolean escaped = false;
-        boolean changed = false;
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escaped) {
-                out.append(c);
-                escaped = false;
-                continue;
-            }
-            if (inString && c == '\\') {
-                out.append(c);
-                escaped = true;
-                continue;
-            }
-            if (c == '"') {
-                if (!inString) {
-                    inString = true;
-                    out.append(c);
-                } else {
-                    // 向后看一个非空白字符，判断是闭合引号还是内部引号
-                    int j = i + 1;
-                    while (j < json.length() && Character.isWhitespace(json.charAt(j))) j++;
-                    char next = j < json.length() ? json.charAt(j) : '\0';
-                    if (next == ',' || next == '}' || next == ']' || next == ':' || next == '\0') {
-                        inString = false;
-                        out.append(c);
-                    } else {
-                        out.append("\\\"");
-                        changed = true;
-                    }
-                }
-            } else {
-                out.append(c);
-            }
-        }
-        return changed ? out.toString() : json;
-    }
+    // removed: repairInnerQuotes / stripCodeFence — now handled by LlmJsonParser
 
     /**
      * 把 AI 正文里的中文单引号 ‘’ 统一换成中文双引号 “”。
@@ -259,22 +219,5 @@ public final class PipelineUtils {
             throw new RuntimeException("AI 返回缺少字段: " + field);
         }
         return n.asText();
-    }
-
-    private static String stripCodeFence(String s) {
-        if (s == null) return "";
-        String t = s.trim();
-        if (t.startsWith("```")) {
-            int firstNewline = t.indexOf('\n');
-            if (firstNewline < 0) return t;
-            int lastFence = t.lastIndexOf("```");
-            if (lastFence > firstNewline) {
-                return t.substring(firstNewline + 1, lastFence).trim();
-            }
-            // 无闭合围栏（模型只写了开头 ```json，或输出被 max_tokens 截断）：
-            // 去掉首行围栏再尝试解析，JSON 完整即可恢复
-            return t.substring(firstNewline + 1).trim();
-        }
-        return t;
     }
 }

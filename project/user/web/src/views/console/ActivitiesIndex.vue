@@ -14,10 +14,7 @@
     <section class="activities-section">
       <div class="activities-section__header">
         <span class="activities-section__badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 1v22"/>
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-          </svg>
+          <Icon name="dollar-sign" :size="14" />
           可获收益
         </span>
       </div>
@@ -26,13 +23,7 @@
         <router-link to="/console/commission" class="activity-card activity-card--commission">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-              <polyline points="14 2 14 8 20 8"/>
-              <line x1="16" y1="13" x2="8" y2="13"/>
-              <line x1="16" y1="17" x2="8" y2="17"/>
-              <polyline points="10 9 9 9 8 9"/>
-            </svg>
+            <Icon name="file" :size="26" :stroke-width="1.8" />
           </div>
           <div class="activity-card__body">
             <div class="activity-card__title">约稿中心</div>
@@ -43,20 +34,14 @@
             </div>
           </div>
           <div class="activity-card__arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <Icon name="chevron-right" :size="18" />
           </div>
         </router-link>
 
         <router-link to="/console/skill-market" class="activity-card activity-card--market">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.3 2.3c-.4.5-.1 1.2.5 1.2H19"/>
-              <circle cx="9" cy="21" r="1"/>
-              <circle cx="20" cy="21" r="1"/>
-            </svg>
+            <Icon name="shopping-cart" :size="26" :stroke-width="1.8" />
           </div>
           <div class="activity-card__body">
             <div class="activity-card__title">提示词市场</div>
@@ -67,23 +52,14 @@
             </div>
           </div>
           <div class="activity-card__arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <Icon name="chevron-right" :size="18" />
           </div>
         </router-link>
 
         <router-link to="/console/leaderboard" class="activity-card activity-card--leaderboard">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/>
-              <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
-              <path d="M4 22h16"/>
-              <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
-              <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
-              <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
-            </svg>
+            <Icon name="trophy" :size="26" :stroke-width="1.8" />
           </div>
           <div class="activity-card__body">
             <div class="activity-card__title">收益排行榜</div>
@@ -93,22 +69,14 @@
             </div>
           </div>
           <div class="activity-card__arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <Icon name="chevron-right" :size="18" />
           </div>
         </router-link>
 
         <router-link to="/console/lottery" class="activity-card activity-card--lottery">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="20 12 20 22 4 22 4 12"/>
-              <rect x="2" y="7" width="20" height="5" rx="1"/>
-              <line x1="12" y1="22" x2="12" y2="7"/>
-              <path d="M12 7H7.5a2.5 2.5 0 0 1 0-5H12v5z"/>
-              <path d="M12 7h4.5a2.5 2.5 0 0 0 0-5H12v5z"/>
-            </svg>
+            <Icon name="gift" :size="26" :stroke-width="1.8" />
           </div>
           <div class="activity-card__body">
             <div class="activity-card__title">幸运抽奖</div>
@@ -118,22 +86,14 @@
             </div>
           </div>
           <div class="activity-card__arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <Icon name="chevron-right" :size="18" />
           </div>
         </router-link>
 
         <router-link to="/console/invite" class="activity-card activity-card--invite">
           <div class="activity-card__bg" aria-hidden="true"></div>
           <div class="activity-card__icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="10" rx="1"/>
-              <line x1="12" y1="11" x2="12" y2="21"/>
-              <path d="M6 11a3 3 0 0 1 3-3 3 3 0 0 1 3 3"/>
-              <path d="M18 11a3 3 0 0 0-3-3 3 3 0 0 0-3 3"/>
-              <line x1="3" y1="15" x2="21" y2="15"/>
-            </svg>
+            <Icon name="users" :size="26" :stroke-width="1.8" />
           </div>
           <div class="activity-card__body">
             <div class="activity-card__title">邀请有礼</div>
@@ -143,9 +103,7 @@
             </div>
           </div>
           <div class="activity-card__arrow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <polyline points="9 18 15 12 9 6"/>
-            </svg>
+            <Icon name="chevron-right" :size="18" />
           </div>
         </router-link>
       </div>
@@ -155,10 +113,7 @@
     <section class="activities-section">
       <div class="activities-section__header">
         <span class="activities-section__badge activities-section__badge--learn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
-            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-          </svg>
+          <Icon name="book-open" :size="14" />
           提升技能
         </span>
       </div>
@@ -166,10 +121,7 @@
       <router-link to="/console/learn" class="activity-card activity-card--academy">
         <div class="activity-card__bg" aria-hidden="true"></div>
         <div class="activity-card__icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
-            <path d="M6 12v5c3 3 9 3 12 0v-5"/>
-          </svg>
+          <Icon name="book-open" :size="26" :stroke-width="1.8" />
         </div>
         <div class="activity-card__body">
           <div class="activity-card__title">创作学院</div>
@@ -179,9 +131,7 @@
           </div>
         </div>
         <div class="activity-card__arrow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="9 18 15 12 9 6"/>
-          </svg>
+          <Icon name="chevron-right" :size="18" />
         </div>
       </router-link>
     </section>
@@ -192,6 +142,7 @@
 import { ref, onMounted } from 'vue'
 import { listCommissionTasks } from '@/api/commission'
 import { loadMarketSkillOverview, marketOverview } from '@/composables/useSkillMarket'
+import Icon from '@/components/common/Icon.vue'
 
 const stats = ref({
   activeTaskCount: 0,

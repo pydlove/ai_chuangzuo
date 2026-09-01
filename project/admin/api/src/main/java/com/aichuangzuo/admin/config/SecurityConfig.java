@@ -29,6 +29,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/v1/admin/hot-search/crawl").permitAll()
                 .requestMatchers("/admin/doc.html", "/webjars/**", "/swagger-resources/**", "/v3/api-docs/**").permitAll()
                 .requestMatchers("/uploads/**").permitAll()
+                .requestMatchers("/api/v1/admin/uploads/**").permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

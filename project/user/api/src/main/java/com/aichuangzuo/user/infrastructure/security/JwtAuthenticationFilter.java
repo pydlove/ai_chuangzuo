@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.infrastructure.security;
 
+import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
+import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.FilterChain;
@@ -49,11 +51,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 new UsernamePasswordAuthenticationToken(userId, null, Collections.emptyList());
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     } else {
-                        writeUnauthorized(response, "TOKEN_BLACKLISTED", "token 已失效");
+                        writeUnauthorized(response, UserAuthErrorCode.TOKEN_BLACKLISTED);
                         return;
                     }
                 } catch (Exception e) {
-                    writeUnauthorized(response, "TOKEN_INVALID", "token 无效或已过期");
+                    writeUnauthorized(response, UserAuthErrorCode.TOKEN_INVALID);
                     return;
                 }
             }
@@ -64,11 +66,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    private void writeUnauthorized(HttpServletResponse response, String code, String message) throws IOException {
+    private void writeUnauthorized(HttpServletResponse response, UserAuthErrorCode errorCode) throws IOException {
         response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write(objectMapper.writeValueAsString(
-                java.util.Map.of("code", code, "message", message)));
+        response.getWriter().write(objectMapper.writeValueAsString(Result.fail(errorCode)));
     }
 }

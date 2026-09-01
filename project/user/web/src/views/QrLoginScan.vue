@@ -52,6 +52,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { scanQrLogin, getQrLoginStatus, cancelQrLogin } from '@/api/qrLogin.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const STATUS = {
   PENDING: 0,
@@ -70,19 +71,30 @@ const loading = ref(false)
 const error = ref('')
 
 let pollTimer = null
+let pollErrorCount = 0
+const MAX_POLL_ERRORS = 5
+let isMounted = true
 
 const startPolling = () => {
   stopPolling()
+  pollErrorCount = 0
   pollTimer = setInterval(async () => {
+    if (!qrCode.value || !isMounted) return
     try {
       const res = await getQrLoginStatus(qrCode.value)
+      if (!isMounted) return
       if (res.code !== 0) return
+      pollErrorCount = 0
       status.value = res.data.status
       if (status.value === STATUS.AUTHORIZED || status.value === STATUS.CANCELLED || status.value === STATUS.EXPIRED) {
         stopPolling()
       }
     } catch (e) {
-      // ignore
+      pollErrorCount++
+      if (pollErrorCount > MAX_POLL_ERRORS) {
+        stopPolling()
+        error.value = '轮询异常，请刷新页面重试'
+      }
     }
   }, 2000)
 }
@@ -95,7 +107,7 @@ const stopPolling = () => {
 }
 
 const handleScan = async () => {
-  const token = localStorage.getItem('aichuangzuo_access_token')
+  const token = localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
   if (!token) {
     router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`)
     return
@@ -137,6 +149,7 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  isMounted = false
   stopPolling()
 })
 </script>

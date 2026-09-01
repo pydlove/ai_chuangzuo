@@ -1,0 +1,22 @@
+CREATE TABLE IF NOT EXISTS u_experience_token (
+    id              BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+    batch_id        VARCHAR(32)     NOT NULL COMMENT '批次号',
+    token           VARCHAR(32)     NOT NULL COMMENT '体验令牌',
+    plan_key        VARCHAR(16)     NOT NULL DEFAULT 'pro' COMMENT '套餐类型：basic/pro/flagship',
+    membership_days INT UNSIGNED    NOT NULL DEFAULT 30 COMMENT '赠送会员天数',
+    status          TINYINT         NOT NULL DEFAULT 0 COMMENT '状态：0-未使用 1-已使用 2-过期',
+    used_by_user_id BIGINT UNSIGNED DEFAULT NULL COMMENT '使用人用户ID',
+    used_at         DATETIME(3)     DEFAULT NULL COMMENT '使用时间',
+    expires_at      DATETIME(3)     DEFAULT NULL COMMENT '令牌有效期',
+    created_by      BIGINT UNSIGNED NOT NULL COMMENT '创建管理员ID',
+    updated_by      BIGINT UNSIGNED DEFAULT NULL COMMENT '更新人ID',
+    created_at      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    updated_at      DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+    tenant_id       BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '租户ID',
+    is_deleted      TINYINT         NOT NULL DEFAULT 0 COMMENT '逻辑删除：0-未删除 1-已删除',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_experience_token (token),
+    KEY idx_experience_token_batch (batch_id),
+    KEY idx_experience_token_status (status, expires_at),
+    KEY idx_experience_token_used_by (used_by_user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='体验会员令牌表';

@@ -1,10 +1,11 @@
 package com.aichuangzuo.admin.infrastructure.security;
 
+import com.aichuangzuo.admin.config.AuthProperties;
 import com.aichuangzuo.shared.enums.error.AdminAuthErrorCode;
 import com.aichuangzuo.shared.exception.UnauthorizedException;
-import com.aichuangzuo.admin.config.AuthProperties;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -18,6 +19,20 @@ import java.util.UUID;
 public class JwtUtil {
 
     private final AuthProperties authProperties;
+
+    @PostConstruct
+    public void validateSecrets() {
+        String accessSecret = authProperties.getJwt().getAccessSecret();
+        if (accessSecret == null || accessSecret.isBlank()
+                || accessSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("配置错误：auth.jwt.access-secret 必须配置，且长度不少于 256 位（32 字节）");
+        }
+        String refreshSecret = authProperties.getJwt().getRefreshSecret();
+        if (refreshSecret == null || refreshSecret.isBlank()
+                || refreshSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException("配置错误：auth.jwt.refresh-secret 必须配置，且长度不少于 256 位（32 字节）");
+        }
+    }
 
     public String generateAccessToken(Long adminUserId) {
         return generateToken(adminUserId, authProperties.getJwt().getAccessSecret(),

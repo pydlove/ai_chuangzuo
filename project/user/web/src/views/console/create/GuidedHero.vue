@@ -27,11 +27,11 @@
     <!-- 灵感入口：折叠态 / 思考中 / 推荐结果 -->
     <div class="hero-inspire" v-if="inspireExpanded">
       <div v-if="loadingInspire" class="hero-inspire-loading">
-        <span class="hero-inspire-text">灵犀同学正在帮您思考选题灵感</span>
+        <span class="hero-inspire-text">小爱正在帮您思考选题灵感</span>
         <span class="hero-dots"><span></span><span></span><span></span></span>
       </div>
       <div v-else class="hero-inspire-result">
-        <div class="hero-inspire-status">灵犀同学帮你推荐了 {{ topics.length }} 个标题，请您参考</div>
+        <div class="hero-inspire-status">小爱帮你推荐了 {{ topics.length }} 个标题，请您参考</div>
         <div class="hero-topics">
           <button
             v-for="(t, i) in topics"

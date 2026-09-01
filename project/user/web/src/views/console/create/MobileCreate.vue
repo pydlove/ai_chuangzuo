@@ -4,10 +4,10 @@
       <div class="mc-header__brand">
         <img
           src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
+          alt="爱创作工坊"
           class="mc-header__logo"
         />
-        <span class="mc-header__name">爱创作</span>
+        <span class="mc-header__name">爱创作工坊</span>
       </div>
       <button class="mc-icon-btn" @click="queueOpen = true">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -133,7 +133,7 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue'
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { useRouter } from 'vue-router'
 import TopicCapsules from './TopicCapsules.vue'
 import { useCreateForm } from './useCreateForm.js'
@@ -141,6 +141,7 @@ import { useGenerationQueue } from './useGenerationQueue.js'
 import { currentSkill } from '@/composables/useSkills.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { useConfirm } from '@/composables/useConfirm.js'
 import { submitGeneration } from '@/api/generation.js'
 import { saveDraft } from '@/api/draft.js'
 
@@ -154,6 +155,7 @@ const {
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates } = useExportTemplates()
 const { benefits, planKey, loadBenefits } = useBenefits()
+const { confirm } = useConfirm()
 
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
@@ -223,18 +225,17 @@ const handleSaveDraft = async () => {
     })
     message.success('草稿已保存')
   } catch (e) {
-    console.warn('保存草稿失败', e)
+    // 保存失败时保持编辑状态，由用户重试
   }
 }
 
 const handleGenerate = async () => {
   if (planKey.value === 'free') {
-    Modal.confirm({
+    confirm({
       title: '需要订阅套餐',
       content: '订阅套餐后即可使用 AI 生成文章，是否去订阅？',
       okText: '去订阅',
       cancelText: '取消',
-      centered: true,
       wrapClassName: 'membership-confirm-modal',
       onOk: () => window.open('/pricing', '_blank')
     })
@@ -249,12 +250,11 @@ const handleGenerate = async () => {
     return
   }
   if (quotaRemaining.value <= 0) {
-    Modal.confirm({
+    confirm({
       title: '额度已用完',
       content: '本月额度已用完，升级会员可获得更多额度，是否去升级？',
       okText: '去升级',
       cancelText: '取消',
-      centered: true,
       onOk: () => window.open('/pricing', '_blank')
     })
     return

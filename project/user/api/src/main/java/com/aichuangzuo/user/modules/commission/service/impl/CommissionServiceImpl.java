@@ -5,7 +5,7 @@ import com.aichuangzuo.user.modules.article.entity.Article;
 import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.commission.entity.CommissionSubmission;
 import com.aichuangzuo.user.modules.commission.entity.CommissionTask;
-import com.aichuangzuo.user.modules.commission.enums.CommissionErrorCode;
+import com.aichuangzuo.shared.enums.error.CommissionErrorCode;
 import com.aichuangzuo.user.modules.commission.enums.CommissionTaskStatus;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionSubmissionMapper;
 import com.aichuangzuo.user.modules.commission.mapper.CommissionTaskMapper;

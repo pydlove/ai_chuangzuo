@@ -18,12 +18,12 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 流水线模板解析器：从 t_prompt_template + t_prompt_template_stage 加载当前任务用的模板 + 12 阶段配置。
+ * 流水线模板解析器：从 t_prompt_template + t_prompt_template_stage 加载当前任务用的模板 + 14 阶段配置。
  *
  * <p>阶段 3 起：resolveInto(ctx, templateId, templateVersion) 接任务锁定的版本号。
  * 老任务（templateId=null 或 templateVersion=null）走 fallback：找当前唯一已发布（template_status=1）。
  *
- * <p>stage 表里没有的行（老模板没初始化）会用 {@link PipelineStage} 默认值兜底，保证 12 个 stage 一定齐全。
+ * <p>stage 表里没有的行（老模板没初始化）会用 {@link PipelineStage} 默认值兜底，保证 14 个 stage 一定齐全。
  */
 @Slf4j
 @Service
@@ -69,6 +69,9 @@ public class PipelineTemplateResolver {
         Map<Integer, PromptTemplateStage> stages = new HashMap<>();
         List<PromptTemplateStage> rows = stageMapper.selectByTemplateId(template.getId());
         for (PromptTemplateStage row : rows) {
+            // DB 里可能存了 stage 行但 ai_prompt / rule_config 为 null（例如迁移里写 NULL 想走 enum 默认值），
+            // 运行时必须补回默认值，否则 AbstractAiStep 会报 "ai_prompt 为空"。
+            backfillStageDefaults(row);
             stages.put(row.getStageIndex(), row);
         }
         // 用 PipelineStage 默认值补齐缺失的 stage
@@ -104,5 +107,31 @@ public class PipelineTemplateResolver {
         s.setTenantId(0L);
         s.setIsDeleted(0);
         return s;
+    }
+
+    /**
+     * 将 DB 取出的 stage 行中缺失的 ai_prompt / rule_config 用对应 PipelineStage 默认值补齐。
+     *
+     * <p>优先按 stage_key 查找元数据（同一段位可能对应不同用途，如极速 3 阶段的 index=5 是 content_post_process），
+     * 找不到再按 stage_index 兜底。仅当字段为 null 或空白时才回填，避免覆盖用户自定义内容。
+     */
+    private void backfillStageDefaults(PromptTemplateStage row) {
+        if (row == null || row.getStageIndex() == null) {
+            return;
+        }
+        PipelineStage meta = null;
+        if (row.getStageKey() != null && !row.getStageKey().isBlank()) {
+            meta = PipelineStage.byKey(row.getStageKey());
+        }
+        if (meta == null) {
+            meta = PipelineStage.byIndex(row.getStageIndex());
+        }
+        if (meta.type == StageType.AI_PROMPT
+                && (row.getAiPrompt() == null || row.getAiPrompt().isBlank())) {
+            row.setAiPrompt(meta.defaultAiPrompt);
+        } else if (meta.type == StageType.RULE_CONFIG
+                && (row.getRuleConfig() == null || row.getRuleConfig().isBlank())) {
+            row.setRuleConfig(meta.defaultRuleConfigJson);
+        }
     }
 }

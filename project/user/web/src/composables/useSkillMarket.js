@@ -34,7 +34,7 @@ export async function loadMarketSkills() {
   try {
     marketSkills.value = await getMarketSkills()
   } catch (e) {
-    console.warn('[loadMarketSkills]', e?.message || '加载失败')
+    // 加载失败时保持现有列表不变
   }
 }
 
@@ -42,7 +42,6 @@ export async function loadMySubmissions() {
   try {
     mySubmissions.value = await getMyMarketSubmissions()
   } catch (e) {
-    console.warn('[loadMySubmissions]', e?.message || '加载失败')
     mySubmissions.value = []
   }
 }
@@ -56,7 +55,6 @@ export async function loadFavoriteSkills(keyword = '', page = 1, pageSize = 999)
     }
     return result
   } catch (e) {
-    console.warn('[loadFavoriteSkills]', e?.message || '加载失败')
     favoriteSkills.value = []
     return { list: [], total: 0, current: page, size: pageSize }
   }
@@ -66,7 +64,7 @@ export async function loadMarketSkillOverview() {
   try {
     marketOverview.value = await getMarketSkillOverview()
   } catch (e) {
-    console.warn('[loadMarketSkillOverview]', e?.message || '加载失败')
+    // 加载失败时保持概览不变
   }
 }
 
@@ -74,7 +72,6 @@ export async function loadMarketSkillPage({ page = 1, pageSize = 15, keyword = '
   try {
     return await getMarketSkillsPage({ page, pageSize, keyword, sortType })
   } catch (e) {
-    console.warn('[loadMarketSkillPage]', e?.message || '加载失败')
     return { list: [], total: 0, current: page, size: pageSize }
   }
 }
@@ -93,7 +90,7 @@ export async function toggleFavorite(marketId) {
       }
     }
   } catch (e) {
-    console.warn('[toggleFavorite]', e?.message || '操作失败')
+    // 操作失败时由调用方根据列表状态判断结果
   }
 }
 

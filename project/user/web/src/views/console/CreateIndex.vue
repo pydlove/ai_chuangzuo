@@ -20,7 +20,7 @@
 
 <script setup>
 import { computed, onMounted, onUnmounted } from 'vue'
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useDevice } from '@/composables/useDevice.js'
 import {
@@ -37,6 +37,7 @@ import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { wordCountPresets, useCreateForm, loadForm } from './create/useCreateForm.js'
 import { platforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import { useGenerationQueue } from './create/useGenerationQueue.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import MinimalPanel from './create/MinimalPanel.vue'
 import MobileCreate from './create/MobileCreate.vue'
 import QueueDrawer from './create/QueueDrawer.vue'
@@ -91,19 +92,19 @@ onMounted(async () => {
   // 平台配置加载完成后，恢复上次的平台/字数/模板选择
   loadForm()
 
- const resume = localStorage.getItem('aichuangzuo_current_article')
+ const resume = localStorage.getItem(STORAGE_KEYS.CURRENT_ARTICLE)
   if (resume) {
     try {
       const data = JSON.parse(resume)
       if (data.fromDraft) {
         restoreDraft(data)
-        localStorage.removeItem('aichuangzuo_current_article')
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_ARTICLE)
       }
     } catch (e) {
-      console.warn('恢复草稿失败', e)
+      // 恢复草稿失败时继续使用空白创作页
     }
   } else {
-    const drafts = JSON.parse(localStorage.getItem('aichuangzuo_drafts') || '[]')
+    const drafts = JSON.parse(localStorage.getItem(STORAGE_KEYS.DRAFTS) || '[]')
     if (drafts.length > 0) {
       restoreDraft(drafts[0])
     }
@@ -127,39 +128,6 @@ onMounted(async () => {
       }
       router.replace({ path: route.path })
     }
-  }
-
-  // 从约稿任务跳转过来时自动填充表单
-  const commissionTaskId = route.query.commissionTaskId
-  if (commissionTaskId) {
-    customTitle.value = String(route.query.title || '')
-    const parts = []
-    if (route.query.requirement) parts.push(String(route.query.requirement))
-    const min = route.query.minWordCount != null ? Number(route.query.minWordCount) : null
-    const max = route.query.maxWordCount != null ? Number(route.query.maxWordCount) : null
-    if (min != null || max != null) {
-      let rangeText = '字数要求：'
-      if (min != null && max != null) rangeText += `${min}-${max} 字`
-      else if (min != null) rangeText += `≥ ${min} 字`
-      else if (max != null) rangeText += `≤ ${max} 字`
-      parts.push(rangeText)
-    }
-    customRequirement.value = parts.join('\n').slice(0, 200)
-    if (min != null || max != null) {
-      const target = min != null ? min : max
-      const wc = wordCountPresets.tier.find(x => x.count === target)
-        || wordCountPresets.scenario.find(x => x.count === target)
-        || Object.values(wordCountPresets.platform).flat().find(x => x.count === target)
-        || { count: target, label: '自定义' }
-      currentWordCount.value = wc
-    }
-    Modal.warning({
-      title: '提示',
-      content: '已根据任务要求填充标题和创作要求，建议你结合自身思路修改标题和观点，避免与其他投稿同质化，影响评审结果。',
-      centered: true,
-      okText: '知道了'
-    })
-    router.replace({ path: route.path })
   }
 
   startPolling()

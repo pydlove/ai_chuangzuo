@@ -31,10 +31,11 @@ public class LocalFileStorage {
     }
 
     /**
-     * 存储首页评价头像，返回 root-relative 访问路径。
+     * 存储首页评价头像，返回 API 前缀访问路径。
+     * <p>使用 /api/v1/admin/uploads 前缀，避免线上 /uploads 未代理导致头像裂图。
      *
      * @param file 头像文件
-     * @return /uploads/testimonial/avatar/{filename}.jpg
+     * @return /api/v1/admin/uploads/testimonial/avatar/{filename}.jpg
      */
     public String storeTestimonialAvatar(MultipartFile file) {
         validateAvatar(file);
@@ -54,7 +55,7 @@ public class LocalFileStorage {
             throw new BusinessException(TestimonialErrorCode.AVATAR_UPLOAD_FAILED.getCode(), "头像保存失败");
         }
 
-        return "/uploads/testimonial/avatar/" + filename;
+        return "/api/v1/admin/uploads/testimonial/avatar/" + filename;
     }
 
     private void validateAvatar(MultipartFile file) {

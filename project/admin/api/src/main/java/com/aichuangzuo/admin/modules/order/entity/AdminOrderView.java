@@ -19,9 +19,13 @@ public class AdminOrderView {
     private String cycle;
     private BigDecimal amount;
     private Integer status;
+    private String paymentMethod;
+    private String thirdPartyTradeId;
     private LocalDateTime paidAt;
     private LocalDateTime refundedAt;
     private String refundReason;
+    private BigDecimal refundAmount;
+    private String thirdPartyRefundId;
     private String adminRemark;
     private Long operatorId;
     private LocalDateTime createdAt;

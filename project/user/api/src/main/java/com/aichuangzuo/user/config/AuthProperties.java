@@ -15,9 +15,11 @@ public class AuthProperties {
     public static class Jwt {
         private String accessSecret;
         private String refreshSecret;
+        private String exportSecret;
         private Long accessExpiration;
         private Long refreshExpiration;
         private Long rememberMeRefreshExpiration;
+        private Long exportExpiration;
     }
 
     @Data

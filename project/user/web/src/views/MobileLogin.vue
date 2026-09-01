@@ -3,47 +3,37 @@
     <!-- 顶部导航 -->
     <header class="ml-header">
       <router-link to="/" class="ml-header__logo">
-        <img src="/favicon.png" alt="爱创作" class="ml-header__logo-img" />
-        <span class="ml-header__brand">爱创作</span>
+        <img src="/favicon.png" alt="爱创作工坊" class="ml-header__logo-img" />
+        <span class="ml-header__brand">爱创作工坊</span>
       </router-link>
       <router-link to="/" class="ml-header__home">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <polyline points="9 22 9 12 15 12 15 22"/>
-        </svg>
+        <Icon name="home" :size="18" />
       </router-link>
     </header>
 
     <!-- 表单卡片 -->
     <main class="ml-main">
       <h1 class="ml-title">
-        Hey! {{ activeTab === 'login' ? '欢迎回到爱创作' : '欢迎来到爱创作' }}
+        Hey! {{ activeTab === 'login' ? '欢迎回到爱创作工坊' : '欢迎来到爱创作工坊' }}
       </h1>
 
-      <!-- 标签切换 -->
-      <div class="ml-tabs">
-        <button
-          :class="['ml-tab', { active: activeTab === 'login' }]"
-          @click="activeTab = 'login'"
-        >
-          登录
-        </button>
-        <button
-          :class="['ml-tab', { active: activeTab === 'register' }]"
-          @click="activeTab = 'register'"
-        >
-          注册
-        </button>
-      </div>
+      <Tabs
+        v-model="activeTab"
+        :tabs="[
+          { label: '登录', value: 'login' },
+          { label: '注册', value: 'register' }
+        ]"
+        variant="segment"
+        active-type="surface"
+        equal-width
+        :scrollable="false"
+      />
 
       <!-- 登录表单 -->
       <div v-show="activeTab === 'login'" class="ml-form">
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="5" width="20" height="14" rx="2"/>
-              <polyline points="2 7 12 13 22 7"/>
-            </svg>
+            <Icon name="mail" class="ml-field__icon" />
             <input
               v-model="loginForm.identifier"
               type="text"
@@ -56,10 +46,7 @@
 
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+            <Icon name="lock" class="ml-field__icon" />
             <input
               v-model="loginForm.password"
               :type="loginShowPassword ? 'text' : 'password'"
@@ -68,14 +55,8 @@
               autocomplete="current-password"
             />
             <button type="button" class="ml-eye-btn" @click="loginShowPassword = !loginShowPassword">
-              <svg v-if="loginShowPassword" class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg v-else class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
+              <Icon v-if="loginShowPassword" name="eye" class="ml-eye-icon" :size="18" />
+              <Icon v-else name="eye-off" class="ml-eye-icon" :size="18" />
             </button>
           </div>
         </div>
@@ -105,10 +86,7 @@
       <div v-show="activeTab === 'register'" class="ml-form">
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="5" width="20" height="14" rx="2"/>
-              <polyline points="2 7 12 13 22 7"/>
-            </svg>
+            <Icon name="mail" class="ml-field__icon" />
             <input
               v-model="registerForm.identifier"
               type="text"
@@ -121,10 +99,7 @@
 
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="4" y="4" width="16" height="16" rx="2" ry="2"/>
-              <polyline points="22 6 12 13 2 6"/>
-            </svg>
+            <Icon name="id-card" class="ml-field__icon" />
             <input
               v-model="registerForm.code"
               type="text"
@@ -147,10 +122,7 @@
 
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+            <Icon name="lock" class="ml-field__icon" />
             <input
               v-model="registerForm.password"
               :type="registerShowPassword ? 'text' : 'password'"
@@ -159,24 +131,15 @@
               autocomplete="new-password"
             />
             <button type="button" class="ml-eye-btn" @click="registerShowPassword = !registerShowPassword">
-              <svg v-if="registerShowPassword" class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                <circle cx="12" cy="12" r="3"/>
-              </svg>
-              <svg v-else class="ml-eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
-                <line x1="1" y1="1" x2="23" y2="23"/>
-              </svg>
+              <Icon v-if="registerShowPassword" name="eye" class="ml-eye-icon" :size="18" />
+              <Icon v-else name="eye-off" class="ml-eye-icon" :size="18" />
             </button>
           </div>
         </div>
 
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-            </svg>
+            <Icon name="lock" class="ml-field__icon" />
             <input
               v-model="registerForm.confirmPassword"
               :type="registerShowPassword ? 'text' : 'password'"
@@ -198,11 +161,7 @@
             <CoinInfoTooltip>
               <span class="ml-invite-trigger">
                 <b>50 个创作币</b>
-                <svg class="ml-invite-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
+                <Icon name="info" class="ml-invite-icon" :size="14" />
               </span>
             </CoinInfoTooltip>
             。
@@ -211,9 +170,7 @@
 
         <div class="ml-field">
           <div class="ml-input-wrap">
-            <svg class="ml-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-            </svg>
+            <Icon name="message-circle" class="ml-field__icon" />
             <input
               v-model="registerForm.inviteCode"
               type="text"
@@ -276,6 +233,8 @@ import { ref } from 'vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
+import Tabs from '@/components/common/Tabs.vue'
+import Icon from '@/components/common/Icon.vue'
 import { useLogin } from '@/composables/useLogin.js'
 
 const {
@@ -394,38 +353,11 @@ const registerShowPassword = ref(false)
   line-height: 1.3;
 }
 
-.ml-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 18px;
-  background: rgba(245, 245, 245, 0.85);
-  padding: 4px;
-  border-radius: 12px;
-}
-
-.ml-tab {
-  flex: 1;
-  padding: 9px;
-  border: none;
-  background: transparent;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.ml-tab.active {
-  background: rgba(255, 255, 255, 0.95);
-  color: #1a1a1a;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
 .ml-form {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  margin-top: 16px;
 }
 
 .ml-field {
@@ -674,19 +606,6 @@ body[data-theme="dark"] .ml-main {
 }
 
 body[data-theme="dark"] .ml-title {
-  color: #e0e0e0;
-}
-
-body[data-theme="dark"] .ml-tabs {
-  background: rgba(38, 38, 38, 0.85);
-}
-
-body[data-theme="dark"] .ml-tab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .ml-tab.active {
-  background: rgba(31, 31, 31, 0.95);
   color: #e0e0e0;
 }
 

@@ -82,7 +82,8 @@ public class AuthController {
     @Operation(summary = "刷新 Token")
     @PostMapping("/refresh-token")
     public Result<AuthTokenVO> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
-        log.info("刷新Token, userId={}, refreshToken={}", SecurityUserContext.getCurrentUserId(), request.getRefreshToken());
+        log.info("刷新Token, userId={}, refreshTokenLen={}", SecurityUserContext.getCurrentUserId(),
+                request.getRefreshToken() != null ? request.getRefreshToken().length() : 0);
         return Result.success(authService.refreshToken(request));
     }
 

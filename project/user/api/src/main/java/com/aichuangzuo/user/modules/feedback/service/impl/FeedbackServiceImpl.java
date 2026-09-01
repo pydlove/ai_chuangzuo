@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.feedback.dto.request.SubmitFeedbackRequest;
 import com.aichuangzuo.user.modules.feedback.entity.Feedback;
-import com.aichuangzuo.user.modules.feedback.enums.FeedbackErrorCode;
+import com.aichuangzuo.shared.enums.error.FeedbackErrorCode;
 import com.aichuangzuo.user.modules.feedback.enums.FeedbackType;
 import com.aichuangzuo.user.modules.feedback.mapper.FeedbackMapper;
 import com.aichuangzuo.user.modules.feedback.service.FeedbackService;
@@ -32,10 +32,16 @@ public class FeedbackServiceImpl implements FeedbackService {
             request.setType(FeedbackType.其他.name());
         }
 
-        LocalDateTime since = LocalDateTime.now().minusHours(24);
-        long recent = feedbackMapper.countRecentByUser(userId, since);
-        if (recent >= DAILY_LIMIT) {
-            throw new BusinessException(FeedbackErrorCode.DAILY_LIMIT_EXCEEDED);
+        if (FeedbackType.评价.name().equals(request.getType())) {
+            if (feedbackMapper.findReviewByUser(userId) != null) {
+                throw new BusinessException(FeedbackErrorCode.REVIEW_ALREADY_SUBMITTED);
+            }
+        } else {
+            LocalDateTime since = LocalDateTime.now().minusHours(24);
+            long recent = feedbackMapper.countRecentByUser(userId, since);
+            if (recent >= DAILY_LIMIT) {
+                throw new BusinessException(FeedbackErrorCode.DAILY_LIMIT_EXCEEDED);
+            }
         }
 
         Feedback fb = new Feedback();
@@ -64,6 +70,12 @@ public class FeedbackServiceImpl implements FeedbackService {
     @Override
     public long countByUser(Long userId, Integer status) {
         return feedbackMapper.countByUser(userId, status);
+    }
+
+    @Override
+    public FeedbackVO getMyReview(Long userId) {
+        Feedback fb = feedbackMapper.findReviewByUser(userId);
+        return fb == null ? null : toVO(fb);
     }
 
     private FeedbackVO toVO(Feedback fb) {

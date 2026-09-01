@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.lottery.entity.UserCoupon;
 import com.aichuangzuo.user.modules.lottery.mapper.UserCouponMapper;
 import com.aichuangzuo.user.modules.lottery.service.UserCouponService;
-import com.aichuangzuo.user.modules.membership.enums.MembershipErrorCode;
+import com.aichuangzuo.shared.enums.error.MembershipErrorCode;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;

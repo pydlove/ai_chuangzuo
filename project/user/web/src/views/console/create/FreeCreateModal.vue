@@ -75,18 +75,7 @@
 
   <!-- 页面模式（手机端二级页面） -->
   <div v-else class="free-create-page">
-    <div class="free-create-page-header">
-      <div class="free-create-page-back" @click="close">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </div>
-      <div class="free-create-page-title">自由创作</div>
-      <div class="free-create-page-header-right">
-        <!-- 右侧 icon 占位，后续替换为真实图标 -->
-        <div class="free-create-header-icon-placeholder"></div>
-      </div>
-    </div>
+    <MobileSubpageHeader title="自由创作" :auto-back="false" @back="close" />
 
     <div class="free-create-hero">
       <div class="free-create-hero-main">
@@ -169,7 +158,7 @@
 <script setup>
 import { ref, computed, nextTick, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { ThunderboltOutlined } from '@ant-design/icons-vue'
 import { useCreateForm } from './useCreateForm.js'
 import { platforms } from '@/composables/usePlatforms.js'
@@ -178,10 +167,12 @@ import { currentSkill } from '@/composables/useSkills.js'
 import { marketSkills } from '@/composables/useSkillMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { useConfirm } from '@/composables/useConfirm.js'
 import { submitGeneration } from '@/api/generation.js'
 import SkillModal from './modals/SkillModal.vue'
 import WordCountModal from './modals/WordCountModal.vue'
 import TemplateModal from './modals/TemplateModal.vue'
+import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
 
 const props = defineProps({
   visible: Boolean,
@@ -202,6 +193,7 @@ const {
 const { queueOpen, activeCount, loadQueue } = useGenerationQueue()
 const { templates: apiTemplates, load: loadExportTemplates } = useExportTemplates()
 const { benefits, planKey, loadBenefits } = useBenefits()
+const { confirm } = useConfirm()
 
 const REQUIREMENT_MAX = 200
 const heroFocused = ref(false)
@@ -253,12 +245,11 @@ const close = () => {
 const handleGenerate = async () => {
   if (!props.pageMode && !props.visible) return
   if (planKey.value === 'free') {
-    Modal.confirm({
+    confirm({
       title: '需要订阅套餐',
       content: '订阅套餐后即可使用 AI 生成文章，是否去订阅？',
       okText: '去订阅',
       cancelText: '取消',
-      centered: true,
       wrapClassName: 'membership-confirm-modal',
       onOk: () => window.open('/pricing', '_blank')
     })
@@ -273,12 +264,11 @@ const handleGenerate = async () => {
     return
   }
   if (quotaRemaining.value <= 0) {
-    Modal.confirm({
+    confirm({
       title: '额度已用完',
       content: '本月额度已用完，升级会员可获得更多额度，是否去升级？',
       okText: '去升级',
       cancelText: '取消',
-      centered: true,
       onOk: () => window.open('/pricing', '_blank')
     })
     return
@@ -472,9 +462,6 @@ const handleGenerate = async () => {
   min-height: 100%;
   background: var(--color-bg-page);
 }
-.free-create-page-header {
-  display: none;
-}
 .free-create-hero {
   display: none;
 }
@@ -501,53 +488,6 @@ const handleGenerate = async () => {
 
   .free-create-page {
     background: var(--color-bg-card);
-  }
-  .free-create-page-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    position: relative;
-    height: 56px;
-    padding: 0;
-    margin: 0;
-    background: var(--color-bg-card);
-    border-bottom: 1px solid var(--color-border-light);
-  }
-  .free-create-page-back {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 56px;
-    height: 56px;
-    font-size: 14px;
-    color: var(--color-text-secondary);
-    cursor: pointer;
-  }
-  .free-create-page-back svg {
-    width: 24px;
-    height: 24px;
-  }
-  .free-create-page-title {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 17px;
-    font-weight: 600;
-    color: var(--color-text-primary);
-    line-height: 56px;
-  }
-  .free-create-page-header-right {
-    width: 56px;
-    height: 56px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .free-create-header-icon-placeholder {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
-    background: var(--color-bg-page);
   }
 
   .free-create-hero {

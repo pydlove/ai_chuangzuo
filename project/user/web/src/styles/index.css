@@ -1,12 +1,3 @@
-/* 阿里妈妈东方大楷（仅登录验证码使用，字库源自 /Users/panyong/aio_project/ai_chuangzuo/project/assets/阿里妈妈东方大楷） */
-@font-face {
-  font-family: 'AlimamaDongFangDaKai';
-  src: url('/fonts/AlimamaDongFangDaKai-Regular.woff2') format('woff2');
-  font-display: swap;
-  font-weight: normal;
-  font-style: normal;
-}
-
 :root {
   /* 品牌色 */
   --color-primary: #FF2442;
@@ -85,7 +76,7 @@ html, body, #app {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Helvetica Neue", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
   font-size: var(--font-body);
   color: var(--color-text-primary);
   background-color: var(--color-bg-page);

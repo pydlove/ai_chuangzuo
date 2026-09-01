@@ -1,7 +1,9 @@
 package com.aichuangzuo.admin.modules.testimonial.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.testimonial.dto.request.BatchDeleteTestimonialRequest;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialCreateRequest;
+import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialPageRequest;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialStatusRequest;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialUpdateRequest;
 import com.aichuangzuo.admin.modules.testimonial.exception.TestimonialErrorCode;
@@ -11,6 +13,7 @@ import com.aichuangzuo.admin.modules.testimonial.vo.TestimonialImportResultVO;
 import com.aichuangzuo.admin.modules.testimonial.vo.TestimonialVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletResponse;
@@ -24,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 @Tag(name = "首页用户评价管理")
 @Slf4j
@@ -36,12 +38,13 @@ public class TestimonialAdminController {
     private final TestimonialService service;
     private final com.aichuangzuo.admin.infrastructure.storage.LocalFileStorage localFileStorage;
 
-    @Operation(summary = "评价列表")
+    @Operation(summary = "评价列表（分页）")
     @GetMapping
-    public Result<List<TestimonialVO>> list() {
+    public Result<IPage<TestimonialVO>> page(TestimonialPageRequest request) {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
-        log.info("管理员查询首页评价列表, adminUserId={}", adminUserId);
-        return Result.success(service.list());
+        log.info("管理员查询首页评价列表, adminUserId={}, keyword={}, pageNum={}, pageSize={}",
+                adminUserId, request.getKeyword(), request.getPageNum(), request.getPageSize());
+        return Result.success(service.page(request));
     }
 
     @Operation(summary = "新增评价")
@@ -68,6 +71,15 @@ public class TestimonialAdminController {
         log.info("管理员删除首页评价, adminUserId={}, testimonialId={}", adminUserId, id);
         service.delete(id);
         return Result.success();
+    }
+
+    @Operation(summary = "批量删除评价")
+    @PostMapping("/batch/delete")
+    public Result<Integer> batchDelete(@Valid @RequestBody BatchDeleteTestimonialRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量删除首页评价, adminUserId={}, count={}, ids={}",
+                adminUserId, request.getIds().size(), request.getIds());
+        return Result.success(service.batchDelete(request.getIds()));
     }
 
     @Operation(summary = "启用/禁用评价")

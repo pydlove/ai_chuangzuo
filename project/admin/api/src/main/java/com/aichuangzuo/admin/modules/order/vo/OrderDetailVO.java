@@ -19,6 +19,10 @@ public class OrderDetailVO {
     private BigDecimal amount;
     private Integer status;
     private String statusName;
+    private String paymentMethod;
+    private String thirdPartyTradeId;
+    private String thirdPartyRefundId;
+    private BigDecimal refundAmount;
     private LocalDateTime paidAt;
     private LocalDateTime refundedAt;
     private String refundReason;

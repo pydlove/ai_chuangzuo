@@ -77,11 +77,12 @@
 <script setup>
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { message, Modal } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
 import { InboxOutlined, LoadingOutlined, CheckCircleOutlined, ClockCircleOutlined, CloseCircleOutlined } from '@ant-design/icons-vue'
 import { useGenerationQueue, statusText } from './useGenerationQueue.js'
 import { useIsMobile } from '@/composables/useMobile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { useConfirm } from '@/composables/useConfirm.js'
 import { stopGenerationTask, retryGenerationTask } from '@/api/generation.js'
 import EmptyState from '@/components/common/EmptyState.vue'
 
@@ -96,6 +97,7 @@ const router = useRouter()
 const isMobile = useIsMobile()
 const { queueList, loadQueue } = useGenerationQueue()
 const { benefits } = useBenefits()
+const { confirm } = useConfirm()
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 
@@ -110,12 +112,11 @@ const goWorks = () => {
 const stopItem = (item, event) => {
   event.stopPropagation()
   if (stoppingIds.value.has(item.id)) return
-  Modal.confirm({
+  confirm({
     title: '停止生成任务',
     content: '确定停止该任务？已扣除的创作额度将退回账户。',
     okText: '停止',
     cancelText: '取消',
-    centered: true,
     wrapClassName: 'stop-task-confirm-modal',
     okButtonProps: { disabled: stoppingIds.value.has(item.id) },
     onOk: async () => {
@@ -136,18 +137,25 @@ const stopItem = (item, event) => {
 const retryItem = (item, event) => {
   event.stopPropagation()
   if (retryingIds.value.has(item.id)) return
-  retryingIds.value.add(item.id)
-  retryGenerationTask(item.id)
-    .then(() => {
-      message.success('已重新生成')
-      return loadQueue()
-    })
-    .catch((e) => {
-      message.error(e?.message || '重新生成失败，请稍后重试')
-    })
-    .finally(() => {
-      retryingIds.value.delete(item.id)
-    })
+  confirm({
+    title: '重新生成',
+    content: '确定重新生成该文章？将创建新任务并扣除 1 次创作额度。',
+    okText: '重新生成',
+    cancelText: '取消',
+    wrapClassName: 'retry-task-confirm-modal',
+    onOk: async () => {
+      retryingIds.value.add(item.id)
+      try {
+        await retryGenerationTask(item.id)
+        message.success('已重新生成')
+        await loadQueue()
+      } catch (e) {
+        message.error(e?.message || '重新生成失败，请稍后重试')
+      } finally {
+        retryingIds.value.delete(item.id)
+      }
+    }
+  })
 }
 </script>
 
@@ -582,5 +590,22 @@ body[data-theme="dark"] .queue-drawer .queue-panel-empty .empty-hint {
   background: rgba(255, 36, 66, 0.4);
   border-color: transparent;
   color: #fff;
+}
+
+/* 重新生成确认弹框：使用主题色 */
+.retry-task-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.retry-task-confirm-modal .ant-btn-primary:hover,
+.retry-task-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.retry-task-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
 }
 </style>

@@ -41,6 +41,9 @@ public class Article {
     /** AI 优化标题缓存，JSON 对象字符串，形如 {"titles":{"wechat":["标题1","标题2"]}}；首次生成后不再变。 */
     private String optimizedTitlesJson;
 
+    /** AI 检测报告，JSON 对象字符串，形如 {"aiRate":60,"suspiciousRate":25,"humanRate":15,"summary":"..."}。 */
+    private String aiDetectReport;
+
     /**
      * 编辑器内联样式覆盖，JSON 字符串。
      * 形如：{"blocks":{},"inlines":[{"block":0,"start":1,"end":5,"styles":{...}}]}。

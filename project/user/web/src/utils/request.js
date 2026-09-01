@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1/user'
 
@@ -7,30 +8,27 @@ const request = axios.create({
   timeout: 10000
 })
 
-const ACCESS_TOKEN_KEY = 'aichuangzuo_access_token'
-const REFRESH_TOKEN_KEY = 'aichuangzuo_refresh_token'
-
 let refreshingPromise = null
 
 function getAccessToken() {
-  return localStorage.getItem(ACCESS_TOKEN_KEY)
+  return localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
 }
 
 function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY)
+  return localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
 }
 
 function setTokens(accessToken, refreshToken) {
-  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken)
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, accessToken)
   if (refreshToken) {
-    localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken)
+    localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
   }
 }
 
 function clearTokens() {
-  localStorage.removeItem(ACCESS_TOKEN_KEY)
-  localStorage.removeItem(REFRESH_TOKEN_KEY)
-  localStorage.removeItem('aichuangzuo_remember_me')
+  localStorage.removeItem(STORAGE_KEYS.ACCESS_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+  localStorage.removeItem(STORAGE_KEYS.REMEMBER_ME)
 }
 
 function isTokenExpiredError(status, code) {

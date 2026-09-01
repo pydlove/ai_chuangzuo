@@ -135,7 +135,6 @@
 
 <script setup>
 import { ref, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import {
   UploadOutlined,
   DownloadOutlined,
@@ -145,8 +144,7 @@ import {
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import MobileToolFooter from '@/components/common/MobileToolFooter.vue'
-
-const router = useRouter()
+import MobileSubpageHeader from '@/components/common/MobileSubpageHeader.vue'
 
 const fileInput = ref(null)
 const sourceCanvas = ref(null)
@@ -164,10 +162,6 @@ const feather = ref(2)
 let sourceImage = null
 let sourceCtx = null
 let resultCtx = null
-
-function goBack() {
-  router.back()
-}
 
 function triggerUpload() {
   fileInput.value?.click()
@@ -383,49 +377,6 @@ function clearResult() {
   background: #f8f9fa;
   color: #1a1a1a;
   -webkit-font-smoothing: antialiased;
-}
-
-/* 子页面返回头 */
-.cutout-subpage-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  width: 100%;
-  height: 48px;
-  padding: 0 12px;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid #f0f0f0;
-  box-sizing: border-box;
-}
-.cutout-subpage-back {
-  position: absolute;
-  left: 12px;
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  color: #595959;
-  font-size: 14px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.cutout-subpage-back svg {
-  width: 20px;
-  height: 20px;
-}
-.cutout-subpage-title {
-  width: 100%;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  padding: 0 60px;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
 }
 
 /* Hero 区 */
@@ -743,12 +694,6 @@ function clearResult() {
 
 /* 暗色主题 */
 body[data-theme="dark"] .cutout-tool-page { background: #141414; color: #e0e0e0; }
-body[data-theme="dark"] .cutout-subpage-header {
-  background: rgba(20, 20, 20, 0.96);
-  border-bottom-color: #2a2a2a;
-}
-body[data-theme="dark"] .cutout-subpage-title { color: #e0e0e0; }
-body[data-theme="dark"] .cutout-subpage-back { color: #a6a6a6; }
 body[data-theme="dark"] .cutout-hero {
   background: linear-gradient(180deg, #2a1f22 0%, #1f1f1f 100%);
 }

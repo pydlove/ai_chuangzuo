@@ -62,6 +62,7 @@ public class PersistArticleStep implements GenerationStep {
         payload.put("description", PipelineUtils.normalizeQuotes(ctx.getPublishDescription()));
         payload.put("tags", ctx.getPublishTags());
         payload.put("inputParam", task.getInputParam());
+        payload.put("aiDetectReport", ctx.getAiDetectReport());
         payload.put("wordLimitTarget", task.getWordLimitTarget() == null ? 1500 : task.getWordLimitTarget());
 
         String articleBizNo = articleClient.saveArticle(payload);

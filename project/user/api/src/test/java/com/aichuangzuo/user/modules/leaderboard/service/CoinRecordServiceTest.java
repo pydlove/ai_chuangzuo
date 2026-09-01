@@ -5,7 +5,7 @@ import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.leaderboard.entity.CoinDirection;
 import com.aichuangzuo.user.modules.leaderboard.entity.UserCoinRecord;
-import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
+import com.aichuangzuo.shared.enums.error.LeaderboardErrorCode;
 import com.aichuangzuo.user.modules.leaderboard.mapper.UserCoinRecordMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;

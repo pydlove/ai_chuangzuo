@@ -43,6 +43,9 @@ public class SaveArticleRequest {
     /** 推荐标签（pipeline 第 13 阶段 AI 生成）。 */
     private List<String> tags;
 
+    /** AI 检测报告（pipeline 第 14 阶段大模型自评）。 */
+    private com.aichuangzuo.shared.vo.AiDetectReport aiDetectReport;
+
     private LocalDateTime completedAt;
 
     /** 关联生成任务ID，用于幂等保存。 */

@@ -19,6 +19,8 @@ public class OrderListVO {
     private BigDecimal amount;
     private Integer status;
     private String statusName;
+    private String paymentMethod;
+    private String thirdPartyTradeId;
     private LocalDateTime paidAt;
     private LocalDateTime refundedAt;
     private LocalDateTime createdAt;

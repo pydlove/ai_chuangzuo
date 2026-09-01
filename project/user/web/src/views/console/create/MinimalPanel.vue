@@ -202,7 +202,7 @@ const handleSaveDraft = async () => {
     })
     message.success('草稿已保存')
   } catch (e) {
-    console.warn('保存草稿失败', e)
+    // 保存失败时保持编辑状态，由用户重试
   }
 }
 

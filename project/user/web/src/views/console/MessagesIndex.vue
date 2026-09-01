@@ -18,29 +18,18 @@
       </div>
 
       <!-- 类型筛选 -->
-      <div class="messages-tabs">
-        <button
-          v-for="tab in tabs"
-          :key="tab.type"
-          :class="['messages-tab', { active: activeTab === tab.type }]"
-          @click="activeTab = tab.type"
-        >
-          {{ tab.label }}
-          <span v-if="tab.count > 0" class="messages-tab__badge">{{ tab.count > 99 ? '99+' : tab.count }}</span>
-        </button>
-      </div>
+      <Tabs
+        v-model="activeTab"
+        :tabs="tabs"
+        variant="pill"
+        active-type="primary"
+      />
     </header>
 
     <!-- 消息列表 -->
     <main class="messages-list">
       <div v-if="loading" class="messages-loading">
-        <div v-for="i in 4" :key="i" class="message-skeleton">
-          <div class="message-skeleton__icon"></div>
-          <div class="message-skeleton__body">
-            <div class="message-skeleton__title"></div>
-            <div class="message-skeleton__summary"></div>
-          </div>
-        </div>
+        <SkeletonList type="list" :rows="4" />
       </div>
 
       <EmptyState
@@ -50,22 +39,21 @@
         size="lg"
       >
         <template #icon>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
-          </svg>
+          <Icon name="bell" :size="48" :stroke-width="1.5" />
         </template>
       </EmptyState>
 
       <div v-else class="messages-cards">
-        <div
+        <ListCard
           v-for="msg in filteredMessages"
           :key="msg.id"
-          :class="['message-card', { unread: !msg.read }]"
+          clickable
+          custom-class="message-card"
+          :class="{ unread: !msg.read }"
           @click="handleClick(msg)"
         >
           <div class="message-card__icon" :class="`message-card__icon--${msg.type}`">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="iconSvg(msg.type)"></svg>
+            <Icon :name="iconName(msg.type)" :size="24" :stroke-width="1.6" />
           </div>
 
           <div class="message-card__body">
@@ -80,7 +68,7 @@
           </div>
 
           <div v-if="!msg.read" class="message-card__unread"></div>
-        </div>
+        </ListCard>
       </div>
     </main>
 
@@ -95,7 +83,7 @@
     >
       <div v-if="detailMessage" class="message-detail">
         <div class="message-detail__icon" :class="`message-detail__icon--${detailMessage.type}`">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" v-html="iconSvg(detailMessage.type)"></svg>
+          <Icon :name="iconName(detailMessage.type)" :size="32" :stroke-width="1.6" />
         </div>
         <div class="message-detail__type">{{ typeLabel(detailMessage.type) }}</div>
         <h3 class="message-detail__title">{{ detailMessage.title }}</h3>
@@ -112,6 +100,10 @@ import { useRouter } from 'vue-router'
 import { message as antMessage } from 'ant-design-vue'
 import { useMessages } from '@/composables/useMessages'
 import EmptyState from '@/components/common/EmptyState.vue'
+import Tabs from '@/components/common/Tabs.vue'
+import Icon from '@/components/common/Icon.vue'
+import SkeletonList from '@/components/common/SkeletonList.vue'
+import ListCard from '@/components/common/ListCard.vue'
 import { normalizeMessageLink } from '@/utils/messageLink'
 
 const router = useRouter()
@@ -123,11 +115,11 @@ const detailVisible = ref(false)
 const detailMessage = ref(null)
 
 const tabs = computed(() => [
-  { type: 'all', label: '全部', count: unreadCountByType('all') },
-  { type: 'announcement', label: '公告', count: unreadCountByType('announcement') },
-  { type: 'promotion', label: '活动', count: unreadCountByType('promotion') },
-  { type: 'generation', label: '创作', count: unreadCountByType('generation') },
-  { type: 'membership', label: '会员', count: unreadCountByType('membership') }
+  { value: 'all', label: '全部', count: unreadCountByType('all') },
+  { value: 'announcement', label: '公告', count: unreadCountByType('announcement') },
+  { value: 'promotion', label: '活动', count: unreadCountByType('promotion') },
+  { value: 'generation', label: '创作', count: unreadCountByType('generation') },
+  { value: 'membership', label: '会员', count: unreadCountByType('membership') }
 ])
 
 const filteredMessages = computed(() => {
@@ -206,18 +198,18 @@ function typeLabel(type) {
   return map[type] || '通知'
 }
 
-function iconSvg(type) {
-  const icons = {
-    announcement: '<path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>',
-    coin: '<circle cx="12" cy="12" r="9"/><path d="M9 8l3 4 3-4"/><path d="M9 16h6"/><path d="M12 12v4"/>',
-    feature: '<polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>',
-    promotion: '<polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>',
-    generation: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>',
-    membership: '<path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>',
-    style: '<path d="M12 2a10 10 0 1 0 10 10H12V2z"/><path d="M12 2a10 10 0 0 1 10 10"/><path d="M12 12L2.5 6.5"/>',
-    reward: '<circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/>'
+function iconName(type) {
+  const map = {
+    announcement: 'bell',
+    coin: 'coin',
+    feature: 'zap',
+    promotion: 'gift',
+    generation: 'file',
+    membership: 'star',
+    style: 'pie-chart',
+    reward: 'award'
   }
-  return icons[type] || icons.announcement
+  return map[type] || 'bell'
 }
 </script>
 
@@ -290,59 +282,6 @@ function iconSvg(type) {
   cursor: not-allowed;
 }
 
-/* 类型筛选 */
-.messages-tabs {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  padding-bottom: 2px;
-}
-
-.messages-tabs::-webkit-scrollbar {
-  display: none;
-}
-
-.messages-tab {
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 13px;
-  color: #595959;
-  background: #f5f5f5;
-  border: none;
-  padding: 7px 14px;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.messages-tab.active {
-  color: #fff;
-  background: #ff2442;
-  font-weight: 600;
-}
-
-.messages-tab__badge {
-  font-size: 10px;
-  font-weight: 600;
-  color: #ff2442;
-  background: #fff;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.messages-tab.active .messages-tab__badge {
-  color: #ff2442;
-  background: rgba(255, 255, 255, 0.9);
-}
-
 /* 消息列表 */
 .messages-list {
   padding: 12px 16px 24px;
@@ -359,11 +298,6 @@ function iconSvg(type) {
   align-items: flex-start;
   gap: 12px;
   padding: 14px;
-  background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .message-card:active {
@@ -462,47 +396,6 @@ function iconSvg(type) {
 }
 
 /* 加载骨架 */
-.messages-loading {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.message-skeleton {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px;
-  background: #fff;
-  border-radius: 16px;
-}
-
-.message-skeleton__icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: #f5f5f5;
-  flex-shrink: 0;
-}
-
-.message-skeleton__body {
-  flex: 1;
-}
-
-.message-skeleton__title {
-  width: 40%;
-  height: 15px;
-  background: #f5f5f5;
-  border-radius: 4px;
-  margin-bottom: 10px;
-}
-
-.message-skeleton__summary {
-  width: 70%;
-  height: 12px;
-  background: #f5f5f5;
-  border-radius: 4px;
-}
 
 /* 空状态 */
 .messages-empty {
@@ -622,8 +515,7 @@ body[data-theme="dark"] .message-detail__title {
   color: #f5f5f5;
 }
 
-body[data-theme="dark"] .messages-header__readall,
-body[data-theme="dark"] .messages-tab {
+body[data-theme="dark"] .messages-header__readall {
   color: #a6a6a6;
   background: #262626;
 }
@@ -633,13 +525,7 @@ body[data-theme="dark"] .messages-header__readall:hover {
   background: rgba(255, 36, 66, 0.12);
 }
 
-body[data-theme="dark"] .messages-tab.active {
-  color: #fff;
-  background: #ff2442;
-}
-
-body[data-theme="dark"] .message-card,
-body[data-theme="dark"] .message-skeleton {
+body[data-theme="dark"] .message-card {
   background: #1f1f1f;
 }
 
@@ -670,10 +556,7 @@ body[data-theme="dark"] .message-detail__type {
   background: #262626;
 }
 
-body[data-theme="dark"] .messages-empty__icon,
-body[data-theme="dark"] .message-skeleton__icon,
-body[data-theme="dark"] .message-skeleton__title,
-body[data-theme="dark"] .message-skeleton__summary {
+body[data-theme="dark"] .messages-empty__icon {
   background: #262626;
 }
 

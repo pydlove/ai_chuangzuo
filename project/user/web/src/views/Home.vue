@@ -1,7 +1,7 @@
 <template>
   <MobileHome v-if="isMobile" />
   <div v-else class="home-page">
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <!-- Hero 区(banner 嵌入右侧) -->
     <section class="hero">
@@ -12,22 +12,16 @@
         <div class="hero-text">
           <div class="hero-badge">
             <span class="hero-badge-dot"></span>
-            AI 写作助手 · 多平台变现 · 账号长期增值
+            {{ homeHero.badge }}
           </div>
-          <h1 class="hero-title">会增值的自媒体账号<br />从第一篇文章开始</h1>
-          <p class="hero-desc">
-            不知道写什么、怎么发、怎么变现？<br />
-            AI 先帮你定平台、定赛道、定人设，再把个人素材变成可发布的多平台文章，<br />
-            3 分钟成稿，边写边赚，让账号持续增值。
-          </p>
+          <h1 class="hero-title">{{ homeHero.title }}</h1>
+          <p class="hero-desc" v-html="homeHero.desc.replace(/\n/g, '<br>')"></p>
           <div class="hero-actions">
-            <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
-            <router-link to="/guide" class="hero-btn-secondary">看看能赚多少钱</router-link>
+            <router-link :to="homeHero.primaryBtn.to" class="hero-btn">{{ homeHero.primaryBtn.text }}</router-link>
+            <router-link :to="homeHero.secondaryBtn.to" class="hero-btn-secondary">{{ homeHero.secondaryBtn.text }}</router-link>
           </div>
           <div class="hero-checkmarks">
-            <span class="check-item"><span class="check-icon">✓</span>单篇 3 分钟成稿</span>
-            <span class="check-item"><span class="check-icon">✓</span>多平台一稿多发变现</span>
-            <span class="check-item"><span class="check-icon">✓</span>账号越久越值钱</span>
+            <span v-for="item in homeHero.checkmarks" :key="item" class="check-item"><span class="check-icon">✓</span>{{ item }}</span>
           </div>
         </div>
         <div v-if="banners.length" class="hero-banner-carousel" @mouseenter="stopBannerCarousel" @mouseleave="startBannerCarousel">
@@ -41,7 +35,7 @@
           >
             <img :src="banner.imageUrl" :alt="'banner-' + banner.id" class="hero-banner-card__img" />
             <div class="hero-banner-card__cta">
-              <span>查看详情</span>
+              <span>{{ homeHero.bannerCta }}</span>
               <span class="hero-banner-card__arrow">→</span>
             </div>
           </component>
@@ -61,21 +55,14 @@
     <!-- 数据区 -->
     <section class="stats">
       <div class="stats-inner">
-        <div class="stat-item reveal" data-reveal-delay="0">
-          <div class="stat-num">¥ 800 万 +</div>
-          <div class="stat-label">累计为创作者带来收益</div>
-        </div>
-        <div class="stat-item reveal" data-reveal-delay="120">
-          <div class="stat-num">5000 +</div>
-          <div class="stat-label">累计注册账号</div>
-        </div>
-        <div class="stat-item reveal" data-reveal-delay="240">
-          <div class="stat-num">6 大主流</div>
-          <div class="stat-label">已覆盖变现平台</div>
-        </div>
-        <div class="stat-item reveal" data-reveal-delay="360">
-          <div class="stat-num">3 分钟</div>
-          <div class="stat-label">平均成稿时间</div>
+        <div
+          v-for="(stat, index) in homeStats.pc"
+          :key="stat.label"
+          class="stat-item reveal"
+          :data-reveal-delay="index * 120"
+        >
+          <div class="stat-num">{{ stat.num }}</div>
+          <div class="stat-label">{{ stat.label }}</div>
         </div>
       </div>
     </section>
@@ -84,73 +71,28 @@
     <section class="features">
       <div class="features-inner">
         <div class="features-header reveal" data-reveal-delay="0">
-          <div class="section-tag">为什么选择爱创作</div>
-          <h2 class="features-title">把时间变成账号资产</h2>
-          <p class="features-subtitle">不教你写文案，只帮你把内容变成账号流量、持续收益和长期复利</p>
+          <SectionTitle
+            :title="homeFeatures.title"
+            :subtitle="homeFeatures.subtitle"
+            :tag="homeFeatures.tag"
+            centered
+            size="lg"
+          />
         </div>
         <div class="features-grid">
-          <div class="feature-card reveal" data-reveal-delay="100">
+          <div
+            v-for="(feature, index) in homeFeatures.items"
+            :key="feature.name"
+            class="feature-card reveal"
+            :class="{ 'feature-card-asset': feature.icon === 'trending-up' }"
+            :data-reveal-delay="(index + 1) * 100"
+          >
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <polyline points="12 6 12 12 16 14"/>
-              </svg>
+              <Icon :name="feature.icon" :size="24" :stroke-width="2" />
             </div>
-            <div class="feature-name">3 分钟成稿</div>
-            <div class="feature-desc">输入方向并注入个人素材，AI 自动完成标题、结构和正文，降低 AI 大路货同质化。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="200">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
-                <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-              </svg>
-            </div>
-            <div class="feature-name">一稿多发跨平台</div>
-            <div class="feature-desc">一次创作，公众号、小红书、抖音、百家号、头条、知乎全部适配，一份内容赚 N 份收益。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="300">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </div>
-            <div class="feature-name">爆款结构</div>
-            <div class="feature-desc">内置高打开率标题、钩子开头、金句结尾，不用懂写作也能产出爆款。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="400">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="16" y1="13" x2="8" y2="13"/>
-                <line x1="16" y1="17" x2="8" y2="17"/>
-                <polyline points="10 9 9 9 8 9"/>
-              </svg>
-            </div>
-            <div class="feature-name">导出即发布</div>
-            <div class="feature-desc">生成后预览、微调、导出 Word，复制到任何平台直接发布，快速变现。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="500">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="12" y1="1" x2="12" y2="23"/>
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-              </svg>
-            </div>
-            <div class="feature-name">持续变现</div>
-            <div class="feature-desc">创作币奖励、邀请好友返利、月榜奖金、外部自媒体收入申报……不是写一篇赚一篇，是越写越能赚。</div>
-          </div>
-          <div class="feature-card feature-card-asset reveal" data-reveal-delay="600">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-                <polyline points="17 6 23 6 23 12"/>
-              </svg>
-            </div>
-            <div class="feature-name">账号资产复利</div>
-            <div class="feature-desc">自媒体账号像滚雪球 —— 粉丝、内容沉淀、平台权重，会随时间持续累加。早一天起号，早一天开始滚雪球。</div>
-            <svg class="asset-chart" viewBox="0 0 240 60" preserveAspectRatio="none">
+            <div class="feature-name">{{ feature.name }}</div>
+            <div class="feature-desc">{{ feature.desc }}</div>
+            <svg v-if="feature.icon === 'trending-up'" class="asset-chart" viewBox="0 0 240 60" preserveAspectRatio="none">
               <defs>
                 <linearGradient id="asset-grad" x1="0" x2="1" y1="0" y2="0">
                   <stop offset="0%" stop-color="#fff" stop-opacity="0.15"/>
@@ -170,56 +112,29 @@
     <section class="earnings-section">
       <div class="earnings-inner">
         <div class="earnings-header reveal" data-reveal-delay="0">
-          <div class="section-tag">4 种变现路径</div>
-          <h2 class="earnings-title">边写边赚</h2>
-          <p class="earnings-subtitle">平台内赚创作币 + 返利 + 奖金，平台外赚自媒体收入</p>
+          <SectionTitle
+            :title="homeEarnings.title"
+            :subtitle="homeEarnings.subtitle"
+            :tag="homeEarnings.tag"
+            centered
+            size="lg"
+          />
         </div>
         <div class="earnings-grid">
-          <div class="feature-card reveal" data-reveal-delay="100">
+          <div
+            v-for="(item, index) in homeEarnings.items"
+            :key="item.name"
+            class="feature-card reveal"
+            :data-reveal-delay="(index + 1) * 100"
+          >
             <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"/>
-                <line x1="12" y1="6" x2="12" y2="12"/>
-                <line x1="12" y1="12" x2="16" y2="14"/>
-              </svg>
+              <Icon :name="item.icon" :size="24" :stroke-width="2" />
             </div>
-            <div class="feature-name">创作币奖励</div>
-            <div class="feature-desc">完成任务、活动、上榜，1 创作币 = 1 元。可抵扣会员购买，满 100 创作币提现到支付宝。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="200">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                <circle cx="9" cy="7" r="4"/>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-              </svg>
-            </div>
-            <div class="feature-name">邀请好友返利</div>
-            <div class="feature-desc">被邀请人完成邮箱验证双方得创作币；好友购买会员首单返 10%、后续返 5%；累计邀请 3 人 +30 币、5 人 +50 币。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="300">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-              </svg>
-            </div>
-            <div class="feature-name">排行榜奖金</div>
-            <div class="feature-desc">创作币榜月度 TOP10 各奖 100 创作币；自媒体收入榜记录真实平台收益。</div>
-          </div>
-          <div class="feature-card reveal" data-reveal-delay="400">
-            <div class="feature-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#FF2442" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                <line x1="3" y1="9" x2="21" y2="9"/>
-                <line x1="9" y1="21" x2="9" y2="9"/>
-              </svg>
-            </div>
-            <div class="feature-name">自媒体收入申报</div>
-            <div class="feature-desc">申报公众号、小红书、抖音、百家号、头条、知乎等平台真实收入，审核通过后计入榜单。</div>
+            <div class="feature-name">{{ item.name }}</div>
+            <div class="feature-desc">{{ item.desc }}</div>
           </div>
         </div>
-        <router-link to="/guide" class="section-cta reveal" data-reveal-delay="500">查看完整玩法 · 看看别人赚了多少 →</router-link>
+        <router-link :to="homeEarnings.link.pc.to" class="section-cta reveal" data-reveal-delay="500">{{ homeEarnings.link.pc.text }}</router-link>
       </div>
     </section>
 
@@ -231,23 +146,18 @@
       <div class="steps-deco steps-deco-1"></div>
       <div class="steps-deco steps-deco-2"></div>
       <div class="steps-inner">
-        <h2 class="steps-title reveal" data-reveal-delay="0">3 步起一个会增值的账号</h2>
-        <p class="steps-subtitle reveal" data-reveal-delay="80">1 分钟注册，3 分钟第一篇，写不动也能保持账号在涨</p>
+        <h2 class="steps-title reveal" data-reveal-delay="0">{{ homeSteps.title }}</h2>
+        <p class="steps-subtitle reveal" data-reveal-delay="80">{{ homeSteps.subtitle }}</p>
         <div class="steps-list">
-          <div class="step-item reveal" data-reveal-delay="160">
-            <div class="step-num">1</div>
-            <div class="step-name">注册账号</div>
-            <div class="step-desc">1 分钟（免费）</div>
-          </div>
-          <div class="step-item reveal" data-reveal-delay="280">
-            <div class="step-num">2</div>
-            <div class="step-name">输入主题</div>
-            <div class="step-desc">1 句话（零门槛）</div>
-          </div>
-          <div class="step-item reveal" data-reveal-delay="400">
-            <div class="step-num">3</div>
-            <div class="step-name">AI 产出</div>
-            <div class="step-desc">3 分钟可发（一篇成品）</div>
+          <div
+            v-for="(step, index) in homeSteps.items"
+            :key="step.name"
+            class="step-item reveal"
+            :data-reveal-delay="160 + index * 120"
+          >
+            <div class="step-num">{{ step.num }}</div>
+            <div class="step-name">{{ step.name }}</div>
+            <div class="step-desc">{{ step.desc }}</div>
           </div>
         </div>
       </div>
@@ -256,46 +166,41 @@
     <!-- 最终 CTA -->
     <section class="cta-section">
       <div class="cta-card reveal" data-reveal-delay="0">
-        <h2 class="cta-title">现在起号，搭一条可执行的自媒体流水线</h2>
-        <p class="cta-desc">
-          先定位，再创作，持续迭代。<br />
-          3 分钟成稿，边写边赚，让账号资产开始滚雪球。
-        </p>
+        <h2 class="cta-title">{{ homeFinalCta.title }}</h2>
+        <p class="cta-desc">{{ homeFinalCta.desc }}</p>
         <div class="cta-actions">
-          <router-link to="/console/workbench" class="hero-btn">立即开始创作</router-link>
-          <router-link to="/guide" class="hero-btn-secondary">查看玩法指南</router-link>
+          <router-link :to="homeFinalCta.primaryBtn.to" class="hero-btn">{{ homeFinalCta.primaryBtn.text }}</router-link>
+          <router-link :to="homeFinalCta.secondaryBtn.to" class="hero-btn-secondary">{{ homeFinalCta.secondaryBtn.text }}</router-link>
         </div>
       </div>
     </section>
 
     <!-- 底部 -->
-    <footer class="home-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import MobileHome from '@/views/MobileHome.vue'
 import TestimonialCarousel from '@/components/testimonial/TestimonialCarousel.vue'
+import Icon from '@/components/common/Icon.vue'
+import SectionTitle from '@/components/common/SectionTitle.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { fetchHomeBanners, fetchHomeTestimonials } from '@/api/home.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
+import {
+  homeHero,
+  homeStats,
+  homeFeatures,
+  homeEarnings,
+  homeSteps,
+  homeFinalCta
+} from '@/data/homeContent.js'
 
 const { isMobile } = useDevice()
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' },
-  { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
 
 const banners = ref([])
 const testimonials = ref([])
@@ -691,30 +596,10 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
 }
 .stat-label { color: #595959; font-size: 14px; }
 
-/* ====================== 通用小标签 ====================== */
-.section-tag {
-  display: inline-block;
-  background: linear-gradient(135deg, #FFF0F2, #FFE4E8);
-  color: #FF2442;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 6px 16px;
-  border-radius: 20px;
-  margin-bottom: 12px;
-  letter-spacing: 0.02em;
-}
-
 /* ====================== 特色功能 ====================== */
 .features { padding: 80px 48px; }
 .features-inner { max-width: 1100px; margin: 0 auto; }
 .features-header { text-align: center; margin-bottom: 48px; }
-.features-title {
-  font-size: 32px;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  font-weight: 700;
-}
-.features-subtitle { color: #595959; font-size: 15px; }
 
 .features-grid {
   display: grid;
@@ -751,7 +636,7 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
 .feature-card:hover .feature-icon {
   background: linear-gradient(135deg, #FF2442, #ff6b81);
 }
-.feature-card:hover .feature-icon svg { stroke: #fff; }
+.feature-card:hover .feature-icon { color: #fff; }
 .feature-card:hover .feature-name { color: #FF2442; }
 
 .feature-icon {
@@ -764,6 +649,7 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
   justify-content: center;
   margin-bottom: 18px;
   transition: all 0.3s ease;
+  color: #FF2442;
 }
 .feature-icon svg { width: 24px; height: 24px; transition: stroke 0.3s ease; }
 
@@ -786,6 +672,7 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
 }
 .feature-card-asset .feature-icon {
   background: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
 .feature-card-asset:hover .feature-icon {
   background: rgba(255, 255, 255, 0.35);
@@ -813,13 +700,6 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
 }
 .earnings-inner { max-width: 1100px; margin: 0 auto; }
 .earnings-header { text-align: center; margin-bottom: 48px; }
-.earnings-title {
-  font-size: 32px;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  font-weight: 700;
-}
-.earnings-subtitle { color: #595959; font-size: 15px; }
 .earnings-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -961,21 +841,6 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
   flex-wrap: wrap;
 }
 
-/* ====================== 底部 ====================== */
-.home-footer {
-  padding: 18px 24px;
-  border-top: 1px solid #eee;
-  color: #595959;
-  font-size: 13px;
-  text-align: center;
-  background: #fff;
-}
-.home-footer span + span::before {
-  content: '|';
-  margin: 0 12px;
-  color: #eee;
-}
-
 /* ========== 暗色主题 ========== */
 body[data-theme="dark"] .home-page { background: #141414; }
 
@@ -988,14 +853,12 @@ body[data-theme="dark"] .hero-badge {
   color: #ff4d6f;
 }
 body[data-theme="dark"] .hero-title,
-body[data-theme="dark"] .features-title,
 body[data-theme="dark"] .feature-name,
 body[data-theme="dark"] .cta-title {
   color: #e0e0e0;
 }
 body[data-theme="dark"] .hero-desc,
 body[data-theme="dark"] .check-item,
-body[data-theme="dark"] .features-subtitle,
 body[data-theme="dark"] .feature-desc,
 body[data-theme="dark"] .cta-desc {
   color: #a6a6a6;
@@ -1032,11 +895,6 @@ body[data-theme="dark"] .stat-num {
 }
 body[data-theme="dark"] .stat-label { color: #a6a6a6; }
 
-body[data-theme="dark"] .section-tag {
-  background: linear-gradient(135deg, rgba(255, 36, 66, 0.15), rgba(255, 107, 138, 0.15));
-  color: #ff6b8a;
-}
-
 body[data-theme="dark"] .features { background: #141414; }
 body[data-theme="dark"] .feature-card {
   background: #1f1f1f;
@@ -1047,10 +905,11 @@ body[data-theme="dark"] .feature-card:hover { box-shadow: 0 16px 40px rgba(255, 
 body[data-theme="dark"] .feature-card:hover .feature-name { color: #ff6b8a; }
 body[data-theme="dark"] .feature-icon {
   background: linear-gradient(135deg, rgba(255, 36, 66, 0.18), rgba(255, 107, 138, 0.12));
+  color: #ff6b8a;
 }
-body[data-theme="dark"] .feature-icon svg { stroke: #ff6b8a; }
 body[data-theme="dark"] .feature-card:hover .feature-icon {
   background: linear-gradient(135deg, #FF2442, #ff6b81);
+  color: #fff;
 }
 body[data-theme="dark"] .feature-card:hover .feature-icon svg { stroke: #fff; }
 body[data-theme="dark"] .feature-card-asset {
@@ -1065,8 +924,6 @@ body[data-theme="dark"] .feature-card-asset:hover .feature-name { color: #fff; }
 body[data-theme="dark"] .earnings-section {
   background: linear-gradient(180deg, #141414 0%, #1a1a1a 50%, #1f1f1f 100%);
 }
-body[data-theme="dark"] .earnings-title { color: #e0e0e0; }
-body[data-theme="dark"] .earnings-subtitle { color: #a6a6a6; }
 body[data-theme="dark"] .section-cta { color: #ff6b8a; border-color: #ff6b8a; }
 body[data-theme="dark"] .section-cta:hover {
   background: #ff6b8a;
@@ -1086,13 +943,6 @@ body[data-theme="dark"] .cta-card {
   border-color: #3a2a2e;
   box-shadow: 0 8px 32px rgba(255, 36, 66, 0.1);
 }
-
-body[data-theme="dark"] .home-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 
 /* ========== 媒体查询：手机端 ≤768px ========== */
 @media (max-width: 768px) {
@@ -1117,8 +967,6 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 
   .features { padding: 50px 20px; }
   .features-header { margin-bottom: 32px; }
-  .features-title { font-size: 24px; }
-  .features-subtitle { font-size: 14px; }
   .features-grid { grid-template-columns: 1fr; gap: 16px; }
   .feature-card { padding: 22px; border-radius: 14px; }
   .feature-icon { width: 42px; height: 42px; margin-bottom: 14px; }
@@ -1130,8 +978,6 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
 
   .earnings-section { padding: 50px 20px; }
   .earnings-header { margin-bottom: 32px; }
-  .earnings-title { font-size: 24px; }
-  .earnings-subtitle { font-size: 14px; }
   .earnings-grid { grid-template-columns: 1fr; gap: 16px; margin-bottom: 32px; }
   .section-cta { padding: 10px 24px; font-size: 14px; }
 
@@ -1146,8 +992,5 @@ body[data-theme="dark"] .home-footer span + span::before { color: #303030; }
   .cta-title { font-size: 22px; }
   .cta-desc { font-size: 14px; margin-bottom: 24px; }
   .cta-actions { flex-direction: column; gap: 12px; }
-
-  .home-footer { display: flex; flex-direction: column; gap: 4px; font-size: 12px; padding: 16px 20px; }
-  .home-footer span + span::before { display: none; }
 }
 </style>

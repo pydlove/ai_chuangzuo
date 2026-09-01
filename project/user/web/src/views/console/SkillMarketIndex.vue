@@ -27,7 +27,7 @@
     <section class="market-banner">
       <div class="market-banner-text">
         <div class="market-banner-title-wrap">
-          <h1 class="market-banner-title">爱创作 · 提示词市场</h1>
+          <h1 class="market-banner-title">爱创作工坊 · 提示词市场</h1>
           <a-tooltip
             placement="top"
             :mouse-enter-delay="0.1"
@@ -62,7 +62,7 @@
           <div class="market-banner-stat-label">累计使用次</div>
         </div>
         <div class="market-banner-stat">
-          <div class="market-banner-stat-num">{{ formatCoins(marketStats.totalEarnings) }}</div>
+          <div class="market-banner-stat-num">{{ formatCoinInt(marketStats.totalEarnings) }}</div>
           <div class="market-banner-stat-label">累计发放币</div>
         </div>
       </div>
@@ -93,7 +93,7 @@
         <div class="market-banner-mobile-stat">
           <div class="market-banner-mobile-stat__text">
             <span class="market-banner-mobile-stat__label">累计发放币</span>
-            <strong>{{ formatCoins(marketStats.totalEarnings) }}</strong>
+            <strong>{{ formatCoinInt(marketStats.totalEarnings) }}</strong>
           </div>
           <img
             src="/assets/images/累计发布-v1.png"
@@ -130,10 +130,7 @@
         <!-- ⑤ 全部提示词区 -->
         <section class="market-grid-section">
           <div class="market-section-head">
-            <div class="market-section-title-wrap">
-              <h2 class="market-section-title">全部提示词</h2>
-              <span class="market-section-sub">共 {{ total }} 款</span>
-            </div>
+            <SectionTitle title="全部提示词" :subtitle="`共 ${total} 款`" size="md" />
             <div class="market-search">
               <input
                 v-model="searchQuery"
@@ -321,9 +318,11 @@ import {
 } from '@/composables/useSkillMarket.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
+import SectionTitle from '@/components/common/SectionTitle.vue'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const router = useRouter()
-const currentUserId = ref(localStorage.getItem('aichuangzuo_user_id') || '')
+const currentUserId = ref(localStorage.getItem(STORAGE_KEYS.USER_ID) || '')
 const rulesVisible = ref(false)
 const favoriteTipVisible = ref(false)
 
@@ -1020,22 +1019,6 @@ body[data-theme="dark"] .market-pagination :deep(.ant-pagination-disabled:hover 
   align-items: center;
   margin-bottom: var(--space-md);
 }
-.market-section-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: var(--space-sm);
-}
-.market-section-title {
-  font-size: var(--font-h2);
-  font-weight: 700;
-  color: var(--color-text-primary);
-  margin: 0;
-}
-.market-section-sub {
-  font-size: var(--font-body);
-  color: var(--color-text-secondary);
-  font-weight: 400;
-}
 
 /* === ② 上传激励卡 === */
 .market-upload-card {
@@ -1217,12 +1200,6 @@ body[data-theme="dark"] .market-banner-stat-label { color: var(--color-text-seco
     flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 12px;
-  }
-  .market-section-title {
-    font-size: 17px;
-  }
-  .market-section-sub {
-    font-size: 13px;
   }
 
   .market-search {

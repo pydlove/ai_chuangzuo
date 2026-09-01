@@ -34,12 +34,13 @@ public class GenerationFailedHandler implements MessageNotifyHandler {
         Long taskId = asLong(payload.get("taskId"));
         Long userId = asLong(payload.get("userId"));
         String failReason = asString(payload.get("failReason"));
+        String articleTitle = asString(payload.get("articleTitle"));
 
         if (taskId == null || userId == null) {
             throw new IllegalArgumentException(
                     "generation_failed payload 缺失必填字段：taskId/userId");
         }
-        notifyClient.notifyFailed(taskId, userId, failReason);
+        notifyClient.notifyFailed(taskId, userId, failReason, articleTitle);
     }
 
     private Map<String, Object> parse(String json) {

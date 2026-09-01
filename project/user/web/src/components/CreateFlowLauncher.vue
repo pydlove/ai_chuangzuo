@@ -8,6 +8,7 @@ import CreateFlowModal from '@/views/console/create/CreateFlowModal.vue'
 import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { getMyMembership } from '@/api/membership.js'
+import { getTodayDoneKey } from '@/constants/storage.js'
 
 const router = useRouter()
 const { isMobile } = useDevice()
@@ -19,8 +20,11 @@ const hasMembership = ref(false)
 const membershipLoaded = ref(false)
 
 const plan = reactive({
+  platformKey: '',
   platform: '小红书',
+  nicheKey: '',
   niche: '35+ 职场转型',
+  personaKey: '',
   persona: '实战记录者',
   style: '真诚分享',
   postingFrequency: '每周 3 篇',
@@ -46,6 +50,13 @@ async function loadPlan() {
     const data = res?.data || {}
     if (data && Object.keys(data).length) {
       Object.assign(plan, data)
+      // 后端返回 platformKey/platformName，前端 plan 使用 platform/niche/persona
+      if (data.platformKey) plan.platformKey = data.platformKey
+      if (data.platformName) plan.platform = data.platformName
+      if (data.nicheKey) plan.nicheKey = data.nicheKey
+      if (data.nicheName) plan.niche = data.nicheName
+      if (data.personaKey) plan.personaKey = data.personaKey
+      if (data.personaName) plan.persona = data.personaName
     }
   } catch (e) {
     // 保持默认方案
@@ -89,9 +100,7 @@ function chooseFreeCreate() {
 }
 
 function setTodayDone() {
-  const date = new Date()
-  const key = `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
-  localStorage.setItem(key, '1')
+  localStorage.setItem(getTodayDoneKey(), '1')
 }
 
 const emit = defineEmits(['taskCreated'])

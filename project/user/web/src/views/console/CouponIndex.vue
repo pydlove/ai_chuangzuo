@@ -41,7 +41,7 @@
       <!-- 移动端：卡片列表 -->
       <div v-show="coupons.length > 0 || loading" class="coupon-mobile-list">
         <div v-if="loading" class="coupon-skeleton">
-          <a-skeleton v-for="i in 3" :key="i" active :paragraph="{ rows: 3 }" />
+          <SkeletonList rows="3" />
         </div>
         <div v-else class="coupon-list">
           <div
@@ -93,7 +93,9 @@ import { message } from 'ant-design-vue'
 import { TagsOutlined } from '@ant-design/icons-vue'
 import { getMyCoupons } from '@/api/lottery'
 import EmptyState from '@/components/common/EmptyState.vue'
+import SkeletonList from '@/components/common/SkeletonList.vue'
 import dayjs from 'dayjs'
+import { getCouponWarnKey } from '@/constants/storage.js'
 
 const router = useRouter()
 
@@ -208,7 +210,7 @@ function checkExpiryReminder() {
       const end = dayjs(c.validEnd)
       const diff = end.diff(now)
       if (diff > 0 && diff <= threshold) {
-        const key = `coupon_warn_${c.id}`
+        const key = getCouponWarnKey(c.id)
         if (!localStorage.getItem(key)) {
           message.warning(`优惠券 ${c.couponCode} 将在 24 小时内过期，请及时使用`)
           localStorage.setItem(key, Date.now().toString())
@@ -236,7 +238,10 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
-  if (expiryTimer) clearInterval(expiryTimer)
+  if (expiryTimer) {
+    clearInterval(expiryTimer)
+    expiryTimer = null
+  }
 })
 </script>
 
@@ -310,18 +315,6 @@ onUnmounted(() => {
 
 .coupon-tab__count {
   display: none;
-}
-
-.coupon-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.coupon-skeleton :deep(.ant-skeleton) {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
 }
 
 .coupon-list {
@@ -743,8 +736,7 @@ body[data-theme="dark"] .coupon-page {
 }
 
 body[data-theme="dark"] .coupon-tabs,
-body[data-theme="dark"] .coupon-card,
-body[data-theme="dark"] .coupon-skeleton :deep(.ant-skeleton) {
+body[data-theme="dark"] .coupon-card {
   background: #1f1f1f;
 }
 

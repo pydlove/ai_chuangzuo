@@ -6,6 +6,19 @@ import { useMessages } from '@/composables/useMessages'
 const queueList = ref([])
 const queueOpen = ref(false)
 let timer = null
+let pollRefCount = 0
+
+function handleVisibilityChange() {
+  if (document.hidden) {
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+  } else if (pollRefCount > 0) {
+    loadQueue()
+    if (!timer) timer = setInterval(loadQueue, 5000)
+  }
+}
 
 export const mapStatus = (code, failedReason) => {
   if (code === 3 && failedReason === '用户手动停止') return 'cancelled'
@@ -51,14 +64,21 @@ export function useGenerationQueue() {
   }
 
   function startPolling() {
-    if (timer) return
+    pollRefCount++
+    if (pollRefCount > 1) return
     loadQueue()
-    timer = setInterval(loadQueue, 5000)
+    if (!document.hidden) timer = setInterval(loadQueue, 5000)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
   }
 
   function stopPolling() {
-    clearInterval(timer)
-    timer = null
+    pollRefCount = Math.max(0, pollRefCount - 1)
+    if (pollRefCount > 0) return
+    if (timer) {
+      clearInterval(timer)
+      timer = null
+    }
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
 
   return { queueList, queueOpen, activeCount, loadQueue, startPolling, stopPolling }

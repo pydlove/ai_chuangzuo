@@ -60,16 +60,18 @@ public class GenerationNotifyInternalClient {
     /**
      * 通知 user-api：任务失败已退款，向消息中心推"创作失败"通知。
      *
-     * @param taskId     当前生成任务 id
-     * @param userId     目标用户 id
-     * @param failReason 失败原因（写入摘要；可空）
+     * @param taskId       当前生成任务 id
+     * @param userId       目标用户 id
+     * @param failReason   失败原因（仅日志用，不展示给用户；可空）
+     * @param articleTitle 文章标题（用户原始输入的 title，用于标题展示；可空）
      */
-    public void notifyFailed(Long taskId, Long userId, String failReason) {
+    public void notifyFailed(Long taskId, Long userId, String failReason, String articleTitle) {
         Map<String, Object> body = new HashMap<>();
         body.put("taskId", taskId);
         body.put("userId", userId);
         body.put("status", "failed");
         body.put("failReason", failReason);
+        body.put("articleTitle", articleTitle);
         postNotify(taskId, userId, body);
     }
 

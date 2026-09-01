@@ -92,7 +92,7 @@
         <img :src="resultUrl" alt="处理结果" class="mw-result__img" />
         <a
           :href="resultUrl"
-          download="爱创作去水印.png"
+          download="爱创作工坊去水印.png"
           class="mw-action-btn mw-action-btn--primary"
           @click="onDownload"
         >下载图片</a>

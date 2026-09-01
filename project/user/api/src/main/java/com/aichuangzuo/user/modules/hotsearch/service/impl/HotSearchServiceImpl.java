@@ -3,7 +3,7 @@ package com.aichuangzuo.user.modules.hotsearch.service.impl;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchDaily;
 import com.aichuangzuo.user.modules.hotsearch.entity.HotSearchPlatform;
-import com.aichuangzuo.user.modules.hotsearch.enums.HotSearchErrorCode;
+import com.aichuangzuo.shared.enums.error.HotSearchErrorCode;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchDailyMapper;
 import com.aichuangzuo.user.modules.hotsearch.mapper.HotSearchPlatformMapper;
 import com.aichuangzuo.user.modules.hotsearch.service.HotSearchService;

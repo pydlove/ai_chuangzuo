@@ -10,18 +10,14 @@
     </header>
 
     <!-- 状态筛选 -->
-    <div class="order-tabs">
-      <button
-        v-for="tab in tabs"
-        :key="tab.value"
-        class="order-tab"
-        :class="{ active: activeTab === tab.value }"
-        @click="activeTab = tab.value"
-      >
-        {{ tab.label }}
-        <span class="order-tab__count">{{ orderCounts[tab.value] }}</span>
-      </button>
-    </div>
+    <Tabs
+      v-model="activeTab"
+      :tabs="tabs"
+      variant="segment"
+      active-type="primary"
+      equal-width
+      :scrollable="false"
+    />
 
     <div class="order-page-body">
    <!-- 桌面端：表格 -->
@@ -41,22 +37,23 @@
     <!-- 移动端：卡片列表 -->
     <div v-show="orders.length > 0 || loading" class="order-mobile-list">
       <div v-if="loading" class="order-skeleton">
-        <a-skeleton v-for="i in 3" :key="i" active :paragraph="{ rows: 3 }" />
+        <SkeletonList rows="3" />
       </div>
       <div v-else class="order-list">
-        <div
+        <ListCard
           v-for="order in orders"
           :key="order.id"
-          class="order-card"
+          clickable
+          custom-class="order-card"
           @click="openDetail(order)"
         >
-          <div class="order-card__header">
+          <template #header>
             <span class="order-card__no">{{ order.orderNo }}</span>
             <span class="order-card__status" :class="statusClass(order.status)">
               {{ order.statusName }}
             </span>
-          </div>
-          <div class="order-card__body">
+          </template>
+          <template #body>
             <div class="order-card__plan">
               <span class="order-card__name">{{ order.planName || order.planKey }}</span>
               <span class="order-card__cycle">{{ order.cycleName || order.cycle }}</span>
@@ -65,14 +62,14 @@
               <span class="order-card__amount-label">实付</span>
               <span class="order-card__amount-value">¥{{ formatAmount(order.amount) }}</span>
             </div>
-          </div>
-          <div class="order-card__footer">
+          </template>
+          <template #footer>
             <span class="order-card__time">{{ formatTime(order.createdAt) }}</span>
             <button v-if="order.status === 0" class="order-card__pay-btn" @click.stop="goPay(order)">
               去支付
             </button>
-          </div>
-        </div>
+          </template>
+        </ListCard>
       </div>
     </div>
       <EmptyState
@@ -155,6 +152,9 @@ import { message } from 'ant-design-vue'
 import { FileTextOutlined } from '@ant-design/icons-vue'
 import { getMyOrders } from '@/api/order'
 import EmptyState from '@/components/common/EmptyState.vue'
+import Tabs from '@/components/common/Tabs.vue'
+import SkeletonList from '@/components/common/SkeletonList.vue'
+import ListCard from '@/components/common/ListCard.vue'
 import dayjs from 'dayjs'
 
 const router = useRouter()
@@ -346,50 +346,6 @@ onBeforeUnmount(() => {
 }
 
 /* 状态筛选 */
-.order-tabs {
-  display: flex;
-  gap: 0;
-  margin-bottom: 12px;
-  background: #fff;
-  border-radius: 12px;
-  padding: 4px;
-}
-
-.order-tab {
-  flex: 1;
-  padding: 10px 8px;
-  border: none;
-  border-radius: 10px;
-  background: transparent;
-  color: #595959;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-.order-tab.active {
-  background: var(--color-primary);
-  color: #fff;
-}
-
-.order-tab__count {
-  display: none;
-}
-
-.order-skeleton {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.order-skeleton :deep(.ant-skeleton) {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
-}
-
 .order-list {
   display: flex;
   flex-direction: column;
@@ -397,13 +353,8 @@ onBeforeUnmount(() => {
 }
 
 .order-card {
-  background: #fff;
-  border-radius: 14px;
   padding: 14px 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
-  cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  -webkit-tap-highlight-color: transparent;
+  border-radius: 14px;
 }
 
 .order-card:active {
@@ -613,67 +564,6 @@ onBeforeUnmount(() => {
     background: var(--color-primary-hover);
   }
 
-  .order-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 20px;
-    background: transparent;
-    border-radius: 0;
-    padding: 0;
-    border-bottom: 1px solid #f0f0f0;
-    overflow-x: auto;
-    scrollbar-width: none;
-  }
-
-  .order-tabs::-webkit-scrollbar {
-    display: none;
-  }
-
-  .order-tab {
-    flex: 0 0 auto;
-    position: relative;
-    padding: 12px 16px;
-    border: none;
-    border-radius: 0;
-    border-bottom: 2px solid transparent;
-    background: transparent;
-    color: #595959;
-    font-size: 14px;
-    font-weight: 600;
-    margin-bottom: -1px;
-    white-space: nowrap;
-  }
-
-  .order-tab.active {
-    background: transparent;
-    color: var(--color-primary);
-    border-bottom-color: var(--color-primary);
-  }
-
-  .order-tab:hover:not(.active) {
-    color: #1a1a1a;
-  }
-
-  .order-tab__count {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
-    margin-left: 6px;
-    background: #f5f5f5;
-    color: #8c8c8c;
-    border-radius: 9px;
-    font-size: 11px;
-    font-weight: 700;
-  }
-
-  .order-tab.active .order-tab__count {
-    background: var(--color-primary);
-    color: #fff;
-  }
-
   .order-page-body {
     background: #fff;
     border-radius: 12px;
@@ -775,10 +665,6 @@ onBeforeUnmount(() => {
 
   .order-empty__btn:hover {
     background: var(--color-primary-hover);
-  }
-
-  .order-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
   }
 }
 
@@ -929,22 +815,10 @@ body[data-theme="dark"] .order-page {
   background: #141414;
 }
 
-body[data-theme="dark"] .order-tabs,
-body[data-theme="dark"] .order-card,
-body[data-theme="dark"] .order-skeleton :deep(.ant-skeleton) {
+body[data-theme="dark"] .order-card {
   background: #1f1f1f;
 }
 
-body[data-theme="dark"] .order-tab {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .order-tab.active {
-  background: #ff4d6f;
-  color: #fff;
-}
-
-body[data-theme="dark"] .order-card__name,
 body[data-theme="dark"] .order-empty__title,
 body[data-theme="dark"] .order-card__amount-value,
 body[data-theme="dark"] .order-page-title {
@@ -1051,31 +925,6 @@ body[data-theme="dark"] .order-table-empty__desc {
 @media (min-width: 769px) {
   body[data-theme="dark"] .order-page {
     background: transparent;
-  }
-
-  body[data-theme="dark"] .order-tabs {
-    background: transparent;
-    border-bottom-color: #303030;
-  }
-
-  body[data-theme="dark"] .order-tab {
-    color: #a6a6a6;
-  }
-
-  body[data-theme="dark"] .order-tab.active {
-    background: transparent;
-    color: #ff4d6f;
-    border-bottom-color: #ff4d6f;
-  }
-
-  body[data-theme="dark"] .order-tab__count {
-    background: #303030;
-    color: #a6a6a6;
-  }
-
-  body[data-theme="dark"] .order-tab.active .order-tab__count {
-    background: #ff4d6f;
-    color: #fff;
   }
 
   body[data-theme="dark"] .order-page-body {

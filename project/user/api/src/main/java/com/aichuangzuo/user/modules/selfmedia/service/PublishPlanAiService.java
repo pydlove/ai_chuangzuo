@@ -3,7 +3,7 @@ package com.aichuangzuo.user.modules.selfmedia.service;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlan;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanPublishGuide;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanMapper;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPublishGuideMapper;
 import com.aichuangzuo.user.modules.selfmedia.vo.PillarVO;
@@ -37,8 +37,8 @@ public class PublishPlanAiService {
     private final SelfMediaPlanPublishGuideMapper publishGuideMapper;
     private final ObjectMapper objectMapper;
 
-    public PublishPlanGuideVO generatePlan(Long userId, String articleTitle, String mainPlatform) {
-        if (StringUtils.isAnyBlank(articleTitle, mainPlatform)) {
+    public PublishPlanGuideVO generatePlan(Long userId, String mainPlatform) {
+        if (StringUtils.isBlank(mainPlatform)) {
             throw new BusinessException(SelfMediaPlanErrorCode.PUBLISH_PLAN_PARAM_INVALID);
         }
         SelfMediaPlanVO plan = planService.getCurrentPlan(userId);
@@ -50,13 +50,13 @@ public class PublishPlanAiService {
             throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_NOT_FOUND);
         }
 
-        PublishPlanGuideVO cached = getCachedPlan(planEntity, articleTitle.trim(), mainPlatform.trim());
+        PublishPlanGuideVO cached = getCachedPlan(planEntity, mainPlatform.trim());
         if (cached != null) {
-            log.info("[发布计划] 命中缓存 userId={}, articleTitle={}, mainPlatform={}", userId, articleTitle, mainPlatform);
+            log.info("[发布计划] 命中缓存 userId={}, mainPlatform={}", userId, mainPlatform);
             return cached;
         }
 
-        String platformName = StringUtils.defaultString(plan.getPlatformName(), mainPlatform);
+        String platformName = StringUtils.defaultString(mainPlatform, plan.getPlatformName());
         String nicheName = StringUtils.defaultString(plan.getNicheName(), "");
         String personaName = StringUtils.defaultString(plan.getPersonaName(), "");
         String contentPillars = buildPillarsText(plan.getPillars());
@@ -66,15 +66,14 @@ public class PublishPlanAiService {
                 "nicheName", nicheName,
                 "personaName", personaName,
                 "contentPillars", contentPillars,
-                "articleTitle", articleTitle.trim(),
                 "mainPlatform", mainPlatform.trim()
         );
 
         try {
-            log.info("[发布计划] 调用 AI 生成 userId={}, articleTitle={}, mainPlatform={}", userId, articleTitle, mainPlatform);
+            log.info("[发布计划] 调用 AI 生成 userId={}, mainPlatform={}", userId, mainPlatform);
             JsonNode result = selfMediaPlanAiService.callPrompt(PROMPT_CODE, variables);
             PublishPlanGuideVO vo = parseResult(result);
-            saveCachedPlan(planEntity, articleTitle.trim(), mainPlatform.trim(), vo);
+            saveCachedPlan(planEntity, mainPlatform.trim(), vo);
             return vo;
         } catch (BusinessException e) {
             throw e;
@@ -84,9 +83,25 @@ public class PublishPlanAiService {
         }
     }
 
-    private PublishPlanGuideVO getCachedPlan(SelfMediaPlan plan, String articleTitle, String mainPlatform) {
-        SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserTitleAndPlatform(
-                plan.getUserId(), articleTitle, mainPlatform);
+    /**
+     * 只读查询缓存的发布计划，不触发 AI 生成。
+     *
+     * @return 命中缓存返回 {@link PublishPlanGuideVO}，未命中或缓存过期返回 null
+     */
+    public PublishPlanGuideVO getCachedPlan(Long userId, String mainPlatform) {
+        if (StringUtils.isBlank(mainPlatform)) {
+            return null;
+        }
+        SelfMediaPlan plan = planMapper.selectByUserId(userId);
+        if (plan == null) {
+            return null;
+        }
+        return getCachedPlan(plan, mainPlatform.trim());
+    }
+
+    private PublishPlanGuideVO getCachedPlan(SelfMediaPlan plan, String mainPlatform) {
+        SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserAndPlatform(
+                plan.getUserId(), mainPlatform);
         if (guide == null) {
             return null;
         }
@@ -116,16 +131,15 @@ public class PublishPlanAiService {
                 currentUpdatedAt.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
     }
 
-    private void saveCachedPlan(SelfMediaPlan plan, String articleTitle, String mainPlatform, PublishPlanGuideVO vo) {
+    private void saveCachedPlan(SelfMediaPlan plan, String mainPlatform, PublishPlanGuideVO vo) {
         try {
-            SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserTitleAndPlatform(
-                    plan.getUserId(), articleTitle, mainPlatform);
+            SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserAndPlatform(
+                    plan.getUserId(), mainPlatform);
             boolean isNew = guide == null;
             if (isNew) {
                 guide = new SelfMediaPlanPublishGuide();
                 guide.setUserId(plan.getUserId());
                 guide.setPlanId(plan.getId());
-                guide.setArticleTitle(articleTitle);
                 guide.setMainPlatform(mainPlatform);
                 guide.setTenantId(plan.getTenantId());
             }

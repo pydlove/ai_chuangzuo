@@ -43,7 +43,11 @@ public enum UserAuthErrorCode implements ErrorCode {
     QR_LOGIN_SESSION_ALREADY_USED(111042, "二维码已被使用"),
     QR_LOGIN_SESSION_ALREADY_SCANNED(111043, "二维码已被其他设备扫描"),
     QR_LOGIN_STATUS_INVALID(111044, "二维码状态异常"),
-    QR_LOGIN_UNAUTHORIZED(111045, "请先登录手机端");
+    QR_LOGIN_UNAUTHORIZED(111045, "请先登录手机端"),
+    EXPERIENCE_TOKEN_INVALID(111046, "体验链接无效"),
+    EXPERIENCE_TOKEN_USED(111047, "体验链接已被使用"),
+    EXPERIENCE_TOKEN_EXPIRED(111048, "体验链接已过期"),
+    REGISTER_PARAM_INVALID(111049, "邀请码和体验链接不能同时填写");
 
     private final int code;
     private final String message;

@@ -268,6 +268,7 @@ import {
 import LearnContent from '@/components/learn/LearnContent.vue'
 import { useLearn } from '@/composables/useLearn.js'
 import { fetchCategoryDetail } from '@/api/learn'
+import { formatDate } from '@/utils/format.js'
 
 const {
   categoryTree,
@@ -379,22 +380,9 @@ async function handleAllPageChange(page) {
   }
 }
 
-function formatDate(d) {
-  if (!d) return ''
-  const dt = new Date(d)
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-}
 </script>
 
 <style scoped>
-.console-learn-page {
-  width: 100%;
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 0;
-  box-sizing: border-box;
-}
-
 .console-learn-body {
   padding: 24px 32px;
   box-sizing: border-box;

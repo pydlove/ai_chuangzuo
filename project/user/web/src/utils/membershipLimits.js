@@ -1,3 +1,5 @@
+import { STORAGE_KEYS } from '@/constants/storage.js'
+
 /**
  * 会员等级 → 生成队列最大任务数
  * 与后端 MembershipPlan(BASIC=basic / PRO=pro / FLAGSHIP=flagship) 保持一致。
@@ -27,7 +29,7 @@ export const PLAN_NAME_TO_KEY = {
   '旗舰版': 'flagship',
 }
 
-const MEMBERSHIP_KEY = 'aichuangzuo_membership'
+const MEMBERSHIP_KEY = STORAGE_KEYS.MEMBERSHIP
 
 /**
  * 读 localStorage,返回当前档位 key (free / basic / pro / flagship)。

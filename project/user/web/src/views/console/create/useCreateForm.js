@@ -1,9 +1,8 @@
 import { ref, watch } from 'vue'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import { platforms } from '@/composables/usePlatforms.js'
 
 // 模块级单例：熟手模式创作配置
-const MODE_KEY = 'aichuangzuo_create_mode'
-const FORM_KEY = 'aichuangzuo_create_form'
 
 // 平台列表已从后端动态加载，见 composables/usePlatforms.js
 
@@ -49,7 +48,7 @@ function setDefaultPlatform() {
 
 export function loadForm() {
   try {
-    const raw = localStorage.getItem(FORM_KEY)
+    const raw = localStorage.getItem(STORAGE_KEYS.CREATE_FORM)
     if (!raw) {
       setDefaultPlatform()
       return
@@ -75,7 +74,7 @@ export function loadForm() {
 
 function saveForm() {
   try {
-    localStorage.setItem(FORM_KEY, JSON.stringify({
+    localStorage.setItem(STORAGE_KEYS.CREATE_FORM, JSON.stringify({
       platformKey: currentPlatform.value?.key,
       wordCount: currentWordCount.value,
       templateKey: selectedTemplateKey.value
@@ -93,7 +92,7 @@ export function useCreateForm() {
 
   function setCreateMode(mode) {
     createMode.value = mode
-    try { localStorage.setItem(MODE_KEY, mode) } catch { /* 隐私模式忽略 */ }
+    try { localStorage.setItem(STORAGE_KEYS.CREATE_MODE, mode) } catch { /* 隐私模式忽略 */ }
   }
   function clearForm() {
     customTitle.value = ''

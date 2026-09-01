@@ -6,8 +6,10 @@ import com.aichuangzuo.user.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
 import com.aichuangzuo.user.modules.recommendedcreation.dto.request.UpdateSessionRequest;
 import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationSession;
-import com.aichuangzuo.user.modules.recommendedcreation.enums.RecommendedCreationErrorCode;
+import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationTopicHistory;
+import com.aichuangzuo.shared.enums.error.RecommendedCreationErrorCode;
 import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationSessionMapper;
+import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationTopicHistoryMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.service.impl.RecommendedCreationServiceImpl;
 import com.aichuangzuo.user.modules.recommendedcreation.vo.AngleOptionVO;
 import com.aichuangzuo.user.modules.recommendedcreation.vo.TopicOptionVO;
@@ -20,7 +22,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,10 +37,11 @@ class RecommendedCreationServiceImplTest {
     private final SelfMediaPlanService planService = mock(SelfMediaPlanService.class);
     private final GenerationTaskService generationTaskService = mock(GenerationTaskService.class);
     private final RecommendedCreationSessionMapper sessionMapper = mock(RecommendedCreationSessionMapper.class);
+    private final RecommendedCreationTopicHistoryMapper topicHistoryMapper = mock(RecommendedCreationTopicHistoryMapper.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private RecommendedCreationServiceImpl service() {
-        return new RecommendedCreationServiceImpl(aiService, planService, generationTaskService, sessionMapper, objectMapper);
+        return new RecommendedCreationServiceImpl(aiService, planService, generationTaskService, sessionMapper, topicHistoryMapper, objectMapper);
     }
 
     private SelfMediaPlanVO mockPlan() {
@@ -60,6 +65,7 @@ class RecommendedCreationServiceImplTest {
     @Test
     void generateTopics_shouldInsertSessionWhenNotExists() throws Exception {
         when(planService.getCurrentPlan(1L)).thenReturn(mockPlan());
+        when(topicHistoryMapper.selectTitlesByUserIdSince(eq(1L), any(LocalDateTime.class))).thenReturn(List.of());
         JsonNode root = objectMapper.readTree("{\"topics\":[{\"id\":\"t1\",\"title\":\"选题1\",\"risk\":\"low\",\"riskLabel\":\"低\",\"caseCount\":5,\"recommendedAngle\":\"角度\"}]}");
         when(aiService.callPrompt(any(), any())).thenReturn(root);
         when(sessionMapper.selectByUserId(1L)).thenReturn(null);
@@ -76,8 +82,36 @@ class RecommendedCreationServiceImplTest {
     }
 
     @Test
+    void generateTopics_shouldPassRecentTitlesToAiAndSaveHistory() throws Exception {
+        when(planService.getCurrentPlan(1L)).thenReturn(mockPlan());
+        when(topicHistoryMapper.selectTitlesByUserIdSince(eq(1L), any(LocalDateTime.class))).thenReturn(List.of("旧选题1", "旧选题2"));
+        JsonNode root = objectMapper.readTree("{\"topics\":[{\"id\":\"t1\",\"title\":\"新选题1\",\"risk\":\"low\",\"riskLabel\":\"低\",\"caseCount\":5,\"recommendedAngle\":\"角度\"}]}");
+        when(aiService.callPrompt(any(), any())).thenReturn(root);
+        RecommendedCreationSession session = new RecommendedCreationSession();
+        session.setId(100L);
+        session.setUserId(1L);
+        session.setTenantId(0L);
+        when(sessionMapper.selectByUserId(1L)).thenReturn(session);
+
+        List<TopicOptionVO> topics = service().generateTopics(1L);
+
+        assertEquals(1, topics.size());
+        ArgumentCaptor<Map<String, Object>> varsCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(aiService).callPrompt(eq("recommend_creation_topics_v1"), varsCaptor.capture());
+        assertEquals("[\"旧选题1\",\"旧选题2\"]", varsCaptor.getValue().get("recentlyRecommendedTitles"));
+
+        ArgumentCaptor<RecommendedCreationTopicHistory> historyCaptor = ArgumentCaptor.forClass(RecommendedCreationTopicHistory.class);
+        verify(topicHistoryMapper).insert(historyCaptor.capture());
+        RecommendedCreationTopicHistory history = historyCaptor.getValue();
+        assertEquals("新选题1", history.getTitle());
+        assertEquals(100L, history.getSessionId());
+        assertEquals(1L, history.getUserId());
+    }
+
+    @Test
     void generateTopics_shouldThrowWhenAiReturnsEmpty() throws Exception {
         when(planService.getCurrentPlan(1L)).thenReturn(mockPlan());
+        when(topicHistoryMapper.selectTitlesByUserIdSince(eq(1L), any(LocalDateTime.class))).thenReturn(List.of());
         when(aiService.callPrompt(any(), any())).thenReturn(objectMapper.readTree("{\"topics\":[]}"));
         when(sessionMapper.selectByUserId(1L)).thenReturn(null);
 
@@ -124,7 +158,7 @@ class RecommendedCreationServiceImplTest {
     }
 
     @Test
-    void submitGeneration_shouldCallGenerationAndDeleteSession() throws Exception {
+    void submitGeneration_shouldCallGenerationAndMarkCompleted() throws Exception {
         RecommendedCreationSession session = new RecommendedCreationSession();
         session.setId(1L);
         session.setUserId(1L);
@@ -145,7 +179,8 @@ class RecommendedCreationServiceImplTest {
         assertEquals("xiaohongshu", captor.getValue().getPlatform());
         assertEquals(1500, captor.getValue().getWordCount());
         assertEquals("xiaohongshu-default", captor.getValue().getTemplate());
-        verify(sessionMapper).deleteByIdPhysically(1L);
+        assertEquals("completed", session.getStatus());
+        verify(sessionMapper).updateById(session);
     }
 
     @Test

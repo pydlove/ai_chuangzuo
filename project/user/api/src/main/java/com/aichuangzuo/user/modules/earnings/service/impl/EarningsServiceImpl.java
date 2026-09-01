@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.earnings.service.impl;
 
+import com.aichuangzuo.shared.enums.error.SystemErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.earnings.dto.request.ListEarningsRequest;
@@ -105,10 +107,10 @@ public class EarningsServiceImpl implements EarningsService {
                                            BigDecimal commissionRate, BigDecimal commissionAmount,
                                            String settlementMonth) {
         if (commissionAmount == null || commissionAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("收益金额必须大于 0");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "收益金额必须大于 0");
         }
         if (!StringUtils.hasText(settlementMonth)) {
-            throw new IllegalArgumentException("归属月份不能为空");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "归属月份不能为空");
         }
 
         User invitee = userMapper.selectById(inviteeId);
@@ -146,7 +148,7 @@ public class EarningsServiceImpl implements EarningsService {
     public void recordCoinDiscountEarnings(Long userId, String sourceId, String planKey, String planName,
                                            String cycle, BigDecimal coinAmount) {
         if (coinAmount == null || coinAmount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("抵扣创作币数量必须大于 0");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "抵扣创作币数量必须大于 0");
         }
 
         String title = "订阅抵扣";
@@ -181,14 +183,14 @@ public class EarningsServiceImpl implements EarningsService {
     private void doRecordEarnings(Long userId, String type, String sourceType, String sourceId,
                                   String title, String description, BigDecimal amount, String settlementMonth) {
         if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("收益金额必须大于 0");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "收益金额必须大于 0");
         }
         if (!StringUtils.hasText(settlementMonth)) {
-            throw new IllegalArgumentException("归属月份不能为空");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "归属月份不能为空");
         }
         EarningsType earningsType = EarningsType.of(type);
         if (earningsType == null) {
-            throw new IllegalArgumentException("收益类型非法：" + type);
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "收益类型非法：" + type);
         }
 
         EarningsRecord record = new EarningsRecord();

@@ -10,7 +10,7 @@ import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlan;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanNiche;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanPersona;
 import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanQuestion;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanMapper;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanNicheMapper;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPersonaMapper;
@@ -128,6 +128,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
             entity.setOptionsJson(toJson(q.getOptions()));
             entity.setIsRequired(Boolean.TRUE.equals(q.getIsRequired()) ? 1 : 0);
             entity.setSortOrder(q.getSortOrder() == null ? 0 : q.getSortOrder());
+            entity.setAllowOther(Boolean.TRUE.equals(q.getAllowOther()) ? 1 : 0);
+            entity.setOtherMaxLength(q.getOtherMaxLength() == null ? 0 : q.getOtherMaxLength());
             questionMapper.insert(entity);
         }
         log.info("[自媒体方案] 问题生成完成，userId={}, platformKey={}, count={}", userId, platformKey, questions.size());
@@ -150,7 +152,7 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
 
         log.info("[自媒体方案] 调用 AI 推荐赛道，userId={}, platformKey={}, answerHash={}", userId, platformKey, hash);
         Map<String, Object> vars = platformVars(platform);
-        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, platformKey, request.getAnswers()));
+        vars.put("nicheQuestionAnswersJson", buildQuestionsAnswersJson(userId, platformKey, request.getAnswers()));
         JsonNode root = aiService.callPrompt(PROMPT_PLATFORM_NICHES, vars);
         List<NicheOptionVO> niches = parseNiches(root.path("niches"));
 
@@ -200,7 +202,9 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         log.info("[自媒体方案] 调用 AI 推荐人设，userId={}, platformKey={}, nicheKey={}, answerHash={}",
                 userId, platformKey, nicheKey, hash);
         Map<String, Object> vars = platformVars(platform);
-        vars.put("questionsAnswersJson", buildQuestionsAnswersJson(userId, platformKey, request.getAnswers()));
+        String questionAnswersJson = buildQuestionsAnswersJson(userId, platformKey, request.getAnswers());
+        vars.put("nicheQuestionAnswersJson", questionAnswersJson);
+        vars.put("personaQuestionAnswersJson", questionAnswersJson);
         vars.put("nicheKey", nicheKey);
         String nicheName = findNicheName(userId, platformKey, hash, nicheKey);
         vars.put("nicheName", nicheName);
@@ -353,6 +357,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         vo.setOptions(parseOptionsJson(q.getOptionsJson()));
         vo.setIsRequired(Integer.valueOf(1).equals(q.getIsRequired()));
         vo.setSortOrder(q.getSortOrder());
+        vo.setAllowOther(Integer.valueOf(1).equals(q.getAllowOther()));
+        vo.setOtherMaxLength(q.getOtherMaxLength());
         return vo;
     }
 
@@ -413,6 +419,8 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
                     vo.setOptions(parseQuestionOptions(n.path("options")));
                     vo.setIsRequired(n.path("isRequired").asBoolean(true));
                     vo.setSortOrder(n.path("sortOrder").asInt(0));
+                    vo.setAllowOther(n.path("allowOther").asBoolean(false));
+                    vo.setOtherMaxLength(n.path("otherMaxLength").asInt(0));
                     return vo;
                 }).collect(Collectors.toList());
     }

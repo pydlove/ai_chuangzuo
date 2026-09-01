@@ -14,9 +14,9 @@ import java.util.function.BiConsumer;
 import java.util.function.BooleanSupplier;
 
 /**
- * 13 阶段流水线编排器。
+ * 14 阶段流水线编排器。
  *
- * <p>Spring 自动注入所有 {@link GenerationStep} bean（14 个：13 阶段 + 1 PersistArticleStep），
+ * <p>Spring 自动注入所有 {@link GenerationStep} bean（14 个阶段 + 1 PersistArticleStep），
  * 按 stageIndex 升序逐个执行。
  *
  * <p>入口：{@link #run(GenerationTask)} — worker 调用。

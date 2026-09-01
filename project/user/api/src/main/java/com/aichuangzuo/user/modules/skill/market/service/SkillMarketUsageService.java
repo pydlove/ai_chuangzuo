@@ -8,7 +8,6 @@ import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -62,12 +61,7 @@ public class SkillMarketUsageService {
         BigDecimal price = DEFAULT_PRICE_PER_USE;
         String month = LocalDateTime.now().format(MONTH_FMT);
 
-        skillMarketMapper.update(null, new LambdaUpdateWrapper<SkillMarket>()
-                .eq(SkillMarket::getId, skill.getId())
-                .setSql("total_uses = total_uses + 1")
-                .setSql("weekly_uses = weekly_uses + 1")
-                .setSql("weekly_earnings = weekly_earnings + " + price.toPlainString())
-                .setSql("updated_at = NOW(3)"));
+        skillMarketMapper.incrementUsageStats(skill.getId(), price);
 
         String description = "用户 " + consumerUserId + " 使用「" + skill.getSkillName() + "」生成文章";
 

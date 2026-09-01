@@ -21,7 +21,33 @@
           <a-button type="primary" @click="onCreate">新增评价</a-button>
         </a-space>
       </template>
-      <a-table :columns="columns" :data-source="testimonials" :loading="loading" row-key="id" :pagination="false">
+      <div class="table-toolbar">
+        <a-input-search
+          v-model:value="searchKeyword"
+          placeholder="搜索姓名或评价内容"
+          allow-clear
+          style="width: 260px"
+          @search="onSearch"
+        />
+        <a-button
+          danger
+          :loading="batchDeleting"
+          :disabled="selectedRowKeys.length === 0"
+          @click="onBatchDelete"
+        >
+          批量删除 ({{ selectedRowKeys.length }})
+        </a-button>
+      </div>
+
+      <a-table
+        :columns="columns"
+        :data-source="testimonials"
+        :loading="loading"
+        row-key="id"
+        :row-selection="rowSelection"
+        :pagination="pagination"
+        @change="onTableChange"
+      >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'avatar'">
             <img
@@ -139,14 +165,15 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { message } from 'ant-design-vue'
+import { computed, ref, reactive, onMounted } from 'vue'
+import { message, Modal } from 'ant-design-vue'
 import { UploadOutlined, DownloadOutlined } from '@ant-design/icons-vue'
 import {
   listTestimonials,
   createTestimonial,
   updateTestimonial,
   deleteTestimonial,
+  batchDeleteTestimonials,
   updateTestimonialStatus,
   uploadTestimonialAvatar,
   downloadTestimonialImportTemplate,
@@ -155,6 +182,7 @@ import {
 
 const testimonials = ref([])
 const loading = ref(false)
+const batchDeleting = ref(false)
 const modalOpen = ref(false)
 const submitting = ref(false)
 const uploading = ref(false)
@@ -163,6 +191,11 @@ const importResultVisible = ref(false)
 const importResult = ref(null)
 const editing = ref(null)
 const formRef = ref()
+const searchKeyword = ref('')
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const selectedRowKeys = ref([])
 
 const form = reactive({
   avatarUrl: '',
@@ -191,15 +224,68 @@ const columns = [
   { title: '操作', key: 'action', width: 120 }
 ]
 
+const pagination = computed(() => ({
+  current: page.value,
+  pageSize: pageSize.value,
+  total: total.value,
+  showSizeChanger: true,
+  showTotal: (t) => `共 ${t} 条`
+}))
+
+const rowSelection = computed(() => ({
+  selectedRowKeys: selectedRowKeys.value,
+  onChange: (keys) => { selectedRowKeys.value = keys }
+}))
+
 async function load() {
   loading.value = true
   try {
-    testimonials.value = await listTestimonials()
+    const data = await listTestimonials({
+      keyword: searchKeyword.value || undefined,
+      pageNum: page.value,
+      pageSize: pageSize.value
+    })
+    testimonials.value = data.list || []
+    total.value = data.total || 0
   } catch (e) {
     message.error(e?.message || '加载失败')
   } finally {
     loading.value = false
   }
+}
+
+function onSearch() {
+  page.value = 1
+  load()
+}
+
+function onTableChange(p) {
+  page.value = p.current
+  pageSize.value = p.pageSize
+  load()
+}
+
+function onBatchDelete() {
+  const count = selectedRowKeys.value.length
+  if (count === 0) return
+  Modal.confirm({
+    title: '确认批量删除？',
+    content: `已选择 ${count} 条评价，删除后不可恢复。`,
+    okType: 'danger',
+    async onOk() {
+      batchDeleting.value = true
+      try {
+        await batchDeleteTestimonials(selectedRowKeys.value)
+        message.success('已批量删除')
+        selectedRowKeys.value = []
+        await load()
+      } catch (e) {
+        message.error(e?.message || '删除失败')
+      } finally {
+        batchDeleting.value = false
+      }
+    }
+  })
 }
 
 function resetForm() {
@@ -359,6 +445,12 @@ onMounted(load)
 
 <style scoped>
 .home-testimonial-view { padding: 0; }
+.table-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
 .danger { color: #ff4d4f; }
 .empty-tip { text-align: center; color: #8c8c8c; padding: 24px 0; }
 .form-hint { font-size: 12px; color: #8c8c8c; margin-top: 4px; }

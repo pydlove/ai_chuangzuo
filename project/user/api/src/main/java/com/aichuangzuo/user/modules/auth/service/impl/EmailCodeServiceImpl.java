@@ -54,7 +54,7 @@ public class EmailCodeServiceImpl implements EmailCodeService {
             log.warn("邮箱发送失败 email={}, reason={}", normalizedEmail, ex.getMessage());
             throw new BusinessException(UserAuthErrorCode.EMAIL_SEND_FAILED);
         }
-        log.info("邮箱验证码已发送 email={}, code={}", normalizedEmail, code);
+        log.info("邮箱验证码已发送 email={}", normalizedEmail);
     }
 
     /**

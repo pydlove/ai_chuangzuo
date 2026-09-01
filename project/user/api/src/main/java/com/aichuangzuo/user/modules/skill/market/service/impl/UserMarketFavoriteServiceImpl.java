@@ -1,7 +1,7 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
+import com.aichuangzuo.shared.enums.error.SkillErrorCode;
 import com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.entity.UserMarketFavorite;

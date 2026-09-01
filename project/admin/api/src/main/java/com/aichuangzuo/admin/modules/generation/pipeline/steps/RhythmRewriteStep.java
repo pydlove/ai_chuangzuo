@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.pipeline.steps;
 
+import com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage;
 import com.aichuangzuo.admin.modules.generation.pipeline.AiGateway;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
 @Component
 public class RhythmRewriteStep extends AbstractAiStep {
 
+    public static final String STAGE_KEY = "rhythm_rewrite";
+
     public RhythmRewriteStep(AiGateway aiGateway) {
         super(aiGateway);
     }
@@ -20,6 +23,15 @@ public class RhythmRewriteStep extends AbstractAiStep {
 
     @Override
     public String name() { return "rhythm-rewrite"; }
+
+    @Override
+    public boolean enabled(GenerationContext ctx) {
+        PromptTemplateStage stage = ctx.getStages().get(stageIndex());
+        return stage != null
+                && stage.getEnabled() != null
+                && stage.getEnabled() == 1
+                && STAGE_KEY.equals(stage.getStageKey());
+    }
 
     @Override
     protected void parseAndStore(JsonNode root, GenerationContext ctx) {

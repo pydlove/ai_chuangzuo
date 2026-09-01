@@ -5,10 +5,10 @@
       <router-link to="/" class="mp-header__brand">
         <img
           src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
+          alt="爱创作工坊"
           class="mp-header__logo"
         />
-        <span class="mp-header__name">爱创作</span>
+        <span class="mp-header__name">爱创作工坊</span>
       </router-link>
       <div class="mp-header__actions">
         <button class="mp-header__menu" aria-label="菜单" @click="menuOpen = true">
@@ -18,7 +18,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/console/workbench" class="mp-header__cta">开始创作</router-link>
+        <router-link :to="landingTopCta.to" class="mp-header__cta">{{ landingTopCta.label }}</router-link>
       </div>
     </header>
 
@@ -30,14 +30,23 @@
         <button class="mp-menu__close" aria-label="关闭" @click="menuOpen = false">×</button>
       </div>
       <nav class="mp-menu__nav">
-        <router-link
-          v-for="link in navLinks"
-          :key="link.to"
-          :to="link.to"
-          class="mp-menu__link"
-          :class="{ active: route.path === link.to }"
-          @click="menuOpen = false"
-        >{{ link.label }}</router-link>
+        <template v-for="link in landingNavLinks" :key="link.to || link.href">
+          <a
+            v-if="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            class="mp-menu__link"
+            @click="menuOpen = false"
+          >{{ link.label }}</a>
+          <router-link
+            v-else
+            :to="link.to"
+            class="mp-menu__link"
+            :class="{ active: route.path === link.to }"
+            @click="menuOpen = false"
+          >{{ link.label }}</router-link>
+        </template>
       </nav>
     </div>
 
@@ -77,6 +86,7 @@
           <span class="mp-newcomer__original">¥{{ newcomerOffer.originalPrice }}</span>
           <span class="mp-newcomer__period">/年</span>
         </div>
+        <div class="mp-newcomer__monthly">合 ¥{{ (Number(newcomerOffer.finalPrice) / 12).toFixed(2) }}/月</div>
         <div class="mp-newcomer__savings">共省 ¥{{ newcomerOffer.savings }}</div>
         <button class="mp-newcomer__btn" @click="handleNewcomerSubscribe">立即开通</button>
       </div>
@@ -96,6 +106,7 @@
             ¥{{ getPrice(plan).current }}
             <span>/{{ getPeriodLabel() }}</span>
           </div>
+          <div v-if="getMonthlyEquivalent(plan)" class="mp-card__monthly">合 ¥{{ getMonthlyEquivalent(plan) }}/月</div>
           <div class="mp-card__meta">
             <span>{{ getArticles(plan) }}</span>
             <span v-if="getSavings(plan)">· 省¥{{ getSavings(plan) }}</span>
@@ -145,10 +156,7 @@
     </main>
 
     <!-- 底部 -->
-    <footer class="mp-footer">
-      <div>© 2026 爱创作 · 杭州爱启云网络科技有限公司</div>
-      <div>浙ICP备2025200943号-2</div>
-    </footer>
+    <AppFooter variant="mobile" />
 
     <!-- 升级确认弹框 -->
     <a-modal
@@ -156,7 +164,7 @@
       :title="`确认升级 ${selectedPlan ? selectedPlan.name : ''}`"
       :width="320"
       centered
-      class="mp-upgrade-modal"
+      class="mp-upgrade-modal membership-confirm-modal"
       @ok="confirmUpgrade"
       :confirm-loading="upgradeLoading"
     >
@@ -192,54 +200,89 @@
     <!-- 支付弹框 -->
     <a-modal
       v-model:open="modalVisible"
-      :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
+      :title="modalTitle"
       :width="320"
       centered
-      class="mp-subscribe-modal"
-      @ok="handlePay"
-      :confirm-loading="subscribeLoading"
+      class="mp-subscribe-modal membership-confirm-modal"
+      :closable="!payQrUrl"
+      :mask-closable="!payQrUrl"
+      :keyboard="!payQrUrl"
+      :footer="null"
+      @cancel="handleModalCancel"
     >
       <div class="mp-pay-panel">
         <CoinDiscountPanel
-          v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
+          v-if="coinBalance > 0 && getMaxCoinAmount() > 0 && !payQrUrl"
           v-model:selectedCoinAmount="selectedCoinAmount"
           :coinBalance="coinBalance"
           :maxCoinAmount="getMaxCoinAmount()"
           :coinToYuanRatio="COIN_TO_YUAN_RATIO"
           :finalCash="getFinalCash()"
         />
-        <p class="mp-pay-tip">
-          测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
-        </p>
-        <a-input
-          v-model:value="payCode"
-          placeholder="请输入 6 位支付码"
-          maxlength="6"
-          size="large"
-          @pressEnter="handlePay"
-        />
+        <template v-if="isTestMode()">
+          <p class="mp-pay-tip">
+            测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
+          </p>
+          <a-input
+            v-model:value="payCode"
+            placeholder="请输入 6 位支付码"
+            maxlength="6"
+            size="large"
+            @pressEnter="handlePay"
+          />
+          <div class="mp-pay-actions">
+            <a-button type="primary" :loading="subscribeLoading" size="large" block @click="handlePay">
+              确认{{ upgradePreview ? '升级' : '订阅' }}
+            </a-button>
+          </div>
+        </template>
+        <template v-else-if="payQrUrl">
+          <div class="mp-qr-pay">
+            <div class="mp-qr-pay-amount">
+              <span class="mp-qr-pay-amount-label">微信支付</span>
+              <span class="mp-qr-pay-amount-value">¥{{ getFinalCash() }}</span>
+            </div>
+            <div class="mp-qr-code-wrap">
+              <img :src="payQrUrl" alt="微信支付二维码" class="mp-qr-code-img" />
+              <div class="mp-qr-code-logo">微信</div>
+            </div>
+            <p class="mp-qr-code-tip">请使用微信扫一扫完成支付</p>
+            <ul class="mp-qr-pay-terms">
+              <li>开通{{ selectedPlan?.name }}{{ cycleLabel[activeCycle] }}套餐</li>
+              <li>会员服务属于虚拟商品，一经支付无法退款</li>
+              <li>支付完成后会员将自动开通</li>
+            </ul>
+          </div>
+          <div class="mp-pay-actions">
+            <a-button size="large" block @click="handleModalCancel">关闭</a-button>
+          </div>
+        </template>
+        <template v-else>
+          <p class="mp-pay-tip">
+            确认{{ upgradePreview ? '升级' : '订阅' }}{{ selectedPlan?.name }}{{ cycleLabel[activeCycle] }}套餐，支付成功后会员将自动开通。
+          </p>
+          <div class="mp-pay-actions">
+            <a-button type="primary" :loading="subscribeLoading" size="large" block @click="handlePay">
+              微信支付
+            </a-button>
+          </div>
+        </template>
       </div>
     </a-modal>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import { usePricing } from '@/composables/usePricing.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 
 const route = useRoute()
 const menuOpen = ref(false)
 const activeComparePlan = ref('pro')
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
 
 const planNames = {
   basic: '基础版',
@@ -253,6 +296,8 @@ const {
   payCode,
   subscribeLoading,
   selectedCoinAmount,
+  payQrUrl,
+  currentOrderNo,
   plans,
   compareRows,
   catalogLoading,
@@ -262,6 +307,7 @@ const {
   cycleLocked,
   setCycle,
   isCycleDisabled,
+  isTestMode,
   upgradeModalVisible,
   upgradePreview,
   upgradeLoading,
@@ -269,6 +315,7 @@ const {
   getPrice,
   getArticles,
   getSavings,
+  getMonthlyEquivalent,
   maxYearSavings,
   cellValue,
   getPlanButton,
@@ -276,12 +323,27 @@ const {
   handleNewcomerSubscribe,
   confirmUpgrade,
   handlePay,
+  stopPolling,
   scrollToCompare,
   coinBalance,
   COIN_TO_YUAN_RATIO,
   getMaxCoinAmount,
   getFinalCash
 } = usePricing()
+
+const modalTitle = computed(() => {
+  if (payQrUrl.value) {
+    return '微信扫码支付'
+  }
+  return upgradePreview.value ? '确认支付升级' : `确认订阅 ${selectedPlan.value ? selectedPlan.value.name : ''}`
+})
+
+const handleModalCancel = () => {
+  modalVisible.value = false
+  payQrUrl.value = ''
+  currentOrderNo.value = ''
+  stopPolling()
+}
 </script>
 
 <style scoped>
@@ -558,6 +620,11 @@ const {
   font-weight: 500;
   margin-bottom: 16px;
 }
+.mp-newcomer__monthly {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin-bottom: 6px;
+}
 .mp-newcomer__btn {
   width: 100%;
   padding: 13px 0;
@@ -698,6 +765,12 @@ const {
   gap: 1px;
 }
 
+.mp-card__monthly {
+  font-size: 10px;
+  color: #8c8c8c;
+  margin-bottom: 6px;
+}
+
 .mp-card__btn {
   width: 100%;
   padding: 7px 0;
@@ -807,17 +880,6 @@ const {
   font-weight: 500;
 }
 
-/* Footer */
-.mp-footer {
-  padding: 24px 20px 32px;
-  text-align: center;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.8;
-}
-
 /* 支付弹框 */
 .mp-pay-panel {
   padding: 8px 0 16px;
@@ -922,7 +984,9 @@ body[data-theme="dark"] .mp-newcomer {
 body[data-theme="dark"] .mp-newcomer__desc,
 body[data-theme="dark"] .mp-newcomer__regular,
 body[data-theme="dark"] .mp-newcomer__original,
-body[data-theme="dark"] .mp-newcomer__period {
+body[data-theme="dark"] .mp-newcomer__period,
+body[data-theme="dark"] .mp-newcomer__monthly,
+body[data-theme="dark"] .mp-card__monthly {
   color: #a6a6a6;
 }
 body[data-theme="dark"] .mp-newcomer__final,
@@ -951,9 +1015,104 @@ body[data-theme="dark"] .mp-upgrade-tip {
   background: rgba(255, 36, 66, 0.12);
   color: #a6a6a6;
 }
-body[data-theme="dark"] .mp-footer {
-  background: #1f1f1f;
-  border-top-color: #2a2a2a;
+
+.mp-pay-actions {
+  margin-top: 16px;
+}
+
+.mp-qr-pay {
+  text-align: center;
+}
+
+.mp-qr-pay-amount {
+  margin-bottom: 16px;
+}
+
+.mp-qr-pay-amount-label {
+  display: block;
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 4px;
+}
+
+.mp-qr-pay-amount-value {
+  display: block;
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.mp-qr-code-wrap {
+  position: relative;
+  width: 180px;
+  height: 180px;
+  margin: 0 auto 12px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  padding: 8px;
+  background: #fff;
+}
+
+.mp-qr-code-img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.mp-qr-code-logo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  background: #07c160;
+  color: #fff;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.mp-qr-code-tip {
+  color: #8c8c8c;
+  font-size: 12px;
+  margin: 0 0 16px;
+}
+
+.mp-qr-pay-terms {
+  margin: 0;
+  padding-left: 18px;
+  color: #595959;
+  font-size: 12px;
+  line-height: 1.7;
+  text-align: left;
+}
+
+.mp-qr-pay-terms li {
+  margin-bottom: 6px;
+}
+
+body[data-theme="dark"] .mp-qr-pay-amount-label {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mp-qr-pay-amount-value {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .mp-qr-code-wrap {
+  background: #fff;
+  border-color: #2a2a2a;
+}
+
+body[data-theme="dark"] .mp-qr-code-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .mp-qr-pay-terms {
   color: #a6a6a6;
 }
 </style>

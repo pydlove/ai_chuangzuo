@@ -2,53 +2,64 @@
   <section class="testimonials-section" @mouseenter="pauseAutoScroll" @mouseleave="resumeAutoScroll">
     <div class="testimonials-header reveal" data-reveal-delay="0">
       <div class="section-tag">用户真实反馈</div>
-      <h2 class="testimonials-title">他们已经用 AI 跑通了自媒体流程</h2>
-      <p class="testimonials-subtitle">看看真实用户如何用爱创作定位、写作、变现</p>
+      <h2 class="testimonials-title">他们已经用爱创作工坊跑通了自媒体流程</h2>
+      <p class="testimonials-subtitle">看看真实用户如何用爱创作工坊定位、写作、变现</p>
     </div>
 
     <div
       v-if="testimonials.length > 0"
-      ref="scrollRef"
-      class="testimonials-carousel"
-      @scroll="onScroll"
+      class="testimonials-carousel-wrapper"
     >
-      <TestimonialCard
-        v-for="item in testimonials"
-        :key="item.id"
-        :avatar-url="item.avatarUrl"
-        :name="item.name"
-        :title="item.title"
-        :star-rating="item.starRating"
-        :review-text="item.reviewText"
-        class="testimonial-slide reveal"
-        :data-reveal-delay="(item.id % 4) * 100"
-      />
+      <div
+        ref="scrollRef"
+        class="testimonials-carousel"
+      >
+        <TestimonialCard
+          v-for="item in testimonials"
+          :key="item.id"
+          :avatar-url="item.avatarUrl"
+          :name="item.name"
+          :title="item.title"
+          :star-rating="item.starRating"
+          :review-text="item.reviewText"
+          class="testimonial-slide reveal"
+          :data-reveal-delay="(item.id % 4) * 100"
+        />
+      </div>
+      <button
+        v-show="canScroll"
+        type="button"
+        class="carousel-nav carousel-prev"
+        aria-label="上一条"
+        @click="scrollPrev"
+      >
+        <Icon name="chevron-left" :size="20" />
+      </button>
+      <button
+        v-show="canScroll"
+        type="button"
+        class="carousel-nav carousel-next"
+        aria-label="下一条"
+        @click="scrollNext"
+      >
+        <Icon name="chevron-right" :size="20" />
+      </button>
     </div>
 
     <div v-else class="testimonials-empty">暂无用户评价</div>
-
-    <div v-if="testimonials.length > 1" class="testimonials-dots">
-      <span
-        v-for="(_, index) in dotCount"
-        :key="index"
-        class="testimonials-dot"
-        :class="{ active: index === activeDot }"
-        @click="scrollToDot(index)"
-      />
-    </div>
   </section>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import TestimonialCard from './TestimonialCard.vue'
+import Icon from '@/components/common/Icon.vue'
 
 const props = defineProps({
   testimonials: { type: Array, default: () => [] }
 })
 
 const scrollRef = ref(null)
-const activeDot = ref(0)
 let autoScrollTimer = null
 
 const slidesPerView = ref(3)
@@ -60,11 +71,7 @@ function updateSlidesPerView() {
 
 const slideCount = computed(() => props.testimonials.length)
 
-const dotCount = computed(() => {
-  const count = slideCount.value
-  if (count <= slidesPerView.value) return 0
-  return Math.max(1, count - slidesPerView.value + 1)
-})
+const canScroll = computed(() => slideCount.value > slidesPerView.value)
 
 function getMetrics() {
   if (!scrollRef.value) return null
@@ -76,24 +83,21 @@ function getMetrics() {
   return { slideWidth, gap, containerWidth: scrollRef.value.clientWidth, scrollWidth: scrollRef.value.scrollWidth }
 }
 
-function onScroll() {
+function scrollPrev() {
   if (!scrollRef.value) return
   const metrics = getMetrics()
   if (!metrics) return
   const { slideWidth, gap } = metrics
-  activeDot.value = Math.round(scrollRef.value.scrollLeft / (slideWidth + gap))
-}
+  const step = slideWidth + gap
+  const currentIndex = Math.round(scrollRef.value.scrollLeft / step)
+  const prevIndex = currentIndex - 1
+  const maxIndex = Math.max(0, slideCount.value - slidesPerView.value)
 
-function scrollToIndex(index, behavior = 'smooth') {
-  if (!scrollRef.value) return
-  const metrics = getMetrics()
-  if (!metrics) return
-  const { slideWidth, gap } = metrics
-  const targetIndex = Math.max(0, Math.min(index, slideCount.value - 1))
-  scrollRef.value.scrollTo({
-    left: targetIndex * (slideWidth + gap),
-    behavior
-  })
+  if (prevIndex < 0) {
+    scrollRef.value.scrollTo({ left: maxIndex * step, behavior: 'smooth' })
+  } else {
+    scrollRef.value.scrollTo({ left: prevIndex * step, behavior: 'smooth' })
+  }
 }
 
 function scrollNext() {
@@ -148,7 +152,6 @@ onUnmounted(() => {
 })
 
 watch(() => props.testimonials, async () => {
-  activeDot.value = 0
   await nextTick()
   startAutoScroll()
 }, { flush: 'post' })
@@ -209,24 +212,39 @@ watch(() => props.testimonials, async () => {
   color: #8c8c8c;
   padding: 48px 0;
 }
-.testimonials-dots {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 28px;
+.testimonials-carousel-wrapper {
+  position: relative;
+  max-width: 1100px;
+  margin: 0 auto;
 }
-.testimonials-dot {
-  width: 8px;
-  height: 8px;
+.carousel-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: #e0e0e0;
+  border: 1px solid #f0f0f0;
+  background: #fff;
+  color: #595959;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.2s ease;
+  z-index: 5;
 }
-.testimonials-dot.active {
-  background: #FF2442;
-  width: 24px;
-  border-radius: 4px;
+.carousel-nav:hover {
+  background: #fff5f7;
+  color: #FF2442;
+  border-color: #ffd6dd;
+}
+.carousel-prev {
+  left: -20px;
+}
+.carousel-next {
+  right: -20px;
 }
 
 @media (max-width: 768px) {
@@ -246,6 +264,9 @@ watch(() => props.testimonials, async () => {
     flex: 0 0 85vw;
     min-width: 260px;
   }
+  .carousel-nav {
+    display: none;
+  }
 }
 
 body[data-theme="dark"] .testimonials-section {
@@ -260,10 +281,14 @@ body[data-theme="dark"] .testimonials-subtitle {
 body[data-theme="dark"] .testimonials-empty {
   color: #a6a6a6;
 }
-body[data-theme="dark"] .testimonials-dot {
-  background: #3a3a3a;
+body[data-theme="dark"] .carousel-nav {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+  color: #a6a6a6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
 }
-body[data-theme="dark"] .testimonials-dot.active {
-  background: #ff4d6f;
-}
-</style>
+body[data-theme="dark"] .carousel-nav:hover {
+  background: #2a2a2a;
+  color: #ff4d6f;
+  border-color: #5a2a35;
+}</style>

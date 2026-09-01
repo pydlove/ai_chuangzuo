@@ -61,10 +61,7 @@
 
         <!-- TOP3 领奖台 -->
         <section id="toc-top3" class="leaderboard-section">
-          <div class="leaderboard-section-header">
-            <span class="leaderboard-section-tag">荣耀榜</span>
-            <h2 class="leaderboard-section-title">TOP 3</h2>
-          </div>
+          <SectionTitle title="TOP 3" tag="荣耀榜" pill />
 
           <div v-if="coinTop3.length === 0" class="leaderboard-empty">
             暂无排名数据
@@ -104,10 +101,7 @@
 
         <!-- 完整榜单 -->
         <section id="toc-full-list" class="leaderboard-section">
-          <div class="leaderboard-section-header">
-            <span class="leaderboard-section-tag">完整榜单</span>
-            <h2 class="leaderboard-section-title">TOP 4 - 100</h2>
-          </div>
+          <SectionTitle title="TOP 4 - 100" tag="完整榜单" pill />
 
           <div v-if="coinListAfter3.length === 0" class="leaderboard-empty">
             暂无更多排名数据
@@ -219,6 +213,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { message } from 'ant-design-vue'
 import { UnorderedListOutlined, TrophyOutlined, CrownOutlined, RocketOutlined } from '@ant-design/icons-vue'
 import { getCoinLeaderboard, getLeaderboardRewardConfig } from '@/api/leaderboard.js'
+import SectionTitle from '@/components/common/SectionTitle.vue'
 
 function getMonthLabel(period) {
   const now = new Date()
@@ -256,7 +251,6 @@ async function loadRewardConfig() {
     }
   } catch (err) {
     // 使用默认值，不阻断页面
-    console.error('加载奖励配置失败', err)
   }
 }
 
@@ -484,30 +478,6 @@ onUnmounted(() => {
 /* Section 通用 */
 .leaderboard-section {
   margin-bottom: 28px;
-}
-
-.leaderboard-section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.leaderboard-section-tag {
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #fff;
-  background: linear-gradient(135deg, #ff2442 0%, #ff6b81 100%);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.leaderboard-section-title {
-  font-size: 17px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin: 0;
 }
 
 /* 我的排名 */
@@ -1235,7 +1205,6 @@ body[data-theme="dark"] .leaderboard-hero__badge {
 }
 
 body[data-theme="dark"] .leaderboard-hero__title,
-body[data-theme="dark"] .leaderboard-section-title,
 body[data-theme="dark"] .leaderboard-my__name,
 body[data-theme="dark"] .leaderboard-row__name,
 body[data-theme="dark"] .leaderboard-empty-title,

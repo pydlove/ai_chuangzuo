@@ -52,6 +52,18 @@ public class Order {
     /** 状态：0-待支付，1-已支付。 */
     private Integer status;
 
+    /** 支付方式：xunhupay。 */
+    private String paymentMethod;
+
+    /** 第三方交易流水号。 */
+    private String thirdPartyTradeId;
+
+    /** 第三方退款单号。 */
+    private String thirdPartyRefundId;
+
+    /** 实际退款金额。 */
+    private BigDecimal refundAmount;
+
     /** 支付时间。 */
     private LocalDateTime paidAt;
 

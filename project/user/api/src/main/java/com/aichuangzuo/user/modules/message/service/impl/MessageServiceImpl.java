@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.message.entity.Message;
 import com.aichuangzuo.user.modules.message.entity.MessageRead;
 import com.aichuangzuo.user.modules.message.entity.MessageScope;
-import com.aichuangzuo.user.modules.message.enums.MessageErrorCode;
+import com.aichuangzuo.shared.enums.error.MessageErrorCode;
 import com.aichuangzuo.user.modules.message.mapper.MessageMapper;
 import com.aichuangzuo.user.modules.message.mapper.MessageReadMapper;
 import com.aichuangzuo.user.modules.message.service.MessageService;

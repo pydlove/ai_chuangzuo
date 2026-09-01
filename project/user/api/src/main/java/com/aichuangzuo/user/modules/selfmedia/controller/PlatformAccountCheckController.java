@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.selfmedia.dto.request.NicknameCheckRequest;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckRateLimiter;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;

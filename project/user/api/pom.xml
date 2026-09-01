@@ -128,11 +128,37 @@
                 <configuration>
                     <mainClass>com.aichuangzuo.user.UserApiApplication</mainClass>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>com.aichuangzuo.user.UserApiApplication</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>3.6.1</version>
                 <executions>
                     <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
                         <goals>
-                            <goal>repackage</goal>
+                            <goal>copy-dependencies</goal>
                         </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/lib</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                            <stripVersion>false</stripVersion>
+                        </configuration>
                     </execution>
                 </executions>
             </plugin>

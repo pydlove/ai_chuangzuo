@@ -244,6 +244,7 @@
 import { computed, ref, watch, nextTick, onUnmounted } from 'vue'
 import LearnMarkdown from './LearnMarkdown.vue'
 import LearnRichText from './LearnRichText.vue'
+import { formatDate } from '@/utils/format.js'
 import {
   CalendarOutlined,
   ClockCircleOutlined,
@@ -273,12 +274,6 @@ const readingMinutes = computed(() => {
 })
 
 const wordCount = computed(() => props.article?.content?.length || 0)
-
-function formatDate(d) {
-  if (!d) return ''
-  const dt = new Date(d)
-  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`
-}
 
 // 列表卡片描述：从正文提取纯文本摘要（去 Markdown / HTML 语法），正文为空时回退摘要
 function plainExcerpt(a) {

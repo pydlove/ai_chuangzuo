@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import CreateFlowModal from '@/views/console/create/CreateFlowModal.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
+import { getTodayDoneKey } from '@/constants/storage.js'
 
 const router = useRouter()
 
@@ -39,9 +40,7 @@ onMounted(() => {
 })
 
 function setTodayDone() {
-  const date = new Date()
-  const key = `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
-  localStorage.setItem(key, '1')
+  localStorage.setItem(getTodayDoneKey(), '1')
 }
 
 function onSuccess(task) {

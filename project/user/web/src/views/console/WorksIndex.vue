@@ -71,13 +71,24 @@
       </div>
       <div v-else class="work-cards">
         <div v-for="work in filteredWorks" :key="work.id" class="work-card">
-          <div class="work-title">{{ work.title }}</div>
-          <div class="work-meta">
-            <span>{{ work.platformName }}</span>
-            <span>·</span>
-            <span>{{ work.wordCount }} 字</span>
-            <span>·</span>
-            <span>{{ formatDate(work.completedAt) }}</span>
+          <div class="work-card__header">
+            <div class="work-card__content" @click="openArticle(work.id)">
+              <div class="work-title">{{ work.title }}</div>
+              <div class="work-meta">
+                <span>{{ work.platformName }}</span>
+                <span>·</span>
+                <span>{{ work.wordCount }} 字</span>
+                <span>·</span>
+                <span>{{ formatDateTime(work.completedAt) }}</span>
+              </div>
+            </div>
+            <button
+              class="work-card__menu"
+              aria-label="更多操作"
+              @click.stop="openActionSheet(work)"
+            >
+              <MoreOutlined />
+            </button>
           </div>
           <div class="work-actions">
             <button class="work-action-btn" @click="openArticle(work.id)">查看</button>
@@ -120,7 +131,7 @@
             <span>·</span>
             <span>{{ draft.wordCount }} 字</span>
             <span>·</span>
-            <span>保存于 {{ formatDate(draft.savedAt) }}</span>
+            <span>保存于 {{ formatDateTime(draft.savedAt) }}</span>
           </div>
           <div class="work-actions">
             <button class="work-action-btn primary" @click="resumeDraft(draft.id)">继续编辑</button>
@@ -141,34 +152,111 @@
         />
       </div>
     </div>
+
+    <!-- 移动端作品操作面板 -->
+    <teleport to="body">
+      <div
+        v-if="actionSheetVisible"
+        class="work-action-sheet-mask"
+        @click="closeActionSheet"
+      >
+        <div class="work-action-sheet" @click.stop>
+          <div class="work-action-sheet__handle"></div>
+          <div v-if="activeWork" class="work-action-sheet__title">
+            {{ activeWork.title }}
+          </div>
+          <button class="work-action-sheet__item" @click="onActionSheetExport">
+            <FileWordOutlined class="work-action-sheet__icon" />
+            <span>导出 Word</span>
+          </button>
+          <button class="work-action-sheet__item" @click="onActionSheetEdit">
+            <EditOutlined class="work-action-sheet__icon" />
+            <span>编辑内容</span>
+          </button>
+          <button class="work-action-sheet__item work-action-sheet__item--danger" @click="onActionSheetDelete">
+            <DeleteOutlined class="work-action-sheet__icon" />
+            <span>删除</span>
+          </button>
+          <button class="work-action-sheet__item work-action-sheet__item--cancel" @click="closeActionSheet">
+            取消
+          </button>
+        </div>
+      </div>
+    </teleport>
+
+    <!-- 微信内导出：公开下载链接弹窗 -->
+    <a-modal
+      v-model:open="exportLinkModalVisible"
+      title="微信内请用浏览器下载"
+      :footer="null"
+      :closable="true"
+      :mask-closable="true"
+      width="360px"
+      class="export-link-modal"
+      @cancel="closeExportLinkModal"
+    >
+      <div class="export-link-body">
+        <p class="export-link-tip">微信内无法直接下载文件，请点击下方按钮复制链接，并在系统浏览器中打开，即可自动下载 Word 文档。</p>
+        <div class="export-link-url">{{ exportLinkUrl }}</div>
+        <div class="export-link-actions">
+          <button class="export-link-btn primary" @click="copyExportLink">复制下载链接</button>
+          <button class="export-link-btn" @click="openExportLink">立即打开浏览器</button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Modal, message } from 'ant-design-vue'
+import { message } from 'ant-design-vue'
+import { MoreOutlined, FileWordOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useWorks } from '@/composables/useWorks.js'
 import { useDrafts } from '@/composables/useDrafts.js'
+import { useConfirm } from '@/composables/useConfirm.js'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getArticle, deleteArticle as deleteArticleApi } from '@/api/article.js'
+import { getArticle, deleteArticle as deleteArticleApi, getExportToken } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
+import { formatDateTime } from '@/utils/format.js'
+import { useIsMobile } from '@/composables/useMobile.js'
+import { PLATFORM_OPTIONS, PLATFORM_NAME_MAP } from '@/utils/platform.js'
 
 const route = useRoute()
 const router = useRouter()
+const { confirm } = useConfirm()
+const isMobile = useIsMobile()
+
+const isWechat = /MicroMessenger/i.test(navigator.userAgent) && /Mobile/i.test(navigator.userAgent)
+
+const copyToClipboard = async (text) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '0'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    const result = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return result
+  } catch (e) {
+    return false
+  }
+}
 
 const activeTab = ref('works')
 
-const platformOptions = [
-  { key: 'wechat', label: '微信公众号' },
-  { key: 'xiaohongshu', label: '小红书' },
-  { key: 'toutiao', label: '今日头条' },
-  { key: 'baijiahao', label: '百家号' },
-  { key: 'douyin', label: '抖音图文' },
-  { key: 'zhihu', label: '知乎' },
-  { key: 'bilibili', label: 'B站' }
-]
+const platformOptions = PLATFORM_OPTIONS
 
 const styleOptions = [
   { key: '产品评测', label: '产品评测' },
@@ -277,16 +365,6 @@ const isWithinDays = (date, days) => {
   return diff <= days
 }
 
-const platformMap = {
-  wechat: '微信公众号',
-  xiaohongshu: '小红书',
-  toutiao: '今日头条',
-  baijiahao: '百家号',
-  douyin: '抖音图文',
-  zhihu: '知乎',
-  bilibili: 'B站'
-}
-
 onMounted(async () => {
   if (route.query.tab === 'drafts') {
     activeTab.value = 'drafts'
@@ -298,13 +376,13 @@ onMounted(async () => {
       await loadDraftsList()
     }
   } catch (e) {
-    console.warn('加载作品/草稿失败', e)
+    // 忽略初始化加载异常
   }
 })
 
 const matchesFilters = (item) => {
   if (selectedPlatforms.value.length > 0) {
-    const selectedLabels = selectedPlatforms.value.map(k => platformMap[k])
+    const selectedLabels = selectedPlatforms.value.map(k => PLATFORM_NAME_MAP[k])
     if (!selectedLabels.includes(item.platformName)) {
       return false
     }
@@ -376,21 +454,12 @@ const switchTab = async (tab) => {
   }
 }
 
-const formatDate = (dateStr) => {
-  const d = new Date(dateStr)
-  const month = d.getMonth() + 1
-  const day = d.getDate()
-  const hour = d.getHours().toString().padStart(2, '0')
-  const min = d.getMinutes().toString().padStart(2, '0')
-  return `${month}月${day}日 ${hour}:${min}`
-}
-
 const resumeDraft = async (bizNo) => {
   try {
     const draft = await getDraft(bizNo)
     if (!draft) return
-    // create 页 onMounted 优先读取 aichuangzuo_current_article
-    localStorage.setItem('aichuangzuo_current_article', JSON.stringify({
+    // create 页 onMounted 优先读取 CURRENT_ARTICLE
+    localStorage.setItem(STORAGE_KEYS.CURRENT_ARTICLE, JSON.stringify({
       customTitle: draft.customTitle,
       customRequirement: draft.customRequirement,
       platform: draft.platform,
@@ -401,47 +470,113 @@ const resumeDraft = async (bizNo) => {
     }))
     router.push('/console/create')
   } catch (e) {
-    console.warn('加载草稿失败', e)
+    // 忽略草稿加载异常
   }
 }
 
 // 删除操作统一二次确认
 const deleteDraft = (draft) => {
-  Modal.confirm({
+  confirm({
     title: '删除草稿',
     content: `确定要删除草稿「${draft.title}」吗？删除后不可恢复。`,
     okText: '删除',
     cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await deleteDraftApi(draft.id)
         draftsList.value = draftsList.value.filter((item) => item.bizNo !== draft.id)
       } catch (e) {
-        console.warn('删除草稿失败', e)
+        // 删除失败已在 confirm 中处理，不再额外提示
       }
     }
   })
 }
 
 const deleteWork = (work) => {
-  Modal.confirm({
+  confirm({
     title: '删除作品',
     content: `确定要删除作品「${work.title}」吗？删除后不可恢复。`,
     okText: '删除',
     cancelText: '取消',
-    okButtonProps: { danger: true },
-    centered: true,
+    danger: true,
     onOk: async () => {
       try {
         await deleteArticleApi(work.id)
         worksList.value = worksList.value.filter((item) => item.bizNo !== work.id)
       } catch (e) {
-        console.warn('删除作品失败', e)
+        // 删除失败已在 confirm 中处理，不再额外提示
       }
     }
   })
+}
+
+const activeWork = ref(null)
+const actionSheetVisible = ref(false)
+
+const openActionSheet = (work) => {
+  activeWork.value = work
+  actionSheetVisible.value = true
+}
+
+const closeActionSheet = () => {
+  actionSheetVisible.value = false
+  activeWork.value = null
+}
+
+const exportLinkModalVisible = ref(false)
+const exportLinkUrl = ref('')
+const exportLinkBizNo = ref('')
+
+const closeExportLinkModal = () => {
+  exportLinkModalVisible.value = false
+  exportLinkUrl.value = ''
+  exportLinkBizNo.value = ''
+}
+
+const buildExportLink = (token) => {
+  return `${window.location.origin}/api/v1/public/articles/export/${token}`
+}
+
+const copyExportLink = async () => {
+  const copied = await copyToClipboard(exportLinkUrl.value)
+  if (copied) {
+    message.success('下载链接已复制')
+  } else {
+    message.warning('复制失败，请长按链接手动复制')
+  }
+}
+
+const openExportLink = () => {
+  window.open(exportLinkUrl.value, '_blank')
+}
+
+const requestExportToken = async (bizNo) => {
+  const token = await getExportToken(bizNo)
+  exportLinkBizNo.value = bizNo
+  exportLinkUrl.value = buildExportLink(token)
+  exportLinkModalVisible.value = true
+}
+
+const onActionSheetExport = () => {
+  if (activeWork.value) {
+    exportWorkWord(activeWork.value)
+  }
+  closeActionSheet()
+}
+
+const onActionSheetEdit = () => {
+  if (activeWork.value) {
+    editWork(activeWork.value.id)
+  }
+  closeActionSheet()
+}
+
+const onActionSheetDelete = () => {
+  if (activeWork.value) {
+    deleteWork(activeWork.value)
+  }
+  closeActionSheet()
 }
 
 const openArticle = (bizNo) => {
@@ -450,6 +585,12 @@ const openArticle = (bizNo) => {
 
 const exportWorkWord = async (work) => {
   try {
+    // 微信内置浏览器不支持 a.download 下载，使用后端临时公开链接
+    if (isWechat) {
+      await requestExportToken(work.id)
+      return
+    }
+
     const detail = await getArticle(work.id)
     const title = detail?.title || work.title || '未命名文章'
     const body = detail?.body || ''
@@ -494,9 +635,12 @@ const exportWorkWord = async (work) => {
     document.body.removeChild(a)
     URL.revokeObjectURL(url)
 
-    message.success('Word 导出成功')
+    if (isMobile.value) {
+      message.success('Word 已导出，请从浏览器下载管理或通知栏查看')
+    } else {
+      message.success('Word 导出成功')
+    }
   } catch (e) {
-    console.warn('导出 Word 失败', e)
     message.error('导出失败，请稍后重试')
   }
 }
@@ -600,6 +744,57 @@ const editWork = (bizNo) => {
 .work-actions {
   display: flex;
   gap: 8px;
+}
+
+.work-card__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.work-card__content {
+  flex: 1;
+  min-width: 0;
+}
+
+.work-card__menu {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  color: #8c8c8c;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.work-card__menu:hover {
+  background: #f5f5f5;
+  color: #262626;
+}
+
+.work-card__menu:active {
+  background: #ebebeb;
+}
+
+body[data-theme="dark"] .work-card__menu {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .work-card__menu:hover {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .work-card__menu:active {
+  background: #333;
 }
 
 .works-pagination {
@@ -816,6 +1011,224 @@ body[data-theme="dark"] :deep(.ant-empty-description) {
   color: #a6a6a6 !important;
 }
 
+/* ============ 移动端底部操作面板 ============ */
+.work-action-sheet-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  animation: action-sheet-fade-in 0.2s ease;
+}
+
+.work-action-sheet {
+  background: #fff;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  animation: action-sheet-slide-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.work-action-sheet__handle {
+  width: 36px;
+  height: 4px;
+  background: #e0e0e0;
+  border-radius: 2px;
+  margin: 0 auto 16px;
+}
+
+.work-action-sheet__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #8c8c8c;
+  text-align: center;
+  padding: 0 12px 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.work-action-sheet__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 14px 16px;
+  border: none;
+  background: transparent;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #1a1a1a;
+  text-align: center;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.work-action-sheet__icon {
+  font-size: 18px;
+}
+
+.work-action-sheet__item:active {
+  background: #f5f5f5;
+}
+
+.work-action-sheet__item--danger {
+  color: #ff2442;
+}
+
+.work-action-sheet__item--cancel {
+  margin-top: 8px;
+  background: #f5f5f5;
+  color: #595959;
+  font-weight: 500;
+}
+
+.work-action-sheet__item--cancel .work-action-sheet__icon {
+  display: none;
+}
+
+.work-action-sheet__item--cancel:active {
+  background: #e8e8e8;
+}
+
+@keyframes action-sheet-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes action-sheet-slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* 深色模式 */
+body[data-theme="dark"] .work-action-sheet {
+  background: #1f1f1f;
+}
+
+body[data-theme="dark"] .work-action-sheet__handle {
+  background: #434343;
+}
+
+body[data-theme="dark"] .work-action-sheet__title {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .work-action-sheet__item {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .work-action-sheet__item:active {
+  background: #2a2a2a;
+}
+
+body[data-theme="dark"] .work-action-sheet__item--danger {
+  color: #ff4d6f;
+}
+
+body[data-theme="dark"] .work-action-sheet__item--cancel {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .work-action-sheet__item--cancel:active {
+  background: #333;
+}
+
+/* ============ 微信导出：公开下载链接弹窗 ============ */
+.export-link-body {
+  padding: 4px 4px 8px;
+}
+
+.export-link-tip {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #595959;
+  margin: 0 0 12px;
+}
+
+.export-link-url {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1a1a1a;
+  word-break: break-all;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.export-link-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-link-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-link-btn.primary {
+  background: #ff2442;
+  border-color: #ff2442;
+  color: #fff;
+}
+
+.export-link-btn.primary:hover {
+  background: #e61e3a;
+  border-color: #e61e3a;
+}
+
+.export-link-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+/* 深色模式 */
+body[data-theme="dark"] .export-link-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-link-url {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-link-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-link-btn.primary {
+  background: var(--color-primary, #ff2442);
+  border-color: var(--color-primary, #ff2442);
+  color: #fff;
+}
+
+body[data-theme="dark"] .export-link-btn.primary:hover {
+  background: #ff4d6f;
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .export-link-btn:hover {
+  color: #f0f0f0;
+  border-color: #ff4d6f;
+}
+
 /* ============ 移动端：搜索栏换行 + 各控件自适应宽度 ============
    桌面端保持单行布局；≤768px 时：
    - header 改为纵向排列，标题 / 筛选 / tabs 各自一行
@@ -894,16 +1307,72 @@ body[data-theme="dark"] :deep(.ant-empty-description) {
     padding: 12px;
   }
 
-  .work-actions {
-    flex-wrap: wrap;
+  .work-card:not(.draft-card) .work-actions {
+    display: none;
   }
 
-  .work-actions .ant-btn,
-  .work-action-btn {
-    flex: 1 1 auto;
+  .work-card__menu {
+    display: inline-flex;
+  }
+
+  .work-card__content {
+    cursor: pointer;
+  }
+
+  .work-card__content:active {
+    opacity: 0.85;
+  }
+
+  .draft-card .work-actions {
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .work-actions .work-action-btn,
+  .work-actions .work-action-btn.outline {
+    flex: 0 0 auto;
+    width: auto;
     min-width: 0;
     font-size: 12px;
-    padding: 6px 10px;
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    color: #595959;
+  }
+
+  .work-actions .work-action-btn.outline {
+    color: #ff2442;
+  }
+
+  .work-actions .work-action-btn:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: #595959;
+  }
+
+  .work-actions .work-action-btn.outline:hover {
+    background: rgba(255, 36, 66, 0.08);
+    color: #ff2442;
+  }
+
+  body[data-theme="dark"] .work-actions .work-action-btn,
+  body[data-theme="dark"] .work-actions .work-action-btn.outline {
+    background: transparent;
+    color: #a6a6a6;
+  }
+
+  body[data-theme="dark"] .work-actions .work-action-btn.outline {
+    color: #ff4d6f;
+  }
+
+  body[data-theme="dark"] .work-actions .work-action-btn:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #f0f0f0;
+  }
+
+  body[data-theme="dark"] .work-actions .work-action-btn.outline:hover {
+    background: rgba(255, 77, 111, 0.12);
+    color: #ff4d6f;
   }
 }
 </style>

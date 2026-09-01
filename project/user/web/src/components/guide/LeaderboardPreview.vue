@@ -19,6 +19,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const router = useRouter()
 
@@ -61,7 +62,7 @@ onMounted(async () => {
 })
 
 const handleViewFull = () => {
-  const isLoggedIn = !!localStorage.getItem('aichuangzuo_user_id')
+  const isLoggedIn = !!localStorage.getItem(STORAGE_KEYS.USER_ID)
   if (isLoggedIn) {
     router.push('/console/leaderboard')
   } else {

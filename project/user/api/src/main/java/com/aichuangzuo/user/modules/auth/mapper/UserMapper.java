@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Mapper
@@ -45,7 +46,7 @@ public interface UserMapper extends BaseMapper<User> {
      * @param hash 新密码的 BCrypt 哈希
      * @return 受影响行数；通常为 1
      */
-    @Update("UPDATE u_user SET password_hash = #{hash}, updated_at = NOW() WHERE id = #{id} AND is_deleted = 0")
+    @Update("UPDATE u_user SET password_hash = #{hash}, updated_at = NOW(3) WHERE id = #{id} AND is_deleted = 0")
     int updatePassword(@Param("id") Long id, @Param("hash") String hash);
 
     /**
@@ -73,4 +74,24 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Select("SELECT COUNT(*) > 0 FROM u_user WHERE phone = #{phone} AND is_deleted = 0 AND id <> #{excludeUserId}")
     boolean existsByPhone(@Param("phone") String phone, @Param("excludeUserId") Long excludeUserId);
+
+    /**
+     * 原子性增加用户创作币余额。
+     *
+     * @param userId 用户主键
+     * @param amount 增加金额（必须 > 0）
+     * @return 受影响行数；通常为 1
+     */
+    @Update("UPDATE u_user SET coin_balance = coin_balance + #{amount}, updated_at = NOW(3) WHERE id = #{userId} AND is_deleted = 0")
+    int addCoinBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+
+    /**
+     * 原子性扣减用户创作币余额，仅当余额充足时才扣减成功。
+     *
+     * @param userId 用户主键
+     * @param amount 扣减金额（必须 > 0）
+     * @return 受影响行数；余额不足时为 0
+     */
+    @Update("UPDATE u_user SET coin_balance = coin_balance - #{amount}, updated_at = NOW(3) WHERE id = #{userId} AND is_deleted = 0 AND coin_balance >= #{amount}")
+    int subtractCoinBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
 }

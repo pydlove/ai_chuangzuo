@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.membership.mapper.OrderMapper;
 import com.aichuangzuo.user.modules.membership.service.OrderService;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.aichuangzuo.user.modules.membership.vo.OrderPageVO;
+import com.aichuangzuo.user.modules.membership.vo.OrderStatusVO;
 import com.aichuangzuo.user.modules.membership.vo.OrderVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
@@ -51,6 +52,21 @@ public class OrderServiceImpl implements OrderService {
         vo.setTotal(page.getTotal());
         vo.setPage(page.getCurrent());
         vo.setPageSize(page.getSize());
+        return vo;
+    }
+
+    @Override
+    public OrderStatusVO getOrderStatus(Long userId, String orderNo) {
+        Order order = orderMapper.selectOne(new LambdaQueryWrapper<Order>()
+                .eq(Order::getUserId, userId)
+                .eq(Order::getOrderNo, orderNo));
+        if (order == null) {
+            return null;
+        }
+        OrderStatusVO vo = new OrderStatusVO();
+        vo.setOrderNo(order.getOrderNo());
+        vo.setStatus(order.getStatus());
+        vo.setPaidAt(order.getPaidAt());
         return vo;
     }
 

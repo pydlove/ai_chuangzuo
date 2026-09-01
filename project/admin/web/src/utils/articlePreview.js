@@ -50,6 +50,87 @@ function safeParse(s) {
   }
 }
 
+function styleToString(obj) {
+  return Object.entries(obj)
+    .map(([k, v]) => `${k}: ${v}`)
+    .join('; ')
+}
+
+export function buildTitleStyle(s) {
+  const style = {
+    'font-size': s.titleSize,
+    'font-weight': s.titleFontWeight ?? 700,
+    color: s.titleColor,
+    'text-align': s.titleAlign || 'left',
+    'line-height': s.titleLineHeight ?? 1.3,
+    'letter-spacing': s.titleLetterSpacing ?? '0em',
+    'margin-bottom': s.titleMarginBottom ?? '12px'
+  }
+  if (s.titleFontFamily) style['font-family'] = s.titleFontFamily
+  if (s.titleFontStyle) style['font-style'] = s.titleFontStyle
+  if (s.titleTextShadow) style['text-shadow'] = s.titleTextShadow
+  if (s.titleBackground) style.background = s.titleBackground
+  if (s.titlePadding) style.padding = s.titlePadding
+  if (s.titleBorderRadius) style['border-radius'] = s.titleBorderRadius
+  if (s.titleBorder) style.border = s.titleBorder
+  if (s.titleTransform) style['text-transform'] = s.titleTransform
+  if (s.titleDecoration) {
+    style['text-decoration'] = s.titleDecoration
+    if (s.titleDecorationColor) style['text-decoration-color'] = s.titleDecorationColor
+    if (s.titleDecorationStyle) style['text-decoration-style'] = s.titleDecorationStyle
+  }
+  return styleToString(style)
+}
+
+export function buildMetaStyle(s) {
+  if (s.metaBackground) {
+    return styleToString({
+      color: s.metaColor,
+      background: s.metaBackground,
+      padding: s.metaPadding || '6px 12px',
+      'border-radius': s.metaBorderRadius || '999px',
+      'text-align': s.metaAlign || 'left',
+      'margin-bottom': '20px',
+      display: 'inline-block'
+    })
+  }
+  return styleToString({
+    color: s.metaColor,
+    'text-align': s.metaAlign || 'left',
+    'padding-bottom': '12px',
+    'margin-bottom': '20px',
+    'border-bottom': `1px solid ${s.metaBorder}`
+  })
+}
+
+function buildHeadingStyle(s) {
+  const style = {
+    'font-size': s.headingSize,
+    'font-weight': s.headingFontWeight ?? 600,
+    color: s.headingColor,
+    margin: s.headingMargin ?? '18px 0 8px',
+    'text-align': s.headingAlign || 'left'
+  }
+  if (s.headingFontFamily) style['font-family'] = s.headingFontFamily
+  if (s.headingLetterSpacing) style['letter-spacing'] = s.headingLetterSpacing
+  if (s.headingTextTransform) style['text-transform'] = s.headingTextTransform
+  if (s.headingBackground) {
+    style.background = s.headingBackground
+    style.padding = s.headingPadding || '8px 12px'
+    style['border-radius'] = s.headingBorderRadius || '6px'
+  }
+  if (s.headingBorder && s.headingBorder !== 'none') {
+    style['border-left'] = s.headingBorder
+    style['padding-left'] = s.headingPl ? `${s.headingPl}px` : '0'
+  }
+  if (s.headingBorderBottom) {
+    style['border-bottom'] = s.headingBorderBottom
+    style['padding-bottom'] = '6px'
+  }
+  if (s.headingTextShadow) style['text-shadow'] = s.headingTextShadow
+  return styleToString(style)
+}
+
 /**
  * 把占位文章 body 渲染成带 inline style 的 HTML 字符串。
  *
@@ -75,14 +156,7 @@ function renderPart(text, s) {
   if (mdHeading) {
     const level = Math.min(mdHeading[1].length, 3)
     const content = escapeHtml(mdHeading[2])
-    const borderLeft = s.headingBorder && s.headingBorder !== 'none'
-      ? `border-left: ${s.headingBorder}; padding-left: ${s.headingPl || '0'}px;`
-      : ''
-    const borderBottom = s.headingBorderBottom
-      ? `border-bottom: ${s.headingBorderBottom}; padding-bottom: 6px;`
-      : ''
-    const align = s.headingAlign ? `text-align: ${s.headingAlign};` : ''
-    return `<h${level} style="font-size: ${s.headingSize}; font-weight: 600; color: ${s.headingColor}; margin: 18px 0 8px; ${borderLeft} ${borderBottom} ${align}">${content}</h${level}>`
+    return `<h${level} style="${buildHeadingStyle(s)}">${content}</h${level}>`
   }
 
   const calloutMatch = text.match(/^>\s+(.+)$/)
@@ -103,16 +177,18 @@ function renderPart(text, s) {
 function renderCallout(content, s) {
   const variant = s.calloutVariant
   const escaped = escapeHtml(content)
-  const baseStyle = `margin: 12px 0; padding: 12px 14px; font-size: ${s.bodySize};`
+  const radius = s.calloutBorderRadius || '0 6px 6px 0'
+  const shadow = s.calloutShadow || 'none'
+  const baseStyle = `margin: 12px 0; padding: 12px 14px; font-size: ${s.bodySize}; border-radius: ${radius}; box-shadow: ${shadow};`
 
   if (variant === 'pill') {
-    return `<div style="${baseStyle} background: ${s.calloutBg}; border-radius: 999px; color: ${s.calloutColor}; text-align: center;">${escaped}</div>`
+    return `<div style="${baseStyle} background: ${s.calloutBg}; text-align: center; color: ${s.calloutColor};">${escaped}</div>`
   }
   if (variant === 'card') {
-    return `<div style="${baseStyle} background: ${s.calloutBg}; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); color: ${s.calloutColor};">${escaped}</div>`
+    return `<div style="${baseStyle} background: ${s.calloutBg}; color: ${s.calloutColor}; border-left: 3px solid ${s.headingColor || '#07c160'};">${escaped}</div>`
   }
   if (variant === 'cta') {
-    return `<div style="${baseStyle} background: ${s.calloutBg}; border: 2px solid #ff4d4f; color: ${s.calloutColor}; text-align: center; font-weight: 600;">${escaped}</div>`
+    return `<div style="${baseStyle} background: ${s.calloutBg}; border: 2px solid ${s.calloutColor || '#ff4d4f'}; color: ${s.calloutColor}; text-align: center; font-weight: 600;">${escaped}</div>`
   }
   if (variant === 'checklist') {
     return `<div style="${baseStyle} background: ${s.calloutBg}; border-left: 4px solid ${s.headingColor || '#07c160'}; color: ${s.calloutColor};">✓ ${escaped}</div>`

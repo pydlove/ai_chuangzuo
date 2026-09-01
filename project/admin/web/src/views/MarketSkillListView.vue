@@ -34,6 +34,14 @@
               <template #icon><PlusOutlined /></template>
               新建提示词
             </a-button>
+            <a-button
+              danger
+              :disabled="selectedRowKeys?.length === 0"
+              @click="onBatchDelete"
+            >
+              <template #icon><DeleteOutlined /></template>
+              批量删除
+            </a-button>
           </div>
 
           <a-table
@@ -42,6 +50,7 @@
             :loading="loading"
             :pagination="false"
             :scroll="{ x: 1300 }"
+            :row-selection="rowSelection"
             row-key="id"
             size="middle"
           >
@@ -353,8 +362,8 @@
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
-import { PlusOutlined } from '@ant-design/icons-vue'
-import { message } from 'ant-design-vue'
+import { PlusOutlined, DeleteOutlined } from '@ant-design/icons-vue'
+import { message, Modal } from 'ant-design-vue'
 import VChart from 'vue-echarts'
 import { use } from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
@@ -370,6 +379,14 @@ use([CanvasRenderer, LineChart, TitleComponent, TooltipComponent, LegendComponen
 
 const activeTab = ref('list')
 const detailActiveTab = ref('basic')
+const selectedRowKeys = ref([])
+
+const rowSelection = {
+  selectedRowKeys,
+  onChange: (keys) => {
+    selectedRowKeys.value = keys
+  }
+}
 
 const {
   list,
@@ -387,7 +404,8 @@ const {
   handlePageChange,
   handleCreate,
   handleUpdate,
-  handleDelete
+  handleDelete,
+  handleBatchDelete
 } = useMarketStyleManagement()
 
 const {
@@ -720,6 +738,31 @@ const confirmSubmit = async () => {
 
 const confirmDelete = async (record) => {
   await handleDelete(record.id)
+}
+
+const onBatchDelete = () => {
+  const keys = selectedRowKeys.value
+  if (!keys || keys.length === 0) {
+    message.warning('请先选择要删除的条目')
+    return
+  }
+  Modal.confirm({
+    title: `确定批量删除 ${keys.length} 条提示词市场条目？`,
+    content: '删除后可在数据库中恢复，前端列表将不再展示。',
+    okText: '删除',
+    cancelText: '取消',
+    okButtonProps: { danger: true },
+    onOk: async () => {
+      try {
+        const ok = await handleBatchDelete(keys)
+        if (ok) {
+          selectedRowKeys.value = []
+        }
+      } catch (e) {
+        message.error(e.message || '批量删除失败')
+      }
+    }
+  })
 }
 
 const toggleStatus = async (record) => {

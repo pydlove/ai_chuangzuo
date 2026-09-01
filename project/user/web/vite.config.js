@@ -119,6 +119,10 @@ export default defineConfig({
   server: {
     port: 22345,
     proxy: {
+      '/api/v1/admin': {
+        target: 'http://localhost:26060',
+        changeOrigin: true
+      },
       '/api': {
         target: 'http://localhost:25050',
         changeOrigin: true

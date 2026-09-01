@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.generation.pipeline;
 import com.aichuangzuo.admin.modules.generation.entity.PromptTemplateStage;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.entity.PromptTemplate;
+import com.aichuangzuo.shared.vo.AiDetectReport;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -12,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 12 阶段流水线执行上下文：步骤间共享的可变状态。
+ * 14 阶段流水线执行上下文：步骤间共享的可变状态。
  *
  * <p>每个 step 读自己关心的字段 + 写自己产出的字段，pipeline 负责把它按 stageIndex 串起来。
  */
@@ -47,7 +48,7 @@ public class GenerationContext {
     /**
      * 任务允许调 AI 的总次数（默认 50）。
      *
-     * <p>覆盖 13 阶段流水线最坏情况：9 个 AI 阶段 × 4 次最坏尝试（1 首次 + 3 重试）= 36，
+     * <p>覆盖 14 阶段流水线最坏情况：10 个 AI 阶段 × 4 次最坏尝试（1 首次 + 3 重试）= 40，
      * 留余量到 50。如果未来加阶段或调高重试上限需要重评此值。
      *
      * <p>为什么保留 budget 而不是只用 retry 上限：budget 是「防失控」兜底，
@@ -116,6 +117,9 @@ public class GenerationContext {
 
     /** Stage 13：推荐标签（AI 生成，4-6 个）。 */
     private List<String> publishTags = new ArrayList<>();
+
+    /** Stage 14：AI 检测报告（大模型自评）。 */
+    private AiDetectReport aiDetectReport;
 
     // ===== 收尾（PersistArticleStep 写入）=====
     /** 最终落库的 article 业务号。 */

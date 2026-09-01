@@ -2,40 +2,25 @@
 import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
-import { getRefFromUrl } from '@/composables/useInviteCode'
+import { STORAGE_KEYS, USER_SCOPED_STORAGE_KEYS } from '@/constants/storage.js'
+import { getRefFromUrl, getExperienceTokenFromUrl } from '@/composables/useInviteCode'
 import { sendEmailCode, sendSmsCode, register as registerApi, login as loginApi } from '@/api/auth'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_REGEX = /^1[3-9]\d{9}$/
 
 // 用户作用域的本地缓存：换账号时一并清空
-const USER_ID_KEY = 'aichuangzuo_user_id'
-const USER_SCOPED_KEYS = [
-  'aichuangzuo_user_id',
-  'aichuangzuo_membership',
-  'aichuangzuo_newcomer_modal_dismissed',
-  'aichuangzuo_newcomer_banner_dismissed',
-  'aichuangzuo_invite_modal_dismissed',
-  'aichuangzuo_current_article',
-  'aichuangzuo_drafts',
-  'aichuangzuo_create_form',
-  'aichuangzuo_create_mode',
-  'aichuangzuo_create_last_skill',
-  'aichuangzuo_selfmedia_plan_modal_dismissed',
-  'aichuangzuo_redeem_codes',
-  'aichuangzuo_redeem_history',
-  'aichuangzuo_withdraw_agreement_accepted'
-]
+const USER_ID_KEY = STORAGE_KEYS.USER_ID
 
 export function persistTokens(data) {
   const prevUserId = localStorage.getItem(USER_ID_KEY)
   const newUserId = data.user?.id != null ? String(data.user.id) : null
   if (newUserId && prevUserId && prevUserId !== newUserId) {
-    USER_SCOPED_KEYS.forEach((key) => localStorage.removeItem(key))
+    USER_SCOPED_STORAGE_KEYS.forEach((key) => localStorage.removeItem(key))
   }
-  localStorage.setItem('aichuangzuo_access_token', data.accessToken)
-  localStorage.setItem('aichuangzuo_refresh_token', data.refreshToken)
-  localStorage.setItem('aichuangzuo_remember_me', data.rememberMe ? 'true' : 'false')
+  localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken)
+  localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken)
+  localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, data.rememberMe ? 'true' : 'false')
   if (newUserId) {
     localStorage.setItem(USER_ID_KEY, newUserId)
   }
@@ -46,6 +31,7 @@ export function useLogin() {
 
   const activeTab = ref('login')
   const showInviteBanner = ref(false)
+  const showExperienceBanner = ref(false)
   const agreed = ref(false)
   const agreementShakeCount = ref(0)
 
@@ -59,7 +45,8 @@ export function useLogin() {
     code: '',
     password: '',
     confirmPassword: '',
-    inviteCode: ''
+    inviteCode: '',
+    experienceToken: ''
   })
 
   const detectMode = (value) => {
@@ -82,11 +69,27 @@ export function useLogin() {
   const loginModalPassed = ref(false)
   let loginModalSending = false
 
-  const rememberMe = ref(localStorage.getItem('aichuangzuo_remember_me') === 'true')
+  let isMounted = true
+
+  const rememberMe = ref(localStorage.getItem(STORAGE_KEYS.REMEMBER_ME) === 'true')
 
   watch(rememberMe, (val) => {
-    localStorage.setItem('aichuangzuo_remember_me', val ? 'true' : 'false')
+    localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, val ? 'true' : 'false')
   })
+
+  const normalizeLoginForm = () => {
+    loginForm.identifier = loginForm.identifier.trim()
+    loginForm.password = loginForm.password.trim()
+  }
+
+  const normalizeRegisterForm = () => {
+    registerForm.identifier = registerForm.identifier.trim()
+    registerForm.code = registerForm.code.trim()
+    registerForm.password = registerForm.password.trim()
+    registerForm.confirmPassword = registerForm.confirmPassword.trim()
+    registerForm.inviteCode = registerForm.inviteCode.trim()
+    registerForm.experienceToken = registerForm.experienceToken.trim()
+  }
 
   // 注册弹框内滑块通过 → 发送验证码
   watch(sliderModalPassed, async (val) => {
@@ -100,11 +103,14 @@ export function useLogin() {
       } else {
         await sendSmsCode({ phone: registerForm.identifier })
       }
+      if (!isMounted) return
       startCodeCountdown()
       message.success('验证码已发送')
     } catch (err) {
+      if (!isMounted) return
       message.error(err?.message || '发送失败')
     } finally {
+      if (!isMounted) return
       sliderModalVisible.value = false
       modalSending = false
     }
@@ -124,21 +130,25 @@ export function useLogin() {
         payload.phone = loginForm.identifier
       }
       const res = await loginApi(payload)
+      if (!isMounted) return
       persistTokens(res.data)
       message.success('登录成功')
       loginSliderModalVisible.value = false
       const redirect = router.currentRoute.value.query.redirect
       router.push(typeof redirect === 'string' && redirect ? decodeURIComponent(redirect) : '/console/workbench')
     } catch (err) {
+      if (!isMounted) return
       message.error(err?.message || '登录失败')
       loginSliderModalVisible.value = false
     } finally {
+      if (!isMounted) return
       loginModalSending = false
     }
   })
 
   const openSliderModal = () => {
     if (codeCountdown.value > 0) return
+    normalizeRegisterForm()
     const mode = registerMode.value
     if (mode === 'unknown') {
       message.warning('请输入有效的手机号或邮箱')
@@ -160,6 +170,7 @@ export function useLogin() {
   }
 
   const openLoginSliderModal = () => {
+    normalizeLoginForm()
     const mode = loginMode.value
     if (mode === 'unknown') {
       message.warning('请输入有效的手机号或邮箱')
@@ -200,6 +211,7 @@ export function useLogin() {
   }
 
   const handleLogin = () => {
+    normalizeLoginForm()
     if (!agreed.value) {
       agreementShakeCount.value++
       message.warning('请先阅读并同意《用户协议》和《隐私政策》')
@@ -209,6 +221,7 @@ export function useLogin() {
   }
 
   const handleRegister = async () => {
+    normalizeRegisterForm()
     if (!agreed.value) {
       agreementShakeCount.value++
       message.warning('请先阅读并同意《用户协议》和《隐私政策》')
@@ -258,7 +271,8 @@ export function useLogin() {
     const payload = {
       password: registerForm.password,
       confirmPassword: registerForm.confirmPassword,
-      inviteCode: registerForm.inviteCode.trim().toUpperCase() || undefined,
+      inviteCode: registerForm.inviteCode.toUpperCase() || undefined,
+      experienceToken: registerForm.experienceToken || undefined,
       rememberMe: rememberMe.value
     }
     if (mode === 'email') {
@@ -281,6 +295,14 @@ export function useLogin() {
   }
 
   onMounted(() => {
+    isMounted = true
+    const experienceToken = getExperienceTokenFromUrl()
+    if (experienceToken) {
+      registerForm.experienceToken = experienceToken
+      showExperienceBanner.value = true
+      activeTab.value = 'register'
+      return
+    }
     const ref = getRefFromUrl()
     if (ref) {
       registerForm.inviteCode = ref
@@ -290,6 +312,7 @@ export function useLogin() {
   })
 
   onBeforeUnmount(() => {
+    isMounted = false
     if (countdownTimer) {
       clearInterval(countdownTimer)
       countdownTimer = null
@@ -299,6 +322,7 @@ export function useLogin() {
   return {
     activeTab,
     showInviteBanner,
+    showExperienceBanner,
     agreed,
     agreementShakeCount,
     loginMode,

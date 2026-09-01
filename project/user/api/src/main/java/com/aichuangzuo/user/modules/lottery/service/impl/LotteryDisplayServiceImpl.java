@@ -1,8 +1,11 @@
 package com.aichuangzuo.user.modules.lottery.service.impl;
 
+import com.aichuangzuo.shared.enums.DeletedFlagEnum;
+import com.aichuangzuo.user.modules.lottery.entity.LotteryCampaign;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryDisplayWinner;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryPrizeTier;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryRedemptionCode;
+import com.aichuangzuo.user.modules.lottery.mapper.LotteryCampaignMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryDisplayWinnerMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryPrizeTierMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryRedemptionCodeMapper;
@@ -23,6 +26,7 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -33,11 +37,40 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class LotteryDisplayServiceImpl implements LotteryDisplayService {
 
+    private final LotteryCampaignMapper campaignMapper;
     private final LotteryDisplayWinnerMapper displayWinnerMapper;
     private final LotteryRedemptionCodeMapper redemptionCodeMapper;
     private final LotteryPrizeTierMapper prizeTierMapper;
     private final PlanLookupService planLookupService;
     private final ObjectMapper objectMapper;
+
+    @Override
+    public LotteryCampaign getCurrentCampaign() {
+        return campaignMapper.selectOne(
+                new LambdaQueryWrapper<LotteryCampaign>()
+                        .eq(LotteryCampaign::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
+                        .eq(LotteryCampaign::getStatus, 1)
+                        .le(LotteryCampaign::getStartTime, LocalDateTime.now())
+                        .ge(LotteryCampaign::getEndTime, LocalDateTime.now())
+                        .orderByDesc(LotteryCampaign::getStartTime)
+                        .last("LIMIT 1"));
+    }
+
+    @Override
+    public LotteryCampaign getCampaignById(Long campaignId) {
+        return campaignMapper.selectById(campaignId);
+    }
+
+    @Override
+    public List<LotteryPrizeTier> listActiveTiersByCampaignId(Long campaignId) {
+        return prizeTierMapper.selectList(
+                new LambdaQueryWrapper<LotteryPrizeTier>()
+                        .eq(LotteryPrizeTier::getCampaignId, campaignId)
+                        .eq(LotteryPrizeTier::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
+                        .eq(LotteryPrizeTier::getStatus, 1)
+                        .orderByAsc(LotteryPrizeTier::getSortOrder)
+                        .orderByAsc(LotteryPrizeTier::getPrizeLevel));
+    }
 
     @Override
     public List<LotteryDisplayWinnerVO> listDisplayWinners(Long campaignId, int limit) {

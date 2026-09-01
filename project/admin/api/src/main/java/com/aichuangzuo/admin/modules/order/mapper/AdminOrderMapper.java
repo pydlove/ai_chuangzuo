@@ -8,6 +8,7 @@ import com.aichuangzuo.admin.modules.order.vo.RenewalUserVO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -39,7 +40,9 @@ public interface AdminOrderMapper {
     int refund(@Param("id") Long id,
                @Param("reason") String reason,
                @Param("operatorId") Long operatorId,
-               @Param("now") LocalDateTime now);
+               @Param("now") LocalDateTime now,
+               @Param("thirdPartyRefundId") String thirdPartyRefundId,
+               @Param("refundAmount") BigDecimal refundAmount);
 
     int cancel(@Param("id") Long id,
                @Param("operatorId") Long operatorId);

@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import {
   getMySkills,
   createSkill,
@@ -18,11 +19,9 @@ export const currentSkill = ref(null)
 
 // 记住最近一次选择的 skill key：模块级 watch，不依赖组件挂载顺序，
 // 避免 main.js 提前 auto-pick 时覆盖掉用户上次保存的选择。
-const LAST_SKILL_KEY = 'aichuangzuo_create_last_skill'
-
 function saveLastSkill(s) {
   try {
-    if (s) localStorage.setItem(LAST_SKILL_KEY, JSON.stringify(s))
+    if (s) localStorage.setItem(STORAGE_KEYS.CREATE_LAST_SKILL, JSON.stringify(s))
   } catch {
     // 隐私模式忽略
   }
@@ -65,7 +64,6 @@ export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999) {
     }
     return { list: mapped, total }
   } catch (e) {
-    console.warn('[loadSystemSkills]', errMsg(e))
     return { list: [], total: 0 }
   }
 }
@@ -80,7 +78,7 @@ export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999) {
 export function restoreLastSkill(marketSkillsList = []) {
   let saved = null
   try {
-    const raw = localStorage.getItem(LAST_SKILL_KEY)
+    const raw = localStorage.getItem(STORAGE_KEYS.CREATE_LAST_SKILL)
     if (raw) saved = JSON.parse(raw)
   } catch {
     // ignore

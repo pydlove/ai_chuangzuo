@@ -5,10 +5,10 @@
       <router-link to="/" class="ml-header__brand">
         <img
           src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
+          alt="爱创作工坊"
           class="ml-header__logo"
         />
-        <span class="ml-header__name">爱创作</span>
+        <span class="ml-header__name">爱创作工坊</span>
       </router-link>
       <div class="ml-header__actions">
         <button v-if="showBack" class="ml-header__back" aria-label="返回" @click="goBack">
@@ -24,7 +24,7 @@
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <router-link to="/console/workbench" class="ml-header__cta">开始创作</router-link>
+        <router-link :to="landingTopCta.to" class="ml-header__cta">{{ landingTopCta.label }}</router-link>
       </div>
     </header>
 
@@ -36,14 +36,23 @@
         <button class="ml-menu__close" aria-label="关闭" @click="menuOpen = false">×</button>
       </div>
       <nav class="ml-menu__nav">
-        <router-link
-          v-for="link in navLinks"
-          :key="link.to"
-          :to="link.to"
-          class="ml-menu__link"
-          :class="{ active: route.path === link.to }"
-          @click="menuOpen = false"
-        >{{ link.label }}</router-link>
+        <template v-for="link in landingNavLinks" :key="link.to || link.href">
+          <a
+            v-if="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            class="ml-menu__link"
+            @click="menuOpen = false"
+          >{{ link.label }}</a>
+          <router-link
+            v-else
+            :to="link.to"
+            class="ml-menu__link"
+            :class="{ active: route.path === link.to }"
+            @click="menuOpen = false"
+          >{{ link.label }}</router-link>
+        </template>
       </nav>
     </div>
 
@@ -81,7 +90,7 @@
       <section class="ml-section">
         <div class="ml-intro">
           <div class="ml-intro__icon">💡</div>
-          <p class="ml-intro__text">创作学院是爱创作为自媒体创作者打造的实战学习平台，帮助你从 0 到 1 建立系统化的内容创作能力。</p>
+          <p class="ml-intro__text">创作学院是爱创作工坊为自媒体创作者打造的实战学习平台，帮助你从 0 到 1 建立系统化的内容创作能力。</p>
         </div>
       </section>
 
@@ -246,10 +255,7 @@
       </main>
     </template>
 
-    <footer class="ml-footer">
-      <div>© 2026 爱创作 · 杭州爱启云网络科技有限公司</div>
-      <div>浙ICP备2025200943号-2</div>
-    </footer>
+    <AppFooter variant="mobile" />
   </div>
 </template>
 
@@ -260,7 +266,10 @@ import { LockOutlined } from '@ant-design/icons-vue'
 import { useLearn } from '@/composables/useLearn.js'
 import LearnMarkdown from '@/components/learn/LearnMarkdown.vue'
 import LearnRichText from '@/components/learn/LearnRichText.vue'
+import { formatDate } from '@/utils/format.js'
 import MobileLearnNode from './MobileLearnNode.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 
 const route = useRoute()
 const router = useRouter()
@@ -268,14 +277,6 @@ const menuOpen = ref(false)
 const expandedIds = ref(new Set())
 const activeBannerIndex = ref(0)
 let bannerTimer = null
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
 
 const {
   categoryTree,
@@ -314,12 +315,6 @@ function toggleNode(id) {
     next.add(id)
   }
   expandedIds.value = next
-}
-
-function formatDate(date) {
-  if (!date) return ''
-  const d = new Date(date)
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 function plainExcerpt(article) {
@@ -972,17 +967,6 @@ body[data-theme="dark"] .ml-locked__sub { color: rgba(255, 255, 255, 0.55); }
   overflow: hidden;
 }
 
-/* Footer */
-.ml-footer {
-  padding: 24px 20px 32px;
-  text-align: center;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.8;
-}
-
 /* 暗色主题 */
 body[data-theme="dark"] .mobile-learn {
   background: #141414;
@@ -1042,8 +1026,7 @@ body[data-theme="dark"] .ml-banner,
 body[data-theme="dark"] .ml-section,
 body[data-theme="dark"] .ml-article-card,
 body[data-theme="dark"] .ml-article,
-body[data-theme="dark"] .ml-article-nav__card,
-body[data-theme="dark"] .ml-footer {
+body[data-theme="dark"] .ml-article-nav__card {
   background: #1f1f1f;
 }
 body[data-theme="dark"] .ml-intro {
@@ -1058,9 +1041,6 @@ body[data-theme="dark"] .ml-category-card__name {
 }
 body[data-theme="dark"] .ml-cta {
   background: linear-gradient(135deg, #1f1f1f 0%, #2a2226 100%);
-}
-body[data-theme="dark"] .ml-footer {
-  border-top-color: #2a2a2a;
 }
 body[data-theme="dark"] .ml-article__content {
   color: #d9d9d9;

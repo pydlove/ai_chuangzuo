@@ -32,7 +32,6 @@ export async function loadPlatforms() {
       difficulty: p.difficulty || ''
     }))
   } catch (e) {
-    console.warn('加载平台配置失败', e)
     platforms.value = []
   }
 }

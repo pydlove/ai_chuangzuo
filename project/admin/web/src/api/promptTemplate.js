@@ -20,7 +20,7 @@ export function deleteTemplate(id) {
   return request.delete(`/prompt-templates/${id}`)
 }
 
-/** 老模板初始化 12 阶段默认值（返回插入的 stage 数量）。 */
+/** 老模板初始化 14 阶段默认值（返回插入的 stage 数量）。 */
 export function initTemplateStages(id) {
   return request.post(`/prompt-templates/${id}/init-stages`).then((res) => res.data)
 }
@@ -28,7 +28,7 @@ export function initTemplateStages(id) {
 // ===== 阶段 2：发布 / 下线 / 克隆 / 版本 =====
 
 /**
- * 发布模板：把当前 12 阶段配置快照为新版本号，置 status=PUBLISHED。
+ * 发布模板：把当前 14 阶段配置快照为新版本号，置 status=PUBLISHED。
  * @returns {Promise<{data: number}>} data = 新版本号
  */
 export function publishTemplate(id, changeNote) {

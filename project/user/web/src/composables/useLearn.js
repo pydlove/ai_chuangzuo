@@ -1,11 +1,10 @@
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import { fetchCategoryTree, fetchCategoryDetail, fetchArticle, fetchBanners, fetchRecommendedArticles, fetchAllArticles } from '@/api/learn'
 
-const ACCESS_TOKEN_KEY = 'aichuangzuo_access_token'
-
 function isLoggedIn() {
-  return !!localStorage.getItem(ACCESS_TOKEN_KEY)
+  return !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
 }
 
 /**

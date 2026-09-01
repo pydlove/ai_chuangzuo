@@ -56,7 +56,7 @@ export function useExportTemplates() {
       }))
       loaded.value = true
     } catch (e) {
-      console.warn('加载导出模板失败', e)
+      // 加载失败时由 loading 状态体现，不额外报错
     } finally {
       loading.value = false
     }

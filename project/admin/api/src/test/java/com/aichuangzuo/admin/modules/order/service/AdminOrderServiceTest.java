@@ -33,6 +33,12 @@ class AdminOrderServiceTest {
     @Mock
     private AdminMembershipMapper membershipMapper;
 
+    @Mock
+    private com.aichuangzuo.admin.modules.settings.paymentconfig.service.PaymentConfigService paymentConfigService;
+
+    @Mock
+    private com.aichuangzuo.admin.modules.order.payment.xunhupay.client.XunhupayRefundClient xunhupayRefundClient;
+
     @InjectMocks
     private AdminOrderServiceImpl orderService;
 
@@ -120,7 +126,7 @@ class AdminOrderServiceTest {
         membership.setExpiresAt(LocalDate.now().plusDays(25));
 
         when(orderMapper.selectDetailById(1L)).thenReturn(paidOrder);
-        when(orderMapper.refund(eq(1L), eq("不想要了"), eq(1L), any())).thenReturn(1);
+        when(orderMapper.refund(eq(1L), eq("不想要了"), eq(1L), any(), any(), any())).thenReturn(1);
         when(membershipMapper.selectByUserId(5L)).thenReturn(membership);
         when(membershipMapper.updateMembership(any())).thenReturn(1);
         when(membershipMapper.updateUserMembershipFields(eq(5L), any(), any())).thenReturn(1);

@@ -51,4 +51,19 @@ public interface ArticleService {
      * 查询用户本月已生成作品数。
      */
     Long monthlyCount(Long userId);
+
+    /**
+     * 生成单篇作品的临时导出 token（用于免登录下载）。
+     */
+    String generateExportToken(Long userId, String bizNo);
+
+    /**
+     * 解析并校验临时导出 token，返回作品编号。
+     */
+    String parseExportToken(String token);
+
+    /**
+     * 根据作品编号导出为 Word 文件字节数组。
+     */
+    byte[] exportAsWord(String bizNo);
 }

@@ -1,7 +1,7 @@
 package com.aichuangzuo.user.modules.selfmedia.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.service.NicknameCheckAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.vo.NicknameCheckVO;

@@ -4,8 +4,8 @@ export function submitGeneration(data) {
   return request.post('/generation-tasks', data).then((res) => res.data)
 }
 
-export function getGenerationTask(id) {
-  return request.get(`/generation-tasks/${id}`).then((res) => res.data)
+export function getGenerationTask(id, signal) {
+  return request.get(`/generation-tasks/${id}`, signal ? { signal } : undefined).then((res) => res.data)
 }
 
 export function retryGenerationTask(id) {

@@ -29,6 +29,7 @@ export function useQrLogin({ onAuthorized }) {
 
   let pollTimer = null
   let expireTimer = null
+  let isMounted = true
 
   const isPending = computed(() => status.value === STATUS.PENDING)
   const isScanned = computed(() => status.value === STATUS.SCANNED)
@@ -78,9 +79,10 @@ export function useQrLogin({ onAuthorized }) {
   const startPolling = () => {
     stopPolling()
     pollTimer = setInterval(async () => {
-      if (!qrCode.value) return
+      if (!qrCode.value || !isMounted) return
       try {
         const res = await getQrLoginStatus(qrCode.value)
+        if (!isMounted) return
         if (res.code !== 0) return
         const data = res.data
         status.value = data.status
@@ -88,6 +90,7 @@ export function useQrLogin({ onAuthorized }) {
         expiresIn.value = data.expiresIn || 0
         if (data.status === STATUS.AUTHORIZED || data.status === STATUS.CANCELLED || data.status === STATUS.EXPIRED) {
           stopPolling()
+          stopExpireCountdown()
         }
       } catch (e) {
         // ignore polling errors
@@ -96,13 +99,18 @@ export function useQrLogin({ onAuthorized }) {
   }
 
   const startExpireCountdown = () => {
-    if (expireTimer) clearInterval(expireTimer)
+    stopExpireCountdown()
     expireTimer = setInterval(() => {
+      if (!isMounted) {
+        stopExpireCountdown()
+        return
+      }
       if (expiresIn.value > 0) {
         expiresIn.value--
       } else if (!isAuthorized.value && !isCancelled.value) {
         status.value = STATUS.EXPIRED
         stopPolling()
+        stopExpireCountdown()
       }
     }, 1000)
   }
@@ -169,6 +177,7 @@ export function useQrLogin({ onAuthorized }) {
   }
 
   onBeforeUnmount(() => {
+    isMounted = false
     stopPolling()
     stopExpireCountdown()
   })

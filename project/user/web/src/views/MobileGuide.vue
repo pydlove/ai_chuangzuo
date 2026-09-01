@@ -5,20 +5,16 @@
       <router-link to="/" class="mg-header__brand">
         <img
           src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
+          :alt="guideBrand"
           class="mg-header__logo"
         />
-        <span class="mg-header__name">爱创作</span>
+        <span class="mg-header__name">{{ guideBrand }}</span>
       </router-link>
       <div class="mg-header__actions">
         <button class="mg-header__menu" aria-label="菜单" @click="menuOpen = true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
+          <Icon name="menu" :size="20" />
         </button>
-        <router-link to="/console/workbench" class="mg-header__cta">开始创作</router-link>
+        <router-link :to="landingTopCta.to" class="mg-header__cta">{{ landingTopCta.label }}</router-link>
       </div>
     </header>
 
@@ -30,36 +26,41 @@
         <button class="mg-menu__close" aria-label="关闭" @click="menuOpen = false">×</button>
       </div>
       <nav class="mg-menu__nav">
-        <router-link
-          v-for="link in navLinks"
-          :key="link.to"
-          :to="link.to"
-          class="mg-menu__link"
-          :class="{ active: route.path === link.to }"
-          @click="menuOpen = false"
-        >{{ link.label }}</router-link>
+        <template v-for="link in landingNavLinks" :key="link.to || link.href">
+          <a
+            v-if="link.href"
+            :href="link.href"
+            target="_blank"
+            rel="noopener"
+            class="mg-menu__link"
+            @click="menuOpen = false"
+          >{{ link.label }}</a>
+          <router-link
+            v-else
+            :to="link.to"
+            class="mg-menu__link"
+            :class="{ active: route.path === link.to }"
+            @click="menuOpen = false"
+          >{{ link.label }}</router-link>
+        </template>
       </nav>
     </div>
 
     <!-- Hero -->
     <section class="mg-hero">
-      <div class="mg-hero__badge">玩法指南</div>
-      <h1 class="mg-hero__title">3 分钟了解爱创作</h1>
-      <p class="mg-hero__desc">能做什么，以及如何把它变成收益</p>
+      <div class="mg-hero__badge">{{ guideHero.mobile.badge }}</div>
+      <h1 class="mg-hero__title">{{ guideHero.mobile.title }}</h1>
+      <p class="mg-hero__desc">{{ guideHero.mobile.desc }}</p>
     </section>
 
     <!-- Tab 栏 -->
     <div class="mg-tabs-wrap">
-      <div class="mg-tabs">
-        <button
-          v-for="(section, index) in guideSections"
-          :key="section.id"
-          :class="['mg-tab', { active: activeTab === index }]"
-          @click="activeTab = index"
-        >
-          {{ section.title }}
-        </button>
-      </div>
+      <Tabs
+        v-model="activeTab"
+        :tabs="guideTabs"
+        variant="pill"
+        active-type="primary"
+      />
     </div>
 
     <!-- 内容区 -->
@@ -96,37 +97,34 @@
 
     <!-- CTA -->
     <section class="mg-cta">
-      <h2 class="mg-cta__title">准备好开始了吗？</h2>
-      <p class="mg-cta__desc">每天 3 分钟，把内容变成账号流量和收入。</p>
-      <router-link to="/console/workbench" class="mg-btn">立即开始创作</router-link>
+      <h2 class="mg-cta__title">{{ guideCta.title }}</h2>
+      <p class="mg-cta__desc">{{ guideCta.desc }}</p>
+      <router-link :to="guideCta.btn.to" class="mg-btn">{{ guideCta.btn.text }}</router-link>
     </section>
 
-    <footer class="mg-footer">
-      <div>© 2026 爱创作 · 杭州爱启云网络科技有限公司</div>
-      <div>浙ICP备2025200943号-2</div>
-    </footer>
+    <AppFooter variant="mobile" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { guideSections } from '@/data/guide-content.js'
+import { guideSections, guideHero, guideCta, guideBrand } from '@/data/guide-content.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import TimeCalculator from '@/components/guide/TimeCalculator.vue'
 import LeaderboardPreview from '@/components/guide/LeaderboardPreview.vue'
+import Tabs from '@/components/common/Tabs.vue'
+import Icon from '@/components/common/Icon.vue'
 
 const route = useRoute()
 const menuOpen = ref(false)
 const activeTab = ref(0)
 const expandedIds = ref(new Set())
 
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
+const guideTabs = computed(() =>
+  guideSections.map((section, index) => ({ label: section.title, value: index }))
+)
 
 const componentMap = {
   TimeCalculator,
@@ -315,32 +313,7 @@ function toggleArticle(id) {
   z-index: 40;
   background: #fff;
   border-bottom: 1px solid #f0f0f0;
-}
-.mg-tabs {
-  display: flex;
-  gap: 8px;
   padding: 12px 16px;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-}
-.mg-tabs::-webkit-scrollbar {
-  display: none;
-}
-.mg-tab {
-  flex-shrink: 0;
-  padding: 8px 16px;
-  background: #f5f5f5;
-  border: none;
-  border-radius: 18px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #595959;
-  white-space: nowrap;
-}
-.mg-tab.active {
-  background: #FF2442;
-  color: #fff;
 }
 
 /* 内容区 */
@@ -459,17 +432,6 @@ function toggleArticle(id) {
   box-shadow: 0 8px 24px rgba(255, 36, 66, 0.3);
 }
 
-/* Footer */
-.mg-footer {
-  padding: 24px 20px 32px;
-  text-align: center;
-  background: #fff;
-  border-top: 1px solid #f0f0f0;
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.8;
-}
-
 /* 暗色主题 */
 body[data-theme="dark"] .mobile-guide {
   background: #141414;
@@ -518,14 +480,6 @@ body[data-theme="dark"] .mg-tabs-wrap {
   background: #141414;
   border-bottom-color: #2a2a2a;
 }
-body[data-theme="dark"] .mg-tab {
-  background: #2a2a2a;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .mg-tab.active {
-  background: #ff4d6f;
-  color: #fff;
-}
 body[data-theme="dark"] .mg-body {
   background: #141414;
 }
@@ -539,10 +493,5 @@ body[data-theme="dark"] .mg-accordion__content :deep(strong) {
 }
 body[data-theme="dark"] .mg-cta {
   background: linear-gradient(135deg, #1f1f1f 0%, #2a2226 100%);
-}
-body[data-theme="dark"] .mg-footer {
-  background: #1f1f1f;
-  border-top-color: #2a2a2a;
-  color: #a6a6a6;
 }
 </style>

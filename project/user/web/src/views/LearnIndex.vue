@@ -1,7 +1,7 @@
 <template>
   <MobileLearn v-if="isMobileView" />
   <div v-else class="learn-page">
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <header class="learn-hero">
       <div class="learn-hero-deco learn-hero-deco-lg"></div>
@@ -54,7 +54,7 @@
               <BulbOutlined />
             </div>
             <p class="learn-intro-text">
-              创作学院是爱创作为自媒体创作者打造的实战学习平台，涵盖内容定位、平台运营、爆款方法论等核心主题，帮助你从 0 到 1 建立系统化的内容创作能力。
+              创作学院是爱创作工坊为自媒体创作者打造的实战学习平台，涵盖内容定位、平台运营、爆款方法论等核心主题，帮助你从 0 到 1 建立系统化的内容创作能力。
             </p>
           </div>
 
@@ -124,10 +124,7 @@
       @click="mobileSheetOpen = true"
     >分类</button>
 
-    <footer class="learn-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 
@@ -136,12 +133,14 @@ import { ref, onMounted } from 'vue'
 import { CATEGORY_ICONS } from '@/components/learn/learnCategoryIcons'
 import { ReadOutlined, BulbOutlined, LeftOutlined, RightOutlined } from '@ant-design/icons-vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import LearnSidebar from '@/components/learn/LearnSidebar.vue'
 import LearnContent from '@/components/learn/LearnContent.vue'
 import MobileTreeSheet from '@/components/learn/MobileTreeSheet.vue'
 import MobileLearn from '@/views/MobileLearn.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { useLearn } from '@/composables/useLearn.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 
 const { isMobile: isMobileView } = useDevice()
 
@@ -171,16 +170,6 @@ const isMobile = ref(window.innerWidth < 992)
 function getCategoryIcon(name) {
   return CATEGORY_ICONS[name] || null
 }
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
 
 const onSelectCategoryFromSheet = id => {
   mobileSheetOpen.value = false
@@ -245,19 +234,6 @@ onMounted(() => {
 .learn-sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 88px; align-self: flex-start; max-height: calc(100vh - 88px); overflow-y: auto; background: #fff; border-radius: 8px; padding: 12px 0; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
 .learn-main { flex: 1; min-width: 0; background: #fff; border-radius: 8px; padding: 28px 32px; }
 .learn-empty { padding: 32px 16px; text-align: center; color: #999; }
-.learn-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-  color: #595959;
-  font-size: 13px;
-  text-align: center;
-  background: #fff;
-}
-.learn-footer span + span::before {
-  content: '|';
-  margin: 0 12px;
-  color: #eee;
-}
 .learn-tree-fab {
   position: fixed; bottom: 24px; right: 24px;
   background: #FF2442; color: #fff; border: 0; border-radius: 24px;
@@ -269,16 +245,6 @@ onMounted(() => {
   .learn-sidebar { display: none; }
   .learn-tree-fab { display: inline-flex; }
   .learn-main { padding: 20px 16px; }
-}
-
-/* 暗色主题（footer 与 Home 对齐） */
-body[data-theme="dark"] .learn-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #a6a6a6;
-}
-body[data-theme="dark"] .learn-footer span + span::before {
-  color: #303030;
 }
 
 /* 暗色主题 — 页面容器 */

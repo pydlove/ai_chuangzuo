@@ -82,7 +82,7 @@ const topicInspirationBadge = computed(() => {
 })
 
 // 拆成单字，每个字独立律动形成"波浪"
-const loadingText = '灵犀同学正在帮你想新灵感'
+const loadingText = '小爱正在帮你想新灵感'
 const loadingChars = loadingText.split('')
 
 const loadTopics = async () => {

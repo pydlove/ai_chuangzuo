@@ -6,7 +6,8 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.baomidou.mybatisplus.annotation.TableName;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -14,7 +15,8 @@ import java.time.LocalDateTime;
 /**
  * 用户端 - 风格市场实体，映射 {@code u_skill_market}。
  */
-@Data
+@Getter
+@Setter
 @TableName("u_skill_market")
 public class SkillMarket {
 

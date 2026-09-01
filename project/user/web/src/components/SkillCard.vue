@@ -47,28 +47,14 @@
 
     <div class="skill-card__footer">
       <slot name="footer">
-        <div v-if="visibleActions.length" class="skill-card__actions">
-          <button
-            v-for="(action, idx) in visibleActions"
-            :key="idx"
-            :class="[
-              'skill-card__action-btn',
-              { 'skill-card__action-btn--primary': action.type === 'primary',
-                'skill-card__action-btn--danger': action.type === 'danger',
-                'skill-card__action-btn--success': action.type === 'success',
-                'skill-card__action-btn--active': action.active }
-            ]"
-            :disabled="action.disabled"
-            :title="action.title"
-            @click.stop="action.handler && action.handler($event)"
-          >
-            {{ action.label }}
-            <span v-if="action.badge" :class="['skill-card__action-badge', action.badge.class]">{{ action.badge.text }}</span>
-          </button>
-        </div>
+        <ActionGroup
+          v-if="visibleActions.length"
+          :actions="visibleActions"
+          class="skill-card__actions"
+        />
         <button
           v-else-if="showViewBtn"
-          class="skill-card__action-btn"
+          class="skill-card__view-btn"
           @click.stop="$emit('view')"
         >
           查看完整提示词
@@ -80,6 +66,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import ActionGroup from '@/components/common/ActionGroup.vue'
 
 const props = defineProps({
   name: { type: String, required: true },
@@ -415,12 +402,9 @@ const visibleActions = computed(() => props.actions.filter(a => a.visible !== fa
 }
 
 .skill-card__actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
   margin-top: 4px;
 }
+
 .skill-card__action-badge {
   position: absolute;
   top: -8px;
@@ -444,7 +428,7 @@ const visibleActions = computed(() => props.actions.filter(a => a.visible !== fa
   background: linear-gradient(135deg, #ffd591, #ff7a45);
 }
 
-.skill-card__action-btn {
+.skill-card__view-btn {
   position: relative;
   padding: 6px 12px;
   background: transparent;
@@ -456,62 +440,9 @@ const visibleActions = computed(() => props.actions.filter(a => a.visible !== fa
   transition: all 0.2s;
 }
 
-.skill-card__action-btn:hover {
+.skill-card__view-btn:hover {
   color: var(--color-primary);
   background: var(--color-primary-bg);
-}
-
-.skill-card__action-btn--primary {
-  background: #fff;
-  color: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  font-weight: 600;
-}
-
-.skill-card__action-btn--primary:hover {
-  background: var(--color-primary-bg);
-}
-
-.skill-card__action-btn--danger {
-  color: #ff4d4f;
-}
-
-.skill-card__action-btn--danger:hover {
-  color: #ff4d4f;
-  background: #fff1f0;
-}
-
-.skill-card__action-btn--success {
-  background: #f6ffed;
-  color: #52c41a;
-  border: 1px solid #b7eb8f;
-}
-
-.skill-card__action-btn--success:hover {
-  background: #d9f7be;
-}
-
-.skill-card__action-btn--active {
-  color: var(--color-primary);
-}
-
-.skill-card__action-btn--active:hover {
-  color: var(--color-primary);
-  background: var(--color-primary-bg);
-}
-
-.skill-card__action-btn:disabled,
-.skill-card__action-btn--primary:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
-  cursor: not-allowed;
-}
-
-.skill-card__action-btn--success:disabled {
-  background: #f5f5f5;
-  border-color: #d9d9d9;
-  color: #bfbfbf;
 }
 
 .skill-card__extra {
@@ -763,23 +694,22 @@ body[data-theme="dark"] .skill-card__featured-badge {
     align-items: center;
   }
   .skill-card__actions {
-    gap: 4px;
     margin: 0;
   }
-  .skill-card__action-btn {
+  .skill-card__actions :deep(.action-group__btn) {
     padding: 4px 10px;
     font-size: 12px;
     border-radius: 6px;
   }
-  .skill-card__actions .skill-card__action-btn:not(:first-child) {
+  .skill-card__actions :deep(.action-group__btn):not(:first-child) {
     display: none;
   }
-  .skill-card__action-btn--primary {
+  .skill-card__actions :deep(.action-group__btn--primary) {
     background: var(--color-primary);
     color: #fff;
     border: none;
   }
-  .skill-card__action-btn--primary:hover {
+  .skill-card__actions :deep(.action-group__btn--primary):hover {
     background: var(--color-primary-hover);
   }
 

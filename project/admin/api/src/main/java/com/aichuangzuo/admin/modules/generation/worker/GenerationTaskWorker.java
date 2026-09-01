@@ -153,7 +153,8 @@ public class GenerationTaskWorker {
             log.warn("task={} 无可用模型配置，标记失败", taskId);
             taskService.markFailed(taskId, AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage(),
                     false, task.getLockedBy(), buildFailedPayload(taskId, task.getTargetUserId(),
-                            AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage()));
+                            AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage(),
+                            extractOriginalTitle(task.getInputParam())));
             return;
         }
         task.setModelConfigId(modelConfigId);
@@ -225,7 +226,8 @@ public class GenerationTaskWorker {
             log.info("task={} 被外部停止，pipeline 协作式中止（不再 markFailed / 退款）", taskId);
         } catch (Exception e) {
             log.warn("task={} pipeline 失败: {}", taskId, e.getMessage());
-            Map<String, Object> failedPayload = buildFailedPayload(taskId, task.getTargetUserId(), e.getMessage());
+            Map<String, Object> failedPayload = buildFailedPayload(taskId, task.getTargetUserId(), e.getMessage(),
+                    extractOriginalTitle(task.getInputParam()));
             var after = taskService.markFailed(taskId, e.getMessage(), false, owner, failedPayload);
             if (after.getStatus() == GenerationTaskStatus.FAILED) {
                 try {
@@ -271,12 +273,14 @@ public class GenerationTaskWorker {
     /**
      * 构造 generation_failed 的 outbox payload。
      */
-    private static Map<String, Object> buildFailedPayload(Long taskId, Long userId, String failReason) {
+    private static Map<String, Object> buildFailedPayload(Long taskId, Long userId, String failReason,
+                                                          String articleTitle) {
         Map<String, Object> payload = new HashMap<>();
         payload.put("taskId", taskId);
         payload.put("userId", userId);
         payload.put("status", "failed");
         payload.put("failReason", failReason);
+        payload.put("articleTitle", articleTitle);
         return payload;
     }
 

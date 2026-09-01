@@ -35,7 +35,7 @@ class GenerationFailedHandlerTest {
 
         handler.dispatch(row);
 
-        verify(notifyClient).notifyFailed(200L, 20L, "AI 超时");
+        verify(notifyClient).notifyFailed(200L, 20L, "AI 超时", null);
     }
 
     @Test
@@ -45,7 +45,7 @@ class GenerationFailedHandlerTest {
 
         handler.dispatch(row);
 
-        verify(notifyClient).notifyFailed(201L, 21L, null);
+        verify(notifyClient).notifyFailed(201L, 21L, null, null);
     }
 
     @Test
@@ -76,7 +76,7 @@ class GenerationFailedHandlerTest {
 
         handler.dispatch(row);
 
-        verify(notifyClient).notifyFailed(300L, 30L, "reason");
+        verify(notifyClient).notifyFailed(300L, 30L, "reason", null);
     }
 
     @Test

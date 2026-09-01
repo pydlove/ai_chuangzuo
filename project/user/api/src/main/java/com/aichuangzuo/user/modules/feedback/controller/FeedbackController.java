@@ -59,4 +59,13 @@ public class FeedbackController {
         data.put("size", safeSize);
         return Result.success(data);
     }
+
+    @Operation(summary = "我的评价")
+    @GetMapping("/my-review")
+    public Result<FeedbackVO> myReview() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("查询我的评价, userId={}", userId);
+        FeedbackVO vo = feedbackService.getMyReview(userId);
+        return Result.success(vo);
+    }
 }

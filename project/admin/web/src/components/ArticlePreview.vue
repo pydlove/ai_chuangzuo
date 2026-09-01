@@ -1,23 +1,13 @@
 <template>
   <div class="article-preview" :style="{ background: style.bg, fontFamily: style.font }">
-    <h1
-      class="article-title"
-      :style="{
-        color: style.titleColor,
-        fontSize: style.titleSize,
-        textAlign: style.titleAlign || 'left'
-      }"
-    >
+    <h1 class="article-title" :style="titleStyle">
+      <span v-if="titleIcon" style="margin-right: 8px; font-size: 1.1em;">{{ titleIcon }}</span>
       {{ article.title }}
     </h1>
     <div
       v-if="showMeta"
       class="article-meta"
-      :style="{
-        color: style.metaColor,
-        borderBottomColor: style.metaBorder,
-        textAlign: style.metaAlign || 'left'
-      }"
+      :style="metaStyle"
     >
       <span>{{ article.description }}</span>
     </div>
@@ -38,7 +28,7 @@
 
 <script setup>
 import { computed } from 'vue'
-import { mergeStyle, renderBodyHtml, SAMPLE_ARTICLE } from '@/utils/articlePreview.js'
+import { mergeStyle, renderBodyHtml, buildTitleStyle, buildMetaStyle, SAMPLE_ARTICLE } from '@/utils/articlePreview.js'
 
 const props = defineProps({
   /** visual_style_json 字符串或对象。 */
@@ -52,7 +42,10 @@ const props = defineProps({
 })
 
 const style = computed(() => mergeStyle(props.visualStyle))
+const titleStyle = computed(() => buildTitleStyle(style.value))
+const metaStyle = computed(() => buildMetaStyle(style.value))
 const bodyHtml = computed(() => renderBodyHtml(props.article.body, style.value))
+const titleIcon = computed(() => style.value.titleIcon || '')
 </script>
 
 <style scoped>

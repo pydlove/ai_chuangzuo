@@ -2,8 +2,18 @@ import request from '@/utils/request.js'
 
 const BASE = '/testimonials'
 
-export function listTestimonials() {
-  return request.get(BASE).then((res) => res.data || [])
+export function listTestimonials(params = {}) {
+  const { keyword = '', pageNum = 1, pageSize = 20 } = params
+  return request
+    .get(BASE, { params: { keyword, pageNum, pageSize } })
+    .then((res) => {
+      const data = res.data || {}
+      const rows = data.records || data.list || []
+      return {
+        list: rows,
+        total: data.total || 0
+      }
+    })
 }
 
 export function createTestimonial(data) {
@@ -16,6 +26,10 @@ export function updateTestimonial(id, data) {
 
 export function deleteTestimonial(id) {
   return request.delete(`${BASE}/${id}`)
+}
+
+export function batchDeleteTestimonials(ids) {
+  return request.post(`${BASE}/batch/delete`, { ids }).then((res) => res.data)
 }
 
 export function updateTestimonialStatus(id, data) {

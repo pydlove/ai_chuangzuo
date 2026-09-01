@@ -125,7 +125,7 @@
         </template>
       </a-table>
 
-      <!-- 执行过程抽屉：13 阶段时间线（仅 AI 阶段有调用日志） -->
+      <!-- 执行过程抽屉：14 阶段时间线（仅 AI 阶段有调用日志） -->
       <a-drawer
         v-model:open="callLogDrawer.open"
         title="执行过程"
@@ -397,7 +397,7 @@ const {
 } = useCreationQueue()
 
 // ===== 执行过程抽屉 =====
-// 13 阶段元信息（与后端 PipelineStage 一一对应）。ai=true 的阶段才产生调用日志。
+// 14 阶段元信息（与后端 PipelineStage 一一对应）。ai=true 的阶段才产生调用日志。
 const STAGE_META = [
   { index: 1, key: 'intent_anchor', name: '意图锚定', ai: false },
   { index: 2, key: 'outline', name: '结构骨架', ai: true },
@@ -411,7 +411,8 @@ const STAGE_META = [
   { index: 10, key: 'word_count', name: '字数统计', ai: false },
   { index: 11, key: 'word_adjust', name: '字数调整', ai: true },
   { index: 12, key: 'export_render', name: '导出模板渲染', ai: false },
-  { index: 13, key: 'publish_meta', name: '发布描述标签', ai: true }
+  { index: 13, key: 'publish_meta', name: '发布描述标签', ai: true },
+  { index: 14, key: 'ai_detect', name: '质量检测', ai: true }
 ]
 
 const POLL_INTERVAL_MS = 5000

@@ -3,7 +3,7 @@ package com.aichuangzuo.user.modules.article.service;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.utils.AesUtil;
 import com.aichuangzuo.user.modules.article.dto.ActiveModelConfig;
-import com.aichuangzuo.user.modules.article.enums.ArticleErrorCode;
+import com.aichuangzuo.shared.enums.error.ArticleErrorCode;
 import com.aichuangzuo.user.modules.article.mapper.ArticleModelConfigMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

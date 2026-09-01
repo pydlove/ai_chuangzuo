@@ -39,4 +39,18 @@ public interface FeedbackMapper extends BaseMapper<Feedback> {
             """)
     long countByUser(@Param("userId") Long userId,
                      @Param("status") Integer status);
+
+    @Select("""
+            SELECT id, user_id AS userId, type, content,
+                   reply_content AS replyContent,
+                   reply_admin_id AS replyAdminId,
+                   replied_at AS repliedAt,
+                   star_rating AS starRating,
+                   status, created_at AS createdAt
+            FROM u_feedback
+            WHERE user_id = #{userId} AND type = '评价' AND is_deleted = 0
+            ORDER BY created_at DESC
+            LIMIT 1
+            """)
+    Feedback findReviewByUser(@Param("userId") Long userId);
 }

@@ -1,6 +1,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import {
   subscribe,
   getPlanCatalog,
@@ -9,6 +10,7 @@ import {
   previewUpgrade,
   previewSubscribe
 } from '@/api/membership'
+import { getPaymentConfig, getOrderStatus } from '@/api/payment'
 import { useInviteStats } from '@/composables/useInviteStats'
 
 const PLAN_RANK = {
@@ -36,6 +38,9 @@ export function usePricing() {
   const payCode = ref('')
   const subscribeLoading = ref(false)
   const selectedCoinAmount = ref(0)
+  const payQrUrl = ref('')
+  const currentOrderNo = ref('')
+  let pollTimer = null
 
   const plans = ref([])
   const compareRows = ref([])
@@ -50,6 +55,9 @@ export function usePricing() {
   const upgradeModalVisible = ref(false)
   const upgradePreview = ref(null)
   const upgradeLoading = ref(false)
+
+  const paymentConfig = ref({ enabled: 0, testMode: 1 })
+  const paymentConfigLoading = ref(false)
 
   const planKeyToName = {
     basic: '基础版',
@@ -70,7 +78,9 @@ export function usePricing() {
     { key: 'year', label: '年度' }
   ]
 
-  const isLoggedIn = () => !!localStorage.getItem('aichuangzuo_access_token')
+  const isLoggedIn = () => !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)
+  const isTestMode = () => paymentConfig.value.testMode === 1
+  const isWechatBrowser = () => /MicroMessenger/i.test(navigator.userAgent)
 
   onMounted(async () => {
     catalogLoading.value = true
@@ -107,10 +117,12 @@ export function usePricing() {
     if (isLoggedIn()) {
       membershipLoading.value = true
       newcomerLoading.value = true
+      paymentConfigLoading.value = true
       try {
-        const [membershipRes, newcomerRes] = await Promise.all([
+        const [membershipRes, newcomerRes, paymentRes] = await Promise.all([
           getMyMembership(),
           getNewcomerOffer(),
+          getPaymentConfig(),
           loadInviteStats()
         ])
         const membershipData = membershipRes.data || membershipRes
@@ -127,12 +139,18 @@ export function usePricing() {
             activeCycle.value = 'year'
           }
         }
+        const paymentData = paymentRes.data || paymentRes
+        paymentConfig.value = {
+          enabled: paymentData?.enabled === 1 ? 1 : 0,
+          testMode: paymentData?.testMode === 0 ? 0 : 1
+        }
       } catch {
         currentMembership.value = null
         newcomerOffer.value = null
       } finally {
         membershipLoading.value = false
         newcomerLoading.value = false
+        paymentConfigLoading.value = false
       }
     }
   })
@@ -289,10 +307,64 @@ export function usePricing() {
     selectedCoinAmount.value = getMaxCoinAmount()
   }
 
+  const stopPolling = () => {
+    if (pollTimer) {
+      clearInterval(pollTimer)
+      pollTimer = null
+    }
+  }
+
+  const startOrderPolling = (orderNo, onSuccess) => {
+    stopPolling()
+    let attempts = 0
+    const maxAttempts = 100
+    pollTimer = setInterval(async () => {
+      attempts++
+      if (attempts > maxAttempts) {
+        stopPolling()
+        return
+      }
+      try {
+        const res = await getOrderStatus(orderNo)
+        const data = res.data
+        if (data?.status === 1) {
+          stopPolling()
+          onSuccess()
+        }
+      } catch {
+        // 忽略轮询错误，继续轮询
+      }
+    }, 3000)
+  }
+
+  const finishSubscription = (data, plan, cycle) => {
+    loadInviteStats()
+    selectedCoinAmount.value = 0
+    localStorage.setItem(STORAGE_KEYS.MEMBERSHIP, JSON.stringify({
+      level: planKeyToName[data.level] || plan.name,
+      expiresAt: data.expiresAt
+    }))
+    modalVisible.value = false
+    upgradeModalVisible.value = false
+    upgradePreview.value = null
+    payQrUrl.value = ''
+    currentOrderNo.value = ''
+    currentMembership.value = {
+      hasMembership: true,
+      level: data.level,
+      levelName: planKeyToName[data.level] || plan.name,
+      cycle: data.cycle || cycle,
+      expiresAt: data.expiresAt
+    }
+    router.push('/console/workbench')
+  }
+
   const handlePay = async () => {
-    if (!payCode.value || payCode.value.length !== 6) {
-      message.warning('请输入 6 位支付码')
-      return
+    if (isTestMode()) {
+      if (!payCode.value || payCode.value.length !== 6) {
+        message.warning('请输入 6 位支付码')
+        return
+      }
     }
 
     const plan = selectedPlan.value
@@ -308,25 +380,29 @@ export function usePricing() {
         coinAmount: selectedCoinAmount.value
       })
       const data = res.data
-      message.success(upgradePreview.value ? '升级成功' : '订阅成功')
-      // 余额以服务端为准，订阅成功后重新拉取
-      loadInviteStats()
-      selectedCoinAmount.value = 0
-      localStorage.setItem('aichuangzuo_membership', JSON.stringify({
-        level: planKeyToName[data.level] || plan.name,
-        expiresAt: data.expiresAt
-      }))
-      modalVisible.value = false
-      upgradeModalVisible.value = false
-      upgradePreview.value = null
-      currentMembership.value = {
-        hasMembership: true,
-        level: data.level,
-        levelName: planKeyToName[data.level] || plan.name,
-        cycle: data.cycle || cycle,
-        expiresAt: data.expiresAt
+
+      if (!isTestMode()) {
+        currentOrderNo.value = data.orderNo || ''
+        if (isWechatBrowser() && data.payUrl) {
+          window.location.href = data.payUrl
+          startOrderPolling(currentOrderNo.value, () => {
+            message.success(upgradePreview.value ? '升级成功' : '订阅成功')
+            finishSubscription(data, plan, cycle)
+          })
+          return
+        }
+        if (data.payQrUrl) {
+          payQrUrl.value = data.payQrUrl
+          startOrderPolling(currentOrderNo.value, () => {
+            message.success(upgradePreview.value ? '升级成功' : '订阅成功')
+            finishSubscription(data, plan, cycle)
+          })
+          return
+        }
       }
-      router.push('/console/workbench')
+
+      message.success(upgradePreview.value ? '升级成功' : '订阅成功')
+      finishSubscription(data, plan, cycle)
     } catch (err) {
       message.error(err.message || '订阅失败，请重试')
     } finally {
@@ -353,6 +429,16 @@ export function usePricing() {
   const getSavings = (plan) => {
     const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
     return plan[keyMap[activeCycle.value]]?.savings || null
+  }
+
+  const getMonthlyEquivalent = (plan) => {
+    const cycle = activeCycle.value
+    if (cycle === 'month') return null
+    const keyMap = { quarter: 'quarter', year: 'year' }
+    const price = Number(plan[keyMap[cycle]]?.current)
+    if (!price || isNaN(price)) return null
+    const months = cycle === 'quarter' ? 3 : 12
+    return (price / months).toFixed(2)
   }
 
   const maxYearSavings = computed(() => {
@@ -390,6 +476,8 @@ export function usePricing() {
     payCode,
     subscribeLoading,
     selectedCoinAmount,
+    payQrUrl,
+    currentOrderNo,
     plans,
     compareRows,
     catalogLoading,
@@ -400,6 +488,8 @@ export function usePricing() {
     upgradeModalVisible,
     upgradePreview,
     upgradeLoading,
+    paymentConfig,
+    paymentConfigLoading,
     planKeyToName,
     cycleLabel,
     activeCycle,
@@ -407,10 +497,13 @@ export function usePricing() {
     cycleLocked,
     setCycle,
     isCycleDisabled,
+    isTestMode,
+    isWechatBrowser,
     getPeriodLabel,
     getPrice,
     getArticles,
     getSavings,
+    getMonthlyEquivalent,
     maxYearSavings,
     cellValue,
     getCell,
@@ -419,6 +512,7 @@ export function usePricing() {
     handleNewcomerSubscribe,
     confirmUpgrade,
     handlePay,
+    stopPolling,
     scrollToCompare,
     coinBalance,
     COIN_TO_YUAN_RATIO,

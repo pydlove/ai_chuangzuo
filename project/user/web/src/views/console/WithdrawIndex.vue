@@ -57,18 +57,10 @@
       <div class="coin-section-header">
         <span class="coin-section-title">账户概览</span>
       </div>
-      <div class="coin-stat-grid">
-        <div class="coin-stat-card">
-          <div class="coin-stat-label">可提现金额</div>
-          <div class="coin-stat-value">{{ coinBalance }} <span class="coin-stat-unit">创作币</span></div>
-          <div class="coin-stat-hint">10 创作币 = 1 元，满 1000 可提现</div>
-        </div>
-        <div class="coin-stat-card">
-          <div class="coin-stat-label">已提现金额</div>
-          <div class="coin-stat-value">{{ withdrawnTotal }} <span class="coin-stat-unit">创作币</span></div>
-          <div class="coin-stat-hint">含已成功到账与审核中金额</div>
-        </div>
-      </div>
+      <StatCardGroup :columns="2" gap="12px">
+        <StatCard variant="gradient" label="可提现金额" :value="coinBalance" unit="创作币" hint="10 创作币 = 1 元，满 1000 可提现" />
+        <StatCard variant="gradient" label="已提现金额" :value="withdrawnTotal" unit="创作币" hint="含已成功到账与审核中金额" />
+      </StatCardGroup>
 
       <div class="coin-eligibility">
         <div :class="['coin-eligibility-tag', eligibilityLevel]">{{ eligibilityText }}</div>
@@ -227,11 +219,12 @@ import { message } from 'ant-design-vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { useWithdraw } from '@/composables/useWithdraw'
+import { STORAGE_KEYS } from '@/constants/storage.js'
+import StatCard from '@/components/common/StatCard.vue'
+import StatCardGroup from '@/components/common/StatCardGroup.vue'
 
 const { coinBalance, loadInviteStats } = useInviteStats()
 const { realNameInfo, withdrawRecords, loadRealName, submitRealName: submitRealNameApi, loadWithdrawals, applyWithdraw } = useWithdraw()
-
-const WITHDRAW_AGREEMENT_KEY = 'aichuangzuo_withdraw_agreement_accepted'
 
 const router = useRouter()
 const route = useRoute()
@@ -348,12 +341,12 @@ const resultStatusText = (status) => {
 }
 
 const loadAgreement = () => {
-  const raw = localStorage.getItem(WITHDRAW_AGREEMENT_KEY)
+  const raw = localStorage.getItem(STORAGE_KEYS.WITHDRAW_AGREEMENT_ACCEPTED)
   agreementAccepted.value = raw === 'true'
 }
 
 const saveAgreement = () => {
-  localStorage.setItem(WITHDRAW_AGREEMENT_KEY, String(agreementAccepted.value))
+  localStorage.setItem(STORAGE_KEYS.WITHDRAW_AGREEMENT_ACCEPTED, String(agreementAccepted.value))
 }
 
 const submitRealName = async () => {
@@ -623,46 +616,6 @@ body[data-theme="dark"] .coin-rules-highlight {
 .coin-auth-display-value {
   color: #1f1f1f;
   font-weight: 500;
-}
-
-.coin-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.coin-stat-card {
-  padding: 16px;
-  background: linear-gradient(180deg, #fff8f9 0%, #ffffff 100%);
-  border: 1px solid #f0f0f0;
-  border-radius: 10px;
-}
-
-.coin-stat-label {
-  font-size: 12px;
-  color: #8c8c8c;
-  margin-bottom: 8px;
-}
-
-.coin-stat-value {
-  font-size: 22px;
-  font-weight: 700;
-  color: var(--color-primary, #FF2442);
-  line-height: 1.2;
-}
-
-.coin-stat-unit {
-  font-size: 12px;
-  font-weight: 500;
-  color: #595959;
-  margin-left: 4px;
-}
-
-.coin-stat-hint {
-  font-size: 11px;
-  color: #bfbfbf;
-  margin-top: 6px;
 }
 
 .coin-eligibility {
@@ -938,18 +891,12 @@ body[data-theme="dark"] .coin-section {
 }
 
 body[data-theme="dark"] .coin-section-extra,
-body[data-theme="dark"] .coin-stat-label,
-body[data-theme="dark"] .coin-stat-hint,
 body[data-theme="dark"] .coin-eligibility-tip,
 body[data-theme="dark"] .coin-apply-label,
 body[data-theme="dark"] .coin-apply-hint,
 body[data-theme="dark"] .coin-form-label,
 body[data-theme="dark"] .coin-auth-display-label {
   color: rgba(255, 255, 255, 0.55);
-}
-
-body[data-theme="dark"] .coin-stat-hint {
-  color: rgba(255, 255, 255, 0.4);
 }
 
 body[data-theme="dark"] .coin-auth-tip {
@@ -972,11 +919,6 @@ body[data-theme="dark"] .coin-apply-input:focus {
 body[data-theme="dark"] .coin-apply-input-disabled {
   background: #262626;
   color: rgba(255, 255, 255, 0.65);
-}
-
-body[data-theme="dark"] .coin-stat-card {
-  background: linear-gradient(180deg, #2a1f23 0%, #1f1f1f 100%);
-  border-color: #303030;
 }
 
 body[data-theme="dark"] .coin-eligibility {
@@ -1068,10 +1010,6 @@ body[data-theme="dark"] .coin-auth-tip {
   border-left-color: var(--color-primary, #ff2442);
 }
 
-body[data-theme="dark"] .coin-stat-unit {
-  color: rgba(255, 255, 255, 0.55);
-}
-
 body[data-theme="dark"] .coin-records-row {
   background: transparent;
 }
@@ -1156,18 +1094,6 @@ body[data-theme="dark"] .coin-section-header .invite-btn-secondary:hover {
   }
 
   /* 账户概览：2 列 → 单列堆叠 */
-  .coin-stat-grid {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .coin-stat-card {
-    padding: 14px;
-  }
-
-  .coin-stat-value {
-    font-size: 22px;
-  }
 
   /* 提现申请块 */
   .coin-section {

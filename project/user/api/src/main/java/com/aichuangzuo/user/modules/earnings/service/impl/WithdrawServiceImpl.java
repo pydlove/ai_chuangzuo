@@ -7,7 +7,7 @@ import com.aichuangzuo.user.modules.earnings.dto.request.RealNameRequest;
 import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawApplyRequest;
 import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawProcessRequest;
 import com.aichuangzuo.user.modules.earnings.entity.WithdrawRequest;
-import com.aichuangzuo.user.modules.earnings.enums.WithdrawErrorCode;
+import com.aichuangzuo.shared.enums.error.WithdrawErrorCode;
 import com.aichuangzuo.user.modules.earnings.mapper.WithdrawRequestMapper;
 import com.aichuangzuo.user.modules.earnings.service.WithdrawService;
 import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;

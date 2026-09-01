@@ -14,7 +14,7 @@
 [user_prompt]
 
 # Task
-请根据平台信息、用户问答和已选赛道，推荐 3-4 个适合的人设定位，并给出默认内容支柱比例。
+请根据平台信息、用户问答和已选赛道，推荐 3 个适合的人设定位，并给出所有推荐人设共用的默认内容支柱比例。
 
 # Input
 平台信息：
@@ -25,33 +25,43 @@
 - 主要收益：{{platformMonetization}}
 - 适合人群：{{platformBestFor}}
 
-用户问答：
-{{questionsAnswersJson}}
+推荐赛道时参考的用户问答（JSON 数组，每个元素包含：
+- questionKey：问题的英文标识，如 time_commitment、monetization_goal、background、professional_qualification、target_audience、target_age_group、content_form_preference 等
+- text：问题显示文本
+- answer：用户所选选项的 key 或 label）
+{{nicheQuestionAnswersJson}}
+
+推荐人设时补充的用户问答（JSON 数组，格式同上；可与推荐赛道时的问答部分重叠或一致）
+{{personaQuestionAnswersJson}}
 
 已选赛道：
 - 赛道 key：{{nicheKey}}
 - 赛道名称：{{nicheName}}
 
 # Output Format
-{"personas":[{"key":"英文标识","name":"中文人设名","desc":"一句话说明，40字以内"}],"defaultPillars":[{"name":"支柱一名称","percent":60},{"name":"支柱二名称","percent":20},{"name":"支柱三名称","percent":20}]}
+{"personas":[{"key":"英文标识","name":"中文人设名","desc":"一句话说明，50字以内"}],"defaultPillars":[{"name":"支柱一名称","percent":60},{"name":"支柱二名称","percent":20},{"name":"支柱三名称","percent":20}]}
 
 # Constraints
 1. key 使用英文小写+下划线。
-2. 人设名要中文，2-8 个字，有网感、有辨识度，避免直白模板（如“XX观察员”、“XX实战派”、“XX笔记”、“XX说”）。
-3. 人设必须与 {{platformName}} 平台调性、{{nicheName}} 赛道方向以及用户问答中的背景/目标/受众高度匹配。
-4. 3-4 个人设之间要有明显差异化，不能只是换关键词或同一身份的不同说法。
-5. defaultPillars 中 percent 之和必须等于 100，建议给出 3 项，最多不超过 4 项。
+2. 人设名要中文，2-8 个字，有网感、有辨识度，避免直白模板。禁止“职业/领域+者/派/师/观察/说/笔记/手/君/哥/姐”等角色化后缀的泛称组合（如“复盘记录者”“方法搬运工”“职场实战派”“流程拆解手”“XX观察员”“XX说”“XX笔记”）；应体现独特视角、风格或人群标签，可参考示例中“转型经验帖主”“35+姐姐成长记”“职场第二曲线”等有场景感的名字。
+3. 人设必须与 {{platformName}} 平台调性、{{nicheName}} 赛道方向以及两套用户问答中的背景、变现目标、目标受众、年龄段、时间投入、内容形式偏好、专业资质高度匹配。
+4. 必须输出且仅输出 3 个人设，personas 数组长度为 3。3 个人设之间要有明显差异化，不能只是换关键词或同一身份的不同说法。personas 数组按推荐优先级从高到低排列，第一个人设为最优先推荐。
+5. defaultPillars 是所有推荐人设共用的默认内容支柱比例模板，作为用户起步参考，不代表每个人设都必须严格遵循该比例。defaultPillars 中 percent 之和必须等于 100，建议给出 3 项，最多不超过 4 项。支柱按 percent 从高到低排列，便于前端展示。若用户时间投入较少（如 1 小时以内），应适当降低需要深度产出的支柱比例（如干货复盘、案例拆解），提高轻量内容（如观点评论、工具清单、审美分享）的比例。
 6. 支柱名称要与赛道和人设一致，聚焦图文内容类型（如干货复盘、个人故事、热点解读、案例拆解、工具清单、审美分享、经验总结、观点评论等）。不要出现短视频、出镜、直播、口播类支柱。
 7. 如果 {{platformContentForm}} 中包含非图文形式，应忽略，只基于图文内容形式设计人设和支柱。
-8. 只输出 JSON，不要代码围栏和额外说明。
+8. 必须结合用户问答中的 questionKey 和 answer 理解用户偏好（如时间投入、变现目标、专业资质、专业背景、目标受众、年龄段、内容形式偏好等），确保人设和支柱与这些选择一致。
+9. 若用户问答中 professional_qualification 的 answer 不是具体资质方向（如 law_cert、medical_cert、finance_cert、education_cert）或明确的 other_cert 资质说明，则人设应避免以“持证专家”“官方认证顾问”等需要专业资质的身份出现。
+10. 若输入的平台信息或用户问答存在缺失或模糊，请基于 {{platformName}} 名称、{{nicheName}} 赛道方向和图文平台通用逻辑合理推断；若用户问答缺乏关键信息，可基于常见情况做合理假设，但不要推荐与已知信息明显矛盾的人设。
+11. 推荐的人设定位必须避开容易引发平台限流、审核风险或违规敏感的领域，包括但不限于：时事政治评论者、敏感社会议题发声者、公共事件解读专家、政策法规争议解读、民族宗教相关身份、军事外交相关身份等。人设应聚焦在个人经验分享者、专业知识普及者、生活方式记录者、技能方法传授者、兴趣圈层交流者等安全可持续的图文创作身份。
+12. 只输出 JSON，不要代码围栏和额外说明。
 
 # Examples
 
 ## Example 1: 微信公众号 + 职场复盘
-{"personas":[{"key":"fupan_jiluzhe","name":"复盘记录者","desc":"用真实职场故事+复盘框架，帮读者把踩过的坑变成可复用的经验"},{"key":"fangfa_banyungong","name":"方法搬运工","desc":"专拆职场方法论，把复杂流程变成可落地的步骤清单"},{"key":"zhichang_qinlizhe","name":"职场亲历者","desc":"以第一视角记录职场 transitions，主打共鸣和陪伴感"}],"defaultPillars":[{"name":"复盘案例","percent":50},{"name":"方法工具","percent":30},{"name":"个人故事","percent":20}]}
+{"personas":[{"key":"fupan_jiluzhe","name":"职场错题本","desc":"用真实职场故事+复盘框架，帮读者把踩过的坑变成可复用的经验"},{"key":"fangfa_banyungong","name":"职场SOP库","desc":"专拆职场方法论，把复杂流程变成可落地的步骤清单"},{"key":"zhichang_qinlizhe","name":"第一视角职场","desc":"以第一视角记录职场 transitions，主打共鸣和陪伴感"}],"defaultPillars":[{"name":"复盘案例","percent":50},{"name":"方法工具","percent":30},{"name":"个人故事","percent":20}]}
 
 ## Example 2: 小红书 + 35+职场转型
 {"personas":[{"key":"zhuanxing_jingyantie","name":"转型经验帖主","desc":"用图文笔记分享35+转型真实路径，主打可借鉴和情绪共鸣"},{"key":"35_jiejie","name":"35+姐姐成长记","desc":"以姐姐视角记录转型、求职、副业，温暖有力量"},{"key":"zhichang_dierquxian","name":"职场第二曲线","desc":"聚焦副业探索和自由职业经验，适合想多条腿走路的人"}],"defaultPillars":[{"name":"转型故事","percent":40},{"name":"求职干货","percent":35},{"name":"情绪陪伴","percent":25}]}
 
 ## Example 3: 知乎 + 技术成长
-{"personas":[{"key":"jishu_chengzhang","name":"技术成长记录者","desc":"记录从初级到高级工程师的成长踩坑与思考，真实可信"},{"key":"gongcheng_shijian","name":"工程实践派","desc":"专写项目复盘、架构选型和技术决策，偏硬核经验"},{"key":"daima_rensheng","name":"代码人生讲述者","desc":"用技术人的视角讲职业选择、团队管理和行业观察"}],"defaultPillars":[{"name":"技术复盘","percent":50},{"name":"工具方法","percent":30},{"name":"职业思考","percent":20}]}
+{"personas":[{"key":"jishu_chengzhang","name":"码农进阶路","desc":"记录从初级到高级工程师的成长踩坑与思考，真实可信"},{"key":"gongcheng_shijian","name":"工程深潜","desc":"专写项目复盘、架构选型和技术决策，偏硬核经验"},{"key":"daima_rensheng","name":"程序员的活法","desc":"用技术人的视角讲职业选择、团队管理和行业观察"}],"defaultPillars":[{"name":"技术复盘","percent":50},{"name":"工具方法","percent":30},{"name":"职业思考","percent":20}]}

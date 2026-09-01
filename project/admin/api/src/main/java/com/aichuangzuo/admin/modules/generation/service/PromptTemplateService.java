@@ -39,7 +39,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Admin 端-提示词模板服务：CRUD + 发布 / 下线 + 12 阶段配置管理。
+ * Admin 端-提示词模板服务：CRUD + 发布 / 下线 + 13 阶段配置管理。
  *
  * <p>生效策略：全表最多 1 条 PUBLISHED，由发布事务保证。
  */
@@ -94,7 +94,7 @@ public class PromptTemplateService {
         t.setUpdatedBy(adminUserId == null ? 0L : adminUserId);
         mapper.insert(t);
 
-        // 自动建 12 阶段（按用户传值；空则用 PipelineStage 默认）
+        // 自动建 14 阶段（按用户传值；空则用 PipelineStage 默认）
         List<PromptTemplateStage> stages = buildStages(t.getId(), req.getStages(), adminUserId);
         for (PromptTemplateStage s : stages) {
             stageMapper.insert(s);
@@ -112,6 +112,10 @@ public class PromptTemplateService {
         mapper.updateById(exist);
 
         if (req.getStages() != null && !req.getStages().isEmpty()) {
+            // 编辑时必须完整提交 14 个 stage，避免全量替换时部分阶段被意外重置为默认值
+            if (req.getStages().size() != PipelineStage.ALL.length - 1) {
+                throw new BusinessException(AdminGenerationErrorCode.PROMPT_TEMPLATE_STAGE_COUNT_INVALID);
+            }
             // 物理删除旧 stage + 重新插入（全量替换）
             stageMapper.deleteByTemplateId(id);
             List<PromptTemplateStage> stages = buildStages(id, req.getStages(), adminUserId);
@@ -123,7 +127,7 @@ public class PromptTemplateService {
     }
 
     /**
-     * 老模板初始化 12 阶段默认值（点击「初始化 12 阶段」按钮触发）。
+     * 老模板初始化 14 阶段默认值（点击「初始化 14 阶段」按钮触发）。
      * 已有 stage 则不动。
      */
     @Transactional
@@ -138,7 +142,7 @@ public class PromptTemplateService {
         for (PromptTemplateStage s : stages) {
             stageMapper.insert(s);
         }
-        log.info("admin={} 初始化模板 id={} 的 12 阶段默认值", adminUserId, id);
+        log.info("admin={} 初始化模板 id={} 的 14 阶段默认值", adminUserId, id);
         return stages.size();
     }
 
@@ -156,7 +160,7 @@ public class PromptTemplateService {
     // ===== 阶段 2：发布 / 下线 / 克隆 / 版本列表 =====
 
     /**
-     * 发布模板：把当前 12 阶段配置快照成下一个版本号，置状态为 PUBLISHED。
+     * 发布模板：把当前 14 阶段配置快照成下一个版本号，置状态为 PUBLISHED。
      *
      * <p>草稿、已发布、已下线状态都可发布；版本号单调递增。
      */
@@ -177,7 +181,7 @@ public class PromptTemplateService {
                 .set(PromptTemplateVersion::getVersionStatus, TemplateStatus.OFFLINE.code);
         versionMapper.update(null, offlineOtherVersions);
 
-        // 1. 快照 12 阶段到 version 表
+        // 1. 快照 14 阶段到 version 表
         List<PromptTemplateStage> rows = stageMapper.selectByTemplateId(id);
         String configJson = serializeConfig(rows);
 
@@ -245,7 +249,7 @@ public class PromptTemplateService {
     }
 
     /**
-     * 克隆模板：把源模板的 12 阶段配置复制为一张新草稿。
+     * 克隆模板：把源模板的 13 阶段配置复制为一张新草稿。
      *
      * <p>默认从源模板当前的 stage 表复制；如指定 sourceVersion 则从版本快照解析。
      */
@@ -309,7 +313,7 @@ public class PromptTemplateService {
     }
 
     /**
-     * 序列化 12 阶段行为 config_json。结构对齐设计文档 §5.10。
+     * 序列化 13 阶段行为 config_json。结构对齐设计文档 §5.10。
      *
      * <p>用简单字符串拼接避免引入额外 JSON 库依赖；如有更复杂场景后续可换 Jackson。
      */
@@ -401,10 +405,10 @@ public class PromptTemplateService {
     }
 
     /**
-     * 把请求里的 12 个 stage 转成 entity。
+     * 把请求里的 14 个 stage 转成 entity。
      * 某 stage 用户没传值时，从 {@link PipelineStage} 默认值兜底。
      *
-     * <p>注：只入库 index 1-12 的真实阶段；{@link PipelineStage#PERSIST_ARTICLE}（index=100）
+     * <p>注：只入库 index 1-14 的真实阶段；{@link PipelineStage#PERSIST_ARTICLE}（index=100）
      * 是 orchestrator 的合成收尾步骤，不是模板配置的一部分，跳过。
      */
     private List<PromptTemplateStage> buildStages(Long templateId,
@@ -493,7 +497,7 @@ public class PromptTemplateService {
             vo.setStages(new ArrayList<>());
             vo.setStagesInitialized(false);
         } else {
-            // 补全 stageIndex=rows[0..] 不足 12 的部分（用 PipelineStage 默认填展示用）
+            // 补全 stageIndex=rows[0..] 不足 14 的部分（用 PipelineStage 默认填展示用）
             List<PromptTemplateStageVO> stageVos = new ArrayList<>();
             for (PipelineStage def : PipelineStage.ALL) {
                 if (def == PipelineStage.PERSIST_ARTICLE) continue;

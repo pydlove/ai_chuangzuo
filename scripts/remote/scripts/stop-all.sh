@@ -3,9 +3,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+source "$SCRIPT_DIR/../lib/_remote-env.sh"
+
 echo "[INFO] 停止爱创作所有服务..."
 
-systemctl stop aichuangzuo-user-api 2>/dev/null || true
-systemctl stop aichuangzuo-admin-api 2>/dev/null || true
+run_cmd "systemctl stop aichuangzuo-user-api 2>/dev/null || true"
+run_cmd "systemctl stop aichuangzuo-admin-api 2>/dev/null || true"
 
 echo "[INFO] 服务已停止"

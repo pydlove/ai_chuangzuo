@@ -36,7 +36,7 @@ public class MessageController {
     @GetMapping("/unread-count")
     public Result<Long> unreadCount() {
         Long userId = SecurityUserContext.getCurrentUserId();
-        log.info("未读消息数, userId={}", userId);
+        log.debug("未读消息数, userId={}", userId);
         LocalDateTime registerAt = getRegisterAt(userId);
         return Result.success(messageService.countUnread(userId, registerAt));
     }

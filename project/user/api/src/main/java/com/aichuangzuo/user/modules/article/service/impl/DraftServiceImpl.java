@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.article.dto.request.SaveDraftRequest;
 import com.aichuangzuo.user.modules.article.dto.request.UpdateDraftRequest;
 import com.aichuangzuo.user.modules.article.entity.Draft;
-import com.aichuangzuo.user.modules.article.enums.ArticleErrorCode;
+import com.aichuangzuo.shared.enums.error.ArticleErrorCode;
 import com.aichuangzuo.user.modules.article.mapper.DraftMapper;
 import com.aichuangzuo.user.modules.article.service.DraftService;
 import com.aichuangzuo.user.modules.article.vo.DraftPageVO;

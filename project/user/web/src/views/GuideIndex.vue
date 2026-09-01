@@ -1,7 +1,7 @@
 <template>
   <MobileGuide v-if="isMobile" />
   <div v-else class="guide-page">
-    <NavBar :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <!-- 主体 -->
     <div class="guide-body">
@@ -12,44 +12,43 @@
       />
       <div class="guide-main">
         <div class="guide-hero">
-          <h1>玩法指南</h1>
-          <p>3 分钟了解爱创作能做什么，以及如何把它变成收益。</p>
+          <h1>{{ guideHero.pc.title }}</h1>
+          <p>{{ guideHero.pc.desc }}</p>
         </div>
         <div class="guide-articles-wrap">
           <template v-for="section in guideSections" :key="section.id">
             <img
               v-if="section.id === 'money'"
               class="guide-money-banner"
-              src="https://foruda.gitee.com/images/1784102377496111264/6e108169_8060302.png"
-              alt="收益方式：把内容变成持续收入"
+              :src="guideMoneyBanner.src"
+              :alt="guideMoneyBanner.alt"
             />
             <GuideArticle :section="section" />
           </template>
         </div>
         <div class="guide-footer-cta">
-          <h3>准备好开始了吗？</h3>
-          <p>每天 3 分钟，把内容变成账号流量和收入。</p>
-          <router-link to="/console/workbench" class="guide-cta-btn">立即开始创作</router-link>
+          <h3>{{ guideCta.title }}</h3>
+          <p>{{ guideCta.desc }}</p>
+          <router-link :to="guideCta.btn.to" class="guide-cta-btn">{{ guideCta.btn.text }}</router-link>
         </div>
       </div>
     </div>
 
     <!-- 底部 -->
-    <footer class="guide-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { guideSections } from '@/data/guide-content.js'
+import { guideSections, guideHero, guideMoneyBanner, guideCta } from '@/data/guide-content.js'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import GuideSidebar from '@/components/guide/GuideSidebar.vue'
 import GuideArticle from '@/components/guide/GuideArticle.vue'
 import MobileGuide from '@/views/MobileGuide.vue'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import { useDevice } from '@/composables/useDevice.js'
 
 const { isMobile } = useDevice()
@@ -58,16 +57,6 @@ const route = useRoute()
 const router = useRouter()
 
 const activeArticleId = ref('')
-
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
 
 const handleSelect = ({ articleId }) => {
   const el = document.getElementById(articleId)
@@ -182,15 +171,6 @@ onMounted(() => {
 .guide-cta-btn:hover {
   background: #e61e3a;
 }
-.guide-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #eee;
-  color: #595959;
-  font-size: 13px;
-  text-align: center;
-  background: #fff;
-}
-
 @media (max-width: 768px) {
   .guide-body {
     padding: 12px 16px;
@@ -203,17 +183,12 @@ onMounted(() => {
 body[data-theme="dark"] .guide-page {
   background: #141414;
 }
-body[data-theme="dark"] .guide-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-}
 body[data-theme="dark"] .guide-hero h1,
 body[data-theme="dark"] .guide-footer-cta h3 {
   color: #e0e0e0;
 }
 body[data-theme="dark"] .guide-hero p,
-body[data-theme="dark"] .guide-footer-cta p,
-body[data-theme="dark"] .guide-footer {
+body[data-theme="dark"] .guide-footer-cta p {
   color: #a6a6a6;
 }
 body[data-theme="dark"] .guide-footer-cta {

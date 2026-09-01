@@ -21,7 +21,7 @@ public class UpdateSessionRequest {
     @Max(3000)
     private Integer wordCount;
 
-    @Size(max = 512)
+    @Size(max = 4000, message = "提示词长度不能超过 4000 字符")
     private String prompt;
 
     @Size(max = 64)

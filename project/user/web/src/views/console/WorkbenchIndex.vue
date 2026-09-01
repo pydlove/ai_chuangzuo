@@ -100,11 +100,11 @@
           <div class="feature-top-row">
             <div class="feature-large-card" @click="router.push('/console/commission')">
               <div class="feature-large-info">
-                <div class="feature-large-title">赚创作币</div>
-                <div class="feature-large-desc">精选任务赚创作币</div>
+                <div class="feature-large-title">约稿中心</div>
+                <div class="feature-large-desc">赚取创作币</div>
               </div>
               <div class="feature-large-icon">
-                <img src="/assets/images/约稿任务-v1.png" alt="赚创作币" />
+                <img src="/assets/images/约稿任务-v1.png" alt="约稿中心" />
               </div>
             </div>
             <div class="feature-large-card" @click="router.push('/console/skill-market')">
@@ -285,6 +285,9 @@
                   <span>{{ formatRecordTime(record.createdAtTimestamp) }}</span>
                   <span class="generation-status" :class="record.status">{{ statusText(record.status) }}</span>
                 </div>
+                <div v-if="record.status === 'failed'" class="generation-fail-hint">
+                  因为未知因素影响，创作失败（本次不消耗次数），请点击重新生成
+                </div>
                 <a-progress
                   v-if="record.status === 'generating'"
                   :percent="record.progress"
@@ -297,30 +300,37 @@
                 v-if="record.status === 'completed'"
                 class="generation-actions"
               >
-                <a-button
-                  type="link"
+                <ActionGroup
+                  variant="link"
                   size="small"
-                  class="repost-btn"
-                  @click.stop="openRepostsPlan(record)"
+                  :actions="[
+                    { label: '查看', handler: () => openArticleView(record) }
+                  ]"
+                />
+              </div>
+              <div
+                v-else-if="record.status === 'failed'"
+                class="generation-actions"
+              >
+                <button
+                  class="generation-retry-btn"
+                  :disabled="retryingIds.has(record.id)"
+                  @click.stop="retryRecord(record)"
                 >
-                  一文多发
-                </a-button>
-                <a-tag
-                  v-if="!hasBenefit('repost_plan')"
-                  color="#ff2442"
-                  size="small"
-                  class="repost-pro-tag"
+                  {{ retryingIds.has(record.id) ? '重试中...' : '重新生成' }}
+                </button>
+              </div>
+              <div
+                v-else-if="record.status === 'generating' || record.status === 'pending'"
+                class="generation-actions"
+              >
+                <button
+                  class="generation-stop-btn"
+                  :disabled="stoppingIds.has(record.id)"
+                  @click.stop="stopRecord(record)"
                 >
-                  专业版
-                </a-tag>
-                <a-button
-                  type="link"
-                  size="small"
-                  class="view-article-btn"
-                  @click.stop="openArticleView(record)"
-                >
-                  查看
-                </a-button>
+                  {{ stoppingIds.has(record.id) ? '停止中...' : '停止生成' }}
+                </button>
               </div>
             </div>
           </div>
@@ -371,7 +381,7 @@
               <div class="publish-guide-label">建议发布时间</div>
               <div class="publish-guide-value">{{ publishPlan.mainPlatform?.publishTime || '-' }}</div>
               <div class="publish-guide-desc">
-                主攻平台「{{ publishPlan.mainPlatform?.platform || currentPublishRecord?.platform || plan.platform }}」：{{ publishPlan.mainPlatform?.reason || '基于流量高峰和账号冷启动效率推荐' }}
+                主攻平台「{{ publishPlan.mainPlatform?.platform || plan.platform }}」：{{ publishPlan.mainPlatform?.reason || '基于流量高峰和账号冷启动效率推荐' }}
               </div>
             </div>
             <div class="publish-guide-section">
@@ -390,69 +400,13 @@
               <div class="publish-guide-value">{{ sendMethod.method }}</div>
               <a :href="sendMethod.docLink" target="_blank" class="publish-guide-doc-link">{{ sendMethod.docText }}</a>
             </div>
-          </template>
-          <template v-else>
-            <a-empty description="暂无发布计划" />
-          </template>
-        </a-spin>
-      </div>
-    </a-modal>
-
-    <!-- 一文多发方案弹窗 -->
-    <a-modal
-      :open="repostsModalVisible"
-      title="一文多发方案"
-      width="700px"
-      :footer="null"
-      class="reposts-modal"
-      @cancel="repostsModalVisible = false"
-    >
-      <div class="reposts-modal-spin">
-        <a-spin :spinning="repostsLoading" tip="小爱正在准备多平台方案…">
-          <template v-if="!hasPlan">
-            <a-empty description="请先制定自媒体运营方案，再生成多平台发布计划">
-              <a-button type="primary" @click="goToOnboarding()">去制定方案</a-button>
-            </a-empty>
-          </template>
-          <template v-else-if="currentRepostPlan?.reposts?.length">
-            <div class="reposts-modal-list">
-              <div
-                v-for="(item, idx) in currentRepostPlan.reposts"
-                :key="item.platform + idx"
-                class="reposts-modal-card"
-              >
-                <div class="reposts-modal-header">
-                  <span class="reposts-modal-platform">{{ item.platform }}</span>
-                  <span class="reposts-modal-time">{{ item.publishTime }}</span>
-                </div>
-                <div class="reposts-modal-field">
-                  <span class="reposts-modal-label">标题</span>
-                  <span class="reposts-modal-value">{{ item.title || '-' }}</span>
-                </div>
-                <div class="reposts-modal-field">
-                  <span class="reposts-modal-label">标签</span>
-                  <div class="reposts-modal-tags">
-                    <span
-                      v-for="tag in item.tags"
-                      :key="tag"
-                      class="reposts-modal-tag"
-                    >{{ tag }}</span>
-                    <span v-if="!item.tags?.length" class="reposts-modal-value">-</span>
-                  </div>
-                </div>
-                <div class="reposts-modal-field">
-                  <span class="reposts-modal-label">配图建议</span>
-                  <span class="reposts-modal-value">{{ item.imageSuggestions || '-' }}</span>
-                </div>
-                <div v-if="item.tips" class="reposts-modal-field">
-                  <span class="reposts-modal-label">发布建议</span>
-                  <span class="reposts-modal-value">{{ item.tips }}</span>
-                </div>
-              </div>
+            <div class="publish-guide-section">
+              <div class="publish-guide-label">检测平台</div>
+              <a :href="detectPlatformUrl" target="_blank" rel="noopener noreferrer" class="publish-guide-doc-link">腾讯 AI 检测平台</a>
             </div>
           </template>
           <template v-else>
-            <a-empty description="暂无多平台发布方案" />
+            <a-empty description="暂无发布计划" />
           </template>
         </a-spin>
       </div>
@@ -643,22 +597,28 @@ import {
   ClockCircleOutlined
 } from '@ant-design/icons-vue'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
-import { fetchCurrentPlan, generatePublishPlan } from '@/api/selfMediaPlan.js'
+import ActionGroup from '@/components/common/ActionGroup.vue'
+import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
+import { generatePublishPlan } from '@/composables/usePublishPlan.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
-import { listGenerationTasks } from '@/api/generation.js'
+import { listGenerationTasks, retryGenerationTask, stopGenerationTask } from '@/api/generation.js'
 import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
 import { getArticleByTaskId } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useCopy } from '@/composables/useCopy.js'
+import { useConfirm } from '@/composables/useConfirm.js'
+import { STORAGE_KEYS, getTodayDoneKey } from '@/constants/storage.js'
+import { PLATFORM_NAME_MAP } from '@/utils/platform.js'
 
 const router = useRouter()
 
 const isMobile = () => window.innerWidth <= 768
 
 const consoleActions = inject('consoleActions', {})
+const { confirm } = useConfirm()
 
 const userInfo = reactive({
   nickname: '',
@@ -712,10 +672,7 @@ const coinsToWithdraw = computed(() => {
 })
 
 const todayDone = ref(false)
-const todayKey = computed(() => {
-  const date = new Date()
-  return `aichuangzuo_today_done_${date.getFullYear()}_${date.getMonth() + 1}_${date.getDate()}`
-})
+const todayKey = computed(() => getTodayDoneKey())
 
 const hasMembership = ref(false)
 
@@ -745,7 +702,7 @@ async function loadWelcomeData() {
       userInfo.vipExpire = ''
     }
   } catch (err) {
-    console.error('加载欢迎卡片数据失败', err)
+    // 欢迎卡片加载失败时不阻断页面
   }
 }
 
@@ -776,7 +733,6 @@ const plan = reactive({
 
 const hasPlan = ref(false)
 const planModalVisible = ref(false)
-const SELF_MEDIA_PLAN_MODAL_KEY = 'aichuangzuo_selfmedia_plan_modal_dismissed'
 
 async function loadPlan() {
   try {
@@ -794,7 +750,6 @@ async function loadPlan() {
       hasPlan.value = false
     }
   } catch (e) {
-    console.warn('加载运营方案失败', e)
     hasPlan.value = false
   }
 }
@@ -829,7 +784,7 @@ function confirmAdjustPlan() {
 
 function dismissPlanModal() {
   planModalVisible.value = false
-  localStorage.setItem(SELF_MEDIA_PLAN_MODAL_KEY, '1')
+  localStorage.setItem(STORAGE_KEYS.SELF_MEDIA_PLAN_MODAL_DISMISSED, '1')
 }
 
 onMounted(() => {
@@ -839,7 +794,7 @@ onMounted(() => {
   loadGenerationRecords()
   loadWithdrawals()
   loadPlan().then(() => {
-    if (!hasPlan.value && !localStorage.getItem(SELF_MEDIA_PLAN_MODAL_KEY)) {
+    if (!hasPlan.value && !localStorage.getItem(STORAGE_KEYS.SELF_MEDIA_PLAN_MODAL_DISMISSED)) {
       planModalVisible.value = true
     }
   })
@@ -1028,16 +983,6 @@ const statusCodeMap = {
   3: 'failed'
 }
 
-const platformNameMap = {
-  xiaohongshu: '小红书',
-  wechat: '公众号',
-  toutiao: '今日头条',
-  baijiahao: '百家号',
-  douyin: '抖音',
-  zhihu: '知乎',
-  bilibili: 'B站'
-}
-
 async function loadGenerationRecords() {
   generationRecordsLoading.value = true
   try {
@@ -1066,10 +1011,58 @@ async function loadGenerationRecords() {
       })
     })
   } catch (e) {
-    console.warn('加载生成记录失败', e)
+    // 生成记录加载失败时保持列表为空
   } finally {
     generationRecordsLoading.value = false
   }
+}
+
+const retryingIds = ref(new Set())
+const stoppingIds = ref(new Set())
+
+function retryRecord(record) {
+  if (retryingIds.value.has(record.id)) return
+  confirm({
+    title: '重新生成',
+    content: '确定重新生成该文章？将创建新任务并扣除 1 次创作额度。',
+    okText: '重新生成',
+    cancelText: '取消',
+    onOk: async () => {
+      retryingIds.value.add(record.id)
+      try {
+        await retryGenerationTask(record.id)
+        message.success('已重新生成')
+        await loadGenerationRecords()
+      } catch (e) {
+        message.error(e?.message || '重新生成失败，请稍后重试')
+      } finally {
+        retryingIds.value.delete(record.id)
+      }
+    }
+  })
+}
+
+function stopRecord(record) {
+  if (stoppingIds.value.has(record.id)) return
+  confirm({
+    title: '停止生成任务',
+    content: '确定停止该任务？已扣除的创作额度将退回账户。',
+    okText: '停止',
+    cancelText: '取消',
+    wrapClassName: 'stop-task-confirm-modal',
+    onOk: async () => {
+      stoppingIds.value.add(record.id)
+      try {
+        await stopGenerationTask(record.id)
+        message.success('任务已停止，额度已退回')
+        await loadGenerationRecords()
+      } catch (e) {
+        message.error(e?.message || '停止失败，请稍后重试')
+      } finally {
+        stoppingIds.value.delete(record.id)
+      }
+    }
+  })
 }
 
 const recentRecords = computed(() => {
@@ -1086,16 +1079,6 @@ const currentPublishRecord = ref(null)
 const publishPlan = ref(null)
 const publishPlanLoading = ref(false)
 
-const repostsModalVisible = ref(false)
-const currentRepostRecord = ref(null)
-const currentRepostPlan = ref(null)
-const repostsLoading = ref(false)
-
-// 发布方案 AI 结果缓存：同一篇文章（articleBizNo / task bizNo）复用已调用结果，
-// 避免重复点击「如何发布」「一文多发」时反复请求 AI。
-const aiPublishPlanCache = reactive(new Map())
-const aiPublishPlanInflight = reactive(new Map())
-
 const sendMethod = computed(() => {
   return {
     method: '手动复制到各平台发布',
@@ -1104,9 +1087,7 @@ const sendMethod = computed(() => {
   }
 })
 
-function planCacheKey(record) {
-  return record?.articleBizNo || record?.bizNo || record?.id || ''
-}
+const detectPlatformUrl = 'https://matrix.tencent.com/ai-detect/ai_gen?utm_source=ai-bot.cn&code=081y2T0w3kSIs73KrX1w3Nd8880y2T01&state=state'
 
 function ensureRepostPlanBenefit() {
   if (!hasMembership.value) {
@@ -1124,50 +1105,12 @@ function ensureRepostPlanBenefit() {
 async function loadPublishPlan(record) {
   publishPlan.value = null
   if (!hasPlan.value) return
-  const title = record?.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
-  const mainPlatform = platformNameMap[record?.platform] || record?.platform || plan.platform
-  if (!title || !mainPlatform) return
-
-  const key = planCacheKey(record)
-  if (!key) return
-
-  const cached = aiPublishPlanCache.get(key)
-  if (cached) {
-    publishPlan.value = cached
-    return
-  }
-
-  const inflight = aiPublishPlanInflight.get(key)
-  if (inflight) {
-    publishPlanLoading.value = true
-    try {
-      publishPlan.value = await inflight
-    } finally {
-      publishPlanLoading.value = false
-    }
-    return
-  }
+  const mainPlatform = PLATFORM_NAME_MAP[record?.platform] || record?.platform || plan.platform
+  if (!mainPlatform) return
 
   publishPlanLoading.value = true
-  const promise = generatePublishPlan({ articleTitle: title, mainPlatform })
-    .then((res) => {
-      const data = res?.data || null
-      if (data) {
-        aiPublishPlanCache.set(key, data)
-      }
-      return data
-    })
-    .catch((err) => {
-      aiPublishPlanCache.delete(key)
-      throw err
-    })
-    .finally(() => {
-      aiPublishPlanInflight.delete(key)
-    })
-  aiPublishPlanInflight.set(key, promise)
-
   try {
-    publishPlan.value = await promise
+    publishPlan.value = await generatePublishPlan(mainPlatform)
   } catch (err) {
     message.error(err?.message || '生成发布计划失败，请重试')
   } finally {
@@ -1189,64 +1132,6 @@ function openHowToPublish() {
   currentPublishRecord.value = record
   loadPublishPlan(record)
   publishModalVisible.value = true
-}
-
-async function openRepostsPlan(record) {
-  if (!ensureRepostPlanBenefit()) return
-  if (!record) return
-  currentRepostRecord.value = record
-  currentRepostPlan.value = null
-  repostsModalVisible.value = true
-  if (!hasPlan.value) return
-  const title = record.title?.trim() || `关于${plan.niche || '运营方向'}的内容`
-  const mainPlatform = platformNameMap[record.platform] || record.platform || plan.platform
-  if (!title || !mainPlatform) return
-
-  const key = planCacheKey(record)
-  if (!key) return
-
-  const cached = aiPublishPlanCache.get(key)
-  if (cached) {
-    currentRepostPlan.value = cached
-    return
-  }
-
-  const inflight = aiPublishPlanInflight.get(key)
-  if (inflight) {
-    repostsLoading.value = true
-    try {
-      currentRepostPlan.value = await inflight
-    } finally {
-      repostsLoading.value = false
-    }
-    return
-  }
-
-  repostsLoading.value = true
-  const promise = generatePublishPlan({ articleTitle: title, mainPlatform })
-    .then((res) => {
-      const data = res?.data || null
-      if (data) {
-        aiPublishPlanCache.set(key, data)
-      }
-      return data
-    })
-    .catch((err) => {
-      aiPublishPlanCache.delete(key)
-      throw err
-    })
-    .finally(() => {
-      aiPublishPlanInflight.delete(key)
-    })
-  aiPublishPlanInflight.set(key, promise)
-
-  try {
-    currentRepostPlan.value = await promise
-  } catch (err) {
-    message.error(err?.message || '生成多平台方案失败，请重试')
-  } finally {
-    repostsLoading.value = false
-  }
 }
 
 async function openArticleView(record) {
@@ -1454,11 +1339,13 @@ function statusText(status) {
   flex-wrap: wrap;
 }
 .user-avatar-mini {
-  background: var(--color-primary);
   color: #fff;
   font-size: 16px;
   font-weight: 600;
   flex-shrink: 0;
+}
+.user-avatar-mini:not(.ant-avatar-image) {
+  background: var(--color-primary);
 }
 .info-name {
   font-size: var(--font-h3);
@@ -1927,7 +1814,7 @@ function statusText(status) {
 .toolbox-section {
   display: flex;
   flex-direction: column;
-  margin-bottom: -18px;
+  margin-bottom: 0;
 }
 .toolbox-section-header {
   display: none;
@@ -1946,7 +1833,8 @@ function statusText(status) {
 }
 .toolbox-grid {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: var(--space-xl);
 }
 .toolbox-item {
   flex: 0 0 auto;
@@ -2001,23 +1889,6 @@ function statusText(status) {
 }
 .how-publish-btn:hover {
   color: var(--color-primary-hover);
-}
-.repost-btn {
-  padding: 0 8px;
-  color: var(--color-primary);
-  font-size: var(--font-small);
-  font-weight: 500;
-  flex-shrink: 0;
-}
-.repost-btn:hover {
-  color: var(--color-primary-hover);
-}
-.repost-pro-tag {
-  margin-inline-start: 4px;
-  font-size: 11px;
-  line-height: 18px;
-  padding: 0 6px;
-  border-radius: 999px;
 }
 .view-article-btn {
   padding: 0 8px;
@@ -2132,6 +2003,43 @@ function statusText(status) {
 .generation-actions {
   align-self: flex-end;
 }
+.generation-fail-hint {
+  margin-top: 6px;
+  font-size: var(--font-caption);
+  color: var(--color-error);
+  line-height: 1.4;
+}
+.generation-retry-btn,
+.generation-stop-btn {
+  border: none;
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+  font-size: var(--font-caption);
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.generation-retry-btn:hover:not(:disabled),
+.generation-stop-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: #fff;
+}
+.generation-retry-btn:disabled,
+.generation-stop-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.generation-stop-btn {
+  background: #fff0f0;
+  color: #ff4d4f;
+}
+.generation-stop-btn:hover:not(:disabled) {
+  background: #ff4d4f;
+  color: #fff;
+}
 .generation-progress {
   margin-top: 6px;
 }
@@ -2212,7 +2120,6 @@ function statusText(status) {
 }
 
 :global(.publish-modal .ant-btn-primary),
-:global(.reposts-modal .ant-btn-primary),
 :global(.plan-modal .ant-btn-primary) {
   background: var(--color-primary);
   border-color: var(--color-primary);
@@ -2220,80 +2127,10 @@ function statusText(status) {
 }
 :global(.publish-modal .ant-btn-primary:hover),
 :global(.publish-modal .ant-btn-primary:focus),
-:global(.reposts-modal .ant-btn-primary:hover),
-:global(.reposts-modal .ant-btn-primary:focus),
 :global(.plan-modal .ant-btn-primary:hover),
 :global(.plan-modal .ant-btn-primary:focus) {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
-}
-
-/* 一文多发方案弹窗 */
-.reposts-modal-spin :deep(.ant-spin-text) {
-  color: var(--color-primary);
-}
-.reposts-modal-spin :deep(.ant-spin-dot-item) {
-  background-color: var(--color-primary);
-}
-.reposts-modal-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-md);
-}
-.reposts-modal-card {
-  padding: var(--space-md);
-  background: var(--color-bg-page);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-lg);
-}
-.reposts-modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-sm);
-  margin-bottom: 10px;
-}
-.reposts-modal-platform {
-  font-weight: 600;
-  color: var(--color-text-primary);
-  font-size: var(--font-body);
-}
-.reposts-modal-time {
-  flex-shrink: 0;
-  font-size: var(--font-small);
-  color: var(--color-primary);
-  font-weight: 500;
-}
-.reposts-modal-field {
-  display: flex;
-  gap: var(--space-sm);
-  font-size: var(--font-small);
-  line-height: 1.6;
-}
-.reposts-modal-field + .reposts-modal-field {
-  margin-top: 6px;
-}
-.reposts-modal-label {
-  flex-shrink: 0;
-  color: var(--color-text-secondary);
-  width: 60px;
-}
-.reposts-modal-value {
-  flex: 1;
-  color: var(--color-text-regular);
-}
-.reposts-modal-tags {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.reposts-modal-tag {
-  padding: 2px 8px;
-  background: var(--color-primary-bg);
-  color: var(--color-primary);
-  border-radius: 10px;
-  font-size: 12px;
 }
 
 /* 本周数据弹窗 */
@@ -3139,11 +2976,11 @@ function statusText(status) {
     padding: 16px;
   }
   .toolbox-grid {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
   }
   .toolbox-item {
-    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3153,6 +2990,7 @@ function statusText(status) {
     border: none;
     border-radius: 0;
     box-shadow: none;
+    min-width: 0;
   }
   .toolbox-item:hover {
     box-shadow: none;
@@ -3221,7 +3059,7 @@ function statusText(status) {
     background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
   }
   .generation-item.generating {
-    background: #fffbe6;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
   }
   .generation-item.failed {
     background: #fff1f0;
@@ -3243,7 +3081,7 @@ function statusText(status) {
     background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
   }
   .generation-item.generating:hover {
-    background: #fffbe6;
+    background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);
   }
   .generation-item.failed:hover {
     background: #fff1f0;
@@ -3299,7 +3137,6 @@ function statusText(status) {
     gap: 6px;
     padding-top: 4px;
   }
-  .repost-btn.ant-btn-link,
   .view-article-btn.ant-btn-link {
     height: 26px;
     padding: 0 8px;
@@ -3308,13 +3145,6 @@ function statusText(status) {
     font-weight: 500;
     line-height: 26px;
     border: none;
-  }
-  .repost-btn.ant-btn-link {
-    background: #ffffff;
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary-light);
-  }
-  .view-article-btn.ant-btn-link {
     background: #ffffff;
     color: var(--color-text-secondary);
     border: 1px solid rgba(0, 0, 0, 0.06);
@@ -3322,7 +3152,6 @@ function statusText(status) {
 
   /* 弹框统一宽度 */
   :global(.publish-modal .ant-modal),
-  :global(.reposts-modal .ant-modal),
   :global(.account-modal .ant-modal),
   :global(.weekly-data-modal .ant-modal),
   :global(.withdraw-modal .ant-modal),
@@ -3436,4 +3265,29 @@ function statusText(status) {
   border-radius: var(--radius-md);
 }
 
+</style>
+
+<style>
+/* 停止任务确认弹框：使用主题色 */
+.stop-task-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:hover,
+.stop-task-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
+}
+
+.stop-task-confirm-modal .ant-btn-primary:disabled {
+  background: rgba(255, 36, 66, 0.4);
+  border-color: transparent;
+  color: #fff;
+}
 </style>

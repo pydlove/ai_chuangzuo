@@ -18,9 +18,12 @@
 
     <div v-else class="preview-content">
       <div class="preview-article" :style="{ background: templateStyle.bg, fontFamily: templateStyle.font }">
-        <h1 class="article-title" :style="{ color: templateStyle.titleColor, fontSize: templateStyle.titleSize, textAlign: templateStyle.titleAlign || 'left' }">{{ article.title }}</h1>
-        <div class="article-meta" :style="{ color: templateStyle.metaColor, borderBottomColor: templateStyle.metaBorder, textAlign: templateStyle.metaAlign || 'left' }">
-          <span>{{ formatDate(article.completedAt) }}</span>
+        <h1 class="article-title" :style="titleStyle">
+          <span v-if="templateStyle.titleIcon" class="article-title-icon" style="margin-right: 8px; font-size: 1.1em;">{{ templateStyle.titleIcon }}</span>
+          {{ article.title }}
+        </h1>
+        <div class="article-meta" :style="metaStyle">
+          <span>{{ formatDateTime(article.completedAt) }}</span>
           <span>·</span>
           <span>约 {{ displayWordCount }} 字</span>
           <span class="article-style-badge">
@@ -47,7 +50,7 @@
 
       <!-- 发布描述 -->
       <div class="publish-meta-card">
-        <div class="meta-section-title">发布描述</div>
+        <SectionTitle title="发布描述" size="sm" />
         <textarea
           v-model="publishDesc"
           class="publish-desc-input"
@@ -57,56 +60,60 @@
           <button class="meta-btn primary" @click="copyDesc">复制描述</button>
         </div>
 
-        <div class="meta-section-title with-badge" style="margin-top: 24px;" :class="{ disabled: !canUseSeoKeywords }">
-          <span class="meta-section-title-left">
-            <span>推荐标签</span>
-            <a-popover
-              placement="topLeft"
-              :open="tagHelpOpen"
-              overlay-class-name="tag-help-popover"
-            >
-              <template #content>
-                <div
-                  class="tag-help-panel"
-                  @mouseenter="openTagHelp"
-                  @mouseleave="scheduleCloseTagHelp"
-                >
-                  <div class="tag-help-tabs">
-                    <span
-                      v-for="p in tagPlatforms"
-                      :key="p.key"
-                      :class="['tag-help-tab', { active: p.key === activeTagPlatform }]"
-                      @click="selectTagPlatform(p.key)"
-                    >{{ p.name }}</span>
-                  </div>
-                  <ol class="tag-help-steps">
-                    <li v-for="(s, i) in currentTagTip.steps" :key="i">{{ s }}</li>
-                  </ol>
-                  <div
-                    v-if="currentTagTip.image"
-                    class="tag-help-img-wrap"
-                    @click="openTagImgPreview"
-                  >
-                    <img
-                      class="tag-help-img"
-                      :src="currentTagTip.image"
-                      :alt="`${currentTagTip.name}标签设置示意`"
-                    />
-                    <span class="tag-help-img-hint">点击放大查看</span>
-                  </div>
-                  <div class="tag-help-footer">标签贵精不贵多，挑 3~5 个和内容最匹配的即可。</div>
-                </div>
-              </template>
-              <QuestionCircleOutlined
-                class="tag-help-icon"
+        <SectionTitle
+          size="sm"
+          style="margin-top: 24px;"
+          :disabled="!canUseSeoKeywords"
+        >
+          <span>推荐标签</span>
+          <a-popover
+            placement="topLeft"
+            :open="tagHelpOpen"
+            overlay-class-name="tag-help-popover"
+          >
+            <template #content>
+              <div
+                class="tag-help-panel"
                 @mouseenter="openTagHelp"
                 @mouseleave="scheduleCloseTagHelp"
-                @click.stop="toggleTagHelp"
-              />
-            </a-popover>
-          </span>
-          <span v-if="!canUseSeoKeywords" class="pro-badge-mini">需{{ SEO_MIN_PLAN.name }}</span>
-        </div>
+              >
+                <div class="tag-help-tabs">
+                  <span
+                    v-for="p in tagPlatforms"
+                    :key="p.key"
+                    :class="['tag-help-tab', { active: p.key === activeTagPlatform }]"
+                    @click="selectTagPlatform(p.key)"
+                  >{{ p.name }}</span>
+                </div>
+                <ol class="tag-help-steps">
+                  <li v-for="(s, i) in currentTagTip.steps" :key="i">{{ s }}</li>
+                </ol>
+                <div
+                  v-if="currentTagTip.image"
+                  class="tag-help-img-wrap"
+                  @click="openTagImgPreview"
+                >
+                  <img
+                    class="tag-help-img"
+                    :src="currentTagTip.image"
+                    :alt="`${currentTagTip.name}标签设置示意`"
+                  />
+                  <span class="tag-help-img-hint">点击放大查看</span>
+                </div>
+                <div class="tag-help-footer">标签贵精不贵多，挑 3~5 个和内容最匹配的即可。</div>
+              </div>
+            </template>
+            <QuestionCircleOutlined
+              class="tag-help-icon"
+              @mouseenter="openTagHelp"
+              @mouseleave="scheduleCloseTagHelp"
+              @click.stop="toggleTagHelp"
+            />
+          </a-popover>
+          <template #right>
+            <span v-if="!canUseSeoKeywords" class="pro-badge-mini">需{{ SEO_MIN_PLAN.name }}</span>
+          </template>
+        </SectionTitle>
         <div class="publish-tags" :class="{ disabled: !canUseSeoKeywords }">
           <template v-if="canUseSeoKeywords">
             <span
@@ -127,30 +134,77 @@
           >复制全部标签</button>
         </div>
 
-        <!-- 一文多发方案 -->
-        <div class="meta-section-title" style="margin-top: 28px;">冷启动策略</div>
-        <div v-if="repostsLoading" class="reposts-loading">
-          <span class="reposts-loading-dot"></span>
-          小爱正在准备发布方案…
-        </div>
-        <div v-else-if="!coldStartPlan" class="reposts-empty">暂无冷启动策略</div>
-        <div v-else class="coldstart-card">
-          <div class="coldstart-duration">{{ coldStartPlan.duration || '发布后 30 分钟内' }}</div>
-          <ol class="coldstart-list">
-            <li v-for="(action, idx) in coldStartPlan.immediateActions" :key="idx">{{ action }}</li>
-          </ol>
-          <div v-if="coldStartPlan.sharingTips" class="coldstart-share">
-            💡 {{ coldStartPlan.sharingTips }}
+        <!-- 质量检测报告 -->
+        <div v-if="article?.aiDetectReport?.score != null" class="ai-detect-card">
+          <SectionTitle title="质量检测报告" size="sm" style="margin-top: 28px;" />
+          <div class="ai-detect-score-row">
+            <div class="ai-detect-score-value">{{ article.aiDetectReport.score }}</div>
+            <div
+              class="ai-detect-level"
+              :class="'level-' + (article.aiDetectReport.qualityLevel || '')"
+            >
+              {{ article.aiDetectReport.qualityLevel }}
+            </div>
+          </div>
+          <div v-if="article.aiDetectReport.summary" class="ai-detect-summary">
+            {{ article.aiDetectReport.summary }}
           </div>
         </div>
 
-        <div class="meta-section-title" style="margin-top: 28px;">一文多发方案</div>
+        <!-- 发布建议 -->
+        <SectionTitle title="发布建议" size="sm" style="margin-top: 28px;" />
+        <div v-if="publishPlanLoading" class="reposts-loading">
+          <span class="reposts-loading-dot"></span>
+          小爱正在准备发布建议…
+        </div>
+        <div v-else-if="!publishPlan" class="reposts-empty">
+          <div v-if="!publishPlanGenerated">
+            还没生成发布建议，点击生成发布建议，小爱为您定制发布建议
+          </div>
+          <div v-else>暂无发布建议</div>
+          <button
+            class="meta-btn primary"
+            style="margin-top: 12px;"
+            :disabled="publishPlanLoading"
+            @click="handleGeneratePublishPlan"
+          >
+            生成发布建议
+          </button>
+        </div>
+        <div v-else class="coldstart-card">
+          <div class="coldstart-duration">{{ publishPlan.mainPlatform?.publishTime || '-' }}</div>
+          <div class="coldstart-share" v-if="publishPlan.mainPlatform?.reason">
+            🎯 {{ publishPlan.mainPlatform.reason }}
+          </div>
+          <ol class="coldstart-list" v-if="publishPlan.coldStart?.immediateActions?.length">
+            <li v-for="(action, idx) in publishPlan.coldStart.immediateActions" :key="idx">{{ action }}</li>
+          </ol>
+          <div v-if="publishPlan.coldStart?.sharingTips" class="coldstart-share">
+            💡 {{ publishPlan.coldStart.sharingTips }}
+          </div>
+        </div>
+
+        <!-- 一文多发方案 -->
+        <SectionTitle title="一文多发方案" size="sm" style="margin-top: 28px;" />
         <div v-if="repostsLoading" class="reposts-loading">
           <span class="reposts-loading-dot"></span>
           小爱正在准备多平台发布方案…
         </div>
         <div v-else-if="repostsError" class="reposts-error">{{ repostsError }}</div>
-        <div v-else-if="!repostsPlan.length" class="reposts-empty">暂无多平台发布方案</div>
+        <div v-else-if="!repostsPlan.length" class="reposts-empty">
+          <div v-if="!repostsGenerated">
+            还没生成一文多发方案，点击生成一文多发方案，小爱为您定制多平台发布计划
+          </div>
+          <div v-else>暂无多平台发布方案</div>
+          <button
+            class="meta-btn primary"
+            style="margin-top: 12px;"
+            :disabled="repostsLoading"
+            @click="handleGenerateReposts"
+          >
+            生成一文多发方案
+          </button>
+        </div>
         <div v-else class="reposts-list">
           <div
             v-for="(item, idx) in repostsPlan"
@@ -238,7 +292,7 @@
                   {{ tab.label }}
                 </button>
               </div>
-              <div v-if="titleOptLoading" class="title-opt-loading">灵犀同学正在为您推荐，请稍等…</div>
+              <div v-if="titleOptLoading" class="title-opt-loading">小爱正在为您推荐，请稍等…</div>
               <div v-else class="title-opt-list">
                 <div
                   v-for="(title, index) in currentPlatformTitles"
@@ -275,6 +329,26 @@
         </div>
       </Transition>
     </Teleport>
+    <!-- 微信内导出：公开下载链接弹窗 -->
+    <a-modal
+      v-model:open="exportLinkModalVisible"
+      title="微信内请用浏览器下载"
+      :footer="null"
+      :closable="true"
+      :mask-closable="true"
+      width="360px"
+      class="export-link-modal"
+      @cancel="closeExportLinkModal"
+    >
+      <div class="export-link-body">
+        <p class="export-link-tip">微信内无法直接下载文件，请点击下方按钮复制链接，并在系统浏览器中打开，即可自动下载 Word 文档。</p>
+        <div class="export-link-url">{{ exportLinkUrl }}</div>
+        <div class="export-link-actions">
+          <button class="export-link-btn primary" @click="copyExportLink">复制下载链接</button>
+          <button class="export-link-btn" @click="openExportLink">立即打开浏览器</button>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -288,11 +362,15 @@ const route = useRoute()
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
-import { getArticle, updateArticle, optimizeTitles } from '@/api/article.js'
+import { getArticle, updateArticle, optimizeTitles, getExportToken } from '@/api/article.js'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { generatePublishPlan } from '@/api/selfMediaPlan.js'
+import SectionTitle from '@/components/common/SectionTitle.vue'
+import { getCachedPublishPlan, generatePublishPlan } from '@/composables/usePublishPlan.js'
+import { PLATFORM_NAME_MAP } from '@/utils/platform.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useCopy } from '@/composables/useCopy.js'
+import { formatDateTime } from '@/utils/format.js'
+import { stripHtml } from '@/utils/html.js'
 
 const article = ref(null)
 const publishDesc = ref('')
@@ -300,7 +378,66 @@ const publishTags = ref([])
 const repostsPlan = ref([])
 const repostsLoading = ref(false)
 const repostsError = ref('')
-const coldStartPlan = ref(null)
+const repostsGenerated = ref(false)
+const publishPlan = ref(null)
+const publishPlanLoading = ref(false)
+const publishPlanGenerated = ref(false)
+
+const isWechat = /MicroMessenger/i.test(navigator.userAgent) && /Mobile/i.test(navigator.userAgent)
+
+const exportLinkModalVisible = ref(false)
+const exportLinkUrl = ref('')
+
+const closeExportLinkModal = () => {
+  exportLinkModalVisible.value = false
+  exportLinkUrl.value = ''
+}
+
+const buildExportLink = (token) => {
+  return `${window.location.origin}/api/v1/public/articles/export/${token}`
+}
+
+const copyToClipboard = async (text) => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text)
+      return true
+    }
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.position = 'fixed'
+    textarea.style.left = '-9999px'
+    textarea.style.top = '0'
+    textarea.style.opacity = '0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    const result = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return result
+  } catch (e) {
+    return false
+  }
+}
+
+const copyExportLink = async () => {
+  const copied = await copyToClipboard(exportLinkUrl.value)
+  if (copied) {
+    message.success('下载链接已复制')
+  } else {
+    message.warning('复制失败，请长按链接手动复制')
+  }
+}
+
+const openExportLink = () => {
+  window.open(exportLinkUrl.value, '_blank')
+}
+
+const requestExportToken = async (bizNo) => {
+  const token = await getExportToken(bizNo)
+  exportLinkUrl.value = buildExportLink(token)
+  exportLinkModalVisible.value = true
+}
 
 // 会员权益：AI 标题优化仅 pro/flagship 可用
 const { hasBenefit, loadBenefits, loaded } = useBenefits()
@@ -468,7 +605,8 @@ const loadArticle = async () => {
       skillName: fresh.skillName,
       platform: fresh.platform,
       template: fresh.template,
-      styleOverrides: fresh.styleOverrides
+      styleOverrides: fresh.styleOverrides,
+      aiDetectReport: fresh.aiDetectReport
     }
     // 发布描述 + 推荐标签：pipeline 第 13 阶段 AI 生成，随文章落库
     publishDesc.value = fresh.description || ''
@@ -477,47 +615,76 @@ const loadArticle = async () => {
     if (fresh.platform && tagPlatforms.some(p => p.key === fresh.platform)) {
       activeTagPlatform.value = fresh.platform
     }
-    // 一文多发方案：根据文章标题和平台生成
-    loadRepostsPlan(fresh.title, fresh.platform)
+    // 发布建议 / 一文多发：进入详情页先查询缓存，有则展示，无则显示生成引导
+    loadPublishPlanIfExists(fresh.platform)
+    loadRepostsPlanIfExists(fresh.platform)
   } catch (e) {
-    console.warn('preview 加载 article 失败', e)
     message.error('加载文章失败，请稍后重试')
   }
 }
 
-const loadRepostsPlan = async (title, platform) => {
-  if (!title || !platform) return
+const loadPublishPlanIfExists = async (platform) => {
+  if (!platform) return
+  publishPlanLoading.value = true
+  try {
+    const mainPlatform = PLATFORM_NAME_MAP[platform] || platform
+    publishPlan.value = await getCachedPublishPlan(mainPlatform)
+  } catch (e) {
+    publishPlan.value = null
+  } finally {
+    publishPlanLoading.value = false
+    publishPlanGenerated.value = true
+  }
+}
+
+const handleGeneratePublishPlan = async () => {
+  if (!article.value?.platform) return
+  publishPlanLoading.value = true
+  try {
+    const mainPlatform = PLATFORM_NAME_MAP[article.value.platform] || article.value.platform
+    publishPlan.value = await generatePublishPlan(mainPlatform)
+  } catch (e) {
+    message.error(e?.message || '生成发布建议失败，请重试')
+  } finally {
+    publishPlanLoading.value = false
+    publishPlanGenerated.value = true
+  }
+}
+
+const loadRepostsPlanIfExists = async (platform) => {
+  if (!platform) return
   repostsLoading.value = true
   repostsError.value = ''
-  repostsPlan.value = []
-  coldStartPlan.value = null
   try {
-    const platformMeta = tagPlatforms.find(p => p.key === platform)
-    const mainPlatform = platformMeta?.name || platform
-    const res = await generatePublishPlan({ articleTitle: title.trim(), mainPlatform: mainPlatform.trim() })
-    repostsPlan.value = res?.data?.reposts || []
-    coldStartPlan.value = res?.data?.coldStart || null
+    const mainPlatform = PLATFORM_NAME_MAP[platform] || platform
+    const data = await getCachedPublishPlan(mainPlatform)
+    repostsPlan.value = data?.reposts || []
   } catch (e) {
-    console.warn('加载一文多发方案失败', e)
+    repostsPlan.value = []
     repostsError.value = e?.message || '加载失败'
   } finally {
     repostsLoading.value = false
+    repostsGenerated.value = true
+  }
+}
+
+const handleGenerateReposts = async () => {
+  if (!article.value?.platform) return
+  repostsLoading.value = true
+  repostsError.value = ''
+  try {
+    const mainPlatform = PLATFORM_NAME_MAP[article.value.platform] || article.value.platform
+    const data = await generatePublishPlan(mainPlatform)
+    repostsPlan.value = data?.reposts || []
+  } catch (e) {
+    repostsError.value = e?.message || '生成一文多发方案失败，请重试'
+  } finally {
+    repostsLoading.value = false
+    repostsGenerated.value = true
   }
 }
 
 // 与 WorksIndex 一致：2026-07-15T10:30:00 → "7月15日 14:30"
-const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  if (isNaN(d.getTime())) return ''
-  const month = d.getMonth() + 1
-  const day = d.getDate()
-  const hour = d.getHours().toString().padStart(2, '0')
-  const min = d.getMinutes().toString().padStart(2, '0')
-  return `${month}月${day}日 ${hour}:${min}`
-}
-
-// 编辑态
 const goToEditPage = () => {
   if (!article.value?.id) return
   router.push(`/console/edit/${article.value.id}`)
@@ -602,17 +769,94 @@ const cancelEdit = () => {
   blocks.value = []
 }
 
-function stripHtml(html) {
-  if (!html) return ''
-  const tmp = document.createElement('div')
-  tmp.innerHTML = html
-  return tmp.textContent || tmp.innerText || ''
-}
-
 // 当前文章的模板视觉预设（API 加载，单例缓存）
 const { getByKey, getStyle, getSignature, allSignatureTexts, load: loadExportTemplates } = useExportTemplates()
 const templateStyle = computed(() => getStyle(article.value?.template) || DEFAULT_TEMPLATE_STYLE)
 const templateMeta = computed(() => getByKey(article.value?.template))
+
+const titleStyle = computed(() => {
+  const s = templateStyle.value
+  const style = {
+    color: s.titleColor,
+    fontSize: s.titleSize,
+    textAlign: s.titleAlign || 'left',
+    fontWeight: s.titleFontWeight ?? 700,
+    lineHeight: s.titleLineHeight ?? 1.4,
+    letterSpacing: s.titleLetterSpacing ?? '0em',
+    marginBottom: s.titleMarginBottom ?? '16px'
+  }
+  if (s.titleFontFamily) style.fontFamily = s.titleFontFamily
+  if (s.titleFontStyle) style.fontStyle = s.titleFontStyle
+  if (s.titleTextShadow) style.textShadow = s.titleTextShadow
+  if (s.titleBackground) style.background = s.titleBackground
+  if (s.titlePadding) style.padding = s.titlePadding
+  if (s.titleBorderRadius) style.borderRadius = s.titleBorderRadius
+  if (s.titleBorder) style.border = s.titleBorder
+  if (s.titleTransform) style.textTransform = s.titleTransform
+  if (s.titleDecoration) {
+    style.textDecoration = s.titleDecoration
+    if (s.titleDecorationColor) style.textDecorationColor = s.titleDecorationColor
+    if (s.titleDecorationStyle) style.textDecorationStyle = s.titleDecorationStyle
+  }
+  return style
+})
+
+const metaStyle = computed(() => {
+  const s = templateStyle.value
+  if (s.metaBackground) {
+    return {
+      color: s.metaColor,
+      background: s.metaBackground,
+      padding: s.metaPadding || '6px 12px',
+      borderRadius: s.metaBorderRadius || '999px',
+      textAlign: s.metaAlign || 'left',
+      borderBottom: 'none',
+      marginBottom: '16px'
+    }
+  }
+  return {
+    color: s.metaColor,
+    borderBottom: `1px solid ${s.metaBorder}`,
+    textAlign: s.metaAlign || 'left'
+  }
+})
+
+function styleObjectToCss(obj) {
+  return Object.entries(obj)
+    .map(([k, v]) => {
+      const cssKey = k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase())
+      return `${cssKey}: ${v}`
+    })
+    .join('; ')
+}
+
+function buildHeadingStyle(s) {
+  const style = {
+    fontSize: s.headingSize,
+    fontWeight: s.headingFontWeight ?? 600,
+    color: s.headingColor,
+    margin: s.headingMargin ?? '18px 0 8px',
+    textAlign: s.headingAlign || 'left'
+  }
+  if (s.headingFontFamily) style.fontFamily = s.headingFontFamily
+  if (s.headingLetterSpacing) style.letterSpacing = s.headingLetterSpacing
+  if (s.headingTextTransform) style.textTransform = s.headingTextTransform
+  if (s.headingBackground) {
+    style.background = s.headingBackground
+    style.padding = s.headingPadding || '8px 12px'
+    style.borderRadius = s.headingBorderRadius || '6px'
+  }
+  if (s.headingBorder && s.headingBorder !== 'none') {
+    style.borderLeft = s.headingBorder
+    style.paddingLeft = s.headingPl ? `${s.headingPl}px` : '0'
+  }
+  if (s.headingBorderBottom) {
+    style.borderBottom = s.headingBorderBottom
+    style.paddingBottom = '6px'
+  }
+  if (s.headingTextShadow) style.textShadow = s.headingTextShadow
+  return styleObjectToCss(style)
+}
 
 // 后端 wordCount 为 0 或缺失时（旧数据兼容），按正文实际字符数兜底
 const displayWordCount = computed(() => {
@@ -660,6 +904,10 @@ const formattedBody = computed(() => {
   let body = stripLeadingTitle(article.value.body, (article.value.title || '').trim())
   // 剥离已有的平台签名（pipeline 写死 wechat_default 塞入的 — 完 —）
   body = stripSignatures(body)
+
+  const calloutRadius = s.calloutBorderRadius || '0 6px 6px 0'
+  const calloutShadow = s.calloutShadow || 'none'
+
   // 按段落（\n\n）切分，逐段判断类型；## → h2，### → h3，【...】 → h2（旧格式），其余 → <p>
   const rendered = body.split(/\n\n+/).map(part => {
     const trimmed = part.trim()
@@ -667,34 +915,28 @@ const formattedBody = computed(() => {
     const mdHeading = trimmed.match(/^(#{1,6})\s+(.+)$/)
     if (mdHeading) {
       const level = Math.min(mdHeading[1].length, 3)
-      const borderCss = s.headingBorder && s.headingBorder !== 'none' ? `border-left: ${s.headingBorder}; padding-left: ${s.headingPl || '0'};` : ''
-      const borderBottomCss = s.headingBorderBottom ? `border-bottom: ${s.headingBorderBottom}; padding-bottom: 6px;` : ''
-      const alignCss = s.headingAlign ? `text-align: ${s.headingAlign};` : ''
-      return `<h${level} style="font-size: ${s.headingSize}; font-weight: 600; color: ${s.headingColor}; margin: 18px 0 8px; ${borderCss} ${borderBottomCss} ${alignCss}">${mdHeading[2]}</h${level}>`
+      return `<h${level} style="${buildHeadingStyle(s)}">${mdHeading[2]}</h${level}>`
     }
     const legacyHeading = trimmed.match(/^【([^】]+)】$/)
     if (legacyHeading) {
-      const borderCss = s.headingBorder && s.headingBorder !== 'none' ? `border-left: ${s.headingBorder}; padding-left: ${s.headingPl || '0'};` : ''
-      const borderBottomCss = s.headingBorderBottom ? `border-bottom: ${s.headingBorderBottom}; padding-bottom: 6px;` : ''
-      const alignCss = s.headingAlign ? `text-align: ${s.headingAlign};` : ''
-      return `<h2 style="font-size: ${s.headingSize}; font-weight: 600; color: ${s.headingColor}; margin: 18px 0 8px; ${borderCss} ${borderBottomCss} ${alignCss}">${legacyHeading[1]}</h2>`
+      return `<h2 style="${buildHeadingStyle(s)}">${legacyHeading[1]}</h2>`
     }
     if (trimmed.startsWith('> ')) {
       const calloutText = trimmed.slice(2)
       if (s.calloutVariant === 'pill') {
-        return `<div style="background: #fff0f2; padding: 8px 14px; color: #ff2442; font-size: 13px; line-height: 1.6; border-radius: 20px; margin: 14px 0; display: inline-block;">${calloutText}</div>`
+        return `<div style="background: ${s.calloutBg || '#fff0f2'}; padding: 8px 14px; color: ${s.calloutColor || '#ff2442'}; font-size: 13px; line-height: 1.6; border-radius: ${calloutRadius}; margin: 14px 0; display: inline-block; box-shadow: ${calloutShadow};">${calloutText}</div>`
       }
       if (s.calloutVariant === 'card') {
-        return `<div style="background: #fff; padding: 12px 14px; color: #262626; font-size: 13px; line-height: 1.6; border-radius: 8px; margin: 14px 0; box-shadow: 0 2px 8px rgba(0,0,0,0.08); border-left: 3px solid #07c160;">${calloutText}</div>`
+        return `<div style="background: ${s.calloutBg || '#fff'}; padding: 12px 14px; color: ${s.calloutColor || '#262626'}; font-size: 13px; line-height: 1.6; border-radius: ${calloutRadius}; margin: 14px 0; box-shadow: ${s.calloutShadow || '0 2px 8px rgba(0,0,0,0.08)'}; border-left: 3px solid ${s.headingColor || '#07c160'};">${calloutText}</div>`
       }
       if (s.calloutVariant === 'cta') {
-        return `<div style="background: #fff; padding: 12px 14px; color: #262626; font-size: 13px; line-height: 1.6; border-radius: 6px; margin: 14px 0; border: 2px solid #cf1322; text-align: center;">${calloutText}</div>`
+        return `<div style="background: ${s.calloutBg || '#fff'}; padding: 12px 14px; color: ${s.calloutColor || '#262626'}; font-size: 13px; line-height: 1.6; border-radius: ${calloutRadius}; margin: 14px 0; border: 2px solid ${s.calloutColor || '#cf1322'}; text-align: center; font-weight: 600; box-shadow: ${calloutShadow};">${calloutText}</div>`
       }
       if (s.calloutVariant === 'checklist') {
-        return `<div style="background: #f6ffed; padding: 12px 14px; color: #262626; font-size: 13px; line-height: 1.9; border-radius: 6px; margin: 14px 0;">${calloutText}</div>`
+        return `<div style="background: ${s.calloutBg || '#f6ffed'}; padding: 12px 14px; color: ${s.calloutColor || '#262626'}; font-size: 13px; line-height: 1.9; border-radius: ${calloutRadius}; margin: 14px 0; box-shadow: ${calloutShadow};">${calloutText}</div>`
       }
       const borderStyle = s.calloutBorder && s.calloutBorder !== 'none' ? `border-left: ${s.calloutBorder};` : 'border: none;'
-      return `<div style="background: ${s.calloutBg || '#f6ffed'}; ${borderStyle} padding: 12px 14px; color: ${s.calloutColor || '#262626'}; font-size: 13px; line-height: 1.6; border-radius: 0 6px 6px 0; margin: 14px 0;">${calloutText}</div>`
+      return `<div style="background: ${s.calloutBg || '#f6ffed'}; ${borderStyle} padding: 12px 14px; color: ${s.calloutColor || '#262626'}; font-size: 13px; line-height: 1.6; border-radius: ${calloutRadius}; margin: 14px 0; box-shadow: ${calloutShadow};">${calloutText}</div>`
     }
     const alignCss = s.bodyAlign ? `text-align: ${s.bodyAlign};` : ''
     return `<p style="margin-bottom: 16px; font-size: ${s.bodySize}; line-height: ${s.bodyLine}; color: ${s.bodyColor}; ${alignCss}">${trimmed.replace(/\n/g, '<br>')}</p>`
@@ -739,11 +981,32 @@ const copyText = () => {
 }
 
 // 导出 Word
-const exportWord = () => {
+const exportWord = async () => {
   if (!article.value) return
+
+  // 微信内置浏览器不支持 a.download 下载，使用后端临时公开链接
+  if (isWechat) {
+    try {
+      await requestExportToken(article.value.id)
+    } catch (e) {
+      message.error('导出失败，请稍后重试')
+    }
+    return
+  }
 
   const title = article.value.title || '未命名文章'
   const bodyHtml = formattedBody.value
+  const s = templateStyle.value
+  const titleCss = styleObjectToCss(titleStyle.value)
+  const wrapperCss = styleObjectToCss({
+    fontFamily: s.font,
+    color: s.bodyColor,
+    fontSize: s.bodySize,
+    lineHeight: s.bodyLine,
+    padding: '40px'
+  })
+
+  const titleIcon = s.titleIcon ? `<span style="margin-right: 8px; font-size: 1.1em;">${s.titleIcon}</span>` : ''
 
   const html = `
     <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
@@ -751,9 +1014,9 @@ const exportWord = () => {
         <meta charset="UTF-8">
         <title>${title}</title>
       </head>
-      <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; color: #262626;">
-        <h1 style="font-size: 24px; margin-bottom: 16px; line-height: 1.4; color: #1a1a1a;">${title}</h1>
-        <div style="font-size: 16px; line-height: 1.8;">${bodyHtml}</div>
+      <body style="${wrapperCss}">
+        <h1 style="${titleCss}">${titleIcon}${title}</h1>
+        <div>${bodyHtml}</div>
       </body>
     </html>
   `
@@ -999,24 +1262,6 @@ onMounted(() => {
   border-top: 1px solid #f0f0f0;
 }
 
-.meta-section-title {
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 12px;
-  font-size: 15px;
-}
-
-.meta-section-title.with-badge {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.meta-section-title.disabled,
-.meta-section-title.disabled .tag-help-icon {
-  color: #8c8c8c;
-}
-
 .pro-badge-mini {
   padding: 2px 8px;
   border-radius: 999px;
@@ -1239,6 +1484,64 @@ onMounted(() => {
   border-radius: 14px;
   font-size: 13px;
   color: #595959;
+}
+
+/* 质量检测报告 */
+.ai-detect-card {
+  background: #fff;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 24px;
+}
+
+.ai-detect-score-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0 12px;
+}
+
+.ai-detect-score-value {
+  font-size: 48px;
+  font-weight: 700;
+  color: #262626;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.ai-detect-level {
+  padding: 4px 12px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.ai-detect-level.level-低 {
+  background: #ff4d4f;
+}
+
+.ai-detect-level.level-中 {
+  background: #faad14;
+}
+
+.ai-detect-level.level-高 {
+  background: #52c41a;
+}
+
+.ai-detect-level.level-极高 {
+  background: #13c2c2;
+}
+
+.ai-detect-summary {
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.7;
+  padding: 12px;
+  background: #fafafa;
+  border-radius: 8px;
 }
 
 /* 一文多发方案 */
@@ -1754,6 +2057,96 @@ body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled:hover {
   }
 }
 
+/* ============ 微信导出：公开下载链接弹窗 ============ */
+.export-link-body {
+  padding: 4px 4px 8px;
+}
+
+.export-link-tip {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #595959;
+  margin: 0 0 12px;
+}
+
+.export-link-url {
+  font-size: 13px;
+  line-height: 1.5;
+  color: #1a1a1a;
+  word-break: break-all;
+  background: #f5f5f5;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+.export-link-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.export-link-btn {
+  width: 100%;
+  padding: 11px 16px;
+  border: 1px solid #d9d9d9;
+  background: #fff;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-link-btn.primary {
+  background: #ff2442;
+  border-color: #ff2442;
+  color: #fff;
+}
+
+.export-link-btn.primary:hover {
+  background: #e61e3a;
+  border-color: #e61e3a;
+}
+
+.export-link-btn:hover {
+  border-color: #ff2442;
+  color: #ff2442;
+}
+
+/* 深色模式 */
+body[data-theme="dark"] .export-link-tip {
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-link-url {
+  background: #2a2a2a;
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .export-link-btn {
+  background: #2a2a2a;
+  border-color: #434343;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .export-link-btn.primary {
+  background: var(--color-primary, #ff2442);
+  border-color: var(--color-primary, #ff2442);
+  color: #fff;
+}
+
+body[data-theme="dark"] .export-link-btn.primary:hover {
+  background: #ff4d6f;
+  border-color: #ff4d6f;
+}
+
+body[data-theme="dark"] .export-link-btn:hover {
+  color: #f0f0f0;
+  border-color: #ff4d6f;
+}
+
 
 .editing-body .edit-block {
   outline: none;
@@ -1861,13 +2254,24 @@ body[data-theme="dark"] .float-btn.title-opt-btn.is-disabled:hover {
     right: 0;
     bottom: 0;
     padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
-    gap: 6px;
+    gap: 8px;
+  }
+
+  .edit-floating-bar .float-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 6px 14px;
+    font-size: 12px;
   }
 
   .edit-hint {
     font-size: 11px;
     flex: 1;
     min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    margin-right: 4px;
   }
 
   /* 弹框在窄屏下压低高度 */
@@ -1969,12 +2373,6 @@ body[data-theme="dark"] .publish-meta-card {
   border-top-color: #303030;
 }
 
-body[data-theme="dark"] .meta-section-title {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .meta-section-title.disabled,
-body[data-theme="dark"] .meta-section-title.disabled .tag-help-icon,
 body[data-theme="dark"] .publish-tag-placeholder {
   color: #666;
 }
@@ -2015,6 +2413,20 @@ body[data-theme="dark"] .meta-btn.primary:hover {
 }
 
 body[data-theme="dark"] .publish-tag {
+  background: #2a2a2a;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .ai-detect-card {
+  background: #1f1f1f;
+  border-color: #303030;
+}
+
+body[data-theme="dark"] .ai-detect-score-value {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .ai-detect-summary {
   background: #2a2a2a;
   color: #a6a6a6;
 }

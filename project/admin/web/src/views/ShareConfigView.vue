@@ -73,7 +73,7 @@
             :rows="6"
             placeholder="请输入分享文案，支持占位符"
           />
-          <p class="form-tip">可用占位符：{title} 活动标题、{url} 当前页面链接、{code} 邀请码/兑换码。</p>
+          <p class="form-tip">可用占位符：{title} 活动标题、{url} 当前页面链接、{code} 邀请码/兑换码。体验会员场景请使用 {url}。</p>
         </a-form-item>
         <a-row :gutter="16">
           <a-col :span="12">
@@ -126,7 +126,8 @@ const form = reactive({
 
 const sceneOptions = [
   { value: 'lottery', label: '抽奖活动 (lottery)' },
-  { value: 'invite', label: '邀请有礼 (invite)' }
+  { value: 'invite', label: '邀请有礼 (invite)' },
+  { value: 'experience', label: '体验会员 (experience)' }
 ]
 
 const columns = [

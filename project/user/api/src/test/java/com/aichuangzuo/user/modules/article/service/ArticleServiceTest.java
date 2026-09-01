@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.article.service;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.vo.AiDetectReport;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.dto.request.UpdateArticleRequest;
 import com.aichuangzuo.user.modules.article.entity.Article;
@@ -15,6 +16,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.annotation.Rollback;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -61,6 +64,37 @@ class ArticleServiceTest {
         assertEquals("正文内容", stored.getBody());
         assertEquals("xiaohongshu", stored.getPlatform());
         assertEquals(Integer.valueOf(120), stored.getWordCount());
+    }
+
+    @Test
+    void save_shouldPersistAiDetectReport() {
+        User user = createUser("article-ai-detect@test.com");
+
+        AiDetectReport report = new AiDetectReport();
+        report.setAiRate(60);
+        report.setSuspiciousRate(25);
+        report.setHumanRate(15);
+        report.setSummary("AI 特征明显");
+        report.setSuggestions(List.of("加入个人经历", "少用排比"));
+
+        SaveArticleRequest request = new SaveArticleRequest();
+        request.setTitle("AI 检测测试");
+        request.setBody("正文内容");
+        request.setAiDetectReport(report);
+
+        String bizNo = articleService.save(user.getId(), request);
+
+        Article stored = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
+                .eq(Article::getBizNo, bizNo));
+        assertNotNull(stored.getAiDetectReport());
+
+        ArticleVO vo = articleService.get(user.getId(), bizNo);
+        assertNotNull(vo.getAiDetectReport());
+        assertEquals(60, vo.getAiDetectReport().getAiRate());
+        assertEquals(25, vo.getAiDetectReport().getSuspiciousRate());
+        assertEquals(15, vo.getAiDetectReport().getHumanRate());
+        assertEquals("AI 特征明显", vo.getAiDetectReport().getSummary());
+        assertEquals(2, vo.getAiDetectReport().getSuggestions().size());
     }
 
     @Test

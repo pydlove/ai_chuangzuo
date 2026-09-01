@@ -1,9 +1,10 @@
 package com.aichuangzuo.user.modules.article.service.impl;
 
+import com.aichuangzuo.user.infrastructure.security.JwtUtil;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.dto.request.UpdateArticleRequest;
 import com.aichuangzuo.user.modules.article.entity.Article;
-import com.aichuangzuo.user.modules.article.enums.ArticleErrorCode;
+import com.aichuangzuo.shared.enums.error.ArticleErrorCode;
 import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
@@ -19,6 +20,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.aichuangzuo.shared.enums.DeletedFlagEnum;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,9 +28,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -45,12 +50,15 @@ public class ArticleServiceImpl implements ArticleService {
     private final ObjectMapper objectMapper;
     private final SkillMarketMapper skillMarketMapper;
     private final UserSkillMapper userSkillMapper;
+    private final JwtUtil jwtUtil;
+
+    private static final Pattern MARKDOWN_HEADING_PATTERN = Pattern.compile("^(#{1,6})\\s+(.+)$", Pattern.MULTILINE);
 
     @Override
     public ArticlePageVO list(Long userId, String keyword, long page, long pageSize) {
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Article::getUserId, userId)
-                .eq(Article::getIsDeleted, 0)
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                 .orderByDesc(Article::getCompletedAt)
                 .orderByDesc(Article::getId);
         if (StringUtils.hasText(keyword)) {
@@ -76,7 +84,7 @@ public class ArticleServiceImpl implements ArticleService {
         Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                 .eq(Article::getTaskId, taskId)
                 .eq(Article::getUserId, userId)
-                .eq(Article::getIsDeleted, 0)
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                 .last("LIMIT 1"));
         if (article == null) {
             throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
@@ -88,7 +96,7 @@ public class ArticleServiceImpl implements ArticleService {
     public ArticleVO getInternal(String bizNo) {
         Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                 .eq(Article::getBizNo, bizNo)
-                .eq(Article::getIsDeleted, 0));
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode()));
         if (article == null) {
             throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
         }
@@ -108,7 +116,7 @@ public class ArticleServiceImpl implements ArticleService {
             Article existing = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                     .eq(Article::getTaskId, request.getTaskId())
                     .eq(Article::getUserId, userId)
-                    .eq(Article::getIsDeleted, 0)
+                    .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                     .last("LIMIT 1"));
             if (existing != null) {
                 log.info("taskId={} 已存在作品，直接返回已有 bizNo={}", request.getTaskId(), existing.getBizNo());
@@ -128,6 +136,7 @@ public class ArticleServiceImpl implements ArticleService {
         article.setTemplate(request.getTemplate());
         article.setDescription(StringUtils.hasText(request.getDescription()) ? request.getDescription().trim() : null);
         article.setTagsJson(toTagsJson(request.getTags()));
+        article.setAiDetectReport(toAiDetectReportJson(request.getAiDetectReport()));
         article.setWordCount(request.getWordCount() == null ? 0 : Math.max(0, request.getWordCount()));
         article.setCompletedAt(request.getCompletedAt() != null ? request.getCompletedAt() : LocalDateTime.now());
         articleMapper.insert(article);
@@ -142,7 +151,7 @@ public class ArticleServiceImpl implements ArticleService {
         LambdaUpdateWrapper<Article> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Article::getUserId, userId)
                 .eq(Article::getBizNo, bizNo)
-                .eq(Article::getIsDeleted, 0);
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode());
         boolean touched = false;
         if (StringUtils.hasText(request.getTitle())) {
             wrapper.set(Article::getTitle, request.getTitle().trim());
@@ -169,15 +178,15 @@ public class ArticleServiceImpl implements ArticleService {
         articleMapper.update(null, new LambdaUpdateWrapper<Article>()
                 .eq(Article::getUserId, userId)
                 .eq(Article::getBizNo, bizNo)
-                .eq(Article::getIsDeleted, 0)
-                .set(Article::getIsDeleted, 1));
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
+                .set(Article::getIsDeleted, DeletedFlagEnum.DELETED.getCode()));
     }
 
     private Article mustFind(Long userId, String bizNo) {
         Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
                 .eq(Article::getUserId, userId)
                 .eq(Article::getBizNo, bizNo)
-                .eq(Article::getIsDeleted, 0));
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode()));
         if (article == null) {
             throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
         }
@@ -196,6 +205,7 @@ public class ArticleServiceImpl implements ArticleService {
         vo.setTemplate(article.getTemplate());
         vo.setDescription(article.getDescription());
         vo.setTags(parseTags(article.getTagsJson()));
+        vo.setAiDetectReport(parseAiDetectReport(article.getAiDetectReport()));
         vo.setWordCount(article.getWordCount());
         vo.setCompletedAt(article.getCompletedAt());
         vo.setCreatedAt(article.getCreatedAt());
@@ -215,7 +225,7 @@ public class ArticleServiceImpl implements ArticleService {
         SkillMarket market = skillMarketMapper.selectOne(
                 new LambdaQueryWrapper<SkillMarket>()
                         .eq(SkillMarket::getBizNo, skill)
-                        .eq(SkillMarket::getIsDeleted, 0)
+                        .eq(SkillMarket::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                         .last("LIMIT 1"));
         if (market != null && StringUtils.hasText(market.getSkillName())) {
             return market.getSkillName();
@@ -223,7 +233,7 @@ public class ArticleServiceImpl implements ArticleService {
         UserSkill userSkill = userSkillMapper.selectOne(
                 new LambdaQueryWrapper<UserSkill>()
                         .eq(UserSkill::getBizNo, skill)
-                        .eq(UserSkill::getIsDeleted, 0)
+                        .eq(UserSkill::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                         .last("LIMIT 1"));
         if (userSkill != null && StringUtils.hasText(userSkill.getSkillName())) {
             return userSkill.getSkillName();
@@ -276,6 +286,30 @@ public class ArticleServiceImpl implements ArticleService {
         }
     }
 
+    private String toAiDetectReportJson(com.aichuangzuo.shared.vo.AiDetectReport report) {
+        if (report == null) {
+            return null;
+        }
+        try {
+            return objectMapper.writeValueAsString(report);
+        } catch (JsonProcessingException e) {
+            log.warn("AI 检测报告序列化失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    private com.aichuangzuo.shared.vo.AiDetectReport parseAiDetectReport(String raw) {
+        if (!StringUtils.hasText(raw)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(raw, com.aichuangzuo.shared.vo.AiDetectReport.class);
+        } catch (JsonProcessingException e) {
+            log.warn("AI 检测报告解析失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
     @Override
     public Long monthlyCount(Long userId) {
         LocalDateTime now = LocalDateTime.now();
@@ -283,7 +317,7 @@ public class ArticleServiceImpl implements ArticleService {
         LocalDateTime end = start.plusMonths(1);
         LambdaQueryWrapper<Article> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Article::getUserId, userId)
-                .eq(Article::getIsDeleted, 0)
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
                 .ge(Article::getCompletedAt, start)
                 .lt(Article::getCompletedAt, end);
         return articleMapper.selectCount(wrapper);
@@ -291,5 +325,77 @@ public class ArticleServiceImpl implements ArticleService {
 
     private String generateBizNo() {
         return "A" + UUID.randomUUID().toString().replace("-", "").substring(0, 16);
+    }
+
+    @Override
+    public String generateExportToken(Long userId, String bizNo) {
+        mustFind(userId, bizNo);
+        return jwtUtil.generateExportToken(bizNo);
+    }
+
+    @Override
+    public String parseExportToken(String token) {
+        return jwtUtil.parseExportToken(token);
+    }
+
+    @Override
+    public byte[] exportAsWord(String bizNo) {
+        Article article = articleMapper.selectOne(new LambdaQueryWrapper<Article>()
+                .eq(Article::getBizNo, bizNo)
+                .eq(Article::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode()));
+        if (article == null) {
+            throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
+        }
+        String title = StringUtils.hasText(article.getTitle()) ? article.getTitle() : "未命名文章";
+        String body = article.getBody() == null ? "" : article.getBody();
+        String html = buildWordHtml(title, body);
+        byte[] bytes = html.getBytes(StandardCharsets.UTF_8);
+        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] result = new byte[bom.length + bytes.length];
+        System.arraycopy(bom, 0, result, 0, bom.length);
+        System.arraycopy(bytes, 0, result, bom.length, bytes.length);
+        return result;
+    }
+
+    private String buildWordHtml(String title, String body) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" xmlns=\"http://www.w3.org/1999/xhtml\">");
+        sb.append("<head><meta charset=\"UTF-8\"><title>").append(escapeHtml(title)).append("</title></head>");
+        sb.append("<body style=\"font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:40px;color:#262626;\">");
+        sb.append("<h1 style=\"font-size:24px;margin-bottom:16px;line-height:1.4;color:#1a1a1a;\">").append(escapeHtml(title)).append("</h1>");
+        sb.append("<div style=\"font-size:16px;line-height:1.8;\">");
+
+        String[] paragraphs = body.split("\\n\\n+");
+        for (String part : paragraphs) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            Matcher matcher = MARKDOWN_HEADING_PATTERN.matcher(trimmed);
+            if (matcher.find()) {
+                int level = Math.min(matcher.group(1).length(), 3);
+                int fontSize = level == 1 ? 24 : (level == 2 ? 20 : 18);
+                String heading = matcher.group(2);
+                sb.append("<h").append(level)
+                        .append(" style=\"font-size:").append(fontSize).append("px;font-weight:600;margin:18px 0 8px;color:#1a1a1a;\">")
+                        .append(escapeHtml(heading)).append("</h").append(level).append(">");
+            } else {
+                sb.append("<p style=\"margin-bottom:16px;\">").append(escapeHtml(trimmed).replace("\n", "<br>")).append("</p>");
+            }
+        }
+
+        sb.append("</div></body></html>");
+        return sb.toString();
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 }

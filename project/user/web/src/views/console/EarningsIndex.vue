@@ -5,45 +5,35 @@
       <p class="account-subtitle">查看账户余额、收益明细</p>
     </div>
 
-    <div class="account-tabs">
-      <button
-        :class="['account-tab', { active: activeTab === 'overview' }]"
-        @click="activeTab = 'overview'"
-      >
-        账户明细
-      </button>
-      <button
-        :class="['account-tab', { active: activeTab === 'earnings' }]"
-        @click="activeTab = 'earnings'"
-      >
-        收益明细
-      </button>
-    </div>
+    <Tabs
+      v-model="activeTab"
+      :tabs="[
+        { label: '账户明细', value: 'overview' },
+        { label: '收益明细', value: 'earnings' }
+      ]"
+      variant="segment"
+      active-type="surface"
+      :scrollable="false"
+    />
 
     <!-- 账户明细 -->
     <div v-show="activeTab === 'overview'" class="account-content">
-      <div class="account-stats">
-        <div class="account-stat-card primary">
-          <div class="account-stat-value">{{ summary.coinBalance.toFixed(2) }} <span class="account-stat-unit">创作币</span></div>
-          <div class="account-stat-label-row">
-            <CoinInfoTooltip>
-              <div class="account-stat-label account-stat-label-tooltip">
-                <span>账户余额</span>
-                <svg class="account-info-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="10"/>
-                  <line x1="12" y1="16" x2="12" y2="12"/>
-                  <line x1="12" y1="8" x2="12.01" y2="8"/>
-                </svg>
-              </div>
-            </CoinInfoTooltip>
-            <button class="account-stat-withdraw" @click="goToWithdraw">去提现</button>
-          </div>
-        </div>
-        <div class="account-stat-card">
-          <div class="account-stat-value">{{ summary.totalEarnings.toFixed(2) }}</div>
-          <div class="account-stat-label">累计收益</div>
-        </div>
-      </div>
+      <StatCardGroup :columns="2">
+        <StatCard variant="primary" value-first :value="summary.coinBalance.toFixed(2)" unit="创作币">
+          <template #label>
+            <div class="account-stat-label-row">
+              <CoinInfoTooltip>
+                <div class="account-stat-label account-stat-label-tooltip">
+                  <span>账户余额</span>
+                  <Icon name="info" class="account-info-icon" :size="14" />
+                </div>
+              </CoinInfoTooltip>
+              <button class="account-stat-withdraw" @click="goToWithdraw">去提现</button>
+            </div>
+          </template>
+        </StatCard>
+        <StatCard variant="flat" value-first :value="summary.totalEarnings.toFixed(2)" label="累计收益" />
+      </StatCardGroup>
 
       <div class="account-section">
         <div class="account-section-header">
@@ -51,10 +41,11 @@
         </div>
         <EmptyState v-if="monthlyList.length === 0" title="还没有收益" description="看看怎么赚创作币" action-text="查看指南" :action-handler="openGuide" size="md" />
         <div v-else class="monthly-list">
-          <div
+          <ListCard
             v-for="item in monthlyList"
             :key="item.month"
-            class="monthly-item"
+            :hover="false"
+            custom-class="monthly-item"
           >
             <div class="monthly-info">
               <div class="monthly-title">{{ item.month }}</div>
@@ -66,7 +57,7 @@
                 <span class="monthly-amount-value">{{ item.total.toFixed(2) }}</span>
               </div>
             </div>
-          </div>
+          </ListCard>
         </div>
       </div>
     </div>
@@ -171,10 +162,11 @@
       <div v-if="activeFilter === 'monthly'" class="account-section">
         <EmptyState v-if="monthlyList.length === 0" title="暂无排行榜月度奖励" compact size="sm" />
         <div v-else class="monthly-list">
-          <div
+          <ListCard
             v-for="item in monthlyList"
             :key="item.month"
-            class="monthly-item"
+            :hover="false"
+            custom-class="monthly-item"
           >
             <div class="monthly-info">
               <div class="monthly-title">{{ item.month }}</div>
@@ -186,7 +178,7 @@
                 <span class="monthly-amount-value">{{ item.total.toFixed(2) }}</span>
               </div>
             </div>
-          </div>
+          </ListCard>
         </div>
       </div>
 
@@ -234,6 +226,11 @@ import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import { useEarnings } from '@/composables/useEarnings.js'
 import { useCopy } from '@/composables/useCopy.js'
 import EmptyState from '@/components/common/EmptyState.vue'
+import Tabs from '@/components/common/Tabs.vue'
+import Icon from '@/components/common/Icon.vue'
+import StatCard from '@/components/common/StatCard.vue'
+import StatCardGroup from '@/components/common/StatCardGroup.vue'
+import ListCard from '@/components/common/ListCard.vue'
 
 const router = useRouter()
 const {
@@ -347,68 +344,10 @@ onMounted(() => {
   margin: 0;
 }
 
-.account-tabs {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 20px;
-  background: #f5f5f5;
-  padding: 4px;
-  border-radius: 8px;
-  width: fit-content;
-}
-
-.account-tab {
-  padding: 8px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 6px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.account-tab.active {
-  background: #fff;
-  color: #1a1a1a;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-}
-
 .account-content {
   display: flex;
   flex-direction: column;
   gap: 20px;
-}
-
-.account-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.account-stat-card {
-  background: #fff;
-  border: 1px solid #f0f0f0;
-  border-radius: 12px;
-  padding: 18px 20px;
-}
-
-.account-stat-card.primary {
-  background: linear-gradient(135deg, #fff0f2 0%, #fff 100%);
-  border-color: #ffd1d9;
-}
-
-.account-stat-value {
-  font-size: 24px;
-  font-weight: 700;
-  color: #ff2442;
-  margin-bottom: 6px;
-}
-
-.account-stat-label {
-  font-size: 13px;
-  color: #8c8c8c;
 }
 
 .account-stat-label-tooltip {
@@ -433,13 +372,6 @@ onMounted(() => {
 
 .account-stat-label-tooltip:hover .account-info-icon {
   color: #ff2442;
-}
-
-.account-stat-unit {
-  font-size: 13px;
-  font-weight: 500;
-  color: #595959;
-  margin-left: 4px;
 }
 
 .account-stat-label-row {
@@ -523,6 +455,12 @@ onMounted(() => {
   padding: 14px 16px;
   background: #fafafa;
   border-radius: 10px;
+  box-shadow: none;
+}
+
+.monthly-item:hover {
+  transform: none;
+  border-color: #f0f0f0;
 }
 
 .monthly-title {
@@ -786,10 +724,6 @@ onMounted(() => {
 }
 
 @media (max-width: 900px) {
-  .account-stats {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
   .monthly-item {
     flex-direction: column;
     align-items: flex-start;
@@ -798,12 +732,6 @@ onMounted(() => {
   .monthly-amounts {
     width: 100%;
     justify-content: space-between;
-  }
-}
-
-@media (max-width: 600px) {
-  .account-stats {
-    grid-template-columns: 1fr;
   }
 }
 
@@ -824,7 +752,6 @@ body[data-theme="dark"] .monthly-amount-value {
 
 body[data-theme="dark"] .account-subtitle,
 body[data-theme="dark"] .account-stat-label,
-body[data-theme="dark"] .account-stat-unit,
 body[data-theme="dark"] .account-empty,
 body[data-theme="dark"] .monthly-count,
 body[data-theme="dark"] .monthly-amount-label,
@@ -889,37 +816,12 @@ body[data-theme="dark"] .earnings-detail-formula {
   border-color: rgba(255, 36, 66, 0.3);
 }
 
-body[data-theme="dark"] .account-tabs {
-  background: #141414;
-}
-
-body[data-theme="dark"] .account-tab {
-  background-color: transparent !important;
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .account-tab:hover {
-  color: #f0f0f0;
-}
-
-body[data-theme="dark"] .account-tab.active {
-  background-color: #2a2a2a !important;
-  color: #f0f0f0;
-  box-shadow: none;
-}
-
-body[data-theme="dark"] .account-stat-card,
 body[data-theme="dark"] .account-section,
 body[data-theme="dark"] .monthly-item,
 body[data-theme="dark"] .earnings-item,
 body[data-theme="dark"] .earnings-filter {
   background: #1f1f1f;
   border-color: #303030;
-}
-
-body[data-theme="dark"] .account-stat-card.primary {
-  background: linear-gradient(135deg, #331018 0%, #1f1f1f 100%);
-  border-color: #52222b;
 }
 
 body[data-theme="dark"] .earnings-filter.active,

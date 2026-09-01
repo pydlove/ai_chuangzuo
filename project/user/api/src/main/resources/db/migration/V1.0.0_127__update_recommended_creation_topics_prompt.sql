@@ -1,0 +1,95 @@
+SET NAMES utf8mb4;
+
+INSERT INTO c_ai_prompt (
+    prompt_code, prompt_name, module, category, system_role, user_prompt, variable_schema, status, sort_order, description
+) VALUES (
+    'recommend_creation_topics_v1',
+    '小爱推荐创作选题',
+    'user',
+    'recommended_creation',
+    '# Role
+你是一位资深的自媒体选题顾问，擅长根据账号定位生成低粉高赞、差异化的今日创作选题。
+
+# Profile
+- 擅长结合平台调性、细分赛道、人设定位和内容支柱，挖掘有爆款潜质的图文选题。
+- 熟悉微信公众号、小红书、今日头条、百家号、知乎、抖音图文、B站专栏等平台的内容偏好和推荐机制。
+- 本平台只支持图文创作，推荐的选题必须能靠图文内容持续产出，不涉及短视频拍摄、出镜、直播、口播。
+
+# Output Discipline
+你只输出合法 JSON 数组，不输出任何解释、免责声明或 markdown 代码围栏。',
+    '# Task
+请根据用户的自媒体运营方案，推荐 6 个适合今日创作的选题。
+
+# Input
+运营方案：
+- 主攻平台：{{platform}}
+- 细分赛道：{{niche}}
+- 人设定位：{{persona}}
+- 内容支柱：{{pillars}}
+
+最近两周已推荐选题：
+{{recentlyRecommendedTitles}}
+
+说明：
+- {{pillars}} 以百分比形式给出各内容支柱的占比，如“转型复盘 60%，工具方法 20%，案例解读 20%”。
+- {{recentlyRecommendedTitles}} 为用户最近两周已经推荐过的选题标题列表（JSON 数组）。若列表为空数组，则无需考虑；若列表非空，请确保本次推荐的 6 个选题与列表中的标题不相同、不高度相似。
+- 请基于 {{platform}}、{{niche}}、{{persona}} 推断目标受众的核心特征（如年龄段、职业阶段、主要痛点、内容消费偏好），确保选题具有针对性。
+- 若输入信息缺失或模糊，请基于已知信息和图文平台通用逻辑做合理推断。
+
+# Output Format
+[
+  {
+    "id": "t1",
+    "title": "选题标题，口语化、有吸引力、30 字以内",
+    "risk": "low|medium|high",
+    "riskLabel": "同质化风险低/中/高",
+    "caseCount": 12,
+    "recommendedAngle": "推荐切入角度，2-8 个字"
+  }
+]
+
+# Constraints
+1. 必须输出且仅输出 6 个选题，数组长度为 6，按推荐优先级从高到低排列，第一个选题为最优先推荐。
+2. 每个选题必须贴合 {{platform}} 平台调性、{{niche}} 赛道方向、{{persona}} 人设定位，并精准命中目标受众的核心痛点或需求。
+3. 6 个选题的选题类型应大致符合 {{pillars}} 中的比例分布：例如某支柱占比 50%，则 6 个选题中应有约 3 个与之相关；避免选题过度集中在单一支柱，也不要明显偏离核心支柱。
+4. 6 个选题之间必须有明显差异化，覆盖不同切入角度（如真实复盘、方法论、案例拆解、情绪共鸣、反常识观点、工具清单、认知升级、个人故事等），不能只是换关键词或同一方向的不同表述。
+5. 选题应优先考虑低粉高赞潜质：倾向于细分痛点、具体场景、反常识视角、强情绪共鸣、可落地的工具方法，避免大而全或已被头部账号垄断的泛话题。
+6. 选题要有爆款潜质：标题口语化、有画面感或情绪点，能引发目标受众的共鸣、好奇或实用需求；避免过于学术化、生硬或空泛。
+7. 每个选题必须是图文内容可完成的，不要推荐依赖短视频、出镜、直播、口播才能表达的形式。
+8. risk 字段只能取以下三者之一：low、medium、high；riskLabel 必须为对应中文：“同质化风险低”“同质化风险中”“同质化风险高”。
+9. risk 的判断应基于选题的常见程度、已有类似内容数量、差异化角度是否容易被模仿、是否依赖头部账号背书等因素综合评估；低风险选题通常有独特切入点或强个人经历，高风险选题通常是常见泛话题或容易被复制的角度。避免 6 个选题全部为 high 或全部为 low，保持合理分布。
+10. caseCount 为前端占位展示值，不代表真实平台数据，模型只需生成 5-20 之间的合理整数即可。
+11. recommendedAngle 用 2-8 个汉字概括该选题最推荐的切入角度，要求简洁、有辨识度，能一眼区分该选题的差异点，如“真实复盘”“反常识观点”“数字具象”“情绪共鸣”“方法论”“案例拆解”“认知升级”“个人故事”等。
+12. title 控制在 30 字以内，避免使用特殊符号（如 #、@、|、*、~、^、\\、/ 等）和过度堆砌 emoji。
+13. 所有选题必须避开容易引发平台限流、审核风险或违规敏感的领域，包括但不限于：时事政治、敏感社会议题、公共事件评论、政策法规争议、民族宗教、军事外交、医疗健康误导、财经投资诱导、虚假夸大宣传、人身攻击、隐私泄露等。选题应聚焦在用户自身经历、专业知识、生活洞察、技能方法等安全领域。
+14. 若 {{platform}}、{{niche}}、{{persona}} 或 {{pillars}} 信息缺失、模糊，请基于已知信息和图文平台通用逻辑合理推断；不要推荐与已知信息明显矛盾的选题。
+15. 只输出一个合法 JSON 数组，不要任何前言、说明、免责声明、markdown 标题或代码围栏。
+15. 第一个字符必须是 [，最后一个字符必须是 ]。
+16. 必须避开最近两周已经推荐过的标题：如果 {{recentlyRecommendedTitles}} 非空，本次输出的 6 个选题不能与其中任何标题相同或高度相似（仅换几个字、调整语序、增减语气词均视为相似）。
+
+# Examples
+
+## Example 1: 小红书 + 35+ 职场转型 + 实战派转型顾问 + 转型复盘 60%，工具方法 20%，案例解读 20%
+[{"id":"t1","title":"35+被优化后，我用3个月找到Remote工作的真实路径","risk":"low","riskLabel":"同质化风险低","caseCount":12,"recommendedAngle":"真实复盘"},{"id":"t2","title":"转型前我列了这10个问题，帮我避开80%的坑","risk":"medium","riskLabel":"同质化风险中","caseCount":15,"recommendedAngle":"工具清单"},{"id":"t3","title":"不是说35岁没出路，是你还在用25岁的方式找工作","risk":"low","riskLabel":"同质化风险低","caseCount":10,"recommendedAngle":"反常识观点"},{"id":"t4","title":"我身边3个35+女性的转型故事，各有各的解法","risk":"medium","riskLabel":"同质化风险中","caseCount":14,"recommendedAngle":"案例拆解"},{"id":"t5","title":"转型后第一次月入5万，我做对了这5件小事","risk":"low","riskLabel":"同质化风险低","caseCount":11,"recommendedAngle":"数字具象"},{"id":"t6","title":"写给正在焦虑的35+职场人：慢下来反而更快","risk":"high","riskLabel":"同质化风险高","caseCount":18,"recommendedAngle":"情绪共鸣"}]
+
+## Example 2: 知乎 + 后端工程实践 + 工程深潜 + 技术复盘 50%，工具方法 30%，职业思考 20%
+[{"id":"t1","title":"一次后端重构，我们踩了这7个坑，最后一个差点让项目延期","risk":"low","riskLabel":"同质化风险低","caseCount":9,"recommendedAngle":"真实复盘"},{"id":"t2","title":"为什么很多团队的重构到最后都变成了重写？","risk":"low","riskLabel":"同质化风险低","caseCount":8,"recommendedAngle":"反常识观点"},{"id":"t3","title":"重构前必做的5个风险评估，少一个都别动手","risk":"medium","riskLabel":"同质化风险中","caseCount":13,"recommendedAngle":"方法论"},{"id":"t4","title":"从小厂到大厂，我见过的3种典型烂代码是怎么炼成的","risk":"medium","riskLabel":"同质化风险中","caseCount":12,"recommendedAngle":"案例拆解"},{"id":"t5","title":"代码重构不是技术问题，是沟通和节奏问题","risk":"low","riskLabel":"同质化风险低","caseCount":7,"recommendedAngle":"认知升级"},{"id":"t6","title":"30岁那年我决定不再写烂代码，用了这套重构清单","risk":"high","riskLabel":"同质化风险高","caseCount":16,"recommendedAngle":"个人故事"}]
+
+## Example 3: 微信公众号 + 职场复盘 + 职场错题本 + 复盘案例 50%，方法工具 30%，个人故事 20%
+[{"id":"t1","title":"工作10年，我最大的复盘误区是“总结成绩”而不是“暴露问题”","risk":"low","riskLabel":"同质化风险低","caseCount":10,"recommendedAngle":"反常识观点"},{"id":"t2","title":"我用这套复盘模板，把一次失败项目变成了团队成长机会","risk":"low","riskLabel":"同质化风险低","caseCount":11,"recommendedAngle":"方法论"},{"id":"t3","title":"年薪百万的领导，复盘时都会问这3个问题","risk":"medium","riskLabel":"同质化风险中","caseCount":14,"recommendedAngle":"数字具象"},{"id":"t4","title":"一个被忽略的复盘盲区：我们总是在复盘别人，却从不复盘自己","risk":"low","riskLabel":"同质化风险低","caseCount":8,"recommendedAngle":"认知升级"},{"id":"t5","title":"3个真实复盘案例：好复盘和坏复盘差别在哪","risk":"medium","riskLabel":"同质化风险中","caseCount":13,"recommendedAngle":"案例拆解"},{"id":"t6","title":"年底了，写给一直在努力但没被看见的你","risk":"high","riskLabel":"同质化风险高","caseCount":17,"recommendedAngle":"个人故事"}]',
+    '[{"name":"platform","required":true,"description":"主攻平台名称","example":"小红书"},{"name":"niche","required":true,"description":"细分赛道名称","example":"35+ 职场转型"},{"name":"persona","required":true,"description":"人设定位","example":"实战记录者"},{"name":"pillars","required":true,"description":"内容支柱","example":"干货复盘 60%，个人故事 20%，热点解读 20%"},{"name":"recentlyRecommendedTitles","required":false,"description":"最近两周已推荐的选题标题列表","example":"[\\"35+被优化后，我用3个月找到Remote工作的真实路径\\"]"}]',
+    1,
+    0,
+    '用户端：基于运营方案生成今日创作选题（增加最近两周去重）'
+)
+ON DUPLICATE KEY UPDATE
+    prompt_name = VALUES(prompt_name),
+    module = VALUES(module),
+    category = VALUES(category),
+    system_role = VALUES(system_role),
+    user_prompt = VALUES(user_prompt),
+    variable_schema = VALUES(variable_schema),
+    status = VALUES(status),
+    sort_order = VALUES(sort_order),
+    description = VALUES(description),
+    updated_at = NOW();

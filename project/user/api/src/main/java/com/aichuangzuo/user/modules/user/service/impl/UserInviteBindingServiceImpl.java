@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.user.service.impl;
 
+import com.aichuangzuo.shared.enums.InviteEffectiveStatusEnum;
+import com.aichuangzuo.shared.enums.InviteSourceTypeEnum;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
@@ -77,8 +79,8 @@ public class UserInviteBindingServiceImpl implements UserInviteBindingService {
         relation.setInviterId(inviter.getId());
         relation.setInviteeId(currentUserId);
         relation.setInviteCode(code);
-        relation.setSourceType(2); // 手动填写
-        relation.setEffectiveStatus(1); // 立即生效
+        relation.setSourceType(InviteSourceTypeEnum.MANUAL.getCode());
+        relation.setEffectiveStatus(InviteEffectiveStatusEnum.ACTIVE.getCode());
         userInviteRelationMapper.insert(relation);
 
         inviteRewardService.rewardAfterBinding(currentUser, inviter);

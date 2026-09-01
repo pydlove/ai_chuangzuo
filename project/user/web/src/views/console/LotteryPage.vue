@@ -9,7 +9,7 @@
       />
     </div>
 
-    <NavBar v-if="showNavBar" :links="navLinks" :cta-to="ctaTo" :cta-label="ctaLabel" />
+    <NavBar v-if="showNavBar" :links="landingNavLinks" :cta-to="landingTopCta.to" :cta-label="landingTopCta.label" />
 
     <!-- 活动头图 -->
     <section class="lottery-hero" :class="{ 'has-image': hasHeroImage }" :style="heroStyle">
@@ -28,10 +28,7 @@
       <div class="lottery-content">
         <!-- 奖项展示 -->
         <section class="prize-section">
-          <div class="section-title">
-            <span class="section-title__tag" />
-            <span>丰厚奖品</span>
-          </div>
+          <SectionTitle title="丰厚奖品" bar />
           <div class="prize-preview-grid">
             <div v-for="tier in previewTiers" :key="tier.id" class="prize-preview-card">
               <div v-if="tier.prizeLevel" class="prize-preview-card__badge" :class="levelClass(tier.prizeLevel)">{{ prizeLevelText(tier.prizeLevel) }}</div>
@@ -51,10 +48,7 @@
 
         <!-- 盲盒抽奖 -->
         <section class="wheel-section">
-          <div class="section-title">
-            <span class="section-title__tag" />
-            <span>开启宝箱</span>
-          </div>
+          <SectionTitle title="开启宝箱" bar />
 
           <div class="chest-stage">
             <div
@@ -112,11 +106,16 @@
 
         <!-- 活动规则 -->
         <section v-if="campaign.rules" class="rules-section">
-          <div class="section-title rules-section__header" @click="rulesExpanded = !rulesExpanded">
-            <span class="section-title__tag" />
-            <span>活动规则</span>
-            <span class="rules-toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
-          </div>
+          <SectionTitle
+            title="活动规则"
+            bar
+            class="rules-section__header"
+            @click="rulesExpanded = !rulesExpanded"
+          >
+            <template #right>
+              <span class="rules-toggle">{{ rulesExpanded ? '收起' : '展开' }}</span>
+            </template>
+          </SectionTitle>
           <div v-show="rulesExpanded" class="rules-card">
             <div class="rules-content" v-html="renderedRules" />
           </div>
@@ -124,10 +123,7 @@
 
         <!-- 我的兑换码 -->
         <section class="codes-section">
-          <div class="section-title">
-            <span class="section-title__tag" />
-            <span>我的兑换码</span>
-          </div>
+          <SectionTitle title="我的兑换码" bar />
           <div class="codes-card">
             <EmptyState v-if="!myCodes.length" title="还没有兑换码" compact size="sm" />
             <div v-else class="code-list">
@@ -154,10 +150,7 @@
 
         <!-- 中奖展示墙 -->
         <section class="winners-section">
-          <div class="section-title">
-            <span class="section-title__tag" />
-            <span>中奖展示墙</span>
-          </div>
+          <SectionTitle title="中奖展示墙" bar />
           <div class="winners-card">
             <EmptyState v-if="!displayWinners.length" title="暂无中奖记录" compact size="sm" />
             <div v-else class="winner-list">
@@ -187,10 +180,7 @@
     </div>
 
     <!-- 底部 -->
-    <footer class="lottery-footer">
-      <span>© 2026 爱创作 · 杭州爱启云网络科技有限公司 · All Rights Reserved</span>
-      <span>浙ICP备2025200943号-2</span>
-    </footer>
+    <AppFooter variant="mobile" class="lottery-footer" />
 
     <!-- 中奖结果弹窗 -->
     <a-modal
@@ -248,7 +238,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import MarkdownIt from 'markdown-it'
@@ -258,7 +248,11 @@ import { getShareConfig } from '@/api/shareConfig'
 import { useUserProfile } from '@/composables/useUserProfile.js'
 import { useCopy } from '@/composables/useCopy.js'
 import NavBar from '@/components/layout/NavBar.vue'
+import AppFooter from '@/components/layout/AppFooter.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import SectionTitle from '@/components/common/SectionTitle.vue'
+import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -272,6 +266,19 @@ const displayWinners = ref([])
 const drawing = ref(false)
 const resultVisible = ref(false)
 const resultTitle = ref('')
+
+let pageMounted = true
+let shakeTimer = null
+let revealTimer = null
+let minAnimTimer = null
+let rollTimer = null
+
+function clearAllTimers() {
+  if (shakeTimer) { clearTimeout(shakeTimer); shakeTimer = null }
+  if (revealTimer) { clearTimeout(revealTimer); revealTimer = null }
+  if (minAnimTimer) { clearTimeout(minAnimTimer); minAnimTimer = null }
+  if (rollTimer) { clearTimeout(rollTimer); rollTimer = null }
+}
 const resultCode = ref('')
 const resultIcon = ref(GiftOutlined)
 const selectedBox = ref(null)
@@ -288,17 +295,7 @@ const FALLING_COUNT = 28
 const boxes = Array.from({ length: BOX_COUNT }, (_, i) => i + 1)
 const MIN_ANIMATION_MS = 2200
 
-const navLinks = [
-  { to: '/', label: '首页' },
-  { to: '/pricing', label: '会员' },
-  { to: '/lottery', label: '活动' },
-  { to: '/guide', label: '玩法指南' },
-  { to: '/learn', label: '创作学院' }
-]
-const ctaTo = '/console/workbench'
-const ctaLabel = '开始创作'
-
-const isLoggedIn = computed(() => !!localStorage.getItem('aichuangzuo_access_token'))
+const isLoggedIn = computed(() => !!localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN))
 
 const inviteCode = computed(() => profile.value?.inviteCode || '')
 
@@ -403,6 +400,11 @@ onMounted(() => {
   }
 })
 
+onBeforeUnmount(() => {
+  pageMounted = false
+  clearAllTimers()
+})
+
 watch(campaign, (val) => {
   if (val) {
     loadWinners()
@@ -483,7 +485,8 @@ async function performDraw(targetBox, roll = false) {
       animationReady = runRollAnimation(targetBox)
     } else {
       boxState.value = 'shaking'
-      setTimeout(() => {
+      shakeTimer = setTimeout(() => {
+        if (!pageMounted) return
         if (boxState.value === 'shaking') boxState.value = 'opening'
       }, 300)
       animationReady = Promise.resolve()
@@ -492,18 +495,21 @@ async function performDraw(targetBox, roll = false) {
     const [res] = await Promise.all([
       draw(campaign.value.id),
       animationReady,
-      new Promise((resolve) => setTimeout(resolve, MIN_ANIMATION_MS))
+      new Promise((resolve) => { minAnimTimer = setTimeout(resolve, MIN_ANIMATION_MS) })
     ])
 
+    if (!pageMounted) return
     setResultData(res.data)
     boxState.value = 'revealing'
     fallingConfetti.value = true
-    setTimeout(() => {
+    revealTimer = setTimeout(() => {
+      if (!pageMounted) return
       resultVisible.value = true
       loadChances()
       loadMyCodes()
     }, 600)
   } catch (e) {
+    if (!pageMounted) return
     message.error(e.response?.data?.message || '抽奖失败')
     resetBox()
   }
@@ -518,6 +524,11 @@ function runRollAnimation(targetBox) {
     let current = boxes[0]
     highlightedBox.value = current
     const step = () => {
+      if (!pageMounted) {
+        highlightedBox.value = null
+        resolve()
+        return
+      }
       const elapsed = Date.now() - start
       if (elapsed >= duration) {
         highlightedBox.value = targetBox
@@ -532,7 +543,7 @@ function runRollAnimation(targetBox) {
       current = next
       highlightedBox.value = current
       speed = Math.min(260, speed + 12)
-      setTimeout(step, speed)
+      rollTimer = setTimeout(step, speed)
     }
     step()
   })
@@ -628,7 +639,7 @@ async function handleShare() {
     : url
   let text = shareConfig.value?.content
   if (!text) {
-    text = `🎁 ${campaignName}来啦！我在爱创作发现了超多好礼，会员、创作币、折扣券等你来抽～\n快来一起参与：{inviteUrl}`
+    text = `🎁 ${campaignName}来啦！我在爱创作工坊发现了超多好礼，会员、创作币、折扣券等你来抽～\n快来一起参与：{inviteUrl}`
   }
   text = text
     .replace(/{title}/g, campaignName)
@@ -760,23 +771,6 @@ function formatTime(t) {
   max-width: 900px;
   margin: 0 auto;
   width: 100%;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 20px;
-  font-weight: 700;
-  color: #1a1a1a;
-  margin-bottom: 18px;
-}
-
-.section-title__tag {
-  width: 4px;
-  height: 20px;
-  background: var(--color-primary);
-  border-radius: 2px;
 }
 
 .rules-section__header {
@@ -1504,16 +1498,6 @@ function formatTime(t) {
 .lottery-footer {
   flex: 0 0 auto;
   padding: 24px;
-  text-align: center;
-  font-size: 12px;
-  color: #8c8c8c;
-  border-top: 1px solid #f0f0f0;
-  background: #fff;
-}
-
-.lottery-footer span {
-  display: block;
-  margin: 4px 0;
 }
 
 .result-body {
@@ -1697,10 +1681,6 @@ function formatTime(t) {
     max-width: 720px;
   }
 
-  .lottery-footer span {
-    display: inline;
-    margin: 0 8px;
-  }
 }
 
 @media (max-width: 768px) {
@@ -1774,10 +1754,6 @@ body[data-theme="dark"] .lottery-page {
   background: #141414;
 }
 
-body[data-theme="dark"] .section-title {
-  color: #f5f5f5;
-}
-
 body[data-theme="dark"] .prize-card,
 body[data-theme="dark"] .rules-card,
 body[data-theme="dark"] .codes-card,
@@ -1812,9 +1788,4 @@ body[data-theme="dark"] .chest-label {
   color: #a6a6a6;
 }
 
-body[data-theme="dark"] .lottery-footer {
-  background: #1f1f1f;
-  border-top-color: #303030;
-  color: #8c8c8c;
-}
 </style>

@@ -68,3 +68,12 @@ export function optimizeTitles(bizNo) {
 export function getMonthlyCount() {
   return api.get('/articles/monthly-count').then((res) => res.data)
 }
+
+/**
+ * 生成单篇作品的临时公开导出 token（用于微信等场景跳转到系统浏览器下载）。
+ * @param {string} bizNo
+ * @returns {Promise<string>}
+ */
+export function getExportToken(bizNo) {
+  return api.get(`/articles/${bizNo}/export-token`).then((res) => res.data)
+}

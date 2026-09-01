@@ -7,7 +7,7 @@ import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.aichuangzuo.user.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.user.modules.article.dto.ActiveModelConfig;
 import com.aichuangzuo.user.modules.article.mapper.ArticleModelConfigMapper;
-import com.aichuangzuo.user.modules.selfmedia.enums.SelfMediaPlanErrorCode;
+import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -79,16 +79,19 @@ public class SelfMediaPlanAiService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
 
+        String content = null;
         try {
             ResponseEntity<String> response = restTemplate.exchange(
                     url, HttpMethod.POST, new HttpEntity<>(body, headers), String.class);
-            String content = extractContent(response.getBody(), cfg.getProviderType());
+            String responseBody = response.getBody();
+            log.debug("[自媒体方案 AI] 原始响应: {}", responseBody);
+            content = extractContent(responseBody, cfg.getProviderType());
             return LlmJsonParser.parseLenient(objectMapper, content);
         } catch (RestClientException e) {
             log.warn("自媒体方案 AI 调用失败 provider={} msg={}", cfg.getProviderType(), e.getMessage());
             throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
         } catch (Exception e) {
-            log.warn("自媒体方案 AI 响应解析失败", e);
+            log.warn("自媒体方案 AI 响应解析失败，原始内容: {}", content, e);
             throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
         }
     }

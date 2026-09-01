@@ -1,3 +1,5 @@
+import { stripHtml } from './html.js'
+
 const BLOCK_TYPES = {
   TITLE: 'title',
   HEADING: 'heading',
@@ -148,13 +150,6 @@ function escapeHtml(text) {
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-}
-
-function stripHtml(html) {
-  if (html == null) return ''
-  const tmp = document.createElement('div')
-  tmp.innerHTML = html
-  return tmp.textContent || tmp.innerText || ''
 }
 
 export { BLOCK_TYPES }

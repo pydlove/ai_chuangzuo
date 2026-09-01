@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.skill.market.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
+import com.aichuangzuo.admin.modules.skill.market.dto.request.BatchDeleteSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SimulateSkillUsageRequest;
@@ -75,6 +76,16 @@ public class SkillMarketAdminController {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员删除提示词市场条目, adminUserId={}, bizNo={}", adminUserId, bizNo);
         skillMarketAdminService.delete(bizNo);
+        return Result.success();
+    }
+
+    @Operation(summary = "批量软删除风格市场条目")
+    @PostMapping("/batch-delete")
+    public Result<Void> batchDelete(@Valid @RequestBody BatchDeleteSkillMarketRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量删除提示词市场条目, adminUserId={}, count={}",
+                adminUserId, request.getBizNos() == null ? 0 : request.getBizNos().size());
+        skillMarketAdminService.deleteBatch(request.getBizNos());
         return Result.success();
     }
 

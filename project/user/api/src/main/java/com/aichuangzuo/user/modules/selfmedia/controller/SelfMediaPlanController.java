@@ -9,7 +9,7 @@ import com.aichuangzuo.user.modules.selfmedia.service.PublishPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
+import com.aichuangzuo.shared.enums.error.BenefitErrorCode;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -61,6 +61,16 @@ public class SelfMediaPlanController {
         return Result.success(planService.savePlan(userId, request));
     }
 
+    @GetMapping("/publish-plan")
+    public Result<PublishPlanGuideVO> getPublishPlan(@RequestParam("mainPlatform") String mainPlatform) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        BenefitCheckVO check = benefitService.check(userId, BENEFIT_REPOST_PLAN);
+        if (!Boolean.TRUE.equals(check.getAllowed())) {
+            throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED.getCode(), check.getMessage());
+        }
+        return Result.success(publishPlanAiService.getCachedPlan(userId, mainPlatform));
+    }
+
     @PostMapping("/actions/publish-plan")
     public Result<PublishPlanGuideVO> generatePublishPlan(@Valid @RequestBody PublishPlanRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
@@ -68,6 +78,6 @@ public class SelfMediaPlanController {
         if (!Boolean.TRUE.equals(check.getAllowed())) {
             throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED.getCode(), check.getMessage());
         }
-        return Result.success(publishPlanAiService.generatePlan(userId, request.getArticleTitle(), request.getMainPlatform()));
+        return Result.success(publishPlanAiService.generatePlan(userId, request.getMainPlatform()));
     }
 }

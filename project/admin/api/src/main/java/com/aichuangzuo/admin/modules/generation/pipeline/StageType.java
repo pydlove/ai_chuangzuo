@@ -11,7 +11,7 @@ package com.aichuangzuo.admin.modules.generation.pipeline;
  * </ul>
  */
 public enum StageType {
-    /** AI 提示词阶段（8 个：2, 3, 4, 6, 7, 8, 9, 11）。 */
+    /** AI 提示词阶段（9 个：2, 3, 4, 6, 7, 8, 9, 11, 14）。 */
     AI_PROMPT("ai_prompt", "AI"),
     /** 规则配置阶段（3 个：5, 10, 12）。 */
     RULE_CONFIG("rule_config", "规则"),

@@ -75,7 +75,7 @@ class PromptTemplateServiceStageTest {
     }
 
     @Test
-    void create_shouldAutoInsertThirteenStagesWithDefaults() {
+    void create_shouldAutoInsertFourteenStagesWithDefaults() {
         PromptTemplateSaveRequest req = new PromptTemplateSaveRequest();
         req.setName("新模板");
         req.setRemark("test");
@@ -92,13 +92,13 @@ class PromptTemplateServiceStageTest {
 
         assertEquals(Long.valueOf(10L), id);
 
-        // 应该 insert 13 次 stage（1-13，不含 persist 收尾）
+        // 应该 insert 14 次 stage（1-14，不含 persist 收尾）
         ArgumentCaptor<PromptTemplateStage> captor = ArgumentCaptor.forClass(PromptTemplateStage.class);
-        verify(stageMapper, times(13)).insert(captor.capture());
+        verify(stageMapper, times(14)).insert(captor.capture());
         List<PromptTemplateStage> inserted = captor.getAllValues();
 
-        // 验证顺序是 1-13
-        for (int i = 0; i < 13; i++) {
+        // 验证顺序是 1-14
+        for (int i = 0; i < 14; i++) {
             assertEquals(Integer.valueOf(i + 1), inserted.get(i).getStageIndex());
             assertEquals(Long.valueOf(10L), inserted.get(i).getTemplateId());
             assertEquals(Long.valueOf(99L), inserted.get(i).getCreatedBy());
@@ -137,20 +137,20 @@ class PromptTemplateServiceStageTest {
         service.create(req, 1L);
 
         ArgumentCaptor<PromptTemplateStage> captor = ArgumentCaptor.forClass(PromptTemplateStage.class);
-        verify(stageMapper, times(13)).insert(captor.capture());
+        verify(stageMapper, times(14)).insert(captor.capture());
         PromptTemplateStage stage4 = captor.getAllValues().get(3);
         assertEquals("用户自定义的 prompt", stage4.getAiPrompt());
     }
 
     @Test
-    void update_shouldReplaceAllThirteenStages() {
+    void update_shouldReplaceAllFourteenStages() {
         PromptTemplate exist = sampleTemplate(5L);
         when(templateMapper.selectById(5L)).thenReturn(exist);
 
         PromptTemplateSaveRequest req = new PromptTemplateSaveRequest();
         req.setName("改名");
         List<PromptTemplateStageSaveItem> items = new ArrayList<>();
-        for (int i = 1; i <= 13; i++) {
+        for (int i = 1; i <= 14; i++) {
             PromptTemplateStageSaveItem it = new PromptTemplateStageSaveItem();
             it.setStageIndex(i);
             it.setAiPrompt("p" + i);
@@ -164,7 +164,7 @@ class PromptTemplateServiceStageTest {
 
         verify(stageMapper, times(1)).deleteByTemplateId(5L);
         ArgumentCaptor<PromptTemplateStage> captor = ArgumentCaptor.forClass(PromptTemplateStage.class);
-        verify(stageMapper, times(13)).insert(captor.capture());
+        verify(stageMapper, times(14)).insert(captor.capture());
     }
 
     @Test
@@ -183,15 +183,40 @@ class PromptTemplateServiceStageTest {
     }
 
     @Test
-    void initStages_shouldInsertThirteenWhenNone() {
+    void update_shouldRejectPartialStages() {
+        PromptTemplate exist = sampleTemplate(5L);
+        when(templateMapper.selectById(5L)).thenReturn(exist);
+
+        PromptTemplateSaveRequest req = new PromptTemplateSaveRequest();
+        req.setName("改名");
+        List<PromptTemplateStageSaveItem> items = new ArrayList<>();
+        for (int i = 1; i <= 12; i++) {
+            PromptTemplateStageSaveItem it = new PromptTemplateStageSaveItem();
+            it.setStageIndex(i);
+            it.setAiPrompt("p" + i);
+            it.setEnabled(1);
+            items.add(it);
+        }
+        req.setStages(items);
+
+        BusinessException ex = assertThrows(BusinessException.class,
+                () -> service.update(5L, req, 1L));
+        assertEquals(AdminGenerationErrorCode.PROMPT_TEMPLATE_STAGE_COUNT_INVALID.getCode(), ex.getCode());
+
+        verify(stageMapper, never()).deleteByTemplateId(anyLong());
+        verify(stageMapper, never()).insert((PromptTemplateStage) any());
+    }
+
+    @Test
+    void initStages_shouldInsertFourteenWhenNone() {
         PromptTemplate exist = sampleTemplate(7L);
         when(templateMapper.selectById(7L)).thenReturn(exist);
         when(stageMapper.selectByTemplateId(7L)).thenReturn(new ArrayList<>());
 
         int inserted = service.initStages(7L, 1L);
 
-        assertEquals(13, inserted);
-        verify(stageMapper, times(13)).insert(any(PromptTemplateStage.class));
+        assertEquals(14, inserted);
+        verify(stageMapper, times(14)).insert(any(PromptTemplateStage.class));
     }
 
     @Test
@@ -231,7 +256,7 @@ class PromptTemplateServiceStageTest {
         service.create(req, 1L);
 
         ArgumentCaptor<PromptTemplateStage> captor = ArgumentCaptor.forClass(PromptTemplateStage.class);
-        verify(stageMapper, times(13)).insert(captor.capture());
+        verify(stageMapper, times(14)).insert(captor.capture());
         PromptTemplateStage stage5 = captor.getAllValues().get(4);
         assertEquals("content_post_process", stage5.getStageKey());
         assertEquals("rule_config", stage5.getStageType());
@@ -268,7 +293,7 @@ class PromptTemplateServiceStageTest {
         PromptTemplate exist = sampleTemplate(8L);
         when(templateMapper.selectById(8L)).thenReturn(exist);
 
-        // 模拟只有 4 阶段（不全） — service 应该用 PipelineStage 默认补齐剩下 9 个
+        // 模拟只有 4 阶段（不全） — service 应该用 PipelineStage 默认补齐剩下 10 个
         List<PromptTemplateStage> rows = new ArrayList<>();
         for (int i = 1; i <= 4; i++) {
             PromptTemplateStage row = new PromptTemplateStage();
@@ -286,7 +311,7 @@ class PromptTemplateServiceStageTest {
 
         assertNotNull(vo);
         assertNotNull(vo.getStages());
-        assertEquals(13, vo.getStages().size());
+        assertEquals(14, vo.getStages().size());
         assertFalse(vo.getStagesInitialized());
 
         // 第 4 阶段用用户值

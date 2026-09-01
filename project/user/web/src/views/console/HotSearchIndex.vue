@@ -34,17 +34,12 @@
 
     <!-- 平台榜单 -->
     <div class="hot-search-section">
-      <div class="platform-tabs">
-        <button
-          v-for="platform in platforms"
-          :key="platform.code"
-          :class="['platform-tab', { active: activePlatform === platform.code }, platform.code]"
-          @click="activePlatform = platform.code"
-        >
-          <span class="platform-dot" />
-          {{ platform.name }}
-        </button>
-      </div>
+      <Tabs
+        v-model="activePlatform"
+        :tabs="platformTabs"
+        variant="pill"
+        active-type="primary"
+      />
 
       <div class="hot-search-list">
         <a-spin :spinning="loading">
@@ -70,16 +65,21 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { message } from 'ant-design-vue'
 import { useHotSearch } from '@/composables/useHotSearch'
 import { useCopy } from '@/composables/useCopy.js'
+import { formatDate } from '@/utils/format.js'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import Tabs from '@/components/common/Tabs.vue'
 
 const { platforms, list, loading, loadPlatforms, loadList } = useHotSearch()
 
 const activePlatform = ref('')
 const activeDate = ref('')
 
+const platformTabs = computed(() =>
+  platforms.value.map((p) => ({ label: p.name, value: p.code, dot: true }))
+)
+
 const pad = (n) => String(n).padStart(2, '0')
-const formatDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
 const getWeekLabel = (d) => {
   const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
   return days[d.getDay()]
@@ -233,45 +233,6 @@ onMounted(async () => {
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
 }
 
-.platform-tabs {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.platform-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  background: #f5f5f5;
-  border: none;
-  border-radius: 20px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #595959;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.platform-tab:hover {
-  background: #e8e8e8;
-}
-
-.platform-tab.active {
-  background: var(--color-primary, #FF2442);
-  color: #fff;
-}
-
-.platform-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.7;
-}
-
 .hot-search-list {
   display: flex;
   flex-direction: column;
@@ -382,15 +343,6 @@ body[data-theme="dark"] .hot-search-section {
 body[data-theme="dark"] .hot-search-current {
   background: #262626;
   color: rgba(255, 255, 255, 0.55);
-}
-
-body[data-theme="dark"] .platform-tab {
-  background: #262626;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-body[data-theme="dark"] .platform-tab:hover {
-  background: #303030;
 }
 
 body[data-theme="dark"] .hot-search-item {

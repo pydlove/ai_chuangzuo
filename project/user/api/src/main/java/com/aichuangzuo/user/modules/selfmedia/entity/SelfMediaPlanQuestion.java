@@ -23,4 +23,6 @@ public class SelfMediaPlanQuestion extends BaseEntity {
     private String optionsJson;
     private Integer isRequired;
     private Integer sortOrder;
+    private Integer allowOther;
+    private Integer otherMaxLength;
 }

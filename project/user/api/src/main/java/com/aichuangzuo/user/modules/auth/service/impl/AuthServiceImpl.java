@@ -1,5 +1,8 @@
 package com.aichuangzuo.user.modules.auth.service.impl;
 
+import com.aichuangzuo.shared.enums.BlockStatusEnum;
+import com.aichuangzuo.shared.enums.UserStatusEnum;
+import com.aichuangzuo.shared.enums.VerifyStatusEnum;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.exception.SystemException;
@@ -21,6 +24,7 @@ import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
 import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
+import com.aichuangzuo.user.modules.experience.service.ExperienceTokenService;
 import com.aichuangzuo.user.modules.auth.vo.AuthTokenVO;
 import com.aichuangzuo.user.modules.auth.vo.UserVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
@@ -46,6 +50,7 @@ public class AuthServiceImpl implements AuthService {
     private final UserMapper userMapper;
     private final UserLoginLogMapper userLoginLogMapper;
     private final InviteRewardService inviteRewardService;
+    private final ExperienceTokenService experienceTokenService;
     private final IpRegisterLimitMapper ipRegisterLimitMapper;
     private final EmailCodeService emailCodeService;
     private final JwtUtil jwtUtil;
@@ -120,6 +125,12 @@ public class AuthServiceImpl implements AuthService {
     public AuthTokenVO register(RegisterRequest request, String clientIp, String userAgent) {
         String inviteCode = request.getInviteCode() == null ? null
                 : request.getInviteCode().trim().toUpperCase();
+        String experienceToken = request.getExperienceToken() == null ? null
+                : request.getExperienceToken().trim();
+
+        if (StringUtils.hasText(inviteCode) && StringUtils.hasText(experienceToken)) {
+            throw new BusinessException(UserAuthErrorCode.REGISTER_PARAM_INVALID);
+        }
 
         checkIpRegisterLimit(clientIp);
 
@@ -168,9 +179,9 @@ public class AuthServiceImpl implements AuthService {
         user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.setInviteCode(generateInviteCode());
-        user.setUserStatus(1);
-        user.setEmailVerified(isEmail ? 1 : 0);
-        user.setPhoneVerified(isPhone ? 1 : 0);
+        user.setUserStatus(UserStatusEnum.ENABLED.getCode());
+        user.setEmailVerified(isEmail ? VerifyStatusEnum.VERIFIED.getCode() : VerifyStatusEnum.UNVERIFIED.getCode());
+        user.setPhoneVerified(isPhone ? VerifyStatusEnum.VERIFIED.getCode() : VerifyStatusEnum.UNVERIFIED.getCode());
         user.setNickname("用户" + user.getInviteCode());
 
         try {
@@ -185,13 +196,15 @@ public class AuthServiceImpl implements AuthService {
 
         if (inviteCode != null && !inviteCode.isBlank()) {
             handleInviteRelation(user, inviteCode);
+        } else if (experienceToken != null && !experienceToken.isBlank()) {
+            experienceTokenService.consume(user.getId(), experienceToken);
         }
 
         ipRegisterLimitMapper.incrementRegisterCount(clientIp);
         IpRegisterLimit limit = ipRegisterLimitMapper.selectOne(
                 new LambdaQueryWrapper<IpRegisterLimit>().eq(IpRegisterLimit::getClientIp, clientIp));
         if (limit != null && limit.getRegisterCount() >= authProperties.getRegister().getMaxPerIp()) {
-            limit.setIsBlocked(1);
+            limit.setIsBlocked(BlockStatusEnum.BLOCKED.getCode());
             ipRegisterLimitMapper.updateById(limit);
         }
 
@@ -204,7 +217,7 @@ public class AuthServiceImpl implements AuthService {
     private void checkIpRegisterLimit(String clientIp) {
         IpRegisterLimit limit = ipRegisterLimitMapper.selectOne(
                 new LambdaQueryWrapper<IpRegisterLimit>().eq(IpRegisterLimit::getClientIp, clientIp));
-        if (limit != null && limit.getIsBlocked() == 1) {
+        if (limit != null && limit.getIsBlocked() == BlockStatusEnum.BLOCKED.getCode()) {
             throw new BusinessException(UserAuthErrorCode.OPERATION_TOO_FREQUENT);
         }
     }
@@ -287,7 +300,7 @@ public class AuthServiceImpl implements AuthService {
             throw new BusinessException(UserAuthErrorCode.ACCOUNT_OR_PASSWORD_ERROR);
         }
 
-        if (user.getUserStatus() == 0) {
+        if (user.getUserStatus() == UserStatusEnum.DISABLED.getCode()) {
             throw new BusinessException(UserAuthErrorCode.ACCOUNT_DISABLED);
         }
 
@@ -329,7 +342,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         User user = userMapper.selectById(userId);
-        if (user == null || user.getUserStatus() == 0) {
+        if (user == null || user.getUserStatus() == UserStatusEnum.DISABLED.getCode()) {
             throw new BusinessException(UserAuthErrorCode.REFRESH_TOKEN_INVALID);
         }
         boolean rememberMe = jwtUtil.parseRememberMeFromRefreshToken(request.getRefreshToken());

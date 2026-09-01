@@ -49,11 +49,29 @@ class PublishMetaStepTest {
         return ctx;
     }
 
+    private static GenerationContext ctxWithSeoKeywords() {
+        GenerationContext ctx = ctx();
+        ctx.getInput().put("seoKeywords", true);
+        return ctx;
+    }
+
+    @Test
+    void process_shouldSkipTagsWhenSeoKeywordsDisabled() {
+        when(aiGateway.call(any(), any(), any(), any()))
+                .thenReturn("{\"description\":\"描述\",\"tags\":[\"标签1\"]}");
+        GenerationContext ctx = ctx();
+
+        step.process(ctx);
+
+        assertEquals("描述", ctx.getPublishDescription());
+        assertTrue(ctx.getPublishTags() == null || ctx.getPublishTags().isEmpty());
+    }
+
     @Test
     void process_shouldStoreDescriptionAndTags() {
         when(aiGateway.call(any(), any(), any(), any()))
                 .thenReturn("{\"description\":\"这是一段发布描述\",\"tags\":[\"时间管理\",\"效率提升\",\"自我管理\",\"职场成长\"]}");
-        GenerationContext ctx = ctx();
+        GenerationContext ctx = ctxWithSeoKeywords();
 
         step.process(ctx);
 
@@ -63,19 +81,10 @@ class PublishMetaStepTest {
     }
 
     @Test
-    void process_shouldThrowWhenDescriptionMissing() {
-        when(aiGateway.call(any(), any(), any(), any()))
-                .thenReturn("{\"tags\":[\"标签1\"]}");
-        GenerationContext ctx = ctx();
-
-        assertThrows(RuntimeException.class, () -> step.process(ctx));
-    }
-
-    @Test
     void process_shouldThrowWhenTagsMissing() {
         when(aiGateway.call(any(), any(), any(), any()))
                 .thenReturn("{\"description\":\"只有描述\"}");
-        GenerationContext ctx = ctx();
+        GenerationContext ctx = ctxWithSeoKeywords();
 
         assertThrows(RuntimeException.class, () -> step.process(ctx));
     }
@@ -84,7 +93,7 @@ class PublishMetaStepTest {
     void process_shouldThrowWhenTagsEmpty() {
         when(aiGateway.call(any(), any(), any(), any()))
                 .thenReturn("{\"description\":\"只有描述\",\"tags\":[]}");
-        GenerationContext ctx = ctx();
+        GenerationContext ctx = ctxWithSeoKeywords();
 
         assertThrows(RuntimeException.class, () -> step.process(ctx));
     }
@@ -93,7 +102,7 @@ class PublishMetaStepTest {
     void process_shouldThrowWhenAllTagsBlank() {
         when(aiGateway.call(any(), any(), any(), any()))
                 .thenReturn("{\"description\":\"只有描述\",\"tags\":[\"  \",\"\"]}");
-        GenerationContext ctx = ctx();
+        GenerationContext ctx = ctxWithSeoKeywords();
 
         assertThrows(RuntimeException.class, () -> step.process(ctx));
     }
@@ -102,7 +111,7 @@ class PublishMetaStepTest {
     void process_shouldFilterBlankTags() {
         when(aiGateway.call(any(), any(), any(), any()))
                 .thenReturn("{\"description\":\"描述\",\"tags\":[\"有效标签\",\"  \",\"另一个\"]}");
-        GenerationContext ctx = ctx();
+        GenerationContext ctx = ctxWithSeoKeywords();
 
         step.process(ctx);
 

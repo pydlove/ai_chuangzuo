@@ -1,8 +1,16 @@
 <template>
   <div class="testimonial-card">
     <div class="testimonial-header">
-      <img v-if="avatarUrl" :src="avatarUrl" :alt="name" class="testimonial-avatar" />
-      <div v-else class="testimonial-avatar fallback">{{ name ? name[0] : 'U' }}</div>
+      <img
+        v-if="avatarUrl && !hasImageError"
+        :src="avatarUrl"
+        :alt="name"
+        class="testimonial-avatar"
+        @error="hasImageError = true"
+      />
+      <div v-else class="testimonial-avatar fallback">
+        <Icon name="user" :size="24" />
+      </div>
       <div class="testimonial-author">
         <div class="testimonial-name">{{ name }}</div>
         <div v-if="title" class="testimonial-title">{{ title }}</div>
@@ -11,17 +19,29 @@
     <div class="testimonial-stars">
       <span v-for="n in 5" :key="n" class="star" :class="{ filled: n <= starRating }">★</span>
     </div>
-    <p class="testimonial-text">{{ reviewText }}</p>
+    <p class="testimonial-text" v-html="parsedReviewText"></p>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { ref, watch, computed } from 'vue'
+import Icon from '@/components/common/Icon.vue'
+import { parseWeChatEmojis } from '@/utils/emoji.js'
+
+const props = defineProps({
   avatarUrl: { type: String, default: '' },
   name: { type: String, required: true },
   title: { type: String, default: '' },
   starRating: { type: Number, default: 5 },
   reviewText: { type: String, required: true }
+})
+
+const hasImageError = ref(false)
+
+const parsedReviewText = computed(() => parseWeChatEmojis(props.reviewText))
+
+watch(() => props.avatarUrl, () => {
+  hasImageError.value = false
 })
 </script>
 
@@ -32,17 +52,20 @@ defineProps({
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s;
-  height: 100%;
-  min-height: 200px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.2s, height 0.25s ease;
+  height: 280px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  position: relative;
 }
 .testimonial-card:hover {
   transform: translateY(-4px);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.08);
   border-color: transparent;
+  height: auto;
+  min-height: 280px;
+  z-index: 2;
 }
 .testimonial-header {
   display: flex;
@@ -62,9 +85,8 @@ defineProps({
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 600;
-  color: #595959;
+  background: #e5e5e5;
+  color: #8c8c8c;
 }
 .testimonial-author {
   min-width: 0;
@@ -84,11 +106,11 @@ defineProps({
   white-space: nowrap;
 }
 .testimonial-stars {
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 .star {
   color: #e8e8e8;
-  font-size: 16px;
+  font-size: 14px;
   margin-right: 2px;
 }
 .star.filled {
@@ -99,13 +121,16 @@ defineProps({
   color: #595959;
   line-height: 1.7;
   margin: 0;
-  flex: 1 1 auto;
-  min-height: 0;
+  flex: 0 0 auto;
   display: -webkit-box;
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
   overflow: hidden;
   overflow-wrap: break-word;
+}
+.testimonial-card:hover .testimonial-text {
+  -webkit-line-clamp: unset;
+  overflow: visible;
 }
 
 body[data-theme="dark"] .testimonial-card {
@@ -124,7 +149,7 @@ body[data-theme="dark"] .testimonial-text {
   color: #a6a6a6;
 }
 body[data-theme="dark"] .testimonial-avatar.fallback {
-  background: #2a2a2a;
+  background: #3a3a3a;
   color: #a6a6a6;
 }
 body[data-theme="dark"] .star {

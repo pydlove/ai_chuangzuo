@@ -1,4 +1,4 @@
-const CURRENT_ARTICLE_KEY = 'aichuangzuo_current_article'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 function normalizeStyleOverrides(value) {
   const empty = { blocks: {}, inlines: [] }
@@ -12,7 +12,7 @@ function normalizeStyleOverrides(value) {
 
 export function loadCurrentArticle() {
   try {
-    const raw = localStorage.getItem(CURRENT_ARTICLE_KEY)
+    const raw = localStorage.getItem(STORAGE_KEYS.CURRENT_ARTICLE)
     if (!raw) return null
     const article = JSON.parse(raw)
     if (article && typeof article === 'object') {
@@ -20,7 +20,6 @@ export function loadCurrentArticle() {
     }
     return article
   } catch (e) {
-    console.error('load current article failed', e)
     return null
   }
 }
@@ -31,10 +30,9 @@ export function saveCurrentArticle(article) {
       ...article,
       styleOverrides: normalizeStyleOverrides(article && article.styleOverrides)
     }
-    localStorage.setItem(CURRENT_ARTICLE_KEY, JSON.stringify(safe))
+    localStorage.setItem(STORAGE_KEYS.CURRENT_ARTICLE, JSON.stringify(safe))
     return true
   } catch (e) {
-    console.error('save current article failed', e)
     return false
   }
 }

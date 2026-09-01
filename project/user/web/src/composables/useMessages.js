@@ -49,6 +49,7 @@ async function refreshUnreadCount() {
 function resumePolling() {
   if (pollTimer) return
   refreshUnreadCount()
+  if (document.hidden) return
   pollTimer = setInterval(refreshUnreadCount, POLL_INTERVAL)
 }
 

@@ -3,6 +3,7 @@ package com.aichuangzuo.user.modules.generation.controller;
 import com.aichuangzuo.shared.enums.error.UserGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
+import com.aichuangzuo.shared.vo.AiDetectReport;
 import com.aichuangzuo.user.modules.article.dto.request.SaveArticleRequest;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
@@ -11,6 +12,7 @@ import com.aichuangzuo.user.modules.message.enums.MessageSubType;
 import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.generation.service.GenerationTaskRefundService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -37,6 +39,7 @@ public class GenerationTaskInternalController {
     private final BenefitService benefitService;
     private final MessageService messageService;
     private final GenerationTaskRefundService generationTaskRefundService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
      * admin worker 调入，保存生成的文章并返回 article.biz_no。
@@ -64,6 +67,7 @@ public class GenerationTaskInternalController {
         req.setDescription(description.isEmpty() ? null : description);
         req.setTags(asStringList(payload.get("tags")));
         req.setWordCount(asInt(payload.get("wordCount")));
+        req.setAiDetectReport(parseAiDetectReport(payload.get("aiDetectReport")));
         req.setCompletedAt(LocalDateTime.now());
         req.setTaskId(taskId);
 
@@ -106,8 +110,8 @@ public class GenerationTaskInternalController {
      *   <li>userId        必填</li>
      *   <li>status        必填，取值 {@code completed} / {@code failed}</li>
      *   <li>articleBizNo  completed 时必填，写入 linkUrl（/console/preview/{bizNo}）</li>
-     *   <li>articleTitle  completed 时选填，写入摘要</li>
-     *   <li>failReason    failed 时选填，写入摘要</li>
+     *   <li>articleTitle  completed / failed 时选填，写入摘要/标题</li>
+     *   <li>failReason    failed 时选填，仅日志用，不展示给用户</li>
      * </ul>
      *
      * <p>校验失败/状态未知时不抛异常（不阻塞 admin worker），仅记录 warn 日志。
@@ -144,18 +148,17 @@ public class GenerationTaskInternalController {
                     MessageSubType.GENERATION_COMPLETED.getCode());
             log.info("task={} user={} 推送生成完成消息 articleBizNo={}", taskId, userId, articleBizNo);
         } else if ("failed".equals(status)) {
-            String failReason = asString(payload.get("failReason"));
-            String summary = failReason.isEmpty()
-                    ? "本次创作失败，已退还次数"
-                    : "创作失败：" + failReason + "，次数已退还";
-            String content = failReason.isEmpty()
-                    ? "本次创作未能完成，文章生成次数已退还，请稍后重试。"
-                    : "本次创作未能完成（" + failReason + "），文章生成次数已退还，请稍后重试。";
+            String articleTitle = asString(payload.get("articleTitle"));
+            String title = articleTitle.isEmpty()
+                    ? "本次创作失败"
+                    : "【" + articleTitle + "】本次创作失败";
+            String summary = "因为未知因素影响，创作失败（本次不消耗次数），请点击重新生成";
+            String content = "因为未知因素影响，创作失败（本次不消耗次数），请点击重新生成";
 
             messageService.pushPersonal(userId, "generation",
-                    "本次创作失败", summary, null, content,
+                    title, summary, null, content,
                     MessageSubType.GENERATION_FAILED.getCode());
-            log.info("task={} user={} 推送生成失败消息 reason={}", taskId, userId, failReason);
+            log.info("task={} user={} 推送生成失败消息 title={}", taskId, userId, title);
         } else {
             log.warn("notifyCompletion 未知 status={} taskId={} userId={}", status, taskId, userId);
         }
@@ -188,5 +191,17 @@ public class GenerationTaskInternalController {
             }
         }
         return result.isEmpty() ? null : result;
+    }
+
+    private AiDetectReport parseAiDetectReport(Object o) {
+        if (o == null) {
+            return null;
+        }
+        try {
+            return objectMapper.convertValue(o, AiDetectReport.class);
+        } catch (Exception e) {
+            log.warn("aiDetectReport 解析失败: {}", e.getMessage());
+            return null;
+        }
     }
 }

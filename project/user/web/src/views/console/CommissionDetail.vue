@@ -89,9 +89,8 @@
                 <span class="action-title">投递稿件</span>
                 <span class="status-tag status-0">{{ taskStatus(0) }}</span>
               </div>
-              <p class="action-desc">只能选择你在爱创作中已经生成完成、且字数符合要求的文章。投递期内可随时撤回并改投其它文章。</p>
+              <p class="action-desc">只能选择你在爱创作工坊中已经生成完成、且字数符合要求的文章。投递期内可随时撤回并改投其它文章。</p>
               <button class="primary-btn" @click="openPicker">选择文章投稿</button>
-              <button class="secondary-btn generate-btn" @click="goCreateFromTask">根据任务生成文章</button>
             </template>
 
             <!-- 评选中且未投稿 -->
@@ -135,7 +134,6 @@
       </div>
 
       <div v-if="canSubmit" class="mobile-submit-bar">
-        <button class="secondary-btn" @click="goCreateFromTask">根据任务生成</button>
         <button class="primary-btn" @click="openPicker">选择文章投稿</button>
       </div>
 
@@ -312,19 +310,6 @@ function openPicker() {
   pickerPage.value = 1
   pickerVisible.value = true
 }
-function goCreateFromTask() {
-  if (!task.value) return
-  router.push({
-    path: '/console/create',
-    query: {
-      commissionTaskId: task.value.id,
-      title: task.value.title,
-      requirement: task.value.description,
-      minWordCount: task.value.minWordCount,
-      maxWordCount: task.value.maxWordCount
-    }
-  })
-}
 function articleIcon(article) {
   if (article.platformName) return firstChar(article.platformName)
   return firstChar(article.title)
@@ -370,6 +355,7 @@ function confirmWithdraw() {
 .detail-page {
   max-width: 1120px;
   margin: 0 auto;
+  padding-top: 10px;
   padding-bottom: 100px;
 }
 .back-btn {
@@ -623,7 +609,6 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 
 .primary-btn:disabled { opacity: .45; cursor: not-allowed; }
 .secondary-btn { background: #f2f2f2; color: #555; }
 .secondary-btn:disabled { opacity: .55; cursor: not-allowed; }
-.generate-btn { margin-top: 10px; }
 
 .empty-block {
   padding: 72px 20px;
@@ -957,6 +942,10 @@ body[data-theme="dark"] .reward-result {
   .action-panel .primary-btn,
   .action-panel .secondary-btn {
     width: 100%;
+  }
+  /* 手机端底部已有固定提交栏，隐藏卡片内重复按钮 */
+  .action-card .primary-btn {
+    display: none;
   }
 
   :deep(.ant-modal) {

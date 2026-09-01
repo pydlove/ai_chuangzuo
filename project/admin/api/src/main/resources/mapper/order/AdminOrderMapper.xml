@@ -12,9 +12,13 @@
         <result property="cycle" column="cycle"/>
         <result property="amount" column="amount"/>
         <result property="status" column="status"/>
+        <result property="paymentMethod" column="payment_method"/>
+        <result property="thirdPartyTradeId" column="third_party_trade_id"/>
         <result property="paidAt" column="paid_at"/>
         <result property="refundedAt" column="refunded_at"/>
         <result property="refundReason" column="refund_reason"/>
+        <result property="refundAmount" column="refund_amount"/>
+        <result property="thirdPartyRefundId" column="third_party_refund_id"/>
         <result property="adminRemark" column="admin_remark"/>
         <result property="operatorId" column="operator_id"/>
         <result property="createdAt" column="created_at"/>
@@ -24,7 +28,8 @@
         SELECT o.id, o.order_no, o.user_id,
                u.nickname, u.email,
                o.plan_key, o.cycle, o.amount, o.status,
-               o.paid_at, o.refunded_at, o.refund_reason,
+               o.payment_method, o.third_party_trade_id,
+               o.paid_at, o.refunded_at, o.refund_reason, o.refund_amount, o.third_party_refund_id,
                o.admin_remark, o.operator_id, o.created_at
         FROM u_order o
         LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
@@ -98,6 +103,8 @@
         SET status = 2,
             refunded_at = #{now},
             refund_reason = #{reason},
+            third_party_refund_id = #{thirdPartyRefundId},
+            refund_amount = #{refundAmount},
             operator_id = #{operatorId},
             updated_at = #{now}
         WHERE id = #{id} AND status = 1
@@ -384,6 +391,7 @@
             WHERE o.status = 1
         )
         SELECT o.id, o.order_no, o.user_id, u.nickname, u.email, o.plan_key, o.cycle, o.amount, o.status,
+               o.payment_method, o.third_party_trade_id,
                o.paid_at, o.refunded_at, o.refund_reason, o.admin_remark, o.operator_id, o.created_at
         FROM paid_orders o
         LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0

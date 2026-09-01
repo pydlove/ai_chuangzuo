@@ -27,7 +27,7 @@
 
     <!-- 权益列表 -->
     <div class="benefits-section">
-      <h3 class="benefits-section-title">权益明细</h3>
+      <SectionTitle title="权益明细" size="sm" />
       <ul v-if="!catalogLoading" class="benefits-list">
         <li
           v-for="item in displayBenefits"
@@ -115,6 +115,9 @@
           </div>
           <div class="mb-vip-count">{{ selectedPlanDisplay.benefitCount }}大尊享特权</div>
           <div class="mb-vip-desc">{{ selectedPlanDisplay.desc }}</div>
+          <div v-if="mobileSelectedPlan === planKey" class="mb-vip-expiry">
+            {{ expiresAt ? `有效期至 ${expiresAt}` : '未开通会员' }}
+          </div>
         </div>
         <button class="mb-vip-btn" @click="handleMobileSubscribe">
           {{ mobileButton.text }}
@@ -266,7 +269,7 @@
       :title="upgradePreview ? '确认支付升级' : `确认订阅 ${selectedPlan ? selectedPlan.name : ''}`"
       :width="320"
       centered
-      class="mb-subscribe-modal"
+      class="mb-subscribe-modal membership-confirm-modal"
       @ok="handlePay"
       :confirm-loading="subscribeLoading"
     >
@@ -301,6 +304,7 @@ import { useDevice } from '@/composables/useDevice.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { usePricing } from '@/composables/usePricing.js'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import SectionTitle from '@/components/common/SectionTitle.vue'
 import {
   CrownOutlined,
   LeftOutlined,
@@ -826,13 +830,6 @@ onMounted(() => {
   gap: 16px;
 }
 
-.benefits-section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
-}
-
 .benefits-list {
   list-style: none;
   margin: 0;
@@ -1212,6 +1209,13 @@ onMounted(() => {
   line-height: 1.4;
 }
 
+.mb-vip-expiry {
+  margin-top: 8px;
+  font-size: 12px;
+  color: rgba(43, 30, 21, 0.7);
+  line-height: 1.4;
+}
+
 .mb-vip-btn {
   position: relative;
   z-index: 1;
@@ -1415,7 +1419,7 @@ onMounted(() => {
 }
 
 .mb-compare-plan-badge {
-  height: 22px;
+  height: 38px;
   width: auto;
   display: block;
 }
@@ -1627,7 +1631,6 @@ body[data-theme="dark"] .mb-compare-plan-value.yes {
 
 /* ================= 暗色主题 ================= */
 body[data-theme="dark"] .benefits-title,
-body[data-theme="dark"] .benefits-section-title,
 body[data-theme="dark"] .benefits-item-name,
 body[data-theme="dark"] .benefits-plan-name {
   color: #f0f0f0;

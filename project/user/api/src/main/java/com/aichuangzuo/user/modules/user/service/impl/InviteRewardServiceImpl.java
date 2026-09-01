@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.user.service.impl;
 
+import com.aichuangzuo.shared.enums.InviteEffectiveStatusEnum;
+import com.aichuangzuo.shared.enums.InviteSourceTypeEnum;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.auth.entity.User;
@@ -51,7 +53,6 @@ public class InviteRewardServiceImpl implements InviteRewardService {
     private static final String COIN_BIZ_TYPE_LADDER_REWARD = "invite_ladder_reward";
     private static final String COIN_BIZ_TYPE_INVITE_REWARD = "invite_reward";
     private static final BigDecimal NEW_USER_COIN_BONUS = new BigDecimal("50");
-    private static final int EFFECTIVE_STATUS = 1;
 
     private final UserMapper userMapper;
     private final UserInviteRelationMapper userInviteRelationMapper;
@@ -75,8 +76,8 @@ public class InviteRewardServiceImpl implements InviteRewardService {
         relation.setInviterId(inviter.getId());
         relation.setInviteeId(invitee.getId());
         relation.setInviteCode(inviteCode);
-        relation.setSourceType(2);
-        relation.setEffectiveStatus(EFFECTIVE_STATUS);
+        relation.setSourceType(InviteSourceTypeEnum.MANUAL.getCode());
+        relation.setEffectiveStatus(InviteEffectiveStatusEnum.ACTIVE.getCode());
         userInviteRelationMapper.insert(relation);
 
         grantRegisterReward(invitee, inviter);
@@ -104,7 +105,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
         long count = userInviteRelationMapper.selectCount(
                 new LambdaQueryWrapper<UserInviteRelation>()
                         .eq(UserInviteRelation::getInviterId, inviter.getId())
-                        .eq(UserInviteRelation::getEffectiveStatus, EFFECTIVE_STATUS)
+                        .eq(UserInviteRelation::getEffectiveStatus, InviteEffectiveStatusEnum.ACTIVE.getCode())
         );
         BigDecimal rewardCoins = calculateInviteRewardCoins(count);
         if (rewardCoins.compareTo(BigDecimal.ZERO) > 0) {
@@ -179,7 +180,7 @@ public class InviteRewardServiceImpl implements InviteRewardService {
         List<UserInviteRelation> relations = userInviteRelationMapper.selectList(
                 new LambdaQueryWrapper<UserInviteRelation>()
                         .eq(UserInviteRelation::getInviterId, userId)
-                        .eq(UserInviteRelation::getEffectiveStatus, EFFECTIVE_STATUS)
+                        .eq(UserInviteRelation::getEffectiveStatus, InviteEffectiveStatusEnum.ACTIVE.getCode())
                         .orderByDesc(UserInviteRelation::getCreatedAt)
         );
         vo.setInvitedCount(relations.size());

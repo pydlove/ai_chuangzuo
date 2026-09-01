@@ -1,5 +1,6 @@
 package com.aichuangzuo.user.modules.user.service.impl;
 
+import com.aichuangzuo.shared.enums.VerifyStatusEnum;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
@@ -158,7 +159,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             throw new BusinessException(UserAuthErrorCode.EMAIL_ALREADY_EXISTS);
         }
         user.setEmail(newEmail);
-        user.setEmailVerified(1);
+        user.setEmailVerified(VerifyStatusEnum.VERIFIED.getCode());
         userMapper.updateById(user);
         log.info("邮箱已修改 userId={}, newEmail={}", userId, newEmail);
         return fillInviter(userConverter.toProfileVO(user), user.getId());
@@ -197,7 +198,7 @@ public class UserProfileServiceImpl implements UserProfileService {
             throw new BusinessException(UserAuthErrorCode.PHONE_ALREADY_EXISTS);
         }
         user.setPhone(newPhone);
-        user.setPhoneVerified(1);
+        user.setPhoneVerified(VerifyStatusEnum.VERIFIED.getCode());
         userMapper.updateById(user);
         log.info("手机号已修改 userId={}, newPhone={}", userId, newPhone);
         return fillInviter(userConverter.toProfileVO(user), user.getId());

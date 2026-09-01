@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.benefit.entity.Benefit;
 import com.aichuangzuo.user.modules.benefit.entity.BenefitUsage;
 import com.aichuangzuo.user.modules.benefit.entity.PlanBenefit;
-import com.aichuangzuo.user.modules.benefit.enums.BenefitErrorCode;
+import com.aichuangzuo.shared.enums.error.BenefitErrorCode;
 import com.aichuangzuo.user.modules.benefit.mapper.BenefitMapper;
 import com.aichuangzuo.user.modules.benefit.mapper.BenefitUsageMapper;
 import com.aichuangzuo.user.modules.benefit.mapper.PlanBenefitMapper;

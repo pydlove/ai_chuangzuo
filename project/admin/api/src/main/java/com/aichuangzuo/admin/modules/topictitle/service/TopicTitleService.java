@@ -15,6 +15,7 @@ import com.aichuangzuo.shared.entity.TopicTitle;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.exception.NotFoundException;
+import com.aichuangzuo.shared.utils.LlmJsonParser;
 import com.aichuangzuo.shared.vo.AiPromptRendered;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -224,16 +225,13 @@ public class TopicTitleService {
     }
 
     /**
-     * 解析 AI 输出为标题实体列表：清洗可能的前言/代码围栏 → Jackson 解析 →
+     * 解析 AI 输出为标题实体列表：统一用 LlmJsonParser 清洗/提取/修复 → Jackson 解析 →
      * 剔除 title/summary 为空的条目 → 截断超长。无任何有效条目时抛业务异常。
      */
     private List<TopicTitle> parseTitles(String content, String direction) {
         JsonNode root;
         try {
-            root = objectMapper.readTree(extractJson(content));
-        } catch (BusinessException e) {
-            log.warn("AI 生成标题解析失败：无法定位 JSON 内容，AI 原始返回（截断 500 字符）：{}", abbreviate(content));
-            throw e;
+            root = LlmJsonParser.parseLenient(objectMapper, content);
         } catch (Exception e) {
             log.warn("AI 生成标题解析失败：JSON 格式错误 err={}，AI 原始返回（截断 500 字符）：{}",
                     e.getMessage(), abbreviate(content));
@@ -269,66 +267,6 @@ public class TopicTitleService {
         }
         log.info("AI 生成标题解析完成：有效 {} 条，跳过空条目 {} 条", result.size(), skipped);
         return result;
-    }
-
-    /** 截取第一个 { 到最后一个 } 之间的内容，剥掉 AI 可能输出的前言/后记/代码围栏。 */
-    private String extractJson(String content) {
-        if (content == null) {
-            throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
-        }
-        int start = content.indexOf('{');
-        int end = content.lastIndexOf('}');
-        if (start < 0 || end <= start) {
-            throw new BusinessException(AdminGenerationErrorCode.TOPIC_TITLE_GENERATE_FAILED);
-        }
-        return sanitizeJsonStringQuotes(content.substring(start, end + 1));
-    }
-
-    /**
-     * 修复 AI 在 JSON 字符串值内部使用未转义英文双引号的常见问题。
-     *
-     * <p>遍历 JSON 时维护字符串状态：当处于字符串内且遇到未转义的 " 时，
-     * 如果下一个非空白字符不是结构分隔符（,:}])），则判定为字符串内容里的引号，
-     * 前置反斜杠转义，使 Jackson 能正常解析。
-     */
-    private String sanitizeJsonStringQuotes(String json) {
-        StringBuilder sb = new StringBuilder(json.length() + 16);
-        boolean inString = false;
-        boolean escape = false;
-        for (int i = 0; i < json.length(); i++) {
-            char c = json.charAt(i);
-            if (escape) {
-                sb.append(c);
-                escape = false;
-                continue;
-            }
-            if (c == '\\') {
-                sb.append(c);
-                escape = true;
-                continue;
-            }
-            if (c == '"') {
-                if (!inString) {
-                    inString = true;
-                    sb.append(c);
-                } else {
-                    int j = i + 1;
-                    while (j < json.length() && Character.isWhitespace(json.charAt(j))) {
-                        j++;
-                    }
-                    char next = j < json.length() ? json.charAt(j) : '\0';
-                    if (next == ',' || next == ':' || next == '}' || next == ']') {
-                        inString = false;
-                        sb.append(c);
-                    } else {
-                        sb.append('\\').append(c);
-                    }
-                }
-                continue;
-            }
-            sb.append(c);
-        }
-        return sb.toString();
     }
 
     private static String truncate(String s, int max) {

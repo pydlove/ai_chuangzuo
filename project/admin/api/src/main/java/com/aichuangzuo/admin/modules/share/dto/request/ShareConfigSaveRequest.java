@@ -12,7 +12,7 @@ public class ShareConfigSaveRequest {
     private Long id;
 
     @NotBlank(message = "场景标识不能为空")
-    @Pattern(regexp = "lottery|invite", message = "场景标识只能是 lottery 或 invite")
+    @Pattern(regexp = "lottery|invite|experience", message = "场景标识只能是 lottery、invite 或 experience")
     @Size(max = 32, message = "场景标识长度不能超过32")
     private String sceneKey;
 

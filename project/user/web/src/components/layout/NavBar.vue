@@ -4,10 +4,10 @@
       <router-link to="/" class="navbar-brand-link">
         <img
           src="https://foruda.gitee.com/images/1782986808430461164/e0ab39dc_8060302.png"
-          alt="爱创作"
+          alt="爱创作工坊"
           class="navbar-logo"
         />
-        <span class="navbar-brand-name">爱创作</span>
+        <span class="navbar-brand-name">爱创作工坊</span>
       </router-link>
     </div>
 
@@ -79,8 +79,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
-
-const THEME_KEY = 'aichuangzuo_theme'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 
 const props = defineProps({
   links: { type: Array, required: true },
@@ -96,7 +95,7 @@ const currentTheme = ref('light')
 const resolvedActive = computed(() => props.activePath || route.path)
 
 const loadTheme = () => {
-  const saved = localStorage.getItem(THEME_KEY) || 'light'
+  const saved = localStorage.getItem(STORAGE_KEYS.THEME) || 'light'
   currentTheme.value = saved
   document.body.setAttribute('data-theme', saved)
 }

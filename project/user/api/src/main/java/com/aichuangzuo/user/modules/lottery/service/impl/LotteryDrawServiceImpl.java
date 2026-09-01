@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.lottery.entity.*;
-import com.aichuangzuo.user.modules.lottery.enums.LotteryErrorCode;
+import com.aichuangzuo.shared.enums.error.LotteryErrorCode;
 import com.aichuangzuo.user.modules.lottery.mapper.*;
 import com.aichuangzuo.user.modules.lottery.service.LotteryChanceService;
 import com.aichuangzuo.user.modules.lottery.service.LotteryDrawService;

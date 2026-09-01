@@ -152,13 +152,35 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     @Transactional(rollbackFor = Exception.class)
     public void delete(String bizNo) {
         SkillMarket market = loadByBizNo(bizNo);
-        market.setIsDeleted(1);
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminId != null) {
             market.setUpdatedBy(adminId);
         }
-        skillMarketMapper.updateById(market);
+        skillMarketMapper.deleteById(market);
         log.info("软删风格市场条目 bizNo={}", bizNo);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteBatch(List<String> bizNos) {
+        if (bizNos == null || bizNos.isEmpty()) {
+            return 0;
+        }
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.in(SkillMarket::getBizNo, bizNos).eq(SkillMarket::getIsDeleted, 0);
+        List<SkillMarket> markets = skillMarketMapper.selectList(wrapper);
+        if (markets.isEmpty()) {
+            return 0;
+        }
+        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        for (SkillMarket market : markets) {
+            if (adminId != null) {
+                market.setUpdatedBy(adminId);
+            }
+            skillMarketMapper.deleteById(market);
+        }
+        log.info("管理员批量删除提示词市场条目, adminUserId={}, count={}", adminId, markets.size());
+        return markets.size();
     }
 
     @Override

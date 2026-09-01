@@ -147,8 +147,8 @@ Navigation between pages is plain `<a>`/`<button onclick="location.href='...'">`
 
 ## Important conventions
 
+- **禁止修改已应用的 Flyway 迁移文件（最高优先级）**：一旦某个 `V{版本}__*.sql` 已经合并到主分支或被任何环境（包括本地开发库）执行过，就不得再编辑它的内容，否则会导致 Flyway checksum mismatch，应用无法启动。后续任何 schema 或 seed 数据变更都必须通过新增更高版本的迁移文件（如 `V2.0.0_047__xxx.sql`）来完成。如果本地已经因为误改出现 checksum 错误，可执行一次 `mvn flyway:repair`（需正确配置 Flyway Maven 插件或 Spring Boot 的 `spring.flyway.*` 参数）修复 `*_flyway_schema_history` 表的 checksum，但代码侧必须保留原始迁移文件。
 - Keep the prototype frontend-only; do not add a backend or build step without explicit user approval.
 - When adding new templates, styles, or presets, keep keys consistent with the existing naming (`wechat`, `xiaohongshu`, `toutiao`, `baijiahao`, `zhihu`, `douyin`, `general`).
 - The split standalone pages are the source of truth; the legacy single-file prototype is read-only.
 - **不用的代码开发结束后必须删掉**：不用的 Controller / Service / 配置 / 注释 / 迁移 / 测试 / E2E 脚本不能注释或保留。验证方式：`grep` 确认无任何调用方（包括配置文件、测试、E2E、文档），然后删除。前端改了实现方式（如弹框滑块取代图形验证码）→ 后端不再被引用的旧逻辑（Controller、DTO 字段、Service 方法、依赖、配置）要同步移除。
-- **禁止修改已应用的 Flyway 迁移文件**：一旦某个 `V{版本}__*.sql` 已经合并到主分支或被任何环境（包括本地开发库）执行过，就不得再编辑它的内容，否则会导致 Flyway checksum mismatch，应用无法启动。后续任何 schema 或 seed 数据变更都必须通过新增更高版本的迁移文件（如 `V2.0.0_047__xxx.sql`）来完成。如果本地已经因为误改出现 checksum 错误，可执行一次 `mvn flyway:repair`（需正确配置 Flyway Maven 插件或 Spring Boot 的 `spring.flyway.*` 参数）修复 `*_flyway_schema_history` 表的 checksum，但代码侧必须保留原始迁移文件。

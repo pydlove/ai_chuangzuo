@@ -1,5 +1,7 @@
 package com.aichuangzuo.user.modules.generation.service;
 
+import com.aichuangzuo.shared.enums.error.SystemErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.modules.benefit.service.BenefitService;
 import com.aichuangzuo.user.modules.generation.entity.GenerationTaskRefund;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationTaskRefundMapper;
@@ -26,7 +28,7 @@ public class GenerationTaskRefundService {
     @Transactional(rollbackFor = Exception.class)
     public void refundOnce(Long taskId, Long userId, String benefitCode) {
         if (taskId == null || userId == null || benefitCode == null || benefitCode.isBlank()) {
-            throw new IllegalArgumentException("taskId、userId、benefitCode 不能为空");
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "taskId、userId、benefitCode 不能为空");
         }
 
         LambdaQueryWrapper<GenerationTaskRefund> wrapper = new LambdaQueryWrapper<>();

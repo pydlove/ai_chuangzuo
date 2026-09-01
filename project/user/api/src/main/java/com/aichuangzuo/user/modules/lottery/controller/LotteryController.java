@@ -5,15 +5,13 @@ import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.lottery.dto.request.LotteryDrawRequest;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryCampaign;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryPrizeTier;
-import com.aichuangzuo.user.modules.lottery.mapper.LotteryCampaignMapper;
-import com.aichuangzuo.user.modules.lottery.mapper.LotteryPrizeTierMapper;
 import com.aichuangzuo.user.modules.lottery.service.LotteryChanceService;
+import com.aichuangzuo.user.modules.lottery.service.LotteryDisplayService;
 import com.aichuangzuo.user.modules.lottery.service.LotteryDrawService;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryCampaignVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryChancesVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryDrawResultVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryPrizeTierVO;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -21,7 +19,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -34,20 +31,12 @@ public class LotteryController {
 
     private final LotteryDrawService lotteryDrawService;
     private final LotteryChanceService lotteryChanceService;
-    private final LotteryCampaignMapper campaignMapper;
-    private final LotteryPrizeTierMapper prizeTierMapper;
+    private final LotteryDisplayService lotteryDisplayService;
 
     @Operation(summary = "当前进行中的活动")
     @GetMapping("/campaigns/current")
     public Result<LotteryCampaignVO> currentCampaign() {
-        LotteryCampaign campaign = campaignMapper.selectOne(
-                new LambdaQueryWrapper<LotteryCampaign>()
-                        .eq(LotteryCampaign::getIsDeleted, 0)
-                        .eq(LotteryCampaign::getStatus, 1)
-                        .le(LotteryCampaign::getStartTime, LocalDateTime.now())
-                        .ge(LotteryCampaign::getEndTime, LocalDateTime.now())
-                        .orderByDesc(LotteryCampaign::getStartTime)
-                        .last("LIMIT 1"));
+        LotteryCampaign campaign = lotteryDisplayService.getCurrentCampaign();
         if (campaign == null) {
             return Result.success(null);
         }
@@ -58,7 +47,7 @@ public class LotteryController {
     @GetMapping("/chances")
     public Result<LotteryChancesVO> chances(@RequestParam Long campaignId) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        LotteryCampaign campaign = campaignMapper.selectById(campaignId);
+        LotteryCampaign campaign = lotteryDisplayService.getCampaignById(campaignId);
         if (campaign != null && campaign.getFreeDrawsPerUser() != null && campaign.getFreeDrawsPerUser() > 0) {
             lotteryChanceService.acquireFreeChance(campaignId, userId);
         }
@@ -85,13 +74,7 @@ public class LotteryController {
         vo.setStartTime(campaign.getStartTime());
         vo.setEndTime(campaign.getEndTime());
 
-        List<LotteryPrizeTier> tiers = prizeTierMapper.selectList(
-                new LambdaQueryWrapper<LotteryPrizeTier>()
-                        .eq(LotteryPrizeTier::getCampaignId, campaign.getId())
-                        .eq(LotteryPrizeTier::getIsDeleted, 0)
-                        .eq(LotteryPrizeTier::getStatus, 1)
-                        .orderByAsc(LotteryPrizeTier::getSortOrder)
-                        .orderByAsc(LotteryPrizeTier::getPrizeLevel));
+        List<LotteryPrizeTier> tiers = lotteryDisplayService.listActiveTiersByCampaignId(campaign.getId());
         vo.setTiers(tiers.stream().map(this::buildTierVO).collect(Collectors.toList()));
         return vo;
     }

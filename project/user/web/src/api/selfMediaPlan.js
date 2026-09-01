@@ -52,8 +52,17 @@ export function savePlan(data) {
 }
 
 /**
+ * 查询已缓存的发布计划（不触发 AI 生成）。
+ * @param {string} mainPlatform
+ * @returns {Promise<{code:number, data:object|null, msg:string}>}
+ */
+export function getPublishPlan(mainPlatform) {
+  return api.get(`${BASE}/publish-plan`, { params: { mainPlatform }, timeout: 30000 })
+}
+
+/**
  * 根据自媒体运营方案生成发布计划（主平台规律时段 + 冷启动策略 + 一文多发）。
- * @param {{articleTitle:string, mainPlatform:string}} data
+ * @param {{mainPlatform:string}} data
  * @returns {Promise<{code:number, data:{mainPlatform:{platform:string,publishTime:string,reason:string}, coldStart:{immediateActions:string[],duration:string,sharingTips:string}, reposts:{platform:string,publishTime:string,title:string,tags:string[],imageSuggestions:string}[]}, msg:string}>}
  */
 export function generatePublishPlan(data) {

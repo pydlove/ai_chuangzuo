@@ -2,7 +2,7 @@ package com.aichuangzuo.user.infrastructure.storage;
 
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.user.modules.leaderboard.enums.LeaderboardErrorCode;
+import com.aichuangzuo.shared.enums.error.LeaderboardErrorCode;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -72,11 +72,12 @@ public class LocalFileStorage {
     }
 
     /**
-     * 存储头像，返回 root-relative 访问路径。
+     * 存储头像，返回 API 前缀访问路径。
+     * <p>使用 /api/v1/user/uploads 前缀，确保线上只代理 /api/v1/user 时也能正常访问头像。
      *
      * @param userId 用户ID
      * @param file   头像文件
-     * @return /uploads/avatar/{userId}/{filename}.jpg
+     * @return /api/v1/user/uploads/avatar/{userId}/{filename}.jpg
      */
     public String storeAvatar(Long userId, MultipartFile file) {
         validateAvatar(file);
@@ -96,7 +97,7 @@ public class LocalFileStorage {
             throw new IllegalStateException("头像保存失败: " + target, e);
         }
 
-        return "/uploads/avatar/" + userId + "/" + filename;
+        return "/api/v1/user/uploads/avatar/" + userId + "/" + filename;
     }
 
     private void validateAvatar(MultipartFile file) {

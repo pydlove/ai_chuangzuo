@@ -68,7 +68,7 @@ class GenerationTaskInternalControllerNotifyTest {
     }
 
     @Test
-    void notifyCompletion_failed_pushesGenerationMessageWithNoLink() {
+    void notifyCompletion_failed_pushesGenerationMessageWithFriendlySummary() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("taskId", 101);
         payload.put("userId", 201);
@@ -77,14 +77,18 @@ class GenerationTaskInternalControllerNotifyTest {
 
         controller.notifyCompletion(payload);
 
+        ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> summaryCaptor = ArgumentCaptor.forClass(String.class);
         verify(messageService).pushPersonal(
                 eq(201L),
                 eq("generation"),
-                anyString(),
-                anyString(),
+                titleCaptor.capture(),
+                summaryCaptor.capture(),
                 any(),
                 anyString(),
                 eq("failed"));
+        assertEquals("本次创作失败", titleCaptor.getValue());
+        assertEquals("因为未知因素影响，创作失败（本次不消耗次数），请点击重新生成", summaryCaptor.getValue());
     }
 
     @Test
@@ -107,21 +111,20 @@ class GenerationTaskInternalControllerNotifyTest {
     }
 
     @Test
-    void notifyCompletion_summary_containsFailReasonForFailed() {
+    void notifyCompletion_failed_titleContainsArticleTitleWhenPresent() {
         Map<String, Object> payload = new HashMap<>();
         payload.put("taskId", 103);
         payload.put("userId", 203);
         payload.put("status", "failed");
-        payload.put("failReason", "文章生成超时");
+        payload.put("articleTitle", "我的文章标题");
 
         controller.notifyCompletion(payload);
 
-        ArgumentCaptor<String> summaryCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> titleCaptor = ArgumentCaptor.forClass(String.class);
         verify(messageService).pushPersonal(
                 eq(203L), eq("generation"),
-                anyString(), summaryCaptor.capture(), any(), anyString(), eq("failed"));
-        assertTrue(summaryCaptor.getValue().contains("文章生成超时"),
-                "failed 摘要应包含失败原因");
+                titleCaptor.capture(), anyString(), any(), anyString(), eq("failed"));
+        assertEquals("【我的文章标题】本次创作失败", titleCaptor.getValue());
     }
 
     @Test

@@ -29,7 +29,6 @@ export async function fetchCurrentPlan() {
     currentPlan.value = plan
     return plan
   } catch (e) {
-    console.warn('[fetchCurrentPlan]', errMsg(e))
     return null
   } finally {
     isLoadingPlan.value = false

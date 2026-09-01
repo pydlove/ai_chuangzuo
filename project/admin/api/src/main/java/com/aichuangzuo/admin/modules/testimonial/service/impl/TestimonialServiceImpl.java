@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.testimonial.service.impl;
 
 import com.aichuangzuo.admin.modules.testimonial.dto.excel.TestimonialImportExcelRowData;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialCreateRequest;
+import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialPageRequest;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialStatusRequest;
 import com.aichuangzuo.admin.modules.testimonial.dto.request.TestimonialUpdateRequest;
 import com.aichuangzuo.admin.modules.testimonial.entity.TestimonialEntity;
@@ -14,6 +15,8 @@ import com.aichuangzuo.admin.modules.testimonial.vo.TestimonialImportRowErrorVO;
 import com.aichuangzuo.admin.modules.testimonial.vo.TestimonialVO;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,15 +32,22 @@ public class TestimonialServiceImpl implements TestimonialService {
     private final TestimonialMapper mapper;
 
     @Override
-    public List<TestimonialVO> list() {
-        return mapper.selectList(
-                        new QueryWrapper<TestimonialEntity>()
-                                .orderByAsc("sort")
-                                .orderByAsc("id")
-                )
-                .stream()
+    public IPage<TestimonialVO> page(TestimonialPageRequest request) {
+        Page<TestimonialEntity> pageParam = new Page<>(request.getPageNum(), request.getPageSize());
+        QueryWrapper<TestimonialEntity> wrapper = new QueryWrapper<TestimonialEntity>()
+                .orderByAsc("sort")
+                .orderByAsc("id");
+        String keyword = request.getKeyword();
+        if (keyword != null && !keyword.isBlank()) {
+            wrapper.and(w -> w.like("name", keyword).or().like("review_text", keyword));
+        }
+        Page<TestimonialEntity> result = mapper.selectPage(pageParam, wrapper);
+        List<TestimonialVO> records = result.getRecords().stream()
                 .map(this::toVo)
                 .toList();
+        Page<TestimonialVO> voPage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        voPage.setRecords(records);
+        return voPage;
     }
 
     @Override
@@ -71,6 +81,14 @@ public class TestimonialServiceImpl implements TestimonialService {
     public void delete(Long id) {
         requireExisting(id);
         mapper.deleteById(id);
+    }
+
+    @Override
+    public Integer batchDelete(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+        return mapper.deleteBatchIds(ids);
     }
 
     @Override
@@ -209,7 +227,7 @@ public class TestimonialServiceImpl implements TestimonialService {
     private TestimonialVO toVo(TestimonialEntity e) {
         TestimonialVO v = new TestimonialVO();
         v.setId(e.getId());
-        v.setAvatarUrl(e.getAvatarUrl());
+        v.setAvatarUrl(normalizeAvatarUrl(e.getAvatarUrl()));
         v.setName(e.getName());
         v.setTitle(e.getTitle());
         v.setStarRating(e.getStarRating());
@@ -219,5 +237,18 @@ public class TestimonialServiceImpl implements TestimonialService {
         v.setCreatedAt(e.getCreatedAt());
         v.setUpdatedAt(e.getUpdatedAt());
         return v;
+    }
+
+    /**
+     * 兼容旧版头像 URL。
+     *
+     * <p>早期 storeTestimonialAvatar 返回 /uploads/testimonial/avatar/...，线上 Nginx 只代理了 /api/v1/admin，
+     * 导致旧头像裂图。读数据时自动把旧路径改写为 /api/v1/admin/uploads/...，新路径不受影响。
+     */
+    private String normalizeAvatarUrl(String avatarUrl) {
+        if (avatarUrl != null && avatarUrl.startsWith("/uploads/")) {
+            return "/api/v1/admin" + avatarUrl;
+        }
+        return avatarUrl;
     }
 }

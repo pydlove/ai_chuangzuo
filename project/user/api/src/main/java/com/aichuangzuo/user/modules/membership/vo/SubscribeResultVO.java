@@ -42,4 +42,10 @@ public class SubscribeResultVO {
 
     /** 现金实付金额（元）。 */
     private BigDecimal cashAmount;
+
+    /** 正式模式下的第三方支付跳转地址；测试模式为 null。 */
+    private String payUrl;
+
+    /** 正式模式下的二维码图片地址；测试模式为 null。 */
+    private String payQrUrl;
 }

@@ -4,7 +4,7 @@ import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.utils.AesUtil;
 import com.aichuangzuo.user.modules.article.dto.ActiveModelConfig;
 import com.aichuangzuo.user.modules.article.mapper.ArticleModelConfigMapper;
-import com.aichuangzuo.user.modules.skill.enums.SkillErrorCode;
+import com.aichuangzuo.shared.enums.error.SkillErrorCode;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
