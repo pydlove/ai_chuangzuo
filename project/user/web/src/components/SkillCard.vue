@@ -704,6 +704,9 @@ body[data-theme="dark"] .skill-card__featured-badge {
   .skill-card__actions :deep(.action-group__btn):not(:first-child) {
     display: none;
   }
+  .skill-card__actions :deep(.action-group__btn.mobile-visible) {
+    display: inline-flex;
+  }
   .skill-card__actions :deep(.action-group__btn--primary) {
     background: var(--color-primary);
     color: #fff;

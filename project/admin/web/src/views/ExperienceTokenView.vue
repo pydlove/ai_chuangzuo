@@ -50,6 +50,15 @@
           <template v-else-if="column.key === 'expiresAt'">
             {{ record.expiresAt || '-' }}
           </template>
+          <template v-else-if="column.key === 'usedByUserName'">
+            {{ record.usedByUserName || '-' }}
+          </template>
+          <template v-else-if="column.key === 'usedByUserEmail'">
+            {{ record.usedByUserEmail || '-' }}
+          </template>
+          <template v-else-if="column.key === 'usedByUserPhone'">
+            {{ record.usedByUserPhone || '-' }}
+          </template>
           <template v-else-if="column.key === 'usedAt'">
             {{ record.usedAt || '-' }}
           </template>
@@ -104,6 +113,7 @@ import { onMounted, reactive, ref } from 'vue'
 import { message } from 'ant-design-vue'
 import { batchGenerateExperienceTokens, listExperienceTokens } from '@/api/experienceToken.js'
 import { listShareConfigs } from '@/api/shareConfig.js'
+import { copyToClipboard } from '@/utils/clipboard.js'
 import dayjs from 'dayjs'
 
 const items = ref([])
@@ -140,7 +150,10 @@ const columns = [
   { title: '套餐', dataIndex: 'planKey', key: 'planKey', width: 100 },
   { title: '会员天数', dataIndex: 'membershipDays', key: 'membershipDays', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
-  { title: '使用人ID', dataIndex: 'usedByUserId', key: 'usedByUserId', width: 100 },
+  { title: '使用人ID', dataIndex: 'usedByUserId', key: 'usedByUserId', width: 90 },
+  { title: '使用人昵称', dataIndex: 'usedByUserName', key: 'usedByUserName', width: 120 },
+  { title: '使用人邮箱', dataIndex: 'usedByUserEmail', key: 'usedByUserEmail', width: 180 },
+  { title: '使用人手机', dataIndex: 'usedByUserPhone', key: 'usedByUserPhone', width: 130 },
   { title: '使用时间', dataIndex: 'usedAt', key: 'usedAt', width: 170 },
   { title: '有效期', dataIndex: 'expiresAt', key: 'expiresAt', width: 170 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
@@ -224,6 +237,8 @@ const handleGenerate = async () => {
   }
 }
 
+const USER_WEB_URL = import.meta.env.VITE_USER_WEB_URL || window.location.origin
+
 const copyShareText = async (token) => {
   try {
     const res = await listShareConfigs({ sceneKey: 'experience', enabled: 1, page: 1, size: 1 })
@@ -232,9 +247,9 @@ const copyShareText = async (token) => {
       message.warning('未找到 experience 场景的分享文案，请先在「分享管理」中配置')
       return
     }
-    const url = `${window.location.origin}/register?experience=${token}`
+    const url = `${USER_WEB_URL}/register?experience=${token}`
     const text = config.content.replace(/\{url\}/g, url)
-    await navigator.clipboard.writeText(text)
+    await copyToClipboard(text)
     message.success('分享文案已复制')
   } catch (err) {
     message.error('复制失败：' + (err.message || '未知错误'))

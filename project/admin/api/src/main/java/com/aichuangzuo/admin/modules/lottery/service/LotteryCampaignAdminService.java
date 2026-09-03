@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.lottery.service;
 
+import com.aichuangzuo.admin.modules.lottery.dto.request.CloneCampaignRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryPrizeTierSaveRequest;
@@ -19,6 +20,8 @@ public interface LotteryCampaignAdminService {
     void openCampaign(Long id, Long adminUserId);
 
     void closeCampaign(Long id, Long adminUserId);
+
+    Long cloneCampaign(Long sourceId, CloneCampaignRequest request, Long adminUserId);
 
     void deleteCampaign(Long id, Long adminUserId);
 

@@ -68,6 +68,15 @@ public class AdminUserController {
         return Result.success(adminUserService.createUser(request));
     }
 
+    @Operation(summary = "上传用户头像")
+    @PostMapping(value = "/upload-avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员上传用户头像, adminUserId={}, fileName={}, fileSize={}",
+                adminUserId, file.getOriginalFilename(), file.getSize());
+        return Result.success(adminUserService.storeAvatar(file));
+    }
+
     @Operation(summary = "下载用户导入模板")
     @GetMapping("/import-template")
     public void downloadImportTemplate(HttpServletResponse response) {

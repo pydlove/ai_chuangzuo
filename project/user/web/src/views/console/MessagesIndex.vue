@@ -568,6 +568,13 @@ body[data-theme="dark"] .messages-empty__desc {
   color: #8c8c8c;
 }
 
+/* 手机端底部留出工具栏顶起 tabbar 的安全距离 */
+@media (max-width: 768px) {
+  .messages-list {
+    margin-bottom: 50px;
+  }
+}
+
 /* PC 端适配 */
 @media (min-width: 769px) {
   .messages-page {

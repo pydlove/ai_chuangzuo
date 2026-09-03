@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.lottery.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
+import com.aichuangzuo.admin.modules.lottery.dto.request.CloneCampaignRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryPrizeTierSaveRequest;
@@ -71,6 +72,15 @@ public class LotteryCampaignAdminController {
         log.info("管理员关闭抽奖活动, adminUserId={}, campaignId={}", adminUserId, id);
         campaignAdminService.closeCampaign(id, adminUserId);
         return Result.success();
+    }
+
+    @Operation(summary = "复制活动")
+    @PostMapping("/campaigns/{id}/clone")
+    public Result<Long> cloneCampaign(@PathVariable("id") Long id,
+                                      @Valid @RequestBody CloneCampaignRequest request) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员复制抽奖活动, adminUserId={}, sourceCampaignId={}, newName={}", adminUserId, id, request.getName());
+        return Result.success(campaignAdminService.cloneCampaign(id, request, adminUserId));
     }
 
     @Operation(summary = "删除活动")

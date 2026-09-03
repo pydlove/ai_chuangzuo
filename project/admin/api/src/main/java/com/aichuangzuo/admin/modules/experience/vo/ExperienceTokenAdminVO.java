@@ -14,6 +14,9 @@ public class ExperienceTokenAdminVO {
     private Integer membershipDays;
     private Integer status;
     private Long usedByUserId;
+    private String usedByUserName;
+    private String usedByUserEmail;
+    private String usedByUserPhone;
     private LocalDateTime usedAt;
     private LocalDateTime expiresAt;
     private LocalDateTime createdAt;

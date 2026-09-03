@@ -199,7 +199,7 @@
         </div>
         <div v-if="resultCode" class="result-code-box">
           <span class="result-code-box__text">{{ resultCode }}</span>
-          <a-button size="small" type="primary" @click="copyCode">复制</a-button>
+          <a-button size="small" type="primary" @click="copyCode(resultCode)">复制</a-button>
         </div>
         <p class="result-tip">{{ resultCode ? '兑换码可在“我的兑换码”中查看' : '感谢参与，下次好运' }}</p>
         <div class="result-actions">
@@ -613,10 +613,11 @@ async function handleRedeem(code) {
   }
 }
 
-const { copy: copyCode } = useCopy({
+const { copy: copyCodeRaw } = useCopy({
   successText: '已复制',
   errorText: '复制失败，请长按手动复制'
 })
+const copyCode = (code) => copyCodeRaw(code)
 const { copy: copyShareText } = useCopy({
   successText: '文案已复制',
   errorText: '复制失败，请长按手动复制'

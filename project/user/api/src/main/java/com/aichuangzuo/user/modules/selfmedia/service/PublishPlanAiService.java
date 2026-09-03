@@ -6,6 +6,7 @@ import com.aichuangzuo.user.modules.selfmedia.entity.SelfMediaPlanPublishGuide;
 import com.aichuangzuo.shared.enums.error.SelfMediaPlanErrorCode;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanMapper;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPublishGuideMapper;
+import com.aichuangzuo.user.modules.selfmedia.util.SelfMediaPlanHashUtil;
 import com.aichuangzuo.user.modules.selfmedia.vo.PillarVO;
 import com.aichuangzuo.user.modules.selfmedia.vo.PublishPlanGuideVO;
 import com.aichuangzuo.user.modules.selfmedia.vo.SelfMediaPlanVO;
@@ -17,11 +18,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -100,14 +99,10 @@ public class PublishPlanAiService {
     }
 
     private PublishPlanGuideVO getCachedPlan(SelfMediaPlan plan, String mainPlatform) {
-        SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserAndPlatform(
-                plan.getUserId(), mainPlatform);
+        String planContentHash = SelfMediaPlanHashUtil.computePlanContentHash(objectMapper, plan);
+        SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserPlatformAndHash(
+                plan.getUserId(), mainPlatform, planContentHash);
         if (guide == null) {
-            return null;
-        }
-        if (!isPlanVersionMatch(guide.getPlanUpdatedAt(), plan.getUpdatedAt())) {
-            log.info("[发布计划] 缓存过期 userId={}, planUpdatedAt={}, currentUpdatedAt={}",
-                    plan.getUserId(), guide.getPlanUpdatedAt(), plan.getUpdatedAt());
             return null;
         }
         try {
@@ -123,24 +118,18 @@ public class PublishPlanAiService {
         }
     }
 
-    private boolean isPlanVersionMatch(LocalDateTime cachedUpdatedAt, LocalDateTime currentUpdatedAt) {
-        if (cachedUpdatedAt == null || currentUpdatedAt == null) {
-            return false;
-        }
-        return Objects.equals(cachedUpdatedAt.truncatedTo(java.time.temporal.ChronoUnit.SECONDS),
-                currentUpdatedAt.truncatedTo(java.time.temporal.ChronoUnit.SECONDS));
-    }
-
     private void saveCachedPlan(SelfMediaPlan plan, String mainPlatform, PublishPlanGuideVO vo) {
         try {
-            SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserAndPlatform(
-                    plan.getUserId(), mainPlatform);
+            String planContentHash = SelfMediaPlanHashUtil.computePlanContentHash(objectMapper, plan);
+            SelfMediaPlanPublishGuide guide = publishGuideMapper.selectByUserPlatformAndHash(
+                    plan.getUserId(), mainPlatform, planContentHash);
             boolean isNew = guide == null;
             if (isNew) {
                 guide = new SelfMediaPlanPublishGuide();
                 guide.setUserId(plan.getUserId());
                 guide.setPlanId(plan.getId());
                 guide.setMainPlatform(mainPlatform);
+                guide.setPlanContentHash(planContentHash);
                 guide.setTenantId(plan.getTenantId());
             }
             guide.setPlanUpdatedAt(plan.getUpdatedAt());

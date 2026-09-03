@@ -5,6 +5,14 @@
       <p class="page-desc">查看和管理用户订阅订单</p>
     </div>
 
+    <!-- 汇总提示 -->
+    <div class="summary-bar">
+      <span>订单数：<strong>{{ total }}</strong></span>
+      <span>订单总额：<strong>¥{{ totalAmount }}</strong></span>
+      <span class="summary-tip">（注意：仅保留最近1年的订单）</span>
+      <span class="summary-default">默认仅展示当月订单</span>
+    </div>
+
     <!-- 搜索栏 -->
     <div class="search-bar">
       <a-input
@@ -29,6 +37,24 @@
       <a-button type="primary" @click="handleSearch">搜索</a-button>
       <a-button @click="handleReset">重置</a-button>
       <div style="flex: 1" />
+      <a-button
+        type="primary"
+        danger
+        ghost
+        :disabled="selectedRowKeys.length === 0 || !selectedRows.every((r) => r.status === 0)"
+        @click="handleBatchCancel"
+      >
+        批量取消
+      </a-button>
+      <a-button
+        danger
+        ghost
+        :disabled="selectedRowKeys.length === 0 || !selectedRows.every((r) => r.status === 3)"
+        @click="handleBatchDelete"
+      >
+        批量删除
+      </a-button>
+      <a-divider type="vertical" />
       <a-button type="primary" ghost @click="openGrantModal">手动发放会员</a-button>
       <a-button ghost @click="openAdjustModal">手动调整会员</a-button>
     </div>
@@ -41,29 +67,37 @@
       :pagination="pagination"
       row-key="id"
       size="middle"
+      :row-selection="{ selectedRowKeys, onChange: onSelectChange }"
       @change="onTableChange"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'user'">
-          <div class="cell-user">
-            <div>{{ record.nickname || '-' }}</div>
-            <div class="cell-user-sub">{{ record.email || '-' }}</div>
-          </div>
+        <template v-if="column.key === 'id'">
+          {{ record.id }}
         </template>
-        <template v-else-if="column.key === 'planKey'">
-          <a-tag :color="planColor(record.planKey)">{{ record.planName }}</a-tag>
+        <template v-else-if="column.key === 'orderNo'">
+          {{ record.orderNo }}
+        </template>
+        <template v-else-if="column.key === 'app'">
+          <a class="app-link" @click.prevent>爱创作工坊</a>
+        </template>
+        <template v-else-if="column.key === 'title'">
+          {{ orderTitle(record) }}
         </template>
         <template v-else-if="column.key === 'amount'">
           ¥{{ record.amount }}
         </template>
-        <template v-else-if="column.key === 'status'">
-          <a-tag :color="statusColor(record.status)">{{ record.statusName }}</a-tag>
-        </template>
-        <template v-else-if="column.key === 'paidAt'">
-          {{ record.paidAt ? formatTime(record.paidAt) : '-' }}
+        <template v-else-if="column.key === 'payment'">
+          <div class="cell-payment">
+            <a-tag color="blue">{{ paymentMethodLabel(record.paymentMethod) }}</a-tag>
+            <div class="cell-payment-line">交易时间：{{ record.paidAt ? formatTime(record.paidAt) : '-' }}</div>
+            <div class="cell-payment-line">交易号：{{ record.thirdPartyTradeId || '-' }}</div>
+          </div>
         </template>
         <template v-else-if="column.key === 'createdAt'">
           {{ formatTime(record.createdAt) }}
+        </template>
+        <template v-else-if="column.key === 'status'">
+          <a-tag :color="statusColor(record.status)">{{ record.statusName }}</a-tag>
         </template>
         <template v-else-if="column.key === 'action'">
           <a-space>
@@ -149,10 +183,14 @@
     <a-drawer v-model:open="detailDrawerOpen" title="订单详情" :width="480">
       <template v-if="detailData">
         <div class="detail-row"><span class="detail-label">订单号</span><span>{{ detailData.orderNo }}</span></div>
+        <div class="detail-row"><span class="detail-label">APP</span><span>爱创作工坊</span></div>
+        <div class="detail-row"><span class="detail-label">订单标题</span><span>{{ orderTitle(detailData) }}</span></div>
         <div class="detail-row"><span class="detail-label">用户</span><span>{{ detailData.nickname || '-' }} ({{ detailData.email || '-' }})</span></div>
         <div class="detail-row"><span class="detail-label">套餐</span><span>{{ detailData.planName }}</span></div>
         <div class="detail-row"><span class="detail-label">周期</span><span>{{ detailData.cycleName }}</span></div>
         <div class="detail-row"><span class="detail-label">金额</span><span>¥{{ detailData.amount }}</span></div>
+        <div class="detail-row"><span class="detail-label">支付方式</span><span>{{ paymentMethodLabel(detailData.paymentMethod) }}</span></div>
+        <div class="detail-row"><span class="detail-label">交易号</span><span>{{ detailData.thirdPartyTradeId || '-' }}</span></div>
         <div class="detail-row"><span class="detail-label">状态</span>
           <a-tag :color="statusColor(detailData.status)">{{ detailData.statusName }}</a-tag>
         </div>
@@ -169,7 +207,8 @@
 <script setup>
 import { ref, computed, reactive, onMounted } from 'vue'
 import { message, Modal } from 'ant-design-vue'
-import { getOrderList, getOrderDetail, markOrderPaid, refundOrder, cancelOrder, adjustMembership, grantMembership } from '@/api/order.js'
+import dayjs from 'dayjs'
+import { getOrderList, getOrderDetail, markOrderPaid, refundOrder, cancelOrder, batchCancelOrder, batchDeleteOrder, adjustMembership, grantMembership } from '@/api/order.js'
 import { listUserOptions } from '@/api/userOptions.js'
 import { fetchPlans } from '@/api/plan.js'
 
@@ -177,23 +216,34 @@ import { fetchPlans } from '@/api/plan.js'
 const keyword = ref('')
 const planKey = ref(undefined)
 const statusFilter = ref(undefined)
-const dateRange = ref(null)
+const dateRange = ref([dayjs().startOf('month'), dayjs().endOf('month')])
 const list = ref([])
 const loading = ref(false)
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(10)
+const totalAmountFromBackend = ref(null)
+const selectedRowKeys = ref([])
+const selectedRows = ref([])
+
+const totalAmount = computed(() => {
+  if (totalAmountFromBackend.value != null) {
+    return Number(totalAmountFromBackend.value).toFixed(2)
+  }
+  const sum = list.value.reduce((acc, item) => acc + Number(item.amount || 0), 0)
+  return sum.toFixed(2)
+})
 
 const columns = [
-  { title: '订单号', dataIndex: 'orderNo', key: 'orderNo', width: 180 },
-  { title: '用户', key: 'user', width: 160 },
-  { title: '套餐', key: 'planKey', width: 100 },
-  { title: '周期', dataIndex: 'cycleName', key: 'cycleName', width: 80 },
-  { title: '金额', key: 'amount', width: 90 },
+  { title: '订单ID', dataIndex: 'id', key: 'id', width: 120 },
+  { title: '商户订单ID', dataIndex: 'orderNo', key: 'orderNo', width: 160 },
+  { title: 'APP', key: 'app', width: 100 },
+  { title: '订单标题', key: 'title', width: 140 },
+  { title: '支付金额', key: 'amount', width: 100 },
+  { title: '支付方式', key: 'payment', width: 220 },
+  { title: '下单时间', key: 'createdAt', width: 160 },
   { title: '状态', key: 'status', width: 90 },
-  { title: '支付时间', key: 'paidAt', width: 160 },
-  { title: '创建时间', key: 'createdAt', width: 160 },
-  { title: '操作', key: 'action', width: 200, fixed: 'right' }
+  { title: '操作', key: 'action', width: 160, fixed: 'right' }
 ]
 
 const pagination = computed(() => ({
@@ -209,16 +259,23 @@ function formatTime(t) {
   return new Date(t).toLocaleString('zh-CN')
 }
 
-function planColor(key) {
-  return { basic: 'blue', pro: 'green', flagship: 'gold' }[key] || 'default'
-}
-
 function statusColor(s) {
   return { 0: 'orange', 1: 'green', 2: 'red', 3: 'default' }[s] || 'default'
 }
 
+function paymentMethodLabel(method) {
+  return { xunhupay: '微信支付' }[method] || method || '-'
+}
+
+function orderTitle(record) {
+  const cycleText = { month: '月度', quarter: '季度', year: '年度' }[record.cycle] || record.cycleName
+  return `${record.planName}${cycleText}会员`
+}
+
 async function reload() {
   loading.value = true
+  selectedRowKeys.value = []
+  selectedRows.value = []
   try {
     const params = { page: page.value, pageSize: pageSize.value }
     if (keyword.value) params.keyword = keyword.value
@@ -231,6 +288,7 @@ async function reload() {
     const data = await getOrderList(params)
     list.value = data.list || []
     total.value = data.total || 0
+    totalAmountFromBackend.value = data.totalAmount != null ? data.totalAmount : null
   } catch (e) {
     // error handled by interceptor
   } finally {
@@ -247,7 +305,7 @@ function handleReset() {
   keyword.value = ''
   planKey.value = undefined
   statusFilter.value = undefined
-  dateRange.value = null
+  dateRange.value = [dayjs().startOf('month'), dayjs().endOf('month')]
   page.value = 1
   reload()
 }
@@ -256,6 +314,11 @@ function onTableChange(p) {
   page.value = p.current
   pageSize.value = p.pageSize
   reload()
+}
+
+function onSelectChange(keys, rows) {
+  selectedRowKeys.value = keys
+  selectedRows.value = rows
 }
 
 // ── 标记已支付 ──
@@ -279,6 +342,48 @@ function handleCancel(record) {
     async onOk() {
       await cancelOrder(record.id)
       message.success('已取消')
+      reload()
+    }
+  })
+}
+
+// ── 批量取消 ──
+function handleBatchCancel() {
+  if (selectedRowKeys.value.length === 0) return
+  const invalid = selectedRows.value.filter((r) => r.status !== 0)
+  if (invalid.length > 0) {
+    message.warning('仅允许批量取消待支付订单')
+    return
+  }
+  Modal.confirm({
+    title: '确认批量取消订单？',
+    content: `已选中 ${selectedRowKeys.value.length} 个订单，取消后不可恢复。`,
+    async onOk() {
+      await batchCancelOrder(selectedRowKeys.value)
+      message.success('批量取消成功')
+      selectedRowKeys.value = []
+      selectedRows.value = []
+      reload()
+    }
+  })
+}
+
+// ── 批量删除 ──
+function handleBatchDelete() {
+  if (selectedRowKeys.value.length === 0) return
+  const invalid = selectedRows.value.filter((r) => r.status !== 3)
+  if (invalid.length > 0) {
+    message.warning('仅允许批量删除已取消订单')
+    return
+  }
+  Modal.confirm({
+    title: '确认批量删除订单？',
+    content: `已选中 ${selectedRowKeys.value.length} 个订单，删除后不可恢复。`,
+    async onOk() {
+      await batchDeleteOrder(selectedRowKeys.value)
+      message.success('批量删除成功')
+      selectedRowKeys.value = []
+      selectedRows.value = []
       reload()
     }
   })
@@ -463,11 +568,36 @@ onMounted(() => {
   align-items: center;
 }
 
-.cell-user {
-  line-height: 1.4;
+.summary-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+  font-size: 13px;
 }
 
-.cell-user-sub {
+.summary-bar strong {
+  font-weight: 600;
+}
+
+.summary-tip {
+  color: #ff4d4f;
+}
+
+.summary-default {
+  color: #ff4d4f;
+}
+
+.app-link {
+  color: #1890ff;
+  cursor: pointer;
+}
+
+.cell-payment {
+  line-height: 1.6;
+}
+
+.cell-payment-line {
   font-size: 12px;
   color: #8c8c8c;
 }

@@ -17,6 +17,7 @@ import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanPersonaMapper;
 import com.aichuangzuo.user.modules.selfmedia.mapper.SelfMediaPlanQuestionMapper;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
+import com.aichuangzuo.user.modules.selfmedia.util.SelfMediaPlanHashUtil;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -347,6 +348,7 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         vo.setPersonaName(plan.getPersonaName());
         vo.setPillars(parsePillarsJson(plan.getContentPillarsJson()));
         vo.setAnswers(parseAnswersJson(plan.getAnswersJson()));
+        vo.setPlanContentHash(SelfMediaPlanHashUtil.computePlanContentHash(objectMapper, plan));
         return vo;
     }
 

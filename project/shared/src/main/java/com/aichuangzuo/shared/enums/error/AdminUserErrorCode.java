@@ -17,7 +17,12 @@ public enum AdminUserErrorCode implements ErrorCode {
     EXCEL_FILE_INVALID(220010, "Excel 文件无效，请使用正确的模板"),
     EXCEL_PARSE_ERROR(220011, "Excel 解析失败"),
     EXCEL_IMPORT_EMPTY(220012, "Excel 数据为空"),
-    MEMBERSHIP_PLAN_INVALID(220013, "套餐不存在或已停用");
+    MEMBERSHIP_PLAN_INVALID(220013, "套餐不存在或已停用"),
+    AVATAR_FILE_INVALID(220014, "头像文件无效，请上传 jpg/png 格式且不超过 5MB 的图片"),
+    AVATAR_UPLOAD_FAILED(220015, "头像上传失败"),
+    PHONE_ALREADY_EXISTS(220016, "手机号已注册"),
+    PHONE_OR_EMAIL_REQUIRED(220017, "邮箱和手机号至少填写一项"),
+    MONTHLY_COIN_EARNINGS_INVALID(220018, "当月创作币收益必须大于或等于 0");
 
     private final int code;
     private final String message;

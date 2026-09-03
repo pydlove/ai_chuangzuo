@@ -39,6 +39,15 @@ public class ExperienceToken extends BaseEntity {
     /** 使用人用户ID。 */
     private Long usedByUserId;
 
+    /** 使用人昵称。 */
+    private String usedByUserName;
+
+    /** 使用人邮箱。 */
+    private String usedByUserEmail;
+
+    /** 使用人手机号。 */
+    private String usedByUserPhone;
+
     /** 使用时间。 */
     private LocalDateTime usedAt;
 

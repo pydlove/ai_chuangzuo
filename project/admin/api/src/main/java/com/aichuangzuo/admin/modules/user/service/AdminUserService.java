@@ -28,6 +28,15 @@ public interface AdminUserService {
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserVO createUser(AdminUserCreateRequest request);
     AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
+
+    /**
+     * 上传用户头像并返回访问路径。
+     *
+     * @param file 头像文件
+     * @return 头像访问 URL
+     */
+    String storeAvatar(MultipartFile file);
+
     void deleteUser(Long id);
 
     /**

@@ -155,7 +155,7 @@ export const guideSections = [
             <li><strong>文字转图片</strong>：把金句、标题转成适合发布的图片卡片。</li>
             <li><strong>图片压缩</strong>：降低图片体积，避免平台上传限制。</li>
             <li><strong>二维码生成</strong>：为文章、活动页快速生成二维码。</li>
-            <li><strong>AI 去水印</strong>：处理素材图片，减少发布风险。</li>
+            <li><strong>AI 去/加水印</strong>：去除素材水印，或为作品添加专属水印。</li>
           </ul>
           <p>这些小工具覆盖了自媒体发布前常见的配图处理需求。</p>
         `

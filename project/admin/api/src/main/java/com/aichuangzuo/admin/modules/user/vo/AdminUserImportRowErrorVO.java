@@ -13,5 +13,6 @@ public class AdminUserImportRowErrorVO {
 
     private Integer rowIndex;
     private String email;
+    private String phone;
     private List<String> errors;
 }

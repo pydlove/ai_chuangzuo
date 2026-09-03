@@ -1027,7 +1027,7 @@ const onMineAvatarChange = async (e) => {
 /* ========== 手机端适配 ========== */
 @media (max-width: 768px) {
   .mine-icp {
-    margin-bottom: 38px;
+    padding-bottom: 50px; /* 手机端底部留出工具栏顶起 tabbar 的安全距离 */
   }
 }
 

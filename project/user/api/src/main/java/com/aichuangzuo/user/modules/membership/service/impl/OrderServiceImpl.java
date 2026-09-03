@@ -86,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
         vo.setStatus(order.getStatus());
         vo.setStatusName(statusName(order.getStatus()));
         vo.setPaidAt(order.getPaidAt());
+        vo.setThirdPartyTradeId(order.getThirdPartyTradeId());
         vo.setCreatedAt(order.getCreatedAt());
         return vo;
     }

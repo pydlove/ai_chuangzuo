@@ -64,11 +64,11 @@
           <button class="action-link" @click="handleSaveDraft">保存草稿</button>
           <button class="action-link" @click="router.push('/console/works?tab=drafts')">草稿箱</button>
         </div>
-        <button class="hero-generate-btn" @click="handleGenerate">
+        <button class="hero-generate-btn" :disabled="submitting" @click="handleGenerate">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
           </svg>
-          生成文章
+          {{ submitting ? '提交中…' : '生成文章' }}
         </button>
       </div>
     </div>
@@ -122,6 +122,7 @@ import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { submitGeneration } from '@/api/generation.js'
 import { saveDraft } from '@/api/draft.js'
+import { getAsyncSubmittedText } from '@/constants/aiMessages.js'
 
 const router = useRouter()
 const {
@@ -142,6 +143,7 @@ const heroFocused = ref(false)
 const requirementEl = ref(null)
 const topicCapsulesRef = ref(null)
 const REQUIREMENT_MAX = 200
+const submitting = ref(false)
 const requirementFullVisible = ref(false)
 const fullRequirement = ref('')
 const fullRequirementEl = ref(null)
@@ -242,6 +244,8 @@ const handleGenerate = async () => {
     message.warning('该提示词已下架或不可用，请重新选择')
     return
   }
+  if (submitting.value) return
+  submitting.value = true
   try {
     const task = await submitGeneration({
       title: customTitle.value,
@@ -251,7 +255,7 @@ const handleGenerate = async () => {
       wordCount: currentWordCount.value?.count || 800,
       template: currentTemplate.value?.key || 'wechat'
     })
-    message.success('已加入生成队列')
+    message.success(getAsyncSubmittedText('已加入生成队列'))
     topicCapsulesRef.value?.markUsed(task?.id)
     clearForm()
     requirementEl.value && (requirementEl.value.style.height = '')
@@ -260,6 +264,8 @@ const handleGenerate = async () => {
     loadBenefits() // 刷新本月剩余额度
   } catch (e) {
     message.error(e?.message || '提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
 }
 </script>

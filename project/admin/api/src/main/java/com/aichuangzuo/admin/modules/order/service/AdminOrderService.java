@@ -14,6 +14,8 @@ import com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO;
 import com.aichuangzuo.admin.modules.order.vo.OrderTrendVO;
 import com.aichuangzuo.admin.modules.order.vo.PlanDistributionVO;
 
+import java.util.List;
+
 public interface AdminOrderService {
 
     OrderPageVO listOrders(String keyword, String planKey, Integer status,
@@ -26,6 +28,10 @@ public interface AdminOrderService {
     void refund(Long id, String reason, Long operatorId);
 
     void cancel(Long id, Long operatorId);
+
+    void batchCancel(List<Long> ids, Long operatorId);
+
+    void batchDelete(List<Long> ids, Long operatorId);
 
     void adjustMembership(MembershipAdjustRequest request, Long operatorId);
 

@@ -297,6 +297,7 @@ public class UserProfileServiceImpl implements UserProfileService {
                     displayName = inviter.getEmail();
                 }
                 vo.setInviterNickname(displayName);
+                vo.setInviterAvatarUrl(inviter.getAvatarUrl());
             }
         }
         return vo;

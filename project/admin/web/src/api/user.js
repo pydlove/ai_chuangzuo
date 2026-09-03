@@ -44,6 +44,14 @@ export function createUser(data) {
   return request.post('/users', data).then((res) => res.data)
 }
 
+export function uploadUserAvatar(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request
+    .post('/users/upload-avatar', formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((res) => res.data)
+}
+
 export function updateUserStatus(id, status) {
   return request.patch(`/users/${id}/status`, { status })
 }

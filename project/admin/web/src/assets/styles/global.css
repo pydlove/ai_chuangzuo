@@ -77,3 +77,16 @@ body[data-theme='dark'] {
   --color-bg-card: #1f1f1f;
   --color-bg-hover: #262626;
 }
+
+/* Switch 开启状态使用主题色 */
+body .ant-switch.ant-switch-checked {
+  background-color: var(--color-primary);
+}
+
+body .ant-switch.ant-switch-checked:hover:not(.ant-switch-disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+body .ant-switch.ant-switch-checked .ant-switch-loading-icon {
+  color: var(--color-primary);
+}

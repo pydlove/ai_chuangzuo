@@ -6,6 +6,7 @@ import {
   recommendNiches as apiRecommendNiches,
   recommendPersonas as apiRecommendPersonas
 } from '@/api/selfMediaPlan'
+import { clearPublishPlanCache } from '@/composables/usePublishPlan.js'
 import { message } from 'ant-design-vue'
 
 export const currentPlan = ref(null)
@@ -70,6 +71,7 @@ export async function savePlan(data) {
     const res = await apiSavePlan(data)
     const plan = unwrap(res)
     currentPlan.value = plan
+    clearPublishPlanCache()
     return plan
   } catch (e) {
     message.error(errMsg(e))

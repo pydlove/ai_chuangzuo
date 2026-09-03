@@ -12,7 +12,7 @@
       <div class='flow-header'>
         <div class='flow-loading' v-if='loading'>
           <a-spin />
-          <span>正在为你制定今日创作任务...</span>
+          <span>{{ waitingText }}</span>
         </div>
       </div>
 
@@ -140,17 +140,10 @@
               </div>
               <div class='prompt-preview-text'>{{ currentPrompt.prompt }}</div>
               <div class='prompt-preview-actions'>
-                <button
-                  class='prompt-preview-use-btn'
-                  :disabled='selectedSkillName !== currentPrompt.name'
-                  @click='nextStep'
-                >
-                  应用并继续
-                </button>
                 <button class='prompt-preview-view-btn' @click='openPromptModal(currentPrompt)'>查看完整</button>
               </div>
             </div>
-            <div v-else class='prompt-preview-empty'>当前分类暂无提示词</div>
+            <a-empty v-else description="当前分类暂无提示词" />
           </div>
           <div class='prompt-list-pane'>
             <div class='prompt-tabs'>
@@ -170,29 +163,7 @@
                 :class='["prompt-row", { selected: selectedSkillName === skill.name, offline: skill.status && skill.status !== "approved" }]'
                 @click='selectPrompt(skill)'
               >
-                <div class='prompt-row-main'>
-                  <div class='prompt-row-name'>{{ skill.name }}</div>
-                  <div class='prompt-row-desc'>{{ promptSummary(skill.prompt) }}</div>
-                  <div class='prompt-row-meta'>
-                    <template v-if='flowData.promptTab === "mine"'>
-                      <span>{{ skill.desc || "我的提示词" }}</span>
-                      <span class='prompt-row-meta-dot'>·</span>
-                      <span>已用 {{ skill.count || 0 }} 次</span>
-                    </template>
-                    <template v-else-if='flowData.promptTab === "learn"'>
-                      <span>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</span>
-                    </template>
-                    <template v-else-if='flowData.promptTab === "favorite"'>
-                      <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
-                        {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
-                      </span>
-                    </template>
-                    <template v-else>
-                      <span>{{ skill.desc || "系统预设" }}</span>
-                    </template>
-                  </div>
-                </div>
-                <div v-if='skill.status && skill.status !== "approved"' class='prompt-row-badge'>已下架</div>
+                <div class='prompt-row-name'>{{ skill.name }}</div>
               </div>
               <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText(flowData.promptTab) }}</div>
             </div>
@@ -299,7 +270,7 @@
         <div class='flow-header'>
           <div class='flow-loading' v-if='loading'>
             <a-spin />
-            <span>正在为你制定今日创作任务...</span>
+            <span>{{ waitingText }}</span>
           </div>
         </div>
 
@@ -457,17 +428,10 @@
                 </div>
                 <div class='prompt-preview-text'>{{ currentPrompt.prompt }}</div>
                 <div class='prompt-preview-actions'>
-                  <button
-                    class='prompt-preview-use-btn'
-                    :disabled='selectedSkillName !== currentPrompt.name'
-                    @click='nextStep'
-                  >
-                    应用并继续
-                  </button>
                   <button class='prompt-preview-view-btn' @click='openPromptModal(currentPrompt)'>查看完整</button>
                 </div>
               </div>
-              <div v-else class='prompt-preview-empty'>当前分类暂无提示词</div>
+              <a-empty v-else description="当前分类暂无提示词" />
             </div>
             <div class='prompt-list-pane'>
               <div class='prompt-tabs'>
@@ -487,29 +451,7 @@
                   :class='["prompt-row", { selected: selectedSkillName === skill.name, offline: skill.status && skill.status !== "approved" }]'
                   @click='selectPrompt(skill)'
                 >
-                  <div class='prompt-row-main'>
-                    <div class='prompt-row-name'>{{ skill.name }}</div>
-                    <div class='prompt-row-desc'>{{ promptSummary(skill.prompt) }}</div>
-                    <div class='prompt-row-meta'>
-                      <template v-if='flowData.promptTab === "mine"'>
-                        <span>{{ skill.desc || "我的提示词" }}</span>
-                        <span class='prompt-row-meta-dot'>·</span>
-                        <span>已用 {{ skill.count || 0 }} 次</span>
-                      </template>
-                      <template v-else-if='flowData.promptTab === "learn"'>
-                        <span>学习 · {{ (skill.createdAt || "").slice(0, 10) }}</span>
-                      </template>
-                      <template v-else-if='flowData.promptTab === "favorite"'>
-                        <span :class='["favorite-status-badge", skill.status !== "approved" ? "offline" : ""]'>
-                          {{ skill.status === "approved" ? "by " + skill.creatorName : "已下架" }}
-                        </span>
-                      </template>
-                      <template v-else>
-                        <span>{{ skill.desc || "系统预设" }}</span>
-                      </template>
-                    </div>
-                  </div>
-                  <div v-if='skill.status && skill.status !== "approved"' class='prompt-row-badge'>已下架</div>
+                  <div class='prompt-row-name'>{{ skill.name }}</div>
                 </div>
                 <div v-if='!currentPromptList.length' class='prompt-empty'>{{ promptEmptyText(flowData.promptTab) }}</div>
               </div>
@@ -613,7 +555,7 @@
 </template>
 
 <script setup>
-import { computed, reactive, ref, watch, onMounted } from 'vue'
+import { computed, reactive, ref, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { FireOutlined, BulbOutlined } from '@ant-design/icons-vue'
@@ -627,6 +569,7 @@ import {
   submitRecommendedGeneration,
   clearRecommendedSession
 } from '@/api/recommendedCreation.js'
+import { getRecommendedSkills } from '@/api/marketSkill.js'
 import { platforms, loadPlatforms } from '@/composables/usePlatforms.js'
 import {
   systemSkills,
@@ -640,6 +583,13 @@ import { favoriteSkills, loadFavoriteSkills } from '@/composables/useSkillMarket
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { getWordCountLimit, getCurrentPlanKey } from '@/utils/membershipLimits.js'
 import { buildLargePreview } from '@/utils/articleTemplates.js'
+import { runWithDedupe, isTaskRunning } from '@/composables/useAsyncTask.js'
+import { getAiWaitingText } from '@/constants/aiMessages.js'
+
+const TOPICS_INFLIGHT_KEY = 'recommended-creation:topics'
+function anglesInflightKey(topicId) {
+  return `recommended-creation:angles:${topicId}`
+}
 
 const props = defineProps({
   visible: Boolean,
@@ -653,6 +603,7 @@ const router = useRouter()
 
 const loading = ref(false)
 const submitting = ref(false)
+const waitingText = ref(getAiWaitingText('recommendedTopics'))
 const steps = [
   { title: '选题', desc: '选择创作方向' },
   { title: '观点', desc: '确定文章观点' },
@@ -666,8 +617,9 @@ const flowData = reactive({
   selectedTopic: null,
   selectedAngleIds: [],
   wordCount: 1500,
-  promptTab: 'system',
+  promptTab: 'recommend',
   selectedPrompt: '',
+  selectedSkillRef: '',
   customPrompt: '',
   selectedTemplate: ''
 })
@@ -701,18 +653,30 @@ const currentPlatform = computed(() => {
 })
 const platformWordCounts = computed(() => currentPlatform.value?.wordCountPresets || [])
 
+const recommendedSkills = ref([])
+
 const promptTabMap = {
+  recommend: recommendedSkills,
   system: systemSkills,
   mine: mySkills,
   learn: learnedSkills,
   favorite: favoriteSkills
 }
-const currentPromptList = computed(() => promptTabMap[flowData.promptTab]?.value || [])
+
+const isMobile = ref(window.innerWidth <= 768)
+function updateIsMobile() {
+  isMobile.value = window.innerWidth <= 768
+}
+
+const currentPromptList = computed(() => {
+  return promptTabMap[flowData.promptTab]?.value || []
+})
 
 const PROMPT_PAGE_SIZE = 6
-const promptPages = reactive({ system: 1, mine: 1, learn: 1, favorite: 1 })
+const promptPages = reactive({ recommend: 1, system: 1, mine: 1, learn: 1, favorite: 1 })
 const promptTotal = computed(() => currentPromptList.value.length)
 const pagedPromptList = computed(() => {
+  if (isMobile.value) return currentPromptList.value
   const page = promptPages[flowData.promptTab] || 1
   const start = (page - 1) * PROMPT_PAGE_SIZE
   return currentPromptList.value.slice(start, start + PROMPT_PAGE_SIZE)
@@ -722,7 +686,19 @@ watch(() => flowData.promptTab, () => {
   promptPages[flowData.promptTab] = 1
 })
 
+async function loadPromptListByTab(tab) {
+  if (tab !== 'recommend') return
+  try {
+    const title = flowData.selectedTopic?.title || ''
+    const list = await getRecommendedSkills({ title, size: 5 })
+    recommendedSkills.value = list || []
+  } catch (e) {
+    recommendedSkills.value = []
+  }
+}
+
 const promptTabs = [
+  { key: 'recommend', label: '推荐' },
   { key: 'mine', label: '我的' },
   { key: 'learn', label: '学习' },
   { key: 'favorite', label: '收藏' },
@@ -744,6 +720,7 @@ const templatePlatformTabs = [
   { key: 'baijiahao', label: '百家号' },
   { key: 'zhihu', label: '知乎' },
   { key: 'douyin', label: '抖音' },
+  { key: 'kuaishou', label: '快手' },
   { key: 'general', label: '通用' }
 ]
 const templatePlatformTab = ref('all')
@@ -860,15 +837,12 @@ function selectPrompt(skill) {
   }
   selectedSkillName.value = skill.name
   flowData.selectedPrompt = skill.prompt || skill.name || ''
-}
-
-function promptSummary(prompt) {
-  if (!prompt) return ''
-  return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
+  flowData.selectedSkillRef = skill.id || ''
 }
 
 function promptEmptyText(tab) {
   const map = {
+    recommend: '暂无推荐提示词',
     mine: '你还没有保存自己的提示词，可在「学习」或「系统」里先选一个',
     learn: '还没有学习过的提示词，可去「我的提示词」页面学习',
     favorite: '还没有收藏提示词，去提示词市场发现更多好风格',
@@ -938,7 +912,7 @@ async function nextStep() {
   } else if (flowData.step === 3) {
     ok = await persistStep(4, { wordCount: flowData.wordCount })
   } else if (flowData.step === 4) {
-    ok = await persistStep(5, { prompt: flowData.selectedPrompt })
+    ok = await persistStep(5, { prompt: flowData.selectedPrompt, skillRef: flowData.selectedSkillRef })
   }
 
   if (ok) {
@@ -986,8 +960,9 @@ function resetLocalState() {
   flowData.selectedTopic = null
   flowData.selectedAngleIds = []
   flowData.wordCount = currentPlatform.value?.recommendWords || 1500
-  flowData.promptTab = 'system'
+  flowData.promptTab = 'recommend'
   flowData.selectedPrompt = systemSkills.value[0]?.prompt || ''
+  flowData.selectedSkillRef = ''
   selectedSkillName.value = systemSkills.value[0]?.name || ''
   flowData.customPrompt = ''
   flowData.selectedTemplate = apiTemplates.value.find(t => t.accessible)?.key || ''
@@ -1025,6 +1000,8 @@ function applySession(session) {
 
   flowData.wordCount = session.wordCount || currentPlatform.value?.recommendWords || 1500
   flowData.selectedPrompt = session.prompt || systemSkills.value[0]?.prompt || ''
+  flowData.selectedSkillRef = session.skillRef || ''
+  flowData.promptTab = 'recommend'
   selectedSkillName.value = findSkillNameByPrompt(flowData.selectedPrompt) || systemSkills.value[0]?.name || ''
   flowData.selectedTemplate = session.template || apiTemplates.value.find(t => t.accessible)?.key || ''
   editingAngleId.value = null
@@ -1050,9 +1027,10 @@ async function ensureAnglesForSelectedTopic() {
     return
   }
 
+  waitingText.value = getAiWaitingText('recommendedAngles')
   loading.value = true
   try {
-    const angles = await generateRecommendedAngles(topic.id)
+    const angles = await runWithDedupe(anglesInflightKey(topic.id), () => generateRecommendedAngles(topic.id))
     generatedAngleList.value = (angles || []).map(a => ({
       ...a,
       text: (a.text || '').replace(/「/g, '“').replace(/」/g, '”')
@@ -1098,7 +1076,8 @@ async function initSession() {
       if (session.status === 'completed') {
         await clearRecommendedSession().catch(() => {})
         resetLocalState()
-        const topics = await generateRecommendedTopics()
+        waitingText.value = getAiWaitingText('recommendedTopics')
+        const topics = await runWithDedupe(TOPICS_INFLIGHT_KEY, generateRecommendedTopics)
         topicOptions.value = topics || []
         if (!topicOptions.value.length) {
           message.warning('未生成到选题，请重试')
@@ -1109,7 +1088,9 @@ async function initSession() {
       applySession(session)
     } else {
       resetLocalState()
-      const topics = await generateRecommendedTopics()
+      waitingText.value = getAiWaitingText('recommendedTopics')
+      // runWithDedupe 保证弹框关闭再打开时，复用正在进行的选题请求，不会重复提交
+      const topics = await runWithDedupe(TOPICS_INFLIGHT_KEY, generateRecommendedTopics)
       topicOptions.value = topics || []
       if (!topicOptions.value.length) {
         message.warning('未生成到选题，请重试')
@@ -1130,10 +1111,22 @@ watch(() => props.visible, (val) => {
   }
 })
 
+watch(() => flowData.step, (step) => {
+  if (step === 4) {
+    loadPromptListByTab('recommend')
+  }
+})
+
 onMounted(() => {
+  updateIsMobile()
+  window.addEventListener('resize', updateIsMobile)
   if (props.pageMode) {
     initSession()
   }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateIsMobile)
 })
 </script>
 
@@ -1476,13 +1469,22 @@ onMounted(() => {
 .prompt-market-tip {
   margin-bottom: 16px;
 }
+:global(.prompt-market-tip.ant-alert.ant-alert-info) {
+  background: var(--color-primary-bg) !important;
+  border: 1px solid var(--color-primary) !important;
+}
+:global(.prompt-market-tip.ant-alert.ant-alert-info .ant-alert-icon) {
+  color: var(--color-primary) !important;
+}
+:global(.prompt-market-tip.ant-alert.ant-alert-info .ant-alert-message) {
+  color: #595959 !important;
+}
 .prompt-body {
   display: flex;
   gap: 16px;
 }
 .prompt-preview-pane {
   flex: 0 0 360px;
-  background: #f5f5f5;
   border-radius: 10px;
   overflow: hidden;
   height: 420px;
@@ -1553,26 +1555,6 @@ onMounted(() => {
   border-top: 1px solid #f0f0f0;
   background: #fff;
 }
-.prompt-preview-use-btn {
-  padding: 7px 16px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: 8px;
-  font-size: 14px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.prompt-preview-use-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-.prompt-preview-use-btn:disabled {
-  background: rgba(255, 36, 66, 0.35);
-  border-color: rgba(255, 36, 66, 0.35);
-  color: #fff;
-  cursor: not-allowed;
-}
 .prompt-preview-view-btn {
   padding: 7px 16px;
   background: #fff;
@@ -1588,14 +1570,6 @@ onMounted(() => {
   color: var(--color-primary);
   background: var(--color-primary-bg);
 }
-.prompt-preview-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 14px;
-  color: #8c8c8c;
-}
 .prompt-list-pane {
   flex: 1;
   min-width: 0;
@@ -1606,11 +1580,12 @@ onMounted(() => {
 .prompt-tabs {
   display: flex;
   gap: 8px;
-  padding: 0 0 14px;
-  border-bottom: 1px solid #f0f0f0;
-  margin-bottom: 14px;
+  padding: 0;
+  margin-bottom: 12px;
   overflow-x: auto;
   flex-shrink: 0;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .prompt-tab {
   padding: 6px 14px;
@@ -1665,64 +1640,14 @@ onMounted(() => {
   border-color: #e8e8e8;
   background: #f5f5f5;
 }
-.prompt-row.offline .prompt-row-name,
-.prompt-row.offline .prompt-row-desc,
-.prompt-row.offline .prompt-row-meta {
+.prompt-row.offline .prompt-row-name {
   opacity: 0.55;
-}
-.prompt-row-main {
-  flex: 1;
-  min-width: 0;
 }
 .prompt-row-name {
   font-weight: 600;
   color: #1a1a1a;
   font-size: 14px;
-  margin-bottom: 4px;
   line-height: 1.4;
-}
-.prompt-row-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.5;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.prompt-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-.prompt-row-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-.prompt-row-badge {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  z-index: 1;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: #fff;
-  background: linear-gradient(135deg, #ff9a4d, #ff2442);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  pointer-events: none;
-}
-.favorite-status-badge {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-.favorite-status-badge.offline {
-  color: #ff4d4f;
-  font-weight: 500;
 }
 .prompt-pagination {
   display: flex;
@@ -1764,6 +1689,8 @@ onMounted(() => {
   border-bottom: 1px solid #f0f0f0;
   margin-bottom: 16px;
   overflow-x: auto;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 .template-tab {
   padding: 6px 14px;
@@ -1967,6 +1894,8 @@ onMounted(() => {
     padding-bottom: 4px;
     order: 1;
     scrollbar-width: none;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
   .template-list-pane::-webkit-scrollbar {
     display: none;
@@ -2001,7 +1930,10 @@ onMounted(() => {
   }
   .prompt-tabs {
     margin-bottom: 10px;
-    padding-bottom: 8px;
+    padding-bottom: 0;
+  }
+  .prompt-pagination {
+    display: none;
   }
   .prompt-rows {
     display: flex;
@@ -2011,24 +1943,19 @@ onMounted(() => {
     padding-right: 0;
     padding-bottom: 4px;
     scrollbar-width: none;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
   .prompt-rows::-webkit-scrollbar {
     display: none;
   }
   .prompt-row {
     flex: 0 0 148px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: center;
+    justify-content: center;
     padding: 12px;
     margin-bottom: 0;
     border-radius: 12px;
-  }
-  .prompt-row-desc {
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
   }
 
   /* 页面模式各步骤移动端优化 */
@@ -2102,7 +2029,6 @@ onMounted(() => {
   .flow-panel--prompts .prompt-preview-actions {
     padding: 10px 14px;
   }
-  .flow-panel--prompts .prompt-preview-use-btn,
   .flow-panel--prompts .prompt-preview-view-btn {
     flex: 1;
     padding: 9px 12px;
@@ -2110,29 +2036,24 @@ onMounted(() => {
     font-size: 14px;
   }
   .flow-panel--prompts .prompt-list-pane {
-    max-height: 120px;
+    max-height: 186px;
   }
   .flow-panel--prompts .prompt-tabs {
     margin-bottom: 8px;
-    padding-bottom: 8px;
+    padding-bottom: 0;
   }
   .flow-panel--prompts .prompt-row {
     flex: 0 0 136px;
-    padding: 10px;
+    padding: 10px 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
   .flow-panel--prompts .prompt-row-name {
     font-size: 13px;
   }
-  .flow-panel--prompts .prompt-row-desc {
-    font-size: 11px;
-    -webkit-line-clamp: 2;
-  }
-  .flow-panel--prompts .prompt-row-meta {
-    font-size: 11px;
-  }
   .flow-panel--prompts .prompt-pagination {
-    margin-top: 8px;
-    padding-top: 8px;
+    display: none;
   }
 
   .flow-panel--templates .template-tabs {

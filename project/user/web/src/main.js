@@ -7,16 +7,27 @@ import 'ant-design-vue/dist/reset.css'
 import './styles/index.css'
 import { loadSystemSkills } from './composables/useSkills.js'
 import { STORAGE_KEYS } from './constants/storage.js'
+import { initAuth } from './composables/useAuthInit.js'
 
-const app = createApp(App)
+async function bootstrap() {
+  try {
+    await initAuth()
+  } catch {
+    // initAuth 已清理失效凭证，应用继续挂载，由路由守卫引导到登录页
+  }
 
-app.use(createPinia())
-app.use(router)
-app.use(Antd)
+  const app = createApp(App)
 
-app.mount('#app')
+  app.use(createPinia())
+  app.use(router)
+  app.use(Antd)
 
-// 启动时预热系统预设 skills（仅登录用户）
-if (localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) {
-  loadSystemSkills()
+  app.mount('#app')
+
+  // 启动时预热系统预设 skills（仅登录用户）
+  if (localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) {
+    loadSystemSkills()
+  }
 }
+
+bootstrap()

@@ -83,6 +83,9 @@ public class ExperienceTokenAdminServiceImpl implements ExperienceTokenAdminServ
         vo.setMembershipDays(token.getMembershipDays());
         vo.setStatus(token.getStatus());
         vo.setUsedByUserId(token.getUsedByUserId());
+        vo.setUsedByUserName(token.getUsedByUserName());
+        vo.setUsedByUserEmail(token.getUsedByUserEmail());
+        vo.setUsedByUserPhone(token.getUsedByUserPhone());
         vo.setUsedAt(token.getUsedAt());
         vo.setExpiresAt(token.getExpiresAt());
         vo.setCreatedAt(token.getCreatedAt());

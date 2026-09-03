@@ -64,6 +64,16 @@ public class SkillMarketController {
         return Result.success(skillMarketQueryService.getOverview());
     }
 
+    @Operation(summary = "推荐相关提示词")
+    @GetMapping("/recommended")
+    public Result<List<MarketSkillVO>> recommendSkills(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false, defaultValue = "5") int size) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("推荐相关提示词 userId={} title={} size={}", userId, title, size);
+        return Result.success(skillMarketQueryService.recommendSkills(userId, title, size));
+    }
+
     /**
      * 分页获取当前用户收藏的市场 skill 详情列表（含已下架）。
      */

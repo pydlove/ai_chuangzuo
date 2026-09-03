@@ -37,7 +37,11 @@
         <h3 class="step-title">你想在哪个平台做自媒体？</h3>
         <p class="step-desc">每个平台的内容形式、用户群体、变现方式和收入空间都不同，了解清楚再选。</p>
         <!-- 桌面端：网格卡片 -->
-        <div class="platform-grid platform-grid--desktop">
+        <div
+          class="platform-grid platform-grid--desktop"
+          :class="{ 'field-error': errorFields.has('platform') }"
+          data-validate-field="platform"
+        >
           <div
             v-for="p in platforms"
             :key="p.key"
@@ -105,7 +109,11 @@
         </div>
 
         <!-- 手机端：京东风格横向滑动卡片 -->
-        <div class="platform-swiper platform-swiper--mobile">
+        <div
+          class="platform-swiper platform-swiper--mobile"
+          :class="{ 'field-error': errorFields.has('platform') }"
+          data-validate-field="platform"
+        >
           <div ref="trackRef" class="platform-swiper-track">
             <div
               v-for="p in platforms"
@@ -183,12 +191,18 @@
         <div v-if="isLoadingQuestions" class="wizard-loading">
           <a-spin size="large" />
           <div class="wizard-loading-text">
-            <div class="wizard-loading-title">正在为您定制方案</div>
-            <div class="wizard-loading-subtitle">先准备一些问题需要您回答</div>
+            <div class="wizard-loading-title">{{ questionsWaitingText.title }}</div>
+            <div class="wizard-loading-subtitle">{{ questionsWaitingText.subtitle }}</div>
           </div>
         </div>
         <div v-else>
-          <div v-for="q in questions" :key="q.key" class="form-block">
+          <div
+            v-for="q in questions"
+            :key="q.key"
+            class="form-block"
+            :class="{ 'field-error': errorFields.has(`question-${q.key}`) }"
+            :data-validate-field="`question-${q.key}`"
+          >
             <div class="form-label">
               {{ q.text }}
               <span v-if="q.isRequired" class="required-mark">*</span>
@@ -221,11 +235,16 @@
         <div v-if="isLoadingNiches" class="wizard-loading">
           <a-spin size="large" />
           <div class="wizard-loading-text">
-            <div class="wizard-loading-title">正在为您定制方案</div>
-            <div class="wizard-loading-subtitle">根据您的回答推荐适合的赛道</div>
+            <div class="wizard-loading-title">{{ nichesWaitingText.title }}</div>
+            <div class="wizard-loading-subtitle">{{ nichesWaitingText.subtitle }}</div>
           </div>
         </div>
-        <div v-else class="niche-list">
+        <div
+          v-else
+          class="niche-list"
+          :class="{ 'field-error': errorFields.has('niche') }"
+          data-validate-field="niche"
+        >
           <div
             v-for="n in nicheOptions"
             :key="n.key"
@@ -258,12 +277,16 @@
         <div v-if="isLoadingPersonas" class="wizard-loading">
           <a-spin size="large" />
           <div class="wizard-loading-text">
-            <div class="wizard-loading-title">正在为您定制方案</div>
-            <div class="wizard-loading-subtitle">根据赛道推荐适合的人设与内容支柱</div>
+            <div class="wizard-loading-title">{{ personasWaitingText.title }}</div>
+            <div class="wizard-loading-subtitle">{{ personasWaitingText.subtitle }}</div>
           </div>
         </div>
         <template v-else>
-          <div class="form-block">
+          <div
+            class="form-block"
+            :class="{ 'field-error': errorFields.has('persona') }"
+            data-validate-field="persona"
+          >
             <div class="form-label">你想以什么身份出现？</div>
           <div class="persona-grid">
             <div
@@ -282,11 +305,25 @@
         </div>
         <div class="form-block">
           <div class="form-label">内容支柱比例（默认推荐）</div>
-          <div class="pillars-input">
+          <div
+            class="pillars-input"
+            :class="{ 'field-error': errorFields.has('pillars') }"
+            data-validate-field="pillars"
+          >
             <div v-for="pillar in pillars" :key="pillar.name" class="pillar-card">
               <div class="pillar-card-header">
                 <span class="pillar-name">{{ pillar.name }}</span>
-                <span class="pillar-percent">{{ pillar.percent }}%</span>
+                <div class="pillar-percent-control">
+                  <a-input-number
+                    v-model:value="pillar.percent"
+                    :min="0"
+                    :max="100"
+                    :precision="0"
+                    size="small"
+                    class="pillar-percent-input"
+                  />
+                  <span class="pillar-percent-unit">%</span>
+                </div>
               </div>
               <a-slider v-model:value="pillar.percent" :min="0" :max="100" />
             </div>
@@ -337,7 +374,7 @@
 
     <div class="onboarding-actions">
       <a-button v-if="step > 1" size="large" @click="prev">上一步</a-button>
-      <a-button v-if="step < 5" type="primary" size="large" :disabled="!canNext" :loading="isLoadingNext" @click="next">下一步</a-button>
+      <a-button v-if="step < 5" type="primary" size="large" :loading="isLoadingNext" @click="next">下一步</a-button>
       <a-button v-if="step === 5" type="primary" size="large" @click="confirm">确认方案，进入工作台</a-button>
     </div>
     </div>
@@ -363,6 +400,8 @@ import {
 } from '@/api/selfMediaPlan.js'
 import { getMyProfile } from '@/api/user.js'
 import { getOnboardingDraftKey, getOnboardingDoneKey } from '@/constants/storage.js'
+import { runWithDedupe } from '@/composables/useAsyncTask.js'
+import { getAiWaitingText } from '@/constants/aiMessages.js'
 
 const router = useRouter()
 const route = useRoute()
@@ -457,6 +496,19 @@ const PLATFORM_DETAILS = {
     difficulty: '高',
     bestFor: '愿意出镜、能做短视频的人',
     reason: '流量最大，但竞争激烈，对视频生产能力要求高'
+  },
+  kuaishou: {
+    name: '快手图文',
+    tagline: '下沉市场流量蓝海，老铁信任度高，图文种草起号快',
+    contentForm: ['图文', '短视频', '直播'],
+    monetization: ['广告分成', '带货', '直播打赏', '磁力聚星'],
+    monetizationEase: '容易',
+    timeToIncome: '1-3个月',
+    incomeRange: '几千~几万/月',
+    threshold: '0粉可带货，1000粉可接磁力聚星商单',
+    difficulty: '低',
+    bestFor: '擅长生活化表达、愿意和粉丝高频互动的人',
+    reason: '老铁文化信任度高，带货转化好，图文内容竞争相对小'
   },
   bilibili: {
     name: 'B站',
@@ -625,6 +677,13 @@ const personaOptions = ref([])
 const selectedPersona = ref('')
 const pillars = reactive([])
 
+// 校验错误字段高亮
+const errorFields = ref(new Set())
+// 避免重复加载导致覆盖用户选择
+const questionsLoadedForPlatform = ref('')
+const nichesLoadedSignature = ref('')
+const personasLoadedSignature = ref('')
+
 function isOtherOption(optionKey) {
   return optionKey === 'other' || (typeof optionKey === 'string' && optionKey.startsWith('other_'))
 }
@@ -645,6 +704,10 @@ const isLoadingQuestions = ref(false)
 const isLoadingNiches = ref(false)
 const isLoadingPersonas = ref(false)
 const isLoadingNext = ref(false)
+
+const questionsWaitingText = ref({ title: getAiWaitingText('platformQuestions'), subtitle: '先准备一些问题需要您回答' })
+const nichesWaitingText = ref({ title: getAiWaitingText('nicheRecommend'), subtitle: '根据您的回答推荐适合的赛道' })
+const personasWaitingText = ref({ title: getAiWaitingText('personaRecommend'), subtitle: '根据赛道推荐适合的人设与内容支柱' })
 
 const selectedNicheName = computed(() => nicheOptions.value.find((n) => n.key === selectedNiche.value)?.name || '')
 const selectedPersonaName = computed(() => personaOptions.value.find((p) => p.key === selectedPersona.value)?.name || '')
@@ -684,7 +747,12 @@ const answerSummary = computed(() => {
 })
 
 function selectPlatform(key) {
-  selectedPlatform.value = selectedPlatform.value === key ? '' : key
+  const oldKey = selectedPlatform.value
+  const newKey = oldKey === key ? '' : key
+  if (newKey !== oldKey) {
+    resetAfterPlatformChange()
+  }
+  selectedPlatform.value = newKey
   scrollTrackToPlatform(key)
 }
 
@@ -695,17 +763,23 @@ function scrollTrackToPlatform(key) {
   if (idx < 0) return
   const cardWidth = track.clientWidth - 32
   const gap = 12
-  track.scrollTo({ left: idx * (cardWidth + gap), behavior: 'smooth' })
+  // 点击跳转用 instant：和 scroll-snap 共存时 smooth 会互相打架导致顿挫
+  track.scrollTo({ left: idx * (cardWidth + gap), behavior: 'instant' })
 }
 
+let visibleRafId = null
 function updateVisibleFromScroll() {
-  const track = trackRef.value
-  if (!track) return
-  const cardWidth = track.clientWidth - 32
-  const gap = 12
-  const index = Math.max(0, Math.min(platforms.value.length - 1, Math.round(track.scrollLeft / (cardWidth + gap))))
-  const p = platforms.value[index]
-  if (p) visiblePlatformKey.value = p.key
+  if (visibleRafId) return
+  visibleRafId = requestAnimationFrame(() => {
+    visibleRafId = null
+    const track = trackRef.value
+    if (!track) return
+    const cardWidth = track.clientWidth - 32
+    const gap = 12
+    const index = Math.max(0, Math.min(platforms.value.length - 1, Math.round(track.scrollLeft / (cardWidth + gap))))
+    const p = platforms.value[index]
+    if (p) visiblePlatformKey.value = p.key
+  })
 }
 
 function initTrackScroll() {
@@ -725,6 +799,10 @@ function initTrackScroll() {
 
 onBeforeUnmount(() => {
   trackRef.value?.removeEventListener('scroll', updateVisibleFromScroll)
+  if (visibleRafId) {
+    cancelAnimationFrame(visibleRafId)
+    visibleRafId = null
+  }
 })
 
 function saveDraft() {
@@ -789,89 +867,121 @@ watch(selectedNiche, saveDraft)
 watch(selectedPersona, saveDraft)
 watch(pillars, saveDraft, { deep: true })
 
+// 用户修正选择后清除对应错误高亮
+watch(selectedPlatform, () => errorFields.value.delete('platform'))
+watch(answers, () => {
+  questions.value.forEach(q => errorFields.value.delete(`question-${q.key}`))
+}, { deep: true })
+watch(selectedNiche, () => errorFields.value.delete('niche'))
+watch(selectedPersona, () => errorFields.value.delete('persona'))
+watch(pillars, () => errorFields.value.delete('pillars'), { deep: true })
+
 function resetAfterPlatformChange() {
   questions.value = []
+  questionsLoadedForPlatform.value = ''
   Object.keys(answers).forEach(k => delete answers[k])
   nicheOptions.value = []
+  nichesLoadedSignature.value = ''
   selectedNiche.value = ''
   personaOptions.value = []
+  personasLoadedSignature.value = ''
   selectedPersona.value = ''
   pillars.splice(0, pillars.length)
 }
 
 async function loadQuestions() {
   if (!selectedPlatform.value) return
-  isLoadingQuestions.value = true
-  try {
-    const res = await fetchPlatformQuestions(selectedPlatform.value)
-    const data = res?.data ?? null
-    questions.value = Array.isArray(data) ? data : []
-    if (!isRestoringDraft.value) {
-      Object.keys(answers).forEach((k) => delete answers[k])
+  if (isLoadingQuestions.value) return
+  if (questions.value.length && questionsLoadedForPlatform.value === selectedPlatform.value) return
+  return runWithDedupe(`platformQuestions:${selectedPlatform.value}`, async () => {
+    isLoadingQuestions.value = true
+    questionsWaitingText.value = { title: getAiWaitingText('platformQuestions'), subtitle: '先准备一些问题需要您回答' }
+    try {
+      const res = await fetchPlatformQuestions(selectedPlatform.value)
+      const data = res?.data ?? null
+      questions.value = Array.isArray(data) ? data : []
+      questionsLoadedForPlatform.value = selectedPlatform.value
+      if (!isRestoringDraft.value) {
+        Object.keys(answers).forEach((k) => delete answers[k])
+      }
+    } catch (e) {
+      message.error('问题生成失败，请重试')
+    } finally {
+      isLoadingQuestions.value = false
     }
-  } catch (e) {
-    message.error('问题生成失败，请重试')
-  } finally {
-    isLoadingQuestions.value = false
-  }
+  })
 }
 
 async function loadNicheOptions() {
   if (!selectedPlatform.value || answerList.value.length === 0) return
-  isLoadingNiches.value = true
-  try {
-    const res = await recommendNiches({
-      platformKey: selectedPlatform.value,
-      answers: answerList.value
-    })
-    const data = res?.data ?? null
-    nicheOptions.value = Array.isArray(data) ? data : []
-    if (!isRestoringDraft.value) {
-      selectedNiche.value = nicheOptions.value[0]?.key || ''
+  if (isLoadingNiches.value) return
+  const signature = `recommendNiches:${selectedPlatform.value}:${JSON.stringify(answerList.value)}`
+  if (nicheOptions.value.length && nichesLoadedSignature.value === signature) return
+  return runWithDedupe(signature, async () => {
+    isLoadingNiches.value = true
+    nichesWaitingText.value = { title: getAiWaitingText('nicheRecommend'), subtitle: '根据您的回答推荐适合的赛道' }
+    try {
+      const res = await recommendNiches({
+        platformKey: selectedPlatform.value,
+        answers: answerList.value
+      })
+      const data = res?.data ?? null
+      nicheOptions.value = Array.isArray(data) ? data : []
+      nichesLoadedSignature.value = signature
+      if (!isRestoringDraft.value) {
+        selectedNiche.value = nicheOptions.value[0]?.key || ''
+      }
+    } catch (e) {
+      message.error('赛道推荐失败，请重试')
+    } finally {
+      isLoadingNiches.value = false
     }
-  } catch (e) {
-    message.error('赛道推荐失败，请重试')
-  } finally {
-    isLoadingNiches.value = false
-  }
+  })
 }
 
 async function loadPersonaOptions() {
   if (!selectedPlatform.value || !selectedNiche.value) return
-  isLoadingPersonas.value = true
-  try {
-    const res = await recommendPersonas({
-      platformKey: selectedPlatform.value,
-      nicheKey: selectedNiche.value,
-      answers: answerList.value
-    })
-    const result = res?.data ?? {}
-    personaOptions.value = Array.isArray(result.personas) ? result.personas : []
-    if (!isRestoringDraft.value) {
-      if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
-        pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
-      } else {
-        pillars.splice(0, pillars.length,
-          { name: '干货复盘', percent: 60 },
-          { name: '个人故事', percent: 20 },
-          { name: '热点解读', percent: 20 }
-        )
+  if (isLoadingPersonas.value) return
+  const signature = `recommendPersonas:${selectedPlatform.value}:${selectedNiche.value}:${JSON.stringify(answerList.value)}`
+  if (personaOptions.value.length && personasLoadedSignature.value === signature) return
+  return runWithDedupe(signature, async () => {
+    isLoadingPersonas.value = true
+    personasWaitingText.value = { title: getAiWaitingText('personaRecommend'), subtitle: '根据赛道推荐适合的人设与内容支柱' }
+    try {
+      const res = await recommendPersonas({
+        platformKey: selectedPlatform.value,
+        nicheKey: selectedNiche.value,
+        answers: answerList.value
+      })
+      const result = res?.data ?? {}
+      personaOptions.value = Array.isArray(result.personas) ? result.personas : []
+      personasLoadedSignature.value = signature
+      if (!isRestoringDraft.value) {
+        if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
+          pillars.splice(0, pillars.length, ...result.defaultPillars.map((p) => ({ name: p.name, percent: p.percent })))
+        } else {
+          pillars.splice(0, pillars.length,
+            { name: '干货复盘', percent: 60 },
+            { name: '个人故事', percent: 20 },
+            { name: '热点解读', percent: 20 }
+          )
+        }
+        selectedPersona.value = personaOptions.value[0]?.key || ''
       }
-      selectedPersona.value = personaOptions.value[0]?.key || ''
+    } catch (e) {
+      Modal.error({
+        title: '人设推荐失败',
+        content: 'AI 推荐暂未成功，请返回上一步后重新点击下一步再次尝试。',
+        okText: '返回上一步',
+        centered: true,
+        onOk: () => {
+          prev()
+        }
+      })
+    } finally {
+      isLoadingPersonas.value = false
     }
-  } catch (e) {
-    Modal.error({
-      title: '人设推荐失败',
-      content: 'AI 推荐暂未成功，请返回上一步后重新点击下一步再次尝试。',
-      okText: '返回上一步',
-      centered: true,
-      onOk: () => {
-        prev()
-      }
-    })
-  } finally {
-    isLoadingPersonas.value = false
-  }
+  })
 }
 
 const canNext = computed(() => {
@@ -894,9 +1004,57 @@ const canNext = computed(() => {
   return true
 })
 
+function validateStep() {
+  errorFields.value.clear()
+  const errors = []
+  if (step.value === 1) {
+    if (!selectedPlatform.value) {
+      errors.push({ field: 'platform', message: '请选择一个自媒体平台' })
+    }
+  } else if (step.value === 2) {
+    questions.value.forEach(q => {
+      if (!q.isRequired) return
+      const selectedKey = answers[q.key]
+      if (!selectedKey) {
+        errors.push({ field: `question-${q.key}`, message: `请回答"${q.text}"` })
+        return
+      }
+      const selectedOpt = q.options.find(o => o.key === selectedKey)
+      if (selectedOpt && isOtherOption(selectedOpt.key) && !(answers[q.key + '_other_text'] || '').trim()) {
+        errors.push({ field: `question-${q.key}`, message: `请填写"${q.text}"的详细内容` })
+      }
+    })
+  } else if (step.value === 3) {
+    if (!selectedNiche.value) {
+      errors.push({ field: 'niche', message: '请选择一个细分赛道' })
+    }
+  } else if (step.value === 4) {
+    if (!selectedPersona.value) {
+      errors.push({ field: 'persona', message: '请选择一个人设定位' })
+    }
+    if (pillarTotal.value !== 100) {
+      errors.push({ field: 'pillars', message: '内容支柱比例之和需等于 100%' })
+    }
+  }
+  errors.forEach(e => errorFields.value.add(e.field))
+  return errors
+}
+
+function scrollToFirstError() {
+  nextTick(() => {
+    const el = document.querySelector('.step-panel .field-error, .step-panel--platform .field-error')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }
+  })
+}
+
 async function next() {
-  if (!canNext.value) {
-    message.warning('请先完成当前步骤的选择')
+  const errors = validateStep()
+  if (errors.length) {
+    const first = errors[0]
+    message.warning(first.message)
+    scrollToFirstError()
     return
   }
   if (step.value === 1) {
@@ -920,7 +1078,6 @@ async function proceedNext() {
   isLoadingNext.value = true
   try {
     if (step.value === 1) {
-      resetAfterPlatformChange()
       step.value = 2
       await loadQuestions()
     } else if (step.value === 2) {
@@ -939,6 +1096,7 @@ async function proceedNext() {
 
 function prev() {
   step.value--
+  errorFields.value.clear()
 }
 
 async function confirm() {
@@ -1246,6 +1404,48 @@ async function confirm() {
   color: var(--color-primary, #FF2442);
   margin-left: 4px;
 }
+.field-error {
+  animation: field-error-shake 0.3s ease;
+}
+.field-error .form-label,
+.field-error .step-title {
+  color: var(--color-primary, #FF2442);
+}
+.field-error.platform-grid--desktop,
+.field-error.platform-swiper--mobile {
+  border-radius: 12px;
+}
+.field-error.platform-grid--desktop {
+  outline: 2px solid var(--color-primary, #FF2442);
+  outline-offset: 4px;
+}
+.field-error.platform-swiper--mobile {
+  outline: 2px solid var(--color-primary, #FF2442);
+  outline-offset: 2px;
+}
+.field-error.form-block {
+  padding: 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+  border-radius: 12px;
+  background: rgba(255, 36, 66, 0.04);
+  outline: 1px solid var(--color-primary, #FF2442);
+}
+.field-error.niche-list,
+.field-error.persona-grid,
+.field-error.pillars-input {
+  padding: 12px;
+  margin-left: -12px;
+  margin-right: -12px;
+  border-radius: 12px;
+  background: rgba(255, 36, 66, 0.04);
+  outline: 1px solid var(--color-primary, #FF2442);
+}
+@keyframes field-error-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
 .option-group {
   display: flex;
   flex-wrap: wrap;
@@ -1417,7 +1617,21 @@ async function confirm() {
   white-space: nowrap;
   flex-shrink: 0;
 }
-.pillar-percent {
+.pillar-percent-control {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.pillar-percent-input {
+  width: 64px;
+}
+.pillar-percent-input :deep(.ant-input-number-input) {
+  text-align: center;
+  font-weight: 700;
+  color: var(--color-primary, #FF2442);
+}
+.pillar-percent-unit {
   font-size: 15px;
   font-weight: 700;
   color: var(--color-primary, #FF2442);
@@ -1723,6 +1937,7 @@ async function confirm() {
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     scrollbar-width: none;
+    -webkit-overflow-scrolling: touch; /* iOS 动量滚动 */
     padding: 4px 0 16px;
   }
 
@@ -1735,6 +1950,7 @@ async function confirm() {
     max-width: 320px;
     min-height: 240px;
     scroll-snap-align: start;
+    scroll-snap-stop: always; /* 防止快速滑动跳过卡片 */
     position: relative;
     border-radius: 20px;
     padding: 18px;
@@ -1742,7 +1958,7 @@ async function confirm() {
     border: 2px solid transparent;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
     cursor: pointer;
-    transition: all 0.25s ease;
+    transition: border-color 0.25s ease, box-shadow 0.25s ease; /* 避免滚动时所有属性都触发重绘 */
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -2011,7 +2227,10 @@ async function confirm() {
   .pillar-name {
     font-size: 14px;
   }
-  .pillar-percent {
+  .pillar-percent-input {
+    width: 60px;
+  }
+  .pillar-percent-unit {
     font-size: 14px;
   }
   .pillar-warning {

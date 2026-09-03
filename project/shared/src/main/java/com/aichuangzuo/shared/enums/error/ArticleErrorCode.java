@@ -15,7 +15,8 @@ public enum ArticleErrorCode implements ErrorCode {
     DRAFT_NOT_FOUND(113002, "草稿不存在或无权访问"),
     ARTICLE_TITLE_EMPTY(113003, "作品标题不能为空"),
     ARTICLE_BODY_EMPTY(113004, "作品正文不能为空"),
-    TITLE_OPTIMIZE_FAILED(113005, "AI 标题优化失败，请稍后重试");
+    TITLE_OPTIMIZE_FAILED(113005, "AI 标题优化失败，请稍后重试"),
+    ARTICLE_EXPORT_FAILED(113006, "作品导出失败，请稍后重试");
 
     private final int code;
     private final String message;

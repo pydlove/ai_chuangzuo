@@ -49,6 +49,9 @@ auth:
     refresh-expiration: 604800
     remember-me-refresh-expiration: 2592000
     export-expiration: 600
+  cookie:
+    secure: ${AUTH_COOKIE_SECURE:false}
+    same-site: ${AUTH_COOKIE_SAME_SITE:Lax}
   register:
     max-per-ip: 10
 

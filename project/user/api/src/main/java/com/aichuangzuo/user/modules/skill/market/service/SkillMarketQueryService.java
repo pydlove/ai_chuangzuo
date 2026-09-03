@@ -37,4 +37,13 @@ public interface SkillMarketQueryService {
      * @param userId 用户ID
      */
     List<MarketSkillVO> listMySubmissions(Long userId);
+
+    /**
+     * 根据标题和当前用户运营方案推荐已上架的市场提示词。
+     *
+     * @param userId 当前用户ID
+     * @param title  文章标题（可选）
+     * @param size   返回条数
+     */
+    List<MarketSkillVO> recommendSkills(Long userId, String title, int size);
 }

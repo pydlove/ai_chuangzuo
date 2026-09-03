@@ -30,6 +30,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
@@ -62,11 +63,13 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         long offset = (long) (page - 1) * pageSize;
         List<AdminOrderView> rows = orderMapper.selectPage(keyword, planKey, status, startDate, endDate, offset, pageSize);
         long total = orderMapper.countPage(keyword, planKey, status, startDate, endDate);
+        BigDecimal totalAmount = orderMapper.sumAmountPage(keyword, planKey, status, startDate, endDate);
 
         List<OrderListVO> list = rows.stream().map(this::toListVO).toList();
         OrderPageVO vo = new OrderPageVO();
         vo.setList(list);
         vo.setTotal(total);
+        vo.setTotalAmount(totalAmount);
         return vo;
     }
 
@@ -172,6 +175,46 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
         orderMapper.cancel(id, operatorId);
         log.info("管理员取消订单 orderId={}, operatorId={}", id, operatorId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchCancel(List<Long> ids, Long operatorId) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        List<Long> distinctIds = List.copyOf(new LinkedHashSet<>(ids));
+        List<AdminOrderView> orders = orderMapper.selectByIds(distinctIds);
+        if (orders.size() != distinctIds.size()) {
+            throw new BusinessException(AdminOrderErrorCode.ORDER_NOT_FOUND);
+        }
+        for (AdminOrderView order : orders) {
+            if (order.getStatus() != OrderStatus.PENDING.getCode()) {
+                throw new BusinessException(AdminOrderErrorCode.ORDER_STATUS_NOT_ALLOWED);
+            }
+        }
+        orderMapper.batchCancel(distinctIds, operatorId);
+        log.info("管理员批量取消订单 orderIds={}, operatorId={}", distinctIds, operatorId);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void batchDelete(List<Long> ids, Long operatorId) {
+        if (ids == null || ids.isEmpty()) {
+            return;
+        }
+        List<Long> distinctIds = List.copyOf(new LinkedHashSet<>(ids));
+        List<AdminOrderView> orders = orderMapper.selectByIds(distinctIds);
+        if (orders.size() != distinctIds.size()) {
+            throw new BusinessException(AdminOrderErrorCode.ORDER_NOT_FOUND);
+        }
+        for (AdminOrderView order : orders) {
+            if (order.getStatus() != OrderStatus.CANCELLED.getCode()) {
+                throw new BusinessException(AdminOrderErrorCode.ORDER_STATUS_NOT_ALLOWED);
+            }
+        }
+        orderMapper.batchDelete(distinctIds);
+        log.info("管理员批量删除订单 orderIds={}, operatorId={}", distinctIds, operatorId);
     }
 
     @Override
@@ -349,10 +392,14 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         long total = orderMapper.countRenewalOrderPage(
                 type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
                 request.getStartDate(), request.getEndDate());
+        BigDecimal totalAmount = orderMapper.sumAmountRenewalOrderPage(
+                type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
+                request.getStartDate(), request.getEndDate());
         List<OrderListVO> list = rows.stream().map(this::toListVO).toList();
         OrderPageVO vo = new OrderPageVO();
         vo.setList(list);
         vo.setTotal(total);
+        vo.setTotalAmount(totalAmount);
         return vo;
     }
 

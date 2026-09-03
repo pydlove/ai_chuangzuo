@@ -1,10 +1,13 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.infrastructure.storage.LocalFileStorage;
 import com.aichuangzuo.admin.modules.order.entity.AdminMembership;
 import com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper;
 import com.aichuangzuo.admin.modules.plan.entity.Plan;
 import com.aichuangzuo.admin.modules.plan.mapper.PlanMapper;
+import com.aichuangzuo.admin.modules.planbenefit.entity.PlanBenefit;
+import com.aichuangzuo.admin.modules.planbenefit.mapper.PlanBenefitMapper;
 import com.aichuangzuo.admin.modules.benefit.entity.BenefitUsageAggregate;
 import com.aichuangzuo.admin.modules.benefit.mapper.BenefitUsageAdminMapper;
 import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
@@ -13,6 +16,8 @@ import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.UserMarketFavoriteMapper;
 import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewMapper;
+import com.aichuangzuo.admin.modules.earnings.entity.UserCoinRecord;
+import com.aichuangzuo.admin.modules.earnings.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
@@ -40,6 +45,8 @@ import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -50,6 +57,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -76,12 +84,16 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMarketFavoriteMapper userMarketFavoriteMapper;
     private final BenefitUsageAdminMapper benefitUsageAdminMapper;
     private final PlanMapper planMapper;
+    private final PlanBenefitMapper planBenefitMapper;
     private final AdminMembershipMapper adminMembershipMapper;
+    private final LocalFileStorage localFileStorage;
+    private final UserCoinRecordMapper userCoinRecordMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     private static final SecureRandom RANDOM = new SecureRandom();
 
+    private static final String BENEFIT_CODE_AI_ARTICLE_QUOTA = "ai_article_quota";
     private static final String BENEFIT_CODE_LEARN_ANALYZE = "skill_learn_analyze";
     private static final String BENEFIT_CODE_CUSTOM_SKILL = "skill_custom";
     private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
@@ -92,22 +104,45 @@ public class AdminUserServiceImpl implements AdminUserService {
     private static final int AUDIT_STATUS_APPROVED = 1;
     private static final String PERIOD_PATTERN = "^\\d{4}-\\d{2}$";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
+    private static final String MONTHLY_COIN_EARNINGS_BIZ_TYPE = "admin_monthly_coin_earnings";
+    private static final String MONTHLY_COIN_EARNINGS_BIZ_NO_PREFIX = "MCE";
+    private static final int COIN_DIRECTION_INCOME = 1;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     public AdminUserVO createUser(AdminUserCreateRequest request) {
-        String email = request.getEmail().trim();
         if (!StringUtils.hasText(request.getNickname())) {
             throw new BusinessException(AdminUserErrorCode.NICKNAME_FORMAT_ERROR);
         }
         if (request.getUserType() == null || (request.getUserType() != 0 && request.getUserType() != 1)) {
             throw new BusinessException(AdminUserErrorCode.USER_TYPE_INVALID);
         }
+        if (!StringUtils.hasText(request.getStatus()) || (!"enabled".equals(request.getStatus()) && !"disabled".equals(request.getStatus()))) {
+            throw new BusinessException(AdminUserErrorCode.STATUS_INVALID);
+        }
 
-        LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
-        existsWrapper.eq(PlatformUser::getEmail, email).eq(PlatformUser::getIsDeleted, 0);
-        if (platformUserMapper.selectCount(existsWrapper) > 0) {
-            throw new BusinessException(AdminUserErrorCode.EMAIL_ALREADY_EXISTS);
+        String email = normalizeEmail(request.getEmail());
+        String phone = normalizePhone(request.getPhone());
+        boolean hasEmail = StringUtils.hasText(email);
+        boolean hasPhone = StringUtils.hasText(phone);
+        if (!hasEmail && !hasPhone) {
+            throw new BusinessException(AdminUserErrorCode.PHONE_OR_EMAIL_REQUIRED);
+        }
+
+        if (hasEmail) {
+            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+            existsWrapper.eq(PlatformUser::getEmail, email).eq(PlatformUser::getIsDeleted, 0);
+            if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                throw new BusinessException(AdminUserErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+        }
+        if (hasPhone) {
+            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+            existsWrapper.eq(PlatformUser::getPhone, phone).eq(PlatformUser::getIsDeleted, 0);
+            if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                throw new BusinessException(AdminUserErrorCode.PHONE_ALREADY_EXISTS);
+            }
         }
 
         String password = StringUtils.hasText(request.getPassword()) ? request.getPassword().trim() : RESET_PASSWORD;
@@ -117,21 +152,49 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         PlatformUser user = new PlatformUser();
         user.setBizNo("U" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
-        user.setEmail(email);
+        user.setEmail(hasEmail ? email : null);
+        user.setPhone(hasPhone ? phone : null);
         user.setNickname(request.getNickname().trim());
         user.setPasswordHash(passwordEncoder.encode(password));
         user.setInviteCode(generateInviteCode());
-        user.setUserStatus(1);
+        user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
         user.setUserType(request.getUserType());
-        user.setEmailVerified(1);
+        user.setEmailVerified(hasEmail ? 1 : 0);
+        user.setPhoneVerified(hasPhone ? 1 : 0);
         user.setTenantId(0L);
         user.setIsDeleted(0);
+        user.setAvatarUrl(request.getAvatarUrl());
+        user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
+
+        String membershipPlan = request.getMembershipPlan();
+        if (StringUtils.hasText(membershipPlan)) {
+            LambdaQueryWrapper<Plan> planWrapper = new LambdaQueryWrapper<>();
+            planWrapper.eq(Plan::getPlanKey, membershipPlan.trim());
+            if (planMapper.selectCount(planWrapper) == 0) {
+                throw new BusinessException(AdminUserErrorCode.MEMBERSHIP_PLAN_INVALID);
+            }
+            user.setMembershipPlan(membershipPlan.trim());
+        } else {
+            user.setMembershipPlan(null);
+        }
+
         platformUserMapper.insert(user);
 
-        log.info("管理员创建用户成功, adminUserId={}, userId={}, email={}",
-                SecurityAdminContext.getCurrentAdminUserId(), user.getId(), email);
+        syncUserMembership(user.getId(), user.getMembershipPlan(), user.getMembershipExpireAt());
+
+        if (request.getMonthlyCoinEarnings() != null) {
+            setMonthlyCoinEarnings(user.getId(), request.getMonthlyCoinEarnings());
+        }
+
+        log.info("管理员创建用户成功, adminUserId={}, userId={}, email={}, phone={}",
+                SecurityAdminContext.getCurrentAdminUserId(), user.getId(), email, phone);
 
         return toAdminUserVO(user);
+    }
+
+    @Override
+    public String storeAvatar(MultipartFile file) {
+        return localFileStorage.storeUserAvatar(file);
     }
 
     @Override
@@ -141,17 +204,23 @@ public class AdminUserServiceImpl implements AdminUserService {
         List<AdminUserImportRowErrorVO> errors = new ArrayList<>();
         List<PlatformUser> users = new ArrayList<>(rows.size());
         List<String> emailsInFile = new ArrayList<>(rows.size());
+        List<String> phonesInFile = new ArrayList<>(rows.size());
 
         for (int i = 0; i < rows.size(); i++) {
             UserImportExcelRowData row = rows.get(i);
             int rowIndex = i + 2;
             List<String> rowErrors = new ArrayList<>();
-            PlatformUser user = validateAndBuildUser(row, rowIndex, rowErrors, emailsInFile);
+            PlatformUser user = validateAndBuildUser(row, rowIndex, rowErrors, emailsInFile, phonesInFile);
             if (!rowErrors.isEmpty()) {
-                errors.add(new AdminUserImportRowErrorVO(rowIndex, trim(row.getEmail()), rowErrors));
+                errors.add(new AdminUserImportRowErrorVO(rowIndex, trim(row.getEmail()), trim(row.getPhone()), rowErrors));
             } else {
                 users.add(user);
-                emailsInFile.add(user.getEmail());
+                if (StringUtils.hasText(user.getEmail())) {
+                    emailsInFile.add(user.getEmail());
+                }
+                if (StringUtils.hasText(user.getPhone())) {
+                    phonesInFile.add(user.getPhone());
+                }
             }
         }
 
@@ -168,18 +237,28 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     private PlatformUser validateAndBuildUser(UserImportExcelRowData row, int rowIndex,
-                                              List<String> errors, List<String> emailsInFile) {
-        String email = trim(row.getEmail());
+                                              List<String> errors, List<String> emailsInFile,
+                                              List<String> phonesInFile) {
+        String email = normalizeEmail(trim(row.getEmail()));
+        String phone = normalizePhone(trim(row.getPhone()));
         String nickname = trim(row.getNickname());
         String password = trim(row.getPassword());
         String userTypeText = trim(row.getUserType());
 
-        if (email == null || email.isEmpty()) {
-            errors.add("【邮箱】未填写");
-        } else if (email.length() > 128) {
-            errors.add("【邮箱】长度超过 128 字符，当前 " + email.length() + " 字符");
-        } else if (!EMAIL_PATTERN.matcher(email).matches()) {
-            errors.add("【邮箱】格式不正确");
+        boolean hasEmail = StringUtils.hasText(email);
+        boolean hasPhone = StringUtils.hasText(phone);
+
+        if (!hasEmail && !hasPhone) {
+            errors.add("【邮箱/手机号】至少填写一项");
+        } else {
+            if (hasEmail && email.length() > 128) {
+                errors.add("【邮箱】长度超过 128 字符，当前 " + email.length() + " 字符");
+            } else if (hasEmail && !EMAIL_PATTERN.matcher(email).matches()) {
+                errors.add("【邮箱】格式不正确");
+            }
+            if (hasPhone && !PHONE_PATTERN.matcher(phone).matches()) {
+                errors.add("【手机号】格式不正确");
+            }
         }
 
         if (nickname == null || nickname.isEmpty()) {
@@ -195,15 +274,28 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         Integer userType = parseUserType(userTypeText, errors);
 
-        if (email != null && !email.isEmpty() && emailsInFile.contains(email)) {
+        if (hasEmail && emailsInFile.contains(email)) {
             errors.add("【邮箱】在 Excel 中重复");
         }
+        if (hasPhone && phonesInFile.contains(phone)) {
+            errors.add("【手机号】在 Excel 中重复");
+        }
 
-        if (email != null && !email.isEmpty() && !errors.stream().anyMatch(e -> e.contains("邮箱"))) {
-            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
-            existsWrapper.eq(PlatformUser::getEmail, email).eq(PlatformUser::getIsDeleted, 0);
-            if (platformUserMapper.selectCount(existsWrapper) > 0) {
-                errors.add("【邮箱】已注册");
+        boolean hasAccountError = errors.stream().anyMatch(e -> e.contains("邮箱") || e.contains("手机号"));
+        if (!hasAccountError) {
+            if (hasEmail) {
+                LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+                existsWrapper.eq(PlatformUser::getEmail, email).eq(PlatformUser::getIsDeleted, 0);
+                if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                    errors.add("【邮箱】已注册");
+                }
+            }
+            if (hasPhone) {
+                LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+                existsWrapper.eq(PlatformUser::getPhone, phone).eq(PlatformUser::getIsDeleted, 0);
+                if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                    errors.add("【手机号】已注册");
+                }
             }
         }
 
@@ -214,12 +306,14 @@ public class AdminUserServiceImpl implements AdminUserService {
         PlatformUser user = new PlatformUser();
         user.setBizNo("U" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
         user.setEmail(email);
+        user.setPhone(phone);
         user.setNickname(nickname);
         user.setPasswordHash(passwordEncoder.encode(finalPassword));
         user.setInviteCode(generateInviteCode());
         user.setUserStatus(1);
         user.setUserType(userType);
-        user.setEmailVerified(1);
+        user.setEmailVerified(hasEmail ? 1 : 0);
+        user.setPhoneVerified(hasPhone ? 1 : 0);
         user.setTenantId(0L);
         user.setIsDeleted(0);
         return user;
@@ -242,6 +336,24 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private String trim(String value) {
         return value == null ? null : value.trim();
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null ? null : email.trim().toLowerCase();
+    }
+
+    private String normalizePhone(String phone) {
+        if (!StringUtils.hasText(phone)) {
+            return null;
+        }
+        String digits = phone.replaceAll("\\D", "");
+        if (digits.length() == 13 && digits.startsWith("86")) {
+            return digits.substring(2);
+        }
+        if (digits.length() == 14 && digits.startsWith("086")) {
+            return digits.substring(3);
+        }
+        return digits;
     }
 
     private String generateInviteCode() {
@@ -391,19 +503,45 @@ public class AdminUserServiceImpl implements AdminUserService {
             throw new BusinessException(AdminUserErrorCode.USER_TYPE_INVALID);
         }
 
-        String email = request.getEmail().trim();
-        LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
-        existsWrapper.eq(PlatformUser::getEmail, email)
-                .eq(PlatformUser::getIsDeleted, 0)
-                .ne(PlatformUser::getId, id);
-        if (platformUserMapper.selectCount(existsWrapper) > 0) {
-            throw new BusinessException(AdminUserErrorCode.EMAIL_ALREADY_EXISTS);
+        String email = normalizeEmail(request.getEmail());
+        String phone = normalizePhone(request.getPhone());
+        boolean hasEmail = StringUtils.hasText(email);
+        boolean hasPhone = StringUtils.hasText(phone);
+        if (!hasEmail && !hasPhone) {
+            throw new BusinessException(AdminUserErrorCode.PHONE_OR_EMAIL_REQUIRED);
         }
 
-        user.setEmail(email);
+        if (hasEmail) {
+            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+            existsWrapper.eq(PlatformUser::getEmail, email)
+                    .eq(PlatformUser::getIsDeleted, 0)
+                    .ne(PlatformUser::getId, id);
+            if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                throw new BusinessException(AdminUserErrorCode.EMAIL_ALREADY_EXISTS);
+            }
+        }
+        if (hasPhone) {
+            LambdaQueryWrapper<PlatformUser> existsWrapper = new LambdaQueryWrapper<>();
+            existsWrapper.eq(PlatformUser::getPhone, phone)
+                    .eq(PlatformUser::getIsDeleted, 0)
+                    .ne(PlatformUser::getId, id);
+            if (platformUserMapper.selectCount(existsWrapper) > 0) {
+                throw new BusinessException(AdminUserErrorCode.PHONE_ALREADY_EXISTS);
+            }
+        }
+
+        user.setEmail(hasEmail ? email : null);
+        user.setPhone(hasPhone ? phone : null);
+        if (hasEmail) {
+            user.setEmailVerified(1);
+        }
+        if (hasPhone) {
+            user.setPhoneVerified(1);
+        }
         user.setNickname(request.getNickname().trim());
         user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
         user.setUserType(request.getUserType());
+        user.setAvatarUrl(request.getAvatarUrl());
         user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
 
         String membershipPlan = request.getMembershipPlan();
@@ -423,8 +561,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 同步 u_user_membership：用户端权益校验读的是这张表，不能只更新 u_user 缓存列
         syncUserMembership(user.getId(), user.getMembershipPlan(), user.getMembershipExpireAt());
 
-        log.info("管理员更新用户成功, adminUserId={}, userId={}, email={}",
-                SecurityAdminContext.getCurrentAdminUserId(), id, email);
+        if (request.getMonthlyCoinEarnings() != null) {
+            setMonthlyCoinEarnings(user.getId(), request.getMonthlyCoinEarnings());
+        }
+
+        log.info("管理员更新用户成功, adminUserId={}, userId={}, email={}, phone={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id, email, phone);
         return toAdminUserVO(user);
     }
 
@@ -479,6 +621,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setNickname(user.getNickname());
         vo.setStatus(user.getUserStatus() == 1 ? "enabled" : "disabled");
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
+        vo.setAvatarUrl(user.getAvatarUrl());
         vo.setInviteCode(user.getInviteCode());
         vo.setInvitedCount(userInviteRelationMapper.countEffectiveByInviterId(user.getId()));
 
@@ -494,9 +637,64 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         vo.setMembershipExpireAt(user.getMembershipExpireAt());
         vo.setMembershipPlan(user.getMembershipPlan());
+        vo.setRemainingArticleQuota(calculateRemainingArticleQuota(user.getId()));
+        vo.setMonthlyCoinEarnings(calculateMonthlyCoinEarnings(user.getId()));
         vo.setCreatedAt(user.getCreatedAt());
         vo.setLastLoginAt(platformUserLoginLogMapper.selectLastLoginAtByUserId(user.getId()));
         return vo;
+    }
+
+    private Integer calculateRemainingArticleQuota(Long userId) {
+        AdminMembership membership = adminMembershipMapper.selectByUserId(userId);
+        if (membership == null || membership.getExpiresAt() == null
+                || membership.getExpiresAt().isBefore(LocalDate.now())) {
+            return 0;
+        }
+
+        LambdaQueryWrapper<PlanBenefit> planBenefitWrapper = new LambdaQueryWrapper<>();
+        planBenefitWrapper.eq(PlanBenefit::getPlanKey, membership.getLevel())
+                .eq(PlanBenefit::getBenefitCode, BENEFIT_CODE_AI_ARTICLE_QUOTA);
+        PlanBenefit planBenefit = planBenefitMapper.selectOne(planBenefitWrapper);
+        if (planBenefit == null || !StringUtils.hasText(planBenefit.getBenefitValue())) {
+            return 0;
+        }
+
+        int limit;
+        try {
+            limit = Integer.parseInt(planBenefit.getBenefitValue().trim());
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+
+        String period = YearMonth.now().toString();
+        LambdaQueryWrapper<BenefitUsageAggregate> usageWrapper = new LambdaQueryWrapper<>();
+        usageWrapper.eq(BenefitUsageAggregate::getUserId, userId)
+                .eq(BenefitUsageAggregate::getBenefitCode, BENEFIT_CODE_AI_ARTICLE_QUOTA)
+                .eq(BenefitUsageAggregate::getPeriod, period);
+        BenefitUsageAggregate usage = benefitUsageAdminMapper.selectOne(usageWrapper);
+        int used = usage == null ? 0 : usage.getUsedCount();
+        int preUsed = usage == null ? 0 : usage.getPreUsedCount();
+        return Math.max(limit - used - preUsed, 0);
+    }
+
+    private BigDecimal calculateMonthlyCoinEarnings(Long userId) {
+        YearMonth now = YearMonth.now();
+        LocalDateTime start = now.atDay(1).atStartOfDay();
+        LocalDateTime end = now.plusMonths(1).atDay(1).atStartOfDay();
+
+        QueryWrapper<UserCoinRecord> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId)
+                .eq("biz_type", MONTHLY_COIN_EARNINGS_BIZ_TYPE)
+                .ge("biz_time", start)
+                .lt("biz_time", end)
+                .eq("is_deleted", 0);
+        List<UserCoinRecord> records = userCoinRecordMapper.selectList(wrapper);
+        if (records == null || records.isEmpty()) {
+            return BigDecimal.ZERO;
+        }
+        return records.stream()
+                .map(UserCoinRecord::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 
     private AdminUserOptionVO toAdminUserOptionVO(PlatformUser user) {
@@ -720,5 +918,71 @@ public class AdminUserServiceImpl implements AdminUserService {
             membership.setExpiresAt(expireDate);
             adminMembershipMapper.updateMembership(membership);
         }
+    }
+
+    private void setMonthlyCoinEarnings(Long userId, BigDecimal amount) {
+        if (amount == null) {
+            return;
+        }
+        if (amount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new BusinessException(AdminUserErrorCode.MONTHLY_COIN_EARNINGS_INVALID);
+        }
+
+        YearMonth now = YearMonth.now();
+        LocalDateTime start = now.atDay(1).atStartOfDay();
+        LocalDateTime end = now.plusMonths(1).atDay(1).atStartOfDay();
+
+        QueryWrapper<UserCoinRecord> wrapper = new QueryWrapper<>();
+        wrapper.eq("user_id", userId)
+                .eq("biz_type", MONTHLY_COIN_EARNINGS_BIZ_TYPE)
+                .ge("biz_time", start)
+                .lt("biz_time", end)
+                .eq("is_deleted", 0);
+        List<UserCoinRecord> existing = userCoinRecordMapper.selectList(wrapper);
+        BigDecimal existingAmount = existing.stream()
+                .map(UserCoinRecord::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        if (!existing.isEmpty()) {
+            userCoinRecordMapper.delete(wrapper);
+        }
+
+        PlatformUser current = platformUserMapper.selectById(userId);
+        BigDecimal currentBalance = current != null && current.getCoinBalance() != null
+                ? current.getCoinBalance() : BigDecimal.ZERO;
+        BigDecimal newBalance = currentBalance.subtract(existingAmount).add(amount);
+        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+            newBalance = BigDecimal.ZERO;
+        }
+
+        UpdateWrapper<PlatformUser> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.set("coin_balance", newBalance)
+                .set("updated_at", LocalDateTime.now())
+                .eq("id", userId);
+        platformUserMapper.update(null, updateWrapper);
+
+        if (amount.compareTo(BigDecimal.ZERO) > 0) {
+            UserCoinRecord record = new UserCoinRecord();
+            record.setBizNo(generateMonthlyCoinBizNo());
+            record.setUserId(userId);
+            record.setBizType(MONTHLY_COIN_EARNINGS_BIZ_TYPE);
+            record.setDirection(COIN_DIRECTION_INCOME);
+            record.setAmount(amount);
+            record.setBalanceAfter(newBalance);
+            record.setRemark("管理员设置当月创作币收益");
+            record.setBizTime(LocalDateTime.now());
+            record.setCreatedAt(LocalDateTime.now());
+            record.setUpdatedAt(LocalDateTime.now());
+            record.setTenantId(0L);
+            userCoinRecordMapper.insert(record);
+        }
+
+        log.info("管理员设置用户当月创作币收益, adminUserId={}, userId={}, amount={}, month={}",
+                SecurityAdminContext.getCurrentAdminUserId(), userId, amount, now);
+    }
+
+    private String generateMonthlyCoinBizNo() {
+        return MONTHLY_COIN_EARNINGS_BIZ_NO_PREFIX
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 }

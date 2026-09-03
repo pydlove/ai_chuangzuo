@@ -41,6 +41,8 @@ public class UserProfileVO {
     private String occupation;
     private Long inviterUserId;
     private String inviterNickname;
+    /** 邀请人头像 URL。 */
+    private String inviterAvatarUrl;
     /** 个人邀请码，6 位字母数字。 */
     private String inviteCode;
 }

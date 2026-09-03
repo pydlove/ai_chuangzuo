@@ -2,6 +2,8 @@ package com.aichuangzuo.admin.modules.skill.market.service.impl;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
+import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
+import com.aichuangzuo.admin.modules.skill.market.mapper.UserSkillMapper;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketOverviewDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketRow;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopPublisherDTO;
@@ -47,6 +49,9 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
 
     private static final int AUDIT_STATUS_APPROVED = 1;
     private static final int SOURCE_TYPE_PLATFORM = 3;
+    private static final int SOURCE_TYPE_CUSTOM = 1;
+    private static final int ENABLE_STATUS_ENABLED = 1;
+    private static final int ENABLE_STATUS_DISABLED = 0;
     private static final java.math.BigDecimal DEFAULT_PRICE_PER_USE = new java.math.BigDecimal("2.00");
 
     private final SkillMarketMapper skillMarketMapper;
@@ -54,6 +59,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     private final PlatformUserMapper platformUserMapper;
     private final SkillMarketStatsMapper statsMapper;
     private final SkillMarketUsageClient usageClient;
+    private final UserSkillMapper userSkillMapper;
 
     @Override
     public IPage<SkillMarketVO> page(SkillMarketPageRequest request) {
@@ -81,6 +87,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         validateFeatured(request.getFeatured());
         validatePublisher(request.getPublisherUserId());
         validateTotalUses(request.getTotalUses());
+        ensureSkillNameNotExistsInUserSkill(request.getSkillName().trim(), null);
 
         SkillMarket market = new SkillMarket();
         market.setBizNo(generateBizNo());
@@ -108,7 +115,9 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         }
 
         skillMarketMapper.insert(market);
-        log.info("创建风格市场条目 bizNo={}, name={}", market.getBizNo(), market.getSkillName());
+        insertUserSkillForMarket(market);
+        log.info("创建风格市场条目并同步到发布者我的提示词 bizNo={}, name={}, publisherUserId={}",
+                market.getBizNo(), market.getSkillName(), market.getPublisherUserId());
         return market.getBizNo();
     }
 
@@ -124,6 +133,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         String newName = request.getSkillName().trim();
         if (!newName.equals(market.getSkillName())) {
             ensureNameNotExists(newName, bizNo);
+            ensureSkillNameNotExistsInUserSkill(newName, bizNo);
         }
 
         validatePublisher(request.getPublisherUserId());
@@ -137,6 +147,9 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setTotalUses(request.getTotalUses() != null ? request.getTotalUses() : 0);
         market.setEnableStatus(request.getEnableStatus());
         market.setFeatured(request.getFeatured());
+        if (request.getCreatedAt() != null) {
+            market.setCreatedAt(request.getCreatedAt());
+        }
 
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         if (adminId != null) {
@@ -144,7 +157,8 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         }
 
         skillMarketMapper.updateById(market);
-        log.info("更新风格市场条目 bizNo={}, name={}, enableStatus={}",
+        syncUserSkillFromMarket(market);
+        log.info("更新风格市场条目并同步发布者我的提示词 bizNo={}, name={}, enableStatus={}",
                 bizNo, newName, request.getEnableStatus());
     }
 
@@ -157,7 +171,8 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
             market.setUpdatedBy(adminId);
         }
         skillMarketMapper.deleteById(market);
-        log.info("软删风格市场条目 bizNo={}", bizNo);
+        deleteUserSkillByBizNo(bizNo);
+        log.info("软删风格市场条目并同步删除发布者我的提示词 bizNo={}", bizNo);
     }
 
     @Override
@@ -178,8 +193,9 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
                 market.setUpdatedBy(adminId);
             }
             skillMarketMapper.deleteById(market);
+            deleteUserSkillByBizNo(market.getBizNo());
         }
-        log.info("管理员批量删除提示词市场条目, adminUserId={}, count={}", adminId, markets.size());
+        log.info("管理员批量删除提示词市场条目并同步删除发布者我的提示词, adminUserId={}, count={}", adminId, markets.size());
         return markets.size();
     }
 
@@ -323,6 +339,68 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
 
     private String generateBizNo() {
         return "SM" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
+    }
+
+    // -------- 同步到发布者 u_user_skill --------
+
+    private void insertUserSkillForMarket(SkillMarket market) {
+        UserSkillAggregate skill = new UserSkillAggregate();
+        skill.setBizNo(market.getBizNo());
+        skill.setUserId(market.getPublisherUserId());
+        skill.setSkillName(market.getSkillName());
+        skill.setDescription(market.getDescription());
+        skill.setPromptSummary(market.getPromptSummary());
+        skill.setPrompt(market.getPrompt());
+        skill.setScope(market.getScope());
+        skill.setSourceType(SOURCE_TYPE_CUSTOM);
+        skill.setAuditStatus(AUDIT_STATUS_APPROVED);
+        skill.setEnableStatus(market.getEnableStatus() != null ? market.getEnableStatus() : ENABLE_STATUS_ENABLED);
+        skill.setUseCount(market.getTotalUses() != null ? market.getTotalUses() : 0);
+        skill.setIsDeleted(0);
+        userSkillMapper.insert(skill);
+    }
+
+    private void syncUserSkillFromMarket(SkillMarket market) {
+        LambdaQueryWrapper<UserSkillAggregate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserSkillAggregate::getBizNo, market.getBizNo())
+                .eq(UserSkillAggregate::getIsDeleted, 0);
+        UserSkillAggregate skill = userSkillMapper.selectOne(wrapper);
+        if (skill == null) {
+            return;
+        }
+        skill.setUserId(market.getPublisherUserId());
+        skill.setSkillName(market.getSkillName());
+        skill.setDescription(market.getDescription());
+        skill.setPromptSummary(market.getPromptSummary());
+        skill.setPrompt(market.getPrompt());
+        skill.setScope(market.getScope());
+        skill.setEnableStatus(market.getEnableStatus() != null ? market.getEnableStatus() : ENABLE_STATUS_ENABLED);
+        skill.setUseCount(market.getTotalUses() != null ? market.getTotalUses() : 0);
+        userSkillMapper.updateById(skill);
+    }
+
+    private void deleteUserSkillByBizNo(String bizNo) {
+        LambdaQueryWrapper<UserSkillAggregate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserSkillAggregate::getBizNo, bizNo)
+                .eq(UserSkillAggregate::getIsDeleted, 0);
+        UserSkillAggregate skill = userSkillMapper.selectOne(wrapper);
+        if (skill == null) {
+            return;
+        }
+        userSkillMapper.deleteById(skill.getId());
+    }
+
+    private void ensureSkillNameNotExistsInUserSkill(String name, String excludeBizNo) {
+        LambdaQueryWrapper<UserSkillAggregate> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(UserSkillAggregate::getSkillName, name)
+                .eq(UserSkillAggregate::getIsDeleted, 0);
+        if (excludeBizNo != null) {
+            wrapper.ne(UserSkillAggregate::getBizNo, excludeBizNo);
+        }
+        Long count = userSkillMapper.selectCount(wrapper);
+        if (count != null && count > 0) {
+            throw new BusinessException(AdminSkillMarketErrorCode.SKILL_MARKET_NAME_CONFLICTS_WITH_USER);
+        }
     }
 
     private SkillMarketVO toVo(SkillMarketRow row) {

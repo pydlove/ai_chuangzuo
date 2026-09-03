@@ -204,10 +204,31 @@
         layout="vertical"
       >
         <a-form-item label="邮箱" name="email">
-          <a-input v-model:value="editForm.email" placeholder="请输入邮箱" />
+          <a-input v-model:value="editForm.email" placeholder="请输入邮箱或手机号（至少一项）" />
+        </a-form-item>
+        <a-form-item label="手机号" name="phone">
+          <a-input v-model:value="editForm.phone" placeholder="请输入手机号或邮箱（至少一项）" />
         </a-form-item>
         <a-form-item label="昵称" name="nickname">
           <a-input v-model:value="editForm.nickname" placeholder="请输入昵称" />
+        </a-form-item>
+        <a-form-item label="头像" name="avatarUrl">
+          <div class="avatar-uploader">
+            <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" class="avatar-preview-large" alt="avatar" />
+            <div v-else class="avatar-placeholder">{{ editForm.nickname ? editForm.nickname[0] : 'U' }}</div>
+            <a-upload
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              :show-upload-list="false"
+              :custom-request="(e) => handleAvatarUpload(e, editForm)"
+              :before-upload="beforeAvatarUpload"
+            >
+              <a-button :loading="avatarUploading" class="upload-btn">
+                <template #icon><UploadOutlined /></template>
+                {{ editForm.avatarUrl ? '更换头像' : '上传头像' }}
+              </a-button>
+            </a-upload>
+            <a-input v-model:value="editForm.avatarUrl" placeholder="或填写图片 URL" class="avatar-url-input" />
+          </div>
         </a-form-item>
         <a-form-item label="状态" name="status">
           <a-radio-group v-model:value="editForm.status">
@@ -237,6 +258,15 @@
             allow-clear
           />
         </a-form-item>
+        <a-form-item label="当月创作币收益" name="monthlyCoinEarnings">
+          <a-input-number
+            v-model:value="editForm.monthlyCoinEarnings"
+            style="width: 100%"
+            :min="0"
+            :precision="2"
+            placeholder="不填则不修改，填写后覆盖当月管理员设置值"
+          />
+        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -254,6 +284,10 @@
         <a-tab-pane key="basic" tab="基础信息">
           <a-descriptions v-if="detailUser" :column="1" bordered>
             <a-descriptions-item label="ID">{{ detailUser.id }}</a-descriptions-item>
+            <a-descriptions-item label="头像">
+              <img v-if="detailUser.avatarUrl" :src="detailUser.avatarUrl" class="avatar-preview-large" alt="avatar" />
+              <span v-else style="color: #8c8c8c">—</span>
+            </a-descriptions-item>
             <a-descriptions-item label="邮箱/账号">{{ detailUser.email }}</a-descriptions-item>
             <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
             <a-descriptions-item label="状态">
@@ -275,6 +309,7 @@
               <span v-if="detailUser.membershipExpireAt">{{ formatDateTime(detailUser.membershipExpireAt) }}</span>
               <span v-else>非会员</span>
             </a-descriptions-item>
+            <a-descriptions-item label="剩余生成次数">{{ detailUser.remainingArticleQuota ?? 0 }} 次</a-descriptions-item>
             <a-descriptions-item label="注册时间">{{ formatDateTime(detailUser.createdAt) }}</a-descriptions-item>
             <a-descriptions-item label="最后登录">{{ formatDateTime(detailUser.lastLoginAt) || '—' }}</a-descriptions-item>
           </a-descriptions>
@@ -623,10 +658,31 @@
         layout="vertical"
       >
         <a-form-item label="邮箱" name="email">
-          <a-input v-model:value="createForm.email" placeholder="请输入邮箱" />
+          <a-input v-model:value="createForm.email" placeholder="请输入邮箱或手机号（至少一项）" />
+        </a-form-item>
+        <a-form-item label="手机号" name="phone">
+          <a-input v-model:value="createForm.phone" placeholder="请输入手机号或邮箱（至少一项）" />
         </a-form-item>
         <a-form-item label="昵称" name="nickname">
           <a-input v-model:value="createForm.nickname" placeholder="请输入昵称" />
+        </a-form-item>
+        <a-form-item label="头像" name="avatarUrl">
+          <div class="avatar-uploader">
+            <img v-if="createForm.avatarUrl" :src="createForm.avatarUrl" class="avatar-preview-large" alt="avatar" />
+            <div v-else class="avatar-placeholder">{{ createForm.nickname ? createForm.nickname[0] : 'U' }}</div>
+            <a-upload
+              accept="image/png,image/jpeg,image/jpg,image/webp"
+              :show-upload-list="false"
+              :custom-request="(e) => handleAvatarUpload(e, createForm)"
+              :before-upload="beforeAvatarUpload"
+            >
+              <a-button :loading="avatarUploading" class="upload-btn">
+                <template #icon><UploadOutlined /></template>
+                {{ createForm.avatarUrl ? '更换头像' : '上传头像' }}
+              </a-button>
+            </a-upload>
+            <a-input v-model:value="createForm.avatarUrl" placeholder="或填写图片 URL" class="avatar-url-input" />
+          </div>
         </a-form-item>
         <a-form-item label="密码" name="password">
           <a-input-password
@@ -634,11 +690,42 @@
             placeholder="留空则使用默认密码 Aichuangzuo@123"
           />
         </a-form-item>
+        <a-form-item label="状态" name="status">
+          <a-radio-group v-model:value="createForm.status">
+            <a-radio value="enabled">启用</a-radio>
+            <a-radio value="disabled">禁用</a-radio>
+          </a-radio-group>
+        </a-form-item>
         <a-form-item label="用户类型" name="userType">
           <a-radio-group v-model:value="createForm.userType">
             <a-radio :value="1">真实用户</a-radio>
             <a-radio :value="0">机器人</a-radio>
           </a-radio-group>
+        </a-form-item>
+        <a-form-item label="会员套餐" name="membershipPlan">
+          <a-select v-model:value="createForm.membershipPlan" allow-clear placeholder="选择会员套餐（清空=无套餐）" style="width: 100%">
+            <a-select-option v-for="plan in plans" :key="plan.planKey" :value="plan.planKey">
+              {{ plan.displayName || plan.planKey }}<span v-if="plan.status === 0" style="color: #8c8c8c">（已停用）</span>
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="会员到期" name="expireDate">
+          <a-date-picker
+            v-model:value="createForm.expireDate"
+            value-format="YYYY-MM-DD"
+            style="width: 100%"
+            placeholder="选择到期日（清空=非会员）"
+            allow-clear
+          />
+        </a-form-item>
+        <a-form-item label="当月创作币收益" name="monthlyCoinEarnings">
+          <a-input-number
+            v-model:value="createForm.monthlyCoinEarnings"
+            style="width: 100%"
+            :min="0"
+            :precision="2"
+            placeholder="不填则不设置，填写后覆盖当月管理员设置值"
+          />
         </a-form-item>
       </a-form>
     </a-modal>
@@ -665,7 +752,7 @@
             <template #renderItem="{ item }">
               <a-list-item>
                 <div class="import-error-item">
-                  <div class="import-error-row">第 {{ item.rowIndex }} 行（{{ item.email || '邮箱为空' }}）</div>
+                  <div class="import-error-row">第 {{ item.rowIndex }} 行（{{ item.phone || item.email || '账号为空' }}）</div>
                   <ul>
                     <li v-for="(err, idx) in item.errors" :key="idx">{{ err }}</li>
                   </ul>
@@ -712,7 +799,8 @@ import { message, Modal } from 'ant-design-vue'
 import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
-import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
+import { compressImage } from '@/utils/imageCompress.js'
+import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate, uploadUserAvatar } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
 import { fetchPlans } from '@/api/plan.js'
 
@@ -870,45 +958,93 @@ const editFormRef = ref()
 const editForm = reactive({
   id: null,
   email: '',
+  phone: '',
   nickname: '',
+  avatarUrl: '',
   status: 'enabled',
   userType: 1,
   membershipPlan: null,
-  expireDate: null
+  expireDate: null,
+  monthlyCoinEarnings: null
 })
 const editLoading = ref(false)
 
+const validateMonthlyCoinEarnings = (rule, value) => {
+  if (value === null || value === undefined || value === '') {
+    return Promise.resolve()
+  }
+  const num = Number(value)
+  if (Number.isNaN(num) || num < 0) {
+    return Promise.reject(new Error('当月创作币收益必须大于或等于 0'))
+  }
+  return Promise.resolve()
+}
+
+const validateEmailOrPhone = (rule, value) => {
+  const email = editForm.email?.trim()
+  const phone = editForm.phone?.trim()
+  if (!email && !phone) {
+    return Promise.reject(new Error('邮箱和手机号至少填写一项'))
+  }
+  return Promise.resolve()
+}
+
 const editRules = {
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+    { validator: validateEmailOrPhone, trigger: ['blur', 'change'] }
+  ],
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' },
     { min: 1, max: 64, message: '昵称长度 1-64 字符', trigger: 'blur' }
   ],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
-  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }]
+  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
+  monthlyCoinEarnings: [
+    { validator: validateMonthlyCoinEarnings, trigger: ['blur', 'change'] }
+  ]
 }
 
 const createModalVisible = ref(false)
 const createFormRef = ref()
 const createForm = reactive({
   email: '',
+  phone: '',
   nickname: '',
   password: '',
-  userType: 1
+  avatarUrl: '',
+  status: 'enabled',
+  userType: 1,
+  membershipPlan: null,
+  expireDate: null,
+  monthlyCoinEarnings: null
 })
 const createLoading = ref(false)
+const avatarUploading = ref(false)
 
 const importing = ref(false)
 const importResultVisible = ref(false)
 const importResult = ref(null)
 
+const validateCreateEmailOrPhone = (rule, value) => {
+  const email = createForm.email?.trim()
+  const phone = createForm.phone?.trim()
+  if (!email && !phone) {
+    return Promise.reject(new Error('邮箱和手机号至少填写一项'))
+  }
+  return Promise.resolve()
+}
+
 const createRules = {
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' }
+    { type: 'email', message: '邮箱格式不正确', trigger: 'blur' },
+    { validator: validateCreateEmailOrPhone, trigger: ['blur', 'change'] }
+  ],
+  phone: [
+    { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确', trigger: 'blur' }
   ],
   nickname: [
     { required: true, message: '请输入昵称', trigger: 'blur' },
@@ -917,8 +1053,12 @@ const createRules = {
   password: [
     { min: 6, max: 32, message: '密码不符合要求，长度需在 6-32 字符之间', trigger: 'blur' }
   ],
+  status: [{ required: true, message: '请选择状态', trigger: 'change' }],
   userType: [
     { required: true, message: '请选择用户类型', trigger: 'change' }
+  ],
+  monthlyCoinEarnings: [
+    { validator: validateMonthlyCoinEarnings, trigger: ['blur', 'change'] }
   ]
 }
 
@@ -935,8 +1075,8 @@ const formatDateTime = (s) => {
 const copyContact = async (record) => {
   try {
     const parts = []
-    if (record.phone) parts.push(`手机：${record.phone}`)
-    if (record.email) parts.push(`邮箱：${record.email}`)
+    if (record.phone) parts.push(record.phone)
+    if (record.email) parts.push(record.email)
     await copyToClipboard(parts.join(' '))
     message.success('联系方式已复制')
   } catch (error) {
@@ -996,17 +1136,48 @@ const confirmBatchDelete = () => {
   })
 }
 
+function beforeAvatarUpload(file) {
+  const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg' || file.type === 'image/webp'
+  if (!isImage) {
+    message.error('仅支持 JPG/PNG/WebP 格式')
+    return false
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    message.error('图片大小不能超过 5MB')
+    return false
+  }
+  return true
+}
+
+async function handleAvatarUpload({ file }, form) {
+  avatarUploading.value = true
+  try {
+    const { blob, extension } = await compressImage(file, 0.8, 'image/webp')
+    const compressedFile = new File([blob], `avatar.${extension}`, { type: blob.type })
+    const url = await uploadUserAvatar(compressedFile)
+    form.avatarUrl = url
+    message.success('上传成功')
+  } catch (e) {
+    message.error(e?.message || '上传失败')
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
 const openEditModal = async (user) => {
   editLoading.value = true
   try {
     const detail = await getUser(user.id)
     editForm.id = detail.id
-    editForm.email = detail.email
+    editForm.email = detail.email || ''
+    editForm.phone = detail.phone || ''
     editForm.nickname = detail.nickname
+    editForm.avatarUrl = detail.avatarUrl || ''
     editForm.status = detail.status
     editForm.userType = detail.userType === 'robot' ? 0 : 1
     editForm.membershipPlan = detail.membershipPlan || null
     editForm.expireDate = detail.membershipExpireAt ? detail.membershipExpireAt.substring(0, 10) : null
+    editForm.monthlyCoinEarnings = detail.monthlyCoinEarnings ?? null
     editModalVisible.value = true
   } finally {
     editLoading.value = false
@@ -1023,12 +1194,15 @@ const submitEditForm = () => {
     editLoading.value = true
     try {
       await updateUser(editForm.id, {
-        email: editForm.email.trim(),
+        email: editForm.email?.trim() || null,
+        phone: editForm.phone?.trim() || null,
         nickname: editForm.nickname.trim(),
+        avatarUrl: editForm.avatarUrl || null,
         status: editForm.status,
         userType: editForm.userType,
         membershipPlan: editForm.membershipPlan || null,
-        expireDate: editForm.expireDate || null
+        expireDate: editForm.expireDate || null,
+        monthlyCoinEarnings: editForm.monthlyCoinEarnings ?? null
       })
       message.success('用户信息已更新')
       closeEditModal()
@@ -1041,9 +1215,15 @@ const submitEditForm = () => {
 
 const openCreateModal = () => {
   createForm.email = ''
+  createForm.phone = ''
   createForm.nickname = ''
   createForm.password = ''
+  createForm.avatarUrl = ''
+  createForm.status = 'enabled'
   createForm.userType = 1
+  createForm.membershipPlan = null
+  createForm.expireDate = null
+  createForm.monthlyCoinEarnings = null
   createModalVisible.value = true
 }
 
@@ -1057,10 +1237,16 @@ const submitCreateForm = () => {
     createLoading.value = true
     try {
       await handleCreateUser({
-        email: createForm.email.trim(),
+        email: createForm.email?.trim() || null,
+        phone: createForm.phone?.trim() || null,
         nickname: createForm.nickname.trim(),
         password: createForm.password,
-        userType: createForm.userType
+        avatarUrl: createForm.avatarUrl || null,
+        status: createForm.status,
+        userType: createForm.userType,
+        membershipPlan: createForm.membershipPlan || null,
+        expireDate: createForm.expireDate || null,
+        monthlyCoinEarnings: createForm.monthlyCoinEarnings ?? null
       })
       closeCreateModal()
     } catch (error) {
@@ -1592,5 +1778,37 @@ onMounted(() => {
   border-radius: 8px;
   max-height: 420px;
   overflow-y: auto;
+}
+
+.avatar-uploader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.avatar-preview-large {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 50%;
+  background: #f5f5f5;
+}
+
+.avatar-placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: #f0f0f0;
+  color: #595959;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+.avatar-url-input {
+  width: 240px;
 }
 </style>

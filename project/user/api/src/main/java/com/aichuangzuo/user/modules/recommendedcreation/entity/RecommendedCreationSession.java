@@ -23,6 +23,7 @@ public class RecommendedCreationSession extends BaseEntity {
     private String selectedAnglesJson;
     private Integer wordCount;
     private String prompt;
+    private String skillRef;
     private String template;
     private String status;
     private Long tenantId;

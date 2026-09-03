@@ -108,8 +108,8 @@
         <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">
           暂无邀请记录，快去分享邀请链接吧～
         </div>
-        <div v-for="f in inviteStats.friends" :key="f.email" class="invite-friend-item">
-          <span class="invite-friend-email">{{ f.email }}</span>
+        <div v-for="(f, idx) in inviteStats.friends" :key="idx" class="invite-friend-item">
+          <span class="invite-friend-name">{{ f.nickname || f.email || '匿名用户' }}</span>
           <span :class="['invite-friend-status', f.status]">
             {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
           </span>
@@ -195,7 +195,7 @@ const inviteShareText = computed(() => {
   return text.replace(/{url}/g, url).replace(/{code}/g, code)
 })
 
-const { copy: copyUserId } = useCopy({
+const { copy: copyUserIdRaw } = useCopy({
   successText: 'ID 已复制',
   errorText: '复制失败，请长按手动复制'
 })
@@ -208,6 +208,7 @@ const { copy: copyInviteLinkRaw } = useCopy({
   errorText: '复制失败，请长按手动复制'
 })
 
+const copyUserId = () => copyUserIdRaw(userId.value)
 const copyInviteCode = () => copyInviteCodeRaw(inviteCode.value)
 const copyInviteLink = () => copyInviteLinkRaw(inviteShareText.value)
 
@@ -661,7 +662,7 @@ const downloadPoster = async () => {
   border-bottom: none;
 }
 
-.invite-friend-email {
+.invite-friend-name {
   color: #1a1a1a;
 }
 
@@ -718,7 +719,7 @@ body[data-theme="dark"] .invite-stat-value,
 body[data-theme="dark"] .invite-rules-title,
 body[data-theme="dark"] .invite-progress-title,
 body[data-theme="dark"] .invite-friend-title,
-body[data-theme="dark"] .invite-friend-email {
+body[data-theme="dark"] .invite-friend-name {
   color: #f0f0f0;
 }
 

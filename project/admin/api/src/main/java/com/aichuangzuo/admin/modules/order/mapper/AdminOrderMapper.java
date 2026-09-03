@@ -31,7 +31,15 @@ public interface AdminOrderMapper {
                    @Param("startDate") String startDate,
                    @Param("endDate") String endDate);
 
+    BigDecimal sumAmountPage(@Param("keyword") String keyword,
+                             @Param("planKey") String planKey,
+                             @Param("status") Integer status,
+                             @Param("startDate") String startDate,
+                             @Param("endDate") String endDate);
+
     AdminOrderView selectDetailById(@Param("id") Long id);
+
+    List<AdminOrderView> selectByIds(@Param("ids") List<Long> ids);
 
     int markPaid(@Param("id") Long id,
                  @Param("operatorId") Long operatorId,
@@ -46,6 +54,11 @@ public interface AdminOrderMapper {
 
     int cancel(@Param("id") Long id,
                @Param("operatorId") Long operatorId);
+
+    int batchCancel(@Param("ids") List<Long> ids,
+                    @Param("operatorId") Long operatorId);
+
+    int batchDelete(@Param("ids") List<Long> ids);
 
     int insertGrantOrder(@Param("orderNo") String orderNo,
                          @Param("userId") Long userId,
@@ -103,4 +116,11 @@ public interface AdminOrderMapper {
                                @Param("cycle") String cycle,
                                @Param("startDate") String startDate,
                                @Param("endDate") String endDate);
+
+    BigDecimal sumAmountRenewalOrderPage(@Param("type") String type,
+                                         @Param("keyword") String keyword,
+                                         @Param("planKey") String planKey,
+                                         @Param("cycle") String cycle,
+                                         @Param("startDate") String startDate,
+                                         @Param("endDate") String endDate);
 }

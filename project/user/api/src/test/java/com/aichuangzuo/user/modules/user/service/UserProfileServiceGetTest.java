@@ -56,6 +56,7 @@ class UserProfileServiceGetTest {
     @Test
     void shouldReturnInviterNicknameWhenBound() {
         User inviter = newUser("inviter-bound@test.com", "Alice");
+        inviter.setAvatarUrl("https://example.com/avatar.png");
         User invitee = newUser("invitee-bound@test.com", "Bob");
         userMapper.insert(inviter);
         userMapper.insert(invitee);
@@ -75,6 +76,7 @@ class UserProfileServiceGetTest {
         assertNotNull(vo);
         assertEquals(inviter.getId(), vo.getInviterUserId());
         assertEquals("Alice", vo.getInviterNickname());
+        assertEquals("https://example.com/avatar.png", vo.getInviterAvatarUrl());
     }
 
     @Test

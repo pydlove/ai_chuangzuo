@@ -31,6 +31,10 @@ import java.util.Map;
 @Service
 public class SkillAnalyzeAiService {
 
+    // MiniMax-M3 是推理模型，max_tokens 与 reasoning 共享预算；调大避免 content 为空。
+    private static final int MAX_TOKENS_MINIMAX = 32768;
+    private static final int MAX_TOKENS_DEFAULT = 4096;
+
     private final ArticleModelConfigMapper modelConfigMapper;
     private final String apiKeySecret;
     private final ObjectMapper objectMapper;
@@ -73,7 +77,9 @@ public class SkillAnalyzeAiService {
                 Map.of("role", "user", "content", userMessage)
         ));
         body.put("temperature", 0.3);
-        body.put("max_tokens", 4096);
+        int maxTokens = "minimax".equalsIgnoreCase(cfg.getProviderType())
+                ? MAX_TOKENS_MINIMAX : MAX_TOKENS_DEFAULT;
+        body.put("max_tokens", maxTokens);
         body.put("top_p", 1.0);
         body.put("stream", false);
         body.put("response_format", Map.of("type", "json_object"));
@@ -110,12 +116,16 @@ public class SkillAnalyzeAiService {
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode choices = root.path("choices");
             if (choices.isArray() && !choices.isEmpty()) {
-                String content = choices.get(0).path("message").path("content").asText("");
+                JsonNode first = choices.get(0);
+                String content = first.path("message").path("content").asText("");
                 if (!content.isEmpty()) {
                     return content;
                 }
-                log.warn("AI 风格分析返回 content 为空 provider={} finish_reason={}",
-                        providerType, choices.get(0).path("finish_reason").asText(""));
+                JsonNode msg = first.path("message");
+                boolean hasReasoning = !msg.path("reasoning_content").asText("").isEmpty()
+                        || !msg.path("reasoning_details").isMissingNode();
+                log.warn("AI 风格分析返回 content 为空 provider={} finish_reason={} hasReasoning={} (length 说明 max_tokens 被 reasoning 耗尽)",
+                        providerType, first.path("finish_reason").asText(""), hasReasoning);
             }
         } catch (Exception e) {
             log.warn("AI 风格分析响应解析失败", e);

@@ -1,1 +1,0 @@
-import{r as n}from"./request-BZjTlFpN.js";function o(e={}){return n.get("/share-config",{params:e}).then(t=>t.data)}function i(e){return n.post("/share-config",e).then(t=>t.data)}function f(e,t){return n.put(`/share-config/${e}`,t).then(a=>a.data)}function s(e){return n.delete(`/share-config/${e}`).then(t=>t.data)}export{i as c,s as d,o as l,f as u};

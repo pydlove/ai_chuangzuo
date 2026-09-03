@@ -65,7 +65,7 @@
               <div class="invite-header">
                 <span class="invite-title">🎁 邀请有礼</span>
                 <a-tooltip title="点击复制 ID">
-                  <button class="invite-user-id" @click="copyUserId">
+                  <button class="invite-user-id" @click="copyUserId(userId)">
                     <span class="invite-user-id-label">我的 ID</span>
                     <b class="invite-user-id-value">{{ userId }}</b>
                     <Icon name="copy" class="invite-user-id-copy" :size="12" />
@@ -125,7 +125,7 @@
                   <div class="invite-code-label">邀请链接</div>
                   <div class="invite-link-value">{{ inviteLink }}</div>
                   <div class="invite-link-actions">
-                    <button class="invite-btn invite-btn-secondary" @click="copyInviteLink">复制链接</button>
+                    <button class="invite-btn invite-btn-secondary" @click="copyInviteLink(inviteShareText)">复制链接</button>
                     <button class="invite-btn invite-btn-secondary" @click="openPosterModal">下载海报</button>
                   </div>
                 </div>
@@ -136,7 +136,7 @@
                     <div class="invite-code-label">我的邀请码</div>
                     <div class="invite-code-value">{{ inviteCode }}</div>
                   </div>
-                  <button class="invite-btn invite-btn-primary" @click="copyInviteCode">复制邀请码</button>
+                  <button class="invite-btn invite-btn-primary" @click="copyInviteCode(inviteCode)">复制邀请码</button>
                 </div>
 
                 <!-- 阶梯奖励 -->
@@ -173,9 +173,9 @@
                   </div>
                   <div class="invite-friend-list">
                     <div v-if="inviteStats.friends.length === 0" class="invite-friend-empty">暂无邀请记录，快去分享邀请链接吧～</div>
-                    <div v-for="f in paginatedInviteFriends" :key="f.email" class="invite-friend-item">
+                    <div v-for="(f, fIndex) in paginatedInviteFriends" :key="`${f.email || 'anon'}-${fIndex}`" class="invite-friend-item">
                       <div>
-                        <span class="invite-friend-email">{{ f.email }}</span>
+                        <span class="invite-friend-name">{{ f.nickname || f.email || '匿名用户' }}</span>
                       </div>
                       <span :class="['invite-friend-status', f.status]">
                         {{ f.status === 'purchased' ? `已购买 +${f.commission} 币` : '已注册' }}
@@ -952,7 +952,7 @@
       </div>
 
       <!-- 内容区 -->
-      <div class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
+      <div ref="consoleContentRef" class="console-content" :class="{ 'console-content-hidden': inviteVisible }">
         <PullToRefresh>
           <router-view />
         </PullToRefresh>
@@ -1253,25 +1253,41 @@
   <!-- 绑定邀请人弹框 -->
   <a-modal
     v-model:open="inviteBindingVisible"
-    title="绑定邀请人"
+    :title="inviteBindingTitle"
     :footer="null"
     :width="400"
     centered
     class="invite-binding-modal"
   >
     <div class="invite-binding-modal-content">
-      <p class="invite-binding-hint">注册 7 天内可补绑一位邀请人，绑定后不可修改。</p>
-      <div class="invite-binding-item">
-        <label class="invite-binding-label">邀请码</label>
-        <input
-          v-model="inviteBindingForm.inviteCode"
-          type="text"
-          class="invite-binding-input"
-          placeholder="请输入 6 位邀请码"
-          maxlength="6"
-        />
-      </div>
-      <button class="invite-binding-submit" @click="handleInviteBindingSubmit">确认绑定</button>
+      <template v-if="userProfile.profile.value?.inviterUserId">
+        <div class="invite-binding-bound">
+          <div class="invite-binding-bound-avatar">
+            <img
+              v-if="userProfile.profile.value?.inviterAvatarUrl"
+              :src="userProfile.profile.value?.inviterAvatarUrl"
+              alt="邀请人头像"
+            />
+            <template v-else>{{ inviteBindingBoundInitial }}</template>
+          </div>
+          <div class="invite-binding-bound-name">{{ userProfile.profile.value?.inviterNickname || '已绑定' }}</div>
+          <p class="invite-binding-bound-hint">邀请人绑定后不可修改</p>
+        </div>
+      </template>
+      <template v-else>
+        <p class="invite-binding-hint">注册 7 天内可补绑一位邀请人，绑定后不可修改。</p>
+        <div class="invite-binding-item">
+          <label class="invite-binding-label">邀请码</label>
+          <input
+            v-model="inviteBindingForm.inviteCode"
+            type="text"
+            class="invite-binding-input"
+            placeholder="请输入 6 位邀请码"
+            maxlength="6"
+          />
+        </div>
+        <button class="invite-binding-submit" @click="handleInviteBindingSubmit">确认绑定</button>
+      </template>
     </div>
   </a-modal>
 
@@ -1524,6 +1540,20 @@ const { applyWithdraw } = useWithdraw()
 const { benefits, loadBenefits } = useBenefits()
 
 const isMobile = useIsMobile()
+const consoleContentRef = ref(null)
+
+// 微信浏览器：在滚动容器顶部/底部阻止默认拖动，防止触发微信自带下拉/上拉回弹
+let wechatTouchStartY = 0
+function handleWechatTouchStart(e) {
+  wechatTouchStartY = e.touches[0].clientY
+}
+function handleWechatTouchMove(e) {
+  const el = e.target.closest('.console-content, .styles-index') || consoleContentRef.value
+  if (!el) return
+  const deltaY = e.touches[0].clientY - wechatTouchStartY
+  if (el.scrollTop <= 0 && deltaY > 0) return e.preventDefault()
+  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && deltaY < 0) return e.preventDefault()
+}
 
 // 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
 const tabbarPaths = ['/console/workbench', '/console/learn', '/console/messages', '/console/mine']
@@ -1981,6 +2011,15 @@ const profileEditVisible = ref(false)
 
 const inviteBindingForm = reactive({
   inviteCode: ''
+})
+
+const inviteBindingTitle = computed(() => {
+  return userProfile.profile.value?.inviterUserId ? '我的邀请人' : '绑定邀请人'
+})
+
+const inviteBindingBoundInitial = computed(() => {
+  const name = userProfile.profile.value?.inviterNickname || '已绑定'
+  return name.charAt(0).toUpperCase()
 })
 
 const openInviteBindingModal = () => {
@@ -3164,6 +3203,12 @@ onMounted(async () => {
   tryShowNewcomerModal()
 
   monthlyWorks.value = await readMonthlyWorks()
+
+  // 微信浏览器需要 JS 兜底禁止容器边界的默认拖动回弹
+  if (isWechatBrowser() && consoleContentRef.value) {
+    consoleContentRef.value.addEventListener('touchstart', handleWechatTouchStart, { passive: true })
+    consoleContentRef.value.addEventListener('touchmove', handleWechatTouchMove, { passive: false })
+  }
 })
 
 onUnmounted(() => {
@@ -3175,6 +3220,10 @@ onUnmounted(() => {
   if (phoneCountdownTimer) {
     clearInterval(phoneCountdownTimer)
     phoneCountdownTimer = null
+  }
+  if (consoleContentRef.value) {
+    consoleContentRef.value.removeEventListener('touchstart', handleWechatTouchStart)
+    consoleContentRef.value.removeEventListener('touchmove', handleWechatTouchMove)
   }
 })
 
@@ -3220,7 +3269,8 @@ provide('consoleActions', {
 <style scoped>
 .console-layout {
   display: flex;
-  height: 100vh;
+  height: 100vh;        /* 兜底：旧浏览器 */
+  height: 100dvh;       /* 动态视口，iOS 键盘/工具栏变化时自动适应 */
 }
 
 /* 侧边栏 */
@@ -5041,6 +5091,46 @@ body[data-theme="dark"] .about-footer {
   background: var(--color-primary-hover);
 }
 
+.invite-binding-bound {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 0 8px;
+  gap: 12px;
+}
+
+.invite-binding-bound-avatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B7D 0%, #FF2442 100%);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.invite-binding-bound-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.invite-binding-bound-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.invite-binding-bound-hint {
+  font-size: 13px;
+  color: #8c8c8c;
+  margin: 0;
+}
+
 /* 编辑资料弹框 */
 .profile-edit-modal-body {
   padding: 8px 4px 4px;
@@ -5312,6 +5402,14 @@ body[data-theme="dark"] .invite-binding-input::placeholder {
 body[data-theme="dark"] .invite-binding-input:focus {
   border-color: #ff4d6f;
   box-shadow: 0 0 0 3px rgba(255, 36, 66, 0.2);
+}
+
+body[data-theme="dark"] .invite-binding-bound-name {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .invite-binding-bound-hint {
+  color: #a6a6a6;
 }
 
 /* 暗色主题 */
@@ -6074,7 +6172,7 @@ body[data-theme="dark"] .password-input::placeholder {
   border-bottom: none;
 }
 
-.invite-friend-email {
+.invite-friend-name {
   font-size: 13px;
   color: #262626;
 }
@@ -6522,7 +6620,7 @@ body[data-theme="dark"] .withdraw-hint {
 
 body[data-theme="dark"] .invite-code-value,
 body[data-theme="dark"] .invite-link-value,
-body[data-theme="dark"] .invite-friend-email {
+body[data-theme="dark"] .invite-friend-name {
   color: #e0e0e0;
 }
 
@@ -6724,7 +6822,7 @@ body[data-theme="dark"] .phone-submit:hover {
   /* 主内容区占满宽度 */
   .console-main {
     width: 100%;
-    min-height: 100vh;
+    min-height: 0;
   }
 
   /* TabBar 页面底部留出 tabbar + AI 凸起 + 安全区高度 */
@@ -6795,8 +6893,9 @@ body[data-theme="dark"] .phone-submit:hover {
 
   .console-content {
     padding: 0;
-    min-height: auto;
-    overflow: hidden;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior-y: none;
   }
 
   .console-content .pull-content {
@@ -7079,7 +7178,7 @@ body[data-theme="dark"] .phone-submit:hover {
     gap: 8px;
   }
 
-  .invite-friend-email {
+  .invite-friend-name {
     word-break: break-all;
   }
 

@@ -53,6 +53,9 @@ public class OrderVO {
     /** 支付时间。 */
     private LocalDateTime paidAt;
 
+    /** 第三方交易流水号。 */
+    private String thirdPartyTradeId;
+
     /** 创建时间。 */
     private LocalDateTime createdAt;
 }

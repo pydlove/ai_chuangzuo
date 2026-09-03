@@ -902,6 +902,10 @@ body[data-theme="dark"] .article-category {
     padding: 0 12px;
   }
 
+  .console-learn-content {
+    margin-bottom: 50px; /* 手机端底部留出工具栏顶起 tabbar 的安全距离 */
+  }
+
   .console-learn-header {
     margin-bottom: 12px;
   }

@@ -5,6 +5,7 @@
     :width="640"
     centered
     class="word-count-modal"
+    wrap-class-name="word-count-modal-wrap"
   >
     <template #title>
       <div class="modal-title-wrap">
@@ -434,36 +435,6 @@ const cancelCustom = () => {
 
 /* 移动端：底部滑上全屏面板 */
 @media (max-width: 768px) {
-  :global(.word-count-modal .ant-modal) {
-    width: 100% !important;
-    max-width: 100%;
-    margin: 0;
-    top: auto !important;
-    bottom: 0;
-    transform: none !important;
-    padding: 0;
-  }
-
-  :global(.word-count-modal .ant-modal-content) {
-    border-radius: 20px 20px 0 0;
-    height: 82vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  :global(.word-count-modal .ant-modal-header) {
-    flex-shrink: 0;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 16px 18px;
-    border-radius: 20px 20px 0 0;
-  }
-
-  :global(.word-count-modal .ant-modal-body) {
-    flex: 1;
-    overflow: hidden;
-    padding: 16px 18px calc(16px + env(safe-area-inset-bottom));
-  }
-
   .wc-content {
     height: 100%;
   }

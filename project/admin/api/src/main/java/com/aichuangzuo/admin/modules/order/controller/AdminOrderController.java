@@ -1,6 +1,8 @@
 package com.aichuangzuo.admin.modules.order.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
+import com.aichuangzuo.admin.modules.order.dto.request.BatchCancelOrderRequest;
+import com.aichuangzuo.admin.modules.order.dto.request.BatchDeleteOrderRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipAdjustRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.MembershipGrantRequest;
 import com.aichuangzuo.admin.modules.order.dto.request.OrderRefundRequest;
@@ -82,6 +84,24 @@ public class AdminOrderController {
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员取消订单, adminUserId={}, orderId={}", adminId, id);
         orderService.cancel(id, adminId);
+        return Result.success();
+    }
+
+    @Operation(summary = "批量取消订单")
+    @PostMapping("/orders/batch/cancel")
+    public Result<Void> batchCancel(@Valid @RequestBody BatchCancelOrderRequest request) {
+        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量取消订单, adminUserId={}, count={}, ids={}", adminId, request.getIds().size(), request.getIds());
+        orderService.batchCancel(request.getIds(), adminId);
+        return Result.success();
+    }
+
+    @Operation(summary = "批量删除订单")
+    @PostMapping("/orders/batch/delete")
+    public Result<Void> batchDelete(@Valid @RequestBody BatchDeleteOrderRequest request) {
+        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员批量删除订单, adminUserId={}, count={}, ids={}", adminId, request.getIds().size(), request.getIds());
+        orderService.batchDelete(request.getIds(), adminId);
         return Result.success();
     }
 

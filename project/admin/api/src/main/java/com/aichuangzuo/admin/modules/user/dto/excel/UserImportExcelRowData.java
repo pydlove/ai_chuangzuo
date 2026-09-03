@@ -6,8 +6,11 @@ import lombok.Data;
 @Data
 public class UserImportExcelRowData {
 
-    @ExcelProperty("邮箱（必填）")
+    @ExcelProperty("邮箱（选填，与手机号二选一）")
     private String email;
+
+    @ExcelProperty("手机号（选填，与邮箱二选一）")
+    private String phone;
 
     @ExcelProperty("昵称（必填）")
     private String nickname;

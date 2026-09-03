@@ -25,6 +25,9 @@ public class UpdateSessionRequest {
     private String prompt;
 
     @Size(max = 64)
+    private String skillRef;
+
+    @Size(max = 64)
     private String template;
 
     private List<AngleOptionVO> selectedAngles;

@@ -166,7 +166,6 @@
                 <span class="plan-label">主攻平台</span>
                 <div class="plan-platform">
                   <span class="plan-platform-text">{{ plan.platform }}</span>
-                  <img class="plan-platform-icon" src="/assets/images/运营方案图标-v2.png" alt="" />
                 </div>
               </div>
               <div class="plan-row">
@@ -370,7 +369,7 @@
       @cancel="publishModalVisible = false"
     >
       <div class="publish-plan-spin">
-        <a-spin :spinning="publishPlanLoading" tip="小爱正在为您准备发布建议...">
+        <a-spin :spinning="publishPlanLoading" :tip="publishPlanWaitingText">
           <template v-if="!hasPlan">
             <a-empty description="请先制定自媒体运营方案，再生成发布计划">
               <a-button type="primary" @click="goToOnboarding()">去制定方案</a-button>
@@ -600,6 +599,8 @@ import AccountCheckModal from '@/components/AccountCheckModal.vue'
 import ActionGroup from '@/components/common/ActionGroup.vue'
 import { fetchCurrentPlan } from '@/api/selfMediaPlan.js'
 import { generatePublishPlan } from '@/composables/usePublishPlan.js'
+import { runWithDedupe } from '@/composables/useAsyncTask.js'
+import { getAiWaitingText } from '@/constants/aiMessages.js'
 import { getMyProfile } from '@/api/user.js'
 import { getAccountSummary } from '@/api/earnings.js'
 import { getMyMembership } from '@/api/membership.js'
@@ -930,7 +931,7 @@ const toolboxItems = [
   { label: 'AI抠图', image: '/assets/images/AI抠图icon.png', action: () => router.push('/tools/cutout') },
   { label: '图片压缩', image: '/assets/images/图片压缩icon.png', action: () => router.push('/tools/image-compress') },
   { label: '二维码生成', image: '/assets/images/二维码icon.png', action: () => router.push('/tools/qrcode') },
-  { label: 'AI去水印', image: '/assets/images/AI去水印icon.png', action: () => router.push('/tools/watermark-remove') },
+  { label: '去/加水印', image: '/assets/images/AI去水印icon.png', action: () => router.push('/tools/watermark-remove') },
   { label: '文本转图', image: '/assets/images/文本转图icon.png', action: () => router.push('/tools/text-to-image') }
 ]
 
@@ -1078,6 +1079,7 @@ const publishModalVisible = ref(false)
 const currentPublishRecord = ref(null)
 const publishPlan = ref(null)
 const publishPlanLoading = ref(false)
+const publishPlanWaitingText = ref(getAiWaitingText('publishPlan'))
 
 const sendMethod = computed(() => {
   return {
@@ -1108,14 +1110,17 @@ async function loadPublishPlan(record) {
   const mainPlatform = PLATFORM_NAME_MAP[record?.platform] || record?.platform || plan.platform
   if (!mainPlatform) return
 
-  publishPlanLoading.value = true
-  try {
-    publishPlan.value = await generatePublishPlan(mainPlatform)
-  } catch (err) {
-    message.error(err?.message || '生成发布计划失败，请重试')
-  } finally {
-    publishPlanLoading.value = false
-  }
+  publishPlanWaitingText.value = getAiWaitingText('publishPlan')
+  return runWithDedupe(`publishPlan:${mainPlatform}`, async () => {
+    publishPlanLoading.value = true
+    try {
+      publishPlan.value = await generatePublishPlan(mainPlatform)
+    } catch (err) {
+      message.error(err?.message || '生成发布计划失败，请重试')
+    } finally {
+      publishPlanLoading.value = false
+    }
+  })
 }
 
 function openPublishGuide(record) {
@@ -1518,12 +1523,6 @@ function statusText(status) {
 .plan-platform {
   color: var(--color-primary);
   font-weight: 600;
-}
-.plan-platform-icon {
-  width: 24px;
-  height: 24px;
-  object-fit: contain;
-  flex-shrink: 0;
 }
 .plan-pillars-inline {
   display: flex;
@@ -2842,17 +2841,9 @@ function statusText(status) {
   .plan-grid .plan-row:first-child {
     grid-column: 1 / -1;
     position: relative;
-    padding: 14px 90px 14px 16px;
+    padding: 14px 16px;
     background: linear-gradient(135deg, var(--color-primary-bg) 0%, #ffffff 100%);
     border: 1px solid rgba(255, 36, 66, 0.08);
-  }
-  .plan-grid .plan-row:first-child .plan-platform-icon {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 72px;
-    height: 72px;
   }
   .plan-grid .plan-row:first-child .plan-platform-text {
     font-size: 20px;
@@ -2873,12 +2864,6 @@ function statusText(status) {
     align-items: center;
     gap: 10px;
     color: var(--color-primary);
-  }
-  .plan-platform-icon {
-    width: 40px;
-    height: 40px;
-    object-fit: contain;
-    flex-shrink: 0;
   }
   .plan-pillars-inline {
     flex-direction: column;
@@ -3023,6 +3008,7 @@ function statusText(status) {
     background: transparent;
     border: none;
     box-shadow: none;
+    margin-bottom: 50px; /* 手机端底部留出工具栏顶起 tabbar 的安全距离 */
   }
   .generation-card :deep(.ant-card-head) {
     background: transparent;
@@ -3050,8 +3036,8 @@ function statusText(status) {
     background: #ffffff;
     border: 1px solid rgba(255, 36, 66, 0.06);
     border-radius: 20px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-    transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+    box-shadow: none;
+    transition: transform 0.15s ease, border-color 0.15s ease;
     cursor: pointer;
     overflow: hidden;
   }
@@ -3075,7 +3061,7 @@ function statusText(status) {
     padding: 10px 16px;
     background: #ffffff;
     border-color: rgba(255, 36, 66, 0.12);
-    box-shadow: 0 4px 14px rgba(255, 36, 66, 0.08);
+    box-shadow: none;
   }
   .generation-item.completed:hover {
     background: linear-gradient(135deg, #ffffff 0%, var(--color-primary-bg) 100%);

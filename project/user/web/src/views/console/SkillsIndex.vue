@@ -243,11 +243,10 @@
             :prompt="promptSummary(s.prompt)"
             :show-avatar="false"
             :actions="[
-              { label: '使用', type: 'primary', handler: () => useStyle(s) },
               { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'my') },
               { label: '查看', handler: () => openMyStylePromptModal(s) },
               { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEdit(s) },
-              { label: '下架', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'my') },
+              { label: '下架', class: 'mobile-visible', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'my') },
               { label: '删除', type: 'danger', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => deleteSkill(s.name) }
             ]"
           >
@@ -401,11 +400,10 @@
           :show-avatar="false"
           avatar-variant="learned"
           :actions="[
-            { label: '使用', type: 'primary', handler: () => useStyle(s) },
             { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'learned') },
             { label: '查看', handler: () => openMyStylePromptModal(s, 'learned') },
             { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEditLearned(s) },
-            { label: '下架', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'learned') },
+            { label: '下架', class: 'mobile-visible', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'learned') },
             { label: '删除', type: 'danger', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => deleteLearnedStyle(s) }
           ]"
         >
@@ -689,17 +687,9 @@
     :is-favorite="selectedMyStyleSource === 'favorite'"
     :show-stats="false"
     @update:visible="closeMyStylePromptModal"
-    @use="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
     @toggle-favorite="confirmUnfavorite(selectedMyStyle); closeMyStylePromptModal()"
   >
     <template #footer-actions>
-      <button
-        v-if="selectedMyStyleSource !== 'system'"
-        class="skill-detail-btn-use"
-        :disabled="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved'"
-        :title="selectedMyStyleSource === 'favorite' && selectedMyStyle?.status !== 'approved' ? '该提示词已下架' : ''"
-        @click="useSelectedStyle(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
-      >使用</button>
       <button
         v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (!getMarketStatus(selectedMyStyle?.bizNo) || getMarketStatus(selectedMyStyle?.bizNo) === '已打回')"
         :class="['skill-detail-btn-fav', { active: false }]"
@@ -770,7 +760,6 @@ import {
   mySkills,
   mySkillsTotal,
   currentSkill,
-  applySkill,
   addCustomSkill,
   updateCustomSkill,
   removeCustomSkill,
@@ -1298,11 +1287,6 @@ const saveStyle = async () => {
   }
 }
 
-const useStyle = (style) => {
-  applySkill(style)
-  router.push('/console/create')
-}
-
 const useFavoriteStyle = (style) => {
   if (style?.status !== 'approved') {
     message.warning('该提示词已下架，无法使用')
@@ -1618,18 +1602,6 @@ const closeMyStylePromptModal = () => {
   myStylePromptVisible.value = false
   selectedMyStyle.value = null
   selectedMyStyleSource.value = 'my'
-}
-
-const useSelectedStyle = (style, source) => {
-  if (source === 'favorite' && style?.status !== 'approved') {
-    message.warning('该提示词已下架，无法使用')
-    return
-  }
-  if (source === 'favorite') {
-    useFavoriteStyle(style)
-  } else {
-    useStyle(style)
-  }
 }
 </script>
 
@@ -2408,6 +2380,7 @@ body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover 
 @media (max-width: 768px) {
   .styles-index {
     padding: 0 12px 16px;
+    overscroll-behavior-y: none;
   }
 
   .styles-header {

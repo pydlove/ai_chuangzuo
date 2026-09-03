@@ -20,6 +20,10 @@ export function closeCampaign(id) {
   return request({ url: `/lottery/campaigns/${id}/close`, method: 'post' })
 }
 
+export function cloneCampaign(id, data) {
+  return request({ url: `/lottery/campaigns/${id}/clone`, method: 'post', data })
+}
+
 export function deleteCampaign(id) {
   return request({ url: `/lottery/campaigns/${id}`, method: 'delete' })
 }

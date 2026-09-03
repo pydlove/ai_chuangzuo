@@ -15,11 +15,12 @@
             <span v-else-if="column.key === 'action'">
               <a-space>
                 <a-button v-if="record.status === 0 || record.status === 1" size="small" type="link" @click="openCampaignModal(record)">编辑</a-button>
-                <a-button v-if="record.status === 0 && !hasOpenCampaign" size="small" type="link" @click="openCampaign(record.id)">开启</a-button>
-                <a-tooltip v-else-if="record.status === 0" title="已有其他活动开启，不能同时开启多个活动">
+                <a-button v-if="(record.status === 0 || record.status === 3) && !hasOpenCampaign" size="small" type="link" @click="openCampaign(record.id)">开启</a-button>
+                <a-tooltip v-else-if="record.status === 0 || record.status === 3" title="已有其他活动开启，不能同时开启多个活动">
                   <a-button size="small" type="link" disabled>开启</a-button>
                 </a-tooltip>
                 <a-button v-if="record.status === 1" size="small" type="link" @click="closeCampaign(record.id)">关闭</a-button>
+                <a-button size="small" type="link" @click="openCloneModal(record)">复制</a-button>
                 <a-popconfirm title="确认删除？" @confirm="removeCampaign(record.id)">
                   <a-button size="small" type="link" danger>删除</a-button>
                 </a-popconfirm>
@@ -207,6 +208,16 @@
       </a-form>
     </a-modal>
 
+    <!-- 复制活动弹窗 -->
+    <a-modal v-model:open="cloneModalVisible" title="复制活动" :confirm-loading="cloneSaving" @ok="saveClone"
+             @cancel="cloneModalVisible = false">
+      <a-form :model="cloneForm" :label-col="{ span: 6 }" :wrapper-col="{ span: 16 }">
+        <a-form-item label="新活动名称" required>
+          <a-input v-model:value="cloneForm.name" :max-length="100" placeholder="请输入新活动名称" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 奖项弹窗 -->
     <a-modal v-model:open="tierModalVisible" title="奖项配置" :confirm-loading="tierSaving" @ok="saveTierForm"
                @cancel="tierModalVisible = false">
@@ -383,7 +394,7 @@ import dayjs from 'dayjs'
 import { MdEditor } from 'md-editor-v3'
 import 'md-editor-v3/lib/style.css'
 import {
-  listCampaigns, saveCampaign, openCampaign as apiOpenCampaign, closeCampaign as apiCloseCampaign, deleteCampaign,
+  listCampaigns, saveCampaign, openCampaign as apiOpenCampaign, closeCampaign as apiCloseCampaign, deleteCampaign, cloneCampaign as apiCloneCampaign,
   listTiers, saveTier, deleteTier,
   listRedemptionCodes, listDrawRecords, resetDrawChance, listDisplayWinners, saveDisplayWinner, toggleDisplayWinner, deleteDisplayWinner
 } from '@/api/lottery'
@@ -409,6 +420,11 @@ const campaignColumns = [
 const campaignModalVisible = ref(false)
 const saving = ref(false)
 const campaignForm = ref({ name: '', description: '', rules: '', startTime: null, endTime: null, freeDrawsPerUser: 1 })
+
+const cloneModalVisible = ref(false)
+const cloneSaving = ref(false)
+const cloneSource = ref(null)
+const cloneForm = ref({ name: '' })
 
 const tiers = ref([])
 const tierLoading = ref(false)
@@ -747,6 +763,31 @@ async function closeCampaign(id) {
     loadCampaigns()
   } catch (e) {
     message.error(e.response?.data?.message || '操作失败')
+  }
+}
+
+function openCloneModal(record) {
+  cloneSource.value = record
+  cloneForm.value = { name: `${record.name}-副本` }
+  cloneModalVisible.value = true
+}
+
+async function saveClone() {
+  const name = cloneForm.value.name?.trim()
+  if (!name) {
+    message.warning('请输入新活动名称')
+    return
+  }
+  cloneSaving.value = true
+  try {
+    await apiCloneCampaign(cloneSource.value.id, { name })
+    message.success('复制成功')
+    cloneModalVisible.value = false
+    loadCampaigns()
+  } catch (e) {
+    message.error(e.response?.data?.message || '复制失败')
+  } finally {
+    cloneSaving.value = false
   }
 }
 

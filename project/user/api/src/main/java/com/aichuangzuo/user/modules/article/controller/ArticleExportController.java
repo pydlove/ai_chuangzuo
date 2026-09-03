@@ -33,9 +33,9 @@ public class ArticleExportController {
         log.info("公开导出作品, bizNo={}", bizNo);
         byte[] bytes = articleService.exportAsWord(bizNo);
 
-        String filename = URLEncoder.encode(bizNo + ".doc", StandardCharsets.UTF_8)
+        String filename = URLEncoder.encode(bizNo + ".docx", StandardCharsets.UTF_8)
                 .replace("+", "%20");
-        response.setContentType("application/msword");
+        response.setContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
         response.setCharacterEncoding("UTF-8");
         response.setHeader(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"");
         response.setContentLength(bytes.length);

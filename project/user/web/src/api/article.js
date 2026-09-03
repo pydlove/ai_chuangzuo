@@ -77,3 +77,28 @@ export function getMonthlyCount() {
 export function getExportToken(bizNo) {
   return api.get(`/articles/${bizNo}/export-token`).then((res) => res.data)
 }
+
+/**
+ * 直接下载单篇作品的 .docx 文件。
+ * <p>先申请临时导出 token，再通过后端公开导出接口获取真正的 docx 二进制流。</p>
+ * @param {string} bizNo
+ * @param {string} [filename] 不含扩展名的文件名
+ */
+export async function downloadArticleWord(bizNo, filename = '未命名文章') {
+  const token = await getExportToken(bizNo)
+  const url = `${window.location.origin}/api/v1/public/articles/export/${token}`
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error('导出失败')
+  }
+  const blob = await res.blob()
+  const docxBlob = new Blob([blob], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+  const objectUrl = URL.createObjectURL(docxBlob)
+  const a = document.createElement('a')
+  a.href = objectUrl
+  a.download = (filename || '未命名文章').replace(/[\\/:*?"<>|]/g, '_') + '.docx'
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(objectUrl)
+}

@@ -20,6 +20,14 @@ export function cancelOrder(id) {
   return request.post(`/orders/${id}/cancel`).then((res) => res.data)
 }
 
+export function batchCancelOrder(ids) {
+  return request.post('/orders/batch/cancel', { ids }).then((res) => res.data)
+}
+
+export function batchDeleteOrder(ids) {
+  return request.post('/orders/batch/delete', { ids }).then((res) => res.data)
+}
+
 export function adjustMembership(data) {
   return request.post('/membership/adjust', data).then((res) => res.data)
 }

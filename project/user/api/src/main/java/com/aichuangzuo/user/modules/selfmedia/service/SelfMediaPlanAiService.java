@@ -29,6 +29,11 @@ import java.util.Map;
 @Service
 public class SelfMediaPlanAiService {
 
+    // MiniMax-M3 是推理模型，max_tokens 与 reasoning 共享预算。
+    // 发布计划 prompt 较长，4096 曾被 reasoning 吃光导致 content 为空、finish_reason=length。
+    private static final int MAX_TOKENS_MINIMAX = 32768;
+    private static final int MAX_TOKENS_DEFAULT = 4096;
+
     private final ArticleModelConfigMapper modelConfigMapper;
     private final AiPromptRenderService aiPromptRenderService;
     private final String apiKeySecret;
@@ -70,7 +75,9 @@ public class SelfMediaPlanAiService {
                 Map.of("role", "user", "content", rendered.userPrompt())
         ));
         body.put("temperature", 0.5);
-        body.put("max_tokens", 4096);
+        int maxTokens = "minimax".equalsIgnoreCase(cfg.getProviderType())
+                ? MAX_TOKENS_MINIMAX : MAX_TOKENS_DEFAULT;
+        body.put("max_tokens", maxTokens);
         body.put("top_p", 1.0);
         body.put("stream", false);
         body.put("response_format", Map.of("type", "json_object"));
@@ -110,18 +117,32 @@ public class SelfMediaPlanAiService {
     }
 
     private String extractContent(String responseBody, String providerType) {
+        if (responseBody == null || responseBody.isBlank()) {
+            log.warn("自媒体方案 AI 响应为空，provider={}", providerType);
+            throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
+        }
         try {
             JsonNode root = objectMapper.readTree(responseBody);
             JsonNode choices = root.path("choices");
-            if (choices.isArray() && !choices.isEmpty()) {
-                String content = choices.get(0).path("message").path("content").asText("");
-                if (!content.isEmpty()) {
-                    return content;
-                }
+            if (!choices.isArray() || choices.isEmpty()) {
+                log.warn("自媒体方案 AI 响应缺少 choices，provider={} body={}", providerType, responseBody);
+                throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
             }
+            JsonNode first = choices.get(0);
+            String content = first.path("message").path("content").asText("");
+            if (content.isEmpty()) {
+                String finishReason = first.path("finish_reason").asText("");
+                JsonNode msg = first.path("message");
+                boolean hasReasoning = !msg.path("reasoning_content").asText("").isEmpty()
+                        || !msg.path("reasoning_details").isMissingNode();
+                log.warn("自媒体方案 AI 响应 content 为空，provider={} finish_reason={} hasReasoning={} (length 说明 max_tokens 被 reasoning 耗尽，需调大) body={}",
+                        providerType, finishReason, hasReasoning, responseBody);
+                throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
+            }
+            return content;
         } catch (Exception e) {
-            log.warn("自媒体方案 AI 响应提取失败", e);
+            log.warn("自媒体方案 AI 响应提取失败，provider={} body={}", providerType, responseBody, e);
+            throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
         }
-        throw new BusinessException(SelfMediaPlanErrorCode.SELF_MEDIA_PLAN_AI_FAILED);
     }
 }

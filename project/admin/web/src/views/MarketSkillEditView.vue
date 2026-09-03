@@ -43,7 +43,7 @@
           </a-row>
 
           <a-row :gutter="16">
-            <a-col :xs="24" :md="12">
+            <a-col :xs="24" :md="8">
               <a-form-item label="上架状态" name="enableStatus" :rules="[{ required: true, message: '请选择上架状态', trigger: 'change' }]">
                 <a-select v-model:value="form.enableStatus" placeholder="请选择">
                   <a-select-option :value="1">上架</a-select-option>
@@ -51,12 +51,24 @@
                 </a-select>
               </a-form-item>
             </a-col>
-            <a-col :xs="24" :md="12">
+            <a-col :xs="24" :md="8">
               <a-form-item label="官方精选" name="featured" :rules="[{ required: true, message: '请选择官方精选状态', trigger: 'change' }]">
                 <a-select v-model:value="form.featured" placeholder="请选择">
                   <a-select-option :value="1">官方精选</a-select-option>
                   <a-select-option :value="0">普通</a-select-option>
                 </a-select>
+              </a-form-item>
+            </a-col>
+            <a-col :xs="24" :md="8">
+              <a-form-item label="创建时间" name="createdAt">
+                <a-date-picker
+                  v-model:value="form.createdAt"
+                  show-time
+                  format="YYYY-MM-DD HH:mm:ss"
+                  value-format="YYYY-MM-DD HH:mm:ss"
+                  style="width: 100%"
+                  placeholder="选择创建时间"
+                />
               </a-form-item>
             </a-col>
           </a-row>
@@ -161,7 +173,8 @@ const form = reactive({
   prompt: '',
   totalUses: 0,
   enableStatus: 1,
-  featured: 0
+  featured: 0,
+  createdAt: null
 })
 
 const rules = {
@@ -234,7 +247,8 @@ const loadDetail = async () => {
       prompt: data.prompt || '',
       totalUses: data.totalUses || 0,
       enableStatus: data.status === 'enabled' ? 1 : 0,
-      featured: data.featured === 1 ? 1 : 0
+      featured: data.featured === 1 ? 1 : 0,
+      createdAt: data.createdAt ? data.createdAt.replace('T', ' ').slice(0, 19) : null
     })
     scopeRef.value = data.scope || ''
     publisherOptions.value = [{
@@ -265,7 +279,8 @@ const onSubmit = async () => {
       scope: scopeRef.value || '',
       totalUses: form.totalUses || 0,
       enableStatus: form.enableStatus,
-      featured: form.featured
+      featured: form.featured,
+      createdAt: form.createdAt || null
     }
     if (editingBizNo.value) {
       await updateMarketSkill(editingBizNo.value, payload)

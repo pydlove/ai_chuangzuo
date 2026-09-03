@@ -42,9 +42,10 @@ function errMsg(e) {
  * @param {string} [keyword]
  * @param {number} [page]
  * @param {number} [pageSize]
+ * @param {boolean} [updateGlobal=true] 是否同步到全局 systemSkills ref
  * @returns {Promise<{list: Array, total: number}>}
  */
-export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999) {
+export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999, updateGlobal = true) {
   try {
     const res = await getSystemSkills(keyword, page, pageSize)
     const data = res.data || res || {}
@@ -59,7 +60,7 @@ export async function loadSystemSkills(keyword = '', page = 1, pageSize = 999) {
       scope: s.scope
     }))
     // 仅全量加载时同步全局 ref，分页调用由调用方自行维护局部状态
-    if (page === 1 && pageSize >= 999) {
+    if (updateGlobal && page === 1 && pageSize >= 999) {
       systemSkills.value = mapped
     }
     return { list: mapped, total }
@@ -207,9 +208,10 @@ export const isLearning = ref(false)
  * @param {string} [keyword]
  * @param {number} [page]
  * @param {number} [pageSize]
+ * @param {boolean} [updateGlobal=true] 是否同步到全局 learnedSkills ref
  * @returns {Promise<{list: Array, total: number}>}
  */
-export async function loadLearnedSkills(keyword = '', page = 1, pageSize = 999) {
+export async function loadLearnedSkills(keyword = '', page = 1, pageSize = 999, updateGlobal = true) {
   try {
     const res = await getMySkills(2, keyword, page, pageSize)
     const data = res.data || res || {}
@@ -228,7 +230,7 @@ export async function loadLearnedSkills(keyword = '', page = 1, pageSize = 999) 
       auditStatus: s.auditStatus
     }))
     // 仅全量加载时同步全局 ref，分页调用由调用方自行维护局部状态
-    if (page === 1 && pageSize >= 999) {
+    if (updateGlobal && page === 1 && pageSize >= 999) {
       learnedSkills.value = mapped
     }
     return { list: mapped, total }

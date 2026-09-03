@@ -25,6 +25,7 @@ public interface UserConverter {
     @Mapping(source = "bizNo", target = "userId")
     @Mapping(target = "inviterUserId", ignore = true)
     @Mapping(target = "inviterNickname", ignore = true)
+    @Mapping(target = "inviterAvatarUrl", ignore = true)
     @Mapping(source = "birthday", target = "birthday", dateFormat = "yyyy-MM-dd")
     UserProfileVO toProfileVO(User user);
 

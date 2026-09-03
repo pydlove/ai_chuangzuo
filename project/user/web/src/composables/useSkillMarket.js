@@ -46,16 +46,16 @@ export async function loadMySubmissions() {
   }
 }
 
-export async function loadFavoriteSkills(keyword = '', page = 1, pageSize = 999) {
+export async function loadFavoriteSkills(keyword = '', page = 1, pageSize = 999, updateGlobal = true) {
   try {
     const result = await getFavoriteSkills(keyword, page, pageSize)
     // 仅全量加载时同步全局 ref，分页调用由调用方自行维护局部状态
-    if (page === 1 && pageSize >= 999) {
+    if (updateGlobal && page === 1 && pageSize >= 999) {
       favoriteSkills.value = result.list || []
     }
     return result
   } catch (e) {
-    favoriteSkills.value = []
+    if (updateGlobal) favoriteSkills.value = []
     return { list: [], total: 0, current: page, size: pageSize }
   }
 }

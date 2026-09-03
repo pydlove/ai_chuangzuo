@@ -155,7 +155,7 @@
         <SectionTitle title="发布建议" size="sm" style="margin-top: 28px;" />
         <div v-if="publishPlanLoading" class="reposts-loading">
           <span class="reposts-loading-dot"></span>
-          小爱正在准备发布建议…
+          {{ getAiWaitingText('publishPlan') }}
         </div>
         <div v-else-if="!publishPlan" class="reposts-empty">
           <div v-if="!publishPlanGenerated">
@@ -188,7 +188,7 @@
         <SectionTitle title="一文多发方案" size="sm" style="margin-top: 28px;" />
         <div v-if="repostsLoading" class="reposts-loading">
           <span class="reposts-loading-dot"></span>
-          小爱正在准备多平台发布方案…
+          {{ getAiWaitingText('repostPlan') }}
         </div>
         <div v-else-if="repostsError" class="reposts-error">{{ repostsError }}</div>
         <div v-else-if="!repostsPlan.length" class="reposts-empty">
@@ -292,7 +292,7 @@
                   {{ tab.label }}
                 </button>
               </div>
-              <div v-if="titleOptLoading" class="title-opt-loading">小爱正在为您推荐，请稍等…</div>
+              <div v-if="titleOptLoading" class="title-opt-loading">{{ titleOptWaitingText }}</div>
               <div v-else class="title-opt-list">
                 <div
                   v-for="(title, index) in currentPlatformTitles"
@@ -341,11 +341,10 @@
       @cancel="closeExportLinkModal"
     >
       <div class="export-link-body">
-        <p class="export-link-tip">微信内无法直接下载文件，请点击下方按钮复制链接，并在系统浏览器中打开，即可自动下载 Word 文档。</p>
+        <p class="export-link-tip">微信内无法直接下载文件，请复制下方链接，并在系统浏览器中打开下载。</p>
         <div class="export-link-url">{{ exportLinkUrl }}</div>
         <div class="export-link-actions">
           <button class="export-link-btn primary" @click="copyExportLink">复制下载链接</button>
-          <button class="export-link-btn" @click="openExportLink">立即打开浏览器</button>
         </div>
       </div>
     </a-modal>
@@ -362,7 +361,7 @@ const route = useRoute()
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
 import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
-import { getArticle, updateArticle, optimizeTitles, getExportToken } from '@/api/article.js'
+import { getArticle, updateArticle, optimizeTitles, getExportToken, downloadArticleWord } from '@/api/article.js'
 import EmptyState from '@/components/common/EmptyState.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
 import { getCachedPublishPlan, generatePublishPlan } from '@/composables/usePublishPlan.js'
@@ -371,6 +370,15 @@ import { useBenefits } from '@/composables/useBenefits.js'
 import { useCopy } from '@/composables/useCopy.js'
 import { formatDateTime } from '@/utils/format.js'
 import { stripHtml } from '@/utils/html.js'
+import { runWithDedupe } from '@/composables/useAsyncTask.js'
+import { getAiWaitingText } from '@/constants/aiMessages.js'
+
+function titleOptimizeKey(bizNo) {
+  return `article:title-optimize:${bizNo}`
+}
+function publishPlanKey(mainPlatform) {
+  return `self-media-plan:publish-plan:${mainPlatform}`
+}
 
 const article = ref(null)
 const publishDesc = ref('')
@@ -429,10 +437,6 @@ const copyExportLink = async () => {
   }
 }
 
-const openExportLink = () => {
-  window.open(exportLinkUrl.value, '_blank')
-}
-
 const requestExportToken = async (bizNo) => {
   const token = await getExportToken(bizNo)
   exportLinkUrl.value = buildExportLink(token)
@@ -486,6 +490,14 @@ const tagPlatforms = [
     steps: [
       '创作者中心发布页找到「添加话题」栏，点击后搜索选择话题（最多 5 个）',
       '也可在描述文案末尾带上 #标签，蹭相关热点话题流量更大'
+    ]
+  },
+  {
+    key: 'kuaishou', name: '快手图文',
+    image: '',
+    steps: [
+      '发布页找到「添加话题」栏，点击后搜索选择相关话题',
+      '也可在描述文案末尾带上 #标签，蹭同城或热点话题流量'
     ]
   },
   {
@@ -567,6 +579,7 @@ const titleOptVisible = ref(false)
 const currentPlatform = ref('wechat')
 const selectedTitle = ref('')
 const titleOptLoading = ref(false)
+const titleOptWaitingText = ref(getAiWaitingText('titleOptimize'))
 const optimizedTitles = ref({})
 
 // 编辑态
@@ -583,6 +596,7 @@ const platformTabMeta = [
   { key: 'baijiahao', label: '百家号' },
   { key: 'zhihu', label: '知乎' },
   { key: 'douyin', label: '抖音' },
+  { key: 'kuaishou', label: '快手' },
   { key: 'bilibili', label: 'B站' }
 ]
 
@@ -994,44 +1008,12 @@ const exportWord = async () => {
     return
   }
 
-  const title = article.value.title || '未命名文章'
-  const bodyHtml = formattedBody.value
-  const s = templateStyle.value
-  const titleCss = styleObjectToCss(titleStyle.value)
-  const wrapperCss = styleObjectToCss({
-    fontFamily: s.font,
-    color: s.bodyColor,
-    fontSize: s.bodySize,
-    lineHeight: s.bodyLine,
-    padding: '40px'
-  })
-
-  const titleIcon = s.titleIcon ? `<span style="margin-right: 8px; font-size: 1.1em;">${s.titleIcon}</span>` : ''
-
-  const html = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
-      <head>
-        <meta charset="UTF-8">
-        <title>${title}</title>
-      </head>
-      <body style="${wrapperCss}">
-        <h1 style="${titleCss}">${titleIcon}${title}</h1>
-        <div>${bodyHtml}</div>
-      </body>
-    </html>
-  `
-
-  const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = title.replace(/[\\/:*?"<>|]/g, '_') + '.doc'
-  document.body.appendChild(a)
-  a.click()
-  document.body.removeChild(a)
-  URL.revokeObjectURL(url)
-
-  message.success('Word 导出成功')
+  try {
+    await downloadArticleWord(article.value.id, article.value.title)
+    message.success('Word 导出成功')
+  } catch (e) {
+    message.error('导出失败，请稍后重试')
+  }
 }
 
 // 复制描述
@@ -1064,9 +1046,12 @@ const optimizeTitle = async () => {
   currentPlatform.value = platformTabMeta.some(t => t.key === article.value.platform)
     ? article.value.platform
     : 'wechat'
+  titleOptWaitingText.value = getAiWaitingText('titleOptimize')
   titleOptLoading.value = true
   try {
-    const res = await optimizeTitles(article.value.id)
+    const key = titleOptimizeKey(article.value.id)
+    // 复用正在进行的标题优化请求，关闭弹框再打开不会重复提交
+    const res = await runWithDedupe(key, () => optimizeTitles(article.value.id))
     optimizedTitles.value = res.titles || {}
   } catch (e) {
     titleOptVisible.value = false
@@ -2190,6 +2175,8 @@ body[data-theme="dark"] .export-link-btn:hover {
 
 @media (max-width: 768px) {
   .preview-index {
+    height: auto;
+    overflow: visible;
     padding: 16px 12px 160px;
   }
 

@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.lottery.service.impl;
 
+import com.aichuangzuo.admin.modules.lottery.dto.request.CloneCampaignRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryCampaignSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryPrizeTierSaveRequest;
@@ -16,6 +17,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +94,9 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
     @Transactional(rollbackFor = Exception.class)
     public void openCampaign(Long id, Long adminUserId) {
         LotteryCampaign campaign = getAndCheck(id);
+        if (campaign.getStatus() != null && campaign.getStatus() != 0 && campaign.getStatus() != 3) {
+            throw new BusinessException(AdminLotteryErrorCode.INVALID_CAMPAIGN_STATUS);
+        }
         long openCount = campaignMapper.selectCount(
                 new LambdaQueryWrapper<LotteryCampaign>()
                         .eq(LotteryCampaign::getIsDeleted, 0)
@@ -104,6 +109,41 @@ public class LotteryCampaignAdminServiceImpl implements LotteryCampaignAdminServ
         campaign.setStatus(1);
         campaign.setUpdatedBy(adminUserId);
         campaignMapper.updateById(campaign);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long cloneCampaign(Long sourceId, CloneCampaignRequest request, Long adminUserId) {
+        LotteryCampaign source = getAndCheck(sourceId);
+
+        LotteryCampaign copy = new LotteryCampaign();
+        BeanUtils.copyProperties(source, copy, "id", "createdAt", "updatedAt", "createdBy", "updatedBy");
+        copy.setName(request.getName());
+        copy.setStatus(0);
+        copy.setTenantId(0L);
+        copy.setIsDeleted(0);
+        copy.setCreatedBy(adminUserId);
+        copy.setUpdatedBy(adminUserId);
+        campaignMapper.insert(copy);
+
+        List<LotteryPrizeTier> tiers = prizeTierMapper.selectList(
+                new LambdaQueryWrapper<LotteryPrizeTier>()
+                        .eq(LotteryPrizeTier::getCampaignId, sourceId)
+                        .eq(LotteryPrizeTier::getIsDeleted, 0));
+        for (LotteryPrizeTier tier : tiers) {
+            LotteryPrizeTier newTier = new LotteryPrizeTier();
+            BeanUtils.copyProperties(tier, newTier, "id", "campaignId", "createdAt", "updatedAt", "createdBy", "updatedBy");
+            newTier.setCampaignId(copy.getId());
+            newTier.setRemainingWinCount(tier.getMaxWinCount());
+            newTier.setStatus(1);
+            newTier.setTenantId(0L);
+            newTier.setIsDeleted(0);
+            newTier.setCreatedBy(adminUserId);
+            newTier.setUpdatedBy(adminUserId);
+            prizeTierMapper.insert(newTier);
+        }
+
+        return copy.getId();
     }
 
     @Override

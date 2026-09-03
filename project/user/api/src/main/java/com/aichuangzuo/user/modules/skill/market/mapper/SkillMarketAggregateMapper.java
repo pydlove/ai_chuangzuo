@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.util.List;
+
 /**
  * 用户端 - 风格市场聚合查询 Mapper。SQL 定义在 {@code resources/mapper/SkillMarketAggregateMapper.xml}。
  */
@@ -21,4 +23,15 @@ public interface SkillMarketAggregateMapper {
     IPage<MarketSkillRow> selectEnabledMarketSkills(IPage<?> page,
                                                     @Param("keyword") String keyword,
                                                     @Param("sortType") String sortType);
+
+    /**
+     * 根据关键词推荐已上架的市场提示词。
+     *
+     * @param userId   当前用户ID，用于排除自己发布的提示词
+     * @param keywords 关键词列表
+     * @param limit    返回条数上限
+     */
+    List<MarketSkillRow> selectRecommendedMarketSkills(@Param("userId") Long userId,
+                                                         @Param("keywords") List<String> keywords,
+                                                         @Param("limit") int limit);
 }

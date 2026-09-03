@@ -13,6 +13,11 @@ const routes = [
     component: () => import('@/views/Login.vue')
   },
   {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/Login.vue')
+  },
+  {
     path: '/forgot',
     name: 'Forgot',
     component: () => import('@/views/Forgot.vue')
@@ -71,7 +76,7 @@ const routes = [
     path: '/tools/watermark-remove',
     name: 'WatermarkRemove',
     component: () => import('@/views/MobileWatermarkRemove.vue'),
-    meta: { title: 'AI 去水印' }
+    meta: { title: 'AI 去/加水印' }
   },
   {
     path: '/lottery',

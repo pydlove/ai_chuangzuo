@@ -196,11 +196,10 @@
       @cancel="closeExportLinkModal"
     >
       <div class="export-link-body">
-        <p class="export-link-tip">微信内无法直接下载文件，请点击下方按钮复制链接，并在系统浏览器中打开，即可自动下载 Word 文档。</p>
+        <p class="export-link-tip">微信内无法直接下载文件，请复制下方链接，并在系统浏览器中打开下载。</p>
         <div class="export-link-url">{{ exportLinkUrl }}</div>
         <div class="export-link-actions">
           <button class="export-link-btn primary" @click="copyExportLink">复制下载链接</button>
-          <button class="export-link-btn" @click="openExportLink">立即打开浏览器</button>
         </div>
       </div>
     </a-modal>
@@ -217,7 +216,7 @@ import { useDrafts } from '@/composables/useDrafts.js'
 import { useConfirm } from '@/composables/useConfirm.js'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import { getArticle, deleteArticle as deleteArticleApi, getExportToken } from '@/api/article.js'
+import { getArticle, deleteArticle as deleteArticleApi, getExportToken, downloadArticleWord } from '@/api/article.js'
 import { getDraft, deleteDraft as deleteDraftApi } from '@/api/draft.js'
 import { STORAGE_KEYS } from '@/constants/storage.js'
 import { formatDateTime } from '@/utils/format.js'
@@ -547,10 +546,6 @@ const copyExportLink = async () => {
   }
 }
 
-const openExportLink = () => {
-  window.open(exportLinkUrl.value, '_blank')
-}
-
 const requestExportToken = async (bizNo) => {
   const token = await getExportToken(bizNo)
   exportLinkBizNo.value = bizNo
@@ -591,49 +586,7 @@ const exportWorkWord = async (work) => {
       return
     }
 
-    const detail = await getArticle(work.id)
-    const title = detail?.title || work.title || '未命名文章'
-    const body = detail?.body || ''
-
-    // 简单处理 Markdown 标题：## 标题 → <h2>，普通段落 → <p>
-    const formattedBody = body
-      .split(/\n\n+/)
-      .map((part) => {
-        const trimmed = part.trim()
-        if (!trimmed) return ''
-        const mdHeading = trimmed.match(/^(#{1,6})\s+(.+)$/)
-        if (mdHeading) {
-          const level = Math.min(mdHeading[1].length, 3)
-          const fontSize = level === 1 ? 24 : level === 2 ? 20 : 18
-          return `<h${level} style="font-size: ${fontSize}px; font-weight: 600; margin: 18px 0 8px; color: #1a1a1a;">${mdHeading[2]}</h${level}>`
-        }
-        return `<p style="margin-bottom: 16px;">${trimmed.replace(/\n/g, '<br>')}</p>`
-      })
-      .filter(Boolean)
-      .join('')
-
-    const html = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/1999/xhtml">
-        <head>
-          <meta charset="UTF-8">
-          <title>${title}</title>
-        </head>
-        <body style="font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 40px; color: #262626;">
-          <h1 style="font-size: 24px; margin-bottom: 16px; line-height: 1.4; color: #1a1a1a;">${title}</h1>
-          <div style="font-size: 16px; line-height: 1.8;">${formattedBody}</div>
-        </body>
-      </html>
-    `
-
-    const blob = new Blob(['\ufeff', html], { type: 'application/msword' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = title.replace(/[\\/:*?"<>|]/g, '_') + '.doc'
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(url)
+    await downloadArticleWord(work.id, work.title)
 
     if (isMobile.value) {
       message.success('Word 已导出，请从浏览器下载管理或通知栏查看')

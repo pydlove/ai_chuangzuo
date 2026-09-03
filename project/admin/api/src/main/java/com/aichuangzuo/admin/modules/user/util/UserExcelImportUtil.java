@@ -20,11 +20,11 @@ public final class UserExcelImportUtil {
     private static final String EXTENSION = ".xlsx";
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024;
     private static final List<String> EXPECTED_HEADERS = List.of(
-            "邮箱（必填）", "昵称（必填）", "密码（选填，留空默认 Aichuangzuo@123）", "用户类型（选填，0=机器人，1=真实用户；默认 0）"
+            "邮箱（选填，与手机号二选一）", "手机号（选填，与邮箱二选一）", "昵称（必填）", "密码（选填，留空默认 Aichuangzuo@123）", "用户类型（选填，0=机器人，1=真实用户；默认 0）"
     );
     private static final List<UserImportExcelRowData> TEMPLATE_EXAMPLES = List.of(
-            createExample("robot01@example.com", "机器人一号", "", "0"),
-            createExample("robot02@example.com", "机器人二号", "Aichuangzuo@123", "0")
+            createExample("robot01@example.com", "", "机器人一号", "", "0"),
+            createExample("", "13800138000", "机器人二号", "Aichuangzuo@123", "0")
     );
 
     private UserExcelImportUtil() {
@@ -66,9 +66,10 @@ public final class UserExcelImportUtil {
         }
     }
 
-    private static UserImportExcelRowData createExample(String email, String nickname, String password, String userType) {
+    private static UserImportExcelRowData createExample(String email, String phone, String nickname, String password, String userType) {
         UserImportExcelRowData example = new UserImportExcelRowData();
         example.setEmail(email);
+        example.setPhone(phone);
         example.setNickname(nickname);
         example.setPassword(password);
         example.setUserType(userType);
@@ -113,6 +114,7 @@ public final class UserExcelImportUtil {
 
         private boolean isBlankRow(UserImportExcelRowData row) {
             return isBlank(row.getEmail())
+                    && isBlank(row.getPhone())
                     && isBlank(row.getNickname())
                     && isBlank(row.getPassword())
                     && isBlank(row.getUserType());

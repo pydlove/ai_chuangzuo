@@ -6,6 +6,8 @@ import com.aichuangzuo.user.modules.article.dto.request.UpdateArticleRequest;
 import com.aichuangzuo.user.modules.article.entity.Article;
 import com.aichuangzuo.shared.enums.error.ArticleErrorCode;
 import com.aichuangzuo.user.modules.article.mapper.ArticleMapper;
+import com.aichuangzuo.user.modules.exporttemplate.entity.ExportTemplate;
+import com.aichuangzuo.user.modules.exporttemplate.mapper.ExportTemplateMapper;
 import com.aichuangzuo.user.modules.article.service.ArticleService;
 import com.aichuangzuo.user.modules.article.vo.ArticlePageVO;
 import com.aichuangzuo.user.modules.article.vo.ArticleVO;
@@ -24,13 +26,30 @@ import com.aichuangzuo.shared.enums.DeletedFlagEnum;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.xwpf.usermodel.LineSpacingRule;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTP;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPBdr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTShd;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STBorder;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STShd;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
-import java.nio.charset.StandardCharsets;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.math.BigInteger;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,6 +70,7 @@ public class ArticleServiceImpl implements ArticleService {
     private final SkillMarketMapper skillMarketMapper;
     private final UserSkillMapper userSkillMapper;
     private final JwtUtil jwtUtil;
+    private final ExportTemplateMapper exportTemplateMapper;
 
     private static final Pattern MARKDOWN_HEADING_PATTERN = Pattern.compile("^(#{1,6})\\s+(.+)$", Pattern.MULTILINE);
 
@@ -346,25 +366,137 @@ public class ArticleServiceImpl implements ArticleService {
         if (article == null) {
             throw new BusinessException(ArticleErrorCode.ARTICLE_NOT_FOUND);
         }
-        String title = StringUtils.hasText(article.getTitle()) ? article.getTitle() : "未命名文章";
-        String body = article.getBody() == null ? "" : article.getBody();
-        String html = buildWordHtml(title, body);
-        byte[] bytes = html.getBytes(StandardCharsets.UTF_8);
-        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
-        byte[] result = new byte[bom.length + bytes.length];
-        System.arraycopy(bom, 0, result, 0, bom.length);
-        System.arraycopy(bytes, 0, result, bom.length, bytes.length);
-        return result;
+        ExportTemplate template = null;
+        if (StringUtils.hasText(article.getTemplate())) {
+            template = exportTemplateMapper.selectOne(new LambdaQueryWrapper<ExportTemplate>()
+                    .eq(ExportTemplate::getTemplateKey, article.getTemplate())
+                    .eq(ExportTemplate::getStatus, 1));
+        }
+        return buildWordDocument(article, template);
     }
 
-    private String buildWordHtml(String title, String body) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:w=\"urn:schemas-microsoft-com:office:word\" xmlns=\"http://www.w3.org/1999/xhtml\">");
-        sb.append("<head><meta charset=\"UTF-8\"><title>").append(escapeHtml(title)).append("</title></head>");
-        sb.append("<body style=\"font-family:-apple-system,BlinkMacSystemFont,sans-serif;padding:40px;color:#262626;\">");
-        sb.append("<h1 style=\"font-size:24px;margin-bottom:16px;line-height:1.4;color:#1a1a1a;\">").append(escapeHtml(title)).append("</h1>");
-        sb.append("<div style=\"font-size:16px;line-height:1.8;\">");
+    /**
+     * 按文章关联的导出模板 visual_style_json 渲染 Word 文档（.docx），
+     * 与前端 PreviewIndex / WorksIndex 的导出样式保持一致。
+     *
+     * <p>当前未处理编辑页保存的 styleOverrides（加粗/颜色/对齐等），
+     * 如需完全同步可后续把 overrides 一并传入并解析。</p>
+     */
+    private byte[] buildWordDocument(Article article, ExportTemplate template) {
+        Map<String, Object> style = parseVisualStyle(template != null ? template.getVisualStyleJson() : null);
+        String title = StringUtils.hasText(article.getTitle()) ? article.getTitle() : "未命名文章";
+        String body = article.getBody() == null ? "" : article.getBody();
+        body = stripLeadingTitle(body, title.trim());
+        String signatureText = template != null ? template.getSignatureText() : null;
+        String signaturePosition = template != null ? template.getSignaturePosition() : null;
+        body = stripSignature(body, signatureText);
 
+        try (XWPFDocument document = new XWPFDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            appendTitle(document, title, style);
+
+            if ("start".equals(signaturePosition) && StringUtils.hasText(signatureText)) {
+                appendSignature(document, signatureText, style);
+            }
+            appendBody(document, body, style);
+            if (!"start".equals(signaturePosition) && StringUtils.hasText(signatureText)) {
+                appendSignature(document, signatureText, style);
+            }
+
+            document.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            log.error("生成 Word 文档失败, bizNo={}", article.getBizNo(), e);
+            throw new BusinessException(ArticleErrorCode.ARTICLE_EXPORT_FAILED);
+        }
+    }
+
+    private Map<String, Object> parseVisualStyle(String json) {
+        Map<String, Object> style = new HashMap<>();
+        if (!StringUtils.hasText(json)) {
+            return style;
+        }
+        try {
+            Map<?, ?> raw = objectMapper.readValue(json, Map.class);
+            raw.forEach((k, v) -> style.put(String.valueOf(k), v));
+        } catch (JsonProcessingException e) {
+            log.warn("解析模板 visualStyleJson 失败", e);
+        }
+        return style;
+    }
+
+    private String styleValue(Map<String, Object> style, String key) {
+        return styleValue(style, key, null);
+    }
+
+    private String styleValue(Map<String, Object> style, String key, String defaultValue) {
+        Object v = style.get(key);
+        if (v == null) {
+            return defaultValue;
+        }
+        String s = v.toString();
+        return StringUtils.hasText(s) ? s : defaultValue;
+    }
+
+    private void appendTitle(XWPFDocument document, String title, Map<String, Object> style) {
+        XWPFParagraph paragraph = document.createParagraph();
+        applyTitleParagraphStyle(paragraph, style);
+        String titleIcon = styleValue(style, "titleIcon");
+        if (StringUtils.hasText(titleIcon)) {
+            XWPFRun iconRun = paragraph.createRun();
+            applyTitleRunStyle(iconRun, style);
+            iconRun.setText(titleIcon + " ");
+        }
+        XWPFRun run = paragraph.createRun();
+        applyTitleRunStyle(run, style);
+        run.setText(title);
+    }
+
+    private void applyTitleParagraphStyle(XWPFParagraph paragraph, Map<String, Object> style) {
+        paragraph.setAlignment(toAlignment(styleValue(style, "titleAlign", "left")));
+        paragraph.setSpacingAfter(parsePxToTwips(styleValue(style, "titleMarginBottom", "16px")));
+        String background = styleValue(style, "titleBackground");
+        if (background != null && isSolidColor(background)) {
+            setParagraphShadingColor(paragraph, stripHash(background));
+        }
+        String borderBottom = styleValue(style, "titleBorderBottom");
+        if (borderBottom != null) {
+            setBorderBottom(paragraph, borderBottom);
+        }
+        String border = styleValue(style, "titleBorder");
+        if (border != null) {
+            setBorder(paragraph, border);
+        }
+    }
+
+    private void applyTitleRunStyle(XWPFRun run, Map<String, Object> style) {
+        run.setFontFamily(styleValue(style, "titleFontFamily", styleValue(style, "font", "-apple-system, BlinkMacSystemFont, sans-serif")));
+        run.setFontSize(halfPoints(styleValue(style, "titleSize", "24px")));
+        run.setBold(toFontWeight(styleValue(style, "titleFontWeight", "700")) >= 600);
+        run.setColor(stripHash(styleValue(style, "titleColor", "#1a1a1a")));
+        run.setItalic("italic".equals(styleValue(style, "titleFontStyle")));
+    }
+
+    private void appendSignature(XWPFDocument document, String signatureText, Map<String, Object> style) {
+        XWPFParagraph paragraph = document.createParagraph();
+        applySignatureParagraphStyle(paragraph, style);
+        XWPFRun run = paragraph.createRun();
+        applySignatureRunStyle(run, style);
+        setRunText(run, signatureText);
+    }
+
+    private void applySignatureParagraphStyle(XWPFParagraph paragraph, Map<String, Object> style) {
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        paragraph.setSpacingBefore(twips("32px"));
+        setBorderTop(paragraph, "1px solid " + styleValue(style, "metaBorder", "#eee"));
+    }
+
+    private void applySignatureRunStyle(XWPFRun run, Map<String, Object> style) {
+        run.setColor(stripHash(styleValue(style, "metaColor", "#8c8c8c")));
+        run.setFontSize(halfPoints("13px"));
+    }
+
+    private void appendBody(XWPFDocument document, String body, Map<String, Object> style) {
         String[] paragraphs = body.split("\\n\\n+");
         for (String part : paragraphs) {
             String trimmed = part.trim();
@@ -374,28 +506,293 @@ public class ArticleServiceImpl implements ArticleService {
             Matcher matcher = MARKDOWN_HEADING_PATTERN.matcher(trimmed);
             if (matcher.find()) {
                 int level = Math.min(matcher.group(1).length(), 3);
-                int fontSize = level == 1 ? 24 : (level == 2 ? 20 : 18);
                 String heading = matcher.group(2);
-                sb.append("<h").append(level)
-                        .append(" style=\"font-size:").append(fontSize).append("px;font-weight:600;margin:18px 0 8px;color:#1a1a1a;\">")
-                        .append(escapeHtml(heading)).append("</h").append(level).append(">");
+                appendHeading(document, heading, level, style);
+            } else if (trimmed.matches("^【[^】]+】$")) {
+                String heading = trimmed.substring(1, trimmed.length() - 1);
+                appendHeading(document, heading, 2, style);
+            } else if (trimmed.startsWith("> ")) {
+                appendCallout(document, trimmed.substring(2), style);
             } else {
-                sb.append("<p style=\"margin-bottom:16px;\">").append(escapeHtml(trimmed).replace("\n", "<br>")).append("</p>");
+                appendBodyParagraph(document, trimmed, style);
             }
         }
-
-        sb.append("</div></body></html>");
-        return sb.toString();
     }
 
-    private String escapeHtml(String text) {
-        if (text == null) {
-            return "";
+    private void appendHeading(XWPFDocument document, String heading, int level, Map<String, Object> style) {
+        XWPFParagraph paragraph = document.createParagraph();
+        applyHeadingParagraphStyle(paragraph, style);
+        XWPFRun run = paragraph.createRun();
+        applyHeadingRunStyle(run, style);
+        setRunText(run, heading);
+    }
+
+    private void applyHeadingParagraphStyle(XWPFParagraph paragraph, Map<String, Object> style) {
+        paragraph.setAlignment(toAlignment(styleValue(style, "headingAlign", "left")));
+        String margin = styleValue(style, "headingMargin");
+        if (margin != null) {
+            String[] parts = margin.split("\\s+");
+            if (parts.length >= 1) paragraph.setSpacingBefore(parsePxToTwips(parts[0]));
+            if (parts.length >= 3) paragraph.setSpacingAfter(parsePxToTwips(parts[2]));
+        } else {
+            paragraph.setSpacingBefore(twips("18px"));
+            paragraph.setSpacingAfter(twips("8px"));
         }
-        return text.replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                .replace("\"", "&quot;")
-                .replace("'", "&#39;");
+        String background = styleValue(style, "headingBackground");
+        if (background != null && isSolidColor(background)) {
+            setParagraphShadingColor(paragraph, stripHash(background));
+        }
+        String headingBorder = styleValue(style, "headingBorder");
+        if (headingBorder != null && !"none".equals(headingBorder)) {
+            setBorderLeft(paragraph, headingBorder);
+            Object headingPl = style.get("headingPl");
+            int pl = headingPl instanceof Number ? ((Number) headingPl).intValue() : 0;
+            paragraph.setIndentationLeft(twips(pl + "px"));
+        }
+        String headingBorderBottom = styleValue(style, "headingBorderBottom");
+        if (headingBorderBottom != null) {
+            setBorderBottom(paragraph, headingBorderBottom);
+        }
     }
+
+    private void applyHeadingRunStyle(XWPFRun run, Map<String, Object> style) {
+        run.setFontFamily(styleValue(style, "headingFontFamily", styleValue(style, "font", "-apple-system, BlinkMacSystemFont, sans-serif")));
+        run.setFontSize(halfPoints(styleValue(style, "headingSize", "18px")));
+        run.setBold(toFontWeight(styleValue(style, "headingFontWeight", "600")) >= 600);
+        run.setColor(stripHash(styleValue(style, "headingColor", "#1a1a1a")));
+    }
+
+    private void appendCallout(XWPFDocument document, String text, Map<String, Object> style) {
+        XWPFParagraph paragraph = document.createParagraph();
+        applyCalloutParagraphStyle(paragraph, style);
+        XWPFRun run = paragraph.createRun();
+        applyCalloutRunStyle(run, style);
+        setRunText(run, text);
+    }
+
+    private void applyCalloutParagraphStyle(XWPFParagraph paragraph, Map<String, Object> style) {
+        String variant = styleValue(style, "calloutVariant", "default");
+        paragraph.setSpacingBefore(twips("14px"));
+        paragraph.setSpacingAfter(twips("14px"));
+        switch (variant) {
+            case "pill" -> {
+                setParagraphShadingColor(paragraph, stripHash(styleValue(style, "calloutBg", "#fff0f2")));
+                setBorder(paragraph, "1px solid " + styleValue(style, "calloutBg", "#fff0f2"));
+            }
+            case "card" -> {
+                setParagraphShadingColor(paragraph, stripHash(styleValue(style, "calloutBg", "#fff")));
+                setBorderLeft(paragraph, "3px solid " + styleValue(style, "headingColor", "#07c160"));
+            }
+            case "cta" -> {
+                paragraph.setAlignment(ParagraphAlignment.CENTER);
+                setParagraphShadingColor(paragraph, stripHash(styleValue(style, "calloutBg", "#fff")));
+                setBorder(paragraph, "2px solid " + styleValue(style, "calloutColor", "#cf1322"));
+            }
+            case "checklist" -> {
+                setParagraphShadingColor(paragraph, stripHash(styleValue(style, "calloutBg", "#f6ffed")));
+            }
+            default -> {
+                setParagraphShadingColor(paragraph, stripHash(styleValue(style, "calloutBg", "#f6ffed")));
+                String border = styleValue(style, "calloutBorder");
+                if (border != null && !"none".equals(border)) {
+                    setBorderLeft(paragraph, border);
+                }
+            }
+        }
+    }
+
+    private void applyCalloutRunStyle(XWPFRun run, Map<String, Object> style) {
+        String variant = styleValue(style, "calloutVariant", "default");
+        run.setFontSize(halfPoints("13px"));
+        String color = switch (variant) {
+            case "pill" -> styleValue(style, "calloutColor", "#ff2442");
+            default -> styleValue(style, "calloutColor", "#262626");
+        };
+        run.setColor(stripHash(color));
+        if ("cta".equals(variant)) {
+            run.setBold(true);
+        }
+    }
+
+    private void appendBodyParagraph(XWPFDocument document, String text, Map<String, Object> style) {
+        XWPFParagraph paragraph = document.createParagraph();
+        applyBodyParagraphStyle(paragraph, style);
+        XWPFRun run = paragraph.createRun();
+        applyBodyRunStyle(run, style);
+        setRunText(run, text);
+    }
+
+    private void applyBodyParagraphStyle(XWPFParagraph paragraph, Map<String, Object> style) {
+        paragraph.setAlignment(toAlignment(styleValue(style, "bodyAlign", "left")));
+        paragraph.setSpacingAfter(twips("16px"));
+        double lineHeight = parseDouble(styleValue(style, "bodyLine", "1.8"));
+        paragraph.setSpacingBetween(lineHeight, LineSpacingRule.AUTO);
+    }
+
+    private void applyBodyRunStyle(XWPFRun run, Map<String, Object> style) {
+        run.setFontFamily(styleValue(style, "font", "-apple-system, BlinkMacSystemFont, sans-serif"));
+        run.setFontSize(halfPoints(styleValue(style, "bodySize", "16px")));
+        run.setColor(stripHash(styleValue(style, "bodyColor", "#262626")));
+    }
+
+    private static void setRunText(XWPFRun run, String text) {
+        String[] lines = text.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            run.setText(lines[i]);
+            if (i < lines.length - 1) {
+                run.addBreak();
+            }
+        }
+    }
+
+    private static ParagraphAlignment toAlignment(String align) {
+        if (align == null) return ParagraphAlignment.LEFT;
+        return switch (align) {
+            case "center" -> ParagraphAlignment.CENTER;
+            case "right" -> ParagraphAlignment.RIGHT;
+            case "justify" -> ParagraphAlignment.BOTH;
+            default -> ParagraphAlignment.LEFT;
+        };
+    }
+
+    private static int halfPoints(String cssSize) {
+        int px = parsePx(cssSize);
+        return px * 3 / 2;
+    }
+
+    private static int twips(String cssSize) {
+        return parsePxToTwips(cssSize);
+    }
+
+    private static int parsePxToTwips(String cssSize) {
+        int px = parsePx(cssSize);
+        return px * 15;
+    }
+
+    private static int parsePx(String cssSize) {
+        if (cssSize == null) return 0;
+        String s = cssSize.trim().toLowerCase();
+        if (s.endsWith("px")) {
+            s = s.substring(0, s.length() - 2).trim();
+        }
+        try {
+            return (int) Double.parseDouble(s);
+        } catch (NumberFormatException e) {
+            return 0;
+        }
+    }
+
+    private static double parseDouble(String value) {
+        if (value == null) return 1.8;
+        try {
+            return Double.parseDouble(value.trim());
+        } catch (NumberFormatException e) {
+            return 1.8;
+        }
+    }
+
+    private static String stripHash(String color) {
+        if (color == null) return "000000";
+        return color.startsWith("#") ? color.substring(1) : color;
+    }
+
+    private static boolean isSolidColor(String color) {
+        return color != null && !color.contains("gradient");
+    }
+
+    private static int toFontWeight(String weight) {
+        if (weight == null) return 400;
+        try {
+            return Integer.parseInt(weight.trim());
+        } catch (NumberFormatException e) {
+            return "bold".equalsIgnoreCase(weight) ? 700 : 400;
+        }
+    }
+
+    private static void setBorderLeft(XWPFParagraph paragraph, String cssBorder) {
+        setBorder(paragraph, "left", cssBorder);
+    }
+
+    private static void setBorderBottom(XWPFParagraph paragraph, String cssBorder) {
+        setBorder(paragraph, "bottom", cssBorder);
+    }
+
+    private static void setBorderTop(XWPFParagraph paragraph, String cssBorder) {
+        setBorder(paragraph, "top", cssBorder);
+    }
+
+    private static void setBorder(XWPFParagraph paragraph, String cssBorder) {
+        setBorder(paragraph, "all", cssBorder);
+    }
+
+    private static void setBorder(XWPFParagraph paragraph, String side, String cssBorder) {
+        String[] parts = cssBorder.trim().split("\\s+");
+        if (parts.length < 3) return;
+        String widthPart = parts[0];
+        String colorPart = parts[parts.length - 1];
+        int widthPx = parsePx(widthPart);
+        int widthEighths = Math.max(1, widthPx * 8);
+        String color = stripHash(colorPart);
+        BigInteger size = BigInteger.valueOf(widthEighths);
+        BigInteger space = BigInteger.valueOf(4);
+
+        CTP ctp = paragraph.getCTP();
+        CTPPr pPr = ctp.isSetPPr() ? ctp.getPPr() : ctp.addNewPPr();
+        CTPBdr pbdr = pPr.isSetPBdr() ? pPr.getPBdr() : pPr.addNewPBdr();
+        CTBorder border = CTBorder.Factory.newInstance();
+        border.setVal(STBorder.SINGLE);
+        border.setSz(size);
+        border.setColor(color);
+        border.setSpace(space);
+
+        switch (side) {
+            case "left" -> pbdr.setLeft(border);
+            case "bottom" -> pbdr.setBottom(border);
+            case "top" -> pbdr.setTop(border);
+            case "all" -> {
+                pbdr.setTop(border);
+                pbdr.setLeft(border);
+                pbdr.setBottom(border);
+                pbdr.setRight(border);
+            }
+        }
+    }
+
+    private static void setParagraphShadingColor(XWPFParagraph paragraph, String color) {
+        CTP ctp = paragraph.getCTP();
+        CTPPr pPr = ctp.isSetPPr() ? ctp.getPPr() : ctp.addNewPPr();
+        CTShd shd = pPr.isSetShd() ? pPr.getShd() : pPr.addNewShd();
+        shd.setVal(STShd.CLEAR);
+        shd.setFill(color);
+    }
+
+    private String stripLeadingTitle(String body, String title) {
+        if (!StringUtils.hasText(body) || !StringUtils.hasText(title)) {
+            return body;
+        }
+        String escaped = title.replaceAll("([.*+?^${}()|\\[\\]\\\\])", "\\\\$1");
+        String regex = "^\\s*[#🌟【】\\s]*" + escaped + "[#🌟【】\\s]*\\n+";
+        Pattern pattern = Pattern.compile(regex);
+        String result = body;
+        while (pattern.matcher(result).find()) {
+            result = pattern.matcher(result).replaceFirst("");
+        }
+        return result;
+    }
+
+    private String stripSignature(String body, String signatureText) {
+        if (!StringUtils.hasText(body) || !StringUtils.hasText(signatureText)) {
+            return body;
+        }
+        String result = StringUtils.trimTrailingWhitespace(body);
+        while (result.endsWith(signatureText)) {
+            result = StringUtils.trimTrailingWhitespace(result.substring(0, result.length() - signatureText.length()));
+        }
+        String trimmedStart = StringUtils.trimLeadingWhitespace(result);
+        if (trimmedStart.startsWith(signatureText)) {
+            result = StringUtils.trimLeadingWhitespace(trimmedStart.substring(signatureText.length()));
+        }
+        return result;
+    }
+
 }

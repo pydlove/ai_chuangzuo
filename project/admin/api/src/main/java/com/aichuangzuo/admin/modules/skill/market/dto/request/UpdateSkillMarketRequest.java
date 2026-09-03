@@ -1,10 +1,13 @@
 package com.aichuangzuo.admin.modules.skill.market.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 /**
  * 更新风格市场条目请求体。
@@ -40,4 +43,8 @@ public class UpdateSkillMarketRequest {
     /** 是否官方精选：0-否，1-是。 */
     @NotNull(message = "官方精选状态不能为空")
     private Integer featured;
+
+    /** 创建时间，管理员可手动修正。 */
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime createdAt;
 }

@@ -5,6 +5,7 @@
     :width="900"
     centered
     class="skill-selector-modal"
+    wrap-class-name="skill-selector-modal-wrap"
   >
     <template #title>
       <div class="modal-title-wrap">
@@ -14,6 +15,12 @@
     </template>
 
     <div class="skill-selector-body">
+      <a-alert
+        class="prompt-market-tip"
+        type="info"
+        show-icon
+        :message="'提示词不够顺手？去提示词市场逛逛，收藏你常用的风格，下次一键调用。'"
+      />
       <div class="prompt-body">
         <div class="prompt-preview-pane">
           <div v-if="currentPrompt" class="prompt-preview">
@@ -32,20 +39,24 @@
             </div>
             <div class="prompt-preview-text">{{ currentPrompt.prompt }}</div>
             <div class="prompt-preview-actions">
-              <button
-                class="prompt-preview-use-btn"
-                :disabled="selectedStyleName !== currentPrompt.name"
-                @click="applySkillLocal"
-              >
-                应用
-              </button>
               <button class="prompt-preview-view-btn" @click="openPromptModal(currentPrompt)">查看完整</button>
             </div>
           </div>
-          <div v-else class="prompt-preview-empty">当前分类暂无提示词</div>
+          <a-empty v-else description="当前分类暂无提示词" />
         </div>
 
         <div class="prompt-list-pane">
+          <div v-if="props.showSearch" class="prompt-search-bar">
+            <a-input-search
+              :value="promptSearchKeyword[styleTab]"
+              placeholder="搜索提示词名称/描述"
+              size="small"
+              allow-clear
+              :loading="promptSearchLoading"
+              @search="(v) => onPromptSearch(styleTab, v)"
+              @change="(e) => onPromptSearch(styleTab, e.target.value)"
+            />
+          </div>
           <div class="prompt-tabs">
             <button
               v-for="tab in tabs"
@@ -58,7 +69,7 @@
           </div>
 
           <div class="prompt-rows">
-            <div v-if="styleTab === 'my'" class="prompt-row prompt-row--add" @click="goToSkillsPage">
+            <div v-if="props.showAddRow && styleTab === 'my' && !isSearching" class="prompt-row prompt-row--add" @click="goToSkillsPage">
               <div class="prompt-row-add-icon">+</div>
               <div class="prompt-row-add-text">新建我的提示词</div>
             </div>
@@ -69,32 +80,10 @@
               :class="['prompt-row', { selected: selectedStyleName === skill.name, offline: isOffline(skill) }]"
               @click="selectSkill(skill)"
             >
-              <div class="prompt-row-main">
-                <div class="prompt-row-name">{{ skill.name }}</div>
-                <div class="prompt-row-desc">{{ promptSummary(skill.prompt) }}</div>
-                <div class="prompt-row-meta">
-                  <template v-if="styleTab === 'my'">
-                    <span>{{ skill.desc || '我的提示词' }}</span>
-                    <span class="prompt-row-meta-dot">·</span>
-                    <span>已用 {{ skill.count || 0 }} 次</span>
-                  </template>
-                  <template v-else-if="styleTab === 'learned'">
-                    <span>学习 · {{ (skill.createdAt || '').slice(0, 10) }}</span>
-                  </template>
-                  <template v-else-if="styleTab === 'favorites'">
-                    <span :class="['favorite-status-badge', isOffline(skill) ? 'offline' : '']">
-                      {{ isOffline(skill) ? '已下架' : 'by ' + skill.creatorName }}
-                    </span>
-                  </template>
-                  <template v-else>
-                    <span>{{ skill.desc || '系统预设' }}</span>
-                  </template>
-                </div>
-              </div>
-              <div v-if="isOffline(skill)" class="prompt-row-badge">已下架</div>
+              <div class="prompt-row-name">{{ skill.name }}</div>
             </div>
 
-            <div v-if="!currentList.length && styleTab !== 'my'" class="prompt-empty">
+            <div v-if="!currentList.length && (styleTab !== 'my' || isSearching)" class="prompt-empty">
               {{ emptyText }}
             </div>
           </div>
@@ -143,7 +132,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
@@ -159,9 +148,21 @@ import {
   favoriteSkills,
   loadFavoriteSkills
 } from '@/composables/useSkillMarket.js'
+import { getRecommendedSkills } from '@/api/marketSkill.js'
 import { useCreateForm } from '../useCreateForm.js'
 
-const { styleVisible } = useCreateForm()
+const props = defineProps({
+  showAddRow: {
+    type: Boolean,
+    default: true
+  },
+  showSearch: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const { styleVisible, customTitle } = useCreateForm()
 const router = useRouter()
 
 const styleTab = ref('my')
@@ -170,6 +171,17 @@ const promptModalVisible = ref(false)
 const viewingSkill = ref(null)
 
 const pageSizeOptions = ['8', '12', '16']
+
+// 提示词搜索状态（与今日创作保持一致）
+const promptSearchKeyword = reactive({ recommend: '', my: '', learned: '', favorites: '', system: '' })
+const promptSearchResults = reactive({ recommend: [], my: [], learned: [], favorites: [], system: [] })
+const promptSearchLoading = ref(false)
+let promptSearchTimer = null
+
+const isSearching = computed(() => {
+  const keyword = promptSearchKeyword[styleTab.value]
+  return keyword && keyword.trim().length > 0
+})
 
 // 各 tab 局部分页状态
 const myPage = ref(1)
@@ -192,44 +204,18 @@ const favoritePageSize = ref(12)
 const favoriteTotal = ref(0)
 const favoriteList = ref([])
 
+const recommendPage = ref(1)
+const recommendPageSize = ref(12)
+const recommendTotal = ref(0)
+const recommendList = ref([])
+
 const tabs = [
+  { key: 'recommend', label: '推荐' },
   { key: 'my', label: '我的' },
   { key: 'learned', label: '学习' },
   { key: 'favorites', label: '收藏' },
   { key: 'system', label: '系统' }
 ]
-
-const tabState = {
-  my: { page: myPage, pageSize: myPageSize, total: myTotal, list: myList, load: loadMySkillsTab },
-  learned: { page: learnedPage, pageSize: learnedPageSize, total: learnedTotal, list: learnedList, load: loadLearnedSkillsTab },
-  favorites: { page: favoritePage, pageSize: favoritePageSize, total: favoriteTotal, list: favoriteList, load: loadFavoriteSkillsTab },
-  system: { page: systemPage, pageSize: systemPageSize, total: systemTotal, list: systemList, load: loadSystemSkillsTab }
-}
-
-const currentList = computed(() => tabState[styleTab.value].list.value)
-const currentTotal = computed(() => tabState[styleTab.value].total.value)
-const currentPage = computed({
-  get: () => tabState[styleTab.value].page.value,
-  set: (val) => { tabState[styleTab.value].page.value = val }
-})
-const currentPageSize = computed(() => tabState[styleTab.value].pageSize.value)
-
-const currentPrompt = computed(() => {
-  const list = currentList.value
-  const selected = list.find(s => s.name === selectedStyleName.value)
-  if (selected) return selected
-  return list[0] || null
-})
-
-const emptyText = computed(() => {
-  const map = {
-    my: '你还没有保存自己的提示词',
-    learned: '还没有学习过的提示词，可去「我的提示词」页面学习',
-    favorites: '还没有收藏提示词，去提示词市场发现更多好风格',
-    system: '系统提示词加载中...'
-  }
-  return map[styleTab.value] || ''
-})
 
 const loadMySkillsTab = async () => {
   const result = await loadMySkills('', myPage.value, myPageSize.value, false)
@@ -255,8 +241,95 @@ const loadFavoriteSkillsTab = async () => {
   favoriteTotal.value = result.total || 0
 }
 
+const loadRecommendedSkillsTab = async () => {
+  const list = await getRecommendedSkills({ title: customTitle.value, size: 5 })
+  recommendList.value = list || []
+  recommendTotal.value = list.length
+}
+
+const tabState = {
+  recommend: { page: recommendPage, pageSize: recommendPageSize, total: recommendTotal, list: recommendList, load: loadRecommendedSkillsTab },
+  my: { page: myPage, pageSize: myPageSize, total: myTotal, list: myList, load: loadMySkillsTab },
+  learned: { page: learnedPage, pageSize: learnedPageSize, total: learnedTotal, list: learnedList, load: loadLearnedSkillsTab },
+  favorites: { page: favoritePage, pageSize: favoritePageSize, total: favoriteTotal, list: favoriteList, load: loadFavoriteSkillsTab },
+  system: { page: systemPage, pageSize: systemPageSize, total: systemTotal, list: systemList, load: loadSystemSkillsTab }
+}
+
+const currentList = computed(() => {
+  if (isSearching.value) return promptSearchResults[styleTab.value] || []
+  return tabState[styleTab.value].list.value
+})
+const currentTotal = computed(() => {
+  if (isSearching.value) return (promptSearchResults[styleTab.value] || []).length
+  return tabState[styleTab.value].total.value
+})
+const currentPage = computed({
+  get: () => tabState[styleTab.value].page.value,
+  set: (val) => { tabState[styleTab.value].page.value = val }
+})
+const currentPageSize = computed(() => isSearching.value ? 999 : tabState[styleTab.value].pageSize.value)
+
+const currentPrompt = computed(() => {
+  const list = currentList.value
+  const selected = list.find(s => s.name === selectedStyleName.value)
+  if (selected) return selected
+  return list[0] || null
+})
+
+const emptyText = computed(() => {
+  if (isSearching.value) return '未找到匹配的提示词'
+  const map = {
+    recommend: '暂无推荐提示词',
+    my: '你还没有保存自己的提示词',
+    learned: '还没有学习过的提示词，可去「我的提示词」页面学习',
+    favorites: '还没有收藏提示词，去提示词市场发现更多好风格',
+    system: '系统提示词加载中...'
+  }
+  return map[styleTab.value] || ''
+})
+
+const loadPromptListByTab = async (tab, keyword = '') => {
+  const trimmed = keyword.trim()
+  try {
+    promptSearchLoading.value = true
+    let result = { list: [], total: 0 }
+    if (tab === 'recommend') {
+      const list = await getRecommendedSkills({ title: customTitle.value, size: 5 })
+      promptSearchResults[tab] = list || []
+      return
+    } else if (tab === 'system') {
+      result = await loadSystemSkills(trimmed, 1, 999)
+    } else if (tab === 'my') {
+      result = await loadMySkills(trimmed, 1, 999, false)
+    } else if (tab === 'learned') {
+      result = await loadLearnedSkills(trimmed, 1, 999)
+    } else if (tab === 'favorites') {
+      result = await loadFavoriteSkills(trimmed, 1, 999)
+    }
+    promptSearchResults[tab] = result.list || []
+  } catch (e) {
+    promptSearchResults[tab] = []
+  } finally {
+    promptSearchLoading.value = false
+  }
+}
+
+const onPromptSearch = (tab, value) => {
+  promptSearchKeyword[tab] = value
+  if (promptSearchTimer) clearTimeout(promptSearchTimer)
+  if (!value.trim()) {
+    promptSearchResults[tab] = []
+    return
+  }
+  promptSearchTimer = setTimeout(() => {
+    loadPromptListByTab(tab, value)
+  }, 350)
+}
+
 const switchTab = (key) => {
   styleTab.value = key
+  promptSearchKeyword[key] = ''
+  promptSearchResults[key] = []
   tabState[key].load()
 }
 
@@ -276,6 +349,10 @@ const selectSkill = (skill) => {
     return
   }
   selectedStyleName.value = skill.name
+  if (styleTab.value === 'recommend') {
+    applySkill(skill)
+    styleVisible.value = false
+  }
 }
 
 const applySkillLocal = () => {
@@ -292,7 +369,8 @@ const applySkillLocal = () => {
 const findSelectedSkill = () => {
   const name = selectedStyleName.value
   if (!name) return null
-  return systemList.value.find(x => x.name === name)
+  return recommendList.value.find(x => x.name === name)
+    || systemList.value.find(x => x.name === name)
     || myList.value.find(x => x.name === name)
     || learnedList.value.find(x => x.name === name)
     || favoriteList.value.find(x => x.name === name)
@@ -335,15 +413,10 @@ const parseScopeTags = (scopeStr) => {
   return scopeStr.split(/[,，]/).map(t => t.trim()).filter(Boolean)
 }
 
-const promptSummary = (prompt) => {
-  if (!prompt) return ''
-  return prompt.length > 60 ? prompt.slice(0, 60) + '...' : prompt
-}
-
-// 弹框打开时重置并加载我的提示词
+// 弹框打开时重置并加载推荐
 watch(styleVisible, async (open) => {
   if (!open) return
-  styleTab.value = 'my'
+  styleTab.value = 'recommend'
   selectedStyleName.value = null
   viewingSkill.value = null
   promptModalVisible.value = false
@@ -356,8 +429,16 @@ watch(styleVisible, async (open) => {
   learnedPageSize.value = 12
   favoritePage.value = 1
   favoritePageSize.value = 12
+  recommendPage.value = 1
+
+  // 清空搜索状态
+  Object.keys(promptSearchKeyword).forEach((key) => {
+    promptSearchKeyword[key] = ''
+    promptSearchResults[key] = []
+  })
 
   await Promise.all([
+    loadRecommendedSkillsTab(),
     loadMySkillsTab(),
     loadFavoriteSkillsTab(),
     loadSystemSkillsTab(),
@@ -391,15 +472,28 @@ watch(styleVisible, async (open) => {
   padding: 8px 0 0;
 }
 
+.prompt-market-tip {
+  margin-bottom: 16px;
+}
+:global(.prompt-market-tip.ant-alert.ant-alert-info) {
+  background: var(--color-primary-bg) !important;
+  border: 1px solid var(--color-primary) !important;
+}
+:global(.prompt-market-tip.ant-alert.ant-alert-info .ant-alert-icon) {
+  color: var(--color-primary) !important;
+}
+:global(.prompt-market-tip.ant-alert.ant-alert-info .ant-alert-message) {
+  color: #595959 !important;
+}
+
 .prompt-body {
   display: flex;
   gap: 16px;
-  height: 520px;
+  height: 460px;
 }
 
 .prompt-preview-pane {
   flex: 0 0 360px;
-  background: #f5f5f5;
   border-radius: 12px;
   overflow: hidden;
   height: 100%;
@@ -480,29 +574,6 @@ watch(styleVisible, async (open) => {
   background: #fff;
 }
 
-.prompt-preview-use-btn {
-  padding: 7px 16px;
-  background: var(--color-primary);
-  border: 1px solid var(--color-primary);
-  border-radius: 8px;
-  font-size: 14px;
-  color: #fff;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.prompt-preview-use-btn:hover:not(:disabled) {
-  background: var(--color-primary-hover);
-  border-color: var(--color-primary-hover);
-}
-
-.prompt-preview-use-btn:disabled {
-  background: rgba(255, 36, 66, 0.35);
-  border-color: rgba(255, 36, 66, 0.35);
-  color: #fff;
-  cursor: not-allowed;
-}
-
 .prompt-preview-view-btn {
   padding: 7px 16px;
   background: #fff;
@@ -520,21 +591,23 @@ watch(styleVisible, async (open) => {
   background: var(--color-primary-bg);
 }
 
-.prompt-preview-empty {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  font-size: 14px;
-  color: #8c8c8c;
-}
-
 .prompt-list-pane {
   flex: 1;
   min-width: 0;
   height: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.prompt-search-bar {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+.prompt-search-bar :deep(.ant-input) {
+  border-radius: 8px;
 }
 
 .prompt-tabs {
@@ -608,9 +681,7 @@ watch(styleVisible, async (open) => {
   background: #f5f5f5;
 }
 
-.prompt-row.offline .prompt-row-name,
-.prompt-row.offline .prompt-row-desc,
-.prompt-row.offline .prompt-row-meta {
+.prompt-row.offline .prompt-row-name {
   opacity: 0.55;
 }
 
@@ -642,66 +713,11 @@ watch(styleVisible, async (open) => {
   font-weight: 500;
 }
 
-.prompt-row-main {
-  flex: 1;
-  min-width: 0;
-}
-
 .prompt-row-name {
   font-weight: 600;
   color: #1a1a1a;
   font-size: 14px;
-  margin-bottom: 4px;
   line-height: 1.4;
-}
-
-.prompt-row-desc {
-  font-size: 12px;
-  color: #8c8c8c;
-  line-height: 1.5;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.prompt-row-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.prompt-row-meta-dot {
-  color: #d9d9d9;
-  font-weight: 700;
-}
-
-.prompt-row-badge {
-  position: absolute;
-  top: 4px;
-  right: 6px;
-  z-index: 1;
-  padding: 1px 6px;
-  border-radius: 10px;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1.4;
-  color: #fff;
-  background: linear-gradient(135deg, #ff9a4d, #ff2442);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-  pointer-events: none;
-}
-
-.favorite-status-badge {
-  font-size: 12px;
-  color: #8c8c8c;
-}
-
-.favorite-status-badge.offline {
-  color: #ff4d4f;
-  font-weight: 500;
 }
 
 .prompt-empty {
@@ -740,43 +756,16 @@ watch(styleVisible, async (open) => {
 }
 
 @media (max-width: 768px) {
-  :global(.skill-selector-modal .ant-modal) {
-    width: 100% !important;
-    max-width: 100%;
-    margin: 0;
-    top: auto !important;
-    bottom: 0;
-    transform: none !important;
-    padding: 0;
-  }
-
-  :global(.skill-selector-modal .ant-modal-content) {
-    border-radius: 20px 20px 0 0;
-    height: 88vh;
-    display: flex;
-    flex-direction: column;
-  }
-
-  :global(.skill-selector-modal .ant-modal-header) {
-    flex-shrink: 0;
-    border-bottom: 1px solid #f0f0f0;
-    padding: 14px 18px;
-    border-radius: 20px 20px 0 0;
-  }
-
-  :global(.skill-selector-modal .ant-modal-body) {
-    flex: 1;
-    overflow: hidden;
-    padding: 12px 18px calc(12px + env(safe-area-inset-bottom));
-    display: flex;
-    flex-direction: column;
-  }
-
   .skill-selector-body {
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
+  }
+
+  .prompt-market-tip {
+    margin-bottom: 12px;
+    flex-shrink: 0;
   }
 
   .prompt-body {
@@ -788,13 +777,15 @@ watch(styleVisible, async (open) => {
   }
 
   .prompt-preview-pane {
-    flex: none;
+    flex: 1;
     width: 100%;
-    height: 240px;
+    min-height: 200px;
+    height: auto;
     order: 2;
   }
 
   .prompt-preview-text {
+    flex: 1;
     font-size: 13px;
     padding: 12px 14px;
   }
@@ -811,7 +802,6 @@ watch(styleVisible, async (open) => {
     padding: 10px 14px;
   }
 
-  .prompt-preview-use-btn,
   .prompt-preview-view-btn {
     flex: 1;
     padding: 9px 12px;
@@ -824,6 +814,11 @@ watch(styleVisible, async (open) => {
     height: auto;
     max-height: calc(100% - 260px);
     order: 1;
+  }
+
+  .prompt-search-bar {
+    padding-bottom: 10px;
+    margin-bottom: 10px;
   }
 
   .prompt-tabs {
@@ -847,9 +842,8 @@ watch(styleVisible, async (open) => {
 
   .prompt-row {
     flex: 0 0 148px;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
+    align-items: center;
+    justify-content: center;
     padding: 12px;
     margin-bottom: 0;
     border-radius: 12px;
@@ -857,19 +851,8 @@ watch(styleVisible, async (open) => {
 
   .prompt-row--add {
     flex: 0 0 120px;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .prompt-row-desc {
-    white-space: normal;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-  }
-
-  .prompt-row-meta {
-    font-size: 11px;
+    flex-direction: column;
+    gap: 8px;
   }
 
   .prompt-pagination {

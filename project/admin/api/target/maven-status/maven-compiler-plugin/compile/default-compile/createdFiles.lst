@@ -372,12 +372,14 @@ com/aichuangzuo/admin/modules/skill/review/service/impl/SkillReviewServiceImpl.c
 com/aichuangzuo/admin/modules/auth/entity/AdminUser.class
 com/aichuangzuo/admin/modules/message/handler/SkillUsageHandler.class
 com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialUpdateRequest.class
+com/aichuangzuo/admin/modules/skill/market/mapper/UserSkillMapper.class
 com/aichuangzuo/admin/modules/exporttemplate/controller/ExportTemplateController.class
 com/aichuangzuo/admin/modules/earnings/dto/request/AddCoinRequest.class
 com/aichuangzuo/admin/modules/commission/vo/CommissionTaskImportResultVO.class
 com/aichuangzuo/admin/modules/user/controller/AdminUserController.class
 com/aichuangzuo/admin/modules/reminder/mapper/ReminderSendLogMapper.class
 com/aichuangzuo/admin/modules/article/vo/AdminArticlePageVO.class
+com/aichuangzuo/admin/modules/order/dto/request/BatchDeleteOrderRequest.class
 com/aichuangzuo/admin/modules/order/vo/RenewalTrendVO.class
 com/aichuangzuo/admin/modules/lottery/vo/LotteryDrawRecordAdminVO.class
 com/aichuangzuo/admin/modules/skill/analyze/config/dto/request/SkillAnalyzeConfigUpdateRequest.class
@@ -666,6 +668,7 @@ com/aichuangzuo/admin/modules/skill/review/enums/AdminSkillReviewErrorCode.class
 com/aichuangzuo/admin/modules/reminder/service/impl/ReminderConfigServiceImpl.class
 com/aichuangzuo/admin/modules/experience/service/impl/ExperienceTokenAdminServiceImpl.class
 com/aichuangzuo/admin/modules/earnings/entity/EarningsRecord.class
+com/aichuangzuo/admin/modules/lottery/dto/request/CloneCampaignRequest.class
 com/aichuangzuo/admin/modules/article/service/impl/AdminArticleServiceImpl.class
 com/aichuangzuo/admin/modules/leaderboard/config/vo/LeaderboardRewardConfigVO.class
 com/aichuangzuo/admin/modules/aiprompt/mapper/AiPromptMapper.class
@@ -688,6 +691,7 @@ com/aichuangzuo/admin/modules/leaderboard/vo/LeaderboardTop10VO.class
 com/aichuangzuo/admin/modules/earnings/dto/request/UserCoinRecordQueryRequest.class
 com/aichuangzuo/admin/modules/auth/service/impl/AdminAuthServiceImpl.class
 com/aichuangzuo/admin/modules/settings/upgrademanagement/dto/request/UpgradeConfigUpdateRequest.class
+com/aichuangzuo/admin/modules/order/dto/request/BatchCancelOrderRequest.class
 com/aichuangzuo/admin/modules/exporttemplate/service/impl/ExportTemplateServiceImpl.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/TargetedRewriteStep.class
 com/aichuangzuo/admin/modules/learn/enums/ArticleStatus.class

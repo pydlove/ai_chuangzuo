@@ -13,6 +13,7 @@ public class RecommendedCreationSessionVO {
     private List<AngleOptionVO> selectedAngles;
     private Integer wordCount;
     private String prompt;
+    private String skillRef;
     private String template;
     private String status;
 }

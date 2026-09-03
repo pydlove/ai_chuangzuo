@@ -5,9 +5,11 @@ import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketR
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.entity.SkillMarket;
+import com.aichuangzuo.admin.modules.skill.entity.UserSkillAggregate;
 import com.aichuangzuo.admin.modules.skill.market.enums.AdminSkillMarketErrorCode;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketAggregateMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
+import com.aichuangzuo.admin.modules.skill.market.mapper.UserSkillMapper;
 import com.aichuangzuo.admin.modules.skill.market.service.impl.SkillMarketAdminServiceImpl;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
@@ -53,6 +55,9 @@ class SkillMarketAdminServiceTest {
     @Mock
     private PlatformUserMapper platformUserMapper;
 
+    @Mock
+    private UserSkillMapper userSkillMapper;
+
     @InjectMocks
     private SkillMarketAdminServiceImpl service;
 
@@ -83,6 +88,7 @@ class SkillMarketAdminServiceTest {
 
         when(platformUserMapper.selectById(100L)).thenReturn(platformUser(100L));
         when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(userSkillMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
 
         String bizNo = service.create(req);
 
@@ -103,6 +109,19 @@ class SkillMarketAdminServiceTest {
         assertEquals(0, saved.getIsDeleted());
         assertEquals(9001L, saved.getCreatedBy());
         assertEquals(9001L, saved.getUpdatedBy());
+
+        org.mockito.ArgumentCaptor<UserSkillAggregate> skillCaptor =
+                org.mockito.ArgumentCaptor.forClass(UserSkillAggregate.class);
+        verify(userSkillMapper).insert(skillCaptor.capture());
+        UserSkillAggregate savedSkill = skillCaptor.getValue();
+        assertEquals(bizNo, savedSkill.getBizNo());
+        assertEquals(100L, savedSkill.getUserId());
+        assertEquals("爆款情感文", savedSkill.getSkillName());
+        assertEquals(1, savedSkill.getSourceType());
+        assertEquals(1, savedSkill.getAuditStatus());
+        assertEquals(1, savedSkill.getEnableStatus());
+        assertEquals(50, savedSkill.getUseCount());
+        assertEquals(0, savedSkill.getIsDeleted());
     }
 
     @Test
@@ -118,6 +137,7 @@ class SkillMarketAdminServiceTest {
         BusinessException ex = assertThrows(BusinessException.class, () -> service.create(req));
         assertEquals(AdminSkillMarketErrorCode.PUBLISHER_NOT_FOUND.getCode(), ex.getCode());
         verify(skillMarketMapper, never()).insert(any(SkillMarket.class));
+        verify(userSkillMapper, never()).insert(any(UserSkillAggregate.class));
     }
 
     @Test
@@ -134,6 +154,25 @@ class SkillMarketAdminServiceTest {
         BusinessException ex = assertThrows(BusinessException.class, () -> service.create(req));
         assertEquals(AdminSkillMarketErrorCode.SKILL_MARKET_NAME_EXISTS.getCode(), ex.getCode());
         verify(skillMarketMapper, never()).insert(any(SkillMarket.class));
+        verify(userSkillMapper, never()).insert(any(UserSkillAggregate.class));
+    }
+
+    @Test
+    void create_userSkillNameConflict_throws() {
+        CreateSkillMarketRequest req = new CreateSkillMarketRequest();
+        req.setSkillName("x");
+        req.setPrompt("p");
+        req.setPublisherUserId(100L);
+        req.setEnableStatus(1);
+        req.setFeatured(0);
+        when(platformUserMapper.selectById(100L)).thenReturn(platformUser(100L));
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(userSkillMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.create(req));
+        assertEquals(AdminSkillMarketErrorCode.SKILL_MARKET_NAME_CONFLICTS_WITH_USER.getCode(), ex.getCode());
+        verify(skillMarketMapper, never()).insert(any(SkillMarket.class));
+        verify(userSkillMapper, never()).insert(any(UserSkillAggregate.class));
     }
 
     // -------- update --------
@@ -141,9 +180,12 @@ class SkillMarketAdminServiceTest {
     @Test
     void update_modifiesFieldsAndTotalUses() {
         SkillMarket existing = newSkillMarket("SM0009", "旧名");
+        UserSkillAggregate userSkill = newUserSkill("SM0009", "旧名", 100L);
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
         when(platformUserMapper.selectById(200L)).thenReturn(platformUser(200L));
         when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(userSkillMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+        when(userSkillMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(userSkill);
 
         UpdateSkillMarketRequest req = new UpdateSkillMarketRequest();
         req.setSkillName("新名");
@@ -168,6 +210,16 @@ class SkillMarketAdminServiceTest {
         assertEquals(0, existing.getEnableStatus());
         assertEquals(9001L, existing.getUpdatedBy());
         verify(skillMarketMapper).updateById(existing);
+
+        assertEquals("新名", userSkill.getSkillName());
+        assertEquals("新描述", userSkill.getDescription());
+        assertEquals("新摘要", userSkill.getPromptSummary());
+        assertEquals("新提示词", userSkill.getPrompt());
+        assertEquals("新范围", userSkill.getScope());
+        assertEquals(200L, userSkill.getUserId());
+        assertEquals(999, userSkill.getUseCount());
+        assertEquals(0, userSkill.getEnableStatus());
+        verify(userSkillMapper).updateById(userSkill);
     }
 
     @Test
@@ -224,13 +276,15 @@ class SkillMarketAdminServiceTest {
     @Test
     void delete_softDeletesBySettingIsDeleted() {
         SkillMarket existing = newSkillMarket("SM0009", "测试");
+        UserSkillAggregate userSkill = newUserSkill("SM0009", "测试", 100L);
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+        when(userSkillMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(userSkill);
 
         service.delete("SM0009");
 
-        assertEquals(1, existing.getIsDeleted());
         assertEquals(9001L, existing.getUpdatedBy());
-        verify(skillMarketMapper).updateById(existing);
+        verify(skillMarketMapper).deleteById(existing);
+        verify(userSkillMapper).deleteById(userSkill.getId());
     }
 
     @Test
@@ -288,6 +342,21 @@ class SkillMarketAdminServiceTest {
         s.setEnableStatus(1);
         s.setIsDeleted(0);
         s.setTotalUses(0);
+        return s;
+    }
+
+    private UserSkillAggregate newUserSkill(String bizNo, String name, Long userId) {
+        UserSkillAggregate s = new UserSkillAggregate();
+        s.setId(1L);
+        s.setBizNo(bizNo);
+        s.setSkillName(name);
+        s.setUserId(userId);
+        s.setPrompt("p");
+        s.setSourceType(1);
+        s.setAuditStatus(1);
+        s.setEnableStatus(1);
+        s.setIsDeleted(0);
+        s.setUseCount(0);
         return s;
     }
 

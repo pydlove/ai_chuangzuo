@@ -1,5 +1,8 @@
 package com.aichuangzuo.user.modules.skill.market.service.impl;
 
+import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
+import com.aichuangzuo.user.modules.selfmedia.vo.PillarVO;
+import com.aichuangzuo.user.modules.selfmedia.vo.SelfMediaPlanVO;
 import com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketAggregateMapper;
@@ -15,8 +18,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +40,9 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
     private final SkillMarketAggregateMapper aggregateMapper;
     private final SkillMarketMapper skillMarketMapper;
+    private final SelfMediaPlanService selfMediaPlanService;
+
+    private static final Pattern KEYWORD_SPLIT_PATTERN = Pattern.compile("[^\\u4e00-\\u9fa5a-zA-Z0-9]+");
 
     @Override
     public List<MarketSkillVO> listEnabled() {
@@ -97,6 +107,70 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
                 .eq(SkillMarket::getIsDeleted, 0)
                 .orderByDesc(SkillMarket::getCreatedAt);
         return skillMarketMapper.selectList(wrapper).stream()
+                .map(this::toVo)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<MarketSkillVO> recommendSkills(Long userId, String title, int size) {
+        int safeSize = Math.min(Math.max(1, size), 10);
+        List<String> keywords = buildRecommendationKeywords(userId, title);
+        if (keywords.isEmpty()) {
+            return listFeaturedFallback(userId, safeSize);
+        }
+        List<MarketSkillRow> rows = aggregateMapper.selectRecommendedMarketSkills(userId, keywords, safeSize);
+        if (rows.isEmpty()) {
+            return listFeaturedFallback(userId, safeSize);
+        }
+        return rows.stream().map(this::toVo).collect(Collectors.toList());
+    }
+
+    private List<String> buildRecommendationKeywords(Long userId, String title) {
+        Set<String> keywords = new LinkedHashSet<>();
+        if (StringUtils.hasText(title)) {
+            for (String part : KEYWORD_SPLIT_PATTERN.split(title.trim())) {
+                if (part.length() >= 2) {
+                    keywords.add(part);
+                }
+            }
+        }
+        SelfMediaPlanVO plan = selfMediaPlanService.getCurrentPlan(userId);
+        if (plan != null) {
+            addKeyword(keywords, plan.getPlatformName());
+            addKeyword(keywords, plan.getNicheName());
+            addKeyword(keywords, plan.getPersonaName());
+            List<PillarVO> pillars = plan.getPillars();
+            if (pillars != null) {
+                for (PillarVO pillar : pillars) {
+                    if (pillar != null) {
+                        addKeyword(keywords, pillar.getName());
+                    }
+                }
+            }
+        }
+        return new ArrayList<>(keywords);
+    }
+
+    private void addKeyword(Set<String> keywords, String value) {
+        if (!StringUtils.hasText(value)) {
+            return;
+        }
+        String trimmed = value.trim();
+        if (trimmed.length() >= 2) {
+            keywords.add(trimmed);
+        }
+    }
+
+    private List<MarketSkillVO> listFeaturedFallback(Long userId, int size) {
+        List<MarketSkillRow> allApproved = aggregateMapper.selectEnabledMarketSkills(
+                new Page<>(1, Integer.MAX_VALUE), null, "all").getRecords();
+        return allApproved.stream()
+                .filter(r -> !userId.equals(r.getPublisherUserId()))
+                .filter(r -> r.getFeatured() != null && r.getFeatured() == 1)
+                .sorted(Comparator.comparing(MarketSkillRow::getWeeklyUses, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(MarketSkillRow::getTotalUses, Comparator.nullsLast(Comparator.reverseOrder()))
+                        .thenComparing(MarketSkillRow::getApprovedAt, Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(size)
                 .map(this::toVo)
                 .collect(Collectors.toList());
     }

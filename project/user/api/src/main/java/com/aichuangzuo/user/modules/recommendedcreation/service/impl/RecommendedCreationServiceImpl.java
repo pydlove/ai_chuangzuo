@@ -132,6 +132,9 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         if (request.getPrompt() != null) {
             session.setPrompt(request.getPrompt());
         }
+        if (request.getSkillRef() != null) {
+            session.setSkillRef(request.getSkillRef());
+        }
         if (request.getTemplate() != null) {
             session.setTemplate(request.getTemplate());
         }
@@ -171,6 +174,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         req.setPlatform(resolvePlatform(session.getTemplate()));
         req.setWordCount(session.getWordCount());
         req.setTemplate(session.getTemplate());
+        req.setSkillRef(session.getSkillRef());
 
         GenerationTaskVO task = generationTaskService.submit(req, userId);
         session.setStatus("completed");
@@ -319,6 +323,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
         vo.setSelectedAngles(fromJsonList(session.getSelectedAnglesJson(), AngleOptionVO.class));
         vo.setWordCount(session.getWordCount());
         vo.setPrompt(session.getPrompt());
+        vo.setSkillRef(session.getSkillRef());
         vo.setTemplate(session.getTemplate());
         vo.setStatus(session.getStatus());
         return vo;

@@ -91,6 +91,11 @@
               </div>
               <p class="action-desc">只能选择你在爱创作工坊中已经生成完成、且字数符合要求的文章。投递期内可随时撤回并改投其它文章。</p>
               <button class="primary-btn" @click="openPicker">选择文章投稿</button>
+              <div class="task-free-create" @click="freeCreateVisible = true">
+                <span class="task-free-create-icon">✨</span>
+                <span class="task-free-create-text">还没有类似的文章，去自由创作</span>
+                <span class="task-free-create-arrow">→</span>
+              </div>
             </template>
 
             <!-- 评选中且未投稿 -->
@@ -182,6 +187,12 @@
           </div>
         </div>
       </a-modal>
+
+      <FreeCreateModal
+        v-model:visible="freeCreateVisible"
+        :plan="currentPlan"
+        @success="loadTask(route.params.id)"
+      />
     </template>
 
     <div v-else class="panel empty-block">任务不存在或已删除</div>
@@ -194,12 +205,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
 import { useWorks } from '@/composables/useWorks'
+import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
+import { useSelfMediaPlan } from '@/composables/useSelfMediaPlan.js'
 
 const route = useRoute()
 const router = useRouter()
 const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission, mySubmissions, loadMySubmissions } = useCommission()
 const { articles, load: loadWorks } = useWorks()
+const { currentPlan, fetchCurrentPlan } = useSelfMediaPlan()
 const pickerVisible = ref(false)
+const freeCreateVisible = ref(false)
 const selectedBizNo = ref('')
 const submitting = ref(false)
 const searchKeyword = ref('')
@@ -258,7 +273,8 @@ onMounted(async () => {
     await Promise.all([
       loadTask(route.params.id),
       loadWorks({ page: 1, pageSize: 50 }),
-      loadMySubmissions()
+      loadMySubmissions(),
+      fetchCurrentPlan()
     ])
   } catch (error) {
     message.error(error.message || '约稿详情加载失败')
@@ -547,6 +563,42 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 
   line-height: 1.7;
 }
 
+.task-free-create {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  background: #fff7f9;
+  border: 1px dashed rgba(255, 36, 66, 0.25);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.task-free-create:hover {
+  background: #ffedf1;
+  border-color: rgba(255, 36, 66, 0.45);
+}
+.task-free-create-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+.task-free-create-text {
+  flex: 1;
+  font-size: 13px;
+  color: #595959;
+  line-height: 1.5;
+}
+.task-free-create-arrow {
+  color: var(--color-primary, #ff2442);
+  font-size: 13px;
+  font-weight: 500;
+  transition: transform 0.2s ease;
+}
+.task-free-create:hover .task-free-create-arrow {
+  transform: translateX(3px);
+}
+
 .submission-info h4 {
   margin: 0 0 4px;
   font-size: 14px;
@@ -778,6 +830,15 @@ body[data-theme="dark"] .fact-row,
 body[data-theme="dark"] .action-desc,
 body[data-theme="dark"] .source-line { color: #bfbfbf; }
 body[data-theme="dark"] .meta-row { border-color: #303030; }
+body[data-theme="dark"] .task-free-create {
+  background: #2a1f22;
+  border-color: rgba(255, 77, 111, 0.35);
+}
+body[data-theme="dark"] .task-free-create:hover {
+  background: #3a252a;
+  border-color: rgba(255, 77, 111, 0.55);
+}
+body[data-theme="dark"] .task-free-create-text { color: #a6a6a6; }
 body[data-theme="dark"] .reward-card {
   background: linear-gradient(135deg, #3a1f2a 0%, #3a1f30 100%);
 }

@@ -4,7 +4,7 @@
       <a-page-header title="工具管理" sub-title="常用的运营辅助工具" style="padding-left: 0; padding-top: 0" />
 
       <a-tabs v-model:activeKey="activeTab">
-        <a-tab-pane key="watermark" tab="去水印">
+        <a-tab-pane key="watermark" tab="去/加水印">
           <ImageWatermarkRemoveTool />
         </a-tab-pane>
         <a-tab-pane key="image" tab="图片压缩">

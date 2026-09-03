@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "auth")
 public class AuthProperties {
     private Jwt jwt;
+    private Cookie cookie;
     private Register register;
 
 @Data
@@ -20,6 +21,12 @@ public class AuthProperties {
         private Long refreshExpiration;
         private Long rememberMeRefreshExpiration;
         private Long exportExpiration;
+    }
+
+    @Data
+    public static class Cookie {
+        private boolean secure = false;
+        private String sameSite = "Lax";
     }
 
     @Data

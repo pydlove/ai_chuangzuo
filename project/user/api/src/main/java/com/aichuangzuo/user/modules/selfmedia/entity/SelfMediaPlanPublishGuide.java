@@ -20,6 +20,7 @@ public class SelfMediaPlanPublishGuide extends BaseEntity {
     private Long userId;
     private Long planId;
     private LocalDateTime planUpdatedAt;
+    private String planContentHash;
     private String mainPlatform;
     private String mainPlatformJson;
     private String coldStartJson;

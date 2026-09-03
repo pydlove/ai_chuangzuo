@@ -1,6 +1,6 @@
 
 import { ref, reactive, watch, onMounted, onBeforeUnmount, computed } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { STORAGE_KEYS, USER_SCOPED_STORAGE_KEYS } from '@/constants/storage.js'
 import { getRefFromUrl, getExperienceTokenFromUrl } from '@/composables/useInviteCode'
@@ -21,6 +21,10 @@ export function persistTokens(data) {
   localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN, data.accessToken)
   localStorage.setItem(STORAGE_KEYS.REFRESH_TOKEN, data.refreshToken)
   localStorage.setItem(STORAGE_KEYS.REMEMBER_ME, data.rememberMe ? 'true' : 'false')
+  if (data.expiresIn != null) {
+    const expiresAt = Date.now() + data.expiresIn * 1000
+    localStorage.setItem(STORAGE_KEYS.ACCESS_TOKEN_EXPIRES_AT, String(expiresAt))
+  }
   if (newUserId) {
     localStorage.setItem(USER_ID_KEY, newUserId)
   }
@@ -28,6 +32,7 @@ export function persistTokens(data) {
 
 export function useLogin() {
   const router = useRouter()
+  const route = useRoute()
 
   const activeTab = ref('login')
   const showInviteBanner = ref(false)
@@ -296,6 +301,9 @@ export function useLogin() {
 
   onMounted(() => {
     isMounted = true
+    if (route.path === '/register' || route.query.tab === 'register') {
+      activeTab.value = 'register'
+    }
     const experienceToken = getExperienceTokenFromUrl()
     if (experienceToken) {
       registerForm.experienceToken = experienceToken

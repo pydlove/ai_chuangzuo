@@ -83,10 +83,40 @@
         </if>
     </select>
 
+    <select id="sumAmountPage" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(o.amount), 0)
+        FROM u_order o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.created_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+    </select>
+
     <select id="selectDetailById" resultMap="orderMap">
         <include refid="baseQuery"/>
         WHERE o.id = #{id}
         LIMIT 1
+    </select>
+
+    <select id="selectByIds" resultMap="orderMap">
+        <include refid="baseQuery"/>
+        WHERE o.id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
     </select>
 
     <update id="markPaid">
@@ -117,6 +147,26 @@
             updated_at = NOW(3)
         WHERE id = #{id} AND status = 0
     </update>
+
+    <update id="batchCancel">
+        UPDATE u_order
+        SET status = 3,
+            operator_id = #{operatorId},
+            updated_at = NOW(3)
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND status = 0
+    </update>
+
+    <delete id="batchDelete">
+        DELETE FROM u_order
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
 
     <insert id="insertGrantOrder">
         INSERT INTO u_order (order_no, user_id, plan_key, cycle, started_at, expires_at, amount, status, paid_at, admin_remark, operator_id, tenant_id)
@@ -428,6 +478,39 @@
             WHERE o.status = 1
         )
         SELECT COUNT(*)
+        FROM paid_orders o
+        LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
+        WHERE 1 = 1
+        <if test="type != null and type != ''">
+            <choose>
+                <when test="type == 'first'">AND o.rn = 1</when>
+                <when test="type == 'renewal'">AND o.rn > 1</when>
+            </choose>
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND (u.nickname LIKE CONCAT('%', #{keyword}, '%') OR u.email LIKE CONCAT('%', #{keyword}, '%') OR o.order_no LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="planKey != null and planKey != ''">
+            AND o.plan_key = #{planKey}
+        </if>
+        <if test="cycle != null and cycle != ''">
+            AND o.cycle = #{cycle}
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND o.paid_at &gt;= CONCAT(#{startDate}, ' 00:00:00')
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND o.paid_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
+        </if>
+    </select>
+
+    <select id="sumAmountRenewalOrderPage" resultType="java.math.BigDecimal">
+        WITH paid_orders AS (
+            SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
+            FROM u_order o
+            WHERE o.status = 1
+        )
+        SELECT COALESCE(SUM(o.amount), 0)
         FROM paid_orders o
         LEFT JOIN u_user u ON u.id = o.user_id AND u.is_deleted = 0
         WHERE 1 = 1

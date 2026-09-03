@@ -54,4 +54,51 @@
         </choose>
     </select>
 
+    <select id="selectRecommendedMarketSkills" resultType="com.aichuangzuo.user.modules.skill.market.dto.MarketSkillRow">
+        SELECT s.biz_no          AS bizNo,
+               s.skill_name      AS skillName,
+               s.description     AS description,
+               s.prompt_summary  AS promptSummary,
+               s.prompt          AS prompt,
+               s.scope           AS scope,
+               s.publisher_user_id AS publisherUserId,
+               COALESCE(u.nickname, CONCAT('用户', u.biz_no)) AS publisherName,
+               s.price           AS price,
+               s.total_uses      AS totalUses,
+               s.weekly_uses     AS weeklyUses,
+               s.weekly_earnings AS weeklyEarnings,
+               s.milestone_bonus AS milestoneBonus,
+               s.featured        AS featured,
+               s.last_settlement_at AS lastSettlementAt,
+               s.approved_at     AS approvedAt,
+               s.created_at      AS createdAt
+        FROM u_skill_market s
+        LEFT JOIN u_user u ON u.id = s.publisher_user_id AND u.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND s.enable_status = 1
+          AND s.audit_status = 1
+          AND s.publisher_user_id != #{userId}
+          AND (
+              <foreach collection="keywords" item="kw" separator="OR">
+                  s.skill_name LIKE CONCAT('%', #{kw}, '%')
+                  OR s.description LIKE CONCAT('%', #{kw}, '%')
+                  OR s.prompt_summary LIKE CONCAT('%', #{kw}, '%')
+                  OR s.scope LIKE CONCAT('%', #{kw}, '%')
+              </foreach>
+          )
+        ORDER BY
+            <foreach collection="keywords" item="kw" separator="+">
+                (CASE WHEN s.skill_name LIKE CONCAT('%', #{kw}, '%') THEN 4 ELSE 0 END +
+                 CASE WHEN s.description LIKE CONCAT('%', #{kw}, '%') THEN 2 ELSE 0 END +
+                 CASE WHEN s.prompt_summary LIKE CONCAT('%', #{kw}, '%') THEN 2 ELSE 0 END +
+                 CASE WHEN s.scope LIKE CONCAT('%', #{kw}, '%') THEN 1 ELSE 0 END)
+            </foreach>
+            DESC,
+            s.featured DESC,
+            s.weekly_uses DESC,
+            s.total_uses DESC,
+            s.id DESC
+        LIMIT #{limit}
+    </select>
+
 </mapper>

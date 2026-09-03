@@ -9,10 +9,11 @@
 
 const fs = require('fs');
 const http = require('http');
+const https = require('https');
 const path = require('path');
 
-// 默认走管理端 Nginx 入口（22347），不直连后端 26060
-const ADMIN_BASE_URL = process.env.ADMIN_BASE_URL || 'http://101.126.15.58:22347';
+// 默认走管理端线上域名入口，不直连后端 26060
+const ADMIN_BASE_URL = process.env.ADMIN_BASE_URL || 'https://www.ichuang.top';
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || 'admin';
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Root1qaz!QAZ';
 const USER_COUNT = parseInt(process.env.USER_COUNT || '50', 10);
@@ -25,6 +26,7 @@ const EXPIRE_DATE = process.env.EXPIRE_DATE || '2026-12-31';
 function request(method, path, body, headers = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, ADMIN_BASE_URL);
+    const client = url.protocol === 'https:' ? https : http;
     const options = {
       hostname: url.hostname,
       port: url.port,
@@ -37,7 +39,7 @@ function request(method, path, body, headers = {}) {
       },
     };
 
-    const req = http.request(options, (res) => {
+    const req = client.request(options, (res) => {
       let data = '';
       res.on('data', (chunk) => (data += chunk));
       res.on('end', () => {

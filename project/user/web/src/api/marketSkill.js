@@ -121,6 +121,27 @@ export function removeFavorite(marketSkillId) {
 }
 
 /**
+ * 根据标题推荐相关市场提示词。
+ * @param {Object} params
+ * @param {string} [params.title='']
+ * @param {number} [params.size=5]
+ * @returns {Promise<Array>}
+ */
+export function getRecommendedSkills({ title = '', size = 5 } = {}) {
+  return api
+    .get('/market-skills/recommended', {
+      params: {
+        title: title || undefined,
+        size
+      }
+    })
+    .then((res) => {
+      const data = res.data || res || []
+      return Array.isArray(data) ? data.map(normalizeRow) : []
+    })
+}
+
+/**
  * 分页查询已上架提示词市场列表。
  * @param {Object} params
  * @param {number} [params.page=1]

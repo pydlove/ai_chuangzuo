@@ -36,6 +36,10 @@
               <div class="leaderboard-my__rank-num">{{ myCoinItem.rank }}</div>
               <div class="leaderboard-my__rank-label">当前排名</div>
             </div>
+            <div class="leaderboard-my__avatar">
+              <img v-if="myCoinItem.avatarUrl" :src="myCoinItem.avatarUrl" alt="avatar" />
+              <span v-else>{{ (myCoinItem.nickname || '?').charAt(0) }}</span>
+            </div>
             <div class="leaderboard-my__info">
               <div class="leaderboard-my__name">{{ myCoinItem.nickname || '匿名用户' }}</div>
               <div class="leaderboard-my__amount">{{ myCoinItem.amount.toFixed(2) }} 创作币</div>
@@ -70,7 +74,10 @@
             <!-- 第二名 -->
             <div v-if="coinTop3[1]" class="podium-card podium-card--second">
               <div class="podium-card__rank">2</div>
-              <div class="podium-card__avatar">{{ (coinTop3[1].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__avatar">
+                <img v-if="coinTop3[1].avatarUrl" :src="coinTop3[1].avatarUrl" alt="avatar" />
+                <span v-else>{{ (coinTop3[1].nickname || '?').charAt(0) }}</span>
+              </div>
               <div class="podium-card__name">{{ coinTop3[1].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[1].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
@@ -80,7 +87,10 @@
             <!-- 第一名 -->
             <div v-if="coinTop3[0]" class="podium-card podium-card--first">
               <div class="podium-card__crown"><CrownOutlined /></div>
-              <div class="podium-card__avatar">{{ (coinTop3[0].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__avatar">
+                <img v-if="coinTop3[0].avatarUrl" :src="coinTop3[0].avatarUrl" alt="avatar" />
+                <span v-else>{{ (coinTop3[0].nickname || '?').charAt(0) }}</span>
+              </div>
               <div class="podium-card__name">{{ coinTop3[0].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[0].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
@@ -90,7 +100,10 @@
             <!-- 第三名 -->
             <div v-if="coinTop3[2]" class="podium-card podium-card--third">
               <div class="podium-card__rank">3</div>
-              <div class="podium-card__avatar">{{ (coinTop3[2].nickname || '?').charAt(0) }}</div>
+              <div class="podium-card__avatar">
+                <img v-if="coinTop3[2].avatarUrl" :src="coinTop3[2].avatarUrl" alt="avatar" />
+                <span v-else>{{ (coinTop3[2].nickname || '?').charAt(0) }}</span>
+              </div>
               <div class="podium-card__name">{{ coinTop3[2].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[2].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
@@ -116,7 +129,10 @@
                 <span v-if="item.rank <= 10" class="leaderboard-row__badge">{{ item.rank }}</span>
                 <span v-else">{{ item.rank }}</span>
               </div>
-              <div class="leaderboard-row__avatar">{{ (item.nickname || '?').charAt(0) }}</div>
+              <div class="leaderboard-row__avatar">
+                <img v-if="item.avatarUrl" :src="item.avatarUrl" alt="avatar" />
+                <span v-else>{{ (item.nickname || '?').charAt(0) }}</span>
+              </div>
               <div class="leaderboard-row__info">
                 <div class="leaderboard-row__name">
                   {{ item.nickname || '匿名用户' }}
@@ -516,6 +532,27 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
+.leaderboard-my__avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f5f5f5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: #595959;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.leaderboard-my__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 .leaderboard-my__info {
   flex: 1;
   min-width: 0;
@@ -679,6 +716,13 @@ onUnmounted(() => {
   font-weight: 600;
   color: #595959;
   margin: 0 auto 10px;
+  overflow: hidden;
+}
+
+.podium-card__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .podium-card--first .podium-card__avatar {
@@ -803,6 +847,13 @@ onUnmounted(() => {
   font-size: 14px;
   color: #595959;
   flex-shrink: 0;
+  overflow: hidden;
+}
+
+.leaderboard-row__avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .leaderboard-row__info {
@@ -1056,7 +1107,7 @@ onUnmounted(() => {
 /* 移动端适配 */
 @media (max-width: 768px) {
   .leaderboard-page {
-    padding: 12px;
+    padding: 12px 12px 100px;
   }
 
   .leaderboard-layout {
@@ -1104,6 +1155,12 @@ onUnmounted(() => {
   }
 
   .leaderboard-my__name {
+    font-size: 15px;
+  }
+
+  .leaderboard-my__avatar {
+    width: 40px;
+    height: 40px;
     font-size: 15px;
   }
 
@@ -1297,7 +1354,8 @@ body[data-theme="dark"] .leaderboard-row.is-me {
 }
 
 body[data-theme="dark"] .leaderboard-row__avatar,
-body[data-theme="dark"] .podium-card__avatar {
+body[data-theme="dark"] .podium-card__avatar,
+body[data-theme="dark"] .leaderboard-my__avatar {
   background: #2a2a2a;
   color: #a6a6a6;
 }

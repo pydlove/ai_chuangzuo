@@ -212,6 +212,11 @@ function formatCount(count) {
   max-width: 100%;
 }
 
+.tabs--segment.tabs--equal {
+  display: flex;
+  width: 100%;
+}
+
 @media (max-width: 768px) {
   .tabs--segment {
     display: flex;

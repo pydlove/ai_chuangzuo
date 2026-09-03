@@ -37,7 +37,7 @@
     <!-- 移动端：卡片列表 -->
     <div v-show="orders.length > 0 || loading" class="order-mobile-list">
       <div v-if="loading" class="order-skeleton">
-        <SkeletonList rows="3" />
+        <SkeletonList :rows="3" />
       </div>
       <div v-else class="order-list">
         <ListCard
@@ -102,6 +102,10 @@
           <div class="order-detail__row">
             <span class="order-detail__label">订单号</span>
             <span class="order-detail__value order-detail__value--mono">{{ currentOrder.orderNo }}</span>
+          </div>
+          <div v-if="currentOrder.thirdPartyTradeId" class="order-detail__row">
+            <span class="order-detail__label">交易号</span>
+            <span class="order-detail__value order-detail__value--mono">{{ currentOrder.thirdPartyTradeId }}</span>
           </div>
           <div class="order-detail__row">
             <span class="order-detail__label">订单状态</span>
@@ -361,7 +365,7 @@ onBeforeUnmount(() => {
   transform: translateY(1px);
 }
 
-.order-card__header {
+.order-card :deep(.list-card__header) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -393,7 +397,7 @@ onBeforeUnmount(() => {
   background: var(--color-primary-light);
 }
 
-.order-card__body {
+.order-card :deep(.list-card__body) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -436,7 +440,7 @@ onBeforeUnmount(() => {
   color: #1a1a1a;
 }
 
-.order-card__footer {
+.order-card :deep(.list-card__footer) {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -837,7 +841,7 @@ body[data-theme="dark"] .order-card__time {
   color: #737373;
 }
 
-body[data-theme="dark"] .order-card__footer {
+body[data-theme="dark"] .order-card :deep(.list-card__footer) {
   border-top-color: #2a2a2a;
 }
 

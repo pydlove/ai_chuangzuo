@@ -15,4 +15,5 @@ public class SelfMediaPlanVO {
     private String personaName;
     private List<PillarVO> pillars;
     private List<QuestionAnswerDTO> answers;
+    private String planContentHash;
 }

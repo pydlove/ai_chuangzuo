@@ -27,6 +27,11 @@ async function loadPlan() {
     const data = res?.data || {}
     if (data && Object.keys(data).length) {
       Object.assign(plan, data)
+      // 后端返回 platformKey/platformName、nicheKey/nicheName、personaKey/personaName，
+      // 前端 plan 使用 platform/niche/persona 做展示与透传。
+      if (data.platformName) plan.platform = data.platformName
+      if (data.nicheName) plan.niche = data.nicheName
+      if (data.personaName) plan.persona = data.personaName
     }
   } catch (e) {
     // 保持默认方案

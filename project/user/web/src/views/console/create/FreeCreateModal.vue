@@ -60,15 +60,15 @@
 
         <div class="free-create-actions">
           <a-button size="large" @click="close">取消</a-button>
-          <a-button type="primary" size="large" :disabled="!canGenerate" @click="handleGenerate">
+          <a-button type="primary" size="large" :disabled="!canGenerate || submitting" @click="handleGenerate">
             <ThunderboltOutlined />
-            生成文章
+            {{ submitting ? '提交中…' : '生成文章' }}
           </a-button>
         </div>
       </div>
     </div>
 
-    <SkillModal />
+    <SkillModal :show-add-row="false" :show-search="false" />
     <WordCountModal />
     <TemplateModal />
   </a-modal>
@@ -141,15 +141,15 @@
         </div>
 
         <div class="free-create-actions">
-          <a-button type="primary" size="large" :disabled="!canGenerate" @click="handleGenerate">
+          <a-button type="primary" size="large" :disabled="!canGenerate || submitting" @click="handleGenerate">
             <ThunderboltOutlined />
-            生成文章
+            {{ submitting ? '提交中…' : '生成文章' }}
           </a-button>
         </div>
       </div>
     </div>
 
-    <SkillModal />
+    <SkillModal :show-add-row="false" :show-search="false" />
     <WordCountModal />
     <TemplateModal />
   </div>
@@ -169,6 +169,7 @@ import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useConfirm } from '@/composables/useConfirm.js'
 import { submitGeneration } from '@/api/generation.js'
+import { getAsyncSubmittedText } from '@/constants/aiMessages.js'
 import SkillModal from './modals/SkillModal.vue'
 import WordCountModal from './modals/WordCountModal.vue'
 import TemplateModal from './modals/TemplateModal.vue'
@@ -199,6 +200,7 @@ const REQUIREMENT_MAX = 200
 const heroFocused = ref(false)
 const requirementEl = ref(null)
 const isReady = ref(false)
+const submitting = ref(false)
 
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
 const currentTemplate = computed(() => apiTemplates.value.find(t => t.key === selectedTemplateKey.value) || apiTemplates.value[0])
@@ -277,6 +279,8 @@ const handleGenerate = async () => {
     message.warning('该提示词已下架或不可用，请重新选择')
     return
   }
+  if (submitting.value) return
+  submitting.value = true
   try {
     const task = await submitGeneration({
       title: customTitle.value,
@@ -286,7 +290,7 @@ const handleGenerate = async () => {
       wordCount: currentWordCount.value?.count || 800,
       template: currentTemplate.value?.key || 'wechat'
     })
-    message.success('已加入生成队列')
+    message.success(getAsyncSubmittedText('已加入生成队列'))
     clearForm()
     requirementEl.value && (requirementEl.value.style.height = '')
     loadQueue()
@@ -300,6 +304,8 @@ const handleGenerate = async () => {
     emit('success', task)
   } catch (e) {
     message.error(e?.message || '提交失败，请稍后重试')
+  } finally {
+    submitting.value = false
   }
 }
 </script>
@@ -474,6 +480,8 @@ const handleGenerate = async () => {
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: 4px;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
   .free-create-chips .settings-chip {
     flex-shrink: 0;
