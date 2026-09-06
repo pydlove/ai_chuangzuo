@@ -54,7 +54,7 @@ public class CaffeineConfig {
                         .maximumSize(100)
                         .expireAfterWrite(2, TimeUnit.MINUTES)
                         .build());
-        // 公开定价目录：5 分钟 TTL（管理端改动后下次刷新即可生效）
+        // 公开定价目录：key 带三表版本号（管理端改动即时失效），TTL 仅用于回收旧版本条目
         manager.registerCustomCache("planCatalog",
                 Caffeine.newBuilder()
                         .maximumSize(20)

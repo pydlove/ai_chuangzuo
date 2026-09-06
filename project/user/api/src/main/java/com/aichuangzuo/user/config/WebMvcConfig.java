@@ -2,6 +2,7 @@ package com.aichuangzuo.user.config;
 
 import com.aichuangzuo.user.common.interceptor.AccessControlInterceptor;
 import com.aichuangzuo.user.common.interceptor.RateLimitInterceptor;
+import com.aichuangzuo.user.modules.activity.interceptor.UserActivityInterceptor;
 import com.aichuangzuo.user.modules.audit.interceptor.UserAuditLogInterceptor;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,6 +27,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
     private final AccessControlInterceptor accessControlInterceptor;
     private final RateLimitInterceptor rateLimitInterceptor;
     private final UserAuditLogInterceptor userAuditLogInterceptor;
+    private final UserActivityInterceptor userActivityInterceptor;
 
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
@@ -56,6 +58,10 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/api/v1/user/export-templates",
                         "/api/v1/user/export-templates/**"
                 );
+
+        registry.addInterceptor(userActivityInterceptor)
+                .addPathPatterns("/api/v1/user/**")
+                .excludePathPatterns("/api/v1/user/internal/**");
     }
 
     @Override

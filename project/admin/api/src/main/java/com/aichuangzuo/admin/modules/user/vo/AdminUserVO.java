@@ -2,6 +2,7 @@ package com.aichuangzuo.admin.modules.user.vo;
 
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Data
@@ -14,6 +15,10 @@ public class AdminUserVO {
     private String status;
     private String userType;
     private String avatarUrl;
+    private String bio;
+    private Integer gender;
+    private LocalDate birthday;
+    private String location;
     private String inviteCode;
     private Integer invitedCount;
     private Long inviterId;

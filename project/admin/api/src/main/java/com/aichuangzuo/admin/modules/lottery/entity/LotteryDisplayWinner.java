@@ -17,6 +17,7 @@ public class LotteryDisplayWinner {
     private Long campaignId;
     private Long tierId;
     private Long userId;
+    private Long codeId;
     private String nickname;
     private String avatarUrl;
     private String prizeName;

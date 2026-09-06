@@ -72,7 +72,7 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'avatar'">
-            <a-avatar :src="record.avatarUrl" :size="36">
+            <a-avatar :src="resolveUserAssetUrl(record.avatarUrl)" :size="36">
               {{ (record.nickname || '?').charAt(0) }}
             </a-avatar>
           </template>
@@ -113,9 +113,9 @@
             </a-button>
           </template>
           <template v-else-if="column.key === 'inviter'">
-            <span v-if="record.inviterEmail">
-              {{ record.inviterNickname || record.inviterEmail }}
-              <span style="color: #8c8c8c; font-size: 12px">({{ record.inviterEmail }})</span>
+            <span v-if="record.inviterId">
+              {{ record.inviterNickname || record.inviterEmail || ('ID: ' + record.inviterId) }}
+              <span v-if="record.inviterEmail" style="color: #8c8c8c; font-size: 12px">({{ record.inviterEmail }})</span>
             </span>
             <span v-else style="color: #8c8c8c">—</span>
           </template>
@@ -264,12 +264,16 @@
           <a-descriptions v-if="detailUser" :column="1" bordered>
             <a-descriptions-item label="ID">{{ detailUser.id }}</a-descriptions-item>
             <a-descriptions-item label="头像">
-              <img v-if="detailUser.avatarUrl" :src="detailUser.avatarUrl" class="avatar-preview-large" alt="avatar" />
+              <img v-if="detailUser.avatarUrl" :src="resolveUserAssetUrl(detailUser.avatarUrl)" class="avatar-preview-large" alt="avatar" />
               <span v-else style="color: #8c8c8c">—</span>
             </a-descriptions-item>
             <a-descriptions-item label="邮箱/账号">{{ detailUser.email || '—' }}</a-descriptions-item>
             <a-descriptions-item label="手机号">{{ detailUser.phone || '—' }}</a-descriptions-item>
             <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
+            <a-descriptions-item label="个人简介">{{ detailUser.bio || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="性别">{{ genderLabel(detailUser.gender) }}</a-descriptions-item>
+            <a-descriptions-item label="生日">{{ detailUser.birthday || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="所在地">{{ detailUser.location || '—' }}</a-descriptions-item>
             <a-descriptions-item label="状态">
               <a-tag :color="detailUser.status === 'enabled' ? 'green' : 'red'">
                 {{ detailUser.status === 'enabled' ? '启用' : '禁用' }}
@@ -282,9 +286,9 @@
             </a-descriptions-item>
             <a-descriptions-item label="邀请码">{{ detailUser.inviteCode || '—' }}</a-descriptions-item>
             <a-descriptions-item label="邀请人">
-              <span v-if="detailUser.inviterEmail">
-                {{ detailUser.inviterNickname || detailUser.inviterEmail }}
-                <span style="color: #8c8c8c">({{ detailUser.inviterEmail }})</span>
+              <span v-if="detailUser.inviterId">
+                {{ detailUser.inviterNickname || detailUser.inviterEmail || ('ID: ' + detailUser.inviterId) }}
+                <span v-if="detailUser.inviterEmail" style="color: #8c8c8c">({{ detailUser.inviterEmail }})</span>
               </span>
               <span v-else>—</span>
             </a-descriptions-item>
@@ -582,8 +586,8 @@
             <a-descriptions-item label="邀请人" :span="2">
               <div v-if="inviteDetail.inviter">
                 <div>
-                  {{ inviteDetail.inviter.nickname || inviteDetail.inviter.email }}
-                  <span style="color: #8c8c8c">({{ inviteDetail.inviter.email }})</span>
+                  {{ inviteDetail.inviter.nickname || inviteDetail.inviter.email || ('ID: ' + inviteDetail.inviter.id) }}
+                  <span v-if="inviteDetail.inviter.email" style="color: #8c8c8c">({{ inviteDetail.inviter.email }})</span>
                 </div>
                 <div style="color: #8c8c8c; font-size: 12px; margin-top: 4px">
                   绑定时间：{{ formatDateTime(inviteDetail.inviter.createdAt) }}
@@ -760,6 +764,7 @@ import { message, Modal } from 'ant-design-vue'
 import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
+import { resolveUserAssetUrl } from '@/utils/userAsset.js'
 import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
 import { fetchPlans } from '@/api/plan.js'
@@ -1018,6 +1023,11 @@ const planLabel = (code) => {
 const formatDateTime = (s) => {
   if (!s) return ''
   return s.replace('T', ' ').slice(0, 19)
+}
+
+const genderLabel = (gender) => {
+  const map = { 0: '保密', 1: '男', 2: '女' }
+  return map[gender] ?? '保密'
 }
 
 const copyContact = async (record) => {

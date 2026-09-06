@@ -1,6 +1,5 @@
 package com.aichuangzuo.admin.modules.lottery.service.impl;
 
-import com.aichuangzuo.admin.common.util.AvatarUrlUtil;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDrawRecordQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryManualGrantRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryRedemptionCodeQueryRequest;
@@ -136,8 +135,13 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
                 .filter(Objects::nonNull)
                 .distinct()
                 .collect(Collectors.toList()));
+        Map<Long, LotteryRedemptionCode> codeMap = codeMap(result.getRecords().stream()
+                .map(LotteryDrawRecord::getCodeId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList()));
         List<LotteryDrawRecordAdminVO> items = result.getRecords().stream()
-                .map(r -> buildDrawRecordVO(r, tierNameMap, campaignNameMap, userMap))
+                .map(r -> buildDrawRecordVO(r, tierNameMap, campaignNameMap, userMap, codeMap))
                 .collect(Collectors.toList());
         return new PageResult<>(items, result.getTotal(), result.getCurrent(), result.getSize());
     }
@@ -204,17 +208,125 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
         winner.setTierId(tier.getId());
         winner.setUserId(user.getId());
         winner.setNickname(user.getNickname());
-        winner.setAvatarUrl(AvatarUrlUtil.normalizeForAdmin(user.getAvatarUrl()));
+        winner.setAvatarUrl(user.getAvatarUrl());
         winner.setPrizeName(tier.getTierName());
         winner.setWinTime(LocalDateTime.now());
         winner.setIsReal(1);
         winner.setSortOrder(0);
         winner.setStatus(1);
+        winner.setCodeId(code.getId());
         winner.setTenantId(0L);
         displayWinnerMapper.insert(winner);
 
         log.info("管理员人工发奖, campaignId={}, tierId={}, userId={}, code={}",
                 campaign.getId(), tier.getId(), user.getId(), code.getCode());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteManualGrant(Long recordId) {
+        LotteryDrawRecord record = requireManualRecord(recordId);
+        LotteryRedemptionCode code = record.getCodeId() != null
+                ? redemptionCodeMapper.selectById(record.getCodeId()) : null;
+        if (code != null && "used".equals(code.getStatus())) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_CODE_USED);
+        }
+
+        // 释放奖项额度（不超过上限）
+        LotteryPrizeTier tier = prizeTierMapper.selectById(record.getTierId());
+        if (tier != null && tier.getMaxWinCount() != null) {
+            prizeTierMapper.update(null,
+                    new LambdaUpdateWrapper<LotteryPrizeTier>()
+                            .eq(LotteryPrizeTier::getId, tier.getId())
+                            .lt(LotteryPrizeTier::getRemainingWinCount, tier.getMaxWinCount())
+                            .setSql("remaining_win_count = remaining_win_count + 1"));
+        }
+
+        if (code != null) {
+            redemptionCodeMapper.deleteById(code.getId());
+        }
+        LotteryDisplayWinner winner = findDisplayWinner(record, code);
+        if (winner != null) {
+            displayWinnerMapper.deleteById(winner.getId());
+        }
+        drawRecordMapper.deleteById(record.getId());
+
+        log.info("管理员删除人工发奖记录, recordId={}, campaignId={}, tierId={}, userId={}, releaseStock={}",
+                record.getId(), record.getCampaignId(), record.getTierId(), record.getUserId(),
+                tier != null && tier.getMaxWinCount() != null);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeManualGrantUser(Long recordId, Long newUserId) {
+        LotteryDrawRecord record = requireManualRecord(recordId);
+        LotteryRedemptionCode code = record.getCodeId() != null
+                ? redemptionCodeMapper.selectById(record.getCodeId()) : null;
+        if (code == null) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_CODE_NOT_UNUSED);
+        }
+        if ("used".equals(code.getStatus())) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_CODE_USED);
+        }
+        if (!"unused".equals(code.getStatus())) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_CODE_NOT_UNUSED);
+        }
+        PlatformUser user = platformUserMapper.selectById(newUserId);
+        if (user == null) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+
+        Long oldUserId = record.getUserId();
+        // 先按旧记录定位展示墙（历史数据按 活动+奖项+用户 兜底匹配，需在改 userId 之前查）
+        LotteryDisplayWinner winner = findDisplayWinner(record, code);
+
+        record.setUserId(user.getId());
+        drawRecordMapper.updateById(record);
+
+        code.setDrawerUserId(user.getId());
+        redemptionCodeMapper.updateById(code);
+
+        if (winner != null) {
+            winner.setUserId(user.getId());
+            winner.setNickname(user.getNickname());
+            winner.setAvatarUrl(user.getAvatarUrl());
+            displayWinnerMapper.updateById(winner);
+        }
+
+        log.info("管理员修改人工发奖获奖人, recordId={}, campaignId={}, tierId={}, oldUserId={}, newUserId={}",
+                record.getId(), record.getCampaignId(), record.getTierId(), oldUserId, user.getId());
+    }
+
+    private LotteryDrawRecord requireManualRecord(Long recordId) {
+        LotteryDrawRecord record = drawRecordMapper.selectById(recordId);
+        if (record == null) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_NOT_FOUND);
+        }
+        if (!"manual".equals(record.getDrawType())) {
+            throw new BusinessException(AdminLotteryErrorCode.RECORD_NOT_MANUAL);
+        }
+        return record;
+    }
+
+    private LotteryDisplayWinner findDisplayWinner(LotteryDrawRecord record, LotteryRedemptionCode code) {
+        if (code != null && code.getId() != null) {
+            LotteryDisplayWinner matched = displayWinnerMapper.selectOne(
+                    new LambdaQueryWrapper<LotteryDisplayWinner>()
+                            .eq(LotteryDisplayWinner::getCodeId, code.getId())
+                            .last("LIMIT 1"));
+            if (matched != null) {
+                return matched;
+            }
+        }
+        // 兼容迁移前的历史数据：按活动+奖项+用户匹配最近一条真实中奖展示
+        return displayWinnerMapper.selectOne(
+                new LambdaQueryWrapper<LotteryDisplayWinner>()
+                        .eq(LotteryDisplayWinner::getCampaignId, record.getCampaignId())
+                        .eq(LotteryDisplayWinner::getTierId, record.getTierId())
+                        .eq(LotteryDisplayWinner::getUserId, record.getUserId())
+                        .eq(LotteryDisplayWinner::getIsReal, 1)
+                        .orderByDesc(LotteryDisplayWinner::getId)
+                        .last("LIMIT 1"));
     }
 
     @Override
@@ -257,6 +369,16 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
                 new LambdaQueryWrapper<PlatformUser>()
                         .in(PlatformUser::getId, userIds));
         return users.stream().collect(Collectors.toMap(PlatformUser::getId, u -> u));
+    }
+
+    private Map<Long, LotteryRedemptionCode> codeMap(List<Long> codeIds) {
+        if (codeIds.isEmpty()) {
+            return Map.of();
+        }
+        List<LotteryRedemptionCode> codes = redemptionCodeMapper.selectList(
+                new LambdaQueryWrapper<LotteryRedemptionCode>()
+                        .in(LotteryRedemptionCode::getId, codeIds));
+        return codes.stream().collect(Collectors.toMap(LotteryRedemptionCode::getId, c -> c));
     }
 
     private List<Long> matchUserIdsByEmailOrNickname(String email, String nickname) {
@@ -309,7 +431,7 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
         return vo;
     }
 
-    private LotteryDrawRecordAdminVO buildDrawRecordVO(LotteryDrawRecord record, Map<Long, String> tierNameMap, Map<Long, String> campaignNameMap, Map<Long, PlatformUser> userMap) {
+    private LotteryDrawRecordAdminVO buildDrawRecordVO(LotteryDrawRecord record, Map<Long, String> tierNameMap, Map<Long, String> campaignNameMap, Map<Long, PlatformUser> userMap, Map<Long, LotteryRedemptionCode> codeMap) {
         LotteryDrawRecordAdminVO vo = new LotteryDrawRecordAdminVO();
         vo.setId(record.getId());
         vo.setBizNo(record.getBizNo());
@@ -324,6 +446,11 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
         vo.setTierId(record.getTierId());
         vo.setTierName(tierNameMap.getOrDefault(record.getTierId(), ""));
         vo.setCodeId(record.getCodeId());
+        LotteryRedemptionCode code = codeMap.get(record.getCodeId());
+        if (code != null) {
+            vo.setCode(code.getCode());
+            vo.setCodeStatus(code.getStatus());
+        }
         vo.setDrawType(record.getDrawType());
         vo.setInviteRelationId(record.getInviteRelationId());
         vo.setCreatedAt(record.getCreatedAt());

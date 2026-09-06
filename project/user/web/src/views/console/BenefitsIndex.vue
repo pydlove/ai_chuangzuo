@@ -231,7 +231,7 @@
       :title="`确认升级 ${selectedPlan ? selectedPlan.name : ''}`"
       :width="320"
       centered
-      class="mb-upgrade-modal"
+      class="mb-upgrade-modal membership-confirm-modal"
       @ok="confirmUpgrade"
       :confirm-loading="upgradeLoading"
     >
@@ -278,9 +278,19 @@
     >
       <div class="mb-pay-panel">
         <template v-if="isTestMode()">
+          <CouponSelectPanel
+            v-if="myCoupons.length"
+            v-model:selectedCode="selectedCouponCode"
+            @change="onCouponChange"
+            :coupons="myCoupons"
+            :plan-key="selectedPlan?.key"
+            :cycle="activeCycle"
+            :discount-yuan="getCouponDiscountYuan()"
+          />
           <CoinDiscountPanel
             v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
             v-model:selectedCoinAmount="selectedCoinAmount"
+            @update:selectedCoinAmount="onCoinSelectionChange"
             :coinBalance="coinBalance"
             :maxCoinAmount="getMaxCoinAmount()"
             :coinToYuanRatio="COIN_TO_YUAN_RATIO"
@@ -343,9 +353,19 @@
           </div>
         </template>
         <template v-else>
+          <CouponSelectPanel
+            v-if="myCoupons.length"
+            v-model:selectedCode="selectedCouponCode"
+            @change="onCouponChange"
+            :coupons="myCoupons"
+            :plan-key="selectedPlan?.key"
+            :cycle="activeCycle"
+            :discount-yuan="getCouponDiscountYuan()"
+          />
           <CoinDiscountPanel
             v-if="coinBalance > 0 && getMaxCoinAmount() > 0"
             v-model:selectedCoinAmount="selectedCoinAmount"
+            @update:selectedCoinAmount="onCoinSelectionChange"
             :coinBalance="coinBalance"
             :maxCoinAmount="getMaxCoinAmount()"
             :coinToYuanRatio="COIN_TO_YUAN_RATIO"
@@ -375,6 +395,7 @@ import { useDevice } from '@/composables/useDevice.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { usePricing } from '@/composables/usePricing.js'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import CouponSelectPanel from '@/components/pricing/CouponSelectPanel.vue'
 import PaidServiceAgreement from '@/components/PaidServiceAgreement.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
 import {
@@ -431,6 +452,9 @@ const {
   qrExpireSeconds,
   qrExpired,
   resetQrExpire,
+  myCoupons,
+  selectedCouponCode,
+  onCouponChange,
   upgradeModalVisible,
   upgradePreview,
   upgradeLoading,
@@ -441,7 +465,9 @@ const {
   coinBalance,
   COIN_TO_YUAN_RATIO,
   getMaxCoinAmount,
-  getFinalCash
+  getCouponDiscountYuan,
+  getFinalCash,
+  onCoinSelectionChange
 } = pricing
 
 const modalTitle = computed(() => {

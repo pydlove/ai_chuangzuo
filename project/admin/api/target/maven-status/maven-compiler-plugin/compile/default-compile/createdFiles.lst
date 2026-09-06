@@ -160,6 +160,7 @@ com/aichuangzuo/admin/modules/order/payment/xunhupay/dto/XunhupayRefundResponse.
 com/aichuangzuo/admin/modules/testimonial/service/UserReviewService.class
 com/aichuangzuo/admin/modules/generation/service/PromptTemplateRenderService.class
 com/aichuangzuo/admin/modules/settings/wechatofficialaccount/vo/WechatOfficialAccountConfigVO.class
+com/aichuangzuo/admin/modules/lottery/dto/request/LotteryManualChangeUserRequest.class
 com/aichuangzuo/admin/modules/commission/dto/request/CommissionSubmissionBatchCreateRequest.class
 com/aichuangzuo/admin/modules/platform/vo/PlatformVO$2.class
 com/aichuangzuo/admin/modules/testimonial/mapper/TestimonialMapper.class
@@ -214,6 +215,7 @@ com/aichuangzuo/admin/modules/aiprompt/dto/request/AiPromptUpdateRequest.class
 com/aichuangzuo/admin/modules/reminder/service/ExpireReminderService.class
 com/aichuangzuo/admin/modules/platform/controller/PlatformAdminController.class
 com/aichuangzuo/admin/modules/lottery/entity/LotteryDrawChance.class
+com/aichuangzuo/admin/modules/stats/controller/StatsController.class
 com/aichuangzuo/admin/modules/hotsearch/crawler/JsoupHotSearchFetcher.class
 com/aichuangzuo/admin/modules/settings/upgrademanagement/service/UpgradeScriptExecutionService.class
 com/aichuangzuo/admin/modules/platform/vo/PlatformVO$1.class
@@ -290,6 +292,7 @@ com/aichuangzuo/admin/modules/reminder/entity/Message.class
 com/aichuangzuo/admin/modules/security/accesscontrol/enums/AccessControlListType.class
 com/aichuangzuo/admin/modules/reminder/event/ReminderConfigChangedEvent.class
 com/aichuangzuo/admin/modules/lottery/vo/LotteryDisplayWinnerAdminVO.class
+com/aichuangzuo/admin/modules/stats/mapper/UserActivityStatsMapper.class
 com/aichuangzuo/admin/modules/hotsearch/event/HotSearchConfigChangedEvent.class
 com/aichuangzuo/admin/modules/generation/service/ArticleReadInternalClient.class
 com/aichuangzuo/admin/modules/share/dto/request/ShareConfigSaveRequest.class
@@ -382,7 +385,6 @@ com/aichuangzuo/admin/modules/skill/market/dto/SkillMarketRow.class
 com/aichuangzuo/admin/modules/modelconfig/mapper/ProviderModelMapper.class
 com/aichuangzuo/admin/modules/order/vo/PlanDistributionVO.class
 com/aichuangzuo/admin/modules/hotsearch/entity/HotSearchConfig.class
-com/aichuangzuo/admin/common/util/AvatarUrlUtil.class
 com/aichuangzuo/admin/modules/learn/service/impl/LearnCategoryServiceImpl.class
 com/aichuangzuo/admin/modules/topictitle/vo/TopicTitleTaskVO.class
 com/aichuangzuo/admin/modules/hotsearch/config/HotSearchSchedulerConfig.class
@@ -678,6 +680,7 @@ com/aichuangzuo/admin/modules/user/service/impl/AdminUserServiceImpl.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationCallLogMapper.class
 com/aichuangzuo/admin/modules/planbenefit/controller/PlanBenefitAdminController.class
 com/aichuangzuo/admin/modules/earnings/vo/EarningsRecordVO.class
+com/aichuangzuo/admin/modules/stats/vo/StatsOverviewVO.class
 com/aichuangzuo/admin/modules/modelconfig/dto/request/ModelConfigSaveRequest.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchCrawlLogService$PageResult.class
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchCrawlLogMapper.class
@@ -689,6 +692,7 @@ com/aichuangzuo/admin/modules/user/vo/AdminLearnedSkillMonthVO.class
 com/aichuangzuo/admin/modules/order/vo/RenewalDistributionVO$CycleItem.class
 com/aichuangzuo/admin/modules/aiprompt/vo/AiPromptDetailVO.class
 com/aichuangzuo/admin/modules/skill/review/enums/AdminSkillReviewErrorCode.class
+com/aichuangzuo/admin/modules/stats/service/StatsService.class
 com/aichuangzuo/admin/modules/reminder/service/impl/ReminderConfigServiceImpl.class
 com/aichuangzuo/admin/modules/experience/service/impl/ExperienceTokenAdminServiceImpl.class
 com/aichuangzuo/admin/modules/earnings/entity/EarningsRecord.class

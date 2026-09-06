@@ -17,7 +17,7 @@ import java.util.stream.Collectors;
 
 /**
  * 管理端 u_plan 维护：列表查询 + upsert（按 planKey 唯一）。
- * 写入时清空 user-api 的 planCatalog / plans Caffeine 缓存。
+ * 写入后用户端 planCatalog 缓存通过 updated_at 版本 key 即时失效（见 user-api PlanCacheVersionKeyProvider）。
  */
 @Slf4j
 @Service
@@ -66,8 +66,8 @@ public class PlanAdminServiceImpl implements PlanAdminService {
             planMapper.updateById(entity);
             log.info("更新套餐 planKey={}, adminUserId={}", entity.getPlanKey(), adminUserId);
         }
-        // 提示：user-api 侧的 planCatalog / plans 缓存在另一进程，需重启或等待 TTL 过期。
-        // 这里只能清本进程缓存；跨进程失效依赖 Caffeine 5–10 分钟 TTL 或下次重启。
+        // 用户端 planCatalog 缓存 key 以 u_plan 最大 updated_at 为版本，此处保存后版本即变化，
+        // 用户端下一次请求自动落到新 key，无需重启或等待 TTL。
         return PlanVO.from(entity);
     }
 }

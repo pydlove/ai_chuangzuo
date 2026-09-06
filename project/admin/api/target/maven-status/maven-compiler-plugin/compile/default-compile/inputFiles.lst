@@ -1,7 +1,6 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/AdminApiApplication.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/common/exception/handler/GlobalExceptionHandler.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/common/interceptor/RateLimitInterceptor.java
-/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/common/util/AvatarUrlUtil.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/config/AuthProperties.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/config/CaffeineConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/config/MybatisPlusConfig.java
@@ -351,6 +350,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryCampaignSaveRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryDisplayWinnerSaveRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryDrawRecordQueryRequest.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryManualChangeUserRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryManualGrantRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryPrizeTierSaveRequest.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/lottery/dto/request/LotteryRedemptionCodeQueryRequest.java
@@ -617,6 +617,10 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/service/SkillReviewService.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/service/impl/SkillReviewServiceImpl.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/skill/review/vo/SkillReviewVO.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/stats/controller/StatsController.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/stats/mapper/UserActivityStatsMapper.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/stats/service/StatsService.java
+/Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/stats/vo/StatsOverviewVO.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/controller/TestimonialAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/controller/UserReviewAdminController.java
 /Users/panyong/aio_project/ai_chuangzuo/project/admin/api/src/main/java/com/aichuangzuo/admin/modules/testimonial/dto/excel/TestimonialImportExcelRowData.java

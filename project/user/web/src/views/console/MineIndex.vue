@@ -300,6 +300,7 @@ const openPlanGallery = () => {
       okText: '去升级',
       cancelText: '取消',
       centered: true,
+      wrapClassName: 'membership-confirm-modal',
       onOk: () => router.push('/console/benefits')
     })
     return

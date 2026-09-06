@@ -14,6 +14,19 @@
       </div>
     </div>
 
+    <div class="plan-gallery-hint" @click="openPlanGallery">
+      <div class="plan-gallery-hint-text">
+        <div class="plan-gallery-hint-title">
+          想发布其他方向的提示词？看看有哪些运营方案
+          <span v-if="!canViewPlanGallery" class="plan-gallery-hint-badge">专业版</span>
+        </div>
+        <div class="plan-gallery-hint-sub">查阅全平台用户的运营方案，别人使用你的提示词，你就能获得收益</div>
+      </div>
+      <RightOutlined class="plan-gallery-hint-arrow" />
+    </div>
+
+    <PlanGalleryModal v-model:open="planGalleryVisible" />
+
     <div class="styles-filter-bar">
       <div class="styles-tabs">
         <button
@@ -800,12 +813,35 @@ import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
+import PlanGalleryModal from '@/components/PlanGalleryModal.vue'
+import { getCurrentPlanKey } from '@/utils/membershipLimits.js'
+import { RightOutlined } from '@ant-design/icons-vue'
 
 const SKILL_PROMPT_MAX_LENGTH = 1200
 
 const router = useRouter()
 const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const { confirm } = useConfirm()
+
+// 运营方案库：专业版及以上可用
+const planGalleryVisible = ref(false)
+const canViewPlanGallery = computed(() => {
+  const key = getCurrentPlanKey()
+  return key === 'pro' || key === 'flagship'
+})
+const openPlanGallery = () => {
+  if (!canViewPlanGallery.value) {
+    confirm({
+      title: '运营方案库',
+      content: '查阅全平台用户的运营方案为专业版及以上功能，升级后即可查看。别人使用你的提示词，你还能获得收益。',
+      okText: '去升级',
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => router.push('/console/benefits')
+    })
+    return
+  }
+  planGalleryVisible.value = true
+}
 const stylesIndexRef = ref(null)
 const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID) || ''
 const activeTab = ref('my')
@@ -1644,6 +1680,82 @@ const closeMyStylePromptModal = () => {
   font-size: 13px;
   color: #8c8c8c;
   margin: 0;
+}
+
+/* 运营方案库提示条 */
+.plan-gallery-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  background: linear-gradient(135deg, #FFF8FA 0%, #FFEDF1 100%);
+  border: 1px dashed #FFC9D4;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.plan-gallery-hint:hover {
+  background: #FFE3EA;
+}
+
+.plan-gallery-hint-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.plan-gallery-hint-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.plan-gallery-hint-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B7D 0%, #FF2442 100%);
+  border-radius: 4px;
+  padding: 1px 8px;
+  line-height: 1.6;
+}
+
+.plan-gallery-hint-sub {
+  font-size: 12px;
+  color: #999;
+  line-height: 1.5;
+}
+
+.plan-gallery-hint-arrow {
+  font-size: 12px;
+  color: #FF2442;
+  flex-shrink: 0;
+}
+
+body[data-theme="dark"] .plan-gallery-hint {
+  background: #2a1a1d;
+  border-color: #5a2a35;
+}
+
+body[data-theme="dark"] .plan-gallery-hint:hover {
+  background: #332025;
+}
+
+body[data-theme="dark"] .plan-gallery-hint-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .plan-gallery-hint-sub {
+  color: #737373;
 }
 
 .styles-filter-bar {

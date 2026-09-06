@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.lottery.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.modules.earnings.enums.EarningsType;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryRedemptionCode;
 import com.aichuangzuo.user.modules.lottery.entity.UserCoupon;
@@ -27,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 @Slf4j
 @Service
@@ -41,6 +44,7 @@ public class LotteryRedemptionServiceImpl implements LotteryRedemptionService {
     private final UserMembershipMapper userMembershipMapper;
     private final CoinRecordService coinRecordService;
     private final MembershipService membershipService;
+    private final EarningsService earningsService;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -95,6 +99,10 @@ public class LotteryRedemptionServiceImpl implements LotteryRedemptionService {
     private void applyCoin(Long userId, JsonNode node, Long codeId) {
         BigDecimal amount = new BigDecimal(node.get("amount").asText());
         coinRecordService.grant(userId, BIZ_TYPE_LOTTERY_COIN, amount, codeId.toString(), "抽奖获得创作币");
+        // 同步记收益明细，累计收益与账户明细才有记录
+        earningsService.recordEarnings(userId, EarningsType.LOTTERY_REWARD.getCode(), "lottery",
+                codeId.toString(), "抽奖奖励", String.format("幸运抽奖获得 %s 创作币", amount.toPlainString()),
+                amount, LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM")));
     }
 
     private void applyMembership(Long userId, JsonNode node, Long codeId) {

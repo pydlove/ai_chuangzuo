@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { STORAGE_KEYS } from '@/constants/storage.js'
+import { reportApiFailure } from '@/utils/versionHeartbeat.js'
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1/user'
 
@@ -184,6 +185,9 @@ request.interceptors.response.use(
     const response = error.response
     const status = response?.status
     const code = response?.data?.code
+
+    // 服务升级 / 网关故障时加速进入升级检测，由心跳模块统一弹框
+    reportApiFailure(error)
 
     if (isTokenInvalidError(status, code)) {
       logoutAndRedirect()

@@ -211,9 +211,19 @@
       @cancel="handleModalCancel"
     >
       <div class="mp-pay-panel">
+        <CouponSelectPanel
+          v-if="myCoupons.length && !payQrUrl"
+          v-model:selectedCode="selectedCouponCode"
+          @change="onCouponChange"
+          :coupons="myCoupons"
+          :plan-key="selectedPlan?.key"
+          :cycle="activeCycle"
+          :discount-yuan="getCouponDiscountYuan()"
+        />
         <CoinDiscountPanel
           v-if="coinBalance > 0 && getMaxCoinAmount() > 0 && !payQrUrl"
           v-model:selectedCoinAmount="selectedCoinAmount"
+          @update:selectedCoinAmount="onCoinSelectionChange"
           :coinBalance="coinBalance"
           :maxCoinAmount="getMaxCoinAmount()"
           :coinToYuanRatio="COIN_TO_YUAN_RATIO"
@@ -298,6 +308,7 @@
 import { computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import CoinDiscountPanel from '@/components/pricing/CoinDiscountPanel.vue'
+import CouponSelectPanel from '@/components/pricing/CouponSelectPanel.vue'
 import PaidServiceAgreement from '@/components/PaidServiceAgreement.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import { usePricing } from '@/composables/usePricing.js'
@@ -324,6 +335,9 @@ const {
   qrExpireSeconds,
   qrExpired,
   resetQrExpire,
+  myCoupons,
+  selectedCouponCode,
+  onCouponChange,
   plans,
   compareRows,
   catalogLoading,
@@ -355,7 +369,9 @@ const {
   coinBalance,
   COIN_TO_YUAN_RATIO,
   getMaxCoinAmount,
-  getFinalCash
+  getCouponDiscountYuan,
+  getFinalCash,
+  onCoinSelectionChange
 } = usePricing()
 
 const modalTitle = computed(() => {

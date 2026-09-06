@@ -1,6 +1,8 @@
 package com.aichuangzuo.user.modules.lottery.service.impl;
 
 import com.aichuangzuo.shared.enums.DeletedFlagEnum;
+import com.aichuangzuo.user.modules.auth.entity.User;
+import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryCampaign;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryDisplayWinner;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryPrizeTier;
@@ -10,12 +12,14 @@ import com.aichuangzuo.user.modules.lottery.mapper.LotteryDisplayWinnerMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryPrizeTierMapper;
 import com.aichuangzuo.user.modules.lottery.mapper.LotteryRedemptionCodeMapper;
 import com.aichuangzuo.user.modules.lottery.service.LotteryDisplayService;
+import com.aichuangzuo.user.modules.lottery.vo.LotteryDisplayWinnerPageVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryDisplayWinnerVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryRedemptionCodeVO;
 import com.aichuangzuo.user.modules.membership.enums.MembershipCycle;
 import com.aichuangzuo.user.modules.membership.enums.MembershipPlan;
 import com.aichuangzuo.user.modules.membership.service.PlanLookupService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +31,7 @@ import org.springframework.util.StringUtils;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -42,6 +47,7 @@ public class LotteryDisplayServiceImpl implements LotteryDisplayService {
     private final LotteryRedemptionCodeMapper redemptionCodeMapper;
     private final LotteryPrizeTierMapper prizeTierMapper;
     private final PlanLookupService planLookupService;
+    private final UserMapper userMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -72,16 +78,67 @@ public class LotteryDisplayServiceImpl implements LotteryDisplayService {
                         .orderByAsc(LotteryPrizeTier::getPrizeLevel));
     }
 
+    private Map<Long, Integer> loadTierLevelMap(List<LotteryDisplayWinner> winners) {
+        List<Long> tierIds = winners.stream()
+                .map(LotteryDisplayWinner::getTierId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(tierIds)) {
+            return Map.of();
+        }
+        List<LotteryPrizeTier> tiers = prizeTierMapper.selectList(
+                new LambdaQueryWrapper<LotteryPrizeTier>()
+                        .in(LotteryPrizeTier::getId, tierIds)
+                        .isNotNull(LotteryPrizeTier::getPrizeLevel));
+        return tiers.stream().collect(Collectors.toMap(LotteryPrizeTier::getId, LotteryPrizeTier::getPrizeLevel, (a, b) -> a));
+    }
+
     @Override
-    public List<LotteryDisplayWinnerVO> listDisplayWinners(Long campaignId, int limit) {
-        List<LotteryDisplayWinner> list = displayWinnerMapper.selectList(
+    public LotteryDisplayWinnerPageVO listDisplayWinnersPage(Long campaignId, int page, int pageSize) {
+        Page<LotteryDisplayWinner> mpPage = new Page<>(page, pageSize);
+        LambdaQueryWrapper<LotteryDisplayWinner> wrapper = new LambdaQueryWrapper<LotteryDisplayWinner>()
+                .eq(LotteryDisplayWinner::getCampaignId, campaignId)
+                .eq(LotteryDisplayWinner::getStatus, 1)
+                .orderByDesc(LotteryDisplayWinner::getWinTime)
+                .orderByAsc(LotteryDisplayWinner::getSortOrder);
+        Page<LotteryDisplayWinner> result = displayWinnerMapper.selectPage(mpPage, wrapper);
+        Map<Long, Integer> tierLevelMap = loadTierLevelMap(result.getRecords());
+        Map<Long, String> currentAvatarMap = loadCurrentAvatarMap(result.getRecords());
+        LotteryDisplayWinnerPageVO vo = new LotteryDisplayWinnerPageVO();
+        vo.setList(result.getRecords().stream().map(w -> buildDisplayWinnerVO(w, tierLevelMap, currentAvatarMap)).collect(Collectors.toList()));
+        vo.setTotal(result.getTotal());
+        vo.setPage(result.getCurrent());
+        vo.setPageSize(result.getSize());
+        return vo;
+    }
+
+    @Override
+    public List<LotteryDisplayWinnerVO> listGrandWinners(Long campaignId) {
+        List<LotteryPrizeTier> grandTiers = prizeTierMapper.selectList(
+                new LambdaQueryWrapper<LotteryPrizeTier>()
+                        .eq(LotteryPrizeTier::getCampaignId, campaignId)
+                        .eq(LotteryPrizeTier::getIsDeleted, DeletedFlagEnum.NOT_DELETED.getCode())
+                        .in(LotteryPrizeTier::getPrizeLevel, 1, 2, 3));
+        if (CollectionUtils.isEmpty(grandTiers)) {
+            return List.of();
+        }
+        Map<Long, Integer> tierLevelMap = grandTiers.stream()
+                .collect(Collectors.toMap(LotteryPrizeTier::getId, LotteryPrizeTier::getPrizeLevel, (a, b) -> a));
+        List<Long> tierIds = List.copyOf(tierLevelMap.keySet());
+        List<LotteryDisplayWinner> winners = displayWinnerMapper.selectList(
                 new LambdaQueryWrapper<LotteryDisplayWinner>()
                         .eq(LotteryDisplayWinner::getCampaignId, campaignId)
                         .eq(LotteryDisplayWinner::getStatus, 1)
-                        .orderByDesc(LotteryDisplayWinner::getWinTime)
+                        .in(LotteryDisplayWinner::getTierId, tierIds)
                         .orderByAsc(LotteryDisplayWinner::getSortOrder)
-                        .last("LIMIT " + limit));
-        return list.stream().map(this::buildDisplayWinnerVO).collect(Collectors.toList());
+                        .orderByDesc(LotteryDisplayWinner::getWinTime));
+        Map<Long, String> currentAvatarMap = loadCurrentAvatarMap(winners);
+        return winners.stream()
+                .map(w -> buildDisplayWinnerVO(w, tierLevelMap, currentAvatarMap))
+                .sorted(Comparator.comparing((LotteryDisplayWinnerVO w) -> w.getPrizeLevel() != null ? w.getPrizeLevel() : 99)
+                        .thenComparing((LotteryDisplayWinnerVO w) -> w.getWinTime(), Comparator.nullsLast(Comparator.reverseOrder())))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -109,12 +166,53 @@ public class LotteryDisplayServiceImpl implements LotteryDisplayService {
         return tiers.stream().collect(Collectors.toMap(LotteryPrizeTier::getId, LotteryPrizeTier::getTierName, (a, b) -> a));
     }
 
-    private LotteryDisplayWinnerVO buildDisplayWinnerVO(LotteryDisplayWinner winner) {
+    /**
+     * 查询中奖用户当前使用的头像，避免展示墙停留在抽奖时刻的快照。
+     *
+     * @return userId -> 当前头像 URL（已规范化）；无头像的用户不放入 Map，回退到快照值
+     */
+    private Map<Long, String> loadCurrentAvatarMap(List<LotteryDisplayWinner> winners) {
+        List<Long> userIds = winners.stream()
+                .map(LotteryDisplayWinner::getUserId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(userIds)) {
+            return Map.of();
+        }
+        return userMapper.selectBatchIds(userIds).stream()
+                .filter(u -> u.getAvatarUrl() != null && !u.getAvatarUrl().isBlank())
+                .collect(Collectors.toMap(User::getId, u -> normalizeAvatarUrl(u.getAvatarUrl()), (a, b) -> a));
+    }
+
+    /**
+     * 兼容旧版与管理端配置的头像 URL。
+     *
+     * <p>旧数据可能是 /uploads/...，管理端运营配置的头像可能是 /api/v1/admin/uploads/...，
+     * 统一改写为用户端可访问的 /api/v1/user/uploads/...。
+     */
+    private String normalizeAvatarUrl(String avatarUrl) {
+        if (avatarUrl == null) {
+            return null;
+        }
+        if (avatarUrl.startsWith("/uploads/")) {
+            return "/api/v1/user" + avatarUrl;
+        }
+        if (avatarUrl.startsWith("/api/v1/admin/uploads/")) {
+            return "/api/v1/user/uploads/" + avatarUrl.substring("/api/v1/admin/uploads/".length());
+        }
+        return avatarUrl;
+    }
+
+    private LotteryDisplayWinnerVO buildDisplayWinnerVO(LotteryDisplayWinner winner, Map<Long, Integer> tierLevelMap,
+                                                        Map<Long, String> currentAvatarMap) {
         LotteryDisplayWinnerVO vo = new LotteryDisplayWinnerVO();
         vo.setId(winner.getId());
         vo.setNickname(maskNickname(winner.getNickname()));
-        vo.setAvatarUrl(winner.getAvatarUrl());
+        String currentAvatar = winner.getUserId() != null ? currentAvatarMap.get(winner.getUserId()) : null;
+        vo.setAvatarUrl(currentAvatar != null ? currentAvatar : normalizeAvatarUrl(winner.getAvatarUrl()));
         vo.setPrizeName(winner.getPrizeName());
+        vo.setPrizeLevel(tierLevelMap.get(winner.getTierId()));
         vo.setWinTime(winner.getWinTime());
         vo.setIsReal(winner.getIsReal());
         return vo;

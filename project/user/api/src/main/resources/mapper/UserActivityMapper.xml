@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.activity.mapper.UserActivityMapper">
+
+    <insert id="upsert">
+        INSERT INTO u_user_activity (user_id, last_active_time)
+        VALUES (#{userId}, #{activeTime})
+        ON DUPLICATE KEY UPDATE last_active_time = VALUES(last_active_time)
+    </insert>
+
+</mapper>

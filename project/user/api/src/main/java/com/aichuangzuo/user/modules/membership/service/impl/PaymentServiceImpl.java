@@ -61,6 +61,7 @@ public class PaymentServiceImpl implements PaymentService {
     private static final String TEST_PAY_CODE = "123456";
     private static final String ORDER_NO_PREFIX = "SUB";
     private static final String PAYMENT_METHOD_XUNHUPAY = "xunhupay";
+    private static final String PAYMENT_METHOD_ZERO_AMOUNT = "zero_amount";
     private static final BigDecimal COIN_TO_YUAN_RATIO = new BigDecimal("10");
     private static final BigDecimal AMOUNT_TOLERANCE = new BigDecimal("0.01");
     private static final int EFFECTIVE_STATUS = 1;
@@ -152,6 +153,12 @@ public class PaymentServiceImpl implements PaymentService {
             return buildSubscribeResult(order, plan, cycle, userId, true);
         }
 
+        // 创作币/券全额抵扣后实付 0 元：不走虎皮椒，内部直接确认完成
+        if (finalCashAmount.compareTo(BigDecimal.ZERO) == 0) {
+            confirmOrder(order.getOrderNo(), null, true);
+            return buildSubscribeResult(order, plan, cycle, userId, true);
+        }
+
         String title = buildPaymentTitle(plan, cycle);
         XunhupayPaymentResponse response = xunhupayClient.createPayment(config, order.getOrderNo(), finalCashAmount, title);
         if (response == null || response.getErrcode() == null || response.getErrcode() != 0) {
@@ -190,7 +197,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         order.setStatus(1);
         order.setPaidAt(LocalDateTime.now());
-        order.setPaymentMethod(PAYMENT_METHOD_XUNHUPAY);
+        order.setPaymentMethod(order.getAmount() != null && order.getAmount().compareTo(BigDecimal.ZERO) == 0
+                ? PAYMENT_METHOD_ZERO_AMOUNT : PAYMENT_METHOD_XUNHUPAY);
         order.setThirdPartyTradeId(thirdPartyTradeId);
         orderMapper.updateById(order);
 

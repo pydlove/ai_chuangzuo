@@ -4,6 +4,7 @@ import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDisplayWinnerSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDrawRecordQueryRequest;
+import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryManualChangeUserRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryManualGrantRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryRedemptionCodeQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryDisplayWinnerAdminService;
@@ -59,6 +60,26 @@ public class LotteryRecordAdminController {
         log.info("管理员人工分配中奖, adminUserId={}, campaignId={}, tierId={}, userId={}",
                 adminUserId, request.getCampaignId(), request.getTierId(), request.getUserId());
         recordAdminService.manualGrant(request);
+        return Result.success();
+    }
+
+    @Operation(summary = "删除人工发奖记录")
+    @DeleteMapping("/draw-records/{id}")
+    public Result<Void> deleteDrawRecord(@PathVariable("id") Long id) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员删除人工发奖记录, adminUserId={}, recordId={}", adminUserId, id);
+        recordAdminService.deleteManualGrant(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "修改人工发奖获奖人")
+    @PostMapping("/draw-records/{id}/change-user")
+    public Result<Void> changeDrawRecordUser(
+            @PathVariable("id") Long id,
+            @Valid @RequestBody LotteryManualChangeUserRequest request) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员修改人工发奖获奖人, adminUserId={}, recordId={}, newUserId={}", adminUserId, id, request.getUserId());
+        recordAdminService.changeManualGrantUser(id, request.getUserId());
         return Result.success();
     }
 

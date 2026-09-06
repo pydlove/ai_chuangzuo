@@ -153,7 +153,18 @@
             </span>
             <span v-else-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
             <span v-else-if="column.key === 'action'">
-              <a-button size="small" type="link" @click="openResetChanceModal(record.campaignId, record.userId)">重置次数</a-button>
+              <a-space>
+                <a-button size="small" type="link" @click="openResetChanceModal(record.campaignId, record.userId)">重置次数</a-button>
+                <template v-if="record.drawType === 'manual'">
+                  <a-button v-if="record.codeStatus === 'unused'" size="small" type="link" @click="openChangeUserModal(record)">修改用户</a-button>
+                  <a-popconfirm v-if="record.codeStatus !== 'used'"
+                                title="删除后将移除兑换码与展示墙记录，并释放该奖项额度，确认删除？"
+                                @confirm="removeDrawRecord(record.id)">
+                    <a-button size="small" type="link" danger>删除</a-button>
+                  </a-popconfirm>
+                  <span v-else class="action-disabled-tip">已兑换，不可操作</span>
+                </template>
+              </a-space>
             </span>
             <span v-else>{{ record[column.key] }}</span>
           </template>
@@ -410,6 +421,21 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 修改人工发奖用户弹窗 -->
+    <a-modal v-model:open="changeUserModalVisible" title="修改获奖用户" width="480px" :confirm-loading="changeUserSaving"
+             @ok="saveChangeUser" @cancel="changeUserModalVisible = false">
+      <a-alert type="info" show-icon message="仅同步更新抽奖记录、兑换码与展示墙的获奖人，不涉及奖项额度" style="margin-bottom: 16px" />
+      <a-form :model="changeUserForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <a-form-item label="当前用户">
+          <a-input :value="changeUserForm.currentLabel" disabled />
+        </a-form-item>
+        <a-form-item label="新用户" required>
+          <a-select v-model:value="changeUserForm.userId" placeholder="搜索选择用户" show-search allow-clear
+                    :filter-option="false" :options="userOptions" @search="fetchUserOptions" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -422,7 +448,7 @@ import 'md-editor-v3/lib/style.css'
 import {
   listCampaigns, saveCampaign, openCampaign as apiOpenCampaign, closeCampaign as apiCloseCampaign, deleteCampaign, cloneCampaign as apiCloneCampaign,
   listTiers, saveTier, deleteTier,
-  listRedemptionCodes, listDrawRecords, resetDrawChance, manualGrant, listDisplayWinners, saveDisplayWinner, toggleDisplayWinner, deleteDisplayWinner
+  listRedemptionCodes, listDrawRecords, resetDrawChance, manualGrant, deleteDrawRecord, changeDrawRecordUser, listDisplayWinners, saveDisplayWinner, toggleDisplayWinner, deleteDisplayWinner
 } from '@/api/lottery'
 import { listUserOptions } from '@/api/userOptions'
 
@@ -1112,6 +1138,49 @@ async function saveGrant() {
   }
 }
 
+const changeUserModalVisible = ref(false)
+const changeUserSaving = ref(false)
+const changeUserForm = ref({ recordId: null, userId: null, currentLabel: '' })
+
+async function openChangeUserModal(record) {
+  changeUserForm.value = {
+    recordId: record.id,
+    userId: null,
+    currentLabel: `${record.nickname || ''}${record.email ? ' / ' + record.email : ''}（ID: ${record.userId}）`
+  }
+  userOptions.value = []
+  changeUserModalVisible.value = true
+  await fetchUserOptions('')
+}
+
+async function saveChangeUser() {
+  if (!changeUserForm.value.userId) {
+    message.warning('请选择新用户')
+    return
+  }
+  changeUserSaving.value = true
+  try {
+    await changeDrawRecordUser(changeUserForm.value.recordId, changeUserForm.value.userId)
+    message.success('获奖用户已更新')
+    changeUserModalVisible.value = false
+    loadRecords()
+  } catch (e) {
+    message.error(e.response?.data?.message || '修改失败')
+  } finally {
+    changeUserSaving.value = false
+  }
+}
+
+async function removeDrawRecord(id) {
+  try {
+    await deleteDrawRecord(id)
+    message.success('已删除，奖项额度已释放')
+    loadRecords()
+  } catch (e) {
+    message.error(e.response?.data?.message || '删除失败')
+  }
+}
+
 function statusText(status) {
   const map = { 0: '草稿', 1: '进行中', 2: '已结束', 3: '已关闭' }
   return map[status] || status
@@ -1149,6 +1218,10 @@ function formatTime(t) {
 </script>
 
 <style scoped>
+.action-disabled-tip {
+  font-size: 12px;
+  color: #bbb;
+}
 .lottery-admin {
   background: #fff;
   padding: 24px;

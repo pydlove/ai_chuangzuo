@@ -16,8 +16,12 @@ export function redeem(code) {
   return request({ url: '/lottery/redeem', method: 'post', data: { code } })
 }
 
-export function getDisplayWinners(campaignId, limit = 20) {
-  return request({ url: '/lottery/display-winners', method: 'get', params: { campaignId, limit } })
+export function getDisplayWinnersPaged(campaignId, page = 1, pageSize = 20) {
+  return request({ url: '/lottery/display-winners', method: 'get', params: { campaignId, page, pageSize } })
+}
+
+export function getGrandWinners(campaignId) {
+  return request({ url: '/lottery/display-winners/grand', method: 'get', params: { campaignId } })
 }
 
 export function getMyCodes() {

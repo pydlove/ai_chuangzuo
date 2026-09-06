@@ -151,16 +151,45 @@
         <!-- 中奖展示墙 -->
         <section class="winners-section">
           <SectionTitle title="中奖展示墙" bar />
-          <div class="winners-card">
-            <EmptyState v-if="!displayWinners.length" title="暂无中奖记录" compact size="sm" />
-            <div v-else class="winner-list">
-              <div v-for="w in displayWinners" :key="w.id" class="winner-row">
-                <a-avatar :src="w.avatarUrl || defaultAvatar" />
-                <div class="winner-row__meta">
-                  <span class="winner-row__name">{{ w.nickname || '幸运用户' }}</span>
-                  <span class="winner-row__prize">{{ w.prizeName }}</span>
+
+          <!-- 大奖得主 -->
+          <div v-if="grandAllWinners.length" class="grand-winners">
+            <div class="winners-sub-title">大奖得主</div>
+            <div class="grand-winners__grid">
+              <div v-for="w in visibleGrandWinners" :key="`grand-${w.id}`" class="grand-winner-card" :class="levelClass(w.prizeLevel)">
+                <div class="grand-winner-card__badge">{{ prizeLevelText(w.prizeLevel) }}</div>
+                <a-avatar :size="56" :src="w.avatarUrl || undefined" />
+                <div class="grand-winner-card__name">{{ w.nickname || '幸运用户' }}</div>
+                <div class="grand-winner-card__prize">{{ w.prizeName }}</div>
+                <div class="grand-winner-card__time">{{ formatTime(w.winTime) }}</div>
+              </div>
+            </div>
+            <button v-if="grandHiddenCount > 0" class="grand-winners__more" @click="grandModalVisible = true">
+              查看全部 {{ grandAllWinners.length }} 位大奖得主
+            </button>
+          </div>
+
+          <!-- 全部中奖 -->
+          <div class="all-winners">
+            <div class="winners-sub-title">
+              全部中奖
+              <span v-if="winnerTotal > 0" class="winners-sub-title__count">共 {{ winnerTotal }} 人中奖</span>
+            </div>
+            <div class="winners-card">
+              <EmptyState v-if="!displayWinners.length" title="暂无中奖记录" compact size="sm" />
+              <div v-else class="winner-list">
+                <div v-for="w in displayWinners" :key="w.id" class="winner-row">
+                  <a-avatar :src="w.avatarUrl || undefined" />
+                  <div class="winner-row__meta">
+                    <span class="winner-row__name">{{ w.nickname || '幸运用户' }}</span>
+                    <span class="winner-row__prize">{{ w.prizeName }}</span>
+                  </div>
+                  <span class="winner-row__time">{{ formatTime(w.winTime) }}</span>
                 </div>
-                <span class="winner-row__time">{{ formatTime(w.winTime) }}</span>
+              </div>
+              <div v-if="winnerTotal > WINNER_PAGE_SIZE" class="winner-pagination">
+                <a-pagination v-model:current="winnerPage" size="small" :total="winnerTotal"
+                              :page-size="WINNER_PAGE_SIZE" @change="loadWinners" />
               </div>
             </div>
           </div>
@@ -234,6 +263,29 @@
         </div>
       </div>
     </a-modal>
+
+    <!-- 全部大奖得主弹窗 -->
+    <a-modal
+      v-model:open="grandModalVisible"
+      title="大奖得主"
+      :footer="null"
+      :closable="true"
+      width="92vw"
+      centered
+      class="grand-modal"
+    >
+      <div class="grand-modal-body">
+        <div class="grand-modal-grid">
+          <div v-for="w in grandAllWinners" :key="`grand-all-${w.id}`" class="grand-winner-card" :class="levelClass(w.prizeLevel)">
+            <div class="grand-winner-card__badge">{{ prizeLevelText(w.prizeLevel) }}</div>
+            <a-avatar :size="48" :src="w.avatarUrl || undefined" />
+            <div class="grand-winner-card__name">{{ w.nickname || '幸运用户' }}</div>
+            <div class="grand-winner-card__prize">{{ w.prizeName }}</div>
+            <div class="grand-winner-card__time">{{ formatTime(w.winTime) }}</div>
+          </div>
+        </div>
+      </div>
+    </a-modal>
   </div>
 </template>
 
@@ -243,7 +295,7 @@ import { useRouter, useRoute } from 'vue-router'
 import { message, Modal } from 'ant-design-vue'
 import MarkdownIt from 'markdown-it'
 import { GiftOutlined, CrownOutlined, MoneyCollectOutlined, TagsOutlined, SmileOutlined, ShareAltOutlined } from '@ant-design/icons-vue'
-import { getCurrentCampaign, getChances, draw, getDisplayWinners, getMyCodes, redeem } from '@/api/lottery'
+import { getCurrentCampaign, getChances, draw, getDisplayWinnersPaged, getGrandWinners, getMyCodes, redeem } from '@/api/lottery'
 import { getShareConfig } from '@/api/shareConfig'
 import { useUserProfile } from '@/composables/useUserProfile.js'
 import { useCopy } from '@/composables/useCopy.js'
@@ -263,6 +315,9 @@ const campaign = ref(null)
 const chances = ref(null)
 const myCodes = ref([])
 const displayWinners = ref([])
+const WINNER_PAGE_SIZE = 20
+const winnerPage = ref(1)
+const winnerTotal = ref(0)
 const drawing = ref(false)
 const resultVisible = ref(false)
 const resultTitle = ref('')
@@ -287,7 +342,6 @@ const boxState = ref('idle')
 const fallingConfetti = ref(false)
 const rulesExpanded = ref(false)
 const prizeModalVisible = ref(false)
-const defaultAvatar = 'https://api.dicebear.com/7.x/avataaars/svg?seed=default'
 const shareConfig = ref(null)
 
 const BOX_COUNT = 10
@@ -310,6 +364,13 @@ const sortedTiers = computed(() => {
   return [...(campaign.value?.tiers || [])].sort((a, b) => (a.prizeLevel ?? 99) - (b.prizeLevel ?? 99))
 })
 const hasMoreTiers = computed(() => (campaign.value?.tiers?.length || 0) > PREVIEW_COUNT)
+
+// 大奖得主：特等奖 + 一等奖 + 二等奖（专门接口全量返回，与"全部中奖"分页数据无关）
+const GRAND_PREVIEW_COUNT = 6
+const grandModalVisible = ref(false)
+const grandAllWinners = ref([])
+const visibleGrandWinners = computed(() => grandAllWinners.value.slice(0, GRAND_PREVIEW_COUNT))
+const grandHiddenCount = computed(() => Math.max(0, grandAllWinners.value.length - GRAND_PREVIEW_COUNT))
 
 const LOTTERY_HERO_IMAGE = ''
 
@@ -407,7 +468,8 @@ onBeforeUnmount(() => {
 
 watch(campaign, (val) => {
   if (val) {
-    loadWinners()
+    loadWinners(1)
+    loadGrandWinners()
     if (isLoggedIn.value) {
       loadChances()
       loadMyCodes()
@@ -438,11 +500,23 @@ async function loadChances() {
   }
 }
 
-async function loadWinners() {
+async function loadWinners(page = winnerPage.value) {
   if (!campaign.value) return
   try {
-    const res = await getDisplayWinners(campaign.value.id)
-    displayWinners.value = res.data || []
+    const res = await getDisplayWinnersPaged(campaign.value.id, page, WINNER_PAGE_SIZE)
+    displayWinners.value = res.data?.list || []
+    winnerTotal.value = res.data?.total || 0
+    winnerPage.value = page
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function loadGrandWinners() {
+  if (!campaign.value) return
+  try {
+    const res = await getGrandWinners(campaign.value.id)
+    grandAllWinners.value = res.data || []
   } catch (e) {
     // ignore
   }
@@ -507,6 +581,8 @@ async function performDraw(targetBox, roll = false) {
       resultVisible.value = true
       loadChances()
       loadMyCodes()
+      loadWinners(1)
+      loadGrandWinners()
     }, 600)
   } catch (e) {
     if (!pageMounted) return
@@ -1429,6 +1505,184 @@ function formatTime(t) {
   gap: 12px;
 }
 
+.winner-pagination {
+  display: flex;
+  justify-content: center;
+  margin-top: 16px;
+}
+.winner-pagination :deep(.ant-pagination-item-active) {
+  background: var(--color-primary, #ff2442);
+  border-color: var(--color-primary, #ff2442);
+}
+.winner-pagination :deep(.ant-pagination-item-active a) {
+  color: #fff;
+}
+.winner-pagination :deep(.ant-pagination-item:hover),
+.winner-pagination :deep(.ant-pagination-prev:hover .ant-pagination-item-link),
+.winner-pagination :deep(.ant-pagination-next:hover .ant-pagination-item-link) {
+  border-color: var(--color-primary, #ff2442);
+  color: var(--color-primary, #ff2442);
+}
+.winner-pagination :deep(.ant-pagination-item:hover a) {
+  color: var(--color-primary, #ff2442);
+}
+
+.winners-sub-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin: 16px 0 12px;
+}
+
+.winners-sub-title::before {
+  content: '';
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #FFD700 0%, #FF8C00 100%);
+}
+
+.winners-sub-title__count {
+  font-size: 12px;
+  font-weight: 400;
+  color: #8c8c8c;
+}
+
+.grand-winners {
+  margin-bottom: 8px;
+}
+
+.grand-winners__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.grand-winners__more {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 0;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 13px;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  cursor: pointer;
+}
+
+.grand-modal :deep(.ant-modal) {
+  width: 92vw !important;
+  max-width: 560px;
+}
+
+/* 固定高度 + 内部滚动，内容多少弹框高度不变 */
+.grand-modal :deep(.ant-modal-body) {
+  height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.grand-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 769px) {
+  .grand-modal-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.grand-winner-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  padding: 26px 12px 16px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06);
+  overflow: hidden;
+}
+
+.grand-winner-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.grand-winner-card.level-1::before {
+  background: linear-gradient(90deg, #FFD700 0%, #FF8C00 100%);
+}
+
+.grand-winner-card.level-2::before {
+  background: linear-gradient(90deg, #FF8C00 0%, #FF5E3A 100%);
+}
+
+.grand-winner-card.level-3::before {
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+}
+
+.grand-winner-card__badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  line-height: 1.4;
+}
+
+.grand-winner-card.level-1 .grand-winner-card__badge {
+  background: linear-gradient(135deg, #FFD700 0%, #FF8C00 100%);
+  box-shadow: 0 2px 6px rgba(255, 140, 0, 0.3);
+}
+
+.grand-winner-card.level-2 .grand-winner-card__badge {
+  background: linear-gradient(135deg, #FF8C00 0%, #FF5E3A 100%);
+  box-shadow: 0 2px 6px rgba(255, 94, 58, 0.25);
+}
+
+.grand-winner-card.level-3 .grand-winner-card__badge {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 2px 6px rgba(118, 75, 162, 0.25);
+}
+
+.grand-winner-card__name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.grand-winner-card__prize {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.grand-winner-card__time {
+  font-size: 11px;
+  color: #bfbfbf;
+}
+
 .winner-row {
   display: flex;
   align-items: center;
@@ -1780,6 +2034,23 @@ body[data-theme="dark"] .code-row,
 body[data-theme="dark"] .winner-row {
   background: #262626;
 }
+
+body[data-theme="dark"] .grand-winner-card {
+  background: #1f1f1f;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .grand-winners__more {
+  background: #1f1f1f;
+  color: #ff6b85;
+  box-shadow: none;
+}
+
+body[data-theme="dark"] .grand-winner-card__name,
+body[data-theme="dark"] .winners-sub-title {
+  color: #f5f5f5;
+}
+body[data-theme="dark"] .winners-sub-title__count { color: #a6a6a6; }
 
 body[data-theme="dark"] .code-row__value {
   color: #f5f5f5;

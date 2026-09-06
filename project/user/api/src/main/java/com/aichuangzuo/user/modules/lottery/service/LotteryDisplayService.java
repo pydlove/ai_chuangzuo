@@ -2,6 +2,7 @@ package com.aichuangzuo.user.modules.lottery.service;
 
 import com.aichuangzuo.user.modules.lottery.entity.LotteryCampaign;
 import com.aichuangzuo.user.modules.lottery.entity.LotteryPrizeTier;
+import com.aichuangzuo.user.modules.lottery.vo.LotteryDisplayWinnerPageVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryDisplayWinnerVO;
 import com.aichuangzuo.user.modules.lottery.vo.LotteryRedemptionCodeVO;
 
@@ -32,7 +33,23 @@ public interface LotteryDisplayService {
      */
     List<LotteryPrizeTier> listActiveTiersByCampaignId(Long campaignId);
 
-    List<LotteryDisplayWinnerVO> listDisplayWinners(Long campaignId, int limit);
+    /**
+     * 分页查询中奖展示墙（按中奖时间倒序）。
+     *
+     * @param campaignId 活动 ID
+     * @param page 页码，从 1 开始
+     * @param pageSize 每页条数
+     * @return 分页结果
+     */
+    LotteryDisplayWinnerPageVO listDisplayWinnersPage(Long campaignId, int page, int pageSize);
+
+    /**
+     * 查询全部大奖得主（特等奖/一等奖/二等奖），按奖项等级升序、中奖时间倒序。
+     *
+     * @param campaignId 活动 ID
+     * @return 大奖得主列表
+     */
+    List<LotteryDisplayWinnerVO> listGrandWinners(Long campaignId);
 
     List<LotteryRedemptionCodeVO> listMyRedemptionCodes(Long userId);
 }

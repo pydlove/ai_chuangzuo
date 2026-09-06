@@ -40,15 +40,21 @@ function qrBaseUrlPlugin() {
 }
 
 // https://vitejs.dev/config/
+// 一次构建共用一个版本号，保证 index.html 注入值与 version.json 一致
+let buildVersion = null
+
 export default defineConfig({
   plugins: [
     vue(),
     qrBaseUrlPlugin(),
     {
       name: 'build-version',
+      buildStart() {
+        buildVersion = `build-${Date.now()}`
+      },
       transformIndexHtml(html, ctx) {
         const version = ctx.bundle
-          ? `build-${Date.now()}`
+          ? buildVersion
           : 'dev'
         let result = html.replace(
           '</head>',
@@ -66,6 +72,17 @@ export default defineConfig({
           )
         }
         return result
+      },
+      generateBundle(_options, bundle) {
+        // 心跳检测用：随 dist 一起发布，前端轮询比对版本号
+        this.emitFile({
+          type: 'asset',
+          fileName: 'version.json',
+          source: JSON.stringify({
+            version: buildVersion,
+            buildTime: new Date().toISOString()
+          })
+        })
       }
     },
     {

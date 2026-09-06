@@ -1,4 +1,4 @@
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { message } from 'ant-design-vue'
 import { STORAGE_KEYS } from '@/constants/storage.js'
@@ -11,6 +11,7 @@ import {
   previewSubscribe
 } from '@/api/membership'
 import { getPaymentConfig, getOrderStatus } from '@/api/payment'
+import { getMyCoupons } from '@/api/lottery'
 import { useInviteStats } from '@/composables/useInviteStats'
 import { useDevice } from '@/composables/useDevice.js'
 
@@ -40,8 +41,13 @@ export function usePricing() {
   const payCode = ref('')
   const subscribeLoading = ref(false)
   const selectedCoinAmount = ref(0)
+  // 用户是否手动调整过抵扣数量：手动调过后，异步数据到达只做强于不做自动重置
+  const coinSelectionTouched = ref(false)
   const payQrUrl = ref('')
   const currentOrderNo = ref('')
+  // 未使用优惠券与当前选中的券码
+  const myCoupons = ref([])
+  const selectedCouponCode = ref('')
   let pollTimer = null
   let qrExpireTimer = null
   const QR_EXPIRE_SECONDS = 60
@@ -231,6 +237,9 @@ export function usePricing() {
     selectedPlan.value = plan
     payCode.value = ''
     upgradePreview.value = null
+    coinSelectionTouched.value = false
+    selectedCouponCode.value = ''
+    loadCoupons()
 
     const currentKey = currentPlanKey()
     const currentCycleKey = currentMembership.value?.cycle
@@ -270,12 +279,26 @@ export function usePricing() {
     activeCycle.value = 'year'
     payCode.value = ''
     upgradePreview.value = null
+    coinSelectionTouched.value = false
+    selectedCouponCode.value = ''
+    loadCoupons()
     syncCoinSelection()
     modalVisible.value = true
   }
 
+  const loadCoupons = async () => {
+    if (!isLoggedIn()) return
+    try {
+      const res = await getMyCoupons()
+      myCoupons.value = (res.data || []).filter(c => c.status === 'unused')
+    } catch {
+      myCoupons.value = []
+    }
+  }
+
   const confirmUpgrade = () => {
     upgradeModalVisible.value = false
+    coinSelectionTouched.value = false
     syncCoinSelection()
     modalVisible.value = true
   }
@@ -296,8 +319,37 @@ export function usePricing() {
     return Number(plan[keyMap[cycle]]?.current) || 0
   }
 
+  // 优惠券是否适用于当前所选套餐/周期（与服务端 applyCoupon 的适用范围判断保持一致）
+  const isCouponApplicable = (coupon) => {
+    if (!selectedPlan.value) return false
+    const planOk = !coupon.applicablePlan || coupon.applicablePlan === 'all' || coupon.applicablePlan === selectedPlan.value.key
+    const cycleOk = !coupon.applicableCycle || coupon.applicableCycle === 'all' || coupon.applicableCycle === currentCycle()
+    return planOk && cycleOk
+  }
+
+  const selectedCoupon = computed(() =>
+    myCoupons.value.find(c => c.couponCode === selectedCouponCode.value && isCouponApplicable(c)) || null
+  )
+
+  // 券后现金：percent 类型 discountValue 为支付比例（0.95 = 支付 95%，即 9.5 折），
+  // 与服务端 UserCouponServiceImpl.applyCoupon 的计算保持一致
+  const getCashAfterCoupon = () => {
+    const coupon = selectedCoupon.value
+    const base = getExpectedCash()
+    if (!coupon) return base
+    if (coupon.couponType === 'percent') {
+      return Number(Math.max(0, base * Number(coupon.discountValue)).toFixed(2))
+    }
+    return Number(Math.max(0, base - Number(coupon.discountValue)).toFixed(2))
+  }
+
+  // 券折扣金额：基础价 - 券后应付，仅用于展示
+  const getCouponDiscountYuan = () => {
+    return Number(Math.max(0, getExpectedCash() - getCashAfterCoupon()).toFixed(2))
+  }
+
   const getMaxCoinAmount = () => {
-    const maxByCash = Math.floor(getExpectedCash() * COIN_TO_YUAN_RATIO)
+    const maxByCash = Math.floor(getCashAfterCoupon() * COIN_TO_YUAN_RATIO)
     return Math.min(Math.floor(coinBalance.value), maxByCash)
   }
 
@@ -306,12 +358,37 @@ export function usePricing() {
   }
 
   const getFinalCash = () => {
-    return Number(Math.max(0, getExpectedCash() - getCoinDiscountYuan()).toFixed(2))
+    return Number(Math.max(0, getCashAfterCoupon() - getCoinDiscountYuan()).toFixed(2))
+  }
+
+  // 切换优惠券后，创作币抵扣上限变化，超出部分自动收敛
+  const onCouponChange = () => {
+    const max = getMaxCoinAmount()
+    if (selectedCoinAmount.value > max) {
+      selectedCoinAmount.value = max
+    }
   }
 
   const syncCoinSelection = () => {
     selectedCoinAmount.value = getMaxCoinAmount()
   }
+
+  const onCoinSelectionChange = () => {
+    coinSelectionTouched.value = true
+  }
+
+  // 创作币余额、新人价等是异步加载的：弹框打开期间数据到达后，若用户未手动调整过抵扣数量，自动按最大可抵同步
+  watch([coinBalance, modalVisible, newcomerOffer], () => {
+    if (!modalVisible.value) return
+    const max = getMaxCoinAmount()
+    if (coinSelectionTouched.value) {
+      if (selectedCoinAmount.value > max) {
+        selectedCoinAmount.value = max
+      }
+      return
+    }
+    syncCoinSelection()
+  })
 
   const stopPolling = () => {
     if (pollTimer) {
@@ -372,6 +449,8 @@ export function usePricing() {
   const finishSubscription = (data, plan, cycle) => {
     loadInviteStats()
     selectedCoinAmount.value = 0
+    selectedCouponCode.value = ''
+    loadCoupons()
     localStorage.setItem(STORAGE_KEYS.MEMBERSHIP, JSON.stringify({
       level: planKeyToName[data.level] || plan.name,
       expiresAt: data.expiresAt
@@ -402,6 +481,8 @@ export function usePricing() {
 
     const plan = selectedPlan.value
     const cycle = currentCycle()
+    const coinAmount = Math.min(selectedCoinAmount.value, getMaxCoinAmount())
+    selectedCoinAmount.value = coinAmount
 
     subscribeLoading.value = true
     try {
@@ -410,7 +491,8 @@ export function usePricing() {
         cycle,
         payCode: payCode.value,
         amount: getFinalCash(),
-        coinAmount: selectedCoinAmount.value
+        coinAmount,
+        couponCode: selectedCoupon.value ? selectedCouponCode.value : undefined
       })
       const data = res.data
 
@@ -515,6 +597,10 @@ export function usePricing() {
     qrExpireSeconds,
     qrExpired,
     resetQrExpire,
+    myCoupons,
+    selectedCouponCode,
+    isCouponApplicable,
+    onCouponChange,
     plans,
     compareRows,
     catalogLoading,
@@ -555,6 +641,8 @@ export function usePricing() {
     COIN_TO_YUAN_RATIO,
     getMaxCoinAmount,
     getCoinDiscountYuan,
-    getFinalCash
+    getCouponDiscountYuan,
+    getFinalCash,
+    onCoinSelectionChange
   }
 }

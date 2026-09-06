@@ -56,6 +56,14 @@ export function manualGrant(data) {
   return request({ url: '/lottery/draw-records/manual-grant', method: 'post', data })
 }
 
+export function deleteDrawRecord(id) {
+  return request({ url: `/lottery/draw-records/${id}`, method: 'delete' })
+}
+
+export function changeDrawRecordUser(id, userId) {
+  return request({ url: `/lottery/draw-records/${id}/change-user`, method: 'post', data: { userId } })
+}
+
 export function listDisplayWinners(campaignId) {
   return request({ url: '/lottery/display-winners', method: 'get', params: { campaignId } })
 }

@@ -67,7 +67,8 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private static final BigDecimal NEWCOMER_EXTRA_DISCOUNT = new BigDecimal("0.8");
 
     @Override
-    @Cacheable(cacheNames = "planCatalog", key = "'v1'")
+    // key 用三表最大 updated_at 做版本：管理端改价/改权益后版本变化，缓存即时失效（跨进程生效）
+    @Cacheable(cacheNames = "planCatalog", key = "@planCacheVersionKeyProvider.version()")
     public PlanCatalogVO getCatalog() {
         log.debug("组装定价目录（DB）");
 

@@ -114,6 +114,38 @@ function rsync_lib() {
     return 1
 }
 
+# 前端静态文件同步：不带 --delete，让新旧 hash assets 共存，
+# 发布期间已打开页面引用的旧资源不会 404；入口文件最后单独同步，缩短新旧混合窗口。
+# 用法: rsync_frontend <本地dist目录> <远程目录>
+# 注意：macOS 自带的 openrsync 在「内联 --exclude + --checksum」组合下会误报 link_stat 并以 code 23 退出，
+# 因此排除规则通过 --exclude-from 文件传入。
+function rsync_frontend() {
+    local src=$1; local dst=$2
+    local max_attempts=3; local delay=10
+    local excludes_file
+    excludes_file="$(mktemp /tmp/aichuangzuo_rsync_excludes.XXXXXX)"
+    printf 'index.html\nversion.json\n' > "$excludes_file"
+    for attempt in $(seq 1 $max_attempts); do
+        if eval "rsync -avz --checksum --exclude-from='$excludes_file' -e \"$RSYNC_SSH\" \"$src\" \"$dst\"" \
+           && eval "rsync -avz --checksum -e \"$RSYNC_SSH\" \"$src/index.html\" \"$src/version.json\" \"$dst\""; then
+            rm -f "$excludes_file"
+            return 0
+        fi
+        log_warn "frontend rsync attempt $attempt/$max_attempts failed, retrying in ${delay}s..."
+        sleep $delay
+        delay=$((delay * 2))
+    done
+    rm -f "$excludes_file"
+    log_error "frontend rsync failed after $max_attempts attempts"
+    return 1
+}
+
+# 清理前端目录中超过 14 天未修改的旧构建产物（hash assets 已 immutable 缓存到浏览器，删除不影响在线用户）
+function cleanup_frontend() {
+    local remote_dir=$1
+    eval "$SSH_CMD $REMOTE_HOST 'find $remote_dir -type f -mtime +14 -delete 2>/dev/null || true'"
+}
+
 REMOTE_HOST="$SERVER_USER@$SERVER_IP"
 
 # 脚本退出时清理 SSH 连接复用，避免残留 master 连接导致下次执行挂起
@@ -353,15 +385,15 @@ fi
 # ============ 步骤3: 上传前端静态文件 ============
 if [ "$DEPLOY_USER_WEB" = true ]; then
     log_step "上传用户端前端到 $REMOTE_APP_DIR/user-web/ ..."
-    eval "$SSH_CMD $REMOTE_HOST 'rm -rf $REMOTE_APP_DIR/user-web/*'"
-    retry_scp "$PROJECT_DIR/project/user/web/dist/." "$REMOTE_HOST:$REMOTE_APP_DIR/user-web/"
+    rsync_frontend "$PROJECT_DIR/project/user/web/dist/." "$REMOTE_HOST:$REMOTE_APP_DIR/user-web/"
+    cleanup_frontend "$REMOTE_APP_DIR/user-web"
 fi
 
 if [ "$DEPLOY_ADMIN_WEB" = true ]; then
     if [ -d "$PROJECT_DIR/project/admin/web/dist" ]; then
         log_step "上传管理端前端到 $REMOTE_APP_DIR/admin-web/ ..."
-        eval "$SSH_CMD $REMOTE_HOST 'rm -rf $REMOTE_APP_DIR/admin-web/*'"
-        retry_scp "$PROJECT_DIR/project/admin/web/dist/." "$REMOTE_HOST:$REMOTE_APP_DIR/admin-web/"
+        rsync_frontend "$PROJECT_DIR/project/admin/web/dist/." "$REMOTE_HOST:$REMOTE_APP_DIR/admin-web/"
+        cleanup_frontend "$REMOTE_APP_DIR/admin-web"
     else
         log_warn "管理端前端 dist 目录不存在，跳过上传"
     fi

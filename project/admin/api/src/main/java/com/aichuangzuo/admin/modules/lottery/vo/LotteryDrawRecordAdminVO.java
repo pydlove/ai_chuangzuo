@@ -18,6 +18,7 @@ public class LotteryDrawRecordAdminVO {
     private String tierName;
     private Long codeId;
     private String code;
+    private String codeStatus;
     private String drawType;
     private Long inviteRelationId;
     private LocalDateTime createdAt;

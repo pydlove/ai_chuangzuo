@@ -214,8 +214,9 @@ async function loadMoreTestimonials() {
       hasMoreTestimonials.value = false
       return false
     }
-    const existingIds = new Set(testimonials.value.map((item) => item.id))
-    const fresh = list.filter((item) => !existingIds.has(item.id))
+    // 模拟评价与用户评价是两张表各自的自增 ID，会重叠，去重必须带 source
+    const existingKeys = new Set(testimonials.value.map((item) => `${item.source || 'item'}-${item.id}`))
+    const fresh = list.filter((item) => !existingKeys.has(`${item.source || 'item'}-${item.id}`))
     if (!fresh.length) {
       hasMoreTestimonials.value = false
       return false

@@ -11,6 +11,7 @@ public class LotteryDisplayWinnerVO {
     private String nickname;
     private String avatarUrl;
     private String prizeName;
+    private Integer prizeLevel;
     private LocalDateTime winTime;
     private Integer isReal;
 }

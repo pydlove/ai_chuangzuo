@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.aichuangzuo.user.modules.activity.mapper.UserDailyActiveMapper">
+
+    <insert id="insertIgnore">
+        INSERT IGNORE INTO u_daily_active (user_id, active_date)
+        VALUES (#{userId}, #{activeDate})
+    </insert>
+
+</mapper>

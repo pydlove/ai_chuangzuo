@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,6 +20,10 @@ public class PlatformUser {
     private String phone;
     private String passwordHash;
     private String avatarUrl;
+    private String bio;
+    private Integer gender;
+    private LocalDate birthday;
+    private String location;
     private String inviteCode;
     private Integer userStatus;
     private Integer userType;

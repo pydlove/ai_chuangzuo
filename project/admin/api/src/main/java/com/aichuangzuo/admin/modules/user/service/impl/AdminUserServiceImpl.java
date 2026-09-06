@@ -1,6 +1,5 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
-import com.aichuangzuo.admin.common.util.AvatarUrlUtil;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.order.entity.AdminMembership;
 import com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper;
@@ -592,7 +591,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setNickname(user.getNickname());
         vo.setStatus(user.getUserStatus() == 1 ? "enabled" : "disabled");
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
-        vo.setAvatarUrl(AvatarUrlUtil.normalizeForAdmin(user.getAvatarUrl()));
+        vo.setAvatarUrl(user.getAvatarUrl());
+        vo.setBio(user.getBio());
+        vo.setGender(user.getGender());
+        vo.setBirthday(user.getBirthday());
+        vo.setLocation(user.getLocation());
         vo.setInviteCode(user.getInviteCode());
         vo.setInvitedCount(userInviteRelationMapper.countEffectiveByInviterId(user.getId()));
 
