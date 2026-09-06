@@ -27,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -50,6 +51,10 @@ public class AccountAdminServiceImpl implements AccountAdminService {
     private static final int COIN_DIRECTION_INCOME = 1;
     private static final String COIN_BIZ_NO_PREFIX = "CR";
     private static final int USER_TYPE_ROBOT = 0;
+    private static final String EARNINGS_TYPE_ADMIN_REWARD = "ADMIN_REWARD";
+    private static final String EARNINGS_SOURCE_TYPE_MANUAL = "manual";
+    private static final String EARNINGS_BIZ_NO_PREFIX = "ER";
+    private static final String EARNINGS_TITLE_REWARD_COIN = "奖励创作币";
 
     @Override
     public UserAccountPageVO listAccounts(AccountQueryRequest request) {
@@ -176,9 +181,27 @@ public class AccountAdminServiceImpl implements AccountAdminService {
         record.setTenantId(0L);
         userCoinRecordMapper.insert(record);
 
+        // 同步写入收益明细，保证账户余额与累计收益口径一致，用户端账户明细可见
+        EarningsRecord earningsRecord = new EarningsRecord();
+        earningsRecord.setUserId(userId);
+        earningsRecord.setType(EARNINGS_TYPE_ADMIN_REWARD);
+        earningsRecord.setSourceType(EARNINGS_SOURCE_TYPE_MANUAL);
+        earningsRecord.setSourceId(record.getBizNo());
+        earningsRecord.setBizNo(generateEarningsBizNo());
+        earningsRecord.setTitle(EARNINGS_TITLE_REWARD_COIN);
+        earningsRecord.setDescription(StringUtils.hasText(request.getRemark())
+                ? request.getRemark() : "管理员发放奖励创作币");
+        earningsRecord.setAmount(amount);
+        earningsRecord.setSettlementMonth(YearMonth.now().toString());
+        earningsRecordMapper.insert(earningsRecord);
+
         log.info("管理员为机器人用户增加创作币, adminUserId={}, userId={}, amount={}, bizNo={}",
                 SecurityAdminContext.getCurrentAdminUserId(), userId, amount, record.getBizNo());
         return record.getBizNo();
+    }
+
+    private String generateEarningsBizNo() {
+        return EARNINGS_BIZ_NO_PREFIX + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 
     private String generateCoinBizNo() {

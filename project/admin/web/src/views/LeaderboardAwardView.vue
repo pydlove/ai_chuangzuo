@@ -38,7 +38,7 @@
           <a-date-picker v-model:value="monthObj" value-format="YYYY-MM" picker="month" />
         </a-form-item>
         <a-form-item>
-          <a-button type="primary" @click="handlePreview">预览 TOP10</a-button>
+          <a-button type="primary" @click="handlePreview">预览 TOP5</a-button>
         </a-form-item>
         <a-form-item>
           <a-button type="primary" danger :loading="state.loading" @click="handleGrant">发放奖励</a-button>

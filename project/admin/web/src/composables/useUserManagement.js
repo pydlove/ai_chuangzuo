@@ -10,6 +10,7 @@ export function useUserManagement() {
   const pageSize = ref(10)
   const keyword = ref('')
   const inviteCode = ref('')
+  const userType = ref(1)
 
   const fetchUsers = async () => {
     loading.value = true
@@ -17,6 +18,7 @@ export function useUserManagement() {
       const res = await listUsers({
         keyword: keyword.value,
         inviteCode: inviteCode.value,
+        userType: userType.value,
         page: page.value,
         pageSize: pageSize.value
       })
@@ -99,6 +101,7 @@ export function useUserManagement() {
     pageSize,
     keyword,
     inviteCode,
+    userType,
     fetchUsers,
     handleSearch,
     handleReset,

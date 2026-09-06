@@ -15,6 +15,7 @@ public enum EarningsType {
     INVITE_REWARD("INVITE_REWARD", "邀请奖励"),
     COMMISSION_REWARD("COMMISSION_REWARD", "约稿奖励"),
     COIN_DEDUCTION("COIN_DEDUCTION", "创作币抵扣"),
+    ADMIN_REWARD("ADMIN_REWARD", "管理员奖励"),
     OTHER("OTHER", "其他");
 
     private final String code;

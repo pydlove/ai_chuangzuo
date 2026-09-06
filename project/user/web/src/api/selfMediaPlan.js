@@ -61,6 +61,16 @@ export function getPublishPlan(mainPlatform) {
 }
 
 /**
+ * 运营方案库：匿名分页浏览全平台用户的运营方案（专业版及以上）。
+ * @param {number} page
+ * @param {number} size
+ * @returns {Promise<{code:number, data:{records:Array, total:number, current:number, size:number}, msg:string}>}
+ */
+export function fetchPlanGallery(page = 1, size = 20) {
+  return api.get(`${BASE}/gallery`, { params: { page, size } })
+}
+
+/**
  * 根据自媒体运营方案生成发布计划（主平台规律时段 + 冷启动策略 + 一文多发）。
  * @param {{mainPlatform:string}} data
  * @returns {Promise<{code:number, data:{mainPlatform:{platform:string,publishTime:string,reason:string}, coldStart:{immediateActions:string[],duration:string,sharingTips:string}, reposts:{platform:string,publishTime:string,title:string,tags:string[],imageSuggestions:string}[]}, msg:string}>}

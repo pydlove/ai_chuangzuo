@@ -3,7 +3,6 @@ package com.aichuangzuo.admin.modules.topictitle.service;
 import com.aichuangzuo.admin.modules.aiprompt.service.AiPromptRenderService;
 import com.aichuangzuo.admin.modules.generation.service.AiCallResult;
 import com.aichuangzuo.admin.modules.generation.service.GenerationAiService;
-import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
 import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.admin.modules.topictitle.dto.request.TopicTitleQueryRequest;
 import com.aichuangzuo.admin.modules.topictitle.entity.TopicTitleTask;
@@ -11,6 +10,8 @@ import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleMapper;
 import com.aichuangzuo.admin.modules.topictitle.mapper.TopicTitleTaskMapper;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitleAdminVO;
 import com.aichuangzuo.admin.modules.topictitle.vo.TopicTitlePageVO;
+import com.aichuangzuo.shared.ai.ActiveModelConfig;
+import com.aichuangzuo.shared.ai.ModelConfigSelector;
 import com.aichuangzuo.shared.entity.TopicTitle;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -52,6 +53,7 @@ public class TopicTitleService {
     private final TopicTitleMapper topicTitleMapper;
     private final TopicTitleTaskMapper topicTitleTaskMapper;
     private final ModelConfigMapper modelConfigMapper;
+    private final ModelConfigSelector modelConfigSelector;
     private final GenerationAiService generationAiService;
     private final AiPromptRenderService aiPromptRenderService;
     private final ObjectMapper objectMapper;
@@ -88,11 +90,7 @@ public class TopicTitleService {
      * @throws BusinessException 无 active 模型
      */
     public Long submitTask(int count, String direction) {
-        ModelConfig cfg = modelConfigMapper.selectOne(new LambdaQueryWrapper<ModelConfig>()
-                .eq(ModelConfig::getIsActive, 1)
-                .orderByAsc(ModelConfig::getId)
-                .last("LIMIT 1"));
-        if (cfg == null) {
+        if (modelConfigMapper.selectActiveAiViewByPriority().isEmpty()) {
             log.warn("AI 生成标题入队失败：无 active 模型配置 count={} direction={}", count, direction);
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE);
         }
@@ -195,10 +193,7 @@ public class TopicTitleService {
      * @throws BusinessException 无 active 模型 / 解析失败
      */
     private int runGeneration(int count, String direction) {
-        ModelConfig cfg = modelConfigMapper.selectOne(new LambdaQueryWrapper<ModelConfig>()
-                .eq(ModelConfig::getIsActive, 1)
-                .orderByAsc(ModelConfig::getId)
-                .last("LIMIT 1"));
+        ActiveModelConfig cfg = modelConfigSelector.next(modelConfigMapper.selectActiveAiViewByPriority());
         if (cfg == null) {
             log.warn("AI 生成标题失败：无 active 模型配置 count={} direction={}", count, direction);
             throw new BusinessException(AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE);

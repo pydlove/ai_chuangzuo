@@ -52,6 +52,9 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     /** 通过模板可见范围表达的权益：值是逗号分隔的 template_key 列表。 */
     private static final String BENEFIT_TEMPLATE_ACCESS = "template_access";
 
+    /** AI 文章生成额度编码，定价卡片文案的唯一来源。 */
+    private static final String BENEFIT_AI_ARTICLE_QUOTA = "ai_article_quota";
+
     private final PlanMapper planMapper;
     private final BenefitMapper benefitMapper;
     private final PlanBenefitMapper planBenefitMapper;
@@ -148,9 +151,15 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
             vo.setKey(plan.getPlanKey());
             vo.setName(plan.getDisplayName());
             vo.setRecommended(plan.getRecommended() != null && plan.getRecommended() == 1);
-            vo.setMonthly(buildBlock(plan.getPriceMonthly(), plan.getOriginalMonthly(), plan.getArticlesMonthly(), null));
-            vo.setQuarter(buildBlock(plan.getPriceQuarter(), plan.getOriginalQuarter(), plan.getArticlesQuarter(), null));
-            vo.setYear(buildBlock(plan.getPriceYear(), plan.getOriginalYear(), plan.getArticlesYear(), plan.getSavingsYear()));
+            String aiArticleQuota = valueByPlan
+                    .getOrDefault(plan.getPlanKey(), Collections.emptyMap())
+                    .get(BENEFIT_AI_ARTICLE_QUOTA);
+            vo.setMonthly(buildBlock(plan.getPriceMonthly(), plan.getOriginalMonthly(),
+                    formatArticles(aiArticleQuota, 1, "篇 AI 文章/月"), null));
+            vo.setQuarter(buildBlock(plan.getPriceQuarter(), plan.getOriginalQuarter(),
+                    formatArticles(aiArticleQuota, 3, "篇 AI 文章/季"), null));
+            vo.setYear(buildBlock(plan.getPriceYear(), plan.getOriginalYear(),
+                    formatArticles(aiArticleQuota, 12, "篇 AI 文章/年"), plan.getSavingsYear()));
             vo.setFeatures(renderFeaturesForPlan(plan.getPlanKey(), benefits, valueByPlan, benefitByCode));
             out.add(vo);
         }
@@ -335,6 +344,20 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     private int parseInt(String value, int fallback) {
         if (value == null) return fallback;
         try { return Integer.parseInt(value); } catch (NumberFormatException e) { return fallback; }
+    }
+
+    /**
+     * 根据月度 AI 文章额度生成定价卡片文案。
+     * @param quotaValue u_plan_benefit.ai_article_quota 的值
+     * @param multiplier 周期倍数（月度 1、季度 3、年度 12）
+     * @param unit 单位后缀，如 "篇 AI 文章/月"
+     */
+    private String formatArticles(String quotaValue, int multiplier, String unit) {
+        int quota = parseInt(quotaValue, -1);
+        if (quota <= 0) {
+            return "—";
+        }
+        return (quota * multiplier) + " " + unit;
     }
 
     /**

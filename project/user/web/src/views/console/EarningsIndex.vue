@@ -7,6 +7,7 @@
 
     <Tabs
       v-model="activeTab"
+      class="account-tabs"
       :tabs="[
         { label: '账户明细', value: 'overview' },
         { label: '收益明细', value: 'earnings' }
@@ -329,6 +330,10 @@ onMounted(() => {
 
 .account-header {
   margin-bottom: 20px;
+}
+
+.account-tabs {
+  margin-bottom: 16px;
 }
 
 .account-title {

@@ -2,8 +2,10 @@ package com.aichuangzuo.admin.modules.modelconfig.service.impl;
 
 import com.aichuangzuo.admin.infrastructure.ai.AiProvider;
 import com.aichuangzuo.admin.infrastructure.ai.AiProviderClient;
+import com.aichuangzuo.admin.infrastructure.ai.GlmProviderClient;
 import com.aichuangzuo.admin.infrastructure.ai.KimiProviderClient;
 import com.aichuangzuo.admin.infrastructure.ai.MinimaxProviderClient;
+import com.aichuangzuo.admin.infrastructure.ai.SensenovaProviderClient;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigActiveRequest;
 import com.aichuangzuo.admin.modules.modelconfig.dto.request.ModelConfigChatTestRequest;
@@ -41,6 +43,8 @@ public class ModelConfigServiceImpl implements ModelConfigService {
     private final ProviderModelMapper providerModelMapper;
     private final KimiProviderClient kimiProviderClient;
     private final MinimaxProviderClient minimaxProviderClient;
+    private final GlmProviderClient glmProviderClient;
+    private final SensenovaProviderClient sensenovaProviderClient;
 
     @Value("${admin.model.api-key-secret}")
     private String apiKeySecret;
@@ -110,9 +114,9 @@ public class ModelConfigServiceImpl implements ModelConfigService {
     @Transactional(rollbackFor = Exception.class)
     public void deleteConfig(Long id) {
         ModelConfig entity = requireConfig(id);
-        entity.setIsDeleted(1);
         entity.setUpdatedBy(currentAdminIdOrZero());
-        modelConfigMapper.updateById(entity);
+        // @TableLogic 字段不会进入 updateById 的 SET 子句，逻辑删除必须走 deleteById
+        modelConfigMapper.deleteById(entity);
     }
 
     @Override
@@ -199,9 +203,11 @@ public class ModelConfigServiceImpl implements ModelConfigService {
                 entity.setIsDeleted(0);
                 providerModelMapper.insert(entity);
             } else if (entity.getIsDeleted() != null && entity.getIsDeleted() == 1) {
-                entity.setIsDeleted(0);
-                entity.setModelName(vo.getModelName());
-                providerModelMapper.updateById(entity);
+                // @TableLogic 字段不会进入 updateById 的 SET 子句，复活需显式 set is_deleted=0
+                providerModelMapper.update(null, Wrappers.<ProviderModel>update()
+                        .eq("id", entity.getId())
+                        .set("is_deleted", 0)
+                        .set("model_name", vo.getModelName()));
             } else if (!Objects.equals(entity.getModelName(), vo.getModelName())) {
                 entity.setModelName(vo.getModelName());
                 providerModelMapper.updateById(entity);
@@ -210,8 +216,8 @@ public class ModelConfigServiceImpl implements ModelConfigService {
 
         for (ProviderModel entity : existing) {
             if (!fetchedCodes.contains(entity.getModelCode()) && entity.getIsDeleted() != null && entity.getIsDeleted() == 0) {
-                entity.setIsDeleted(1);
-                providerModelMapper.updateById(entity);
+                // @TableLogic 字段不会进入 updateById 的 SET 子句，逻辑删除必须走 deleteById
+                providerModelMapper.deleteById(entity);
             }
         }
     }
@@ -233,6 +239,8 @@ public class ModelConfigServiceImpl implements ModelConfigService {
         return switch (provider) {
             case KIMI -> kimiProviderClient;
             case MINIMAX -> minimaxProviderClient;
+            case GLM -> glmProviderClient;
+            case SENSENOVA -> sensenovaProviderClient;
         };
     }
 

@@ -8,6 +8,7 @@ import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
@@ -20,22 +21,15 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 public interface AdminUserService {
-    AdminUserPageVO listUsers(String keyword, String inviteCode, int page, int pageSize);
+    AdminUserPageVO listUsers(String keyword, String inviteCode, Integer userType, int page, int pageSize);
     AdminUserVO getUser(Long id);
     AdminUserInviteDetailVO getUserInviteDetail(Long id, int page, int pageSize);
     void updateStatus(Long id, AdminUserStatusRequest request);
     AdminUserResetPasswordVO resetPassword(Long id);
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
+    AdminUserOptionPageVO listUserOptionsPage(String keyword, int page, int pageSize);
     AdminUserVO createUser(AdminUserCreateRequest request);
     AdminUserVO updateUser(Long id, AdminUserUpdateRequest request);
-
-    /**
-     * 上传用户头像并返回访问路径。
-     *
-     * @param file 头像文件
-     * @return 头像访问 URL
-     */
-    String storeAvatar(MultipartFile file);
 
     void deleteUser(Long id);
 

@@ -103,7 +103,8 @@
             </a-col>
             <a-col :span="8">
               <a-form-item label="文章文案">
-                <a-input v-model:value="form.articlesMonthly" placeholder="30 篇 AI 文章/月" />
+                <div class="article-preview">{{ previewArticles.monthly }}</div>
+                <div class="form-hint">由下方「AI 文章生成」额度自动生成</div>
               </a-form-item>
             </a-col>
           </a-row>
@@ -124,7 +125,8 @@
             </a-col>
             <a-col :span="8">
               <a-form-item label="文章文案">
-                <a-input v-model:value="form.articlesQuarter" placeholder="90 篇 AI 文章/季" />
+                <div class="article-preview">{{ previewArticles.quarter }}</div>
+                <div class="form-hint">由下方「AI 文章生成」额度自动生成</div>
               </a-form-item>
             </a-col>
           </a-row>
@@ -145,7 +147,8 @@
             </a-col>
             <a-col :span="6">
               <a-form-item label="文章文案">
-                <a-input v-model:value="form.articlesYear" placeholder="360 篇 AI 文章/年" />
+                <div class="article-preview">{{ previewArticles.year }}</div>
+                <div class="form-hint">由下方「AI 文章生成」额度自动生成</div>
               </a-form-item>
             </a-col>
             <a-col :span="6">
@@ -257,6 +260,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, h, computed } from 'vue'
+
 import { message } from 'ant-design-vue'
 import { fetchPlans, upsertPlan } from '@/api/plan.js'
 import { fetchBenefits } from '@/api/benefit.js'
@@ -278,6 +282,21 @@ const editing = ref(null)
 const togglingKey = ref('')
 
 const form = reactive(blankForm())
+
+// AI 文章生成真实额度，用于自动生成上方文章文案
+const aiArticleQuota = computed(() => {
+  const v = Number(benefitValues['ai_article_quota'])
+  return Number.isFinite(v) && v > 0 && Number.isInteger(v) ? Math.floor(v) : 0
+})
+
+const previewArticles = computed(() => {
+  const q = aiArticleQuota.value
+  return {
+    monthly: q > 0 ? `${q} 篇 AI 文章/月` : '未配置',
+    quarter: q > 0 ? `${q * 3} 篇 AI 文章/季` : '未配置',
+    year: q > 0 ? `${q * 12} 篇 AI 文章/年` : '未配置'
+  }
+})
 
 const columns = [
   { title: 'key', key: 'planKey', width: 100 },
@@ -303,9 +322,6 @@ function blankForm() {
     originalMonthly: null,
     originalQuarter: null,
     originalYear: null,
-    articlesMonthly: '',
-    articlesQuarter: '',
-    articlesYear: '',
     savingsYear: null,
     status: 1
   }
@@ -449,9 +465,6 @@ function onEdit(record) {
     originalMonthly: record.originalMonthly != null ? Number(record.originalMonthly) : null,
     originalQuarter: record.originalQuarter != null ? Number(record.originalQuarter) : null,
     originalYear: record.originalYear != null ? Number(record.originalYear) : null,
-    articlesMonthly: record.articlesMonthly || '',
-    articlesQuarter: record.articlesQuarter || '',
-    articlesYear: record.articlesYear || '',
     savingsYear: record.savingsYear != null ? Number(record.savingsYear) : null,
     status: record.status ?? 1
   })
@@ -491,7 +504,10 @@ async function onSubmit() {
       ...form,
       planKey,
       recommended: form.recommended ? 1 : 0,
-      status: Number(form.status)
+      status: Number(form.status),
+      articlesMonthly: previewArticles.value.monthly,
+      articlesQuarter: previewArticles.value.quarter,
+      articlesYear: previewArticles.value.year
     })
 
     const changedBenefits = benefits.value.filter(
@@ -604,6 +620,16 @@ onMounted(load)
 .disabled-text {
   color: #bfbfbf;
   font-size: 12px;
+}
+.article-preview {
+  min-height: 32px;
+  line-height: 32px;
+  padding: 0 11px;
+  background: #f5f5f5;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  color: #262626;
+  font-size: 14px;
 }
 .benefit-field-hint {
   margin-top: 8px;

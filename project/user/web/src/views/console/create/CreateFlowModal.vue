@@ -35,7 +35,11 @@
       <div v-if='flowData.step === 1' class='flow-panel'>
         <div class='panel-title'>第一步：选择今日创作方向</div>
         <div class='panel-desc'>基于你的「{{ plan?.niche || '运营方案' }}」方案，从低粉高赞案例中挑了 {{ topicOptions.length }} 个选题</div>
-        <div class='topic-options'>
+        <div v-if='!loading && !topicOptions.length' class='flow-error'>
+          <div class='flow-error-text'>选题生成失败，请检查网络后重试</div>
+          <a-button type='primary' :loading='loading' @click='loadRecommendedTopics'>重试</a-button>
+        </div>
+        <div v-else class='topic-options'>
           <div
             v-for='topic in topicOptions'
             :key='topic.id'
@@ -57,7 +61,11 @@
       <div v-if='flowData.step === 2' class='flow-panel'>
         <div class='panel-title'>第二步：确定文章观点</div>
         <div class='panel-desc'>围绕标题写作，为你生成了 {{ generatedAngleList.length }} 个观点角度，建议最多选择 3 个组合使用；选中后可点击「编辑」修改成你的表达</div>
-        <div class='angle-options'>
+        <div v-if='!loading && !generatedAngleList.length' class='flow-error'>
+          <div class='flow-error-text'>观点生成失败，请检查网络后重试</div>
+          <a-button type='primary' :loading='loading' @click='ensureAnglesForSelectedTopic'>重试</a-button>
+        </div>
+        <div v-else class='angle-options'>
           <div
             v-for='angle in generatedAngleList'
             :key='angle.id'
@@ -293,7 +301,11 @@
         <div v-if='flowData.step === 1' class='flow-panel flow-panel--topics'>
           <div class='panel-title'>第一步：选择今日创作方向</div>
           <div class='panel-desc'>基于你的「{{ plan?.niche || '运营方案' }}」方案，从低粉高赞案例中挑了 {{ topicOptions.length }} 个选题</div>
-          <div class='topic-options'>
+          <div v-if='!loading && !topicOptions.length' class='flow-error'>
+            <div class='flow-error-text'>选题生成失败，请检查网络后重试</div>
+            <a-button type='primary' :loading='loading' @click='loadRecommendedTopics'>重试</a-button>
+          </div>
+          <div v-else class='topic-options'>
             <div
               v-for='topic in topicOptions'
               :key='topic.id'
@@ -315,7 +327,11 @@
         <div v-if='flowData.step === 2' class='flow-panel flow-panel--angles'>
           <div class='panel-title'>第二步：确定文章观点</div>
           <div class='panel-desc'>建议最多选择 3 个观点组合；选中后可编辑成你的表达</div>
-          <div class='angle-options angle-options--mobile'>
+          <div v-if='!loading && !generatedAngleList.length' class='flow-error'>
+            <div class='flow-error-text'>观点生成失败，请检查网络后重试</div>
+            <a-button type='primary' :loading='loading' @click='ensureAnglesForSelectedTopic'>重试</a-button>
+          </div>
+          <div v-else class='angle-options angle-options--mobile'>
             <div
               v-for='angle in generatedAngleList'
               :key='angle.id'
@@ -635,6 +651,8 @@ const viewingSkill = ref(null)
 const topicOptions = ref([])
 const generatedAngleList = ref([])
 const lastGeneratedTopicId = ref('')
+const topicsLoadFailed = ref(false)
+const anglesLoadFailed = ref(false)
 
 const { templates: apiTemplates, reload: loadExportTemplates } = useExportTemplates()
 
@@ -971,6 +989,8 @@ function resetLocalState() {
   topicOptions.value = []
   generatedAngleList.value = []
   lastGeneratedTopicId.value = ''
+  topicsLoadFailed.value = false
+  anglesLoadFailed.value = false
 }
 
 function applySession(session) {
@@ -1019,6 +1039,25 @@ function findSkillNameByPrompt(prompt) {
   return found?.name || ''
 }
 
+async function loadRecommendedTopics() {
+  waitingText.value = getAiWaitingText('recommendedTopics')
+  loading.value = true
+  topicsLoadFailed.value = false
+  try {
+    // runWithDedupe 保证弹框关闭再打开时，复用正在进行的选题请求，不会重复提交
+    const topics = await runWithDedupe(TOPICS_INFLIGHT_KEY, generateRecommendedTopics)
+    topicOptions.value = topics || []
+    if (!topicOptions.value.length) {
+      topicsLoadFailed.value = true
+    }
+  } catch (err) {
+    topicOptions.value = []
+    topicsLoadFailed.value = true
+  } finally {
+    loading.value = false
+  }
+}
+
 async function ensureAnglesForSelectedTopic() {
   const topic = flowData.selectedTopic
   if (!topic) return
@@ -1029,6 +1068,7 @@ async function ensureAnglesForSelectedTopic() {
 
   waitingText.value = getAiWaitingText('recommendedAngles')
   loading.value = true
+  anglesLoadFailed.value = false
   try {
     const angles = await runWithDedupe(anglesInflightKey(topic.id), () => generateRecommendedAngles(topic.id))
     generatedAngleList.value = (angles || []).map(a => ({
@@ -1039,11 +1079,11 @@ async function ensureAnglesForSelectedTopic() {
     editingAngleId.value = null
     lastGeneratedTopicId.value = topic.id
     if (!generatedAngleList.value.length) {
-      message.warning('未生成到观点，请重试')
+      anglesLoadFailed.value = true
     }
   } catch (err) {
-    message.error(err?.message || '生成观点失败，请重试')
     generatedAngleList.value = []
+    anglesLoadFailed.value = true
   } finally {
     loading.value = false
   }
@@ -1076,30 +1116,17 @@ async function initSession() {
       if (session.status === 'completed') {
         await clearRecommendedSession().catch(() => {})
         resetLocalState()
-        waitingText.value = getAiWaitingText('recommendedTopics')
-        const topics = await runWithDedupe(TOPICS_INFLIGHT_KEY, generateRecommendedTopics)
-        topicOptions.value = topics || []
-        if (!topicOptions.value.length) {
-          message.warning('未生成到选题，请重试')
-          close()
-        }
+        await loadRecommendedTopics()
         return
       }
       applySession(session)
     } else {
       resetLocalState()
-      waitingText.value = getAiWaitingText('recommendedTopics')
-      // runWithDedupe 保证弹框关闭再打开时，复用正在进行的选题请求，不会重复提交
-      const topics = await runWithDedupe(TOPICS_INFLIGHT_KEY, generateRecommendedTopics)
-      topicOptions.value = topics || []
-      if (!topicOptions.value.length) {
-        message.warning('未生成到选题，请重试')
-        close()
-      }
+      await loadRecommendedTopics()
     }
   } catch (err) {
+    topicsLoadFailed.value = true
     message.error(err?.message || '加载创作任务失败，请重试')
-    close()
   } finally {
     loading.value = false
   }
@@ -1151,6 +1178,26 @@ onUnmounted(() => {
   gap: 10px;
   color: #FF2442;
   font-size: 14px;
+}
+.flow-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 64px 0;
+}
+.flow-error-text {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+.flow-error :deep(.ant-btn-primary) {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.flow-error :deep(.ant-btn-primary:hover),
+.flow-error :deep(.ant-btn-primary:focus) {
+  background-color: var(--color-primary-hover, var(--color-primary));
+  border-color: var(--color-primary-hover, var(--color-primary));
 }
 .flow-steps {
   position: relative;

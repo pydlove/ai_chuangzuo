@@ -6,11 +6,13 @@ import com.aichuangzuo.admin.modules.generation.pipeline.GenerationPipeline;
 import com.aichuangzuo.admin.modules.generation.service.GenerationConfigService;
 import com.aichuangzuo.admin.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.admin.modules.generation.service.QuotaRefundInternalClient;
+import com.aichuangzuo.shared.ai.ActiveModelConfig;
+import com.aichuangzuo.shared.ai.ModelConfigSelector;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.AdminGenerationErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
-import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigSelector;
+import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.annotation.PostConstruct;
@@ -55,6 +57,7 @@ public class GenerationTaskWorker {
     private final GenerationConfigService configService;
     private final QuotaRefundInternalClient refundClient;
     private final com.aichuangzuo.admin.modules.generation.service.GenerationCallLogService callLogService;
+    private final ModelConfigMapper modelConfigMapper;
     private final ModelConfigSelector modelConfigSelector;
     private final ObjectMapper objectMapper;
 
@@ -148,8 +151,8 @@ public class GenerationTaskWorker {
         Long taskId = task.getId();
 
         // 1. 从 key 池动态选择当前任务使用的模型配置，覆盖提交时锁定的配置
-        Long modelConfigId = modelConfigSelector.nextActiveConfigId();
-        if (modelConfigId == null) {
+        ActiveModelConfig modelCfg = modelConfigSelector.next(modelConfigMapper.selectActiveAiViewByPriority());
+        if (modelCfg == null) {
             log.warn("task={} 无可用模型配置，标记失败", taskId);
             taskService.markFailed(taskId, AdminGenerationErrorCode.GENERATION_MODEL_UNAVAILABLE.getMessage(),
                     false, task.getLockedBy(), buildFailedPayload(taskId, task.getTargetUserId(),
@@ -157,6 +160,7 @@ public class GenerationTaskWorker {
                             extractOriginalTitle(task.getInputParam())));
             return;
         }
+        Long modelConfigId = modelCfg.getId();
         task.setModelConfigId(modelConfigId);
         taskService.assignModelConfigId(taskId, modelConfigId, task.getLockedBy());
 

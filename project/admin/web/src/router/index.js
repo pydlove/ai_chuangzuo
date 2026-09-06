@@ -19,6 +19,11 @@ const routes = [
        component: () => import('@/views/UserListView.vue')
      },
       {
+        path: 'self-media-plans',
+        name: 'AdminSelfMediaPlanList',
+        component: () => import('@/views/SelfMediaPlanListView.vue')
+      },
+      {
         path: 'self-media/platforms',
         name: 'AdminSelfMediaPlatforms',
         component: () => import('@/views/SelfMediaPlatformView.vue')
@@ -224,6 +229,11 @@ const routes = [
         path: 'payment-config',
         name: 'AdminPaymentConfig',
         component: () => import('@/views/PaymentConfigView.vue')
+      },
+      {
+        path: 'wechat-official-account-config',
+        name: 'AdminWechatOfficialAccountConfig',
+        component: () => import('@/views/WechatOfficialAccountConfigView.vue')
       },
       {
         path: 'sms-config',

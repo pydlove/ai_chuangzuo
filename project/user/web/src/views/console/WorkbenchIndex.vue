@@ -85,7 +85,7 @@
           </div>
         </a-card>
 
-        <div class="create-section">
+        <div class="create-section" data-guide="create-btn">
           <a-button type="primary" size="large" class="create-main-btn desktop-create-btn" @click="consoleActions.openCreateChoice?.()">
             <EditOutlined />
             开始今日创作{{ quotaText }}
@@ -93,10 +93,14 @@
           <div class="mobile-create-btn" @click="consoleActions.openCreateChoice?.()">
             <span class="mobile-create-text">开始今日创作{{ quotaText }}</span>
           </div>
+          <a-button size="large" class="weekly-data-btn" @click="weeklyDataVisible = true">
+            <BarChartOutlined />
+            本周数据
+          </a-button>
         </div>
 
         <!-- 手机端功能栏 -->
-        <div class="feature-bar">
+        <div class="feature-bar" data-guide="feature-bar">
           <div class="feature-top-row">
             <div class="feature-large-card" @click="router.push('/console/commission')">
               <div class="feature-large-info">
@@ -146,7 +150,7 @@
             调整方案{{ planAdjustText }}
           </a-button>
         </div>
-        <a-card class="wb-card plan-card" :bordered="false">
+        <a-card class="wb-card plan-card" :bordered="false" data-guide="plan-card">
           <template #title>
             <span class="plan-section-title">运营方案</span>
           </template>
@@ -199,7 +203,7 @@
     <!-- 第二行：左侧（快捷操作 + 生成记录）+ 右侧占位卡片 -->
     <div class="bottom-row">
       <div class="left-column">
-        <a-card class="wb-card shortcut-card" :bordered="false" title="快捷操作">
+        <a-card class="wb-card shortcut-card" :bordered="false" title="快捷操作" data-guide="shortcut-card">
           <div class="shortcut-grid">
             <div
               v-for="item in shortcuts"
@@ -219,7 +223,7 @@
           <div class="toolbox-section-header">
             <span class="toolbox-section-title">创作工具箱</span>
           </div>
-          <a-card class="wb-card toolbox-card" :bordered="false" title="创作工具箱">
+          <a-card class="wb-card toolbox-card" :bordered="false" title="创作工具箱" data-guide="toolbox-card">
             <div class="toolbox-grid">
               <div
                 v-for="item in toolboxItems"
@@ -236,7 +240,7 @@
           </a-card>
         </div>
 
-        <a-card class="wb-card generation-card" :bordered="false">
+        <a-card class="wb-card generation-card" :bordered="false" data-guide="generation-card">
           <template #title>
             <div class="card-title-row">
               <span class="card-title">生成记录</span>
@@ -422,34 +426,29 @@
       class="weekly-data-modal"
       @cancel="weeklyDataVisible = false"
     >
-      <div class="weekly-data-summary">
-        本周共发布 <strong>{{ validWeeklyArticles.length }}</strong> 篇，总阅读量 <strong>{{ totalWeeklyReads }}</strong>
+      <div v-if="articlesLoading" class="weekly-data-loading">
+        <a-spin tip="加载中..." />
       </div>
-      <div class="weekly-data-list">
-        <div
-          v-for="(item, index) in weeklyArticles"
-          :key="index"
-          class="weekly-data-item"
-        >
-          <a-input v-model:value="item.title" placeholder="文章标题" class="weekly-data-title" :maxlength="256" show-count />
-          <a-input-number v-model:value="item.reads" placeholder="阅读量" :min="0" class="weekly-data-reads" />
-          <a-button
-            v-if="weeklyArticles.length > 1"
-            type="text"
-            danger
-            class="weekly-data-remove"
-            @click="removeWeeklyArticle(index)"
-          >
-            <DeleteOutlined />
-          </a-button>
+      <template v-else-if="weeklyArticles.length">
+        <div class="weekly-data-summary">
+          本周共发布 <strong>{{ validWeeklyArticles.length }}</strong> 篇，总阅读量 <strong>{{ totalWeeklyReads }}</strong>
         </div>
-      </div>
-      <div class="weekly-data-actions">
-        <a-button type="dashed" @click="addWeeklyArticle">
-          <PlusOutlined />
-          添加文章
-        </a-button>
-        <a-button type="primary" :loading="weeklyLoading" @click="saveWeeklyData">保存</a-button>
+        <div class="weekly-data-list">
+          <div
+            v-for="(item, index) in weeklyArticles"
+            :key="index"
+            class="weekly-data-item"
+          >
+            <div class="weekly-data-article-title">{{ item.title || '未命名创作' }}</div>
+            <a-input-number v-model:value="item.reads" placeholder="阅读量" :min="0" class="weekly-data-reads" />
+          </div>
+        </div>
+        <div class="weekly-data-actions">
+          <a-button type="primary" block class="weekly-data-save-btn" :loading="weeklyLoading" @click="saveWeeklyData">保存</a-button>
+        </div>
+      </template>
+      <div v-else class="weekly-data-empty">
+        <a-empty description="请先生成文章" />
       </div>
     </a-modal>
 
@@ -562,6 +561,14 @@
         <a-button @click="adjustPlanConfirmVisible = false">取消</a-button>
       </div>
     </a-modal>
+
+    <!-- 操作指引入口：随时可重看工作台向导 -->
+    <a-tooltip title="操作指引" placement="left">
+      <button class="guide-entry-btn" @click="startGuide">
+        <QuestionCircleOutlined />
+        <span class="guide-entry-text">操作指引</span>
+      </button>
+    </a-tooltip>
   </div>
 </template>
 
@@ -588,12 +595,11 @@ import {
   SafetyOutlined,
   TagOutlined,
   QuestionCircleOutlined,
-  PlusOutlined,
-  DeleteOutlined,
   ReloadOutlined,
   GiftOutlined,
   TeamOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined,
+  BarChartOutlined
 } from '@ant-design/icons-vue'
 import AccountCheckModal from '@/components/AccountCheckModal.vue'
 import ActionGroup from '@/components/common/ActionGroup.vue'
@@ -608,6 +614,7 @@ import { listGenerationTasks, retryGenerationTask, stopGenerationTask } from '@/
 import { getWeeklyArticles, saveWeeklyArticles } from '@/api/workbench.js'
 import { getArticleByTaskId } from '@/api/article.js'
 import { useWithdraw } from '@/composables/useWithdraw.js'
+import { useWorkbenchGuide } from '@/composables/useWorkbenchGuide.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useCopy } from '@/composables/useCopy.js'
 import { useConfirm } from '@/composables/useConfirm.js'
@@ -638,6 +645,7 @@ const balance = reactive({
 
 const { withdrawRecords: rawWithdrawRecords, loadWithdrawals } = useWithdraw()
 const { benefits, loadBenefits, hasBenefit } = useBenefits()
+const { startGuide, startGuideIfFirstVisit } = useWorkbenchGuide()
 
 const quotaTotal = computed(() => Number(benefits.value['ai_article_quota']?.value) || 0)
 const quotaRemaining = computed(() => benefits.value['ai_article_quota']?.remaining ?? 0)
@@ -795,9 +803,14 @@ onMounted(() => {
   loadGenerationRecords()
   loadWithdrawals()
   loadPlan().then(() => {
-    if (!hasPlan.value && !localStorage.getItem(STORAGE_KEYS.SELF_MEDIA_PLAN_MODAL_DISMISSED)) {
+    const planModalWillShow = !hasPlan.value && !localStorage.getItem(STORAGE_KEYS.SELF_MEDIA_PLAN_MODAL_DISMISSED)
+    if (planModalWillShow) {
       planModalVisible.value = true
     }
+    // 等一帧再弹向导，确保页面元素都已渲染
+    requestAnimationFrame(() => {
+      startGuideIfFirstVisit({ blocked: planModalWillShow })
+    })
   })
   unregisterCreateTaskCallback = consoleActions.registerCreateTaskCallback?.((task) => {
     setTodayDone()
@@ -815,6 +828,7 @@ onUnmounted(() => {
 const accountModalVisible = ref(false)
 const weeklyDataVisible = ref(false)
 const weeklyLoading = ref(false)
+const articlesLoading = ref(false)
 const withdrawModalVisible = ref(false)
 const adjustPlanConfirmVisible = ref(false)
 
@@ -846,31 +860,35 @@ const totalWeeklyReads = computed(() => {
   return validWeeklyArticles.value.reduce((sum, item) => sum + (Number(item.reads) || 0), 0)
 })
 
-function addWeeklyArticle() {
-  weeklyArticles.push({ title: '', reads: 0 })
-}
-
-function removeWeeklyArticle(index) {
-  weeklyArticles.splice(index, 1)
-  if (weeklyArticles.length === 0) {
-    addWeeklyArticle()
-  }
-}
-
 async function loadWeeklyArticles() {
-  weeklyLoading.value = true
+  articlesLoading.value = true
   try {
-    const res = await getWeeklyArticles()
-    const list = res?.data || []
-    weeklyArticles.splice(0, weeklyArticles.length,
-      ...list.map(item => ({ title: item.title || '', reads: item.reads ?? 0 })))
-    if (weeklyArticles.length === 0) {
-      addWeeklyArticle()
-    }
+    const [weeklyRes, generationRes] = await Promise.all([
+      getWeeklyArticles().catch(() => ({ data: [] })),
+      listGenerationTasks({ page: 1, pageSize: 100 }).catch(() => ({ list: [] }))
+    ])
+
+    const savedList = weeklyRes?.data || []
+    const savedMap = new Map(savedList.map(item => [item.title, item.reads ?? 0]))
+
+    const oneWeek = 7 * 24 * 60 * 60 * 1000
+    const now = Date.now()
+    const tasks = generationRes?.list || []
+    const thisWeekArticles = tasks
+      .filter(item => {
+        const ts = item.createdAt ? new Date(item.createdAt).getTime() : 0
+        return ts && now - ts <= oneWeek && item.status === 2
+      })
+      .map(item => ({
+        title: item.title || '未命名创作',
+        reads: savedMap.get(item.title) ?? 0
+      }))
+
+    weeklyArticles.splice(0, weeklyArticles.length, ...thisWeekArticles)
   } catch (err) {
-    message.error(err?.message || '加载本周数据失败')
+    // 加载失败时保持列表为空
   } finally {
-    weeklyLoading.value = false
+    articlesLoading.value = false
   }
 }
 
@@ -885,7 +903,7 @@ async function saveWeeklyData() {
     .map(item => ({ title: (item.title || '').trim(), reads: Number(item.reads) || 0 }))
     .filter(item => item.title)
   if (!payload.length) {
-    message.warning('请至少填写一篇文章标题')
+    message.warning('请先生成文章')
     return
   }
   weeklyLoading.value = true
@@ -1647,6 +1665,22 @@ function statusText(status) {
   border-color: var(--color-primary);
   box-shadow: 0 4px 14px rgba(7, 193, 96, 0.25);
 }
+.weekly-data-btn {
+  width: 140px;
+  height: 56px;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: var(--radius-xl);
+  border-color: var(--color-border-default);
+  color: var(--color-text-primary);
+}
+.weekly-data-btn:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.weekly-data-btn :deep(.anticon) {
+  font-size: 18px;
+}
 .create-main-btn:hover {
   background: var(--color-primary-hover);
   border-color: var(--color-primary-hover);
@@ -2180,42 +2214,42 @@ function statusText(status) {
   border-color: transparent;
   box-shadow: none;
 }
-.weekly-data-title,
 .weekly-data-reads {
   border-radius: var(--radius-md);
 }
-.weekly-data-title :deep(.ant-input),
 .weekly-data-reads :deep(.ant-input-number-input) {
   border-radius: var(--radius-md);
 }
-.weekly-data-title :deep(.ant-input:focus),
-.weekly-data-title :deep(.ant-input-focused),
 .weekly-data-reads :deep(.ant-input-number-focused) {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 2px var(--color-primary-bg);
 }
-.weekly-data-title {
+.weekly-data-article-title {
   flex: 1;
   min-width: 0;
+  font-size: var(--font-body);
+  color: var(--color-text-primary);
+  font-weight: 500;
+  line-height: 1.5;
 }
 .weekly-data-reads {
   width: 140px;
   flex-shrink: 0;
 }
-.weekly-data-remove {
-  flex-shrink: 0;
-  padding: 0 8px;
-}
 .weekly-data-reads :deep(.ant-input-number-handler-wrap) {
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
 }
+.weekly-data-empty {
+  padding: 48px 16px;
+}
+.weekly-data-loading {
+  padding: 64px 16px;
+  display: flex;
+  justify-content: center;
+}
 .weekly-data-actions {
   display: flex;
-  justify-content: space-between;
   gap: var(--space-sm);
-}
-.weekly-data-actions .ant-btn-dashed {
-  border-radius: var(--radius-md);
 }
 .weekly-data-actions .ant-btn-primary {
   background: var(--color-primary);
@@ -2437,8 +2471,8 @@ function statusText(status) {
   font-weight: 500;
 }
 
-/* 响应式 */
-@media (max-width: 992px) {
+/* 响应式：≤1200px（含 iPad 横屏，侧边栏仍展开导致内容区不足）时单列堆叠 */
+@media (max-width: 1200px) {
   .top-row {
     grid-template-columns: 1fr;
   }
@@ -2462,6 +2496,11 @@ function statusText(status) {
   .left-column {
     gap: 14px;
     margin-bottom: 0;
+  }
+  /* 防止子元素 min-content 撑破 grid 轨道导致页面出现横向滚动 */
+  .top-row > .left-column,
+  .bottom-row > .left-column {
+    min-width: 0;
   }
   .bottom-row > .left-column {
     display: flex;
@@ -2713,6 +2752,9 @@ function statusText(status) {
   .desktop-create-btn {
     display: none;
   }
+  .weekly-data-btn {
+    display: none;
+  }
   .mobile-create-btn {
     display: block;
     position: relative;
@@ -2962,7 +3004,7 @@ function statusText(status) {
   }
   .toolbox-grid {
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
   }
   .toolbox-item {
@@ -2982,8 +3024,10 @@ function statusText(status) {
     border-color: transparent;
   }
   .toolbox-icon-wrap {
-    width: 56px;
-    height: 56px;
+    width: 100%;
+    max-width: 56px;
+    height: auto;
+    aspect-ratio: 1;
     background: var(--color-primary-bg);
     border-radius: 16px;
   }
@@ -3013,6 +3057,9 @@ function statusText(status) {
   .generation-card :deep(.ant-card-head) {
     background: transparent;
     border-bottom: none;
+    /* 窄屏下标题区（生成记录 + 最近7天 + 右侧按钮）一行放不下时允许换行，避免撑宽页面 */
+    flex-wrap: wrap;
+    row-gap: 6px;
   }
   .generation-card :deep(.ant-card-body) {
     padding: 0;
@@ -3161,7 +3208,6 @@ function statusText(status) {
     flex-direction: column;
     gap: var(--space-sm);
   }
-  .weekly-data-actions .ant-btn-dashed,
   .weekly-data-actions .ant-btn-primary {
     height: 42px;
     border-radius: 12px;
@@ -3251,9 +3297,103 @@ function statusText(status) {
   border-radius: var(--radius-md);
 }
 
+/* 操作指引入口：固定右下角，位于「手机扫码访问」按钮（bottom:65px，高52px）上方 */
+.workbench-index {
+  position: relative;
+}
+.guide-entry-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 133px;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 13px;
+  cursor: pointer;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.guide-entry-btn:hover {
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.16);
+  transform: translateY(-1px);
+}
+.guide-entry-btn .anticon {
+  font-size: 15px;
+}
+@media (max-width: 768px) {
+  .guide-entry-btn {
+    right: 14px;
+    bottom: 82px;
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+  .guide-entry-text {
+    display: none;
+  }
+}
+
 </style>
 
 <style>
+/* driver.js 向导：品牌色样式 */
+.wb-guide-popover {
+  border-radius: 12px;
+  padding: 16px 18px;
+  max-width: 320px;
+}
+.wb-guide-popover .driver-popover-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-primary);
+}
+.wb-guide-popover .driver-popover-description {
+  font-size: 13px;
+  line-height: 1.7;
+  color: rgba(0, 0, 0, 0.65);
+}
+.wb-guide-popover .driver-popover-progress-text {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.45);
+}
+.wb-guide-popover .driver-popover-navigation-btns {
+  gap: 8px;
+}
+.wb-guide-popover button {
+  border-radius: 8px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  background: #fff;
+  padding: 5px 14px;
+  font-size: 13px;
+  cursor: pointer;
+  text-shadow: none;
+}
+.wb-guide-popover button:hover {
+  background: var(--color-primary-bg);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+.wb-guide-popover .driver-popover-next-btn {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  color: #fff;
+}
+.wb-guide-popover .driver-popover-next-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+  color: #fff;
+}
+@media (max-width: 768px) {
+  .wb-guide-popover {
+    max-width: calc(100vw - 32px);
+  }
+}
+
 /* 停止任务确认弹框：使用主题色 */
 .stop-task-confirm-modal .ant-btn-primary {
   background: var(--color-primary);

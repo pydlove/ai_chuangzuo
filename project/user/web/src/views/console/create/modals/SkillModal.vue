@@ -40,6 +40,7 @@
             <div class="prompt-preview-text">{{ currentPrompt.prompt }}</div>
             <div class="prompt-preview-actions">
               <button class="prompt-preview-view-btn" @click="openPromptModal(currentPrompt)">查看完整</button>
+              <button class="prompt-preview-apply-btn" @click="applySkillLocal">应用</button>
             </div>
           </div>
           <a-empty v-else description="当前分类暂无提示词" />
@@ -136,10 +137,7 @@ import { ref, computed, watch, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { message } from 'ant-design-vue'
 import {
-  systemSkills,
-  mySkills,
   applySkill,
-  learnedSkills,
   loadMySkills,
   loadLearnedSkills,
   loadSystemSkills
@@ -356,7 +354,7 @@ const selectSkill = (skill) => {
 }
 
 const applySkillLocal = () => {
-  const s = findSelectedSkill()
+  const s = currentPrompt.value
   if (!s) return
   if (isOffline(s)) {
     message.warning('该提示词已下架，无法使用')
@@ -364,21 +362,6 @@ const applySkillLocal = () => {
   }
   applySkill(s)
   styleVisible.value = false
-}
-
-const findSelectedSkill = () => {
-  const name = selectedStyleName.value
-  if (!name) return null
-  return recommendList.value.find(x => x.name === name)
-    || systemList.value.find(x => x.name === name)
-    || myList.value.find(x => x.name === name)
-    || learnedList.value.find(x => x.name === name)
-    || favoriteList.value.find(x => x.name === name)
-    || systemSkills.value.find(x => x.name === name)
-    || mySkills.value.find(x => x.name === name)
-    || learnedSkills.value.find(x => x.name === name)
-    || favoriteSkills.value.find(x => x.name === name)
-    || null
 }
 
 const useFromPromptModal = () => {
@@ -589,6 +572,22 @@ watch(styleVisible, async (open) => {
   border-color: var(--color-primary);
   color: var(--color-primary);
   background: var(--color-primary-bg);
+}
+
+.prompt-preview-apply-btn {
+  padding: 7px 20px;
+  background: var(--color-primary);
+  border: 1px solid var(--color-primary);
+  border-radius: 8px;
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.prompt-preview-apply-btn:hover {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
 }
 
 .prompt-list-pane {
@@ -802,7 +801,8 @@ watch(styleVisible, async (open) => {
     padding: 10px 14px;
   }
 
-  .prompt-preview-view-btn {
+  .prompt-preview-view-btn,
+  .prompt-preview-apply-btn {
     flex: 1;
     padding: 9px 12px;
     border-radius: 10px;

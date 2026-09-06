@@ -7,6 +7,7 @@ import com.aichuangzuo.admin.modules.lottery.mapper.LotteryCampaignMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryDisplayWinnerMapper;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
+import com.aichuangzuo.admin.common.util.AvatarUrlUtil;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryDisplayWinnerAdminService;
 import com.aichuangzuo.admin.modules.lottery.vo.LotteryDisplayWinnerAdminVO;
 import com.aichuangzuo.shared.enums.error.AdminLotteryErrorCode;
@@ -65,7 +66,7 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
             PlatformUser user = platformUserMapper.selectById(request.getUserId());
             entity.setUserId(request.getUserId());
             entity.setNickname(user != null && user.getNickname() != null ? user.getNickname() : request.getNickname());
-            entity.setAvatarUrl(user != null ? user.getAvatarUrl() : null);
+            entity.setAvatarUrl(user != null ? AvatarUrlUtil.normalizeForAdmin(user.getAvatarUrl()) : null);
         } else {
             entity.setUserId(null);
             entity.setNickname(request.getNickname());
@@ -109,7 +110,7 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
         vo.setTierId(winner.getTierId());
         vo.setUserId(winner.getUserId());
         vo.setNickname(winner.getNickname());
-        vo.setAvatarUrl(winner.getAvatarUrl());
+        vo.setAvatarUrl(AvatarUrlUtil.normalizeForAdmin(winner.getAvatarUrl()));
         vo.setPrizeName(winner.getPrizeName());
         vo.setWinTime(winner.getWinTime());
         vo.setIsReal(winner.getIsReal());

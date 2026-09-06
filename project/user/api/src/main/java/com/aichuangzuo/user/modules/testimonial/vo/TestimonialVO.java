@@ -11,4 +11,5 @@ public class TestimonialVO {
     private String title;
     private Integer starRating;
     private String reviewText;
+    private String source;
 }

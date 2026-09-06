@@ -13,17 +13,19 @@
       <div
         ref="scrollRef"
         class="testimonials-carousel"
+        @touchstart.passive="onTouchStart"
+        @touchend.passive="onTouchEnd"
       >
         <TestimonialCard
-          v-for="item in testimonials"
-          :key="item.id"
+          v-for="(item, index) in testimonials"
+          :key="(item.source || 'item') + '-' + item.id"
           :avatar-url="item.avatarUrl"
           :name="item.name"
           :title="item.title"
           :star-rating="item.starRating"
           :review-text="item.reviewText"
           class="testimonial-slide reveal"
-          :data-reveal-delay="(item.id % 4) * 100"
+          :data-reveal-delay="(index % 4) * 100"
         />
       </div>
       <button
@@ -56,7 +58,9 @@ import TestimonialCard from './TestimonialCard.vue'
 import Icon from '@/components/common/Icon.vue'
 
 const props = defineProps({
-  testimonials: { type: Array, default: () => [] }
+  testimonials: { type: Array, default: () => [] },
+  // 滑动到最后一个时触发翻页，返回 Promise<boolean>：true 表示加载了新的一页，false 表示没有下一页
+  loadMore: { type: Function, default: null }
 })
 
 const scrollRef = ref(null)
@@ -100,8 +104,11 @@ function scrollPrev() {
   }
 }
 
-function scrollNext() {
-  if (!scrollRef.value) return
+let turningPage = false
+
+// 向后翻一页：到最后一个之后，有下一页则加载并继续，没有则回到第一个
+async function goNext() {
+  if (!scrollRef.value || turningPage || !canScroll.value) return
   const metrics = getMetrics()
   if (!metrics) return
   const { slideWidth, gap } = metrics
@@ -110,11 +117,49 @@ function scrollNext() {
   const currentIndex = Math.round(scrollRef.value.scrollLeft / step)
   const nextIndex = currentIndex + 1
 
-  if (nextIndex > maxIndex) {
-    scrollRef.value.scrollTo({ left: 0, behavior: 'smooth' })
-  } else {
+  if (nextIndex <= maxIndex) {
     scrollRef.value.scrollTo({ left: nextIndex * step, behavior: 'smooth' })
+    return
   }
+  if (!props.loadMore) {
+    scrollRef.value.scrollTo({ left: 0, behavior: 'smooth' })
+    return
+  }
+  turningPage = true
+  try {
+    const more = await props.loadMore()
+    await nextTick()
+    if (more && nextIndex <= slideCount.value - slidesPerView.value) {
+      scrollRef.value.scrollTo({ left: nextIndex * step, behavior: 'smooth' })
+    } else {
+      scrollRef.value.scrollTo({ left: 0, behavior: 'smooth' })
+    }
+  } finally {
+    turningPage = false
+  }
+}
+
+function scrollNext() {
+  goNext()
+}
+
+let touchStartX = 0
+
+function onTouchStart(e) {
+  touchStartX = e.touches[0].clientX
+}
+
+// 在最后一个继续向左滑动 → 触发翻页；没有下一页则回到第一个
+function onTouchEnd(e) {
+  if (!scrollRef.value) return
+  const dx = e.changedTouches[0].clientX - touchStartX
+  if (dx >= -40) return
+  const metrics = getMetrics()
+  if (!metrics) return
+  const step = metrics.slideWidth + metrics.gap
+  const maxIndex = Math.max(0, slideCount.value - slidesPerView.value)
+  const currentIndex = Math.round(scrollRef.value.scrollLeft / step)
+  if (currentIndex >= maxIndex) goNext()
 }
 
 function startAutoScroll() {

@@ -13,6 +13,16 @@
 
     <!-- 登录卡片 -->
     <div ref="cardRef" class="login-card">
+      <a-alert
+        v-if="showPrivateModeTip"
+        type="warning"
+        show-icon
+        closable
+        :message="'温馨提示：检测到您可能开启了浏览器的无痕/隐私模式，关闭浏览器后需要重新登录。如需保持登录状态，建议关闭无痕模式。'"
+        class="private-mode-tip"
+        @close="closePrivateModeTip"
+      />
+
       <!-- 标签切换 -->
       <div class="auth-tabs">
         <button
@@ -283,9 +293,11 @@ import { useLogin } from '@/composables/useLogin.js'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import { useQrLogin } from '@/composables/useQrLogin.js'
 import { persistTokens } from '@/composables/useLogin.js'
+import { usePrivateModeTip } from '@/composables/usePrivateModeTip.js'
 import { useRouter } from 'vue-router'
 
 const router = useRouter()
+const { showTip: showPrivateModeTip, closeTip: closePrivateModeTip } = usePrivateModeTip()
 const { isMobile } = useDevice()
 
 const {
@@ -868,6 +880,21 @@ body[data-theme="dark"] .slider-modal :deep(.ant-modal-title) {
 
 body[data-theme="dark"] .invite-coin-trigger {
   color: #ff4d6f;
+}
+
+/* ========== 无痕模式提示 ========== */
+.private-mode-tip {
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+
+body[data-theme="dark"] .private-mode-tip {
+  background: rgba(250, 173, 20, 0.12) !important;
+  border-color: rgba(250, 173, 20, 0.4) !important;
+}
+
+body[data-theme="dark"] .private-mode-tip :deep(.ant-alert-message) {
+  color: #e0e0e0 !important;
 }
 
 /* ========== 扫码登录 ========== */

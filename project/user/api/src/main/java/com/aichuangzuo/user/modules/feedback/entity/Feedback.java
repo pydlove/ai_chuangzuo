@@ -23,6 +23,7 @@ public class Feedback {
     private Long replyAdminId;
     private LocalDateTime repliedAt;
     private Integer status;
+    private Integer isShowOnHomepage;
     private Long tenantId;
     @TableLogic
     private Integer isDeleted;

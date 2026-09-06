@@ -20,6 +20,9 @@ import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.util.SelfMediaPlanHashUtil;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -99,6 +102,17 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
             }
             throw e;
         }
+    }
+
+    @Override
+    public IPage<SelfMediaPlanGalleryVO> galleryPage(int page, int pageSize) {
+        Page<SelfMediaPlan> rowPage = new Page<>(Math.max(1, page), Math.min(Math.max(1, pageSize), 50));
+        LambdaQueryWrapper<SelfMediaPlan> wrapper = Wrappers.lambdaQuery(SelfMediaPlan.class)
+                .orderByDesc(SelfMediaPlan::getUpdatedAt);
+        IPage<SelfMediaPlan> result = planMapper.selectPage(rowPage, wrapper);
+        IPage<SelfMediaPlanGalleryVO> voPage = new Page<>(result.getCurrent(), result.getSize(), result.getTotal());
+        voPage.setRecords(result.getRecords().stream().map(this::toGalleryVO).toList());
+        return voPage;
     }
 
     @Override
@@ -349,6 +363,19 @@ public class SelfMediaPlanServiceImpl implements SelfMediaPlanService {
         vo.setPillars(parsePillarsJson(plan.getContentPillarsJson()));
         vo.setAnswers(parseAnswersJson(plan.getAnswersJson()));
         vo.setPlanContentHash(SelfMediaPlanHashUtil.computePlanContentHash(objectMapper, plan));
+        return vo;
+    }
+
+    private SelfMediaPlanGalleryVO toGalleryVO(SelfMediaPlan plan) {
+        SelfMediaPlanGalleryVO vo = new SelfMediaPlanGalleryVO();
+        vo.setId(plan.getId());
+        vo.setPlatformKey(plan.getPlatformKey());
+        vo.setPlatformName(plan.getPlatformName());
+        vo.setNicheName(plan.getNicheName());
+        vo.setPersonaName(plan.getPersonaName());
+        vo.setPillars(parsePillarsJson(plan.getContentPillarsJson()));
+        vo.setIsRecommendedByAi(plan.getIsRecommendedByAi());
+        vo.setUpdatedAt(plan.getUpdatedAt());
         return vo;
     }
 

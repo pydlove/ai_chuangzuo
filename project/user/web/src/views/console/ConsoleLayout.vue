@@ -12,7 +12,7 @@
       </div>
       <nav class="console-sidebar-nav">
         <template v-for="item in navItems" :key="item.path || item.label">
-          <div v-if="item.children" class="console-sidebar-group">
+          <div v-if="item.children" class="console-sidebar-group" data-guide="nav-mine">
             <div class="console-sidebar-group-title" @click="toggleMineGroup">
               <component :is="item.icon" class="nav-icon" />
               <span>{{ item.label }}</span>
@@ -35,6 +35,7 @@
             :to="item.path"
             class="console-sidebar-item"
             :class="{ active: isActive(item.path) }"
+            :data-guide="navGuideKey(item.path)"
           >
             <component :is="item.icon" class="nav-icon" />
             <span class="nav-label">{{ item.label }}</span>
@@ -731,13 +732,13 @@
                 </div>
                 <div class="about-brand">
                   <div class="about-name">爱创作工坊</div>
-                  <div class="about-tagline">创作者灵感旅程中的同行者</div>
+                  <div class="about-tagline">面向普通人的自媒体运营流水线</div>
                 </div>
               </div>
               <div class="about-desc">
-                <p>爱创作工坊希望成为创作者灵感旅程中的同行者。我们希望让写作不再被"文笔"所限制，哪怕不擅长表达的人，也能把脑海里的想法顺利写出来。</p>
-                <p>AI 在这里不是替代者，而是帮助作者整理思路、激发灵感、拓展想象的辅助工具。</p>
-                <p>我们珍惜每一位作者投入在作品里的情绪、时间与热爱，也尊重原创应有的价值。</p>
+                <p>爱创作工坊是面向普通人的“自媒体运营流水线”。我们把“不知道写什么、不知道怎么发、不知道怎么变现”拆成一套可执行的 AI 辅助流程，让有意愿但缺乏运营能力的人，也能把自媒体做起来。</p>
+                <p>我们不是帮你生成一篇文章，而是帮你建立一套可持续的自媒体运营方案。从平台、赛道、人设的首次定位，到选题、差异化角度、内容生成、发布策略与运营复盘，每一步都有清晰路径。</p>
+                <p>在这里，AI 不是替代者，而是放大你个人素材和经验的杠杆。我们尊重原创价值，也相信普通人的经验和观点，值得被更好地表达与传播。</p>
               </div>
               <div class="about-links">
                 <button class="about-link-btn" @click="openTermsModal">
@@ -963,7 +964,7 @@
     </div>
 
     <!-- 手机端底部 TabBar（只在 ≤768px 显示） -->
-    <nav class="console-tabbar" :class="{ 'tabbar-hidden': isMobile && !isTabbarPage }" aria-label="主导航">
+    <nav class="console-tabbar" :class="{ 'tabbar-hidden': isMobile && !isTabbarPage }" aria-label="主导航" data-guide="tabbar">
       <div class="console-tabbar-group">
         <router-link
           v-for="tab in leftTabs"
@@ -1522,6 +1523,7 @@ import {
   TagsOutlined,
   DashboardOutlined,
   CopyOutlined,
+  IdcardOutlined,
 } from '@ant-design/icons-vue'
 
 const route = useRoute()
@@ -1542,17 +1544,46 @@ const { benefits, loadBenefits } = useBenefits()
 const isMobile = useIsMobile()
 const consoleContentRef = ref(null)
 
-// 微信浏览器：在滚动容器顶部/底部阻止默认拖动，防止触发微信自带下拉/上拉回弹
+// 微信浏览器：在滚动容器顶部/底部阻止默认拖动，防止触发微信自带下拉/上拉回弹。
+// 注意必须沿触摸目标向上找"真实还能滚动的容器"再判断边界：
+// 创作流程页等整屏页面里 .console-content 自身没有溢出，若只看它的边界，
+// 会把内部面板（选题/观点/提示词/模板）的滚动一并 preventDefault 掉。
+let wechatTouchStartX = 0
 let wechatTouchStartY = 0
 function handleWechatTouchStart(e) {
+  wechatTouchStartX = e.touches[0].clientX
   wechatTouchStartY = e.touches[0].clientY
 }
 function handleWechatTouchMove(e) {
-  const el = e.target.closest('.console-content, .styles-index') || consoleContentRef.value
-  if (!el) return
+  const deltaX = e.touches[0].clientX - wechatTouchStartX
   const deltaY = e.touches[0].clientY - wechatTouchStartY
-  if (el.scrollTop <= 0 && deltaY > 0) return e.preventDefault()
-  if (el.scrollTop + el.clientHeight >= el.scrollHeight - 1 && deltaY < 0) return e.preventDefault()
+
+  // 收集触摸目标到 .console-content 之间所有真实可滚动的容器
+  const chain = []
+  let node = e.target instanceof Element ? e.target : null
+  while (node) {
+    if (node.scrollHeight > node.clientHeight || node.scrollWidth > node.clientWidth) {
+      const overflow = getComputedStyle(node)
+      if (
+        (overflow.overflowY === 'auto' || overflow.overflowY === 'scroll') ||
+        (overflow.overflowX === 'auto' || overflow.overflowX === 'scroll')
+      ) {
+        chain.push(node)
+      }
+    }
+    if (node === consoleContentRef.value) break
+    node = node.parentElement
+  }
+
+  const canScrollY = chain.some((el) => {
+    if (getComputedStyle(el).overflowY !== 'auto' && getComputedStyle(el).overflowY !== 'scroll') return false
+    return deltaY > 0 ? el.scrollTop > 0 : el.scrollTop + el.clientHeight < el.scrollHeight - 1
+  })
+  const canScrollX = chain.some((el) => {
+    if (getComputedStyle(el).overflowX !== 'auto' && getComputedStyle(el).overflowX !== 'scroll') return false
+    return deltaX > 0 ? el.scrollLeft > 0 : el.scrollLeft + el.clientWidth < el.scrollWidth - 1
+  })
+  if (!canScrollY && !canScrollX) e.preventDefault()
 }
 
 // 手机端：只有 TabBar 四个主页面显示底部导航，其余子页面隐藏
@@ -1592,6 +1623,7 @@ const pageTitleMap = {
   '/console/commission/:id': '约稿详情',
   '/console/coupons': '我的优惠券',
   '/console/orders': '我的订单',
+  '/console/selfmedia-accounts': '自媒体账号',
   '/console/onboarding': '定制你的自媒体方案',
   '/console/profile/edit': '修改个人信息'
 }
@@ -1714,10 +1746,19 @@ const navItems = [
       { path: '/console/earnings', label: '我的账户', icon: DollarOutlined },
       { path: '/console/benefits', label: '我的权益', icon: CrownOutlined },
       { path: '/console/coupons', label: '我的优惠券', icon: TagsOutlined },
-      { path: '/console/orders', label: '我的订单', icon: ShopOutlined }
+      { path: '/console/orders', label: '我的订单', icon: ShopOutlined },
+      { path: '/console/selfmedia-accounts', label: '自媒体账号', icon: IdcardOutlined }
     ]
   }
 ]
+
+// 工作台操作向导锚点：仅给需要高亮讲解的导航项打标记
+const navGuideKeys = {
+  '/console/workbench': 'nav-workbench',
+  '/console/commission': 'nav-commission',
+  '/console/skill-market': 'nav-skill-market'
+}
+const navGuideKey = (path) => navGuideKeys[path]
 
 // 手机端底部 TabBar：只保留 4 个高频入口，其余功能内聚到 "我的"
 // 必须和 navItems 用同一套 isActive 判断，避免点 tab 时高亮不更新
@@ -6825,13 +6866,15 @@ body[data-theme="dark"] .phone-submit:hover {
     min-height: 0;
   }
 
-  /* TabBar 页面底部留出 tabbar + AI 凸起 + 安全区高度 */
+  /* 顶部留出状态栏/刘海安全区；底部留出 tabbar + AI 凸起 + 安全区高度 */
   .console-layout.tabbar-page .console-main {
+    padding-top: env(safe-area-inset-top);
     padding-bottom: calc(75px + env(safe-area-inset-bottom));
   }
 
-  /* 非 TabBar 页面只留安全区高度 */
+  /* 非 TabBar 页面顶部/底部都留安全区高度 */
   .console-layout.no-tabbar-page .console-main {
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
   }
 

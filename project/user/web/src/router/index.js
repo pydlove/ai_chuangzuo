@@ -29,6 +29,12 @@ const routes = [
     meta: { title: '扫码登录' }
   },
   {
+    path: '/wechat-bind',
+    name: 'WechatBindExternal',
+    component: () => import('@/views/WechatBindExternalView.vue'),
+    meta: { title: '绑定公众号' }
+  },
+  {
     path: '/pricing',
     name: 'Pricing',
     component: () => import('@/views/Pricing.vue')
@@ -83,6 +89,12 @@ const routes = [
     name: 'Lottery',
     component: () => import('@/views/console/LotteryPage.vue'),
     meta: { title: '抽奖活动' }
+  },
+  {
+    path: '/about',
+    name: 'AboutUs',
+    component: () => import('@/views/AboutUs.vue'),
+    meta: { title: '关于我们' }
   },
   {
     path: '/console',
@@ -196,6 +208,12 @@ const routes = [
         component: () => import('@/views/console/MineIndex.vue')
       },
       {
+        path: 'wechat-bind',
+        name: 'ConsoleWechatBind',
+        component: () => import('@/views/console/WechatBindView.vue'),
+        meta: { title: '绑定公众号' }
+      },
+      {
         path: 'account-check',
         name: 'ConsoleAccountCheck',
         component: () => import('@/views/console/AccountCheckIndex.vue'),
@@ -255,6 +273,12 @@ const routes = [
         name: 'ConsoleOrders',
         component: () => import('@/views/console/OrderIndex.vue'),
         meta: { title: '我的订单' }
+      },
+      {
+        path: 'selfmedia-accounts',
+        name: 'ConsoleSelfMediaAccounts',
+        component: () => import('@/views/console/SelfMediaAccountsIndex.vue'),
+        meta: { title: '自媒体账号' }
       }
     ]
   }

@@ -127,6 +127,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         validateEnableStatus(request.getEnableStatus());
         validateFeatured(request.getFeatured());
         validateTotalUses(request.getTotalUses());
+        validateWeeklyUses(request.getWeeklyUses());
 
         SkillMarket market = loadByBizNo(bizNo);
 
@@ -145,6 +146,7 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
         market.setScope(normalizeScope(request.getScope()));
         market.setPublisherUserId(request.getPublisherUserId());
         market.setTotalUses(request.getTotalUses() != null ? request.getTotalUses() : 0);
+        market.setWeeklyUses(request.getWeeklyUses() != null ? request.getWeeklyUses() : 0);
         market.setEnableStatus(request.getEnableStatus());
         market.setFeatured(request.getFeatured());
         if (request.getCreatedAt() != null) {
@@ -315,6 +317,12 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
     private void validateTotalUses(Integer totalUses) {
         if (totalUses != null && totalUses < 0) {
             throw new BusinessException(AdminSkillMarketErrorCode.TOTAL_USES_INVALID);
+        }
+    }
+
+    private void validateWeeklyUses(Integer weeklyUses) {
+        if (weeklyUses != null && weeklyUses < 0) {
+            throw new BusinessException(AdminSkillMarketErrorCode.WEEKLY_USES_INVALID);
         }
     }
 

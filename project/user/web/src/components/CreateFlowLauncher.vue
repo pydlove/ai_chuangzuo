@@ -18,6 +18,7 @@ const createFlowVisible = ref(false)
 const freeCreateVisible = ref(false)
 const hasMembership = ref(false)
 const membershipLoaded = ref(false)
+const hasPlan = ref(false)
 
 const plan = reactive({
   platformKey: '',
@@ -48,7 +49,8 @@ async function loadPlan() {
   try {
     const res = await fetchCurrentPlan()
     const data = res?.data || {}
-    if (data && Object.keys(data).length) {
+    if (data && data.platformKey) {
+      hasPlan.value = true
       Object.assign(plan, data)
       // 后端返回 platformKey/platformName，前端 plan 使用 platform/niche/persona
       if (data.platformKey) plan.platformKey = data.platformKey
@@ -57,9 +59,11 @@ async function loadPlan() {
       if (data.nicheName) plan.niche = data.nicheName
       if (data.personaKey) plan.personaKey = data.personaKey
       if (data.personaName) plan.persona = data.personaName
+    } else {
+      hasPlan.value = false
     }
   } catch (e) {
-    // 保持默认方案
+    hasPlan.value = false
   }
 }
 
@@ -83,6 +87,11 @@ function openCreateChoice() {
 
 function chooseRecommended() {
   createChoiceVisible.value = false
+  if (!hasPlan.value) {
+    message.warning('小爱推荐需要先有专属运营方案，请先制定方案')
+    router.push('/console/onboarding')
+    return
+  }
   if (isMobile.value) {
     router.push('/console/create/recommended')
     return

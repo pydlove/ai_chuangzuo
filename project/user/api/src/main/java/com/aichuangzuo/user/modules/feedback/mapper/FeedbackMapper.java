@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,7 +21,8 @@ public interface FeedbackMapper extends BaseMapper<Feedback> {
                    reply_content AS replyContent,
                    reply_admin_id AS replyAdminId,
                    replied_at AS repliedAt,
-                   status, created_at AS createdAt
+                   status, is_show_on_homepage AS isShowOnHomepage,
+                   created_at AS createdAt
             FROM u_feedback
             WHERE user_id = #{userId} AND is_deleted = 0
               AND (#{status} IS NULL OR status = #{status})
@@ -46,11 +48,61 @@ public interface FeedbackMapper extends BaseMapper<Feedback> {
                    reply_admin_id AS replyAdminId,
                    replied_at AS repliedAt,
                    star_rating AS starRating,
-                   status, created_at AS createdAt
+                   status, is_show_on_homepage AS isShowOnHomepage,
+                   created_at AS createdAt
             FROM u_feedback
             WHERE user_id = #{userId} AND type = '评价' AND is_deleted = 0
             ORDER BY created_at DESC
             LIMIT 1
             """)
     Feedback findReviewByUser(@Param("userId") Long userId);
+
+    @Select("""
+            SELECT id, user_id AS userId, type, content,
+                   reply_content AS replyContent,
+                   reply_admin_id AS replyAdminId,
+                   replied_at AS repliedAt,
+                   star_rating AS starRating,
+                   status, is_show_on_homepage AS isShowOnHomepage,
+                   created_at AS createdAt
+            FROM u_feedback
+            WHERE type = '评价' AND is_deleted = 0 AND is_show_on_homepage = 1
+            ORDER BY created_at DESC
+            LIMIT #{limit}
+            """)
+    List<Feedback> findReviewsShownOnHomepage(@Param("limit") int limit);
+
+    @Select("""
+            SELECT COUNT(*) FROM u_feedback
+            WHERE type = '评价' AND is_deleted = 0
+              AND (#{keyword} IS NULL OR content LIKE CONCAT('%', #{keyword}, '%'))
+            """)
+    long countReviews(@Param("keyword") String keyword);
+
+    @Select("""
+            SELECT id, user_id AS userId, type, content,
+                   reply_content AS replyContent,
+                   reply_admin_id AS replyAdminId,
+                   replied_at AS repliedAt,
+                   star_rating AS starRating,
+                   status, is_show_on_homepage AS isShowOnHomepage,
+                   created_at AS createdAt
+            FROM u_feedback
+            WHERE type = '评价' AND is_deleted = 0
+              AND (#{keyword} IS NULL OR content LIKE CONCAT('%', #{keyword}, '%'))
+            ORDER BY created_at DESC
+            LIMIT #{offset}, #{size}
+            """)
+    List<Feedback> pageReviews(@Param("keyword") String keyword,
+                               @Param("offset") int offset,
+                               @Param("size") int size);
+
+    @Update("""
+            UPDATE u_feedback
+            SET is_show_on_homepage = #{isShowOnHomepage},
+                updated_at = CURRENT_TIMESTAMP(3)
+            WHERE id = #{id} AND type = '评价' AND is_deleted = 0
+            """)
+    int updateShowOnHomepage(@Param("id") Long id,
+                             @Param("isShowOnHomepage") Integer isShowOnHomepage);
 }

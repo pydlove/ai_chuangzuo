@@ -1,85 +1,131 @@
 <template>
   <div class="home-testimonial-view">
     <a-card title="首页评价管理" :bordered="false">
-      <template #extra>
-        <a-space>
-          <a-button @click="onDownloadTemplate">
-            <template #icon><DownloadOutlined /></template>
-            下载导入模板
-          </a-button>
-          <a-upload
-            accept=".xlsx"
-            :show-upload-list="false"
-            :before-upload="beforeImport"
-            :custom-request="handleImport"
-          >
-            <a-button :loading="importing">
-              <template #icon><UploadOutlined /></template>
-              导入评价
-            </a-button>
-          </a-upload>
-          <a-button type="primary" @click="onCreate">新增评价</a-button>
-        </a-space>
-      </template>
-      <div class="table-toolbar">
-        <a-input-search
-          v-model:value="searchKeyword"
-          placeholder="搜索姓名或评价内容"
-          allow-clear
-          style="width: 260px"
-          @search="onSearch"
-        />
-        <a-button
-          danger
-          :loading="batchDeleting"
-          :disabled="selectedRowKeys.length === 0"
-          @click="onBatchDelete"
-        >
-          批量删除 ({{ selectedRowKeys.length }})
-        </a-button>
-      </div>
+      <a-tabs v-model:activeKey="activeTab" @change="onTabChange">
+        <a-tab-pane key="simulated" tab="模拟评价">
+          <template #tab>
+            <span>模拟评价</span>
+          </template>
+          <div class="tab-panel">
+            <div class="table-toolbar">
+              <a-input-search
+                v-model:value="searchKeyword"
+                placeholder="搜索姓名或评价内容"
+                allow-clear
+                style="width: 260px"
+                @search="onSearch"
+              />
+              <a-space>
+                <a-button @click="onDownloadTemplate">
+                  <template #icon><DownloadOutlined /></template>
+                  下载导入模板
+                </a-button>
+                <a-upload
+                  accept=".xlsx"
+                  :show-upload-list="false"
+                  :before-upload="beforeImport"
+                  :custom-request="handleImport"
+                >
+                  <a-button :loading="importing">
+                    <template #icon><UploadOutlined /></template>
+                    导入评价
+                  </a-button>
+                </a-upload>
+                <a-button type="primary" @click="onCreate">新增评价</a-button>
+                <a-button
+                  danger
+                  :loading="batchDeleting"
+                  :disabled="selectedRowKeys.length === 0"
+                  @click="onBatchDelete"
+                >
+                  批量删除 ({{ selectedRowKeys.length }})
+                </a-button>
+              </a-space>
+            </div>
 
-      <a-table
-        :columns="columns"
-        :data-source="testimonials"
-        :loading="loading"
-        row-key="id"
-        :row-selection="rowSelection"
-        :pagination="pagination"
-        @change="onTableChange"
-      >
-        <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'avatar'">
-            <img
-              v-if="record.avatarUrl"
-              :src="record.avatarUrl"
-              class="avatar-preview"
-              alt="avatar"
-            />
-            <div v-else class="avatar-fallback">{{ record.name ? record.name[0] : 'U' }}</div>
-          </template>
-          <template v-else-if="column.key === 'starRating'">
-            <a-rate :value="record.starRating" disabled />
-          </template>
-          <template v-else-if="column.key === 'reviewText'">
-            <span class="review-text">{{ record.reviewText }}</span>
-          </template>
-          <template v-else-if="column.key === 'isEnabled'">
-            <a-switch
-              :checked="record.isEnabled === 1"
-              @change="(checked) => onToggleStatus(record, checked)"
-            />
-          </template>
-          <template v-else-if="column.key === 'action'">
-            <a @click="onEdit(record)">编辑</a>
-            <a-divider type="vertical" />
-            <a-popconfirm title="确认删除该评价？" @confirm="onDelete(record)">
-              <a class="danger">删除</a>
-            </a-popconfirm>
-          </template>
-        </template>
-      </a-table>
-      <div v-if="!loading && testimonials.length === 0" class="empty-tip">暂无评价，请点击右上角新增</div>
+            <a-table
+              :columns="columns"
+              :data-source="testimonials"
+              :loading="loading"
+              row-key="id"
+              :row-selection="rowSelection"
+              :pagination="pagination"
+              @change="onTableChange"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'avatar'">
+                  <img
+                    v-if="record.avatarUrl"
+                    :src="record.avatarUrl"
+                    class="avatar-preview"
+                    alt="avatar"
+                  />
+                  <div v-else class="avatar-fallback">{{ record.name ? record.name[0] : 'U' }}</div>
+                </template>
+                <template v-else-if="column.key === 'starRating'">
+                  <a-rate :value="record.starRating" disabled />
+                </template>
+                <template v-else-if="column.key === 'reviewText'">
+                  <span class="review-text">{{ record.reviewText }}</span>
+                </template>
+                <template v-else-if="column.key === 'isEnabled'">
+                  <a-switch
+                    :checked="record.isEnabled === 1"
+                    @change="(checked) => onToggleStatus(record, checked)"
+                  />
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <a @click="onEdit(record)">编辑</a>
+                  <a-divider type="vertical" />
+                  <a-popconfirm title="确认删除该评价？" @confirm="onDelete(record)">
+                    <a class="danger">删除</a>
+                  </a-popconfirm>
+                </template>
+              </template>
+            </a-table>
+            <div v-if="!loading && testimonials.length === 0" class="empty-tip">暂无评价，请点击右上角新增</div>
+          </div>
+        </a-tab-pane>
+
+        <a-tab-pane key="user" tab="用户评价">
+          <div class="tab-panel">
+            <div class="table-toolbar">
+              <a-input-search
+                v-model:value="userReviewSearchKeyword"
+                placeholder="搜索评价内容"
+                allow-clear
+                style="width: 260px"
+                @search="onUserReviewSearch"
+              />
+            </div>
+
+            <a-table
+              :columns="userReviewColumns"
+              :data-source="userReviews"
+              :loading="userReviewLoading"
+              row-key="id"
+              :pagination="userReviewPagination"
+              @change="onUserReviewTableChange"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'starRating'">
+                  <a-rate :value="record.starRating" disabled />
+                </template>
+                <template v-else-if="column.key === 'content'">
+                  <span class="review-text">{{ record.content }}</span>
+                </template>
+                <template v-else-if="column.key === 'isShowOnHomepage'">
+                  <a-switch
+                    :checked="record.isShowOnHomepage === 1"
+                    @change="(checked) => onToggleUserReviewStatus(record, checked)"
+                  />
+                </template>
+              </template>
+            </a-table>
+            <div v-if="!userReviewLoading && userReviews.length === 0" class="empty-tip">暂无用户评价</div>
+          </div>
+        </a-tab-pane>
+      </a-tabs>
     </a-card>
 
     <a-modal
@@ -177,8 +223,12 @@ import {
   updateTestimonialStatus,
   uploadTestimonialAvatar,
   downloadTestimonialImportTemplate,
-  importTestimonials
+  importTestimonials,
+  listUserReviews,
+  updateUserReviewStatus
 } from '@/api/homeTestimonial.js'
+
+const activeTab = ref('simulated')
 
 const testimonials = ref([])
 const loading = ref(false)
@@ -196,6 +246,13 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const selectedRowKeys = ref([])
+
+const userReviews = ref([])
+const userReviewLoading = ref(false)
+const userReviewSearchKeyword = ref('')
+const userReviewPage = ref(1)
+const userReviewPageSize = ref(20)
+const userReviewTotal = ref(0)
 
 const form = reactive({
   avatarUrl: '',
@@ -224,6 +281,14 @@ const columns = [
   { title: '操作', key: 'action', width: 120 }
 ]
 
+const userReviewColumns = [
+  { title: '用户昵称', dataIndex: 'nickname', key: 'nickname', width: 140 },
+  { title: '星级', key: 'starRating', width: 160 },
+  { title: '评价内容', key: 'content', ellipsis: true },
+  { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
+  { title: '首页展示', key: 'isShowOnHomepage', width: 100 }
+]
+
 const pagination = computed(() => ({
   current: page.value,
   pageSize: pageSize.value,
@@ -232,10 +297,25 @@ const pagination = computed(() => ({
   showTotal: (t) => `共 ${t} 条`
 }))
 
+const userReviewPagination = computed(() => ({
+  current: userReviewPage.value,
+  pageSize: userReviewPageSize.value,
+  total: userReviewTotal.value,
+  showSizeChanger: true,
+  showTotal: (t) => `共 ${t} 条`
+}))
+
 const rowSelection = computed(() => ({
   selectedRowKeys: selectedRowKeys.value,
   onChange: (keys) => { selectedRowKeys.value = keys }
 }))
+
+function onTabChange(key) {
+  activeTab.value = key
+  if (key === 'user') {
+    loadUserReviews()
+  }
+}
 
 async function load() {
   loading.value = true
@@ -263,6 +343,44 @@ function onTableChange(p) {
   page.value = p.current
   pageSize.value = p.pageSize
   load()
+}
+
+async function loadUserReviews() {
+  userReviewLoading.value = true
+  try {
+    const data = await listUserReviews({
+      keyword: userReviewSearchKeyword.value || undefined,
+      pageNum: userReviewPage.value,
+      pageSize: userReviewPageSize.value
+    })
+    userReviews.value = data.list || []
+    userReviewTotal.value = data.total || 0
+  } catch (e) {
+    message.error(e?.message || '加载失败')
+  } finally {
+    userReviewLoading.value = false
+  }
+}
+
+function onUserReviewSearch() {
+  userReviewPage.value = 1
+  loadUserReviews()
+}
+
+function onUserReviewTableChange(p) {
+  userReviewPage.value = p.current
+  userReviewPageSize.value = p.pageSize
+  loadUserReviews()
+}
+
+async function onToggleUserReviewStatus(record, checked) {
+  try {
+    await updateUserReviewStatus(record.id, { isShowOnHomepage: checked ? 1 : 0 })
+    record.isShowOnHomepage = checked ? 1 : 0
+    message.success('已更新')
+  } catch (e) {
+    message.error(e?.message || '更新失败')
+  }
 }
 
 function onBatchDelete() {
@@ -445,6 +563,7 @@ onMounted(load)
 
 <style scoped>
 .home-testimonial-view { padding: 0; }
+.tab-panel { padding-top: 8px; }
 .table-toolbar {
   display: flex;
   justify-content: space-between;

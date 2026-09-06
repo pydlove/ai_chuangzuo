@@ -61,3 +61,21 @@ export function importTestimonials(file) {
     })
     .then((res) => res.data)
 }
+
+export function listUserReviews(params = {}) {
+  const { keyword = '', pageNum = 1, pageSize = 20 } = params
+  return request
+    .get(`${BASE}/user-reviews`, { params: { keyword, pageNum, pageSize } })
+    .then((res) => {
+      const data = res.data || {}
+      const rows = data.records || data.list || []
+      return {
+        list: rows,
+        total: data.total || 0
+      }
+    })
+}
+
+export function updateUserReviewStatus(id, data) {
+  return request.patch(`${BASE}/user-reviews/${id}/status`, data)
+}

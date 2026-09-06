@@ -16,7 +16,8 @@ public enum TestimonialErrorCode implements ErrorCode {
     AVATAR_UPLOAD_FAILED(290003, "头像上传失败"),
     EXCEL_FILE_INVALID(290004, "Excel 文件无效，请上传不超过 10MB 的 .xlsx 文件，并检查表头"),
     EXCEL_PARSE_ERROR(290005, "Excel 解析失败"),
-    EXCEL_IMPORT_EMPTY(290006, "Excel 中未找到有效数据");
+    EXCEL_IMPORT_EMPTY(290006, "Excel 中未找到有效数据"),
+    TESTIMONIAL_STATUS_INVALID(290007, "展示状态只能为 0 或 1");
 
     private final int code;
     private final String message;

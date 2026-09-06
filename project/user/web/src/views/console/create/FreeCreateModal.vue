@@ -164,7 +164,7 @@ import { useCreateForm } from './useCreateForm.js'
 import { platforms } from '@/composables/usePlatforms.js'
 import { useGenerationQueue } from './useGenerationQueue.js'
 import { currentSkill } from '@/composables/useSkills.js'
-import { marketSkills } from '@/composables/useSkillMarket.js'
+import { marketSkills, loadMarketSkills } from '@/composables/useSkillMarket.js'
 import { useExportTemplates } from '@/composables/useExportTemplates.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useConfirm } from '@/composables/useConfirm.js'
@@ -217,6 +217,9 @@ const planPlatformKey = computed(() => {
 onMounted(async () => {
   loadBenefits()
   await loadExportTemplates().catch(() => {})
+  // 自由创作各入口（落地页弹框、/console/create/free、邀约页）都不会提前加载市场列表，
+  // 而提交前的可用性校验要以 marketSkills 为准，这里自行加载，避免误报「已下架」
+  loadMarketSkills().catch(() => {})
   isReady.value = true
 })
 

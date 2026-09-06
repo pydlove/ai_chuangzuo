@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface TestimonialService {
 
-    List<TestimonialVO> listEnabled();
+    List<TestimonialVO> listEnabled(int page, int size);
 }

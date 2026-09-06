@@ -82,7 +82,7 @@ SSH_MUX_OPTS="-o ControlMaster=auto -o ControlPath=$SSH_MUX_PATH -o ControlPersi
 if [ -n "$SSH_KEY_PATH" ] && [ -f "$SSH_KEY_PATH" ]; then
   SSH_CMD="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $SSH_MUX_OPTS"
   SCP_CMD="scp -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $SSH_MUX_OPTS"
-  RSYNC_SSH="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no"
+  RSYNC_SSH="ssh -i $SSH_KEY_PATH -o StrictHostKeyChecking=no $SSH_MUX_OPTS"
 else
   if ! command -v sshpass &> /dev/null; then
     log_error "未安装 sshpass，请执行: brew install sshpass (macOS) 或 apt-get install sshpass (Linux)"
@@ -91,7 +91,7 @@ else
   fi
   SSH_CMD="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 $SSH_MUX_OPTS"
   SCP_CMD="sshpass -p '$SERVER_PASSWORD' scp -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 $SSH_MUX_OPTS"
-  RSYNC_SSH="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3"
+  RSYNC_SSH="sshpass -p '$SERVER_PASSWORD' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=30 -o ServerAliveInterval=30 -o ServerAliveCountMax=3 $SSH_MUX_OPTS"
 fi
 
 if ! command -v rsync &> /dev/null; then
@@ -101,7 +101,17 @@ fi
 
 function rsync_lib() {
     local src=$1; local dst=$2
-    eval "rsync -avz --checksum --delete -e \"$RSYNC_SSH\" \"$src\" \"$dst\""
+    local max_attempts=3; local delay=10
+    for attempt in $(seq 1 $max_attempts); do
+        if eval "rsync -avz --checksum --delete -e \"$RSYNC_SSH\" \"$src\" \"$dst\""; then
+            return 0
+        fi
+        log_warn "rsync attempt $attempt/$max_attempts failed, retrying in ${delay}s..."
+        sleep $delay
+        delay=$((delay * 2))
+    done
+    log_error "rsync failed after $max_attempts attempts"
+    return 1
 }
 
 REMOTE_HOST="$SERVER_USER@$SERVER_IP"

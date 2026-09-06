@@ -441,7 +441,6 @@ function processRemove() {
 
   setTimeout(() => {
     try {
-      const ctx = canvas.value.getContext('2d')
       const { x, y, w, h } = selection.value
       if (w < 5 || h < 5) {
         message.error('选区太小，请重新框选')
@@ -449,26 +448,41 @@ function processRemove() {
         return
       }
 
-      // 先重绘原图
-      ctx.drawImage(originalImage.value, 0, 0, canvas.value.width, canvas.value.height)
+      // 按原图分辨率离屏处理，避免输出图被压缩
+      const img = originalImage.value
+      const off = document.createElement('canvas')
+      off.width = img.naturalWidth
+      off.height = img.naturalHeight
+      const offCtx = off.getContext('2d')
+      offCtx.drawImage(img, 0, 0)
+
+      const scale = img.naturalWidth / canvas.value.width
+      const rx = Math.round(x * scale)
+      const ry = Math.round(y * scale)
+      const rw = Math.round(w * scale)
+      const rh = Math.round(h * scale)
 
       // 采样选区周围颜色
-      const border = 4
-      const sx = Math.max(0, x - border)
-      const sy = Math.max(0, y - border)
-      const sw = Math.min(canvas.value.width - sx, w + border * 2)
-      const sh = Math.min(canvas.value.height - sy, h + border * 2)
-      const borderData = ctx.getImageData(sx, sy, sw, sh)
+      const border = Math.max(4, Math.round(4 * scale))
+      const sx = Math.max(0, rx - border)
+      const sy = Math.max(0, ry - border)
+      const sw = Math.min(off.width - sx, rw + border * 2)
+      const sh = Math.min(off.height - sy, rh + border * 2)
+      const borderData = offCtx.getImageData(sx, sy, sw, sh)
       const avg = averageColor(borderData.data)
 
       // 填充选区
-      ctx.fillStyle = `rgba(${avg.r},${avg.g},${avg.b},1)`
-      ctx.fillRect(x, y, w, h)
+      offCtx.fillStyle = `rgba(${avg.r},${avg.g},${avg.b},1)`
+      offCtx.fillRect(rx, ry, rw, rh)
 
       // 轻微模糊选区边缘
-      blurRect(ctx, x, y, w, h, 2)
+      blurRect(offCtx, rx, ry, rw, rh, Math.min(6, Math.max(2, Math.round(2 * scale))))
 
-      resultUrl.value = canvas.value.toDataURL('image/png')
+      resultUrl.value = off.toDataURL('image/png')
+
+      // 同步展示画布（保持缩略视图）
+      const ctx = canvas.value.getContext('2d')
+      ctx.drawImage(off, 0, 0, canvas.value.width, canvas.value.height)
       selection.value = null
       message.success('处理完成')
     } catch (err) {

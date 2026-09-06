@@ -10,6 +10,7 @@ import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.*;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.enums.error.BenefitErrorCode;
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.List;
 public class SelfMediaPlanController {
 
     private static final String BENEFIT_REPOST_PLAN = "repost_plan";
+    private static final String BENEFIT_PLAN_GALLERY = "plan_gallery";
 
     private final SelfMediaPlanService planService;
     private final PublishPlanAiService publishPlanAiService;
@@ -59,6 +61,17 @@ public class SelfMediaPlanController {
     public Result<SelfMediaPlanVO> savePlan(@RequestBody SavePlanRequest request) {
         Long userId = SecurityUserContext.getCurrentUserId();
         return Result.success(planService.savePlan(userId, request));
+    }
+
+    @GetMapping("/gallery")
+    public Result<IPage<SelfMediaPlanGalleryVO>> gallery(@RequestParam(name = "page", defaultValue = "1") int page,
+                                                         @RequestParam(name = "size", defaultValue = "20") int size) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        BenefitCheckVO check = benefitService.check(userId, BENEFIT_PLAN_GALLERY);
+        if (!Boolean.TRUE.equals(check.getAllowed())) {
+            throw new BusinessException(BenefitErrorCode.BENEFIT_NOT_SUPPORTED.getCode(), check.getMessage());
+        }
+        return Result.success(planService.galleryPage(page, size));
     }
 
     @GetMapping("/publish-plan")

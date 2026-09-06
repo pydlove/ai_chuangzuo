@@ -183,27 +183,36 @@ public class GenerationAiService {
 
     private String resolveUrl(ModelConfig cfg) {
         String base = trimBaseUrl(cfg.getBaseUrl());
-        String suffix = switch (cfg.getProviderType() == null ? "" : cfg.getProviderType().toLowerCase()) {
-            case "minimax" -> "/v1/text/chatcompletion_v2";
-            default -> "/v1/chat/completions"; // kimi 等 OpenAI 兼容
+        String provider = cfg.getProviderType() == null ? "" : cfg.getProviderType().toLowerCase();
+        String url = switch (provider) {
+            case "minimax" -> base + "/v1/text/chatcompletion_v2";
+            case "glm" -> glmBase(base) + "/v4/chat/completions";
+            default -> base + "/v1/chat/completions"; // kimi 等 OpenAI 兼容
         };
-        String url = base + suffix;
         log.debug("AI request url provider={} url={}", cfg.getProviderType(), url);
         return url;
     }
 
     /**
+     * 智谱 GLM：Base URL 只填域名时补全官方路径 /api/paas（如 https://open.bigmodel.cn）。
+     */
+    private static String glmBase(String base) {
+        int schemeEnd = base.indexOf("://");
+        int pathStart = schemeEnd >= 0 ? base.indexOf('/', schemeEnd + 3) : -1;
+        if (pathStart < 0) {
+            return base + "/api/paas";
+        }
+        return base;
+    }
+
+    /**
      * 与 {@link com.aichuangzuo.admin.infrastructure.ai.AiProviderClient} 保持一致：
-     * 仅去掉末尾的 /v1 或 /v1/，保留其它代理路径，避免测试连接时能用、实际生成时 404。
+     * 仅去掉末尾的版本段（/v1、/v4 等），保留其它代理路径，避免测试连接时能用、实际生成时 404。
      */
     private String trimBaseUrl(String baseUrl) {
         if (baseUrl == null) return "";
         String s = baseUrl.trim();
-        if (s.endsWith("/v1/")) {
-            s = s.substring(0, s.length() - 4);
-        } else if (s.endsWith("/v1")) {
-            s = s.substring(0, s.length() - 3);
-        }
+        s = s.replaceAll("/v\\d+/$", "").replaceAll("/v\\d+$", "");
         s = s.replaceAll("/+$", "");
         return s;
     }

@@ -11,7 +11,9 @@ import java.util.Optional;
 @AllArgsConstructor
 public enum AiProvider {
     KIMI("kimi", "Kimi"),
-    MINIMAX("minimax", "MiniMax");
+    MINIMAX("minimax", "MiniMax"),
+    GLM("glm", "智谱 GLM"),
+    SENSENOVA("sensenova", "商汤 SenseNova");
 
     private final String code;
     private final String name;

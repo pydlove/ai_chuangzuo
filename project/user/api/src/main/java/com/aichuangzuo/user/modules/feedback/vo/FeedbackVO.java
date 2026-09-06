@@ -14,4 +14,5 @@ public class FeedbackVO {
     private LocalDateTime repliedAt;
     private LocalDateTime createdAt;
     private Integer status;
+    private Integer isShowOnHomepage;
 }

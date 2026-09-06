@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.modelconfig.mapper;
 
 import com.aichuangzuo.admin.modules.modelconfig.entity.ModelConfig;
+import com.aichuangzuo.shared.ai.ActiveModelConfig;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -16,6 +17,17 @@ public interface ModelConfigMapper extends BaseMapper<ModelConfig> {
      */
     @Select("SELECT * FROM a_model_config WHERE is_active = 1 AND is_deleted = 0 ORDER BY priority ASC, id ASC")
     List<ModelConfig> selectActiveByPriority();
+
+    /**
+     * 查询所有启用配置的 AI 调用视图（精简字段），按优先级升序。
+     *
+     * <p>给 {@link com.aichuangzuo.shared.ai.ModelConfigSelector} 轮询用：只取调用所需字段，
+     * 避免把整表实体拖出来。
+     */
+    @Select("SELECT id, provider_type AS providerType, model_code AS modelCode, "
+            + "base_url AS baseUrl, api_key_encrypted AS apiKeyEncrypted "
+            + "FROM a_model_config WHERE is_active = 1 AND is_deleted = 0 ORDER BY priority ASC, id ASC")
+    List<ActiveModelConfig> selectActiveAiViewByPriority();
 
     /**
      * 按厂商类型查询未删除的配置列表。

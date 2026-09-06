@@ -124,13 +124,26 @@
             </div>
           </a-form-item>
 
-          <a-form-item label="累计使用" name="totalUses">
-            <a-input-number
-              v-model:value="form.totalUses"
-              :min="0"
-              style="width: 160px"
-            />
-          </a-form-item>
+          <a-row :gutter="16">
+            <a-col :xs="24" :md="12">
+              <a-form-item label="累计使用" name="totalUses">
+                <a-input-number
+                  v-model:value="form.totalUses"
+                  :min="0"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+            <a-col :xs="24" :md="12">
+              <a-form-item label="本周使用" name="weeklyUses">
+                <a-input-number
+                  v-model:value="form.weeklyUses"
+                  :min="0"
+                  style="width: 100%"
+                />
+              </a-form-item>
+            </a-col>
+          </a-row>
 
           <a-form-item>
             <a-space>
@@ -172,6 +185,7 @@ const form = reactive({
   promptSummary: '',
   prompt: '',
   totalUses: 0,
+  weeklyUses: 0,
   enableStatus: 1,
   featured: 0,
   createdAt: null
@@ -246,6 +260,7 @@ const loadDetail = async () => {
       promptSummary: data.promptSummary || '',
       prompt: data.prompt || '',
       totalUses: data.totalUses || 0,
+      weeklyUses: data.weeklyUses || 0,
       enableStatus: data.status === 'enabled' ? 1 : 0,
       featured: data.featured === 1 ? 1 : 0,
       createdAt: data.createdAt ? data.createdAt.replace('T', ' ').slice(0, 19) : null
@@ -278,6 +293,7 @@ const onSubmit = async () => {
       prompt: form.prompt.trim(),
       scope: scopeRef.value || '',
       totalUses: form.totalUses || 0,
+      weeklyUses: form.weeklyUses || 0,
       enableStatus: form.enableStatus,
       featured: form.featured,
       createdAt: form.createdAt || null

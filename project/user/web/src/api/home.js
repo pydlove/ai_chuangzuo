@@ -9,9 +9,9 @@ export function fetchHomeBanners() {
 }
 
 /**
- * 首页用户评价列表（仅启用，按 sort ASC）。
- * @returns {Promise<Array<{id:number, avatarUrl:string, name:string, title:string, starRating:number, reviewText:string}>>}
+ * 首页用户评价列表（仅启用，分页）。
+ * @returns {Promise<Array<{id:number, source:string, avatarUrl:string, name:string, title:string, starRating:number, reviewText:string}>>}
  */
-export function fetchHomeTestimonials() {
-  return request.get('/home/testimonials').then((res) => res.data || [])
+export function fetchHomeTestimonials(page = 1, size = 20) {
+  return request.get('/home/testimonials', { params: { page, size } }).then((res) => res.data || [])
 }

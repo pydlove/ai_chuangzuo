@@ -74,6 +74,21 @@ class PlanCatalogServiceImplTest {
 
         // 年付立省 pro=215.6
         assertEquals(new BigDecimal("215.60"), pro.getYear().getSavings());
+
+        // 定价卡片文案应由 ai_article_quota 派生，保持与对比表一致
+        PlanCatalogVO.PlanVO basic = vo.getPlans().get(0);
+        assertEquals("30 篇 AI 文章/月", basic.getMonthly().getArticles());
+        assertEquals("90 篇 AI 文章/季", basic.getQuarter().getArticles());
+        assertEquals("360 篇 AI 文章/年", basic.getYear().getArticles());
+
+        assertEquals("100 篇 AI 文章/月", pro.getMonthly().getArticles());
+        assertEquals("300 篇 AI 文章/季", pro.getQuarter().getArticles());
+        assertEquals("1200 篇 AI 文章/年", pro.getYear().getArticles());
+
+        PlanCatalogVO.PlanVO flagship = vo.getPlans().get(2);
+        assertEquals("300 篇 AI 文章/月", flagship.getMonthly().getArticles());
+        assertEquals("900 篇 AI 文章/季", flagship.getQuarter().getArticles());
+        assertEquals("3600 篇 AI 文章/年", flagship.getYear().getArticles());
     }
 
     @Test
@@ -206,6 +221,21 @@ class PlanCatalogServiceImplTest {
         assertEquals("30 天", history.getBasic().getValue());
         assertEquals("永久", history.getPro().getValue());
         assertEquals("永久", history.getFlagship().getValue());
+    }
+
+    @Test
+    void getCatalog_missingAiArticleQuota_articlesFallbackToDash() {
+        List<PlanBenefit> pbs = planBenefits();
+        pbs.removeIf(pb -> "ai_article_quota".equals(pb.getBenefitCode()));
+        when(planMapper.selectList(any())).thenReturn(plans());
+        when(benefitMapper.selectList(any())).thenReturn(benefits());
+        when(planBenefitMapper.selectList(any())).thenReturn(pbs);
+
+        PlanCatalogVO.PlanVO basic = service.getCatalog().getPlans().get(0);
+
+        assertEquals("—", basic.getMonthly().getArticles());
+        assertEquals("—", basic.getQuarter().getArticles());
+        assertEquals("—", basic.getYear().getArticles());
     }
 
     @Test

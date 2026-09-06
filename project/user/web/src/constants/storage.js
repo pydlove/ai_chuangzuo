@@ -48,9 +48,15 @@ export const STORAGE_KEYS = {
   // 自媒体方案
   SELF_MEDIA_PLAN_MODAL_DISMISSED: `${STORAGE_PREFIX}_selfmedia_plan_modal_dismissed`,
 
+  // 自媒体账号
+  SELF_MEDIA_ACCOUNTS: `${STORAGE_PREFIX}_selfmedia_accounts`,
+
   // 约稿中心引导
   ONBOARDING_DRAFT: `${STORAGE_PREFIX}_onboarding_draft`,
-  ONBOARDING_DONE: `${STORAGE_PREFIX}_onboarding_done`
+  ONBOARDING_DONE: `${STORAGE_PREFIX}_onboarding_done`,
+
+  // 工作台操作向导
+  WORKBENCH_GUIDE_DONE: `${STORAGE_PREFIX}_workbench_guide_done`
 }
 
 /**
@@ -96,6 +102,13 @@ export function getOnboardingDoneKey(userId) {
 }
 
 /**
+ * 获取工作台操作向导完成 key（按用户隔离）。
+ */
+export function getWorkbenchGuideDoneKey(userId) {
+  return userId ? `${STORAGE_KEYS.WORKBENCH_GUIDE_DONE}:${userId}` : STORAGE_KEYS.WORKBENCH_GUIDE_DONE
+}
+
+/**
  * 用户切换时需要清空的一组 key（保留用户隔离的 key 格式前缀）。
  */
 export const USER_SCOPED_STORAGE_KEYS = [
@@ -113,6 +126,8 @@ export const USER_SCOPED_STORAGE_KEYS = [
   STORAGE_KEYS.WITHDRAW_AGREEMENT_ACCEPTED,
   STORAGE_KEYS.ACCOUNT_CHECK_LAST,
   STORAGE_KEYS.ACCOUNT_RECOMMEND_LAST,
+  STORAGE_KEYS.SELF_MEDIA_ACCOUNTS,
   STORAGE_KEYS.ONBOARDING_DRAFT,
-  STORAGE_KEYS.ONBOARDING_DONE
+  STORAGE_KEYS.ONBOARDING_DONE,
+  STORAGE_KEYS.WORKBENCH_GUIDE_DONE
 ]

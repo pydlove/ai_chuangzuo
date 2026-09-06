@@ -17,6 +17,16 @@
         Hey! {{ activeTab === 'login' ? '欢迎回到爱创作工坊' : '欢迎来到爱创作工坊' }}
       </h1>
 
+      <a-alert
+        v-if="showPrivateModeTip"
+        type="warning"
+        show-icon
+        closable
+        :message="'温馨提示：检测到您可能开启了浏览器的无痕/隐私模式，关闭浏览器后需要重新登录。如需保持登录状态，建议关闭无痕模式。'"
+        class="ml-private-mode-tip"
+        @close="closePrivateModeTip"
+      />
+
       <Tabs
         v-model="activeTab"
         :tabs="[
@@ -236,6 +246,9 @@ import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
 import Tabs from '@/components/common/Tabs.vue'
 import Icon from '@/components/common/Icon.vue'
 import { useLogin } from '@/composables/useLogin.js'
+import { usePrivateModeTip } from '@/composables/usePrivateModeTip.js'
+
+const { showTip: showPrivateModeTip, closeTip: closePrivateModeTip } = usePrivateModeTip()
 
 const {
   activeTab,
@@ -351,6 +364,20 @@ const registerShowPassword = ref(false)
   color: #1a1a1a;
   margin: 0 0 16px;
   line-height: 1.3;
+}
+
+.ml-private-mode-tip {
+  margin-bottom: 12px;
+  border-radius: 8px;
+}
+
+body[data-theme="dark"] .ml-private-mode-tip {
+  background: rgba(250, 173, 20, 0.12) !important;
+  border-color: rgba(250, 173, 20, 0.4) !important;
+}
+
+body[data-theme="dark"] .ml-private-mode-tip :deep(.ant-alert-message) {
+  color: #e0e0e0 !important;
 }
 
 .ml-form {

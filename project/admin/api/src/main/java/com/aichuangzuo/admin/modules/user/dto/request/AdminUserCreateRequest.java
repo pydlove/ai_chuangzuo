@@ -1,7 +1,6 @@
 package com.aichuangzuo.admin.modules.user.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,7 +8,6 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDate;
 
 @Data
@@ -42,12 +40,4 @@ public class AdminUserCreateRequest {
 
     /** 套餐 key（如 basic / pro / flagship），null 表示无套餐 */
     private String membershipPlan;
-
-    /** 头像 URL（上传后返回的访问路径） */
-    @Size(max = 512, message = "头像 URL 长度不能超过 512 字符")
-    private String avatarUrl;
-
-    /** 当月创作币收益（null 表示不设置） */
-    @DecimalMin(value = "0", inclusive = true, message = "当月创作币收益必须大于或等于 0")
-    private BigDecimal monthlyCoinEarnings;
 }

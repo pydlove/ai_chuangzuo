@@ -73,7 +73,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
-  UserOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined,
+  UserOutlined, SettingOutlined, ApiOutlined, FireOutlined, TrophyOutlined, DollarOutlined, WechatOutlined,
   BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined,
   UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined,
   TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, AppstoreOutlined,
@@ -121,6 +121,7 @@ const menuGroups = [
     icon: UserOutlined,
     children: [
       { key: '/console/users', title: '注册用户' },
+      { key: '/console/self-media-plans', title: '运营方案' },
       { key: '/console/expire-reminder', title: '到期提醒' }
     ]
   },
@@ -207,6 +208,7 @@ const menuGroups = [
       { key: '/console/security-settings', title: '安全设置', icon: SafetyOutlined },
       { key: '/console/tools', title: '工具管理', icon: ToolOutlined },
       { key: '/console/payment-config', title: '支付设置', icon: DollarOutlined },
+      { key: '/console/wechat-official-account-config', title: '公众号配置', icon: WechatOutlined },
       { key: '/console/sms-config', title: '短信配置', icon: MessageOutlined },
       { key: '/console/scheduled-tasks', title: '定时任务', icon: ClockCircleOutlined },
       { key: '/console/audit-logs', title: '操作审计', icon: FileSearchOutlined },

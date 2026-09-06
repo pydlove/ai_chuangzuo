@@ -88,6 +88,7 @@ public class FeedbackServiceImpl implements FeedbackService {
         vo.setReplyContent(fb.getReplyContent());
         vo.setRepliedAt(fb.getRepliedAt());
         vo.setCreatedAt(fb.getCreatedAt());
+        vo.setIsShowOnHomepage(fb.getIsShowOnHomepage());
         return vo;
     }
 }

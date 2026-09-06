@@ -6,6 +6,12 @@
         <p class="user-list-desc">查看与管理平台注册用户</p>
       </div>
 
+      <!-- 用户类型 Tab -->
+      <a-tabs v-model:activeKey="activeUserTypeTab" class="user-type-tabs" @change="handleUserTypeTabChange">
+        <a-tab-pane key="1" tab="真实用户" />
+        <a-tab-pane key="0" tab="机器人" />
+      </a-tabs>
+
       <!-- 工具栏 -->
       <div class="user-list-toolbar">
         <a-input
@@ -65,7 +71,12 @@
         :row-selection="{ selectedRowKeys: selectedRowKeys, onChange: onSelectChange }"
       >
         <template #bodyCell="{ column, record }">
-          <template v-if="column.key === 'contact'">
+          <template v-if="column.key === 'avatar'">
+            <a-avatar :src="record.avatarUrl" :size="36">
+              {{ (record.nickname || '?').charAt(0) }}
+            </a-avatar>
+          </template>
+          <template v-else-if="column.key === 'contact'">
             <div class="contact-cell">
               <div class="contact-text">
                 <div v-if="record.phone">{{ record.phone }}</div>
@@ -86,11 +97,6 @@
           <template v-else-if="column.key === 'status'">
             <a-tag :color="record.status === 'enabled' ? 'green' : 'red'">
               {{ record.status === 'enabled' ? '启用' : '禁用' }}
-            </a-tag>
-          </template>
-          <template v-else-if="column.key === 'userType'">
-            <a-tag :color="record.userType === 'robot' ? 'orange' : 'blue'">
-              {{ record.userType === 'robot' ? '机器人' : '真实用户' }}
             </a-tag>
           </template>
           <template v-else-if="column.key === 'inviteCode'">
@@ -212,24 +218,6 @@
         <a-form-item label="昵称" name="nickname">
           <a-input v-model:value="editForm.nickname" placeholder="请输入昵称" />
         </a-form-item>
-        <a-form-item label="头像" name="avatarUrl">
-          <div class="avatar-uploader">
-            <img v-if="editForm.avatarUrl" :src="editForm.avatarUrl" class="avatar-preview-large" alt="avatar" />
-            <div v-else class="avatar-placeholder">{{ editForm.nickname ? editForm.nickname[0] : 'U' }}</div>
-            <a-upload
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              :show-upload-list="false"
-              :custom-request="(e) => handleAvatarUpload(e, editForm)"
-              :before-upload="beforeAvatarUpload"
-            >
-              <a-button :loading="avatarUploading" class="upload-btn">
-                <template #icon><UploadOutlined /></template>
-                {{ editForm.avatarUrl ? '更换头像' : '上传头像' }}
-              </a-button>
-            </a-upload>
-            <a-input v-model:value="editForm.avatarUrl" placeholder="或填写图片 URL" class="avatar-url-input" />
-          </div>
-        </a-form-item>
         <a-form-item label="状态" name="status">
           <a-radio-group v-model:value="editForm.status">
             <a-radio value="enabled">启用</a-radio>
@@ -258,15 +246,6 @@
             allow-clear
           />
         </a-form-item>
-        <a-form-item label="当月创作币收益" name="monthlyCoinEarnings">
-          <a-input-number
-            v-model:value="editForm.monthlyCoinEarnings"
-            style="width: 100%"
-            :min="0"
-            :precision="2"
-            placeholder="不填则不修改，填写后覆盖当月管理员设置值"
-          />
-        </a-form-item>
       </a-form>
     </a-modal>
 
@@ -288,7 +267,8 @@
               <img v-if="detailUser.avatarUrl" :src="detailUser.avatarUrl" class="avatar-preview-large" alt="avatar" />
               <span v-else style="color: #8c8c8c">—</span>
             </a-descriptions-item>
-            <a-descriptions-item label="邮箱/账号">{{ detailUser.email }}</a-descriptions-item>
+            <a-descriptions-item label="邮箱/账号">{{ detailUser.email || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="手机号">{{ detailUser.phone || '—' }}</a-descriptions-item>
             <a-descriptions-item label="昵称">{{ detailUser.nickname }}</a-descriptions-item>
             <a-descriptions-item label="状态">
               <a-tag :color="detailUser.status === 'enabled' ? 'green' : 'red'">
@@ -300,7 +280,15 @@
                 {{ detailUser.userType === 'robot' ? '机器人' : '真实用户' }}
               </a-tag>
             </a-descriptions-item>
-            <a-descriptions-item label="邀请码">{{ detailUser.inviteCode }}</a-descriptions-item>
+            <a-descriptions-item label="邀请码">{{ detailUser.inviteCode || '—' }}</a-descriptions-item>
+            <a-descriptions-item label="邀请人">
+              <span v-if="detailUser.inviterEmail">
+                {{ detailUser.inviterNickname || detailUser.inviterEmail }}
+                <span style="color: #8c8c8c">({{ detailUser.inviterEmail }})</span>
+              </span>
+              <span v-else>—</span>
+            </a-descriptions-item>
+            <a-descriptions-item label="邀请人数">{{ detailUser.invitedCount ?? 0 }} 人</a-descriptions-item>
             <a-descriptions-item label="会员套餐">
               <span v-if="detailUser.membershipPlan">{{ planLabel(detailUser.membershipPlan) }}</span>
               <span v-else>—</span>
@@ -666,24 +654,6 @@
         <a-form-item label="昵称" name="nickname">
           <a-input v-model:value="createForm.nickname" placeholder="请输入昵称" />
         </a-form-item>
-        <a-form-item label="头像" name="avatarUrl">
-          <div class="avatar-uploader">
-            <img v-if="createForm.avatarUrl" :src="createForm.avatarUrl" class="avatar-preview-large" alt="avatar" />
-            <div v-else class="avatar-placeholder">{{ createForm.nickname ? createForm.nickname[0] : 'U' }}</div>
-            <a-upload
-              accept="image/png,image/jpeg,image/jpg,image/webp"
-              :show-upload-list="false"
-              :custom-request="(e) => handleAvatarUpload(e, createForm)"
-              :before-upload="beforeAvatarUpload"
-            >
-              <a-button :loading="avatarUploading" class="upload-btn">
-                <template #icon><UploadOutlined /></template>
-                {{ createForm.avatarUrl ? '更换头像' : '上传头像' }}
-              </a-button>
-            </a-upload>
-            <a-input v-model:value="createForm.avatarUrl" placeholder="或填写图片 URL" class="avatar-url-input" />
-          </div>
-        </a-form-item>
         <a-form-item label="密码" name="password">
           <a-input-password
             v-model:value="createForm.password"
@@ -716,15 +686,6 @@
             style="width: 100%"
             placeholder="选择到期日（清空=非会员）"
             allow-clear
-          />
-        </a-form-item>
-        <a-form-item label="当月创作币收益" name="monthlyCoinEarnings">
-          <a-input-number
-            v-model:value="createForm.monthlyCoinEarnings"
-            style="width: 100%"
-            :min="0"
-            :precision="2"
-            placeholder="不填则不设置，填写后覆盖当月管理员设置值"
           />
         </a-form-item>
       </a-form>
@@ -799,8 +760,7 @@ import { message, Modal } from 'ant-design-vue'
 import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutlined, DownloadOutlined, DeleteOutlined } from '@ant-design/icons-vue'
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
-import { compressImage } from '@/utils/imageCompress.js'
-import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate, uploadUserAvatar } from '@/api/user.js'
+import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
 import { fetchPlans } from '@/api/plan.js'
 
@@ -812,6 +772,7 @@ const {
   pageSize,
   keyword,
   inviteCode,
+  userType,
   fetchUsers,
   handleSearch,
   handleReset,
@@ -825,10 +786,10 @@ const {
 
 const columns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 80 },
+  { title: '头像', key: 'avatar', width: 70 },
   { title: '手机/邮箱', key: 'contact', width: 240 },
   { title: '昵称', dataIndex: 'nickname', key: 'nickname', width: 140 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 100 },
-  { title: '类型', dataIndex: 'userType', key: 'userType', width: 100 },
   { title: '邀请码', dataIndex: 'inviteCode', key: 'inviteCode', width: 140 },
   { title: '邀请人', key: 'inviter', width: 180 },
   { title: '邀请人数', key: 'invitedCount', width: 100 },
@@ -953,6 +914,15 @@ const invitePageSize = ref(10)
 
 const selectedRowKeys = ref([])
 
+const activeUserTypeTab = ref('1')
+
+const handleUserTypeTabChange = (key) => {
+  userType.value = Number(key)
+  page.value = 1
+  selectedRowKeys.value = []
+  fetchUsers()
+}
+
 const editModalVisible = ref(false)
 const editFormRef = ref()
 const editForm = reactive({
@@ -960,25 +930,12 @@ const editForm = reactive({
   email: '',
   phone: '',
   nickname: '',
-  avatarUrl: '',
   status: 'enabled',
   userType: 1,
   membershipPlan: null,
-  expireDate: null,
-  monthlyCoinEarnings: null
+  expireDate: null
 })
 const editLoading = ref(false)
-
-const validateMonthlyCoinEarnings = (rule, value) => {
-  if (value === null || value === undefined || value === '') {
-    return Promise.resolve()
-  }
-  const num = Number(value)
-  if (Number.isNaN(num) || num < 0) {
-    return Promise.reject(new Error('当月创作币收益必须大于或等于 0'))
-  }
-  return Promise.resolve()
-}
 
 const validateEmailOrPhone = (rule, value) => {
   const email = editForm.email?.trim()
@@ -1002,10 +959,7 @@ const editRules = {
     { min: 1, max: 64, message: '昵称长度 1-64 字符', trigger: 'blur' }
   ],
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
-  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }],
-  monthlyCoinEarnings: [
-    { validator: validateMonthlyCoinEarnings, trigger: ['blur', 'change'] }
-  ]
+  userType: [{ required: true, message: '请选择用户类型', trigger: 'change' }]
 }
 
 const createModalVisible = ref(false)
@@ -1015,15 +969,12 @@ const createForm = reactive({
   phone: '',
   nickname: '',
   password: '',
-  avatarUrl: '',
   status: 'enabled',
   userType: 1,
   membershipPlan: null,
-  expireDate: null,
-  monthlyCoinEarnings: null
+  expireDate: null
 })
 const createLoading = ref(false)
-const avatarUploading = ref(false)
 
 const importing = ref(false)
 const importResultVisible = ref(false)
@@ -1056,9 +1007,6 @@ const createRules = {
   status: [{ required: true, message: '请选择状态', trigger: 'change' }],
   userType: [
     { required: true, message: '请选择用户类型', trigger: 'change' }
-  ],
-  monthlyCoinEarnings: [
-    { validator: validateMonthlyCoinEarnings, trigger: ['blur', 'change'] }
   ]
 }
 
@@ -1136,34 +1084,6 @@ const confirmBatchDelete = () => {
   })
 }
 
-function beforeAvatarUpload(file) {
-  const isImage = file.type === 'image/jpeg' || file.type === 'image/png' || file.type === 'image/jpg' || file.type === 'image/webp'
-  if (!isImage) {
-    message.error('仅支持 JPG/PNG/WebP 格式')
-    return false
-  }
-  if (file.size > 5 * 1024 * 1024) {
-    message.error('图片大小不能超过 5MB')
-    return false
-  }
-  return true
-}
-
-async function handleAvatarUpload({ file }, form) {
-  avatarUploading.value = true
-  try {
-    const { blob, extension } = await compressImage(file, 0.8, 'image/webp')
-    const compressedFile = new File([blob], `avatar.${extension}`, { type: blob.type })
-    const url = await uploadUserAvatar(compressedFile)
-    form.avatarUrl = url
-    message.success('上传成功')
-  } catch (e) {
-    message.error(e?.message || '上传失败')
-  } finally {
-    avatarUploading.value = false
-  }
-}
-
 const openEditModal = async (user) => {
   editLoading.value = true
   try {
@@ -1172,12 +1092,10 @@ const openEditModal = async (user) => {
     editForm.email = detail.email || ''
     editForm.phone = detail.phone || ''
     editForm.nickname = detail.nickname
-    editForm.avatarUrl = detail.avatarUrl || ''
     editForm.status = detail.status
     editForm.userType = detail.userType === 'robot' ? 0 : 1
     editForm.membershipPlan = detail.membershipPlan || null
     editForm.expireDate = detail.membershipExpireAt ? detail.membershipExpireAt.substring(0, 10) : null
-    editForm.monthlyCoinEarnings = detail.monthlyCoinEarnings ?? null
     editModalVisible.value = true
   } finally {
     editLoading.value = false
@@ -1197,12 +1115,10 @@ const submitEditForm = () => {
         email: editForm.email?.trim() || null,
         phone: editForm.phone?.trim() || null,
         nickname: editForm.nickname.trim(),
-        avatarUrl: editForm.avatarUrl || null,
         status: editForm.status,
         userType: editForm.userType,
         membershipPlan: editForm.membershipPlan || null,
-        expireDate: editForm.expireDate || null,
-        monthlyCoinEarnings: editForm.monthlyCoinEarnings ?? null
+        expireDate: editForm.expireDate || null
       })
       message.success('用户信息已更新')
       closeEditModal()
@@ -1218,12 +1134,10 @@ const openCreateModal = () => {
   createForm.phone = ''
   createForm.nickname = ''
   createForm.password = ''
-  createForm.avatarUrl = ''
   createForm.status = 'enabled'
   createForm.userType = 1
   createForm.membershipPlan = null
   createForm.expireDate = null
-  createForm.monthlyCoinEarnings = null
   createModalVisible.value = true
 }
 
@@ -1241,12 +1155,10 @@ const submitCreateForm = () => {
         phone: createForm.phone?.trim() || null,
         nickname: createForm.nickname.trim(),
         password: createForm.password,
-        avatarUrl: createForm.avatarUrl || null,
         status: createForm.status,
         userType: createForm.userType,
         membershipPlan: createForm.membershipPlan || null,
-        expireDate: createForm.expireDate || null,
-        monthlyCoinEarnings: createForm.monthlyCoinEarnings ?? null
+        expireDate: createForm.expireDate || null
       })
       closeCreateModal()
     } catch (error) {
@@ -1640,6 +1552,10 @@ onMounted(() => {
   align-items: center;
 }
 
+.user-type-tabs {
+  margin-bottom: 8px;
+}
+
 .user-list-pagination {
   margin-top: 16px;
   display: flex;
@@ -1780,13 +1696,6 @@ onMounted(() => {
   overflow-y: auto;
 }
 
-.avatar-uploader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
 .avatar-preview-large {
   width: 64px;
   height: 64px;
@@ -1795,20 +1704,4 @@ onMounted(() => {
   background: #f5f5f5;
 }
 
-.avatar-placeholder {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  background: #f0f0f0;
-  color: #595959;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.avatar-url-input {
-  width: 240px;
-}
 </style>

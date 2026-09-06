@@ -37,6 +37,9 @@ public class UpdateSkillMarketRequest {
     @Min(value = 0, message = "使用量不能为负数")
     private Integer totalUses = 0;
 
+    @Min(value = 0, message = "本周使用量不能为负数")
+    private Integer weeklyUses = 0;
+
     @NotNull(message = "启用状态不能为空")
     private Integer enableStatus;
 

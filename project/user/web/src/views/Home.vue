@@ -139,7 +139,7 @@
     </section>
 
     <!-- 用户评价 -->
-    <TestimonialCarousel :testimonials="testimonials" />
+    <TestimonialCarousel :testimonials="testimonials" :load-more="loadMoreTestimonials" />
 
     <!-- 使用步骤 -->
     <section class="steps">
@@ -175,6 +175,9 @@
       </div>
     </section>
 
+    <!-- 页脚链接区 -->
+    <HomeFooter />
+
     <!-- 底部 -->
     <AppFooter />
   </div>
@@ -184,6 +187,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
+import HomeFooter from '@/components/layout/HomeFooter.vue'
 import MobileHome from '@/views/MobileHome.vue'
 import TestimonialCarousel from '@/components/testimonial/TestimonialCarousel.vue'
 import Icon from '@/components/common/Icon.vue'
@@ -202,8 +206,11 @@ import {
 
 const { isMobile } = useDevice()
 
+const TESTIMONIAL_PAGE_SIZE = 20
 const banners = ref([])
 const testimonials = ref([])
+const testimonialPage = ref(1)
+const hasMoreTestimonials = ref(true)
 const activeBannerIndex = ref(0)
 let bannerTimer = null
 
@@ -217,9 +224,37 @@ async function loadBanners() {
 
 async function loadTestimonials() {
   try {
-    testimonials.value = await fetchHomeTestimonials()
+    const list = await fetchHomeTestimonials(1, TESTIMONIAL_PAGE_SIZE)
+    testimonials.value = list
+    testimonialPage.value = 1
+    hasMoreTestimonials.value = list.length >= TESTIMONIAL_PAGE_SIZE
   } catch (e) {
     testimonials.value = []
+    hasMoreTestimonials.value = false
+  }
+}
+
+// 加载下一页评价；返回 false 表示没有更多（调用方应回到第一个）
+async function loadMoreTestimonials() {
+  if (!hasMoreTestimonials.value) return false
+  try {
+    const list = await fetchHomeTestimonials(testimonialPage.value + 1, TESTIMONIAL_PAGE_SIZE)
+    if (!list.length) {
+      hasMoreTestimonials.value = false
+      return false
+    }
+    const existingIds = new Set(testimonials.value.map((item) => item.id))
+    const fresh = list.filter((item) => !existingIds.has(item.id))
+    if (!fresh.length) {
+      hasMoreTestimonials.value = false
+      return false
+    }
+    testimonials.value = [...testimonials.value, ...fresh]
+    testimonialPage.value += 1
+    hasMoreTestimonials.value = list.length >= TESTIMONIAL_PAGE_SIZE
+    return true
+  } catch (e) {
+    return false
   }
 }
 

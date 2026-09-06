@@ -15,7 +15,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -40,7 +39,6 @@ public class IncomeSubmissionServiceImpl implements IncomeSubmissionService {
     private final ObjectMapper objectMapper;
 
     @Override
-    @CacheEvict(value = "leaderboard", key = "'income:month:' + #p1.periodMonth + ':' + #p0")
     public IncomeSubmissionVO submit(Long userId, IncomeSubmissionUploadRequest request) {
         validate(request);
 

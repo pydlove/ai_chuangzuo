@@ -1,6 +1,6 @@
 package com.aichuangzuo.admin.modules.generation.worker;
 
-import com.aichuangzuo.admin.modules.modelconfig.service.ModelConfigSelector;
+import com.aichuangzuo.admin.modules.modelconfig.mapper.ModelConfigMapper;
 import com.aichuangzuo.admin.modules.generation.entity.GenerationConfig;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationContext;
 import com.aichuangzuo.admin.modules.generation.pipeline.GenerationPipeline;
@@ -8,6 +8,8 @@ import com.aichuangzuo.admin.modules.generation.service.GenerationCallLogService
 import com.aichuangzuo.admin.modules.generation.service.GenerationConfigService;
 import com.aichuangzuo.admin.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.admin.modules.generation.service.QuotaRefundInternalClient;
+import com.aichuangzuo.shared.ai.ActiveModelConfig;
+import com.aichuangzuo.shared.ai.ModelConfigSelector;
 import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -58,6 +60,8 @@ class GenerationTaskWorkerTest {
     @Mock
     private GenerationCallLogService callLogService;
     @Mock
+    private ModelConfigMapper modelConfigMapper;
+    @Mock
     private ModelConfigSelector modelConfigSelector;
 
     @Spy
@@ -77,7 +81,11 @@ class GenerationTaskWorkerTest {
         defaultConfig.setPollIntervalMs(500);
         defaultConfig.setWorkerId("worker-1");
         lenient().when(configService.getCurrent()).thenReturn(defaultConfig);
-        lenient().when(modelConfigSelector.nextActiveConfigId()).thenReturn(42L);
+        ActiveModelConfig activeCfg = new ActiveModelConfig();
+        activeCfg.setId(42L);
+        activeCfg.setProviderType("kimi");
+        lenient().when(modelConfigMapper.selectActiveAiViewByPriority()).thenReturn(java.util.List.of(activeCfg));
+        lenient().when(modelConfigSelector.next(any())).thenReturn(activeCfg);
     }
 
     private GenerationTask makeTask(Long id) {
@@ -274,7 +282,7 @@ class GenerationTaskWorkerTest {
     @Test
     void processOne_shouldMarkFailedWhenNoActiveModelConfig() throws Exception {
         GenerationTask task = makeTask(105L);
-        when(modelConfigSelector.nextActiveConfigId()).thenReturn(null);
+        when(modelConfigSelector.next(any())).thenReturn(null);
         GenerationTask failedTask = new GenerationTask();
         failedTask.setId(105L);
         failedTask.setStatus(GenerationTaskStatus.FAILED);

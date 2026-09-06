@@ -117,11 +117,13 @@
 
       <!-- 抽奖记录 -->
       <a-tab-pane key="records" tab="抽奖记录">
+        <a-button type="primary" class="add-btn" @click="openGrantModal()">人工发奖</a-button>
         <a-form layout="inline" class="record-query-form">
           <a-form-item label="类型">
             <a-select v-model:value="recordQuery.drawType" style="width: 100px" placeholder="类型" allow-clear>
               <a-select-option value="free">免费</a-select-option>
               <a-select-option value="invite">邀请</a-select-option>
+              <a-select-option value="manual">人工</a-select-option>
             </a-select>
           </a-form-item>
           <a-form-item label="邮箱">
@@ -147,7 +149,7 @@
                  row-key="id" @change="handleRecordTableChange">
           <template #bodyCell="{ column, record }">
             <span v-if="column.key === 'drawType'">
-              <a-tag>{{ record.drawType === 'invite' ? '邀请' : '免费' }}</a-tag>
+              <a-tag>{{ drawTypeText(record.drawType) }}</a-tag>
             </span>
             <span v-else-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
             <span v-else-if="column.key === 'action'">
@@ -384,6 +386,30 @@
         </a-form-item>
       </a-form>
     </a-modal>
+
+    <!-- 人工发奖弹窗 -->
+    <a-modal v-model:open="grantModalVisible" title="人工发奖" width="560px" :confirm-loading="grantSaving" @ok="saveGrant"
+             @cancel="grantModalVisible = false">
+      <a-alert type="info" show-icon message="等效于该用户抽中此奖项：扣减奖品库存、生成兑换码、写入抽奖记录与展示墙" style="margin-bottom: 16px" />
+      <a-form :model="grantForm" :label-col="{ span: 5 }" :wrapper-col="{ span: 17 }">
+        <a-form-item label="活动" required>
+          <a-select v-model:value="grantForm.campaignId" placeholder="选择活动" @change="onGrantCampaignChange">
+            <a-select-option v-for="c in campaigns" :key="c.id" :value="c.id">{{ c.name }}</a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="奖项" required>
+          <a-select v-model:value="grantForm.tierId" placeholder="选择奖项">
+            <a-select-option v-for="t in grantTierOptions" :key="t.id" :value="t.id">
+              {{ t.tierName }}（剩余 {{ t.remainingWinCount ?? '-' }}/{{ t.maxWinCount ?? '不限' }}）
+            </a-select-option>
+          </a-select>
+        </a-form-item>
+        <a-form-item label="用户" required>
+          <a-select v-model:value="grantForm.userId" placeholder="搜索选择用户" show-search allow-clear
+                    :filter-option="false" :options="userOptions" @search="fetchUserOptions" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
   </div>
 </template>
 
@@ -396,7 +422,7 @@ import 'md-editor-v3/lib/style.css'
 import {
   listCampaigns, saveCampaign, openCampaign as apiOpenCampaign, closeCampaign as apiCloseCampaign, deleteCampaign, cloneCampaign as apiCloneCampaign,
   listTiers, saveTier, deleteTier,
-  listRedemptionCodes, listDrawRecords, resetDrawChance, listDisplayWinners, saveDisplayWinner, toggleDisplayWinner, deleteDisplayWinner
+  listRedemptionCodes, listDrawRecords, resetDrawChance, manualGrant, listDisplayWinners, saveDisplayWinner, toggleDisplayWinner, deleteDisplayWinner
 } from '@/api/lottery'
 import { listUserOptions } from '@/api/userOptions'
 
@@ -502,6 +528,11 @@ const recordQuery = ref({
 const resetChanceModalVisible = ref(false)
 const resetChanceSaving = ref(false)
 const resetChanceForm = ref({ campaignId: null, userId: null })
+
+const grantModalVisible = ref(false)
+const grantSaving = ref(false)
+const grantForm = ref({ campaignId: null, tierId: null, userId: null })
+const grantTierOptions = ref([])
 
 const recordColumns = [
   { title: '业务号', dataIndex: 'bizNo', key: 'bizNo' },
@@ -1036,6 +1067,51 @@ async function saveResetChance() {
   }
 }
 
+async function openGrantModal() {
+  if (campaigns.value.length === 0) await loadCampaigns()
+  grantForm.value = { campaignId: selectedCampaign.value ? selectedCampaign.value.id : null, tierId: null, userId: null }
+  grantTierOptions.value = []
+  userOptions.value = []
+  await loadGrantTierOptions(grantForm.value.campaignId)
+  await fetchUserOptions('')
+  grantModalVisible.value = true
+}
+
+async function loadGrantTierOptions(campaignId) {
+  grantTierOptions.value = []
+  if (!campaignId) return
+  try {
+    const res = await listTiers(campaignId)
+    grantTierOptions.value = (res.data || []).filter(t => t.rewardType !== 'none')
+  } catch (e) {
+    // ignore
+  }
+}
+
+async function onGrantCampaignChange(campaignId) {
+  grantForm.value.tierId = null
+  await loadGrantTierOptions(campaignId)
+}
+
+async function saveGrant() {
+  const { campaignId, tierId, userId } = grantForm.value
+  if (!campaignId || !tierId || !userId) {
+    message.warning('请选择活动、奖项和用户')
+    return
+  }
+  grantSaving.value = true
+  try {
+    await manualGrant({ campaignId, tierId, userId })
+    message.success('发奖成功，已扣减库存并生成兑换码')
+    grantModalVisible.value = false
+    loadRecords()
+  } catch (e) {
+    message.error(e.response?.data?.message || '发奖失败')
+  } finally {
+    grantSaving.value = false
+  }
+}
+
 function statusText(status) {
   const map = { 0: '草稿', 1: '进行中', 2: '已结束', 3: '已关闭' }
   return map[status] || status
@@ -1049,6 +1125,11 @@ function statusColor(status) {
 function statusTextCode(status) {
   const map = { unused: '未使用', used: '已使用', expired: '已过期' }
   return map[status] || status
+}
+
+function drawTypeText(type) {
+  const map = { free: '免费', invite: '邀请', manual: '人工' }
+  return map[type] || type || '免费'
 }
 
 function rewardTypeText(type) {

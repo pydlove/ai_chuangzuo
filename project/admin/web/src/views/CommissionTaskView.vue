@@ -141,17 +141,21 @@
 
     <a-modal v-model:open="addSubmissionVisible" title="添加投稿人" :confirm-loading="addingSubmission" @ok="submitAddSubmission">
       <a-form layout="vertical" :model="submissionForm" :rules="submissionRules" ref="submissionFormRef">
-        <a-form-item label="选择用户" name="submitterIds" extra="可搜索注册用户（含机器人/运营号），已添加的不会出现在选项中">
-          <a-select
-            v-model:value="submissionForm.submitterIds"
-            mode="multiple"
-            show-search
-            :filter-option="false"
-            placeholder="输入用户名或邮箱搜索"
-            :options="userOptions"
-            @search="searchUsers"
-            @dropdown-visible-change="onUserDropdownOpen"
-          />
+        <a-form-item label="选择用户" name="submitterIds" extra="点击按钮弹出用户列表，可批量勾选添加；已添加的不会出现在列表中">
+          <div class="submitter-picker">
+            <div v-if="submissionForm.submitterIds.length > 0" class="submitter-tags">
+              <a-tag
+                v-for="id in submissionForm.submitterIds"
+                :key="id"
+                closable
+                class="submitter-tag"
+                @close="removeSubmitter(id)"
+              >
+                {{ submitterLabel(id) }}
+              </a-tag>
+            </div>
+            <a-button @click="openUserPicker">选择用户</a-button>
+          </div>
         </a-form-item>
         <a-form-item label="文章标题" name="articleTitle">
           <a-input v-model:value="submissionForm.articleTitle" :maxlength="256" />
@@ -163,6 +167,61 @@
           <a-input-number v-model:value="submissionForm.wordCount" :min="1" style="width:100%" />
         </a-form-item>
       </a-form>
+    </a-modal>
+
+    <!-- 选择用户弹框（批量勾选） -->
+    <a-modal
+      v-model:open="pickerVisible"
+      title="选择投稿用户"
+      :width="760"
+      :footer="null"
+      @cancel="closeUserPicker"
+    >
+      <div class="user-picker-toolbar">
+        <a-input-search
+          v-model:value="pickerKeyword"
+          placeholder="昵称或邮箱搜索"
+          style="width: 260px"
+          allow-clear
+          @search="handlePickerSearch"
+        />
+      </div>
+      <a-table
+        :columns="pickerColumns"
+        :data-source="pickerUsers"
+        :loading="pickerLoading"
+        row-key="id"
+        size="small"
+        :pagination="false"
+        :row-selection="pickerRowSelection"
+        table-layout="fixed"
+      >
+        <template #bodyCell="{ column, record }">
+          <template v-if="column.key === 'userType'">
+            <a-tag :color="record.userType === 'robot' ? 'orange' : 'blue'">
+              {{ record.userType === 'robot' ? '机器人' : '真实用户' }}
+            </a-tag>
+          </template>
+        </template>
+      </a-table>
+      <div class="user-picker-footer">
+        <a-pagination
+          :current="pickerPage"
+          :page-size="pickerPageSize"
+          :total="pickerTotal"
+          :page-size-options="['10', '20', '50']"
+          show-size-changer
+          show-total
+          @change="handlePickerPageChange"
+          @show-size-change="handlePickerPageChange"
+        />
+        <a-space>
+          <span>已选 {{ pickerSelectedRowKeys.length }} 人</span>
+          <a-button type="primary" :disabled="pickerSelectedRowKeys.length === 0" @click="confirmUserPicker">
+            添加所选
+          </a-button>
+        </a-space>
+      </div>
     </a-modal>
     <a-modal v-model:open="importResultVisible" title="导入结果" :footer="null" width="640">
       <template v-if="importResult">
@@ -209,7 +268,7 @@ import {
   createCommissionTask, fetchCommissionTask, fetchCommissionTasks,
   importCommissionTasks, reconcileCommissionTasks, updateCommissionTask
 } from '@/api/commission.js'
-import { listUserOptions } from '@/api/userOptions.js'
+import { fetchUserOptionsPage } from '@/api/userOptions.js'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -237,11 +296,16 @@ const previewSubmission = ref(null)
 const addSubmissionVisible = ref(false)
 const addingSubmission = ref(false)
 const submissionFormRef = ref()
-const userOptions = ref([])
 const submissionForm = reactive({ submitterIds: [], articleTitle: '', articleBody: '', wordCount: undefined })
 const submissionRules = {
   submitterIds: [{ required: true, message: '请至少选择一位投稿用户', type: 'array', min: 1 }]
 }
+const pickerColumns = [
+  { title: 'ID', dataIndex: 'id', width: 80 },
+  { title: '昵称', dataIndex: 'nickname', ellipsis: true },
+  { title: '邮箱', dataIndex: 'email', ellipsis: true },
+  { title: '类型', key: 'userType', width: 100 }
+]
 const statusOptions = [0, 1, 2].map((value) => ({ value, label: taskStatus(value) }))
 const columns = [
   { title: '任务编号', dataIndex: 'taskNo', width: 180 }, { title: '标题', dataIndex: 'title' },
@@ -433,25 +497,81 @@ function confirmAdopt() {
 }
 function openAddSubmission() {
   Object.assign(submissionForm, { submitterIds: [], articleTitle: '', articleBody: '', wordCount: detail.value?.task?.minWordCount || 600 })
-  userOptions.value = []
+  submitterMap.value = new Map()
   addSubmissionVisible.value = true
 }
 const existingSubmitterIds = computed(() => new Set((detail.value?.submissions || []).map(s => s.submitterId)))
 
-async function searchUsers(keyword) {
+const pickerVisible = ref(false)
+const pickerLoading = ref(false)
+const pickerKeyword = ref('')
+const pickerPage = ref(1)
+const pickerPageSize = ref(10)
+const pickerTotal = ref(0)
+const pickerUsers = ref([])
+const pickerSelectedRowKeys = ref([])
+const submitterMap = ref(new Map())
+
+const pickerRowSelection = computed(() => ({
+  selectedRowKeys: pickerSelectedRowKeys.value,
+  onChange: (keys) => { pickerSelectedRowKeys.value = keys },
+  getCheckboxProps: (record) => ({ disabled: existingSubmitterIds.value.has(record.id) })
+}))
+
+async function loadPickerUsers() {
+  pickerLoading.value = true
   try {
-    const users = await listUserOptions(keyword, 20)
-    userOptions.value = users
-      .filter(u => !existingSubmitterIds.value.has(u.id))
-      .map(u => ({ value: u.id, label: `${u.nickname || '-'}（${u.email || u.id}）` }))
+    const res = await fetchUserOptionsPage(pickerKeyword.value, pickerPage.value, pickerPageSize.value)
+    pickerUsers.value = res.list || []
+    pickerTotal.value = res.total || 0
+    for (const u of pickerUsers.value) {
+      submitterMap.value.set(u.id, u)
+    }
   } catch {
-    userOptions.value = []
+    pickerUsers.value = []
+    pickerTotal.value = 0
+  } finally {
+    pickerLoading.value = false
   }
 }
-async function onUserDropdownOpen(open) {
-  if (open && userOptions.value.length === 0) {
-    await searchUsers('')
-  }
+
+function openUserPicker() {
+  pickerKeyword.value = ''
+  pickerPage.value = 1
+  pickerSelectedRowKeys.value = [...submissionForm.submitterIds]
+  pickerVisible.value = true
+  loadPickerUsers()
+}
+
+function closeUserPicker() {
+  pickerVisible.value = false
+}
+
+function handlePickerSearch() {
+  pickerPage.value = 1
+  loadPickerUsers()
+}
+
+function handlePickerPageChange(p, size) {
+  pickerPage.value = p
+  if (size) pickerPageSize.value = size
+  loadPickerUsers()
+}
+
+function confirmUserPicker() {
+  const newly = pickerSelectedRowKeys.value.filter((id) => !submissionForm.submitterIds.includes(id))
+  submissionForm.submitterIds.push(...newly)
+  pickerVisible.value = false
+}
+
+function removeSubmitter(id) {
+  submissionForm.submitterIds = submissionForm.submitterIds.filter((x) => x !== id)
+}
+
+function submitterLabel(id) {
+  const user = submitterMap.value.get(id)
+  if (!user) return `#${id}`
+  return `${user.nickname || '-'}（${user.email || id}）`
 }
 async function submitAddSubmission() {
   await submissionFormRef.value?.validate()
@@ -496,4 +616,9 @@ loadTasks()
 .import-error-list { margin: 0; padding-left: 16px; color: #cf1322; }
 .import-error-list li { margin-bottom: 4px; }
 .import-error-list li:last-child { margin-bottom: 0; }
+.submitter-picker { display: flex; align-items: flex-start; gap: 12px; }
+.submitter-tags { display: flex; flex-wrap: wrap; gap: 6px; max-width: 480px; }
+.submitter-tag { margin-inline-end: 0; }
+.user-picker-toolbar { margin-bottom: 12px; }
+.user-picker-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; }
 </style>

@@ -52,6 +52,10 @@ export function resetDrawChance(data) {
   return request({ url: '/lottery/draw-chances/reset', method: 'post', params: data })
 }
 
+export function manualGrant(data) {
+  return request({ url: '/lottery/draw-records/manual-grant', method: 'post', data })
+}
+
 export function listDisplayWinners(campaignId) {
   return request({ url: '/lottery/display-winners', method: 'get', params: { campaignId } })
 }

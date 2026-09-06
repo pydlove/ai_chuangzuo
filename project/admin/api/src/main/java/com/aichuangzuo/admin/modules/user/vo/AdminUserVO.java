@@ -2,7 +2,6 @@ package com.aichuangzuo.admin.modules.user.vo;
 
 import lombok.Data;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Data
@@ -23,7 +22,6 @@ public class AdminUserVO {
     private LocalDateTime membershipExpireAt;
     private String membershipPlan;
     private Integer remainingArticleQuota;
-    private BigDecimal monthlyCoinEarnings;
     private LocalDateTime createdAt;
     private LocalDateTime lastLoginAt;
 }

@@ -12,6 +12,7 @@ import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
@@ -52,12 +53,13 @@ public class AdminUserController {
     public Result<AdminUserPageVO> listUsers(
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "inviteCode", required = false) String inviteCode,
+            @RequestParam(name = "userType", required = false) Integer userType,
             @RequestParam(name = "page", defaultValue = "1") int page,
             @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
         Long adminUserId = checkSuperAdmin();
-        log.info("管理员查询用户列表, adminUserId={}, keyword={}, inviteCode={}, page={}, pageSize={}",
-                adminUserId, keyword, inviteCode, page, pageSize);
-        return Result.success(adminUserService.listUsers(keyword, inviteCode, page, pageSize));
+        log.info("管理员查询用户列表, adminUserId={}, keyword={}, inviteCode={}, userType={}, page={}, pageSize={}",
+                adminUserId, keyword, inviteCode, userType, page, pageSize);
+        return Result.success(adminUserService.listUsers(keyword, inviteCode, userType, page, pageSize));
     }
 
     @Operation(summary = "手动创建用户")
@@ -66,15 +68,6 @@ public class AdminUserController {
         Long adminUserId = checkSuperAdmin();
         log.info("管理员手动创建用户, adminUserId={}, email={}", adminUserId, request.getEmail());
         return Result.success(adminUserService.createUser(request));
-    }
-
-    @Operation(summary = "上传用户头像")
-    @PostMapping(value = "/upload-avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public Result<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
-        Long adminUserId = checkSuperAdmin();
-        log.info("管理员上传用户头像, adminUserId={}, fileName={}, fileSize={}",
-                adminUserId, file.getOriginalFilename(), file.getSize());
-        return Result.success(adminUserService.storeAvatar(file));
     }
 
     @Operation(summary = "下载用户导入模板")
@@ -177,6 +170,18 @@ public class AdminUserController {
         log.info("管理员查询用户下拉选项, adminUserId={}, keyword={}, limit={}",
                 adminUserId, keyword, limit);
         return Result.success(adminUserService.listUserOptions(keyword, limit));
+    }
+
+    @Operation(summary = "用户选项分页列表（投稿人等批量选择）")
+    @GetMapping("/options/page")
+    public Result<AdminUserOptionPageVO> listUserOptionsPage(
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "pageSize", defaultValue = "10") int pageSize) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询用户选项分页, adminUserId={}, keyword={}, page={}, pageSize={}",
+                adminUserId, keyword, page, pageSize);
+        return Result.success(adminUserService.listUserOptionsPage(keyword, page, pageSize));
     }
 
     @Operation(summary = "查询用户提示词列表")

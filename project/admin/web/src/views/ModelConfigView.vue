@@ -107,7 +107,7 @@
         </a-form-item>
 
         <a-form-item label="Base URL" name="baseUrl">
-          <a-input v-model:value="form.baseUrl" placeholder="https://api.moonshot.cn" />
+          <a-input v-model:value="form.baseUrl" :placeholder="baseUrlPlaceholder" />
         </a-form-item>
 
         <a-form-item label="API Key" name="apiKey">
@@ -198,8 +198,21 @@ const { configs, loading, fetchConfigs, saveConfig, removeConfig, fetchModelOpti
 
 const providerOptions = [
   { label: 'Kimi', value: 'kimi' },
-  { label: 'MiniMax', value: 'minimax' }
+  { label: 'MiniMax', value: 'minimax' },
+  { label: '智谱 GLM', value: 'glm' },
+  { label: '商汤 SenseNova', value: 'sensenova' }
 ]
+
+const BASE_URL_PLACEHOLDERS = {
+  kimi: 'https://api.moonshot.cn',
+  minimax: 'https://api.minimaxi.com',
+  glm: 'https://open.bigmodel.cn/api/paas/v4',
+  sensenova: 'https://token.sensenova.cn'
+}
+
+const baseUrlPlaceholder = computed(
+  () => BASE_URL_PLACEHOLDERS[form.providerType] || 'https://api.moonshot.cn'
+)
 
 const columns = [
   { title: '名称', dataIndex: 'name', key: 'name', ellipsis: true },

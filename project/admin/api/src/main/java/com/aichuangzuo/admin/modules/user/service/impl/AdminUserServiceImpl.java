@@ -1,7 +1,7 @@
 package com.aichuangzuo.admin.modules.user.service.impl;
 
+import com.aichuangzuo.admin.common.util.AvatarUrlUtil;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
-import com.aichuangzuo.admin.infrastructure.storage.LocalFileStorage;
 import com.aichuangzuo.admin.modules.order.entity.AdminMembership;
 import com.aichuangzuo.admin.modules.order.mapper.AdminMembershipMapper;
 import com.aichuangzuo.admin.modules.plan.entity.Plan;
@@ -16,8 +16,6 @@ import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.UserMarketFavoriteMapper;
 import com.aichuangzuo.admin.modules.skill.review.mapper.SkillReviewMapper;
-import com.aichuangzuo.admin.modules.earnings.entity.UserCoinRecord;
-import com.aichuangzuo.admin.modules.earnings.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserStatusRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
@@ -36,6 +34,7 @@ import com.aichuangzuo.admin.modules.user.vo.AdminUserImportResultVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserImportRowErrorVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteDetailVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserInviteeVO;
+import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserOptionVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPageVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserPublishedSkillVO;
@@ -45,8 +44,6 @@ import com.aichuangzuo.admin.modules.user.vo.AdminUserVO;
 import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -57,7 +54,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -86,8 +82,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PlanMapper planMapper;
     private final PlanBenefitMapper planBenefitMapper;
     private final AdminMembershipMapper adminMembershipMapper;
-    private final LocalFileStorage localFileStorage;
-    private final UserCoinRecordMapper userCoinRecordMapper;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -105,9 +99,6 @@ public class AdminUserServiceImpl implements AdminUserService {
     private static final String PERIOD_PATTERN = "^\\d{4}-\\d{2}$";
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^1[3-9]\\d{9}$");
-    private static final String MONTHLY_COIN_EARNINGS_BIZ_TYPE = "admin_monthly_coin_earnings";
-    private static final String MONTHLY_COIN_EARNINGS_BIZ_NO_PREFIX = "MCE";
-    private static final int COIN_DIRECTION_INCOME = 1;
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -163,7 +154,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setPhoneVerified(hasPhone ? 1 : 0);
         user.setTenantId(0L);
         user.setIsDeleted(0);
-        user.setAvatarUrl(request.getAvatarUrl());
         user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
 
         String membershipPlan = request.getMembershipPlan();
@@ -182,19 +172,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         syncUserMembership(user.getId(), user.getMembershipPlan(), user.getMembershipExpireAt());
 
-        if (request.getMonthlyCoinEarnings() != null) {
-            setMonthlyCoinEarnings(user.getId(), request.getMonthlyCoinEarnings());
-        }
-
         log.info("管理员创建用户成功, adminUserId={}, userId={}, email={}, phone={}",
                 SecurityAdminContext.getCurrentAdminUserId(), user.getId(), email, phone);
 
         return toAdminUserVO(user);
-    }
-
-    @Override
-    public String storeAvatar(MultipartFile file) {
-        return localFileStorage.storeUserAvatar(file);
     }
 
     @Override
@@ -373,10 +354,13 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     @Override
-    public AdminUserPageVO listUsers(String keyword, String inviteCode, int page, int pageSize) {
+    public AdminUserPageVO listUsers(String keyword, String inviteCode, Integer userType, int page, int pageSize) {
         Page<PlatformUser> pageParam = new Page<>(page, pageSize);
         LambdaQueryWrapper<PlatformUser> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(PlatformUser::getIsDeleted, 0);
+        if (userType != null) {
+            wrapper.eq(PlatformUser::getUserType, userType);
+        }
         if (StringUtils.hasText(inviteCode)) {
             wrapper.eq(PlatformUser::getInviteCode, inviteCode.trim());
         }
@@ -541,7 +525,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         user.setNickname(request.getNickname().trim());
         user.setUserStatus("enabled".equals(request.getStatus()) ? 1 : 0);
         user.setUserType(request.getUserType());
-        user.setAvatarUrl(request.getAvatarUrl());
         user.setMembershipExpireAt(request.getExpireDate() == null ? null : request.getExpireDate().plusDays(1).atStartOfDay());
 
         String membershipPlan = request.getMembershipPlan();
@@ -560,10 +543,6 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         // 同步 u_user_membership：用户端权益校验读的是这张表，不能只更新 u_user 缓存列
         syncUserMembership(user.getId(), user.getMembershipPlan(), user.getMembershipExpireAt());
-
-        if (request.getMonthlyCoinEarnings() != null) {
-            setMonthlyCoinEarnings(user.getId(), request.getMonthlyCoinEarnings());
-        }
 
         log.info("管理员更新用户成功, adminUserId={}, userId={}, email={}, phone={}",
                 SecurityAdminContext.getCurrentAdminUserId(), id, email, phone);
@@ -596,15 +575,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     public List<AdminUserOptionVO> listUserOptions(String keyword, int limit) {
-        LambdaQueryWrapper<PlatformUser> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(PlatformUser::getIsDeleted, 0);
-        if (keyword != null && !keyword.isBlank()) {
-            String kw = keyword.trim();
-            wrapper.and(w -> w.like(PlatformUser::getEmail, kw)
-                    .or()
-                    .like(PlatformUser::getNickname, kw));
-        }
-        wrapper.orderByDesc(PlatformUser::getCreatedAt);
+        LambdaQueryWrapper<PlatformUser> wrapper = buildUserOptionWrapper(keyword);
         wrapper.last("LIMIT " + limit);
         List<PlatformUser> users = platformUserMapper.selectList(wrapper);
         return users.stream()
@@ -621,7 +592,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setNickname(user.getNickname());
         vo.setStatus(user.getUserStatus() == 1 ? "enabled" : "disabled");
         vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
-        vo.setAvatarUrl(user.getAvatarUrl());
+        vo.setAvatarUrl(AvatarUrlUtil.normalizeForAdmin(user.getAvatarUrl()));
         vo.setInviteCode(user.getInviteCode());
         vo.setInvitedCount(userInviteRelationMapper.countEffectiveByInviterId(user.getId()));
 
@@ -638,7 +609,6 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setMembershipExpireAt(user.getMembershipExpireAt());
         vo.setMembershipPlan(user.getMembershipPlan());
         vo.setRemainingArticleQuota(calculateRemainingArticleQuota(user.getId()));
-        vo.setMonthlyCoinEarnings(calculateMonthlyCoinEarnings(user.getId()));
         vo.setCreatedAt(user.getCreatedAt());
         vo.setLastLoginAt(platformUserLoginLogMapper.selectLastLoginAtByUserId(user.getId()));
         return vo;
@@ -677,32 +647,39 @@ public class AdminUserServiceImpl implements AdminUserService {
         return Math.max(limit - used - preUsed, 0);
     }
 
-    private BigDecimal calculateMonthlyCoinEarnings(Long userId) {
-        YearMonth now = YearMonth.now();
-        LocalDateTime start = now.atDay(1).atStartOfDay();
-        LocalDateTime end = now.plusMonths(1).atDay(1).atStartOfDay();
-
-        QueryWrapper<UserCoinRecord> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId)
-                .eq("biz_type", MONTHLY_COIN_EARNINGS_BIZ_TYPE)
-                .ge("biz_time", start)
-                .lt("biz_time", end)
-                .eq("is_deleted", 0);
-        List<UserCoinRecord> records = userCoinRecordMapper.selectList(wrapper);
-        if (records == null || records.isEmpty()) {
-            return BigDecimal.ZERO;
-        }
-        return records.stream()
-                .map(UserCoinRecord::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
     private AdminUserOptionVO toAdminUserOptionVO(PlatformUser user) {
         AdminUserOptionVO vo = new AdminUserOptionVO();
         vo.setId(user.getId());
         vo.setNickname(user.getNickname());
         vo.setEmail(user.getEmail());
+        vo.setUserType(user.getUserType() != null && user.getUserType() == 0 ? "robot" : "real");
         return vo;
+    }
+
+    @Override
+    public AdminUserOptionPageVO listUserOptionsPage(String keyword, int page, int pageSize) {
+        Page<PlatformUser> pageParam = new Page<>(page, pageSize);
+        LambdaQueryWrapper<PlatformUser> wrapper = buildUserOptionWrapper(keyword);
+        Page<PlatformUser> result = platformUserMapper.selectPage(pageParam, wrapper);
+        AdminUserOptionPageVO vo = new AdminUserOptionPageVO();
+        vo.setList(result.getRecords().stream()
+                .map(this::toAdminUserOptionVO)
+                .collect(Collectors.toList()));
+        vo.setTotal(result.getTotal());
+        return vo;
+    }
+
+    private LambdaQueryWrapper<PlatformUser> buildUserOptionWrapper(String keyword) {
+        LambdaQueryWrapper<PlatformUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(PlatformUser::getIsDeleted, 0);
+        if (keyword != null && !keyword.isBlank()) {
+            String kw = keyword.trim();
+            wrapper.and(w -> w.like(PlatformUser::getEmail, kw)
+                    .or()
+                    .like(PlatformUser::getNickname, kw));
+        }
+        wrapper.orderByDesc(PlatformUser::getCreatedAt);
+        return wrapper;
     }
 
     @Override
@@ -918,71 +895,5 @@ public class AdminUserServiceImpl implements AdminUserService {
             membership.setExpiresAt(expireDate);
             adminMembershipMapper.updateMembership(membership);
         }
-    }
-
-    private void setMonthlyCoinEarnings(Long userId, BigDecimal amount) {
-        if (amount == null) {
-            return;
-        }
-        if (amount.compareTo(BigDecimal.ZERO) < 0) {
-            throw new BusinessException(AdminUserErrorCode.MONTHLY_COIN_EARNINGS_INVALID);
-        }
-
-        YearMonth now = YearMonth.now();
-        LocalDateTime start = now.atDay(1).atStartOfDay();
-        LocalDateTime end = now.plusMonths(1).atDay(1).atStartOfDay();
-
-        QueryWrapper<UserCoinRecord> wrapper = new QueryWrapper<>();
-        wrapper.eq("user_id", userId)
-                .eq("biz_type", MONTHLY_COIN_EARNINGS_BIZ_TYPE)
-                .ge("biz_time", start)
-                .lt("biz_time", end)
-                .eq("is_deleted", 0);
-        List<UserCoinRecord> existing = userCoinRecordMapper.selectList(wrapper);
-        BigDecimal existingAmount = existing.stream()
-                .map(UserCoinRecord::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-
-        if (!existing.isEmpty()) {
-            userCoinRecordMapper.delete(wrapper);
-        }
-
-        PlatformUser current = platformUserMapper.selectById(userId);
-        BigDecimal currentBalance = current != null && current.getCoinBalance() != null
-                ? current.getCoinBalance() : BigDecimal.ZERO;
-        BigDecimal newBalance = currentBalance.subtract(existingAmount).add(amount);
-        if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
-            newBalance = BigDecimal.ZERO;
-        }
-
-        UpdateWrapper<PlatformUser> updateWrapper = new UpdateWrapper<>();
-        updateWrapper.set("coin_balance", newBalance)
-                .set("updated_at", LocalDateTime.now())
-                .eq("id", userId);
-        platformUserMapper.update(null, updateWrapper);
-
-        if (amount.compareTo(BigDecimal.ZERO) > 0) {
-            UserCoinRecord record = new UserCoinRecord();
-            record.setBizNo(generateMonthlyCoinBizNo());
-            record.setUserId(userId);
-            record.setBizType(MONTHLY_COIN_EARNINGS_BIZ_TYPE);
-            record.setDirection(COIN_DIRECTION_INCOME);
-            record.setAmount(amount);
-            record.setBalanceAfter(newBalance);
-            record.setRemark("管理员设置当月创作币收益");
-            record.setBizTime(LocalDateTime.now());
-            record.setCreatedAt(LocalDateTime.now());
-            record.setUpdatedAt(LocalDateTime.now());
-            record.setTenantId(0L);
-            userCoinRecordMapper.insert(record);
-        }
-
-        log.info("管理员设置用户当月创作币收益, adminUserId={}, userId={}, amount={}, month={}",
-                SecurityAdminContext.getCurrentAdminUserId(), userId, amount, now);
-    }
-
-    private String generateMonthlyCoinBizNo() {
-        return MONTHLY_COIN_EARNINGS_BIZ_NO_PREFIX
-                + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase();
     }
 }

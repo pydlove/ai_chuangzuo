@@ -204,13 +204,14 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
+import { listMyCommissionSubmissions } from '@/api/commission'
 import { useWorks } from '@/composables/useWorks'
 import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
 import { useSelfMediaPlan } from '@/composables/useSelfMediaPlan.js'
 
 const route = useRoute()
 const router = useRouter()
-const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission, mySubmissions, loadMySubmissions } = useCommission()
+const { taskDetail, loading, loadTask, submitArticle, withdrawSubmission } = useCommission()
 const { articles, load: loadWorks } = useWorks()
 const { currentPlan, fetchCurrentPlan } = useSelfMediaPlan()
 const pickerVisible = ref(false)
@@ -219,6 +220,8 @@ const selectedBizNo = ref('')
 const submitting = ref(false)
 const searchKeyword = ref('')
 const pickerPage = ref(1)
+// 已投稿记录一次性全量加载，用于禁用已投递其他任务的文章（不依赖共享分页状态，避免漏判）
+const allMySubmissions = ref([])
 
 const PICKER_PAGE_SIZE = 5
 const MAX_VISIBLE_SUBMITTERS = 5
@@ -230,7 +233,7 @@ const adopters = computed(() => taskDetail.value?.adopters || [])
 const submissionCount = computed(() => taskDetail.value?.submissionCount || 0)
 const visibleSubmitters = computed(() => submitters.value.slice(0, MAX_VISIBLE_SUBMITTERS))
 const submittedBizNos = computed(() => new Set(
-  mySubmissions.value
+  allMySubmissions.value
     .filter(s => s.status !== 3)
     .map(s => s.articleBizNo)
 ))
@@ -273,13 +276,18 @@ onMounted(async () => {
     await Promise.all([
       loadTask(route.params.id),
       loadWorks({ page: 1, pageSize: 50 }),
-      loadMySubmissions(),
+      loadAllMySubmissions(),
       fetchCurrentPlan()
     ])
   } catch (error) {
     message.error(error.message || '约稿详情加载失败')
   }
 })
+
+async function loadAllMySubmissions() {
+  const data = await listMyCommissionSubmissions({ page: 1, pageSize: 500 })
+  allMySubmissions.value = data.records || data.list || []
+}
 
 function taskStatus(value) {
   return ['投递中', '评选中', '已完成'][value] || '未知状态'

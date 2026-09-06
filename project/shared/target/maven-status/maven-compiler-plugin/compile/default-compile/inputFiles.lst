@@ -1,4 +1,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/SharedModuleMarker.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/ai/ActiveModelConfig.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/ai/ModelConfigSelector.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/ai/ModelConfigSelectorAutoConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/creative/CreativeTemplateConstants.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/creative/TemplateStatus.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/AiPrompt.java
@@ -11,6 +14,7 @@
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/PromptTemplateVersion.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/ShareConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/TopicTitle.java
+/Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/entity/WechatOfficialAccountConfig.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/BlockStatusEnum.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/DeletedFlagEnum.java
 /Users/panyong/aio_project/ai_chuangzuo/project/shared/src/main/java/com/aichuangzuo/shared/enums/GenerationTaskStatus.java

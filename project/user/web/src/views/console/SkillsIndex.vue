@@ -168,6 +168,16 @@
               ></textarea>
             </div>
             <div class="style-editor-field">
+              <label class="style-editor-label">示例</label>
+              <textarea
+                v-model="editingStyle.promptExtra.example"
+                class="style-editor-textarea"
+                placeholder="例如：输出一篇 800 字左右的科普文，标题口语化，正文先讲故事再讲原理"
+                rows="3"
+              ></textarea>
+              <div class="style-scope-hint">给 AI 一个具体示例，帮助它更准确地理解你想要的输出效果</div>
+            </div>
+            <div class="style-editor-field">
               <label class="style-editor-label">拼接预览</label>
               <div class="template-prompt-preview">{{ displayPrompt }}</div>
               <div class="style-editor-counter" :class="{ over: displayPrompt.length > promptMaxLength }">
@@ -1072,7 +1082,8 @@ const DEFAULT_PROMPT_EXTRA = {
   audience: '',
   requirements: '',
   tone: '',
-  restrictions: ''
+  restrictions: '',
+  example: ''
 }
 
 const editingStyle = reactive({
@@ -1111,6 +1122,7 @@ function buildPromptFromExtra(extra) {
   if (extra.requirements?.trim()) parts.push(`- 写作要求：\n${extra.requirements.trim()}`)
   if (extra.tone?.trim()) parts.push(`- 语气：${extra.tone.trim()}`)
   if (extra.restrictions?.trim()) parts.push(`- 禁区：${extra.restrictions.trim()}`)
+  if (extra.example?.trim()) parts.push(`- 示例：\n${extra.example.trim()}`)
   return parts.join('\n\n')
 }
 
@@ -1242,7 +1254,8 @@ const goToEdit = (style) => {
       audience: extra.audience || '',
       requirements: extra.requirements || '',
       tone: extra.tone || '',
-      restrictions: extra.restrictions || ''
+      restrictions: extra.restrictions || '',
+      example: extra.example || ''
     }
   }
   editorMode.value = true

@@ -19,6 +19,7 @@ public class EarningsRecord {
     private String type;
     private String sourceType;
     private String sourceId;
+    private String bizNo;
     private String title;
     private String description;
     private BigDecimal amount;

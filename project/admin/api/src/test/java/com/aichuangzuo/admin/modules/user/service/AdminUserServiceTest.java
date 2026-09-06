@@ -12,8 +12,6 @@ import com.aichuangzuo.admin.modules.skill.market.entity.UserMarketFavorite;
 import com.aichuangzuo.admin.modules.skill.market.mapper.SkillMarketMapper;
 import com.aichuangzuo.admin.modules.skill.market.mapper.UserMarketFavoriteMapper;
 import com.aichuangzuo.admin.modules.user.dto.excel.UserImportExcelRowData;
-import com.aichuangzuo.admin.modules.earnings.entity.UserCoinRecord;
-import com.aichuangzuo.admin.modules.earnings.mapper.UserCoinRecordMapper;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserCreateRequest;
 import com.aichuangzuo.admin.modules.user.dto.request.AdminUserUpdateRequest;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
@@ -33,7 +31,6 @@ import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.alibaba.excel.EasyExcel;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +44,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
@@ -93,9 +89,6 @@ class AdminUserServiceTest {
     @Mock
     private BenefitUsageAdminMapper benefitUsageAdminMapper;
 
-    @Mock
-    private UserCoinRecordMapper userCoinRecordMapper;
-
     @InjectMocks
     private AdminUserServiceImpl adminUserService;
 
@@ -123,7 +116,7 @@ class AdminUserServiceTest {
         when(platformUserMapper.selectPage(any(Page.class), any())).thenReturn(page);
         when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
 
-        AdminUserPageVO result = adminUserService.listUsers("", null, 1, 10);
+        AdminUserPageVO result = adminUserService.listUsers("", null, null, 1, 10);
 
         assertEquals(1, result.getTotal());
         assertEquals(1, result.getList().size());
@@ -149,7 +142,7 @@ class AdminUserServiceTest {
         when(platformUserMapper.selectPage(any(Page.class), any())).thenReturn(page);
         when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
 
-        AdminUserPageVO result = adminUserService.listUsers(null, "ABC123", 1, 10);
+        AdminUserPageVO result = adminUserService.listUsers(null, "ABC123", null, 1, 10);
 
         assertEquals(1, result.getTotal());
         assertEquals("ABC123", result.getList().get(0).getInviteCode());
@@ -280,103 +273,6 @@ class AdminUserServiceTest {
                 () -> adminUserService.updateUser(1L, request));
         assertEquals(AdminUserErrorCode.PHONE_OR_EMAIL_REQUIRED.getCode(), ex.getCode());
         verify(platformUserMapper, never()).updateById(any(PlatformUser.class));
-    }
-
-    @Test
-    void updateUser_withMonthlyCoinEarnings_shouldInsertRecordAndUpdateBalance() {
-        PlatformUser user = new PlatformUser();
-        user.setId(1L);
-        user.setEmail("old@example.com");
-        user.setNickname("旧用户");
-        user.setUserStatus(1);
-        user.setUserType(1);
-        user.setCoinBalance(new BigDecimal("100"));
-        user.setIsDeleted(0);
-
-        AdminUserUpdateRequest request = new AdminUserUpdateRequest();
-        request.setEmail("old@example.com");
-        request.setNickname("新用户");
-        request.setStatus("enabled");
-        request.setUserType(1);
-        request.setMonthlyCoinEarnings(new BigDecimal("500"));
-
-        when(platformUserMapper.selectById(1L)).thenReturn(user);
-        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
-        when(adminMembershipMapper.selectByUserId(1L)).thenReturn(null);
-        when(userCoinRecordMapper.selectList(any(QueryWrapper.class))).thenReturn(Collections.emptyList());
-
-        adminUserService.updateUser(1L, request);
-
-        verify(platformUserMapper).updateById(user);
-        ArgumentCaptor<UserCoinRecord> captor = ArgumentCaptor.forClass(UserCoinRecord.class);
-        verify(userCoinRecordMapper).insert(captor.capture());
-        UserCoinRecord record = captor.getValue();
-        assertEquals(new BigDecimal("500"), record.getAmount());
-        assertEquals(Integer.valueOf(1), record.getDirection());
-        assertEquals("admin_monthly_coin_earnings", record.getBizType());
-    }
-
-    @Test
-    void updateUser_withZeroMonthlyCoinEarnings_shouldClearExistingAndNotInsert() {
-        PlatformUser user = new PlatformUser();
-        user.setId(1L);
-        user.setEmail("old@example.com");
-        user.setNickname("旧用户");
-        user.setUserStatus(1);
-        user.setUserType(1);
-        user.setCoinBalance(new BigDecimal("300"));
-        user.setIsDeleted(0);
-
-        UserCoinRecord existing = new UserCoinRecord();
-        existing.setUserId(1L);
-        existing.setBizType("admin_monthly_coin_earnings");
-        existing.setAmount(new BigDecimal("200"));
-        existing.setDirection(1);
-
-        AdminUserUpdateRequest request = new AdminUserUpdateRequest();
-        request.setEmail("old@example.com");
-        request.setNickname("新用户");
-        request.setStatus("enabled");
-        request.setUserType(1);
-        request.setMonthlyCoinEarnings(BigDecimal.ZERO);
-
-        when(platformUserMapper.selectById(1L)).thenReturn(user);
-        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(platformUserLoginLogMapper.selectLastLoginAtByUserId(1L)).thenReturn(LocalDateTime.now());
-        when(adminMembershipMapper.selectByUserId(1L)).thenReturn(null);
-        when(userCoinRecordMapper.selectList(any(QueryWrapper.class))).thenReturn(Collections.singletonList(existing));
-
-        adminUserService.updateUser(1L, request);
-
-        verify(userCoinRecordMapper).delete(any(QueryWrapper.class));
-        verify(userCoinRecordMapper, never()).insert(any(UserCoinRecord.class));
-    }
-
-    @Test
-    void updateUser_withNegativeMonthlyCoinEarnings_shouldThrow() {
-        PlatformUser user = new PlatformUser();
-        user.setId(1L);
-        user.setEmail("old@example.com");
-        user.setNickname("旧用户");
-        user.setUserStatus(1);
-        user.setUserType(1);
-        user.setIsDeleted(0);
-
-        AdminUserUpdateRequest request = new AdminUserUpdateRequest();
-        request.setEmail("old@example.com");
-        request.setNickname("新用户");
-        request.setStatus("enabled");
-        request.setUserType(1);
-        request.setMonthlyCoinEarnings(new BigDecimal("-10"));
-
-        when(platformUserMapper.selectById(1L)).thenReturn(user);
-        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-
-        BusinessException ex = assertThrows(BusinessException.class,
-                () -> adminUserService.updateUser(1L, request));
-        assertEquals(AdminUserErrorCode.MONTHLY_COIN_EARNINGS_INVALID.getCode(), ex.getCode());
-        verify(userCoinRecordMapper, never()).insert(any(UserCoinRecord.class));
     }
 
     @Test
@@ -574,34 +470,6 @@ class AdminUserServiceTest {
         assertEquals("pro", saved.getMembershipPlan());
         assertNotNull(saved.getMembershipExpireAt());
         verify(adminMembershipMapper).insertMembership(any(AdminMembership.class));
-    }
-
-    @Test
-    void createUser_withMonthlyCoinEarnings_shouldInsertRecord() {
-        AdminUserCreateRequest request = new AdminUserCreateRequest();
-        request.setEmail("earnings@example.com");
-        request.setNickname("收益用户");
-        request.setStatus("enabled");
-        request.setUserType(1);
-        request.setMonthlyCoinEarnings(new BigDecimal("500"));
-
-        PlatformUser current = new PlatformUser();
-        current.setId(1L);
-        current.setCoinBalance(new BigDecimal("100"));
-
-        when(platformUserMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
-        when(passwordEncoder.encode("Aichuangzuo@123")).thenReturn("hashed");
-        when(userCoinRecordMapper.selectList(any(QueryWrapper.class))).thenReturn(Collections.emptyList());
-        when(platformUserMapper.selectById(any())).thenReturn(current);
-
-        adminUserService.createUser(request);
-
-        ArgumentCaptor<UserCoinRecord> captor = ArgumentCaptor.forClass(UserCoinRecord.class);
-        verify(userCoinRecordMapper).insert(captor.capture());
-        UserCoinRecord record = captor.getValue();
-        assertEquals(new BigDecimal("500"), record.getAmount());
-        assertEquals(Integer.valueOf(1), record.getDirection());
-        assertEquals("admin_monthly_coin_earnings", record.getBizType());
     }
 
     @Test

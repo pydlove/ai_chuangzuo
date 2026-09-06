@@ -1,13 +1,40 @@
 /** 站点级公共配置 */
 
-/** 落地页顶部导航链接（首页、会员、活动、玩法指南、创作学院、帮助文档） */
+/** 落地页顶部导航链接（首页、会员、活动、玩法指南、创作学院、帮助文档、关于我们） */
 export const landingNavLinks = [
   { to: '/', label: '首页' },
   { to: '/pricing', label: '会员' },
   { to: '/lottery', label: '活动' },
   { to: '/guide', label: '玩法指南' },
   { to: '/learn', label: '创作学院' },
-  { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
+  { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' },
+  { to: '/about', label: '关于我们' }
+]
+
+/** 落地页页脚链接分组（复用已有菜单，无内容的栏目用现有菜单填充） */
+export const landingFooterColumns = [
+  {
+    title: '产品服务',
+    links: [
+      { to: '/console/workbench', label: '开始创作' },
+      { to: '/pricing', label: '会员' },
+      { to: '/lottery', label: '活动' }
+    ]
+  },
+  {
+    title: '学习成长',
+    links: [
+      { to: '/guide', label: '玩法指南' },
+      { to: '/learn', label: '创作学院' },
+      { label: '帮助文档', href: 'https://fxbi16ko1px.feishu.cn/docx/BXVqdp4XwodssXxlfECcUfODnib?from=from_copylink' }
+    ]
+  },
+  {
+    title: '关于我们',
+    links: [
+      { to: '/about', label: '公司介绍' }
+    ]
+  }
 ]
 
 /** 落地页顶部导航右侧 CTA */

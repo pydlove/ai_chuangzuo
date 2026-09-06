@@ -114,7 +114,7 @@
 
         <!-- 完整榜单 -->
         <section id="toc-full-list" class="leaderboard-section">
-          <SectionTitle title="TOP 4 - 100" tag="完整榜单" pill />
+          <SectionTitle title="TOP 4 - 20" tag="完整榜单" pill />
 
           <div v-if="coinListAfter3.length === 0" class="leaderboard-empty">
             暂无更多排名数据
@@ -218,6 +218,7 @@
         <li><span class="leaderboard-rules-highlight">创作币榜</span>按自然月统计平台创作币收益，数据自动汇总，无需手动申报。</li>
         <li>每个自然月的 <span class="leaderboard-rules-highlight">创作币榜 TOP {{ rewardConfig.topLimit }}</span> 均可获得 <span class="leaderboard-rules-highlight">{{ rewardConfig.rewardAmount }} 创作币</span>奖励。</li>
         <li>奖励在榜单结算后自动发放至账户余额，同一人同一周期只发放一次。</li>
+        <li>榜单页面最多展示前 20 名；奖励仅按上述名次（TOP {{ rewardConfig.topLimit }}）发放，未上榜不影响创作币的实际累计。</li>
       </ol>
       <div class="leaderboard-rules-footer">* 活动最终解释权归平台所有。</div>
     </a-modal>
@@ -236,16 +237,11 @@ function getMonthLabel(period) {
   if (period === 'current') {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`
   }
-  if (period === 'last') {
-    const d = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
-  }
   return 'all'
 }
 
 const periods = [
   { label: '本月', value: 'current' },
-  { label: '上月', value: 'last' },
   { label: '总榜', value: 'all' }
 ]
 

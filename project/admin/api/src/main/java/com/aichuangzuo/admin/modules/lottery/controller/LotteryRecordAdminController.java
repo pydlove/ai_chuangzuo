@@ -4,6 +4,7 @@ import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDisplayWinnerSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDrawRecordQueryRequest;
+import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryManualGrantRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryRedemptionCodeQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryDisplayWinnerAdminService;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryRecordAdminService;
@@ -49,6 +50,16 @@ public class LotteryRecordAdminController {
         Long adminUserId = checkSuperAdmin();
         log.info("管理员查询抽奖记录, adminUserId={}", adminUserId);
         return Result.success(recordAdminService.listDrawRecords(request));
+    }
+
+    @Operation(summary = "人工分配中奖")
+    @PostMapping("/draw-records/manual-grant")
+    public Result<Void> manualGrant(@Valid @RequestBody LotteryManualGrantRequest request) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员人工分配中奖, adminUserId={}, campaignId={}, tierId={}, userId={}",
+                adminUserId, request.getCampaignId(), request.getTierId(), request.getUserId());
+        recordAdminService.manualGrant(request);
+        return Result.success();
     }
 
     @Operation(summary = "重置用户抽奖次数")

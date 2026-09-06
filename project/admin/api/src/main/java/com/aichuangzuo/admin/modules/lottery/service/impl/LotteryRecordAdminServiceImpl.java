@@ -1,33 +1,47 @@
 package com.aichuangzuo.admin.modules.lottery.service.impl;
 
+import com.aichuangzuo.admin.common.util.AvatarUrlUtil;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDrawRecordQueryRequest;
+import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryManualGrantRequest;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryRedemptionCodeQueryRequest;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryCampaign;
+import com.aichuangzuo.admin.modules.lottery.entity.LotteryDisplayWinner;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryDrawChance;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryDrawRecord;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryPrizeTier;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryRedemptionCode;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryCampaignMapper;
+import com.aichuangzuo.admin.modules.lottery.mapper.LotteryDisplayWinnerMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryDrawChanceMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryDrawRecordMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryPrizeTierMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryRedemptionCodeMapper;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryRecordAdminService;
+import com.aichuangzuo.admin.modules.lottery.util.LotteryCodeGenerator;
 import com.aichuangzuo.admin.modules.lottery.vo.LotteryDrawRecordAdminVO;
 import com.aichuangzuo.admin.modules.lottery.vo.LotteryRedemptionCodeAdminVO;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
+import com.aichuangzuo.shared.enums.error.AdminLotteryErrorCode;
+import com.aichuangzuo.shared.enums.error.AdminUserErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService {
@@ -37,7 +51,9 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
     private final LotteryPrizeTierMapper prizeTierMapper;
     private final LotteryCampaignMapper campaignMapper;
     private final LotteryDrawChanceMapper drawChanceMapper;
+    private final LotteryDisplayWinnerMapper displayWinnerMapper;
     private final PlatformUserMapper platformUserMapper;
+    private final LotteryCodeGenerator codeGenerator;
 
     @Override
     public PageResult<LotteryRedemptionCodeAdminVO> listRedemptionCodes(LotteryRedemptionCodeQueryRequest request) {
@@ -124,6 +140,81 @@ public class LotteryRecordAdminServiceImpl implements LotteryRecordAdminService 
                 .map(r -> buildDrawRecordVO(r, tierNameMap, campaignNameMap, userMap))
                 .collect(Collectors.toList());
         return new PageResult<>(items, result.getTotal(), result.getCurrent(), result.getSize());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void manualGrant(LotteryManualGrantRequest request) {
+        LotteryCampaign campaign = campaignMapper.selectById(request.getCampaignId());
+        if (campaign == null) {
+            throw new BusinessException(AdminLotteryErrorCode.CAMPAIGN_NOT_FOUND);
+        }
+        LotteryPrizeTier tier = prizeTierMapper.selectById(request.getTierId());
+        if (tier == null || !Objects.equals(tier.getCampaignId(), request.getCampaignId())
+                || tier.getIsDeleted() != null && tier.getIsDeleted() == 1) {
+            throw new BusinessException(AdminLotteryErrorCode.TIER_NOT_FOUND);
+        }
+        if ("none".equals(tier.getRewardType())) {
+            throw new BusinessException(AdminLotteryErrorCode.TIER_NOT_GRANTABLE);
+        }
+        PlatformUser user = platformUserMapper.selectById(request.getUserId());
+        if (user == null) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+
+        // 条件扣减库存，扣不到说明发完了（与用户端抽奖同一套扣减逻辑）
+        if (tier.getMaxWinCount() != null) {
+            int affected = prizeTierMapper.update(null,
+                    new LambdaUpdateWrapper<LotteryPrizeTier>()
+                            .eq(LotteryPrizeTier::getId, tier.getId())
+                            .gt(LotteryPrizeTier::getRemainingWinCount, 0)
+                            .setSql("remaining_win_count = remaining_win_count - 1"));
+            if (affected == 0) {
+                throw new BusinessException(AdminLotteryErrorCode.TIER_STOCK_EMPTY);
+            }
+        }
+
+        int codeLength = tier.getCodeLength() != null ? tier.getCodeLength() : 12;
+        int validityDays = tier.getCodeValidityDays() != null ? tier.getCodeValidityDays() : 30;
+
+        LotteryRedemptionCode code = new LotteryRedemptionCode();
+        code.setCode(codeGenerator.generate(tier.getCodePrefix(), codeLength));
+        code.setCampaignId(campaign.getId());
+        code.setTierId(tier.getId());
+        code.setDrawerUserId(user.getId());
+        code.setRewardType(tier.getRewardType());
+        code.setRewardValueJson(tier.getRewardValueJson());
+        code.setStatus("unused");
+        code.setExpiresAt(LocalDateTime.now().plusDays(validityDays));
+        code.setTenantId(0L);
+        redemptionCodeMapper.insert(code);
+
+        LotteryDrawRecord record = new LotteryDrawRecord();
+        record.setBizNo("LD" + UUID.randomUUID().toString().replace("-", "").substring(0, 16).toUpperCase());
+        record.setCampaignId(campaign.getId());
+        record.setUserId(user.getId());
+        record.setTierId(tier.getId());
+        record.setCodeId(code.getId());
+        record.setDrawType("manual");
+        record.setTenantId(0L);
+        drawRecordMapper.insert(record);
+
+        LotteryDisplayWinner winner = new LotteryDisplayWinner();
+        winner.setCampaignId(campaign.getId());
+        winner.setTierId(tier.getId());
+        winner.setUserId(user.getId());
+        winner.setNickname(user.getNickname());
+        winner.setAvatarUrl(AvatarUrlUtil.normalizeForAdmin(user.getAvatarUrl()));
+        winner.setPrizeName(tier.getTierName());
+        winner.setWinTime(LocalDateTime.now());
+        winner.setIsReal(1);
+        winner.setSortOrder(0);
+        winner.setStatus(1);
+        winner.setTenantId(0L);
+        displayWinnerMapper.insert(winner);
+
+        log.info("管理员人工发奖, campaignId={}, tierId={}, userId={}, code={}",
+                campaign.getId(), tier.getId(), user.getId(), code.getCode());
     }
 
     @Override

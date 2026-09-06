@@ -46,7 +46,7 @@ public class KimiProviderClient implements AiProviderClient {
             headers.setBearerAuth(apiKey);
             headers.set("User-Agent", "claude-cli/2.1.161");
             HttpEntity<Void> entity = new HttpEntity<>(headers);
-            restTemplate.exchange(trim(baseUrl) + "/v1/models", HttpMethod.GET, entity, String.class);
+            restTemplate.exchange(trim(baseUrl) + apiPrefix() + "/models", HttpMethod.GET, entity, String.class);
             return true;
         } catch (HttpClientErrorException.Unauthorized | HttpClientErrorException.Forbidden e) {
             return false;
@@ -64,7 +64,7 @@ public class KimiProviderClient implements AiProviderClient {
         HttpEntity<Void> entity = new HttpEntity<>(headers);
 
         ResponseEntity<Map> response = restTemplate.exchange(
-                trim(baseUrl) + "/v1/models", HttpMethod.GET, entity, Map.class);
+                trim(baseUrl) + apiPrefix() + "/models", HttpMethod.GET, entity, Map.class);
 
         Object data = response.getBody() != null ? response.getBody().get("data") : null;
         if (!(data instanceof List)) {
@@ -96,8 +96,15 @@ public class KimiProviderClient implements AiProviderClient {
         } catch (Exception e) {
             throw new IllegalStateException("serialize chat request failed", e);
         }
-        String url = trim(baseUrl) + "/v1/chat/completions";
+        String url = trim(baseUrl) + apiPrefix() + "/chat/completions";
         return executeRaw(url, apiKey, stream, requestJson);
+    }
+
+    /**
+     * OpenAI 兼容路径前缀：Kimi 用 /v1，GLM 用 /v4。
+     */
+    protected String apiPrefix() {
+        return "/v1";
     }
 
     /**
@@ -161,16 +168,12 @@ public class KimiProviderClient implements AiProviderClient {
         return sb.toString();
     }
 
-    private String trim(String baseUrl) {
+    protected String trim(String baseUrl) {
         if (baseUrl == null) return "";
         String s = baseUrl.trim();
-        // 仅去掉末尾的 /v1 或 /v1/，避免用户填写带版本号的 Base URL 时路径重复；
+        // 仅去掉末尾的版本段（/v1、/v4 等），避免用户填写带版本号的 Base URL 时路径重复；
         // 保留其它代理路径（如 https://api.kimi.com/coding）。
-        if (s.endsWith("/v1/")) {
-            s = s.substring(0, s.length() - 4);
-        } else if (s.endsWith("/v1")) {
-            s = s.substring(0, s.length() - 3);
-        }
+        s = s.replaceAll("/v\\d+/$", "").replaceAll("/v\\d+$", "");
         s = s.replaceAll("/+$", "");
         return s;
     }

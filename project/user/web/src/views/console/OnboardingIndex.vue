@@ -195,6 +195,10 @@
             <div class="wizard-loading-subtitle">{{ questionsWaitingText.subtitle }}</div>
           </div>
         </div>
+        <div v-else-if="questionsLoadFailed || !questions.length" class="wizard-error">
+          <div class="wizard-error-text">问题生成失败，请检查网络后重试</div>
+          <a-button type="primary" :loading="isLoadingQuestions" @click="loadQuestions">重试</a-button>
+        </div>
         <div v-else>
           <div
             v-for="q in questions"
@@ -239,6 +243,10 @@
             <div class="wizard-loading-subtitle">{{ nichesWaitingText.subtitle }}</div>
           </div>
         </div>
+        <div v-else-if="nichesLoadFailed || !nicheOptions.length" class="wizard-error">
+          <div class="wizard-error-text">赛道推荐失败，请检查网络后重试</div>
+          <a-button type="primary" :loading="isLoadingNiches" @click="loadNicheOptions">重试</a-button>
+        </div>
         <div
           v-else
           class="niche-list"
@@ -280,6 +288,10 @@
             <div class="wizard-loading-title">{{ personasWaitingText.title }}</div>
             <div class="wizard-loading-subtitle">{{ personasWaitingText.subtitle }}</div>
           </div>
+        </div>
+        <div v-else-if="personasLoadFailed || !personaOptions.length" class="wizard-error">
+          <div class="wizard-error-text">人设推荐失败，请检查网络后重试</div>
+          <a-button type="primary" :loading="isLoadingPersonas" @click="loadPersonaOptions">重试</a-button>
         </div>
         <template v-else>
           <div
@@ -568,24 +580,25 @@ const platforms = computed(() => {
 onMounted(async () => {
   await initUserKeys()
   const hasDraft = loadDraft()
-  if (route.query.reset === '1') {
-    if (!hasDraft) {
-      clearDraft()
-      step.value = 1
-    }
-    await loadPlatforms()
-    if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
-    if (step.value >= 3) await loadNicheOptions()
-    if (step.value >= 4) await loadPersonaOptions()
-    router.replace({ query: {} })
-    await nextTick(initTrackScroll)
-    return
+  const isReset = route.query.reset === '1'
+  if (isReset && !hasDraft) {
+    clearDraft()
+    step.value = 1
   }
-  if (hasDraft) {
-    await loadPlatforms()
-    if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
-    if (step.value >= 3) await loadNicheOptions()
-    if (step.value >= 4) await loadPersonaOptions()
+  if (hasDraft || isReset) {
+    // 恢复草稿后重新拉取数据期间保持 isRestoringDraft，避免覆盖刚恢复的答案/选择
+    isRestoringDraft.value = true
+    try {
+      await loadPlatforms()
+      if (step.value >= 2 && selectedPlatform.value) await loadQuestions()
+      if (step.value >= 3) await loadNicheOptions()
+      if (step.value >= 4) await loadPersonaOptions()
+    } finally {
+      isRestoringDraft.value = false
+    }
+    if (isReset) {
+      router.replace({ query: {} })
+    }
     await nextTick(initTrackScroll)
     return
   }
@@ -704,6 +717,9 @@ const isLoadingQuestions = ref(false)
 const isLoadingNiches = ref(false)
 const isLoadingPersonas = ref(false)
 const isLoadingNext = ref(false)
+const questionsLoadFailed = ref(false)
+const nichesLoadFailed = ref(false)
+const personasLoadFailed = ref(false)
 
 const questionsWaitingText = ref({ title: getAiWaitingText('platformQuestions'), subtitle: '先准备一些问题需要您回答' })
 const nichesWaitingText = ref({ title: getAiWaitingText('nicheRecommend'), subtitle: '根据您的回答推荐适合的赛道' })
@@ -824,7 +840,6 @@ function loadDraft() {
     const draft = JSON.parse(raw)
     if (!draft || typeof draft.step !== 'number') return false
 
-    isRestoringDraft.value = true
     step.value = draft.step
     selectedPlatform.value = draft.selectedPlatform || ''
     Object.keys(answers).forEach((k) => delete answers[k])
@@ -839,8 +854,6 @@ function loadDraft() {
     return true
   } catch (e) {
     return false
-  } finally {
-    isRestoringDraft.value = false
   }
 }
 
@@ -887,6 +900,9 @@ function resetAfterPlatformChange() {
   personasLoadedSignature.value = ''
   selectedPersona.value = ''
   pillars.splice(0, pillars.length)
+  questionsLoadFailed.value = false
+  nichesLoadFailed.value = false
+  personasLoadFailed.value = false
 }
 
 async function loadQuestions() {
@@ -895,17 +911,21 @@ async function loadQuestions() {
   if (questions.value.length && questionsLoadedForPlatform.value === selectedPlatform.value) return
   return runWithDedupe(`platformQuestions:${selectedPlatform.value}`, async () => {
     isLoadingQuestions.value = true
+    questionsLoadFailed.value = false
     questionsWaitingText.value = { title: getAiWaitingText('platformQuestions'), subtitle: '先准备一些问题需要您回答' }
     try {
       const res = await fetchPlatformQuestions(selectedPlatform.value)
       const data = res?.data ?? null
       questions.value = Array.isArray(data) ? data : []
       questionsLoadedForPlatform.value = selectedPlatform.value
+      if (!questions.value.length) {
+        questionsLoadFailed.value = true
+      }
       if (!isRestoringDraft.value) {
         Object.keys(answers).forEach((k) => delete answers[k])
       }
     } catch (e) {
-      message.error('问题生成失败，请重试')
+      questionsLoadFailed.value = true
     } finally {
       isLoadingQuestions.value = false
     }
@@ -919,6 +939,7 @@ async function loadNicheOptions() {
   if (nicheOptions.value.length && nichesLoadedSignature.value === signature) return
   return runWithDedupe(signature, async () => {
     isLoadingNiches.value = true
+    nichesLoadFailed.value = false
     nichesWaitingText.value = { title: getAiWaitingText('nicheRecommend'), subtitle: '根据您的回答推荐适合的赛道' }
     try {
       const res = await recommendNiches({
@@ -927,12 +948,15 @@ async function loadNicheOptions() {
       })
       const data = res?.data ?? null
       nicheOptions.value = Array.isArray(data) ? data : []
+      if (!nicheOptions.value.length) {
+        nichesLoadFailed.value = true
+      }
       nichesLoadedSignature.value = signature
       if (!isRestoringDraft.value) {
         selectedNiche.value = nicheOptions.value[0]?.key || ''
       }
     } catch (e) {
-      message.error('赛道推荐失败，请重试')
+      nichesLoadFailed.value = true
     } finally {
       isLoadingNiches.value = false
     }
@@ -946,6 +970,7 @@ async function loadPersonaOptions() {
   if (personaOptions.value.length && personasLoadedSignature.value === signature) return
   return runWithDedupe(signature, async () => {
     isLoadingPersonas.value = true
+    personasLoadFailed.value = false
     personasWaitingText.value = { title: getAiWaitingText('personaRecommend'), subtitle: '根据赛道推荐适合的人设与内容支柱' }
     try {
       const res = await recommendPersonas({
@@ -955,6 +980,9 @@ async function loadPersonaOptions() {
       })
       const result = res?.data ?? {}
       personaOptions.value = Array.isArray(result.personas) ? result.personas : []
+      if (!personaOptions.value.length) {
+        personasLoadFailed.value = true
+      }
       personasLoadedSignature.value = signature
       if (!isRestoringDraft.value) {
         if (Array.isArray(result.defaultPillars) && result.defaultPillars.length) {
@@ -969,15 +997,7 @@ async function loadPersonaOptions() {
         selectedPersona.value = personaOptions.value[0]?.key || ''
       }
     } catch (e) {
-      Modal.error({
-        title: '人设推荐失败',
-        content: 'AI 推荐暂未成功，请返回上一步后重新点击下一步再次尝试。',
-        okText: '返回上一步',
-        centered: true,
-        onOk: () => {
-          prev()
-        }
-      })
+      personasLoadFailed.value = true
     } finally {
       isLoadingPersonas.value = false
     }
@@ -988,6 +1008,7 @@ const canNext = computed(() => {
   if (isLoadingNext.value) return false
   if (step.value === 1) return !!selectedPlatform.value
   if (step.value === 2) {
+    if (!questions.value.length) return false
     return questions.value.every(q => {
       if (!q.isRequired) return true
       const selectedKey = answers[q.key]
@@ -1511,6 +1532,26 @@ async function confirm() {
 .wizard-loading :deep(.ant-spin-dot-item) {
   background: var(--color-primary, #07c160);
 }
+.wizard-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 64px 0;
+}
+.wizard-error-text {
+  font-size: 14px;
+  color: #8c8c8c;
+}
+.wizard-error :deep(.ant-btn-primary) {
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+.wizard-error :deep(.ant-btn-primary:hover),
+.wizard-error :deep(.ant-btn-primary:focus) {
+  background-color: var(--color-primary-hover, var(--color-primary));
+  border-color: var(--color-primary-hover, var(--color-primary));
+}
 .niche-list {
   display: flex;
   flex-direction: column;
@@ -1827,7 +1868,7 @@ async function confirm() {
   }
 
   .onboarding-body {
-    padding: 0 14px;
+    padding: 0 14px 50px;
   }
 
   .onboarding-steps {

@@ -20,12 +20,14 @@ const plan = reactive({
 })
 
 const planLoaded = ref(false)
+const hasPlan = ref(false)
 
 async function loadPlan() {
   try {
     const res = await fetchCurrentPlan()
     const data = res?.data || {}
-    if (data && Object.keys(data).length) {
+    if (data && data.platformKey) {
+      hasPlan.value = true
       Object.assign(plan, data)
       // 后端返回 platformKey/platformName、nicheKey/nicheName、personaKey/personaName，
       // 前端 plan 使用 platform/niche/persona 做展示与透传。
@@ -34,9 +36,13 @@ async function loadPlan() {
       if (data.personaName) plan.persona = data.personaName
     }
   } catch (e) {
-    // 保持默认方案
+    // 加载失败按未制定方案处理
   } finally {
     planLoaded.value = true
+    if (!hasPlan.value) {
+      message.warning('小爱推荐需要先有专属运营方案，请先制定方案')
+      router.replace('/console/onboarding')
+    }
   }
 }
 
@@ -57,7 +63,7 @@ function onSuccess(task) {
 </script>
 
 <template>
-  <CreateFlowModal v-if="planLoaded" page-mode :plan="plan" @success="onSuccess" />
+  <CreateFlowModal v-if="planLoaded && hasPlan" page-mode :plan="plan" @success="onSuccess" />
   <div v-else class="create-page-loading">
     <a-spin />
   </div>

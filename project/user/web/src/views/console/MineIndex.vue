@@ -139,13 +139,23 @@
             <img src="/assets/images/我的提示词-v1.jpg" alt="我的提示词" />
           </div>
         </div>
-        <div class="mine-hot-service-item" @click="openAccountCheck">
+        <div class="mine-plan-gallery-hint" @click="openPlanGallery">
+          <div class="mine-plan-gallery-hint-text">
+            <div class="mine-plan-gallery-hint-title">
+              想发布其他方向的提示词？看看有哪些运营方案
+              <span v-if="!canViewPlanGallery" class="mine-plan-gallery-hint-badge">专业版</span>
+            </div>
+            <div class="mine-plan-gallery-hint-sub">查阅全平台用户的运营方案，别人使用你的提示词，你就能获得收益</div>
+          </div>
+          <RightOutlined class="mine-plan-gallery-hint-arrow" />
+        </div>
+        <div class="mine-hot-service-item" @click="router.push('/console/selfmedia-accounts')">
           <div class="mine-hot-service-info">
-            <div class="mine-hot-service-title">账号检测</div>
-            <div class="mine-hot-service-subtitle">检测账号健康状态</div>
+            <div class="mine-hot-service-title">自媒体账号</div>
+            <div class="mine-hot-service-subtitle">管理各平台账号</div>
           </div>
           <div class="mine-hot-service-icon mine-hot-service-icon--img">
-            <img src="/assets/images/账号检测-v1.jpg" alt="账号检测" />
+            <img src="/assets/images/自媒体账号icon-v1.png" alt="自媒体账号" />
           </div>
         </div>
         <div class="mine-hot-service-item" @click="$router.push('/console/hot-search')">
@@ -190,9 +200,9 @@
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/隐私政策_compressed-v1.jpg" alt="隐私政策" /></div>
           <span class="mine-grid-label">隐私政策</span>
         </div>
-        <div class="mine-grid-item" @click="actions.openWechatModal">
-          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关注微信_compressed-v1.jpg" alt="关注微信" /></div>
-          <span class="mine-grid-label">关注微信</span>
+        <div class="mine-grid-item" @click="router.push('/console/wechat-bind')">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关注微信_compressed-v1.jpg" alt="绑定公众号" /></div>
+          <span class="mine-grid-label">绑定公众号</span>
         </div>
         <div class="mine-grid-item" @click="openOfficialSite">
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/访问官网_compressed-v1.jpg" alt="访问官网" /></div>
@@ -208,6 +218,9 @@
 
     <p class="mine-footer">© 2026 爱创作工坊 · 杭州爱启云网络科技有限公司</p>
     <p class="mine-icp">浙ICP备2025200943号-2</p>
+
+    <PlanGalleryModal v-model:open="planGalleryVisible" />
+
     <a-modal
       v-model:open="settingsModalVisible"
       title="设置"
@@ -245,8 +258,6 @@
         </div>
       </div>
     </a-modal>
-
-    <AccountCheckModal v-model:visible="accountModalVisible" />
   </div>
 </template>
 
@@ -257,6 +268,8 @@ import { inject } from 'vue'
 import { Modal } from 'ant-design-vue'
 import { useUserProfile } from '@/composables/useUserProfile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
+import { getCurrentPlanKey } from '@/utils/membershipLimits.js'
+import PlanGalleryModal from '@/components/PlanGalleryModal.vue'
 import {
   CrownOutlined,
   BellOutlined,
@@ -266,21 +279,33 @@ import {
 } from '@ant-design/icons-vue'
 import dayjs from 'dayjs'
 import { getMyCoupons } from '@/api/lottery'
-import AccountCheckModal from '@/components/AccountCheckModal.vue'
 
 const router = useRouter()
 const actions = inject('consoleActions')
 
-const accountModalVisible = ref(false)
-
-function openAccountCheck() {
-  if (window.innerWidth <= 768) {
-    router.push('/console/account-check')
-  } else {
-    accountModalVisible.value = true
-  }
-}
 const settingsModalVisible = ref(false)
+const planGalleryVisible = ref(false)
+
+// 运营方案库：专业版及以上可用
+const canViewPlanGallery = computed(() => {
+  const key = getCurrentPlanKey()
+  return key === 'pro' || key === 'flagship'
+})
+
+const openPlanGallery = () => {
+  if (!canViewPlanGallery.value) {
+    Modal.confirm({
+      title: '运营方案库',
+      content: '查阅全平台用户的运营方案为专业版及以上功能，升级后即可查看。别人使用你的提示词，你还能获得收益。',
+      okText: '去升级',
+      cancelText: '取消',
+      centered: true,
+      onOk: () => router.push('/console/benefits')
+    })
+    return
+  }
+  planGalleryVisible.value = true
+}
 
 const catFrames = [
   '/assets/images/猫咪1-v1.svg',
@@ -828,6 +853,67 @@ const onMineAvatarChange = async (e) => {
   border-radius: 8px;
 }
 
+/* 运营方案库提示条（我的提示词下方） */
+.mine-plan-gallery-hint {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px;
+  background: linear-gradient(135deg, #FFF8FA 0%, #FFEDF1 100%);
+  border: 1px dashed #FFC9D4;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.mine-plan-gallery-hint:active {
+  background: #FFE3EA;
+}
+
+.mine-plan-gallery-hint-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mine-plan-gallery-hint-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mine-plan-gallery-hint-badge {
+  font-size: 10px;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(135deg, #FF6B7D 0%, #FF2442 100%);
+  border-radius: 4px;
+  padding: 1px 6px;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.mine-plan-gallery-hint-sub {
+  font-size: 11px;
+  color: #999;
+  line-height: 1.5;
+}
+
+.mine-plan-gallery-hint-arrow {
+  font-size: 12px;
+  color: #FF2442;
+  flex-shrink: 0;
+}
+
 /* ========== 常用功能 ========== */
 .mine-common-functions-block {
   margin-left: 12px;
@@ -1155,6 +1241,23 @@ body[data-theme="dark"] .mine-hot-service-subtitle {
 
 body[data-theme="dark"] .mine-hot-service-icon--img {
   background: transparent;
+}
+
+body[data-theme="dark"] .mine-plan-gallery-hint {
+  background: #2a1a1d;
+  border-color: #5a2a35;
+}
+
+body[data-theme="dark"] .mine-plan-gallery-hint:active {
+  background: #332025;
+}
+
+body[data-theme="dark"] .mine-plan-gallery-hint-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .mine-plan-gallery-hint-sub {
+  color: #737373;
 }
 
 body[data-theme="dark"] .mine-grid-item:active {
