@@ -77,6 +77,7 @@ com/aichuangzuo/user/modules/earnings/vo/AccountSummaryVO.class
 com/aichuangzuo/user/modules/lottery/mapper/LotteryRedemptionCodeMapper.class
 com/aichuangzuo/user/modules/membership/vo/UpgradePreviewVO.class
 com/aichuangzuo/user/modules/workbench/service/impl/WeeklyArticleServiceImpl.class
+com/aichuangzuo/user/modules/activity/mapper/UserDailyActiveMapper.class
 com/aichuangzuo/user/modules/earnings/mapper/EarningsRecordMapper.class
 com/aichuangzuo/user/modules/commission/entity/CommissionSubmission.class
 com/aichuangzuo/user/modules/wechat/controller/WechatCallbackController.class
@@ -220,6 +221,7 @@ com/aichuangzuo/user/modules/commission/mapper/CommissionSubmissionMapper.class
 com/aichuangzuo/user/modules/recommendedcreation/controller/RecommendedCreationController.class
 com/aichuangzuo/user/modules/selfmedia/vo/QuestionVO.class
 com/aichuangzuo/user/modules/membership/controller/MembershipController.class
+com/aichuangzuo/user/modules/activity/entity/UserDailyActive.class
 com/aichuangzuo/user/modules/feedback/entity/Feedback.class
 com/aichuangzuo/user/modules/commission/vo/CommissionTaskVO.class
 com/aichuangzuo/user/modules/leaderboard/vo/IncomeSubmissionVO.class
@@ -236,6 +238,7 @@ com/aichuangzuo/user/modules/recommendedcreation/dto/request/GenerateAnglesReque
 com/aichuangzuo/user/modules/workbench/dto/request/WeeklyArticleItemRequest.class
 com/aichuangzuo/user/modules/selfmedia/controller/SelfMediaPlanController.class
 com/aichuangzuo/user/modules/commission/service/CommissionService.class
+com/aichuangzuo/user/modules/platform/controller/HealthController.class
 com/aichuangzuo/user/modules/generation/dto/request/GenerationSubmitRequest.class
 com/aichuangzuo/user/modules/experience/service/impl/ExperienceTokenServiceImpl.class
 com/aichuangzuo/user/modules/topic/entity/TopicTitleUsage.class
@@ -294,6 +297,7 @@ com/aichuangzuo/user/modules/commission/vo/CommissionSubmissionMineVO.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/CoinRecordServiceImpl.class
 com/aichuangzuo/user/modules/selfmedia/vo/NicheOptionVO.class
 com/aichuangzuo/user/modules/membership/enums/MembershipPlan.class
+com/aichuangzuo/user/modules/activity/interceptor/UserActivityInterceptor.class
 com/aichuangzuo/user/modules/wechat/vo/WechatBindStatusVO.class
 com/aichuangzuo/user/modules/recommendedcreation/entity/RecommendedCreationSession.class
 com/aichuangzuo/user/modules/auth/service/impl/AuthServiceImpl.class
@@ -331,6 +335,7 @@ com/aichuangzuo/user/modules/benefit/service/BenefitService.class
 com/aichuangzuo/user/modules/earnings/vo/SettleLastMonthResultVO.class
 com/aichuangzuo/user/modules/lottery/vo/LotteryPrizeTierVO.class
 com/aichuangzuo/user/modules/workbench/entity/WeeklyArticle.class
+com/aichuangzuo/user/modules/lottery/vo/LotteryDisplayWinnerPageVO.class
 com/aichuangzuo/user/modules/skill/analyze/mapper/SkillAnalyzeDailyMapper.class
 com/aichuangzuo/user/modules/experience/service/ExperienceTokenService.class
 com/aichuangzuo/user/modules/earnings/vo/WithdrawRequestVO.class
@@ -455,8 +460,10 @@ com/aichuangzuo/user/modules/wechat/entity/UserWechatBind.class
 com/aichuangzuo/user/modules/article/vo/DraftVO.class
 com/aichuangzuo/user/modules/skill/service/impl/UserSkillServiceImpl.class
 com/aichuangzuo/user/modules/skill/mapper/UserSkillMapper.class
+com/aichuangzuo/user/modules/activity/service/UserActivityService.class
 com/aichuangzuo/user/modules/aiprompt/service/impl/AiPromptRenderServiceImpl.class
 com/aichuangzuo/user/modules/skill/market/mapper/SkillMarketAggregateMapper.class
+com/aichuangzuo/user/modules/activity/entity/UserActivity.class
 com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO$PlanVO.class
 com/aichuangzuo/user/modules/skill/service/SkillAnalyzeService.class
 com/aichuangzuo/user/modules/workbench/controller/WeeklyArticleController.class
@@ -496,6 +503,7 @@ com/aichuangzuo/user/modules/learn/controller/LearnController.class
 com/aichuangzuo/user/modules/lottery/service/LotteryDrawService.class
 com/aichuangzuo/user/modules/recommendedcreation/vo/RecommendedCreationSessionVO.class
 com/aichuangzuo/user/modules/skill/analyze/config/service/SkillAnalyzeConfigService.class
+com/aichuangzuo/user/modules/activity/mapper/UserActivityMapper.class
 com/aichuangzuo/user/modules/leaderboard/vo/CoinLeaderboardVO.class
 com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketCommandServiceImpl.class
 com/aichuangzuo/user/modules/generation/service/GenerationTaskRefundService.class
@@ -540,5 +548,6 @@ com/aichuangzuo/user/common/interceptor/RateLimitInterceptor.class
 com/aichuangzuo/user/modules/membership/payment/config/mapper/PaymentConfigMapper.class
 com/aichuangzuo/user/modules/platform/mapper/PlatformMapper.class
 com/aichuangzuo/user/modules/message/service/MessageService.class
+com/aichuangzuo/user/modules/membership/service/PlanCacheVersionKeyProvider.class
 com/aichuangzuo/user/modules/security/ratelimit/entity/RateLimitConfig.class
 com/aichuangzuo/user/modules/earnings/vo/EarningsRecordVO.class
