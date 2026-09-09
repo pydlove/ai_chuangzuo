@@ -13,5 +13,7 @@ public interface LeaderboardService {
 
     IncomeLeaderboardVO getIncomeLeaderboard(Long currentUserId, String periodType, String periodValue);
 
+    CoinLeaderboardVO getInviteLeaderboard(Long currentUserId);
+
     LeaderboardRewardConfigVO getRewardConfig();
 }

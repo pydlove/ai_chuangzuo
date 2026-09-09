@@ -58,7 +58,8 @@
             :class="['pricing-card', { recommended: plan.recommended }]"
           >
             <div v-if="plan.recommended" class="recommended-badge">最受欢迎</div>
-            <div class="plan-name">{{ plan.name }}</div>
+            <div class="plan-name">{{ plan.name }}<span v-if="plan.nameEn" class="plan-name-en">{{ plan.nameEn }}</span></div>
+            <div v-if="getPrice(plan).firstMonth" class="plan-first-month">首月特惠 · 续费 ¥{{ plan.monthly?.current }}/月</div>
             <div v-if="getPrice(plan).original" class="plan-original">
               ¥{{ getPrice(plan).original }}
             </div>
@@ -180,9 +181,6 @@
           :finalCash="getFinalCash()"
         />
         <template v-if="isTestMode()">
-          <p class="subscribe-pay-tip">
-            测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
-          </p>
           <a-input
             v-model:value="payCode"
             placeholder="请输入 6 位支付码"
@@ -648,12 +646,35 @@ const handleModalCancel = () => {
   margin-bottom: 8px;
   color: #1a1a1a;
 }
+.plan-name-en {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #ff2442;
+  background: rgba(255, 36, 66, 0.08);
+  border-radius: 4px;
+  vertical-align: 2px;
+}
 
 .plan-original {
   font-size: 14px;
   color: #8c8c8c;
   text-decoration: line-through;
   margin-bottom: 4px;
+}
+
+.plan-first-month {
+  display: inline-block;
+  font-size: 12px;
+  color: #FF2442;
+  background: #FFF0F2;
+  border: 1px solid #FFCBD4;
+  border-radius: 10px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
 }
 
 .plan-price {
@@ -1075,24 +1096,6 @@ body[data-theme="dark"] .compare-table td.recommended-col {
 
 .subscribe-pay-panel {
   padding: 8px 0 16px;
-}
-
-.subscribe-pay-tip {
-  color: #595959;
-  font-size: 14px;
-  margin-bottom: 16px;
-}
-
-.subscribe-pay-tip strong {
-  color: #FF2442;
-}
-
-body[data-theme="dark"] .subscribe-pay-tip {
-  color: #a6a6a6;
-}
-
-body[data-theme="dark"] .subscribe-pay-tip strong {
-  color: #ff4d6f;
 }
 
 body[data-theme="dark"] .pay-agreement-confirm-body .paid-agreement-text {

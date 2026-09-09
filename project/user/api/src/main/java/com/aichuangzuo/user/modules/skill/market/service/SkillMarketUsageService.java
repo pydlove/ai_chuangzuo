@@ -65,8 +65,11 @@ public class SkillMarketUsageService {
 
         String description = "用户 " + consumerUserId + " 使用「" + skill.getSkillName() + "」生成文章";
 
+        // refId 必须每次使用唯一：grant 按 (bizType, refId) 幂等去重，
+        // 复用 skillBizNo 会导致同一提示词第二次起不再发放创作币
+        String usageBizNo = earningsService.nextBizNo();
         coinRecordService.grant(skill.getPublisherUserId(), "skill_market_usage", price,
-                marketSkillBizNo, "提示词使用收益：" + skill.getSkillName());
+                usageBizNo, "提示词使用收益：" + skill.getSkillName());
 
         EarningsRecord record = new EarningsRecord();
         record.setUserId(skill.getPublisherUserId());
@@ -78,7 +81,7 @@ public class SkillMarketUsageService {
         record.setAmount(price);
         record.setStatus(0);
         record.setSettlementMonth(month);
-        record.setBizNo(earningsService.nextBizNo());
+        record.setBizNo(usageBizNo);
         earningsRecordMapper.insert(record);
 
         log.info("记录提示词市场使用 bizNo={} skillName={} consumer={} publisher={} price={} month={}",

@@ -142,6 +142,40 @@
       </div>
     </section>
 
+    <!-- 会员价格 -->
+    <section class="mh-section mh-pricing">
+      <div class="mh-section__tag">{{ homePricing.tag }}</div>
+      <h2 class="mh-section__title">{{ homePricing.title }}</h2>
+      <p class="mh-section__subtitle">{{ homePricing.subtitle }}</p>
+
+      <div v-if="pricingLoading" class="mh-pricing__loading">套餐加载中…</div>
+      <div v-else class="mh-pricing__list">
+        <div
+          v-for="plan in pricingPlans"
+          :key="plan.key"
+          :class="['mh-pricing-card', { recommended: plan.recommended }]"
+        >
+          <div v-if="plan.recommended" class="mh-pricing-card__badge">最受欢迎</div>
+          <div class="mh-pricing-card__name">{{ plan.name }}<span v-if="plan.nameEn" class="mh-pricing-card__name-en">{{ plan.nameEn }}</span></div>
+          <div class="mh-pricing-card__articles">{{ plan.monthly?.articles }}</div>
+          <div class="mh-pricing-card__price">
+            <template v-if="showFirstMonth(plan)">
+              <span class="mh-pricing-card__first-tag">首月特惠</span>
+              <span class="mh-pricing-card__original">¥{{ plan.monthly?.current }}</span>
+              <span class="mh-pricing-card__current">¥{{ plan.monthly?.firstMonth }}</span>
+              <span class="mh-pricing-card__period">/首月</span>
+              <div class="mh-pricing-card__renew">次月起 ¥{{ plan.monthly?.current }}/月</div>
+            </template>
+            <template v-else>
+              <span class="mh-pricing-card__current">¥{{ plan.monthly?.current }}</span>
+              <span class="mh-pricing-card__period">/月</span>
+            </template>
+          </div>
+          <router-link to="/pricing" class="mh-pricing-card__btn">{{ homePricing.ctaText }}</router-link>
+        </div>
+      </div>
+    </section>
+
     <!-- 最终 CTA -->
     <section class="mh-cta">
       <h2 class="mh-cta__title">{{ homeFinalCta.title }}</h2>
@@ -163,6 +197,8 @@ import Icon from '@/components/common/Icon.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import HomeFooter from '@/components/layout/HomeFooter.vue'
 import { fetchHomeBanners, fetchHomeTestimonials } from '@/api/home.js'
+import { getPlanCatalog, getMyMembership } from '@/api/membership.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import {
   homeBrand,
@@ -171,6 +207,7 @@ import {
   homeFeatures,
   homeEarnings,
   homeSteps,
+  homePricing,
   homeFinalCta
 } from '@/data/homeContent.js'
 
@@ -202,6 +239,36 @@ async function loadTestimonials() {
   } catch (e) {
     testimonials.value = []
     hasMoreTestimonials.value = false
+  }
+}
+
+// ---- 会员价格区块 ----
+const pricingPlans = ref([])
+const pricingLoading = ref(false)
+// 未登录默认按首购展示（是否真享首月价由支付服务端校验）
+const pricingFirstPurchase = ref(true)
+
+function showFirstMonth(plan) {
+  return pricingFirstPurchase.value && plan?.monthly?.firstMonth != null
+}
+
+async function loadPricing() {
+  pricingLoading.value = true
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) {
+      try {
+        const membershipRes = await getMyMembership()
+        pricingFirstPurchase.value = (membershipRes.data || membershipRes)?.firstPurchase !== false
+      } catch {
+        pricingFirstPurchase.value = true
+      }
+    }
+    const res = await getPlanCatalog()
+    pricingPlans.value = (res.data?.plans || []).filter((plan) => plan?.monthly?.current != null)
+  } catch (e) {
+    pricingPlans.value = []
+  } finally {
+    pricingLoading.value = false
   }
 }
 
@@ -257,6 +324,7 @@ watch(banners, (newBanners) => {
 onMounted(() => {
   loadBanners()
   loadTestimonials()
+  loadPricing()
 })
 
 onUnmounted(() => {
@@ -714,6 +782,97 @@ onUnmounted(() => {
   color: rgba(255, 255, 255, 0.85);
 }
 
+/* 会员价格 */
+.mh-pricing { background: #f8f9fa; }
+.mh-pricing__loading {
+  text-align: center;
+  color: #8c8c8c;
+  padding: 24px 0;
+}
+.mh-pricing__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.mh-pricing-card {
+  position: relative;
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  border: 1px solid #f0f0f0;
+  text-align: center;
+}
+.mh-pricing-card.recommended {
+  border: 2px solid #FF2442;
+}
+.mh-pricing-card__badge {
+  position: absolute;
+  top: -11px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+}
+.mh-pricing-card__name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 2px;
+}
+.mh-pricing-card__name-en {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-left: 4px;
+}
+.mh-pricing-card__articles {
+  font-size: 12px;
+  color: #595959;
+  margin-bottom: 14px;
+}
+.mh-pricing-card__price { margin-bottom: 16px; }
+.mh-pricing-card__first-tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #FF2442;
+  background: #FFF0F2;
+  border: 1px solid #FFCBD4;
+  border-radius: 8px;
+  padding: 1px 8px;
+  margin-bottom: 6px;
+}
+.mh-pricing-card__original {
+  font-size: 12px;
+  color: #8c8c8c;
+  text-decoration: line-through;
+  margin-right: 6px;
+}
+.mh-pricing-card__current {
+  font-size: 26px;
+  font-weight: 700;
+  color: #FF2442;
+}
+.mh-pricing-card__period { font-size: 12px; color: #595959; }
+.mh-pricing-card__renew {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 4px;
+}
+.mh-pricing-card__btn {
+  display: inline-block;
+  padding: 9px 28px;
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
 /* CTA */
 .mh-cta {
   padding: 44px 20px;
@@ -790,6 +949,14 @@ body[data-theme="dark"] .mh-stats {
   background: #141414;
   border-bottom-color: #2a2a2a;
 }
+body[data-theme="dark"] .mh-pricing { background: #1f1f1f; }
+body[data-theme="dark"] .mh-pricing-card {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+}
+body[data-theme="dark"] .mh-pricing-card__name { color: #e0e0e0; }
+body[data-theme="dark"] .mh-pricing-card__articles,
+body[data-theme="dark"] .mh-pricing-card__period { color: #a6a6a6; }
 body[data-theme="dark"] .mh-section--earn {
   background: linear-gradient(180deg, #141414 0%, #1a1a1a 100%);
 }

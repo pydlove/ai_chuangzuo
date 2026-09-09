@@ -72,7 +72,7 @@ class UserSkillServiceImplTest {
     }
 
     @Test
-    void updateSkill_resetsRejectedSkillToPendingAndClearsRejectReason() {
+    void updateSkill_resetsRejectedSkillToDraftAndClearsRejectReason() {
         UserSkill existing = new UserSkill();
         existing.setId(1L);
         existing.setBizNo("S123");
@@ -95,12 +95,12 @@ class UserSkillServiceImplTest {
         assertEquals("新名称", updated.getSkillName());
         assertEquals("新提示词", updated.getPrompt());
         assertEquals("新标签", updated.getScope());
-        assertEquals(Integer.valueOf(0), updated.getAuditStatus());
+        assertEquals(Integer.valueOf(3), updated.getAuditStatus());
 
         ArgumentCaptor<UserSkill> captor = ArgumentCaptor.forClass(UserSkill.class);
         verify(userSkillMapper).updateById(captor.capture());
         UserSkill saved = captor.getValue();
-        assertEquals(Integer.valueOf(0), saved.getAuditStatus());
+        assertEquals(Integer.valueOf(3), saved.getAuditStatus());
         assertNull(saved.getRejectReason());
     }
 

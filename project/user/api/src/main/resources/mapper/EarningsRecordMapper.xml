@@ -10,6 +10,7 @@
         FROM u_earnings_record
         WHERE user_id = #{userId}
           AND is_deleted = 0
+          AND type NOT IN ('COIN_DEDUCTION', 'WITHDRAW')
         GROUP BY settlement_month
         ORDER BY settlement_month DESC
     </select>

@@ -198,6 +198,8 @@
         <div class="ml-footer-links">
           <span @click="activeTab = 'login'">已有账号，去登录</span>
         </div>
+
+        <CustomerServiceGiftCard />
       </div>
     </main>
 
@@ -243,6 +245,7 @@ import { ref } from 'vue'
 import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
+import CustomerServiceGiftCard from '@/components/CustomerServiceGiftCard.vue'
 import Tabs from '@/components/common/Tabs.vue'
 import Icon from '@/components/common/Icon.vue'
 import { useLogin } from '@/composables/useLogin.js'

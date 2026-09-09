@@ -70,7 +70,7 @@ public class UserSkill {
     @TableField(fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
 
-    /** 审核状态：0-待审核，1-已通过，2-已拒绝。 */
+    /** 审核状态：0-待审核，1-已通过，2-已拒绝，3-草稿（未提交/已撤销）。 */
     private Integer auditStatus;
 
     /** 审核管理员ID。 */

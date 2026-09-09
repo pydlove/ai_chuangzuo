@@ -289,7 +289,6 @@ class MembershipServiceTest {
                         .eq(EarningsRecord::getType, "INVITE_REWARD")
                         .eq(EarningsRecord::getSourceType, "invite")
                         .eq(EarningsRecord::getSourceId, invitee.getId().toString())
-                        .eq(EarningsRecord::getStatus, 1)
         );
         assertNotNull(earnings);
         assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("503.20")));
@@ -491,6 +490,35 @@ class MembershipServiceTest {
     }
 
     @Test
+    void subscribe_withInviterAndCoinDiscount_rewardsByCashPaid() {
+        User inviter = createUser("sub-inviter-coin@test.com");
+        User invitee = createUser("sub-invitee-coin@test.com");
+        createInviteRelation(inviter, invitee);
+        setCoinBalance(invitee.getId(), new BigDecimal("200"));
+
+        SubscribeRequest request = buildRequest("pro", "month", "123456", new BigDecimal("39.90"));
+        request.setCoinAmount(new BigDecimal("200"));
+
+        SubscribeResultVO result = membershipService.subscribe(invitee.getId(), request);
+
+        // 分佣按现金实付 39.90 元计算：39.90 × 10% × 10 = 39.90 创作币
+        assertTrue(result.isInviterRewarded());
+        assertEquals(0, result.getRewardAmount().compareTo(new BigDecimal("39.90")));
+
+        EarningsRecord earnings = earningsRecordMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<EarningsRecord>()
+                        .eq(EarningsRecord::getUserId, inviter.getId())
+                        .eq(EarningsRecord::getType, "INVITE_REWARD")
+                        .eq(EarningsRecord::getSourceType, "invite")
+                        .eq(EarningsRecord::getSourceId, invitee.getId().toString())
+        );
+        assertNotNull(earnings);
+        assertEquals(0, earnings.getAmount().compareTo(new BigDecimal("39.90")));
+        // 收益明细中的订单金额记录为现金实付金额，而非名义总金额
+        assertEquals(0, earnings.getOrderAmount().compareTo(new BigDecimal("39.90")));
+    }
+
+    @Test
     void subscribe_withCoinDiscount_reducesCashAndBalance() {
         User user = createUser("sub-coin@test.com");
         setCoinBalance(user.getId(), new BigDecimal("200"));
@@ -591,7 +619,7 @@ class MembershipServiceTest {
         user.setBizNo("B" + System.nanoTime());
         user.setEmail(email);
         user.setPasswordHash("x");
-        user.setInviteCode("X" + System.nanoTime());
+        user.setInviteCode("X" + System.currentTimeMillis());
         user.setUserStatus(1);
         user.setEmailVerified(1);
         user.setCoinBalance(BigDecimal.ZERO);

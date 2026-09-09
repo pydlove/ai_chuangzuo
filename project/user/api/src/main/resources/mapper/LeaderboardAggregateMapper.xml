@@ -8,6 +8,7 @@
         WHERE biz_time &gt;= #{start}
           AND biz_time &lt; #{end}
           AND direction = 1
+          AND biz_type != 'withdraw_refund'
           AND is_deleted = 0
         GROUP BY user_id
         ORDER BY amount DESC
@@ -20,6 +21,7 @@
         WHERE biz_time &gt;= #{start}
           AND biz_time &lt; #{end}
           AND direction = 1
+          AND biz_type != 'withdraw_refund'
           AND is_deleted = 0
           AND user_id = #{userId}
         GROUP BY user_id
@@ -29,6 +31,7 @@
         SELECT user_id AS userId, SUM(amount) AS amount
         FROM u_user_coin_record
         WHERE direction = 1
+          AND biz_type != 'withdraw_refund'
           AND is_deleted = 0
         GROUP BY user_id
         ORDER BY amount DESC
@@ -39,6 +42,7 @@
         SELECT user_id AS userId, SUM(amount) AS amount
         FROM u_user_coin_record
         WHERE direction = 1
+          AND biz_type != 'withdraw_refund'
           AND is_deleted = 0
           AND user_id = #{userId}
         GROUP BY user_id
@@ -84,6 +88,30 @@
           AND is_deleted = 0
           AND user_id = #{userId}
         GROUP BY user_id
+    </select>
+
+    <select id="selectInviteRanking" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT e.user_id AS userId, SUM(e.amount) AS amount,
+               (SELECT COUNT(DISTINCT r.invitee_id) FROM u_user_invite_relation r
+                 WHERE r.inviter_id = e.user_id AND r.effective_status = 1) AS inviteCount
+        FROM u_earnings_record e
+        WHERE e.type = 'INVITE_REWARD'
+          AND e.is_deleted = 0
+        GROUP BY e.user_id
+        HAVING inviteCount &gt; 0
+        ORDER BY amount DESC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectInviteAmountByUser" resultType="com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO">
+        SELECT e.user_id AS userId, SUM(e.amount) AS amount,
+               (SELECT COUNT(DISTINCT r.invitee_id) FROM u_user_invite_relation r
+                 WHERE r.inviter_id = e.user_id AND r.effective_status = 1) AS inviteCount
+        FROM u_earnings_record e
+        WHERE e.type = 'INVITE_REWARD'
+          AND e.is_deleted = 0
+          AND e.user_id = #{userId}
+        GROUP BY e.user_id
     </select>
 
 </mapper>

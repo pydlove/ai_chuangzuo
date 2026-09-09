@@ -27,6 +27,13 @@
       </div>
     </div>
 
+    <!-- 排行榜入口 -->
+    <button class="invite-rank-entry" @click="$router.push('/console/invite-leaderboard')">
+      <span class="invite-rank-entry-title">🏆 邀请排行榜</span>
+      <span class="invite-rank-entry-desc">看看谁是邀请达人</span>
+      <span class="invite-rules-detail-arrow">›</span>
+    </button>
+
     <!-- 活动规则 -->
     <div class="invite-rules">
       <div class="invite-rules-header">
@@ -40,7 +47,7 @@
       <div class="invite-rule-item">
         <span class="invite-rule-label">💰 创作币返利</span>
         <span class="invite-rule-text">
-          推荐新客下单即获得奖励，一次邀请终身享受订单返佣红利。好友首次购买返 10%，续费返 5%。
+          推荐新客下单即获得奖励，一次邀请终身享受订单返佣红利。好友首次购买返 10%，续费返 5%（均按实付金额计）。
         </span>
       </div>
       <div class="invite-rule-item">
@@ -414,6 +421,38 @@ const downloadPoster = async () => {
   color: #8c8c8c;
 }
 
+.invite-rank-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff0f2 100%);
+  border: 1px solid #ffe082;
+  border-radius: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+.invite-rank-entry:hover {
+  box-shadow: 0 4px 16px rgba(255, 193, 7, 0.18);
+}
+
+.invite-rank-entry-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.invite-rank-entry-desc {
+  flex: 1;
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
 .invite-rules {
   background: #fff;
   border-radius: 14px;
@@ -771,6 +810,20 @@ body[data-theme="dark"] .invite-rules-detail-btn {
 
 body[data-theme="dark"] .invite-rules-detail-btn:hover {
   background: rgba(255, 36, 66, 0.15);
+}
+
+body[data-theme="dark"] .invite-rank-entry {
+  background: linear-gradient(135deg, #3a2a1a 0%, #3a1f2a 100%);
+  border-color: rgba(255, 193, 7, 0.3);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="dark"] .invite-rank-entry-title {
+  color: #f0f0f0;
+}
+
+body[data-theme="dark"] .invite-rank-entry-desc {
+  color: #8c8c8c;
 }
 
 /* 微信环境海报预览弹框 */

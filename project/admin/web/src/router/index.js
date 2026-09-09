@@ -11,8 +11,13 @@ const routes = [
     path: '/console',
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true },
-    redirect: '/console/users',
+    redirect: '/console/dashboard',
     children: [
+      {
+        path: 'dashboard',
+        name: 'AdminDashboard',
+        component: () => import('@/views/ConsoleView.vue')
+      },
      {
        path: 'users',
        name: 'AdminUserList',
@@ -204,6 +209,11 @@ const routes = [
         path: 'home-testimonials',
         name: 'AdminHomeTestimonials',
         component: () => import('@/views/HomeTestimonialView.vue')
+      },
+      {
+        path: 'platform-screenshot',
+        name: 'AdminPlatformScreenshot',
+        component: () => import('@/views/PlatformScreenshotView.vue')
       },
       {
         path: 'orders/list',

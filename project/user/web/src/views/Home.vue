@@ -163,6 +163,49 @@
       </div>
     </section>
 
+    <!-- 会员价格 -->
+    <section class="member-pricing">
+      <div class="member-pricing-inner">
+        <div class="member-pricing-header reveal" data-reveal-delay="0">
+          <SectionTitle
+            :title="homePricing.title"
+            :subtitle="homePricing.subtitle"
+            :tag="homePricing.tag"
+            centered
+            size="lg"
+          />
+        </div>
+        <div v-if="pricingLoading" class="member-pricing-loading">套餐加载中…</div>
+        <div v-else class="member-pricing-grid">
+          <div
+            v-for="(plan, index) in pricingPlans"
+            :key="plan.key"
+            class="member-pricing-card reveal"
+            :class="{ recommended: plan.recommended }"
+            :data-reveal-delay="(index + 1) * 100"
+          >
+            <div v-if="plan.recommended" class="member-pricing-badge">最受欢迎</div>
+            <div class="member-pricing-name">{{ plan.name }}<span v-if="plan.nameEn" class="member-pricing-name-en">{{ plan.nameEn }}</span></div>
+            <div class="member-pricing-articles">{{ plan.monthly?.articles }}</div>
+            <div class="member-pricing-price">
+              <template v-if="showFirstMonth(plan)">
+                <span class="member-pricing-first-tag">首月特惠</span>
+                <span class="member-pricing-original">¥{{ plan.monthly?.current }}</span>
+                <span class="member-pricing-current">¥{{ plan.monthly?.firstMonth }}</span>
+                <span class="member-pricing-period">/首月</span>
+                <div class="member-pricing-renew">次月起 ¥{{ plan.monthly?.current }}/月</div>
+              </template>
+              <template v-else>
+                <span class="member-pricing-current">¥{{ plan.monthly?.current }}</span>
+                <span class="member-pricing-period">/月</span>
+              </template>
+            </div>
+            <router-link to="/pricing" class="member-pricing-btn">{{ homePricing.ctaText }}</router-link>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- 最终 CTA -->
     <section class="cta-section">
       <div class="cta-card reveal" data-reveal-delay="0">
@@ -184,7 +227,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, watch } from 'vue'
+import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import NavBar from '@/components/layout/NavBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import HomeFooter from '@/components/layout/HomeFooter.vue'
@@ -194,6 +237,8 @@ import Icon from '@/components/common/Icon.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { fetchHomeBanners, fetchHomeTestimonials } from '@/api/home.js'
+import { getPlanCatalog, getMyMembership } from '@/api/membership.js'
+import { STORAGE_KEYS } from '@/constants/storage.js'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import {
   homeHero,
@@ -201,6 +246,7 @@ import {
   homeFeatures,
   homeEarnings,
   homeSteps,
+  homePricing,
   homeFinalCta
 } from '@/data/homeContent.js'
 
@@ -213,6 +259,39 @@ const testimonialPage = ref(1)
 const hasMoreTestimonials = ref(true)
 const activeBannerIndex = ref(0)
 let bannerTimer = null
+
+// ---- 会员价格区块 ----
+const pricingPlans = ref([])
+const pricingLoading = ref(false)
+// 未登录默认按首购展示（是否真享首月价由支付服务端校验）
+const pricingFirstPurchase = ref(true)
+
+function showFirstMonth(plan) {
+  return pricingFirstPurchase.value && plan?.monthly?.firstMonth != null
+}
+
+async function loadPricing() {
+  pricingLoading.value = true
+  try {
+    if (localStorage.getItem(STORAGE_KEYS.ACCESS_TOKEN)) {
+      try {
+        const membershipRes = await getMyMembership()
+        pricingFirstPurchase.value = (membershipRes.data || membershipRes)?.firstPurchase !== false
+      } catch {
+        pricingFirstPurchase.value = true
+      }
+    }
+    const res = await getPlanCatalog()
+    pricingPlans.value = (res.data?.plans || []).filter((plan) => plan?.monthly?.current != null)
+  } catch (e) {
+    pricingPlans.value = []
+  } finally {
+    pricingLoading.value = false
+    // 卡片是异步渲染的，reveal 观察器需要在 DOM 就绪后重新注册
+    await nextTick()
+    initScrollReveal()
+  }
+}
 
 async function loadBanners() {
   try {
@@ -287,20 +366,22 @@ watch(banners, (newBanners) => {
 let observer = null
 
 function initScrollReveal() {
-  observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const delay = Number(entry.target.dataset.revealDelay) || 0
-        setTimeout(() => {
-          entry.target.classList.add('reveal-visible')
-        }, delay)
-        observer.unobserve(entry.target)
-      }
+  if (!observer) {
+    observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const delay = Number(entry.target.dataset.revealDelay) || 0
+          setTimeout(() => {
+            entry.target.classList.add('reveal-visible')
+          }, delay)
+          observer.unobserve(entry.target)
+        }
+      })
+    }, {
+      threshold: 0.12,
+      rootMargin: '0px 0px -40px 0px'
     })
-  }, {
-    threshold: 0.12,
-    rootMargin: '0px 0px -40px 0px'
-  })
+  }
   document.querySelectorAll('.reveal').forEach(el => observer.observe(el))
 }
 
@@ -321,6 +402,7 @@ function onScroll() {
 onMounted(() => {
   loadBanners()
   loadTestimonials()
+  loadPricing()
   // 等 DOM 渲染完再注册观察器
   requestAnimationFrame(initScrollReveal)
   window.addEventListener('scroll', onScroll, { passive: true })
@@ -843,6 +925,114 @@ a.hero-banner-card:hover .hero-banner-card__arrow {
   font-size: 14px;
 }
 
+/* ====================== 会员价格 ====================== */
+.member-pricing {
+  background: linear-gradient(180deg, #f8f9fa 0%, #fff 100%);
+  padding: 80px 48px;
+}
+.member-pricing-inner { max-width: 1100px; margin: 0 auto; }
+.member-pricing-header { text-align: center; margin-bottom: 48px; }
+.member-pricing-loading { text-align: center; color: #8c8c8c; padding: 40px 0; }
+
+.member-pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.member-pricing-card {
+  position: relative;
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.member-pricing-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(255, 36, 66, 0.15);
+  border-color: #FFCBD4;
+}
+.member-pricing-card.recommended {
+  border: 2px solid #FF2442;
+  box-shadow: 0 8px 28px rgba(255, 36, 66, 0.12);
+}
+.member-pricing-badge {
+  position: absolute;
+  top: -12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 14px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+.member-pricing-name {
+  font-size: 17px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+.member-pricing-name-en {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-left: 6px;
+}
+.member-pricing-articles {
+  font-size: 13px;
+  color: #595959;
+  margin-bottom: 18px;
+}
+.member-pricing-price { margin-bottom: 20px; }
+.member-pricing-first-tag {
+  display: inline-block;
+  font-size: 12px;
+  color: #FF2442;
+  background: #FFF0F2;
+  border: 1px solid #FFCBD4;
+  border-radius: 10px;
+  padding: 2px 10px;
+  margin-bottom: 8px;
+}
+.member-pricing-original {
+  font-size: 14px;
+  color: #8c8c8c;
+  text-decoration: line-through;
+  margin-right: 8px;
+}
+.member-pricing-current {
+  font-size: 32px;
+  font-weight: 700;
+  color: #FF2442;
+  letter-spacing: -0.02em;
+}
+.member-pricing-period { font-size: 14px; color: #595959; }
+.member-pricing-renew {
+  font-size: 12px;
+  color: #8c8c8c;
+  margin-top: 6px;
+}
+.member-pricing-btn {
+  display: inline-block;
+  padding: 10px 32px;
+  background: linear-gradient(135deg, #FF4D6F 0%, #FF2442 100%);
+  color: #fff;
+  border-radius: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+.member-pricing-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(255, 36, 66, 0.3);
+}
+
 /* ====================== 最终 CTA ====================== */
 .cta-section {
   padding: 90px 48px;
@@ -973,6 +1163,19 @@ body[data-theme="dark"] .step-item {
 }
 body[data-theme="dark"] .step-num { background: #e0e0e0; color: #FF2442; }
 
+body[data-theme="dark"] .member-pricing {
+  background: linear-gradient(180deg, #1f1f1f 0%, #141414 100%);
+}
+body[data-theme="dark"] .member-pricing-card {
+  background: #1f1f1f;
+  border-color: #2a2a2a;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
+body[data-theme="dark"] .member-pricing-card:hover { box-shadow: 0 16px 40px rgba(255, 36, 66, 0.18); }
+body[data-theme="dark"] .member-pricing-name { color: #e0e0e0; }
+body[data-theme="dark"] .member-pricing-articles,
+body[data-theme="dark"] .member-pricing-period { color: #a6a6a6; }
+
 body[data-theme="dark"] .cta-section { background: #141414; }
 body[data-theme="dark"] .cta-card {
   background: linear-gradient(135deg, #1f1f1f 0%, #2a2226 100%);
@@ -1022,6 +1225,12 @@ body[data-theme="dark"] .cta-card {
   .steps-subtitle { font-size: 14px; margin-bottom: 32px; }
   .steps-list { flex-direction: column; gap: 16px; }
   .step-item { padding: 22px; }
+
+  .member-pricing { padding: 50px 20px; }
+  .member-pricing-header { margin-bottom: 32px; }
+  .member-pricing-grid { grid-template-columns: 1fr; gap: 16px; }
+  .member-pricing-card { padding: 22px; }
+  .member-pricing-current { font-size: 26px; }
 
   .cta-section { padding: 50px 20px; }
   .cta-card { padding: 36px 24px; border-radius: 18px; }

@@ -107,6 +107,39 @@ class EarningsServiceImplTest {
     }
 
     @Test
+    void recordWithdrawEarnings_shouldRecordNegativeAmountOnApply() {
+        earningsService.recordWithdrawEarnings(1L, new BigDecimal("1000"), "WDABC123", false);
+
+        ArgumentCaptor<EarningsRecord> captor = ArgumentCaptor.forClass(EarningsRecord.class);
+        verify(earningsRecordMapper, times(1)).insert(captor.capture());
+
+        EarningsRecord record = captor.getValue();
+        assertEquals(1L, record.getUserId());
+        assertEquals(EarningsType.WITHDRAW.getCode(), record.getType());
+        assertEquals("withdraw", record.getSourceType());
+        assertEquals("WDABC123", record.getSourceId());
+        assertEquals("提现", record.getTitle());
+        assertTrue(record.getDescription().contains("WDABC123"));
+        assertEquals(0, new BigDecimal("-1000").compareTo(record.getAmount()));
+        assertNotNull(record.getSettlementMonth());
+        assertNotNull(record.getBizNo());
+        verify(messageService, never()).pushPersonal(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void recordWithdrawEarnings_shouldRecordPositiveAmountOnRefund() {
+        earningsService.recordWithdrawEarnings(1L, new BigDecimal("1000"), "WDABC123", true);
+
+        ArgumentCaptor<EarningsRecord> captor = ArgumentCaptor.forClass(EarningsRecord.class);
+        verify(earningsRecordMapper, times(1)).insert(captor.capture());
+
+        EarningsRecord record = captor.getValue();
+        assertEquals(EarningsType.WITHDRAW.getCode(), record.getType());
+        assertEquals("提现退回", record.getTitle());
+        assertEquals(0, new BigDecimal("1000").compareTo(record.getAmount()));
+    }
+
+    @Test
     void nextBizNo_shouldGenerateUniqueNumbers() {
         Set<String> numbers = new HashSet<>();
         for (int i = 0; i < 100; i++) {

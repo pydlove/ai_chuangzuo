@@ -229,7 +229,7 @@ watch(codeModalPassed, async (val) => {
     if (mode === 'email') {
       await sendEmailCode({ email: form.identifier })
     } else {
-      await sendSmsCode({ phone: form.identifier })
+      await sendSmsCode({ phone: form.identifier, scene: 'reset_password' })
     }
     startCodeCountdown()
     message.success('验证码已发送')

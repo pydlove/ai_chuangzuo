@@ -14,7 +14,8 @@ public enum AdminCommissionErrorCode implements ErrorCode {
     SUBMISSION_USER_NOT_FOUND(119007, "投稿用户不存在"),
     SUBMISSION_ALREADY_EXISTS(119008, "该用户已投递此任务"),
     EXCEL_FILE_INVALID(119009, "Excel文件不合法，请使用最新模板填写后上传"),
-    EXCEL_PARSE_ERROR(119010, "Excel解析失败，请检查文件是否为有效的.xlsx格式");
+    EXCEL_PARSE_ERROR(119010, "Excel解析失败，请检查文件是否为有效的.xlsx格式"),
+    IMPORT_IN_PROGRESS(119011, "导入处理中，请勿重复提交");
 
     private final int code;
     private final String message;

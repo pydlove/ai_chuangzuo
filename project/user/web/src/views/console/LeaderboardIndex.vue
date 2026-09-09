@@ -36,9 +36,12 @@
               <div class="leaderboard-my__rank-num">{{ myCoinItem.rank }}</div>
               <div class="leaderboard-my__rank-label">当前排名</div>
             </div>
-            <div class="leaderboard-my__avatar">
-              <img v-if="myCoinItem.avatarUrl" :src="myCoinItem.avatarUrl" alt="avatar" />
-              <span v-else>{{ (myCoinItem.nickname || '?').charAt(0) }}</span>
+            <div class="leaderboard-avatar-wrap">
+              <div class="leaderboard-my__avatar">
+                <img v-if="myCoinItem.avatarUrl" :src="myCoinItem.avatarUrl" alt="avatar" />
+                <span v-else>{{ (myCoinItem.nickname || '?').charAt(0) }}</span>
+              </div>
+              <MemberVBadge :level="myCoinItem.memberLevel" :size="28" />
             </div>
             <div class="leaderboard-my__info">
               <div class="leaderboard-my__name">{{ myCoinItem.nickname || '匿名用户' }}</div>
@@ -74,39 +77,54 @@
             <!-- 第二名 -->
             <div v-if="coinTop3[1]" class="podium-card podium-card--second">
               <div class="podium-card__rank">2</div>
-              <div class="podium-card__avatar">
-                <img v-if="coinTop3[1].avatarUrl" :src="coinTop3[1].avatarUrl" alt="avatar" />
-                <span v-else>{{ (coinTop3[1].nickname || '?').charAt(0) }}</span>
+              <div class="leaderboard-avatar-wrap podium-avatar-wrap">
+                <LeaderboardWreath variant="silver" class="podium-wreath podium-wreath--second" />
+                <div class="podium-card__avatar">
+                  <img v-if="coinTop3[1].avatarUrl" :src="coinTop3[1].avatarUrl" alt="avatar" />
+                  <span v-else>{{ (coinTop3[1].nickname || '?').charAt(0) }}</span>
+                </div>
+                <MemberVBadge :level="coinTop3[1].memberLevel" :size="26" />
               </div>
               <div class="podium-card__name">{{ coinTop3[1].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[1].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[1].rank <= rewardConfig.topLimit" class="podium-card__reward">TOP {{ rewardConfig.topLimit }} 奖励</div>
               <div v-if="coinTop3[1].isMe" class="podium-card__me">我</div>
             </div>
 
             <!-- 第一名 -->
             <div v-if="coinTop3[0]" class="podium-card podium-card--first">
               <div class="podium-card__crown"><CrownOutlined /></div>
-              <div class="podium-card__avatar">
-                <img v-if="coinTop3[0].avatarUrl" :src="coinTop3[0].avatarUrl" alt="avatar" />
-                <span v-else>{{ (coinTop3[0].nickname || '?').charAt(0) }}</span>
+              <div class="leaderboard-avatar-wrap podium-avatar-wrap">
+                <LeaderboardWreath variant="gold" class="podium-wreath" />
+                <div class="podium-card__avatar">
+                  <img v-if="coinTop3[0].avatarUrl" :src="coinTop3[0].avatarUrl" alt="avatar" />
+                  <span v-else>{{ (coinTop3[0].nickname || '?').charAt(0) }}</span>
+                </div>
+                <MemberVBadge :level="coinTop3[0].memberLevel" :size="28" />
               </div>
               <div class="podium-card__name">{{ coinTop3[0].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[0].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[0].rank <= rewardConfig.topLimit" class="podium-card__reward">TOP {{ rewardConfig.topLimit }} 奖励</div>
               <div v-if="coinTop3[0].isMe" class="podium-card__me">我</div>
             </div>
 
             <!-- 第三名 -->
             <div v-if="coinTop3[2]" class="podium-card podium-card--third">
               <div class="podium-card__rank">3</div>
-              <div class="podium-card__avatar">
-                <img v-if="coinTop3[2].avatarUrl" :src="coinTop3[2].avatarUrl" alt="avatar" />
-                <span v-else>{{ (coinTop3[2].nickname || '?').charAt(0) }}</span>
+              <div class="leaderboard-avatar-wrap podium-avatar-wrap">
+                <LeaderboardWreath variant="bronze" class="podium-wreath podium-wreath--third" />
+                <div class="podium-card__avatar">
+                  <img v-if="coinTop3[2].avatarUrl" :src="coinTop3[2].avatarUrl" alt="avatar" />
+                  <span v-else>{{ (coinTop3[2].nickname || '?').charAt(0) }}</span>
+                </div>
+                <MemberVBadge :level="coinTop3[2].memberLevel" :size="26" />
               </div>
               <div class="podium-card__name">{{ coinTop3[2].nickname || '匿名用户' }}</div>
               <div class="podium-card__amount">{{ coinTop3[2].amount.toFixed(2) }}</div>
               <div class="podium-card__unit">创作币</div>
+              <div v-if="coinTop3[2].rank <= rewardConfig.topLimit" class="podium-card__reward">TOP {{ rewardConfig.topLimit }} 奖励</div>
               <div v-if="coinTop3[2].isMe" class="podium-card__me">我</div>
             </div>
           </div>
@@ -129,9 +147,12 @@
                 <span v-if="item.rank <= 10" class="leaderboard-row__badge">{{ item.rank }}</span>
                 <span v-else">{{ item.rank }}</span>
               </div>
-              <div class="leaderboard-row__avatar">
-                <img v-if="item.avatarUrl" :src="item.avatarUrl" alt="avatar" />
-                <span v-else>{{ (item.nickname || '?').charAt(0) }}</span>
+              <div class="leaderboard-avatar-wrap">
+                <div class="leaderboard-row__avatar">
+                  <img v-if="item.avatarUrl" :src="item.avatarUrl" alt="avatar" />
+                  <span v-else>{{ (item.nickname || '?').charAt(0) }}</span>
+                </div>
+                <MemberVBadge :level="item.memberLevel" :size="22" />
               </div>
               <div class="leaderboard-row__info">
                 <div class="leaderboard-row__name">
@@ -231,6 +252,8 @@ import { message } from 'ant-design-vue'
 import { UnorderedListOutlined, TrophyOutlined, CrownOutlined, RocketOutlined } from '@ant-design/icons-vue'
 import { getCoinLeaderboard, getLeaderboardRewardConfig } from '@/api/leaderboard.js'
 import SectionTitle from '@/components/common/SectionTitle.vue'
+import MemberVBadge from '@/components/common/MemberVBadge.vue'
+import LeaderboardWreath from '@/components/common/LeaderboardWreath.vue'
 
 function getMonthLabel(period) {
   const now = new Date()
@@ -528,6 +551,47 @@ onUnmounted(() => {
   margin-top: 4px;
 }
 
+.leaderboard-avatar-wrap {
+  position: relative;
+  display: flex;
+  flex-shrink: 0;
+}
+
+.leaderboard-avatar-wrap .member-v-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  z-index: 2;
+}
+
+/* 领奖台头像外层：收窄到内容宽度，避免被纵向 flex 拉伸导致徽标错位；底部留出花环溢出空间 */
+.podium-avatar-wrap {
+  width: fit-content;
+  margin: 0 auto 20px;
+}
+
+/* 花环：绝对定位包住头像，不同名次旋转出不同构图 */
+.podium-wreath {
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: calc(100% + 28px);
+  height: calc(100% + 28px);
+  z-index: 1;
+}
+
+.podium-wreath--second {
+  transform: rotate(140deg);
+}
+
+.podium-wreath--third {
+  transform: rotate(250deg);
+}
+
+.podium-avatar-wrap .podium-card__avatar {
+  margin: 0;
+}
+
 .leaderboard-my__avatar {
   width: 48px;
   height: 48px;
@@ -628,6 +692,7 @@ onUnmounted(() => {
 .podium-card {
   position: relative;
   flex: 1;
+  min-width: 0;
   max-width: 160px;
   text-align: center;
   border-radius: 20px;
@@ -877,6 +942,16 @@ onUnmounted(() => {
 }
 
 .leaderboard-row__tag {
+  display: inline-block;
+  font-size: 11px;
+  color: #ff2442;
+  background: #fff5f7;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.podium-card__reward {
+  margin-top: 6px;
   display: inline-block;
   font-size: 11px;
   color: #ff2442;
@@ -1208,6 +1283,13 @@ onUnmounted(() => {
     font-size: 18px;
   }
 
+  .podium-wreath {
+    top: -10px;
+    left: -10px;
+    width: calc(100% + 20px);
+    height: calc(100% + 20px);
+  }
+
   .podium-card__name {
     font-size: 12px;
   }
@@ -1325,6 +1407,16 @@ body[data-theme="dark"] .podium-card {
   border-color: #2a2a2a;
 }
 
+/* 全局暗色规则会给 [class*="-card"] 元素铺 #1f1f1f 底，
+   这里把领奖台卡片内的纯文本容器还原为透明，避免 crown 一行出现黑色横块 */
+body[data-theme="dark"] .console-content .leaderboard-podium .podium-card__crown,
+body[data-theme="dark"] .console-content .leaderboard-podium .podium-card__name,
+body[data-theme="dark"] .console-content .leaderboard-podium .podium-card__amount,
+body[data-theme="dark"] .console-content .leaderboard-podium .podium-card__unit,
+body[data-theme="dark"] .console-content .leaderboard-podium .podium-card__reward {
+  background-color: transparent !important;
+}
+
 body[data-theme="dark"] .podium-card--first {
   background: linear-gradient(180deg, #3a2a1a 0%, #1f1f1f 100%);
   border-color: rgba(255, 193, 7, 0.3);
@@ -1367,7 +1459,8 @@ body[data-theme="dark"] .leaderboard-row__badge {
   color: #ff6b81;
 }
 
-body[data-theme="dark"] .leaderboard-row__tag {
+body[data-theme="dark"] .leaderboard-row__tag,
+body[data-theme="dark"] .podium-card__reward {
   background: rgba(255, 36, 66, 0.15);
   color: #ff6b81;
 }

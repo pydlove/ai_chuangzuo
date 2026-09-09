@@ -151,12 +151,13 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
             PlanCatalogVO.PlanVO vo = new PlanCatalogVO.PlanVO();
             vo.setKey(plan.getPlanKey());
             vo.setName(plan.getDisplayName());
+            vo.setNameEn(plan.getDisplayNameEn());
             vo.setRecommended(plan.getRecommended() != null && plan.getRecommended() == 1);
             String aiArticleQuota = valueByPlan
                     .getOrDefault(plan.getPlanKey(), Collections.emptyMap())
                     .get(BENEFIT_AI_ARTICLE_QUOTA);
             vo.setMonthly(buildBlock(plan.getPriceMonthly(), plan.getOriginalMonthly(),
-                    formatArticles(aiArticleQuota, 1, "篇 AI 文章/月"), null));
+                    formatArticles(aiArticleQuota, 1, "篇 AI 文章/月"), null, plan.getFirstMonthPrice()));
             vo.setQuarter(buildBlock(plan.getPriceQuarter(), plan.getOriginalQuarter(),
                     formatArticles(aiArticleQuota, 3, "篇 AI 文章/季"), null));
             vo.setYear(buildBlock(plan.getPriceYear(), plan.getOriginalYear(),
@@ -168,11 +169,17 @@ public class PlanCatalogServiceImpl implements PlanCatalogService {
     }
 
     private PlanCatalogVO.PriceBlock buildBlock(BigDecimal current, BigDecimal original, String articles, BigDecimal savings) {
+        return buildBlock(current, original, articles, savings, null);
+    }
+
+    private PlanCatalogVO.PriceBlock buildBlock(BigDecimal current, BigDecimal original, String articles, BigDecimal savings,
+            BigDecimal firstMonth) {
         PlanCatalogVO.PriceBlock block = new PlanCatalogVO.PriceBlock();
         block.setCurrent(current);
         block.setOriginal(original);
         block.setArticles(articles);
         block.setSavings(savings);
+        block.setFirstMonth(firstMonth);
         return block;
     }
 

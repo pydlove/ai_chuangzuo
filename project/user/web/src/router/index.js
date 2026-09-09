@@ -147,6 +147,12 @@ const routes = [
         component: () => import('@/views/console/SkillsIndex.vue')
       },
       {
+        path: 'plan-gallery',
+        name: 'ConsolePlanGallery',
+        component: () => import('@/views/console/PlanGalleryIndex.vue'),
+        meta: { title: '运营方案库' }
+      },
+      {
         path: 'skill-market',
         name: 'ConsoleSkillMarket',
         component: () => import('@/views/console/SkillMarketIndex.vue')
@@ -240,6 +246,12 @@ const routes = [
         path: 'invite-rules',
         name: 'ConsoleInviteRules',
         component: () => import('@/views/console/InviteRulesIndex.vue')
+      },
+      {
+        path: 'invite-leaderboard',
+        name: 'ConsoleInviteLeaderboard',
+        component: () => import('@/views/console/InviteLeaderboardIndex.vue'),
+        meta: { title: '邀请排行榜' }
       },
       {
         path: 'activities',

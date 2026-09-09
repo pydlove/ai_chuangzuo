@@ -25,8 +25,6 @@
       <RightOutlined class="plan-gallery-hint-arrow" />
     </div>
 
-    <PlanGalleryModal v-model:open="planGalleryVisible" />
-
     <div class="styles-filter-bar">
       <div class="styles-tabs">
         <button
@@ -71,6 +69,11 @@
         <div class="style-editor-header">
           <button class="style-editor-back" @click="goBack">← 返回</button>
           <div class="style-editor-title">{{ editingStyle.originalName ? '编辑提示词' : '新建我的提示词' }}</div>
+          <button
+            v-if="!editingStyle.originalName"
+            class="style-editor-ai-btn"
+            @click="openGenerateDialog"
+          >✨ 小爱帮写</button>
         </div>
         <div class="style-editor-form">
           <div class="style-editor-field">
@@ -266,7 +269,7 @@
             :prompt="promptSummary(s.prompt)"
             :show-avatar="false"
             :actions="[
-              { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'my') },
+              { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => handlePublishClick(s, 'my') },
               { label: '查看', handler: () => openMyStylePromptModal(s) },
               { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEdit(s) },
               { label: '下架', class: 'mobile-visible', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'my') },
@@ -423,7 +426,7 @@
           :show-avatar="false"
           avatar-variant="learned"
           :actions="[
-            { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', disabled: publishBlocked, title: publishQuotaHint, badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => openPublishConfirm(s, 'learned') },
+            { label: getMarketStatus(s.bizNo) === '已打回' ? '重新发布' : '发布', type: 'primary', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', badge: publishBlocked && publishTotal <= 0 ? { text: '专业版', class: 'pro' } : null, handler: () => handlePublishClick(s, 'learned') },
             { label: '查看', handler: () => openMyStylePromptModal(s, 'learned') },
             { label: '编辑', visible: !getMarketStatus(s.bizNo) || getMarketStatus(s.bizNo) === '已打回', handler: () => goToEditLearned(s) },
             { label: '下架', class: 'mobile-visible', visible: getMarketStatus(s.bizNo) === '已上架', handler: () => confirmUnpublish(s, 'learned') },
@@ -678,6 +681,62 @@
     </div>
   </a-modal>
 
+  <!-- 小爱帮写对话框 -->
+  <a-modal
+    :open="generateDialogVisible"
+    :footer="null"
+    :width="640"
+    centered
+    class="generate-skill-modal"
+    @cancel="closeGenerateDialog"
+    :maskClosable="!isGenerating"
+    :keyboard="!isGenerating"
+  >
+    <template #title>
+      <div class="modal-title">小爱帮写</div>
+    </template>
+
+    <!-- 进度态 -->
+    <div v-if="isGenerating" class="learned-progress">
+      <div class="learned-progress-bubble">
+        <span class="learned-progress-text">
+          <span
+            v-for="(ch, i) in generateLoadingChars"
+            :key="i"
+            class="learned-progress-char"
+            :style="{ animationDelay: (i * 0.08) + 's' }"
+          >{{ ch }}</span>
+        </span>
+        <span class="learned-progress-dots"><span></span><span></span><span></span></span>
+      </div>
+    </div>
+
+    <div v-else class="learned-pane">
+      <div class="generate-skill-hint">
+        描述你的运营方案或提示词方向，小爱会按「角色 / 受众 / 写作要求 / 语气 / 禁区」生成一份结构化提示词，生成后可在表单中继续编辑。
+      </div>
+      <textarea
+        v-model="generateRequirement"
+        class="learned-textarea"
+        placeholder="例如：我想做小红书，分享租房改造，目标读者是刚毕业的租房女生，预算有限…"
+        maxlength="1000"
+      ></textarea>
+      <div class="learned-counter">{{ generateRequirement.length }} / 1000</div>
+      <div v-if="generateError" class="learned-error">{{ generateError }}</div>
+      <div class="generate-skill-footer">
+        <span v-if="generateStatus" class="generate-skill-remaining">
+          <template v-if="generateRemaining > 0">今日剩余 {{ generateRemaining }} 次</template>
+          <template v-else>今日次数已用完，明天再来吧</template>
+        </span>
+        <button
+          class="learned-submit-btn"
+          :disabled="generateRequirement.trim().length < 10 || generateRemaining <= 0"
+          @click="submitGenerate"
+        >{{ generateRemaining <= 0 ? '今日次数已用完' : '开始生成' }}</button>
+      </div>
+    </div>
+  </a-modal>
+
   <a-modal
     :open="publishConfirmVisible"
     title="发布提示词到市场"
@@ -716,9 +775,7 @@
       <button
         v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (!getMarketStatus(selectedMyStyle?.bizNo) || getMarketStatus(selectedMyStyle?.bizNo) === '已打回')"
         :class="['skill-detail-btn-fav', { active: false }]"
-        :disabled="publishBlocked"
-        :title="publishQuotaHint"
-        @click="openPublishConfirm(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
+        @click="handlePublishClick(selectedMyStyle, selectedMyStyleSource); closeMyStylePromptModal()"
       >{{ getMarketStatus(selectedMyStyle?.bizNo) === '已打回' ? '重新发布' : '发布' }}</button>
       <button
         v-if="(selectedMyStyleSource === 'my' || selectedMyStyleSource === 'learned') && (!getMarketStatus(selectedMyStyle?.bizNo) || getMarketStatus(selectedMyStyle?.bizNo) === '已打回')"
@@ -770,6 +827,8 @@
       </div>
     </div>
   </a-modal>
+
+  <PlanGalleryModal v-model:open="planGalleryVisible" />
 </template>
 
 <script setup>
@@ -808,12 +867,12 @@ import {
 } from '@/composables/useSkillMarket.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { FullscreenOutlined } from '@ant-design/icons-vue'
-import { publishSkill } from '@/api/skill.js'
+import { publishSkill, generateSkill, getGenerateStatus } from '@/api/skill.js'
 import SkillCard from '@/components/SkillCard.vue'
 import SkillDetailModal from '@/components/SkillDetailModal.vue'
 import MobileConsoleHero from '@/components/MobileConsoleHero.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import PlanGalleryModal from '@/components/PlanGalleryModal.vue'
+import PlanGalleryModal from '@/components/plan/PlanGalleryModal.vue'
 import { getCurrentPlanKey } from '@/utils/membershipLimits.js'
 import { RightOutlined } from '@ant-design/icons-vue'
 
@@ -824,7 +883,6 @@ const { benefitValue, benefitRemaining, loadBenefits } = useBenefits()
 const { confirm } = useConfirm()
 
 // 运营方案库：专业版及以上可用
-const planGalleryVisible = ref(false)
 const canViewPlanGallery = computed(() => {
   const key = getCurrentPlanKey()
   return key === 'pro' || key === 'flagship'
@@ -840,8 +898,13 @@ const openPlanGallery = () => {
     })
     return
   }
-  planGalleryVisible.value = true
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    router.push('/console/plan-gallery')
+  } else {
+    planGalleryVisible.value = true
+  }
 }
+const planGalleryVisible = ref(false)
 const stylesIndexRef = ref(null)
 const currentUserId = localStorage.getItem(STORAGE_KEYS.USER_ID) || ''
 const activeTab = ref('my')
@@ -1454,6 +1517,90 @@ const runAnalysis = async (text, sourceType) => {
   }
 }
 
+// ============ 小爱帮写 ============
+
+const generateDialogVisible = ref(false)
+const generateRequirement = ref('')
+const generateError = ref('')
+const isGenerating = ref(false)
+const generateStatus = ref(null)
+const generateLoadingText = '小爱正在帮您创作提示词…'
+const generateLoadingChars = generateLoadingText.split('')
+
+const generateRemaining = computed(() =>
+  generateStatus.value ? generateStatus.value.remainingToday : 1
+)
+
+const openGenerateDialog = async () => {
+  if (isGenerating.value) return
+  generateError.value = ''
+  try {
+    const res = await getGenerateStatus()
+    const data = res.data || res || {}
+    generateStatus.value = data
+    if (!data.allowed) {
+      confirm({
+        title: '小爱帮写',
+        content: '小爱帮写为专业版及以上功能，升级后每天可帮写 4 次提示词。',
+        okText: '去升级',
+        wrapClassName: 'membership-confirm-modal',
+        onOk: () => router.push('/console/benefits')
+      })
+      return
+    }
+    generateRequirement.value = ''
+    generateDialogVisible.value = true
+  } catch (err) {
+    message.error(err?.message || '加载帮写状态失败，请重试')
+  }
+}
+
+const closeGenerateDialog = () => {
+  if (isGenerating.value) return
+  generateDialogVisible.value = false
+}
+
+const applyGenerateResult = (data) => {
+  editingStyle.name = (data.skillName || '').slice(0, 20)
+  editingStyle.desc = (data.description || '').slice(0, 100)
+  editingStyle.templateBased = true
+  editingStyle.promptExtra = {
+    role: data.role || '',
+    audience: data.audience || '',
+    requirements: data.requirements || '',
+    tone: data.tone || '',
+    restrictions: data.restrictions || '',
+    example: data.example || ''
+  }
+  editingStyle.scope = formatScopeTags((data.scopeTags || []).slice(0, MAX_SCOPE_TAGS))
+  editingStyle.prompt = displayPrompt.value
+}
+
+const submitGenerate = async () => {
+  if (isGenerating.value) return
+  const requirement = generateRequirement.value.trim()
+  if (requirement.length < 10) {
+    generateError.value = '请至少输入 10 个字，描述越具体效果越好'
+    return
+  }
+  generateError.value = ''
+  isGenerating.value = true
+  try {
+    const res = await generateSkill(requirement)
+    const data = res.data || res || {}
+    applyGenerateResult(data)
+    generateDialogVisible.value = false
+    generateStatus.value = data.remainingToday != null
+      ? { ...generateStatus.value, remainingToday: data.remainingToday }
+      : generateStatus.value
+    message.success('提示词已生成，可继续编辑后保存')
+  } catch (err) {
+    generateError.value = err?.message || '生成失败，请重试'
+  } finally {
+    isGenerating.value = false
+  }
+}
+
 const canSaveLearnedResult = computed(() => {
   if (!learnedResult.value) return false
   const name = learnedResult.value.name.trim()
@@ -1593,6 +1740,22 @@ const publishQuotaHint = computed(() => {
 const openPublishConfirm = (style, sourceType) => {
   pendingPublish.value = { style, sourceType }
   publishConfirmVisible.value = true
+}
+
+/** 额度不足时点击发布：原生 disabled 在移动端无任何反馈，改为弹窗提示 + 升级引导。 */
+const handlePublishClick = (style, sourceType) => {
+  if (publishBlocked.value) {
+    confirm({
+      title: '发布到提示词市场',
+      content: publishQuotaHint.value,
+      okText: '去升级',
+      cancelText: '知道了',
+      wrapClassName: 'membership-confirm-modal',
+      onOk: () => router.push('/console/benefits')
+    })
+    return
+  }
+  openPublishConfirm(style, sourceType)
 }
 
 const confirmPublish = async () => {
@@ -2099,6 +2262,24 @@ body[data-theme="dark"] .plan-gallery-hint-sub {
   color: #1a1a1a;
 }
 
+.style-editor-ai-btn {
+  margin-left: auto;
+  padding: 6px 16px;
+  background: #fff7e6;
+  color: #fa8c16;
+  border: 1px solid #ffd591;
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.style-editor-ai-btn:hover {
+  background: #fa8c16;
+  color: #fff;
+  border-color: #fa8c16;
+}
+
 .style-editor-form {
   display: flex;
   flex-direction: column;
@@ -2498,6 +2679,30 @@ body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover 
   color: #8c8c8c;
 }
 
+.generate-skill-hint {
+  font-size: 13px;
+  color: #595959;
+  background: #fff7e6;
+  border: 1px solid #ffe7ba;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  line-height: 1.6;
+}
+
+.generate-skill-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.generate-skill-remaining {
+  font-size: 12px;
+  color: #8c8c8c;
+}
+
 /* ============ 移动端 ============
    - 4 个 tab 总宽超 375px → 改为横向滚动，不换行截字
    - 搜索框去除 min-width 限制，跟随容器宽度
@@ -2541,6 +2746,19 @@ body[data-theme="dark"] .styles-pagination :deep(.ant-pagination-disabled:hover 
   .styles-search-input {
     min-width: 0;
     max-width: none;
+  }
+
+  /* 模版表单各输入框在手机上默认高度太低，加大方便编辑 */
+  .style-editor-textarea {
+    min-height: 96px;
+  }
+
+  .style-editor-textarea[rows="3"] {
+    min-height: 120px;
+  }
+
+  .style-editor-textarea[rows="5"] {
+    min-height: 160px;
   }
 }
 

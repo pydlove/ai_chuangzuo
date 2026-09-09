@@ -24,6 +24,9 @@ public class Plan {
     /** 套餐显示名。 */
     private String displayName;
 
+    /** 套餐英文显示名（如 Plus/Max/Ultra）。 */
+    private String displayNameEn;
+
     /** 排序号。 */
     private Integer sortOrder;
 
@@ -31,6 +34,10 @@ public class Plan {
     private Integer recommended;
 
     private BigDecimal priceMonthly;
+
+    /** 首月价格：仅月付周期首次购买生效，null 表示不启用。 */
+    private BigDecimal firstMonthPrice;
+
     private BigDecimal priceQuarter;
     private BigDecimal priceYear;
 

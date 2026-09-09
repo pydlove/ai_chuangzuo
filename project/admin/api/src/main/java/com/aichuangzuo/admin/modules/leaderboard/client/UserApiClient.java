@@ -29,6 +29,9 @@ public class UserApiClient {
     @Value("${leaderboard.user-api.base-url:http://localhost:25050}")
     private String userApiBaseUrl;
 
+    @Value("${user.api.internal-key:}")
+    private String internalKey;
+
     /**
      * 调用用户端记录收益。
      */
@@ -49,6 +52,7 @@ public class UserApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
+        headers.set("X-Internal-Key", internalKey == null ? "" : internalKey);
         HttpEntity<RecordEarningsRequest> entity = new HttpEntity<>(request, headers);
 
         String url = userApiBaseUrl + "/api/v1/user/internal/earnings/record";
@@ -74,6 +78,7 @@ public class UserApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
+        headers.set("X-Internal-Key", internalKey == null ? "" : internalKey);
         HttpEntity<ProcessWithdrawRequest> entity = new HttpEntity<>(request, headers);
 
         String url = userApiBaseUrl + "/api/v1/user/internal/withdrawals/" + bizNo + "/process";
@@ -105,6 +110,7 @@ public class UserApiClient {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(token);
+        headers.set("X-Internal-Key", internalKey == null ? "" : internalKey);
         HttpEntity<UserCoinGrantRequest> entity = new HttpEntity<>(request, headers);
 
         String url = userApiBaseUrl + "/api/v1/user/internal/coin-records/grant";

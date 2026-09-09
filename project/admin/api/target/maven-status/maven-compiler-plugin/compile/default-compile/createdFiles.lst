@@ -63,6 +63,7 @@ com/aichuangzuo/admin/modules/feedback/entity/AdminFeedbackView.class
 com/aichuangzuo/admin/modules/platform/service/impl/PlatformAdminServiceImpl.class
 com/aichuangzuo/admin/modules/message/service/MessageAdminService.class
 com/aichuangzuo/admin/modules/commission/controller/AdminCommissionController.class
+com/aichuangzuo/admin/modules/stats/mapper/DashboardMapper.class
 com/aichuangzuo/admin/modules/lottery/entity/LotteryCampaign.class
 com/aichuangzuo/admin/modules/experience/dto/request/ExperienceTokenBatchGenerateRequest.class
 com/aichuangzuo/admin/modules/selfmediaplan/vo/SelfMediaPlanVO.class
@@ -93,6 +94,7 @@ com/aichuangzuo/admin/modules/message/handler/GenerationFailedHandler.class
 com/aichuangzuo/admin/modules/generation/service/GenerationCallLogService.class
 com/aichuangzuo/admin/modules/audit/vo/AuditLogPageVO.class
 com/aichuangzuo/admin/config/SecurityConfig.class
+com/aichuangzuo/admin/modules/security/smsconfig/dto/request/SmsSendRecordQueryRequest.class
 com/aichuangzuo/admin/modules/generation/pipeline/ConfigField$ConfigFieldBuilder.class
 com/aichuangzuo/admin/modules/homebanner/service/HomeBannerService.class
 com/aichuangzuo/admin/modules/generation/pipeline/AiGateway$AiBudgetExhaustedException.class
@@ -117,6 +119,7 @@ com/aichuangzuo/admin/modules/lottery/mapper/LotteryDisplayWinnerMapper.class
 com/aichuangzuo/admin/modules/testimonial/dto/request/TestimonialStatusRequest.class
 com/aichuangzuo/admin/modules/lottery/entity/LotteryDrawRecord.class
 com/aichuangzuo/admin/modules/feedback/vo/AdminFeedbackVO.class
+com/aichuangzuo/admin/modules/stats/vo/DashboardTrendVO.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationHistoryMapper.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/RhythmPolishStep.class
 com/aichuangzuo/admin/modules/lottery/service/LotteryDisplayWinnerAdminService.class
@@ -292,7 +295,6 @@ com/aichuangzuo/admin/modules/reminder/entity/Message.class
 com/aichuangzuo/admin/modules/security/accesscontrol/enums/AccessControlListType.class
 com/aichuangzuo/admin/modules/reminder/event/ReminderConfigChangedEvent.class
 com/aichuangzuo/admin/modules/lottery/vo/LotteryDisplayWinnerAdminVO.class
-com/aichuangzuo/admin/modules/stats/mapper/UserActivityStatsMapper.class
 com/aichuangzuo/admin/modules/hotsearch/event/HotSearchConfigChangedEvent.class
 com/aichuangzuo/admin/modules/generation/service/ArticleReadInternalClient.class
 com/aichuangzuo/admin/modules/share/dto/request/ShareConfigSaveRequest.class
@@ -330,12 +332,15 @@ com/aichuangzuo/admin/config/WebMvcConfig.class
 com/aichuangzuo/admin/modules/leaderboard/service/impl/LeaderboardAwardServiceImpl.class
 com/aichuangzuo/admin/modules/reminder/service/impl/ExpireReminderServiceImpl.class
 com/aichuangzuo/admin/infrastructure/ai/KimiProviderClient.class
+com/aichuangzuo/admin/modules/stats/vo/DashboardTrendVO$DailyPoint.class
+com/aichuangzuo/admin/modules/security/smsconfig/mapper/SmsSendRecordMapper.class
 com/aichuangzuo/admin/modules/exporttemplate/dto/request/ExportTemplateSaveRequest.class
 com/aichuangzuo/admin/modules/testimonial/exception/TestimonialErrorCode.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationConfigMapper.class
 com/aichuangzuo/admin/modules/skill/preset/dto/request/CreateGlobalSkillRequest.class
 com/aichuangzuo/admin/modules/learn/vo/LearnCategoryTreeNode.class
 com/aichuangzuo/admin/modules/skill/preset/service/impl/GlobalSkillServiceImpl.class
+com/aichuangzuo/admin/modules/security/smsconfig/service/SmsSendRecordService$PageResult.class
 com/aichuangzuo/admin/modules/earnings/vo/PageResult.class
 com/aichuangzuo/admin/modules/generation/dto/request/PublishTemplateRequest.class
 com/aichuangzuo/admin/modules/generation/dto/request/BatchStopGenerationTaskRequest.class
@@ -398,6 +403,7 @@ com/aichuangzuo/admin/modules/earnings/dto/request/AddCoinRequest.class
 com/aichuangzuo/admin/modules/commission/vo/CommissionTaskImportResultVO.class
 com/aichuangzuo/admin/modules/user/controller/AdminUserController.class
 com/aichuangzuo/admin/modules/reminder/mapper/ReminderSendLogMapper.class
+com/aichuangzuo/admin/modules/stats/vo/DashboardDistributionVO$Item.class
 com/aichuangzuo/admin/modules/article/vo/AdminArticlePageVO.class
 com/aichuangzuo/admin/modules/order/dto/request/BatchDeleteOrderRequest.class
 com/aichuangzuo/admin/modules/order/vo/RenewalTrendVO.class
@@ -439,6 +445,7 @@ com/aichuangzuo/admin/modules/modelconfig/service/impl/ModelConfigServiceImpl$1.
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateAdminPageVO.class
 com/aichuangzuo/admin/modules/earnings/dto/request/WithdrawQueryRequest.class
 com/aichuangzuo/admin/modules/testimonial/dto/request/UserReviewPageRequest.class
+com/aichuangzuo/admin/modules/security/smsconfig/vo/SmsSendRecordVO.class
 com/aichuangzuo/admin/modules/user/mapper/PlatformUserLoginLogMapper.class
 com/aichuangzuo/admin/modules/lottery/service/LotteryRecordAdminService.class
 com/aichuangzuo/admin/modules/share/service/ShareConfigAdminService.class
@@ -567,9 +574,11 @@ com/aichuangzuo/admin/modules/message/mapper/MessageAggregateMapper.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/MaterialListStep.class
 com/aichuangzuo/admin/modules/earnings/service/WithdrawAdminService.class
 com/aichuangzuo/admin/modules/generation/vo/PromptTemplateStageVO$StagePlaceholderVO.class
+com/aichuangzuo/admin/modules/security/smsconfig/entity/SmsSendRecord.class
 com/aichuangzuo/admin/modules/hotsearch/entity/HotSearchPlatform.class
 com/aichuangzuo/admin/modules/order/enums/OrderStatus.class
 com/aichuangzuo/admin/modules/generation/service/SkillUsageInternalClient.class
+com/aichuangzuo/admin/modules/stats/vo/DashboardDistributionVO.class
 com/aichuangzuo/admin/modules/generation/pipeline/GenerationContext$WordAdjustResult.class
 com/aichuangzuo/admin/modules/exporttemplate/mapper/ExportTemplateMapper.class
 com/aichuangzuo/admin/modules/order/vo/OrderDetailVO.class
@@ -676,11 +685,11 @@ com/aichuangzuo/admin/modules/user/service/AdminUserService.class
 com/aichuangzuo/admin/modules/settings/upgrademanagement/mapper/UpgradeConfigMapper.class
 com/aichuangzuo/admin/modules/settings/upgrademanagement/vo/UpgradeJobLogVO.class
 com/aichuangzuo/admin/modules/generation/service/GenerationConfigService.class
+com/aichuangzuo/admin/modules/stats/mapper/DashboardGroupRow.class
 com/aichuangzuo/admin/modules/user/service/impl/AdminUserServiceImpl.class
 com/aichuangzuo/admin/modules/generation/mapper/GenerationCallLogMapper.class
 com/aichuangzuo/admin/modules/planbenefit/controller/PlanBenefitAdminController.class
 com/aichuangzuo/admin/modules/earnings/vo/EarningsRecordVO.class
-com/aichuangzuo/admin/modules/stats/vo/StatsOverviewVO.class
 com/aichuangzuo/admin/modules/modelconfig/dto/request/ModelConfigSaveRequest.class
 com/aichuangzuo/admin/modules/hotsearch/service/HotSearchCrawlLogService$PageResult.class
 com/aichuangzuo/admin/modules/hotsearch/mapper/HotSearchCrawlLogMapper.class
@@ -745,6 +754,7 @@ com/aichuangzuo/admin/modules/leaderboard/entity/IncomeSubmission.class
 com/aichuangzuo/admin/modules/generation/pipeline/steps/ExportRenderStep.class
 com/aichuangzuo/admin/modules/share/dto/request/ShareConfigQueryRequest.class
 com/aichuangzuo/admin/modules/settings/upgrademanagement/service/UpgradeManagementService.class
+com/aichuangzuo/admin/modules/security/smsconfig/service/SmsSendRecordService.class
 com/aichuangzuo/admin/modules/skill/review/entity/AuditStatus.class
 com/aichuangzuo/admin/modules/user/dto/request/AdminUserCreateRequest.class
 com/aichuangzuo/admin/modules/modelconfig/vo/ModelConfigChatTestVO.class
@@ -753,3 +763,4 @@ com/aichuangzuo/admin/modules/experience/service/ExperienceTokenAdminService.cla
 com/aichuangzuo/admin/modules/settings/wechatofficialaccount/service/WechatOfficialAccountConfigService.class
 com/aichuangzuo/admin/modules/settings/paymentconfig/entity/PaymentConfig.class
 com/aichuangzuo/admin/modules/earnings/entity/UserCoinRecord.class
+com/aichuangzuo/admin/modules/stats/vo/DashboardOverviewVO.class

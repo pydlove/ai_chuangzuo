@@ -314,11 +314,12 @@ const handleGenerate = async () => {
 </script>
 
 <style scoped>
-.free-create-modal :deep(.ant-modal-content) {
+/* a-modal 的根元素不携带 scoped data-v 属性，这里必须用 :global 才能命中 */
+:global(.free-create-modal .ant-modal-content) {
   border-radius: 16px;
   overflow: hidden;
 }
-.free-create-modal :deep(.ant-modal-body) {
+:global(.free-create-modal .ant-modal-body) {
   padding: 24px;
 }
 .free-create-body {
@@ -479,6 +480,36 @@ const handleGenerate = async () => {
 }
 
 @media (max-width: 768px) {
+  /* 手机端弹框全屏 */
+  :global(.free-create-modal.ant-modal) {
+    width: 100% !important;
+    max-width: 100vw;
+    height: 100%;
+    padding-bottom: 0;
+    margin: 0;
+  }
+  :global(.free-create-modal .ant-modal-content) {
+    border-radius: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+  :global(.free-create-modal .ant-modal-body) {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  }
+  /* 手机端去掉卡片包裹，内容直接铺满 */
+  .free-create-card,
+  .free-create-card.focused {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+  }
+
   .free-create-chips {
     flex-wrap: nowrap;
     overflow-x: auto;

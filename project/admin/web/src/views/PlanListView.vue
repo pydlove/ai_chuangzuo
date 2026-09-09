@@ -18,6 +18,10 @@
           <template v-if="column.key === 'planKey'">
             <a-tag :color="record.planKey === 'pro' ? 'red' : 'default'">{{ record.planKey }}</a-tag>
           </template>
+          <template v-else-if="column.key === 'displayName'">
+            <div>{{ record.displayName }}</div>
+            <div v-if="record.displayNameEn" class="en-name">{{ record.displayNameEn }}</div>
+          </template>
           <template v-else-if="column.key === 'recommended'">
             <a-tag v-if="record.recommended === 1" color="red">推荐</a-tag>
             <span v-else>-</span>
@@ -33,6 +37,7 @@
           </template>
           <template v-else-if="column.key === 'priceMonthly'">
             <PriceCell :record="record" field="priceMonthly" :original-field="record.originalMonthly ? 'originalMonthly' : null" />
+            <div v-if="record.firstMonthPrice != null" class="first-month">首月 ¥{{ formatPrice(record.firstMonthPrice) }}</div>
           </template>
           <template v-else-if="column.key === 'priceQuarter'">
             <PriceCell :record="record" field="priceQuarter" :original-field="record.originalQuarter ? 'originalQuarter' : null" />
@@ -73,6 +78,13 @@
           </a-row>
           <a-row :gutter="16">
             <a-col :span="12">
+              <a-form-item label="英文名">
+                <a-input v-model:value="form.displayNameEn" placeholder="如：Max（定价页展示，可空）" />
+              </a-form-item>
+            </a-col>
+          </a-row>
+          <a-row :gutter="16">
+            <a-col :span="12">
               <a-form-item label="排序号">
                 <a-input-number v-model:value="form.sortOrder" :min="0" style="width: 100%" />
                 <div class="form-hint">数字越小越靠前</div>
@@ -96,11 +108,19 @@
               </a-form-item>
             </a-col>
             <a-col :span="8">
+              <a-form-item label="首月价格（元）">
+                <a-input-number v-model:value="form.firstMonthPrice" :min="0" :precision="2" style="width: 100%" />
+                <div class="form-hint">仅月付周期首次购买生效，留空不启用</div>
+              </a-form-item>
+            </a-col>
+            <a-col :span="8">
               <a-form-item label="划线价（元）">
                 <a-input-number v-model:value="form.originalMonthly" :min="0" :precision="2" style="width: 100%" />
                 <div class="form-hint">无折扣可留空</div>
               </a-form-item>
             </a-col>
+          </a-row>
+          <a-row :gutter="16">
             <a-col :span="8">
               <a-form-item label="文章文案">
                 <div class="article-preview">{{ previewArticles.monthly }}</div>
@@ -314,9 +334,11 @@ function blankForm() {
   return {
     planKey: '',
     displayName: '',
+    displayNameEn: '',
     sortOrder: 0,
     recommended: false,
     priceMonthly: 0,
+    firstMonthPrice: null,
     priceQuarter: 0,
     priceYear: 0,
     originalMonthly: null,
@@ -457,9 +479,11 @@ function onEdit(record) {
   Object.assign(form, blankForm(), {
     planKey: record.planKey,
     displayName: record.displayName,
+    displayNameEn: record.displayNameEn || '',
     sortOrder: record.sortOrder || 0,
     recommended: record.recommended === 1,
     priceMonthly: Number(record.priceMonthly || 0),
+    firstMonthPrice: record.firstMonthPrice != null ? Number(record.firstMonthPrice) : null,
     priceQuarter: Number(record.priceQuarter || 0),
     priceYear: Number(record.priceYear || 0),
     originalMonthly: record.originalMonthly != null ? Number(record.originalMonthly) : null,
@@ -554,6 +578,10 @@ onMounted(load)
   font-weight: 600;
   color: #1a1a1a;
 }
+.en-name {
+  font-size: 12px;
+  color: #8c8c8c;
+}
 .price-original {
   color: #bfbfbf;
   text-decoration: line-through;
@@ -562,6 +590,11 @@ onMounted(load)
 .savings {
   font-size: 12px;
   color: #ff2442;
+  margin-top: 2px;
+}
+.first-month {
+  font-size: 12px;
+  color: #fa8c16;
   margin-top: 2px;
 }
 .plan-form { padding-top: 8px; }

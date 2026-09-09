@@ -3,6 +3,7 @@ com/aichuangzuo/user/modules/auth/service/AuthService.class
 com/aichuangzuo/user/modules/selfmedia/vo/PublishPlanGuideVO.class
 com/aichuangzuo/user/modules/generation/mapper/UserPromptTemplateMapper.class
 com/aichuangzuo/user/modules/message/mapper/MessageMapper.class
+com/aichuangzuo/user/modules/skill/generate/vo/SkillGenerateVO.class
 com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlan.class
 com/aichuangzuo/user/modules/selfmedia/vo/PublishPlanGuideVO$ColdStartPlan.class
 com/aichuangzuo/user/modules/security/accesscontrol/service/AccessControlService.class
@@ -10,6 +11,7 @@ com/aichuangzuo/user/modules/auth/dto/request/QrLoginScanRequest.class
 com/aichuangzuo/user/modules/exporttemplate/service/ExportTemplateService.class
 com/aichuangzuo/user/modules/user/dto/request/UpdateEmailRequest.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/IncomeSubmissionServiceImpl$1.class
+com/aichuangzuo/user/modules/skill/generate/service/impl/SkillGenerateServiceImpl.class
 com/aichuangzuo/user/modules/article/controller/ArticleExportController.class
 com/aichuangzuo/user/modules/learn/enums/ArticleStatus.class
 com/aichuangzuo/user/modules/security/smsconfig/mapper/SmsConfigMapper.class
@@ -49,6 +51,7 @@ com/aichuangzuo/user/modules/lottery/vo/LotteryDisplayWinnerVO.class
 com/aichuangzuo/user/modules/skill/market/service/impl/SkillMarketQueryServiceImpl.class
 com/aichuangzuo/user/modules/lottery/entity/LotteryCampaign.class
 com/aichuangzuo/user/modules/membership/mapper/UserMembershipMapper.class
+com/aichuangzuo/user/modules/skill/generate/mapper/SkillGenerateDailyMapper.class
 com/aichuangzuo/user/modules/article/dto/request/SaveDraftRequest.class
 com/aichuangzuo/user/modules/wechat/service/impl/WechatBindServiceImpl$1.class
 com/aichuangzuo/user/modules/auth/service/impl/QrLoginServiceImpl.class
@@ -78,11 +81,13 @@ com/aichuangzuo/user/modules/lottery/mapper/LotteryRedemptionCodeMapper.class
 com/aichuangzuo/user/modules/membership/vo/UpgradePreviewVO.class
 com/aichuangzuo/user/modules/workbench/service/impl/WeeklyArticleServiceImpl.class
 com/aichuangzuo/user/modules/activity/mapper/UserDailyActiveMapper.class
+com/aichuangzuo/user/modules/skill/generate/vo/SkillGenerateStatusVO.class
 com/aichuangzuo/user/modules/earnings/mapper/EarningsRecordMapper.class
 com/aichuangzuo/user/modules/commission/entity/CommissionSubmission.class
 com/aichuangzuo/user/modules/wechat/controller/WechatCallbackController.class
 com/aichuangzuo/user/modules/membership/service/PlanLookupService.class
 com/aichuangzuo/user/modules/wechat/util/WechatSignatureUtil.class
+com/aichuangzuo/user/modules/auth/mapper/SmsSendRecordMapper.class
 com/aichuangzuo/user/modules/wechat/entity/WechatBindCode.class
 com/aichuangzuo/user/modules/selfmedia/mapper/SelfMediaPlanPersonaMapper.class
 com/aichuangzuo/user/modules/auth/vo/QrLoginStatusVO.class
@@ -123,10 +128,12 @@ com/aichuangzuo/user/modules/lottery/controller/UserCouponController.class
 com/aichuangzuo/user/modules/selfmedia/vo/SelfMediaPlanVO.class
 com/aichuangzuo/user/config/MybatisPlusConfig.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskPageVO.class
+com/aichuangzuo/user/modules/skill/generate/service/SkillGenerateDailyLimiter.class
 com/aichuangzuo/user/modules/benefit/entity/Benefit.class
 com/aichuangzuo/user/modules/message/controller/MessageController.class
 com/aichuangzuo/user/modules/leaderboard/mapper/LeaderboardAggregateMapper.class
 com/aichuangzuo/user/modules/lottery/vo/UserCouponVO.class
+com/aichuangzuo/user/modules/skill/generate/dto/GenerateSkillRequest.class
 com/aichuangzuo/user/modules/skill/market/service/impl/UserMarketFavoriteServiceImpl.class
 com/aichuangzuo/user/modules/lottery/scheduler/MembershipPendingActivationJob.class
 com/aichuangzuo/user/modules/learn/service/impl/LearnBrowseServiceImpl.class
@@ -169,6 +176,7 @@ com/aichuangzuo/user/modules/platform/vo/PlatformWordCountPresetVO.class
 com/aichuangzuo/user/modules/membership/service/impl/PaymentServiceImpl$1.class
 com/aichuangzuo/user/modules/platform/controller/PlatformController.class
 com/aichuangzuo/user/modules/selfmedia/dto/request/RecommendNichesRequest.class
+com/aichuangzuo/user/modules/earnings/vo/WithdrawSuccessItemVO.class
 com/aichuangzuo/user/modules/lottery/controller/LotteryController.class
 com/aichuangzuo/user/modules/auth/service/SmsCodeService.class
 com/aichuangzuo/user/modules/homebanner/mapper/HomeBannerMapper.class
@@ -278,6 +286,7 @@ com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO.class
 com/aichuangzuo/user/modules/selfmedia/service/impl/SelfMediaPlanServiceImpl$3.class
 com/aichuangzuo/user/modules/generation/mapper/GenerationTaskRefundMapper.class
 com/aichuangzuo/user/modules/selfmedia/vo/NicknameRecommendVO$Option.class
+com/aichuangzuo/user/modules/auth/entity/SmsSendRecord.class
 com/aichuangzuo/user/modules/aiprompt/service/impl/AiPromptRenderServiceImpl$1.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
 com/aichuangzuo/user/modules/auth/controller/AuthController.class
@@ -347,6 +356,7 @@ com/aichuangzuo/user/modules/benefit/entity/BenefitUsage.class
 com/aichuangzuo/user/modules/scheduler/service/ScheduledTaskService.class
 com/aichuangzuo/user/modules/selfmedia/vo/NicknameRecommendVO.class
 com/aichuangzuo/user/modules/skill/market/controller/SkillUsageInternalController.class
+com/aichuangzuo/user/modules/skill/generate/entity/SkillGenerateDaily.class
 com/aichuangzuo/user/modules/skill/service/impl/SkillAnalyzeServiceImpl.class
 com/aichuangzuo/user/modules/skill/dto/request/AnalyzeSkillRequest.class
 com/aichuangzuo/user/modules/auth/dto/request/SendSmsCodeRequest.class
@@ -364,6 +374,7 @@ com/aichuangzuo/user/modules/leaderboard/controller/CoinRecordInternalController
 com/aichuangzuo/user/modules/auth/mail/EmailMessageFactory.class
 com/aichuangzuo/user/modules/skill/analyze/entity/SkillAnalyzeDaily.class
 com/aichuangzuo/user/modules/article/controller/ArticleController.class
+com/aichuangzuo/user/modules/skill/generate/service/SkillGenerateService.class
 com/aichuangzuo/user/modules/leaderboard/vo/LeaderboardRewardConfigVO.class
 com/aichuangzuo/user/modules/benefit/vo/PlanCatalogVO.class
 com/aichuangzuo/user/modules/lottery/mapper/LotteryDrawChanceMapper.class

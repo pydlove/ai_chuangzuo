@@ -22,4 +22,7 @@ public class MembershipStatusVO {
 
     /** 到期日期 yyyy-MM-dd。 */
     private String expiresAt;
+
+    /** 是否首次购买（无任何成功支付订单）：定价页据此展示首月优惠价。 */
+    private boolean firstPurchase;
 }

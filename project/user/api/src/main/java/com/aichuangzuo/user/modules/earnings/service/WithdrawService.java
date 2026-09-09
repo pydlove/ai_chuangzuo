@@ -5,6 +5,7 @@ import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawApplyRequest;
 import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawProcessRequest;
 import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;
 import com.aichuangzuo.user.modules.earnings.vo.WithdrawRequestVO;
+import com.aichuangzuo.user.modules.earnings.vo.WithdrawSuccessItemVO;
 
 import java.util.List;
 
@@ -36,6 +37,14 @@ public interface WithdrawService {
      * @return 提现记录
      */
     List<WithdrawRequestVO> listWithdrawRequests(Long userId);
+
+    /**
+     * 查询全站最近的提现成功记录（用于工作台实时提现动态）。
+     *
+     * @param limit 返回条数上限
+     * @return 提现成功动态（昵称已脱敏）
+     */
+    List<WithdrawSuccessItemVO> listRecentSuccessfulWithdrawals(int limit);
 
     /**
      * 申请提现。

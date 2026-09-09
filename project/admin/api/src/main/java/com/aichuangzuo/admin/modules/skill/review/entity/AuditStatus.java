@@ -15,7 +15,10 @@ public enum AuditStatus {
     APPROVED(1, "已通过"),
 
     /** 已拒绝 */
-    REJECTED(2, "已拒绝");
+    REJECTED(2, "已拒绝"),
+
+    /** 草稿（未提交/已撤销，仅在删除脏数据时由管理端回写） */
+    DRAFT(3, "草稿");
 
     private final int code;
     private final String desc;

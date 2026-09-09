@@ -36,4 +36,8 @@ public interface LeaderboardAggregateMapper {
 
     LeaderboardEntryVO selectIncomeAmountByUserYear(@Param("userId") Long userId,
                                                     @Param("year") String year);
+
+    List<LeaderboardEntryVO> selectInviteRanking(@Param("limit") int limit);
+
+    LeaderboardEntryVO selectInviteAmountByUser(@Param("userId") Long userId);
 }

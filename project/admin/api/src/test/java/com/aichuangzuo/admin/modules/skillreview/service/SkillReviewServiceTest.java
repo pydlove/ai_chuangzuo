@@ -81,6 +81,7 @@ class SkillReviewServiceTest {
     void approve_pending_setsApprovedAndCreatesMarketRecord() {
         UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), "old reason");
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
         service.approve("S1");
@@ -120,7 +121,7 @@ class SkillReviewServiceTest {
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.approve("S1"));
-        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_APPROVED.getCode(),
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
                 ex.getCode());
         verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
     }
@@ -131,9 +132,23 @@ class SkillReviewServiceTest {
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.approve("S1"));
-        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_REJECTED.getCode(),
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
                 ex.getCode());
         verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
+    }
+
+    @Test
+    void approve_marketWithdrawn_throws() {
+        // 用户提交后、审核前撤销：u_user_skill 仍为待审核，但市场记录已不存在，不得通过
+        UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), null);
+        when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.approve("S1"));
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
+                ex.getCode());
+        verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
+        verify(skillMarketMapper, never()).insert((SkillMarket) any());
     }
 
     @Test
@@ -155,6 +170,7 @@ class SkillReviewServiceTest {
         existing.setAuditStatus(0);
         existing.setEnableStatus(0);
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
 
         service.approve("S1");
@@ -176,6 +192,7 @@ class SkillReviewServiceTest {
         UserSkillAggregate rejected = newStyle("S4", AuditStatus.REJECTED.getCode(), "prev");
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class)))
                 .thenReturn(pending1, approved, pending2, rejected);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
         int count = service.batchApprove(List.of("S1", "S2", "S3", "S4"));
@@ -235,6 +252,7 @@ class SkillReviewServiceTest {
     void reject_pending_setsRejectedAndAuditFields() {
         UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), null);
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
 
         service.reject("S1", "  太宽泛  ");
 
@@ -263,7 +281,7 @@ class SkillReviewServiceTest {
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.reject("S1", "again"));
-        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_REJECTED.getCode(),
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
                 ex.getCode());
         verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
     }
@@ -274,7 +292,60 @@ class SkillReviewServiceTest {
         when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
 
         BusinessException ex = assertThrows(BusinessException.class, () -> service.reject("S1", "复核后撤回"));
-        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_APPROVED.getCode(),
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
+                ex.getCode());
+        verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
+    }
+
+    @Test
+    void reject_marketWithdrawn_throws() {
+        // 用户撤销后市场记录已不存在，再打回会重复退还发布权益，必须拦截
+        UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), null);
+        when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.reject("S1", "太宽泛"));
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
+                ex.getCode());
+        verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
+        verify(quotaRefundClient, never()).refundPublishQuota(anyLong());
+    }
+
+    // -------- deleteDirty --------
+
+    @Test
+    void deleteDirty_pendingWithoutMarket_setsDraft() {
+        // 取消/未提交的残留：待审核但无市场记录，删除后回写为草稿
+        UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), "old");
+        when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(0L);
+
+        service.deleteDirty("S1");
+
+        assertEquals(AuditStatus.DRAFT.getCode(), s.getAuditStatus());
+        assertNull(s.getRejectReason());
+        verify(skillReviewMapper).updateById((UserSkillAggregate) s);
+    }
+
+    @Test
+    void deleteDirty_withPendingMarket_throws() {
+        UserSkillAggregate s = newStyle("S1", AuditStatus.PENDING.getCode(), null);
+        when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+        when(skillMarketMapper.selectCount(any(LambdaQueryWrapper.class))).thenReturn(1L);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.deleteDirty("S1"));
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_DELETE_FORBIDDEN.getCode(),
+                ex.getCode());
+        verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
+    }
+
+    @Test
+    void deleteDirty_nonPending_throws() {
+        UserSkillAggregate s = newStyle("S1", AuditStatus.APPROVED.getCode(), null);
+        when(skillReviewMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(s);
+
+        BusinessException ex = assertThrows(BusinessException.class, () -> service.deleteDirty("S1"));
+        assertEquals(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING.getCode(),
                 ex.getCode());
         verify(skillReviewMapper, never()).updateById((UserSkillAggregate) any());
     }

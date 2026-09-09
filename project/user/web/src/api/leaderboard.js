@@ -4,6 +4,10 @@ export function getCoinLeaderboard(month) {
   return request.get('/leaderboards/coin', { params: { month } })
 }
 
+export function getInviteLeaderboard() {
+  return request.get('/leaderboards/invite')
+}
+
 export function getIncomeLeaderboard(periodType, periodValue) {
   return request.get('/leaderboards/income', { params: { periodType, periodValue } })
 }

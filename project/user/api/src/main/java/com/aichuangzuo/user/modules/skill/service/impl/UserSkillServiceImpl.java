@@ -48,8 +48,11 @@ public class UserSkillServiceImpl implements UserSkillService {
     private static final String BENEFIT_CODE_STYLE_CUSTOM = "skill_custom";
     private static final String BENEFIT_CODE_LEARN_ANALYZE = "skill_learn_analyze";
     private static final String BENEFIT_CODE_SKILL_MARKET_PUBLISH = "skill_market_publish";
+    /** 待审核（已提交到提示词市场）。 */
     private static final int AUDIT_STATUS_PENDING = 0;
     private static final int AUDIT_STATUS_APPROVED = 1;
+    /** 草稿（未提交/已撤销，不出现在管理端待审核列表）。 */
+    private static final int AUDIT_STATUS_DRAFT = 3;
     private static final int ENABLE_STATUS_DISABLED = 0;
     private static final int ENABLE_STATUS_ENABLED = 1;
     private static final int NOT_DELETED = 0;
@@ -129,7 +132,8 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setDescription(description);
         skill.setScope(scope);
         skill.setSourceType(sourceType);
-        skill.setAuditStatus(0);
+        // 新建为草稿，提交发布（publishSkill）后才进入待审核
+        skill.setAuditStatus(AUDIT_STATUS_DRAFT);
         skill.setUseCount(0);
 
         userSkillMapper.insert(skill);
@@ -158,8 +162,9 @@ public class UserSkillServiceImpl implements UserSkillService {
         skill.setExcerpt2(excerpt2);
         skill.setDescription(description);
         skill.setScope(scope);
-        // 修改后重新进入待审核状态，并清空上一次的打回原因
-        skill.setAuditStatus(0);
+        // 待审核中的修改保持待审核（同步市场待审核记录）；草稿/打回后的修改回到草稿，避免无待审核市场记录的"伪待审核"脏数据
+        boolean stillPending = skill.getAuditStatus() != null && skill.getAuditStatus() == AUDIT_STATUS_PENDING;
+        skill.setAuditStatus(stillPending ? AUDIT_STATUS_PENDING : AUDIT_STATUS_DRAFT);
         skill.setRejectReason(null);
 
         userSkillMapper.updateById(skill);

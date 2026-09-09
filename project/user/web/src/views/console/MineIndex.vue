@@ -219,8 +219,6 @@
     <p class="mine-footer">© 2026 爱创作工坊 · 杭州爱启云网络科技有限公司</p>
     <p class="mine-icp">浙ICP备2025200943号-2</p>
 
-    <PlanGalleryModal v-model:open="planGalleryVisible" />
-
     <a-modal
       v-model:open="settingsModalVisible"
       title="设置"
@@ -258,6 +256,8 @@
         </div>
       </div>
     </a-modal>
+
+    <PlanGalleryModal v-model:open="planGalleryVisible" />
   </div>
 </template>
 
@@ -269,7 +269,7 @@ import { Modal } from 'ant-design-vue'
 import { useUserProfile } from '@/composables/useUserProfile.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { getCurrentPlanKey } from '@/utils/membershipLimits.js'
-import PlanGalleryModal from '@/components/PlanGalleryModal.vue'
+import PlanGalleryModal from '@/components/plan/PlanGalleryModal.vue'
 import {
   CrownOutlined,
   BellOutlined,
@@ -284,7 +284,6 @@ const router = useRouter()
 const actions = inject('consoleActions')
 
 const settingsModalVisible = ref(false)
-const planGalleryVisible = ref(false)
 
 // 运营方案库：专业版及以上可用
 const canViewPlanGallery = computed(() => {
@@ -305,8 +304,13 @@ const openPlanGallery = () => {
     })
     return
   }
-  planGalleryVisible.value = true
+  if (window.matchMedia('(max-width: 768px)').matches) {
+    router.push('/console/plan-gallery')
+  } else {
+    planGalleryVisible.value = true
+  }
 }
+const planGalleryVisible = ref(false)
 
 const catFrames = [
   '/assets/images/猫咪1-v1.svg',
@@ -493,6 +497,11 @@ const onMineAvatarChange = async (e) => {
   font-weight: 700;
   color: #1a1a1a;
   letter-spacing: -0.2px;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .mine-user-vip {
@@ -506,6 +515,7 @@ const onMineAvatarChange = async (e) => {
   font-weight: 600;
   color: #fff;
   line-height: 1.4;
+  flex-shrink: 0;
   box-shadow: 0 2px 6px rgba(255, 36, 66, 0.25);
 }
 

@@ -21,6 +21,8 @@ public class PlanCatalogVO {
     public static class PlanVO {
         private String key;
         private String name;
+        /** 套餐英文显示名（如 Plus/Max/Ultra），未配置时为 null。 */
+        private String nameEn;
         private boolean recommended;
         private PriceBlock monthly;
         private PriceBlock quarter;
@@ -33,6 +35,8 @@ public class PlanCatalogVO {
     public static class PriceBlock {
         private BigDecimal original;
         private BigDecimal current;
+        /** 首月价格（仅月付周期有值，null 表示未配置首月优惠）。 */
+        private BigDecimal firstMonth;
         private String articles;
         /** 年付立省金额（仅 year block 有值）。 */
         private BigDecimal savings;

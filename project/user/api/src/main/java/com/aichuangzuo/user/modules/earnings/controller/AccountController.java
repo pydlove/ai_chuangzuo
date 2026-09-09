@@ -12,6 +12,7 @@ import com.aichuangzuo.user.modules.earnings.vo.EarningsRecordPageVO;
 import com.aichuangzuo.user.modules.earnings.vo.MonthlySettlementVO;
 import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;
 import com.aichuangzuo.user.modules.earnings.vo.WithdrawRequestVO;
+import com.aichuangzuo.user.modules.earnings.vo.WithdrawSuccessItemVO;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.user.vo.InviteStatsVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -98,6 +99,13 @@ public class AccountController {
         Long userId = SecurityUserContext.getCurrentUserId();
         log.info("List withdrawals, userId={}", userId);
         return Result.success(withdrawService.listWithdrawRequests(userId));
+    }
+
+    @Operation(summary = "最近提现成功动态")
+    @GetMapping("/withdrawals/recent-success")
+    public Result<List<WithdrawSuccessItemVO>> recentSuccessfulWithdrawals(
+            @RequestParam(defaultValue = "10") int limit) {
+        return Result.success(withdrawService.listRecentSuccessfulWithdrawals(limit));
     }
 
     @Operation(summary = "申请提现")

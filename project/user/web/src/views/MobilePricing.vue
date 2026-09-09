@@ -100,7 +100,8 @@
           :class="['mp-card', { recommended: plan.recommended }]"
         >
           <div v-if="plan.recommended" class="mp-card__badge">推荐</div>
-          <div class="mp-card__name">{{ plan.name }}</div>
+          <div class="mp-card__name">{{ plan.name }}<span v-if="plan.nameEn" class="mp-card__name-en">{{ plan.nameEn }}</span></div>
+          <div v-if="getPrice(plan).firstMonth" class="mp-card__first-month">首月特惠 · 续费 ¥{{ plan.monthly?.current }}/月</div>
           <div v-if="getPrice(plan).original" class="mp-card__original">¥{{ getPrice(plan).original }}</div>
           <div class="mp-card__price">
             ¥{{ getPrice(plan).current }}
@@ -230,9 +231,6 @@
           :finalCash="getFinalCash()"
         />
         <template v-if="isTestMode()">
-          <p class="mp-pay-tip">
-            测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
-          </p>
           <a-input
             v-model:value="payCode"
             placeholder="请输入 6 位支付码"
@@ -784,11 +782,33 @@ const handleModalCancel = () => {
   margin-bottom: 4px;
   color: #1a1a1a;
 }
+.mp-card__name-en {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 0 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 14px;
+  color: #ff2442;
+  background: rgba(255, 36, 66, 0.08);
+  border-radius: 3px;
+  vertical-align: 1px;
+}
 .mp-card__original {
   font-size: 10px;
   color: #8c8c8c;
   text-decoration: line-through;
   margin-bottom: 2px;
+}
+.mp-card__first-month {
+  display: inline-block;
+  font-size: 10px;
+  color: #FF2442;
+  background: #FFF0F2;
+  border: 1px solid #FFCBD4;
+  border-radius: 8px;
+  padding: 1px 8px;
+  margin-bottom: 4px;
 }
 .mp-card__price {
   font-size: 20px;
@@ -931,15 +951,6 @@ const handleModalCancel = () => {
 .mp-pay-panel {
   padding: 8px 0 16px;
 }
-.mp-pay-tip {
-  color: #595959;
-  font-size: 14px;
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-.mp-pay-tip strong {
-  color: #FF2442;
-}
 
 /* 暗色主题 */
 body[data-theme="dark"] .mobile-pricing {
@@ -981,8 +992,7 @@ body[data-theme="dark"] .mp-newcomer__title {
 }
 body[data-theme="dark"] .mp-hero__desc,
 body[data-theme="dark"] .mp-compare-link,
-body[data-theme="dark"] .mp-compare__label,
-body[data-theme="dark"] .mp-pay-tip {
+body[data-theme="dark"] .mp-compare__label {
   color: #a6a6a6;
 }
 body[data-theme="dark"] .mp-cycle {
@@ -1039,8 +1049,7 @@ body[data-theme="dark"] .mp-card__monthly {
 body[data-theme="dark"] .mp-newcomer__final,
 body[data-theme="dark"] .mp-newcomer__savings,
 body[data-theme="dark"] .mp-card__meta,
-body[data-theme="dark"] .mp-compare__value .yes,
-body[data-theme="dark"] .mp-pay-tip strong {
+body[data-theme="dark"] .mp-compare__value .yes {
   color: #ff4d6f;
 }
 body[data-theme="dark"] .mp-pay-agreement-confirm-body .paid-agreement-text {

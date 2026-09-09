@@ -14,7 +14,7 @@
             COALESCE(SUM(er.amount), 0) AS totalEarnings,
             COALESCE((SELECT SUM(wr.amount) FROM u_withdraw_request wr WHERE wr.user_id = u.id AND wr.status = 2 AND wr.is_deleted = 0), 0) AS withdrawnAmount
         FROM u_user u
-        LEFT JOIN u_earnings_record er ON er.user_id = u.id AND er.is_deleted = 0
+        LEFT JOIN u_earnings_record er ON er.user_id = u.id AND er.is_deleted = 0 AND er.type NOT IN ('COIN_DEDUCTION', 'WITHDRAW')
         WHERE u.is_deleted = 0
         <if test="userId != null">
             AND u.id = #{userId}
@@ -62,6 +62,7 @@
                 ROW_NUMBER() OVER (ORDER BY SUM(amount) DESC) AS user_rank
             FROM u_user_coin_record
             WHERE direction = 1
+              AND biz_type != 'withdraw_refund'
               AND biz_time >= CONCAT(#{month}, '-01')
               AND biz_time &lt; DATE_ADD(CONCAT(#{month}, '-01'), INTERVAL 1 MONTH)
               AND is_deleted = 0

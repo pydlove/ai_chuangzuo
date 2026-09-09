@@ -3,14 +3,18 @@ package com.aichuangzuo.admin.modules.security.smsconfig.controller;
 
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.security.smsconfig.dto.request.SmsConfigUpdateRequest;
+import com.aichuangzuo.admin.modules.security.smsconfig.dto.request.SmsSendRecordQueryRequest;
 import com.aichuangzuo.admin.modules.security.smsconfig.service.SmsConfigService;
+import com.aichuangzuo.admin.modules.security.smsconfig.service.SmsSendRecordService;
 import com.aichuangzuo.admin.modules.security.smsconfig.vo.SmsConfigVO;
+import com.aichuangzuo.admin.modules.security.smsconfig.vo.SmsSendRecordVO;
 import com.aichuangzuo.shared.result.Result;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -27,12 +31,21 @@ import org.springframework.web.bind.annotation.RestController;
 public class SmsConfigAdminController {
 
     private final SmsConfigService service;
+    private final SmsSendRecordService sendRecordService;
 
     @GetMapping
     public Result<SmsConfigVO> detail() {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员查询短信配置, adminUserId={}", adminUserId);
         return Result.success(service.detail());
+    }
+
+    @GetMapping("/records")
+    public Result<SmsSendRecordService.PageResult<SmsSendRecordVO>> listRecords(
+            @Valid @ModelAttribute SmsSendRecordQueryRequest request) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询短信发送记录, adminUserId={}, phone={}", adminUserId, request.getPhone());
+        return Result.success(sendRecordService.list(request));
     }
 
     @PutMapping

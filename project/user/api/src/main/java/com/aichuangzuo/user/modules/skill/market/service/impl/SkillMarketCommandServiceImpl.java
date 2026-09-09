@@ -45,13 +45,13 @@ public class SkillMarketCommandServiceImpl implements SkillMarketCommandService 
         }
         skillMarketMapper.deleteById(market.getId());
 
-        // 同步重置 u_user_skill 的审核状态，避免前端刷新后仍从用户 skill 表读到“已通过”
+        // 同步重置 u_user_skill 的审核状态为草稿（3），避免取消后仍以”待审核(0)”残留在管理端审核列表
         UserSkill userSkill = userSkillMapper.selectOne(
                 new LambdaQueryWrapper<UserSkill>()
                         .eq(UserSkill::getBizNo, bizNo)
                         .eq(UserSkill::getUserId, userId));
         if (userSkill != null) {
-            userSkill.setAuditStatus(0);
+            userSkill.setAuditStatus(3);
             userSkill.setUpdatedAt(LocalDateTime.now());
             userSkillMapper.updateById(userSkill);
         }

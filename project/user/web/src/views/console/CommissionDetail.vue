@@ -56,6 +56,32 @@
             <h3>任务说明</h3>
             <div class="description">{{ task.description }}</div>
           </div>
+
+          <!-- 上一个 / 下一个任务快捷跳转 -->
+          <div v-if="prevTask || nextTask" class="task-nav">
+            <button
+              class="task-nav-btn"
+              :disabled="!prevTask"
+              @click="goTask(prevTask)"
+            >
+              <span class="task-nav-arrow">←</span>
+              <span class="task-nav-main">
+                <span class="task-nav-label">上一个任务</span>
+                <span class="task-nav-title">{{ prevTask ? prevTask.title : '没有更早的任务了' }}</span>
+              </span>
+            </button>
+            <button
+              class="task-nav-btn task-nav-btn--next"
+              :disabled="!nextTask"
+              @click="goTask(nextTask)"
+            >
+              <span class="task-nav-main">
+                <span class="task-nav-label">下一个任务</span>
+                <span class="task-nav-title">{{ nextTask ? nextTask.title : '没有更新的任务了' }}</span>
+              </span>
+              <span class="task-nav-arrow">→</span>
+            </button>
+          </div>
         </section>
 
         <!-- 右侧：固定操作卡 -->
@@ -145,6 +171,7 @@
       <a-modal v-model:open="pickerVisible" title="选择投稿文章" :footer="null" centered :width="560" class="article-picker-modal">
         <div class="picker-body">
           <div v-if="articles.length === 0" class="empty picker-empty">暂无已生成文章</div>
+          <div v-else-if="availableArticles.length === 0" class="empty picker-empty">没有可投稿的文章</div>
           <template v-else>
             <a-input-search
               v-model:value="searchKeyword"
@@ -152,7 +179,7 @@
               allow-clear
               class="picker-search"
             />
-            <div v-if="pagedArticles.length === 0" class="empty picker-empty">未找到匹配的文章</div>
+            <div v-if="filteredArticles.length === 0" class="empty picker-empty">未找到匹配的文章</div>
             <div v-else class="article-list">
               <button v-for="article in pagedArticles" :key="article.bizNo"
                       :disabled="isArticleDisabled(article)"
@@ -163,7 +190,6 @@
                   <strong>{{ article.title }}</strong>
                   <span class="article-meta">{{ article.wordCount }} 字 · {{ article.platformName }} · 完成于 {{ formatCompletedAt(article.completedAt) }}</span>
                   <span v-if="!inRange(article)" class="article-warn">字数不符（要求 {{ wordRangeText(task) }}）</span>
-                  <span v-else-if="submittedBizNos.has(article.bizNo)" class="article-warn">已投递其他任务</span>
                 </div>
                 <div class="article-check">
                   <span v-if="isArticleSelected(article)">✓</span>
@@ -204,7 +230,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { Modal, message } from 'ant-design-vue'
 import { useCommission } from '@/composables/useCommission'
-import { listMyCommissionSubmissions } from '@/api/commission'
+import { listCommissionTasks, listMyCommissionSubmissions } from '@/api/commission'
 import { useWorks } from '@/composables/useWorks'
 import FreeCreateModal from '@/views/console/create/FreeCreateModal.vue'
 import { useSelfMediaPlan } from '@/composables/useSelfMediaPlan.js'
@@ -222,6 +248,8 @@ const searchKeyword = ref('')
 const pickerPage = ref(1)
 // 已投稿记录一次性全量加载，用于禁用已投递其他任务的文章（不依赖共享分页状态，避免漏判）
 const allMySubmissions = ref([])
+// 任务列表按创建时间倒序（与约稿大厅一致），用于计算上一个/下一个任务
+const navTasks = ref([])
 
 const PICKER_PAGE_SIZE = 5
 const MAX_VISIBLE_SUBMITTERS = 5
@@ -237,10 +265,14 @@ const submittedBizNos = computed(() => new Set(
     .filter(s => s.status !== 3)
     .map(s => s.articleBizNo)
 ))
+// 已投稿（含投递中/已采纳/未采纳，撤回除外）的文章不再展示，只保留未投稿的
+const availableArticles = computed(() =>
+  articles.value.filter(a => !submittedBizNos.value.has(a.bizNo))
+)
 const filteredArticles = computed(() => {
   const kw = searchKeyword.value.trim()
-  if (!kw) return articles.value
-  return articles.value.filter(a => (a.title || '').toLowerCase().includes(kw.toLowerCase()))
+  if (!kw) return availableArticles.value
+  return availableArticles.value.filter(a => (a.title || '').toLowerCase().includes(kw.toLowerCase()))
 })
 const pagedArticles = computed(() => {
   const start = (pickerPage.value - 1) * PICKER_PAGE_SIZE
@@ -248,6 +280,16 @@ const pagedArticles = computed(() => {
 })
 const canSubmit = computed(() => task.value?.status === 0 && !mySubmission.value)
 const canWithdraw = computed(() => task.value?.status === 0 && mySubmission.value?.status === 0)
+// 列表为创建时间倒序：上一个 = 更新的任务（index - 1），下一个 = 更早的任务（index + 1）
+const prevTask = computed(() => {
+  const index = navTasks.value.findIndex(t => taskIdOf(t) === currentTaskId.value)
+  return index > 0 ? navTasks.value[index - 1] : null
+})
+const nextTask = computed(() => {
+  const index = navTasks.value.findIndex(t => taskIdOf(t) === currentTaskId.value)
+  return index >= 0 && index < navTasks.value.length - 1 ? navTasks.value[index + 1] : null
+})
+const currentTaskId = computed(() => Number(route.params.id))
 
 const deadlineText = computed(() => {
   const now = new Date()
@@ -275,10 +317,22 @@ onMounted(async () => {
   try {
     await Promise.all([
       loadTask(route.params.id),
-      loadWorks({ page: 1, pageSize: 50 }),
+      loadWorks({ page: 1, pageSize: 500 }),
       loadAllMySubmissions(),
+      loadNavTasks(),
       fetchCurrentPlan()
     ])
+  } catch (error) {
+    message.error(error.message || '约稿详情加载失败')
+  }
+})
+
+// 同一个组件在任务间跳转时复用实例，需监听路由参数重新加载
+watch(() => route.params.id, async (id) => {
+  if (!id) return
+  selectedBizNo.value = ''
+  try {
+    await Promise.all([loadTask(id), loadNavTasks()])
   } catch (error) {
     message.error(error.message || '约稿详情加载失败')
   }
@@ -287,6 +341,24 @@ onMounted(async () => {
 async function loadAllMySubmissions() {
   const data = await listMyCommissionSubmissions({ page: 1, pageSize: 500 })
   allMySubmissions.value = data.records || data.list || []
+}
+
+async function loadNavTasks() {
+  try {
+    const data = await listCommissionTasks({ page: 1, pageSize: 100 })
+    navTasks.value = data.records || data.list || []
+  } catch (error) {
+    navTasks.value = []
+  }
+}
+
+function taskIdOf(item) {
+  return Number(item.taskId || item.id)
+}
+
+function goTask(item) {
+  if (!item) return
+  router.push(`/console/commission/${taskIdOf(item)}`)
 }
 
 function taskStatus(value) {
@@ -303,7 +375,7 @@ function inRange(article) {
   return true
 }
 function isArticleDisabled(article) {
-  return !inRange(article) || submittedBizNos.value.has(article.bizNo)
+  return !inRange(article)
 }
 function isArticleSelected(article) {
   return selectedBizNo.value === article.bizNo && !isArticleDisabled(article)
@@ -517,6 +589,69 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 
   font-size: 14px;
 }
 
+.task-nav {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px dashed #f0f0f0;
+}
+.task-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid #f0f0f0;
+  border-radius: 12px;
+  background: #fafafa;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  min-width: 0;
+}
+.task-nav-btn--next {
+  justify-content: flex-end;
+  text-align: right;
+}
+.task-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-primary, #ff2442);
+  background: #fff8f9;
+}
+.task-nav-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+.task-nav-arrow {
+  flex-shrink: 0;
+  color: var(--color-primary, #ff2442);
+  font-size: 14px;
+  font-weight: 600;
+}
+.task-nav-btn--next .task-nav-arrow { order: 2; }
+.task-nav-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.task-nav-btn--next .task-nav-main { order: 1; align-items: flex-end; }
+.task-nav-label {
+  font-size: 12px;
+  color: #8c8c8c;
+  white-space: nowrap;
+}
+.task-nav-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f1f1f;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .action-panel {
   display: flex;
   flex-direction: column;
@@ -696,6 +831,22 @@ body[data-theme="dark"] .adopter-block .submitter-count { background: rgba(255, 
 .picker-search {
   margin-bottom: 14px;
 }
+/* ant-input-group 默认 table 布局下 input 不撑满，与搜索按钮之间出现缝隙，改为 flex 让按钮贴合 */
+.picker-search :deep(.ant-input-wrapper) {
+  display: flex;
+}
+.picker-search :deep(.ant-input-affix-wrapper) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.picker-search :deep(.ant-input) {
+  flex: 1;
+  min-width: 0;
+}
+.picker-search :deep(.ant-input-group-addon) {
+  flex: 0 0 auto;
+  width: auto;
+}
 .picker-pagination {
   margin-top: 14px;
   text-align: center;
@@ -833,6 +984,17 @@ body[data-theme="dark"] .action-title,
 body[data-theme="dark"] .submission-info h4,
 body[data-theme="dark"] .fact-row strong { color: #f5f5f5; }
 body[data-theme="dark"] .description { color: #d9d9d9; }
+body[data-theme="dark"] .task-nav { border-top-color: #303030; }
+body[data-theme="dark"] .task-nav-btn {
+  background: #262626;
+  border-color: #303030;
+}
+body[data-theme="dark"] .task-nav-btn:hover:not(:disabled) {
+  border-color: var(--color-primary, #ff2442);
+  background: #2a1f21;
+}
+body[data-theme="dark"] .task-nav-title { color: #f5f5f5; }
+body[data-theme="dark"] .task-nav-label { color: #8c8c8c; }
 body[data-theme="dark"] .meta-row,
 body[data-theme="dark"] .fact-row,
 body[data-theme="dark"] .action-desc,
@@ -957,6 +1119,25 @@ body[data-theme="dark"] .reward-result {
     font-size: 13px;
     line-height: 1.75;
   }
+
+  .task-nav {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-top: 18px;
+    padding-top: 14px;
+  }
+  .task-nav-btn,
+  .task-nav-btn--next {
+    padding: 10px 12px;
+    justify-content: flex-start;
+    text-align: left;
+  }
+  .task-nav-btn--next .task-nav-main {
+    order: 1;
+    align-items: flex-start;
+  }
+  .task-nav-btn--next .task-nav-arrow { order: 0; }
+  .task-nav-title { font-size: 12px; }
 
   .action-panel {
     position: static;

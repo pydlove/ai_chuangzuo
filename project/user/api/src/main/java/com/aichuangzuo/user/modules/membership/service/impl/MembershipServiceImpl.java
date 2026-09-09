@@ -216,6 +216,7 @@ public class MembershipServiceImpl implements MembershipService {
     public MembershipStatusVO getMyMembership(Long userId) {
         UserMembership membership = userMembershipMapper.selectByUserId(userId);
         MembershipStatusVO vo = new MembershipStatusVO();
+        vo.setFirstPurchase(isFirstPurchase(userId));
         if (membership == null || membership.getExpiresAt().isBefore(LocalDate.now())) {
             vo.setHasMembership(false);
             return vo;
@@ -238,6 +239,15 @@ public class MembershipServiceImpl implements MembershipService {
             vo.setCycle(latestOrder.getCycle());
         }
         return vo;
+    }
+
+    private boolean isFirstPurchase(Long userId) {
+        Long paidCount = orderMapper.selectCount(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getStatus, 1)
+        );
+        return paidCount == null || paidCount == 0;
     }
 
     private String getCurrentMembershipCycle(Long userId) {

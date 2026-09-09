@@ -13,6 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -69,6 +70,15 @@ public class SkillReviewAdminController {
         log.info("管理员打回提示词审核, adminUserId={}, bizNo={}, reason={}",
                 adminUserId, bizNo, request.getReason());
         skillReviewService.reject(bizNo, request.getReason());
+        return Result.success();
+    }
+
+    @Operation(summary = "删除审核脏数据")
+    @DeleteMapping("/{bizNo}")
+    public Result<Void> deleteDirty(@PathVariable String bizNo) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员删除提示词审核脏数据, adminUserId={}, bizNo={}", adminUserId, bizNo);
+        skillReviewService.deleteDirty(bizNo);
         return Result.success();
     }
 }

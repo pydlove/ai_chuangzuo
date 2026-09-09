@@ -139,7 +139,7 @@
                 </div>
                 <div class="code-row__actions">
                   <span class="code-row__status" :class="item.status">{{ statusText(item.status) }}</span>
-                  <a-button v-if="item.status === 'unused'" size="small" type="primary" @click="handleRedeem(item.code)">
+                  <a-button v-if="item.status === 'unused'" size="small" type="primary" :loading="redeemingCode === item.code" :disabled="!!redeemingCode" @click="handleRedeem(item.code)">
                     立即兑换
                   </a-button>
                 </div>
@@ -158,7 +158,10 @@
             <div class="grand-winners__grid">
               <div v-for="w in visibleGrandWinners" :key="`grand-${w.id}`" class="grand-winner-card" :class="levelClass(w.prizeLevel)">
                 <div class="grand-winner-card__badge">{{ prizeLevelText(w.prizeLevel) }}</div>
-                <a-avatar :size="56" :src="w.avatarUrl || undefined" />
+                <div class="winner-avatar">
+                  <a-avatar :size="56" :src="w.avatarUrl || undefined" />
+                  <MemberVBadge :level="w.memberLevel" :size="30" />
+                </div>
                 <div class="grand-winner-card__name">{{ w.nickname || '幸运用户' }}</div>
                 <div class="grand-winner-card__prize">{{ w.prizeName }}</div>
                 <div class="grand-winner-card__time">{{ formatTime(w.winTime) }}</div>
@@ -179,7 +182,10 @@
               <EmptyState v-if="!displayWinners.length" title="暂无中奖记录" compact size="sm" />
               <div v-else class="winner-list">
                 <div v-for="w in displayWinners" :key="w.id" class="winner-row">
-                  <a-avatar :src="w.avatarUrl || undefined" />
+                  <div class="winner-avatar">
+                    <a-avatar :src="w.avatarUrl || undefined" />
+                    <MemberVBadge :level="w.memberLevel" :size="22" />
+                  </div>
                   <div class="winner-row__meta">
                     <span class="winner-row__name">{{ w.nickname || '幸运用户' }}</span>
                     <span class="winner-row__prize">{{ w.prizeName }}</span>
@@ -232,7 +238,7 @@
         </div>
         <p class="result-tip">{{ resultCode ? '兑换码可在“我的兑换码”中查看' : '感谢参与，下次好运' }}</p>
         <div class="result-actions">
-          <a-button v-if="resultCode" type="primary" shape="round" size="large" @click="handleRedeem(resultCode)">立即兑换</a-button>
+          <a-button v-if="resultCode" type="primary" shape="round" size="large" :loading="redeemingCode === resultCode" :disabled="!!redeemingCode" @click="handleRedeem(resultCode)">立即兑换</a-button>
           <a-button shape="round" size="large" :block="!resultCode" @click="resultVisible = false">知道了</a-button>
         </div>
       </div>
@@ -247,6 +253,7 @@
       width="92vw"
       centered
       class="prize-modal"
+      wrap-class-name="prize-modal-wrap"
     >
       <div class="prize-modal-list">
         <div v-for="tier in sortedTiers" :key="tier.id" class="prize-modal-item">
@@ -273,12 +280,16 @@
       width="92vw"
       centered
       class="grand-modal"
+      wrap-class-name="grand-modal-wrap"
     >
       <div class="grand-modal-body">
         <div class="grand-modal-grid">
           <div v-for="w in grandAllWinners" :key="`grand-all-${w.id}`" class="grand-winner-card" :class="levelClass(w.prizeLevel)">
             <div class="grand-winner-card__badge">{{ prizeLevelText(w.prizeLevel) }}</div>
-            <a-avatar :size="48" :src="w.avatarUrl || undefined" />
+            <div class="winner-avatar">
+              <a-avatar :size="48" :src="w.avatarUrl || undefined" />
+              <MemberVBadge :level="w.memberLevel" :size="26" />
+            </div>
             <div class="grand-winner-card__name">{{ w.nickname || '幸运用户' }}</div>
             <div class="grand-winner-card__prize">{{ w.prizeName }}</div>
             <div class="grand-winner-card__time">{{ formatTime(w.winTime) }}</div>
@@ -303,6 +314,7 @@ import NavBar from '@/components/layout/NavBar.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
+import MemberVBadge from '@/components/common/MemberVBadge.vue'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
 import { STORAGE_KEYS } from '@/constants/storage.js'
 
@@ -679,13 +691,19 @@ function fallingStyle(index) {
   }
 }
 
+const redeemingCode = ref('')
+
 async function handleRedeem(code) {
+  if (!code || redeemingCode.value) return
+  redeemingCode.value = code
   try {
     await redeem(code)
     message.success('兑换成功')
     loadMyCodes()
   } catch (e) {
     message.error(e.response?.data?.message || '兑换失败')
+  } finally {
+    redeemingCode.value = ''
   }
 }
 
@@ -983,17 +1001,6 @@ function formatTime(t) {
   font-weight: 600;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-}
-
-.prize-modal :deep(.ant-modal) {
-  width: 92vw !important;
-  max-width: 420px;
-}
-
-.prize-modal :deep(.ant-modal-body) {
-  max-height: 60vh;
-  overflow-y: auto;
-  padding: 16px;
 }
 
 .prize-modal-list {
@@ -1499,6 +1506,19 @@ function formatTime(t) {
   color: #ff4d4f;
 }
 
+.winner-avatar {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.winner-avatar .member-v-badge {
+  position: absolute;
+  right: -5px;
+  bottom: -5px;
+  z-index: 2;
+}
+
 .winner-list {
   display: flex;
   flex-direction: column;
@@ -1574,18 +1594,6 @@ function formatTime(t) {
   font-weight: 600;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-}
-
-.grand-modal :deep(.ant-modal) {
-  width: 92vw !important;
-  max-width: 560px;
-}
-
-/* 固定高度 + 内部滚动，内容多少弹框高度不变 */
-.grand-modal :deep(.ant-modal-body) {
-  height: 60vh;
-  overflow-y: auto;
-  padding: 16px;
 }
 
 .grand-modal-grid {
@@ -1894,14 +1902,6 @@ function formatTime(t) {
     font-size: 12px;
   }
 
-  .prize-modal :deep(.ant-modal) {
-    max-width: 720px;
-  }
-
-  .prize-modal :deep(.ant-modal-body) {
-    padding: 20px;
-  }
-
   .prize-modal-list {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -2060,4 +2060,70 @@ body[data-theme="dark"] .chest-label {
   color: #a6a6a6;
 }
 
+</style>
+
+<style>
+/* 丰厚奖品 / 大奖得主弹框：非 scoped，class 由 antdv 渲染，不受 data-v 限制 */
+.prize-modal-wrap .ant-modal {
+  width: 92vw !important;
+  max-width: 420px;
+}
+
+.grand-modal-wrap .ant-modal {
+  width: 92vw !important;
+  max-width: 560px;
+}
+
+/* 固定 60% 视口高度 + 内部滚动，内容多少弹框高度不变 */
+.prize-modal-wrap .ant-modal-body,
+.grand-modal-wrap .ant-modal-body {
+  height: 60vh;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+@media (min-width: 769px) {
+  .prize-modal-wrap .ant-modal {
+    max-width: 720px;
+  }
+
+  .prize-modal-wrap .ant-modal-body {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  /* 手机端改成全屏二级页面 */
+  .prize-modal-wrap,
+  .grand-modal-wrap {
+    overflow: hidden;
+  }
+
+  .prize-modal-wrap .ant-modal,
+  .grand-modal-wrap .ant-modal {
+    width: 100vw !important;
+    max-width: 100vw;
+    height: 100vh;
+    top: 0;
+    padding: 0;
+    margin: 0;
+  }
+
+  .prize-modal-wrap .ant-modal-content,
+  .grand-modal-wrap .ant-modal-content {
+    height: 100vh;
+    border-radius: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .prize-modal-wrap .ant-modal-body,
+  .grand-modal-wrap .ant-modal-body {
+    flex: 1;
+    height: auto;
+    max-height: none;
+    overflow-y: auto;
+  }
+}
 </style>

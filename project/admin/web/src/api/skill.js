@@ -1,7 +1,7 @@
 import request from '@/utils/request.js'
 
 const SOURCE_TYPE_MAP = { 1: 'my', 2: 'learned' }
-const STATUS_MAP = { 0: 'pending', 1: 'approved', 2: 'rejected' }
+const STATUS_MAP = { 0: 'pending', 1: 'approved', 2: 'rejected', 3: 'draft' }
 
 function normalize(row) {
   // 后端 StyleReviewVO 已做 int → string 转换；这里兜底兼容原始行。
@@ -51,4 +51,8 @@ export function approveBatch(ids) {
   return request.post('/skill-reviews/actions/batch-approve', { bizNos: ids }).then((body) => {
     return body.data || 0
   })
+}
+
+export function deleteSkillReview(id) {
+  return request.delete(`/skill-reviews/${id}`)
 }

@@ -229,7 +229,7 @@ class UserSkillServiceTest {
     }
 
     @Test
-    void shouldResetAuditStatusToPendingWhenUpdatingRejectedSkill() {
+    void shouldResetAuditStatusToDraftWhenUpdatingRejectedSkill() {
         User user = createUser("update-rejected@test.com");
         SecurityUserContext.setCurrentUserId(user.getId());
 
@@ -246,17 +246,17 @@ class UserSkillServiceTest {
         rejected.setRejectReason("过于宽泛");
         userSkillMapper.updateById(rejected);
 
-        // 用户修改后重新提交
+        // 用户修改后回到草稿，需重新发布才进入审核
         UpdateSkillRequest updateRequest = new UpdateSkillRequest();
         updateRequest.setSkillName("被打回的风格-修订");
         updateRequest.setPrompt("修订后的提示词");
 
         UserSkillVO updated = userSkillService.updateSkill(created.getBizNo(), updateRequest);
         assertEquals("被打回的风格-修订", updated.getSkillName());
-        assertEquals(Integer.valueOf(0), updated.getAuditStatus());
+        assertEquals(Integer.valueOf(3), updated.getAuditStatus());
 
         UserSkill afterUpdate = userSkillMapper.selectById(rejected.getId());
-        assertEquals(Integer.valueOf(0), afterUpdate.getAuditStatus());
+        assertEquals(Integer.valueOf(3), afterUpdate.getAuditStatus());
         assertEquals(null, afterUpdate.getRejectReason());
     }
 

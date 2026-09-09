@@ -10,7 +10,8 @@ public enum BenefitErrorCode implements ErrorCode {
     BENEFIT_NOT_FOUND(118001, "权益不存在"),
     BENEFIT_NOT_SUPPORTED(118002, "当前套餐不支持此功能，请升级会员"),
     QUOTA_EXHAUSTED(118003, "本期额度已用完，升级会员可获得更多额度"),
-    NOT_QUOTA_BENEFIT(118004, "仅配额类权益可消费");
+    NOT_QUOTA_BENEFIT(118004, "仅配额类权益可消费"),
+    DAILY_QUOTA_EXHAUSTED(118005, "今日创作篇数已达上限，请明天再试");
 
     private final int code;
     private final String message;

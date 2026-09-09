@@ -27,6 +27,9 @@ public class Benefit {
     /** 类型：boolean/quota/tier。 */
     private String type;
 
+    /** 额度周期：month-自然月/day-自然日/lifetime-永久（quota/lifetime 类型生效）。 */
+    private String periodType;
+
     /** 权益描述。 */
     private String description;
 

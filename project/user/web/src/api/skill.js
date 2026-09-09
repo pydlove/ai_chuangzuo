@@ -72,3 +72,21 @@ export function getSystemSkills(keyword = '', page = 1, pageSize = 999) {
 export function analyzeSkill(text) {
   return api.post('/skills/analyze', { text }, { timeout: 90000 })
 }
+
+/**
+ * 小爱帮写：根据运营方案或描述方向生成结构化提示词。
+ * 注意：AI 生成约 10-30 秒，需单独传 90s 超时。
+ * @param {string} requirement 运营方案或提示词描述方向（10-1000 字）
+ * @returns {Promise<{code:number, data:{skillName:string, description:string, role:string, audience:string, requirements:string, tone:string, restrictions:string, example:string, scopeTags:Array<string>, remainingToday:number}}>}
+ */
+export function generateSkill(requirement) {
+  return api.post('/skills/generate', { requirement }, { timeout: 90000 })
+}
+
+/**
+ * 小爱帮写状态：套餐权限 + 今日剩余次数。
+ * @returns {Promise<{code:number, data:{allowed:boolean, dailyLimit:number, remainingToday:number}}>}
+ */
+export function getGenerateStatus() {
+  return api.get('/skills/generate/status')
+}

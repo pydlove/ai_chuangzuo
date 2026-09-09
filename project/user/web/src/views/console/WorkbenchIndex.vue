@@ -495,7 +495,7 @@
           </div>
           <div class="withdraw-plan-info">
             <div class="withdraw-plan-label">{{ task.label }}</div>
-            <div class="withdraw-plan-reward">+{{ task.reward }} 创作币</div>
+            <div class="withdraw-plan-reward">+{{ task.reward }}</div>
           </div>
           <a-button type="primary" size="small" class="withdraw-plan-btn" @click="goWithdrawTask(task.path)">
             去完成
@@ -503,7 +503,7 @@
         </div>
       </div>
 
-      <div class="withdraw-marquee">
+      <div v-if="withdrawRecords.length" class="withdraw-marquee">
         <div class="withdraw-marquee-title">🎉 🎉 🎉 实时提现成功</div>
         <div class="withdraw-marquee-wrap">
           <div class="withdraw-marquee-list">
@@ -643,7 +643,7 @@ const balance = reactive({
   withdrawThreshold: 1000
 })
 
-const { withdrawRecords: rawWithdrawRecords, loadWithdrawals } = useWithdraw()
+const { recentSuccessWithdrawals, loadRecentSuccessWithdrawals } = useWithdraw()
 const { benefits, loadBenefits, hasBenefit } = useBenefits()
 const { startGuide, startGuideIfFirstVisit } = useWorkbenchGuide()
 
@@ -662,14 +662,13 @@ const planAdjustText = computed(() => {
 })
 
 const withdrawRecords = computed(() => {
-  return rawWithdrawRecords.value
-    .filter((r) => r.status === 'approved')
-    .map((r) => ({
-      id: r.id,
-      name: r.nickname || r.name || '用户',
+  return recentSuccessWithdrawals.value
+    .map((r, index) => ({
+      id: `${r.processedAt || ''}-${index}`,
+      name: r.nickname || '用户',
       amount: Number((r.amount / 10).toFixed(2))
     }))
-    .sort((a, b) => b.id.localeCompare(a.id))
+    .filter((r) => r.amount > 0)
 })
 
 const balancePercent = computed(() => {
@@ -801,7 +800,7 @@ onMounted(() => {
   loadBenefits()
   loadWelcomeData()
   loadGenerationRecords()
-  loadWithdrawals()
+  loadRecentSuccessWithdrawals()
   loadPlan().then(() => {
     const planModalWillShow = !hasPlan.value && !localStorage.getItem(STORAGE_KEYS.SELF_MEDIA_PLAN_MODAL_DISMISSED)
     if (planModalWillShow) {
@@ -832,12 +831,18 @@ const articlesLoading = ref(false)
 const withdrawModalVisible = ref(false)
 const adjustPlanConfirmVisible = ref(false)
 
+watch(withdrawModalVisible, (visible) => {
+  if (visible) {
+    loadRecentSuccessWithdrawals()
+  }
+})
+
 let unregisterCreateTaskCallback = null
 
 const withdrawTasks = [
-  { label: '参加 2 个约稿任务', reward: 40, path: '/console/commission', img: '/assets/images/约稿任务-v1.png' },
-  { label: '发布 1 个提示词', reward: 20, path: '/console/skill-market', img: '/assets/images/提示词市场-v1.png' },
-  { label: '邀请 1 个好友', reward: 20, path: '/console/invite', img: '/assets/images/邀请有礼-v1.png' }
+  { label: '参加 2 个约稿任务', reward: '200 创作币', path: '/console/commission', img: '/assets/images/约稿任务-v1.png' },
+  { label: '发布 1 个提示词', reward: '2/次使用', path: '/console/skill-market', img: '/assets/images/提示词市场-v1.png' },
+  { label: '邀请 1 个好友', reward: '20 创作币 + 10%/5%消费提成', path: '/console/invite', img: '/assets/images/邀请有礼-v1.png' }
 ]
 
 function goWithdrawTask(path) {
@@ -1046,6 +1051,7 @@ function retryRecord(record) {
     content: '确定重新生成该文章？将创建新任务并扣除 1 次创作额度。',
     okText: '重新生成',
     cancelText: '取消',
+    wrapClassName: 'retry-task-confirm-modal',
     onOk: async () => {
       retryingIds.value.add(record.id)
       try {
@@ -3415,5 +3421,22 @@ function statusText(status) {
   background: rgba(255, 36, 66, 0.4);
   border-color: transparent;
   color: #fff;
+}
+
+/* 重新生成确认弹框：使用主题色 */
+.retry-task-confirm-modal .ant-btn-primary {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.retry-task-confirm-modal .ant-btn-primary:hover,
+.retry-task-confirm-modal .ant-btn-primary:focus {
+  background: var(--color-primary-hover);
+  border-color: var(--color-primary-hover);
+}
+
+.retry-task-confirm-modal .ant-btn-primary:active {
+  background: var(--color-primary-active);
+  border-color: var(--color-primary-active);
 }
 </style>

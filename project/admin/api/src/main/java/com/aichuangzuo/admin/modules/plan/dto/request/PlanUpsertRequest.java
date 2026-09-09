@@ -15,6 +15,9 @@ public class PlanUpsertRequest {
     @NotBlank(message = "套餐显示名不能为空")
     private String displayName;
 
+    /** 套餐英文显示名（如 Plus/Max/Ultra），可空。 */
+    private String displayNameEn;
+
     private Integer sortOrder;
 
     @NotNull(message = "推荐位不能为空")
@@ -22,6 +25,9 @@ public class PlanUpsertRequest {
 
     @NotNull(message = "月度价格不能为空")
     private BigDecimal priceMonthly;
+
+    /** 首月价格（仅月付周期首次购买生效），可空表示不启用。 */
+    private BigDecimal firstMonthPrice;
 
     @NotNull(message = "季度价格不能为空")
     private BigDecimal priceQuarter;

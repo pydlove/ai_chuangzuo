@@ -10,9 +10,9 @@ import com.aichuangzuo.shared.result.ErrorCode;
 public enum AdminSkillReviewErrorCode implements ErrorCode {
 
     SKILL_REVIEW_NOT_FOUND(302001, "风格审核记录不存在"),
-    SKILL_REVIEW_ALREADY_APPROVED(302002, "该风格已通过审核"),
-    SKILL_REVIEW_ALREADY_REJECTED(302003, "该风格已被打回"),
-    REJECT_REASON_EMPTY(302004, "打回原因不能为空");
+    REJECT_REASON_EMPTY(302004, "打回原因不能为空"),
+    SKILL_REVIEW_NOT_PENDING(302005, "该提示词不在待审核状态，可能已被用户撤销"),
+    SKILL_REVIEW_DELETE_FORBIDDEN(302006, "真实待审核的提交不能删除，请使用通过或打回");
 
     private final int code;
     private final String message;

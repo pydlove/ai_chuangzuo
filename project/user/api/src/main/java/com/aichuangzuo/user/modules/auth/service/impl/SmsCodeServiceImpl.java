@@ -4,6 +4,9 @@ package com.aichuangzuo.user.modules.auth.service.impl;
 import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.cache.CacheUtil;
+import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.auth.entity.SmsSendRecord;
+import com.aichuangzuo.user.modules.auth.mapper.SmsSendRecordMapper;
 import com.aichuangzuo.user.modules.auth.service.SmsCodeService;
 import com.aichuangzuo.user.modules.security.smsconfig.entity.SmsConfig;
 import com.aichuangzuo.user.modules.security.smsconfig.mapper.SmsConfigMapper;
@@ -42,11 +45,12 @@ public class SmsCodeServiceImpl implements SmsCodeService {
     private static final SecureRandom RANDOM = new SecureRandom();
 
     private final SmsConfigMapper smsConfigMapper;
+    private final SmsSendRecordMapper smsSendRecordMapper;
     private final CacheUtil cacheUtil;
     private final StringEncryptor encryptor;
 
     @Override
-    public void sendSmsCode(String phone, String clientIp) {
+    public void sendSmsCode(String phone, String clientIp, String scene) {
         String normalizedPhone = normalizePhone(phone);
         if (!PHONE_PATTERN.matcher(normalizedPhone).matches()) {
             throw new BusinessException(UserAuthErrorCode.PHONE_FORMAT_ERROR);
@@ -59,7 +63,14 @@ public class SmsCodeServiceImpl implements SmsCodeService {
         validateSecurityPolicy(config, normalizedPhone, clientIp);
 
         String code = generateCode();
-        sendAliyunSms(config, normalizedPhone, code);
+        String responseCode;
+        try {
+            responseCode = sendAliyunSms(config, normalizedPhone, code);
+        } catch (BusinessException e) {
+            recordSend(normalizedPhone, scene, clientIp, 0, e.getMessage(), null);
+            throw e;
+        }
+        recordSend(normalizedPhone, scene, clientIp, 1, null, responseCode);
 
         cacheUtil.set(SMS_CODE_PREFIX + normalizedPhone, code, SMS_CODE_TTL_MINUTES, TimeUnit.MINUTES);
         recordSecurityUsage(config, normalizedPhone, clientIp);
@@ -146,7 +157,7 @@ public class SmsCodeServiceImpl implements SmsCodeService {
         return sb.toString();
     }
 
-    private void sendAliyunSms(SmsConfig config, String phone, String code) {
+    private String sendAliyunSms(SmsConfig config, String phone, String code) {
         String accessKeySecret = decryptSecret(config.getAccessKeySecret());
         if (!StringUtils.hasText(accessKeySecret)) {
             log.warn("短信 AccessKeySecret 未配置或解密失败");
@@ -175,13 +186,38 @@ public class SmsCodeServiceImpl implements SmsCodeService {
 
             SendSmsVerifyCodeResponse response = client.sendSmsVerifyCodeWithOptions(request, new RuntimeOptions());
             log.info("阿里云短信发送响应 phone={} body={}", phone, response != null ? response.getBody() : null);
+            String responseCode = response != null && response.getBody() != null ? response.getBody().getCode() : null;
             if (response == null || response.getBody() == null || !Boolean.TRUE.equals(response.getBody().getSuccess())) {
                 log.warn("阿里云短信发送失败 phone={} response={}", phone, response != null ? response.getBody() : null);
                 throw new BusinessException(UserAuthErrorCode.SMS_SEND_FAILED);
             }
+            return responseCode;
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.warn("阿里云短信发送异常 phone={} message={}", phone, e.getMessage(), e);
             throw new BusinessException(UserAuthErrorCode.SMS_SEND_FAILED);
+        }
+    }
+
+    private void recordSend(String phone, String scene, String clientIp, int sendStatus, String failReason, String responseCode) {
+        try {
+            SmsSendRecord record = new SmsSendRecord();
+            record.setPhone(phone);
+            record.setScene(StringUtils.hasText(scene) ? scene : "register");
+            record.setClientIp(clientIp);
+            Long userId = SecurityUserContext.getCurrentUserId();
+            record.setUserId(userId != null ? userId : 0L);
+            record.setSendStatus(sendStatus);
+            if (failReason != null && failReason.length() > 500) {
+                failReason = failReason.substring(0, 500);
+            }
+            record.setFailReason(failReason);
+            record.setResponseCode(responseCode);
+            record.setTenantId(0L);
+            smsSendRecordMapper.insert(record);
+        } catch (Exception e) {
+            log.warn("写入短信发送记录失败 phone={}", phone, e);
         }
     }
 

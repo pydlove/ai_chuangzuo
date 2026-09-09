@@ -35,6 +35,9 @@ public class GenerationTaskInternalController {
     /** 文章生成对应的权益编码。 */
     private static final String ARTICLE_QUOTA_BENEFIT = "ai_article_quota";
 
+    /** 每日创作上限对应的权益编码。 */
+    private static final String DAILY_ARTICLE_QUOTA_BENEFIT = "daily_article_quota";
+
     private final ArticleService articleService;
     private final BenefitService benefitService;
     private final MessageService messageService;
@@ -97,6 +100,7 @@ public class GenerationTaskInternalController {
             throw new BusinessException(UserGenerationErrorCode.GENERATION_INPUT_INVALID);
         }
         generationTaskRefundService.refundOnce(taskId, userId, ARTICLE_QUOTA_BENEFIT);
+        generationTaskRefundService.refundOnce(taskId, userId, DAILY_ARTICLE_QUOTA_BENEFIT);
         log.info("task={} user={} 退文章额度成功", taskId, userId);
         return Result.success();
     }

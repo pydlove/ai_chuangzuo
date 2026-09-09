@@ -40,7 +40,9 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,6 +59,7 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
     private final CommissionSubmissionMapper submissionMapper;
     private final UserApiClient userApiClient;
     private final PlatformUserMapper platformUserMapper;
+    private final Set<Long> importingAdminIds = ConcurrentHashMap.newKeySet();
 
     @Override
     public IPage<CommissionTaskListVO> list(String keyword, Integer status, int page, int pageSize) {
@@ -338,6 +341,17 @@ public class AdminCommissionServiceImpl implements AdminCommissionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public CommissionTaskImportResultVO importExcel(MultipartFile file, Long adminId) {
+        if (!importingAdminIds.add(adminId)) {
+            throw new BusinessException(AdminCommissionErrorCode.IMPORT_IN_PROGRESS);
+        }
+        try {
+            return doImportExcel(file, adminId);
+        } finally {
+            importingAdminIds.remove(adminId);
+        }
+    }
+
+    private CommissionTaskImportResultVO doImportExcel(MultipartFile file, Long adminId) {
         List<CommissionTaskExcelRowData> rows = CommissionExcelImportUtil.readRows(file);
         List<CommissionTaskImportRowErrorVO> errors = new ArrayList<>();
         List<CommissionTask> tasks = new ArrayList<>(rows.size());

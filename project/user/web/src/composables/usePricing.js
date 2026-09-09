@@ -64,6 +64,16 @@ export function usePricing() {
   const currentMembership = ref(null)
   const membershipLoading = ref(false)
 
+  // 是否首次购买（无任何成功支付订单）：服务端 getMyMembership 返回；未登录默认 true（服务端最终校验）
+  const firstPurchase = ref(true)
+
+  // 月付周期 + 首次购买 + 套餐配置了首月价时生效
+  const getFirstMonthPrice = (plan) => {
+    if (activeCycle.value !== 'month' || !firstPurchase.value) return null
+    const price = plan?.monthly?.firstMonth
+    return price != null ? Number(price) : null
+  }
+
   const upgradeModalVisible = ref(false)
   const upgradePreview = ref(null)
   const upgradeLoading = ref(false)
@@ -138,6 +148,7 @@ export function usePricing() {
           loadInviteStats()
         ])
         const membershipData = membershipRes.data || membershipRes
+        firstPurchase.value = membershipData?.firstPurchase !== false
         if (membershipData?.hasMembership) {
           currentMembership.value = membershipData
           if (membershipData.cycle && cycles.some(c => c.key === membershipData.cycle)) {
@@ -316,6 +327,8 @@ export function usePricing() {
     if (isNewcomerDeal) {
       return Number(newcomerOffer.value.finalPrice) || 0
     }
+    const firstMonth = getFirstMonthPrice(plan)
+    if (firstMonth != null) return firstMonth
     return Number(plan[keyMap[cycle]]?.current) || 0
   }
 
@@ -534,6 +547,11 @@ export function usePricing() {
   const getPrice = (plan) => {
     const keyMap = { month: 'monthly', quarter: 'quarter', year: 'year' }
     const cycle = plan[keyMap[activeCycle.value]]
+    const firstMonth = getFirstMonthPrice(plan)
+    if (firstMonth != null) {
+      // 首月优惠：划线价为正常月价，现价为首月价
+      return { original: cycle?.current, current: firstMonth, firstMonth: true }
+    }
     return { original: cycle?.original, current: cycle?.current }
   }
 
@@ -608,6 +626,8 @@ export function usePricing() {
     newcomerLoading,
     currentMembership,
     membershipLoading,
+    firstPurchase,
+    getFirstMonthPrice,
     upgradeModalVisible,
     upgradePreview,
     upgradeLoading,

@@ -91,4 +91,16 @@ public interface EarningsService {
                                     String cycle, BigDecimal orderAmount, boolean firstPurchase,
                                     BigDecimal commissionRate, BigDecimal commissionAmount,
                                     String settlementMonth);
+
+    /**
+     * 记录一条提现账单到收益明细（申请提现记负向，被拒绝退回记正向）。
+     *
+     * <p>仅用于收益明细展示；累计收益与月度结算均不统计 WITHDRAW 类型。
+     *
+     * @param userId       用户ID
+     * @param amount       提现金额（必须为正）
+     * @param withdrawBizNo 提现单号
+     * @param refund       true-提现被拒绝退回；false-申请提现扣减
+     */
+    void recordWithdrawEarnings(Long userId, BigDecimal amount, String withdrawBizNo, boolean refund);
 }

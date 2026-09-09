@@ -1,6 +1,6 @@
 import { ref } from 'vue'
 import { message } from 'ant-design-vue'
-import { listSkills, rejectSkill, approveSkill, approveBatch } from '@/api/skill.js'
+import { listSkills, rejectSkill, approveSkill, approveBatch, deleteSkillReview } from '@/api/skill.js'
 
 export function useSkillReview() {
   const skills = ref([])
@@ -89,6 +89,18 @@ export function useSkillReview() {
     }
   }
 
+  const handleDelete = async (skill) => {
+    try {
+      await deleteSkillReview(skill.id)
+      message.success('已删除该脏数据记录')
+      fetchSkills()
+      return true
+    } catch (error) {
+      message.error(error.message || '删除失败')
+      return false
+    }
+  }
+
   return {
     skills,
     total,
@@ -104,6 +116,7 @@ export function useSkillReview() {
     handleTabChange,
     handleReject,
     handleApprove,
-    handleApproveBatch
+    handleApproveBatch,
+    handleDelete
   }
 }

@@ -106,7 +106,7 @@ export function useLogin() {
       if (mode === 'email') {
         await sendEmailCode({ email: registerForm.identifier })
       } else {
-        await sendSmsCode({ phone: registerForm.identifier })
+        await sendSmsCode({ phone: registerForm.identifier, scene: 'register' })
       }
       if (!isMounted) return
       startCodeCountdown()

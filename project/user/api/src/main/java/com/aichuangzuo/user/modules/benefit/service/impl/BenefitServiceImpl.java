@@ -42,6 +42,7 @@ public class BenefitServiceImpl implements BenefitService {
     private static final String TYPE_BOOLEAN = "boolean";
     private static final String TYPE_QUOTA = "quota";
     private static final String TYPE_LIFETIME = "lifetime";
+    private static final String PERIOD_TYPE_DAY = "day";
     private static final String LIFETIME_PERIOD = "lifetime";
 
     private final BenefitMapper benefitMapper;
@@ -335,10 +336,16 @@ public class BenefitServiceImpl implements BenefitService {
     }
 
     /**
-     * 根据权益类型解析周期标识。quota 类按自然月；lifetime 类永久累计。
+     * 根据权益 period_type 解析周期标识：day 按自然日（yyyy-MM-dd）、lifetime 永久累计、其他按自然月。
      */
     private String resolvePeriod(Benefit benefit) {
-        if (benefit != null && TYPE_LIFETIME.equals(benefit.getType())) {
+        if (benefit == null) {
+            return currentPeriod();
+        }
+        if (PERIOD_TYPE_DAY.equals(benefit.getPeriodType())) {
+            return LocalDate.now().toString();
+        }
+        if (LIFETIME_PERIOD.equals(benefit.getPeriodType()) || TYPE_LIFETIME.equals(benefit.getType())) {
             return LIFETIME_PERIOD;
         }
         return currentPeriod();

@@ -1,9 +1,11 @@
 package com.aichuangzuo.user.modules.recommendedcreation.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.shared.entity.Platform;
 import com.aichuangzuo.user.modules.generation.dto.request.GenerationSubmitRequest;
 import com.aichuangzuo.user.modules.generation.service.GenerationTaskService;
 import com.aichuangzuo.user.modules.generation.vo.GenerationTaskVO;
+import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.dto.request.UpdateSessionRequest;
 import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationSession;
 import com.aichuangzuo.shared.enums.error.RecommendedCreationErrorCode;
@@ -18,6 +20,7 @@ import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanAiService;
 import com.aichuangzuo.user.modules.selfmedia.service.SelfMediaPlanService;
 import com.aichuangzuo.user.modules.selfmedia.vo.PillarVO;
 import com.aichuangzuo.user.modules.selfmedia.vo.SelfMediaPlanVO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -47,6 +50,7 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
     private final GenerationTaskService generationTaskService;
     private final RecommendedCreationSessionMapper sessionMapper;
     private final RecommendedCreationTopicHistoryMapper topicHistoryMapper;
+    private final PlatformMapper platformMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -311,7 +315,10 @@ public class RecommendedCreationServiceImpl implements RecommendedCreationServic
             return "";
         }
         int idx = template.indexOf('-');
-        return idx > 0 ? template.substring(0, idx) : template;
+        String candidate = idx > 0 ? template.substring(0, idx) : template;
+        // 模板 key 可能不带平台前缀（如通用模板 marketing/story），需校验是否为有效平台
+        Long matches = platformMapper.selectCount(new LambdaQueryWrapper<Platform>().eq(Platform::getPlatformKey, candidate));
+        return matches != null && matches > 0 ? candidate : "";
     }
 
     private RecommendedCreationSessionVO toVO(RecommendedCreationSession session) {

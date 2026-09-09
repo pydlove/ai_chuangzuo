@@ -47,7 +47,10 @@ public class EarningsServiceImpl implements EarningsService {
     public AccountSummaryVO getSummary(Long userId) {
         LambdaQueryWrapper<EarningsRecord> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(EarningsRecord::getUserId, userId)
-                .eq(EarningsRecord::getIsDeleted, 0);
+                .eq(EarningsRecord::getIsDeleted, 0)
+                // 累计收益只统计用户获取的收益；创作币抵扣、提现（含退回）不计入
+                .notIn(EarningsRecord::getType,
+                        EarningsType.COIN_DEDUCTION.getCode(), EarningsType.WITHDRAW.getCode());
 
         List<EarningsRecord> records = earningsRecordMapper.selectList(wrapper);
         BigDecimal total = records.stream()
@@ -166,6 +169,35 @@ public class EarningsServiceImpl implements EarningsService {
         record.setTitle(title);
         record.setDescription(description);
         record.setAmount(coinAmount.negate());
+        record.setSettlementMonth(settlementMonth);
+        record.setBizNo(nextBizNo());
+        earningsRecordMapper.insert(record);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void recordWithdrawEarnings(Long userId, BigDecimal amount, String withdrawBizNo, boolean refund) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "提现金额必须大于 0");
+        }
+        if (!StringUtils.hasText(withdrawBizNo)) {
+            throw new BusinessException(SystemErrorCode.PARAM_VALIDATION_ERROR.getCode(), "提现单号不能为空");
+        }
+
+        String title = refund ? "提现退回" : "提现";
+        String description = refund
+                ? String.format("提现申请被拒绝，退回 %s 创作币（提现单号 %s）", amount.toPlainString(), withdrawBizNo)
+                : String.format("申请提现 %s 创作币（提现单号 %s）", amount.toPlainString(), withdrawBizNo);
+        String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
+
+        EarningsRecord record = new EarningsRecord();
+        record.setUserId(userId);
+        record.setType(EarningsType.WITHDRAW.getCode());
+        record.setSourceType("withdraw");
+        record.setSourceId(withdrawBizNo);
+        record.setTitle(title);
+        record.setDescription(description);
+        record.setAmount(refund ? amount : amount.negate());
         record.setSettlementMonth(settlementMonth);
         record.setBizNo(nextBizNo());
         earningsRecordMapper.insert(record);

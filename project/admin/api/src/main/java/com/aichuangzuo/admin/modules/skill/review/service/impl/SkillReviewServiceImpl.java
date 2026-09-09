@@ -78,13 +78,11 @@ public class SkillReviewServiceImpl implements SkillReviewService {
     public void approve(String bizNo) {
         UserSkillAggregate skill = loadByBizNo(bizNo);
         AuditStatus current = AuditStatus.of(skill.getAuditStatus());
-        if (current == AuditStatus.APPROVED) {
-            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_APPROVED);
+        if (current != AuditStatus.PENDING) {
+            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING);
         }
-        if (current == AuditStatus.REJECTED) {
-            // v1：被打回后不允许再被通过，必须由用户重新提交。
-            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_REJECTED);
-        }
+        // 用户可能在管理员打开列表后撤销提交；无待审核市场记录时不得通过，否则会重新建市场上架
+        requirePendingMarket(bizNo);
 
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         skill.setAuditStatus(AuditStatus.APPROVED.getCode());
@@ -113,6 +111,10 @@ public class SkillReviewServiceImpl implements SkillReviewService {
                 log.warn("批量通过跳过非待审核记录 bizNo={}, status={}", bizNo, current);
                 continue;
             }
+            if (!hasPendingMarket(bizNo)) {
+                log.warn("批量通过跳过无待审核市场记录的记录 bizNo={}", bizNo);
+                continue;
+            }
             skill.setAuditStatus(AuditStatus.APPROVED.getCode());
             skill.setAuditedBy(adminId);
             skill.setAuditedAt(now);
@@ -134,12 +136,11 @@ public class SkillReviewServiceImpl implements SkillReviewService {
         }
         UserSkillAggregate skill = loadByBizNo(bizNo);
         AuditStatus current = AuditStatus.of(skill.getAuditStatus());
-        if (current == AuditStatus.APPROVED) {
-            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_APPROVED);
+        if (current != AuditStatus.PENDING) {
+            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING);
         }
-        if (current == AuditStatus.REJECTED) {
-            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_ALREADY_REJECTED);
-        }
+        // 打回会退还发布权益；用户已撤销的记录若再打回会造成重复退款，必须先确认待审核市场记录存在
+        requirePendingMarket(bizNo);
 
         Long adminId = SecurityAdminContext.getCurrentAdminUserId();
         skill.setAuditStatus(AuditStatus.REJECTED.getCode());
@@ -151,6 +152,47 @@ public class SkillReviewServiceImpl implements SkillReviewService {
         quotaRefundClient.refundPublishQuota(skill.getUserId());
         pushSkillReviewMessage(skill, false, reason.trim());
         log.info("风格审核打回 bizNo={}, adminId={}, reason={}", bizNo, adminId, reason.trim());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteDirty(String bizNo) {
+        UserSkillAggregate skill = loadByBizNo(bizNo);
+        AuditStatus current = AuditStatus.of(skill.getAuditStatus());
+        if (current != AuditStatus.PENDING) {
+            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING);
+        }
+        // 真实待审核的提交必须走通过/打回，不能删除
+        if (hasPendingMarket(bizNo)) {
+            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_DELETE_FORBIDDEN);
+        }
+
+        // 回写为草稿：移出审核列表，同时保留用户在自己提示词列表中的数据
+        skill.setAuditStatus(AuditStatus.DRAFT.getCode());
+        skill.setRejectReason(null);
+        skillReviewMapper.updateById(skill);
+        Long adminId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员删除审核脏数据（回写草稿） bizNo={}, adminId={}", bizNo, adminId);
+    }
+
+    /**
+     * 判断是否存在待审核的市场记录（用户未撤销/未下架）。
+     */
+    private boolean hasPendingMarket(String bizNo) {
+        LambdaQueryWrapper<SkillMarket> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(SkillMarket::getBizNo, bizNo)
+                .eq(SkillMarket::getAuditStatus, AuditStatus.PENDING.getCode())
+                .eq(SkillMarket::getIsDeleted, 0);
+        return skillMarketMapper.selectCount(wrapper) > 0;
+    }
+
+    /**
+     * 要求存在待审核的市场记录，否则视为用户已撤销。
+     */
+    private void requirePendingMarket(String bizNo) {
+        if (!hasPendingMarket(bizNo)) {
+            throw new BusinessException(AdminSkillReviewErrorCode.SKILL_REVIEW_NOT_PENDING);
+        }
     }
 
     /**
@@ -290,6 +332,7 @@ public class SkillReviewServiceImpl implements SkillReviewService {
         return switch (code) {
             case 1 -> "approved";
             case 2 -> "rejected";
+            case 3 -> "draft";
             default -> "pending";
         };
     }

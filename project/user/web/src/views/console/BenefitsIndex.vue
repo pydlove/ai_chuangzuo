@@ -296,9 +296,6 @@
             :coinToYuanRatio="COIN_TO_YUAN_RATIO"
             :finalCash="getFinalCash()"
           />
-          <p class="mb-pay-tip">
-            测试阶段，请输入支付码 <strong>123456</strong> 完成{{ upgradePreview ? '升级' : '订阅' }}。
-          </p>
           <a-input
             v-model:value="payCode"
             placeholder="请输入 6 位支付码"
@@ -1731,17 +1728,6 @@ body[data-theme="dark"] .mb-compare-plan-value.yes {
   line-height: 1.6;
 }
 
-.mb-pay-tip {
-  color: #595959;
-  font-size: 14px;
-  margin-bottom: 16px;
-  line-height: 1.6;
-}
-
-.mb-pay-tip strong {
-  color: #ff2442;
-}
-
 .mb-pay-actions {
   margin-top: 16px;
 }
@@ -2188,8 +2174,7 @@ body[data-theme="dark"] .mb-upgrade-row.total {
   border-top-color: #303030;
 }
 
-body[data-theme="dark"] .mb-upgrade-label,
-body[data-theme="dark"] .mb-pay-tip {
+body[data-theme="dark"] .mb-upgrade-label {
   color: #a6a6a6;
 }
 

@@ -24,10 +24,13 @@ public class Plan {
 
     private String planKey;
     private String displayName;
+    private String displayNameEn;
     private Integer sortOrder;
     private Integer recommended;
 
     private BigDecimal priceMonthly;
+    /** 首月价格：仅月付周期首次购买生效，null 表示不启用。 */
+    private BigDecimal firstMonthPrice;
     private BigDecimal priceQuarter;
     private BigDecimal priceYear;
 

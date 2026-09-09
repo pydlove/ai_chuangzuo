@@ -10,15 +10,20 @@ import com.aichuangzuo.user.modules.leaderboard.vo.CoinLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.IncomeLeaderboardVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardEntryVO;
 import com.aichuangzuo.user.modules.leaderboard.vo.LeaderboardRewardConfigVO;
+import com.aichuangzuo.user.modules.membership.entity.UserMembership;
+import com.aichuangzuo.user.modules.membership.mapper.UserMembershipMapper;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +47,7 @@ public class LeaderboardServiceImpl implements LeaderboardService {
     private final LeaderboardAggregateMapper aggregateMapper;
     private final UserMapper userMapper;
     private final LeaderboardRewardConfigMapper rewardConfigMapper;
+    private final UserMembershipMapper userMembershipMapper;
 
     @Override
     public CoinLeaderboardVO getCoinLeaderboard(Long currentUserId, String month) {
@@ -101,6 +107,21 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         return vo;
     }
 
+    @Override
+    public CoinLeaderboardVO getInviteLeaderboard(Long currentUserId) {
+        // SQL 侧已 JOIN 有效邀请关系并过滤邀请 0 人的用户
+        List<LeaderboardEntryVO> topList = aggregateMapper.selectInviteRanking(TOP_LIMIT);
+        fillUserInfo(topList);
+        rank(topList);
+        markMe(topList, currentUserId);
+
+        CoinLeaderboardVO vo = new CoinLeaderboardVO();
+        vo.setMonth("all");
+        vo.setTopList(topList);
+        vo.setMe(findMe(topList, currentUserId, aggregateMapper::selectInviteAmountByUser));
+        return vo;
+    }
+
     private YearMonth parseMonth(String month) {
         try {
             return YearMonth.parse(month, MONTH_FORMATTER);
@@ -119,16 +140,35 @@ public class LeaderboardServiceImpl implements LeaderboardService {
                 .collect(Collectors.toSet());
         Map<Long, User> userMap = userMapper.selectBatchIds(new ArrayList<>(userIds)).stream()
                 .collect(Collectors.toMap(User::getId, Function.identity(), (a, b) -> a));
+        Map<Long, String> memberLevelMap = loadValidMemberLevelMap(userIds);
         for (LeaderboardEntryVO entry : list) {
             User user = userMap.get(entry.getUserId());
             if (user != null) {
                 entry.setNickname(user.getNickname());
                 entry.setAvatarUrl(user.getAvatarUrl());
             }
+            entry.setMemberLevel(memberLevelMap.get(entry.getUserId()));
             if (entry.getAmount() == null) {
                 entry.setAmount(BigDecimal.ZERO);
             }
         }
+    }
+
+    /**
+     * 批量查询用户当前有效会员等级。
+     *
+     * @return userId -> 会员等级（basic/pro/flagship）；非会员或已过期不放入 Map
+     */
+    private Map<Long, String> loadValidMemberLevelMap(Collection<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return Map.of();
+        }
+        return userMembershipMapper.selectList(
+                        new LambdaQueryWrapper<UserMembership>()
+                                .in(UserMembership::getUserId, userIds)
+                                .ge(UserMembership::getExpiresAt, LocalDate.now()))
+                .stream()
+                .collect(Collectors.toMap(UserMembership::getUserId, UserMembership::getLevel, (a, b) -> a));
     }
 
     private void rank(List<LeaderboardEntryVO> list) {
@@ -160,6 +200,9 @@ public class LeaderboardServiceImpl implements LeaderboardService {
         if (user != null) {
             me.setNickname(user.getNickname());
             me.setAvatarUrl(user.getAvatarUrl());
+        }
+        if (currentUserId != null) {
+            me.setMemberLevel(loadValidMemberLevelMap(Set.of(currentUserId)).get(currentUserId));
         }
         me.setIsMe(true);
         me.setRank(null);

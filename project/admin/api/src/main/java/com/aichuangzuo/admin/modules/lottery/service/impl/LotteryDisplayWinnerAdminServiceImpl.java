@@ -3,8 +3,10 @@ package com.aichuangzuo.admin.modules.lottery.service.impl;
 import com.aichuangzuo.admin.modules.lottery.dto.request.LotteryDisplayWinnerSaveRequest;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryCampaign;
 import com.aichuangzuo.admin.modules.lottery.entity.LotteryDisplayWinner;
+import com.aichuangzuo.admin.modules.lottery.entity.LotteryPrizeTier;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryCampaignMapper;
 import com.aichuangzuo.admin.modules.lottery.mapper.LotteryDisplayWinnerMapper;
+import com.aichuangzuo.admin.modules.lottery.mapper.LotteryPrizeTierMapper;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.admin.modules.lottery.service.LotteryDisplayWinnerAdminService;
@@ -15,8 +17,11 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -25,6 +30,7 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
 
     private final LotteryDisplayWinnerMapper displayWinnerMapper;
     private final LotteryCampaignMapper campaignMapper;
+    private final LotteryPrizeTierMapper prizeTierMapper;
     private final PlatformUserMapper platformUserMapper;
 
     @Override
@@ -40,7 +46,29 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
             campaignName = campaign != null ? campaign.getName() : "";
         }
         final String name = campaignName;
-        return list.stream().map(w -> buildVO(w, name)).collect(Collectors.toList());
+        Map<Long, String> tierNameMap = loadTierNameMap(list);
+        return list.stream().map(w -> buildVO(w, name, tierNameMap)).collect(Collectors.toList());
+    }
+
+    /**
+     * 查询奖项当前名称，避免展示墙停留在配置修改前的快照。
+     *
+     * @return tierId -> 当前奖项名称
+     */
+    private Map<Long, String> loadTierNameMap(List<LotteryDisplayWinner> winners) {
+        List<Long> tierIds = winners.stream()
+                .map(LotteryDisplayWinner::getTierId)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        if (CollectionUtils.isEmpty(tierIds)) {
+            return Map.of();
+        }
+        return prizeTierMapper.selectList(
+                        new LambdaQueryWrapper<LotteryPrizeTier>()
+                                .in(LotteryPrizeTier::getId, tierIds))
+                .stream()
+                .collect(Collectors.toMap(LotteryPrizeTier::getId, LotteryPrizeTier::getTierName, (a, b) -> a));
     }
 
     @Override
@@ -101,7 +129,7 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
         displayWinnerMapper.deleteById(id);
     }
 
-    private LotteryDisplayWinnerAdminVO buildVO(LotteryDisplayWinner winner, String campaignName) {
+    private LotteryDisplayWinnerAdminVO buildVO(LotteryDisplayWinner winner, String campaignName, Map<Long, String> tierNameMap) {
         LotteryDisplayWinnerAdminVO vo = new LotteryDisplayWinnerAdminVO();
         vo.setId(winner.getId());
         vo.setCampaignId(winner.getCampaignId());
@@ -110,7 +138,8 @@ public class LotteryDisplayWinnerAdminServiceImpl implements LotteryDisplayWinne
         vo.setUserId(winner.getUserId());
         vo.setNickname(winner.getNickname());
         vo.setAvatarUrl(winner.getAvatarUrl());
-        vo.setPrizeName(winner.getPrizeName());
+        String currentPrizeName = winner.getTierId() != null ? tierNameMap.get(winner.getTierId()) : null;
+        vo.setPrizeName(currentPrizeName != null && !currentPrizeName.isBlank() ? currentPrizeName : winner.getPrizeName());
         vo.setWinTime(winner.getWinTime());
         vo.setIsReal(winner.getIsReal());
         vo.setSortOrder(winner.getSortOrder());

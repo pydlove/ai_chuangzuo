@@ -4,8 +4,10 @@ import com.aichuangzuo.shared.entity.GenerationTask;
 import com.aichuangzuo.shared.entity.PromptTemplate;
 import com.aichuangzuo.shared.enums.GenerationTaskStatus;
 import com.aichuangzuo.shared.enums.error.UserGenerationErrorCode;
+import com.aichuangzuo.shared.enums.error.BenefitErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
+import com.aichuangzuo.user.modules.benefit.vo.BenefitCheckVO;
 import com.aichuangzuo.user.modules.generation.dto.request.GenerationRetryRequest;
 import com.aichuangzuo.user.modules.generation.dto.request.GenerationSubmitRequest;
 import com.aichuangzuo.user.modules.generation.mapper.GenerationActiveModelConfigMapper;
@@ -49,6 +51,9 @@ public class GenerationTaskService {
 
     /** 文章生成对应的权益编码。 */
     private static final String ARTICLE_QUOTA_BENEFIT = "ai_article_quota";
+
+    /** 每日创作上限对应的权益编码。 */
+    private static final String DAILY_ARTICLE_QUOTA_BENEFIT = "daily_article_quota";
 
     /** 用户手动停止时的失败原因（前端据此显示「已停止」）。 */
     private static final String USER_STOP_REASON = "用户手动停止";
@@ -110,6 +115,7 @@ public class GenerationTaskService {
         String bizNo = generateBizNo();
         int planPriority = resolvePlanPriority(userId);
         benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
+        consumeDailyQuotaIfConfigured(userId);
 
         GenerationTask task = new GenerationTask();
         task.setBizNo(bizNo);
@@ -161,6 +167,7 @@ public class GenerationTaskService {
         String bizNo = generateBizNo();
         int planPriority = resolvePlanPriority(userId);
         benefitService.consume(userId, ARTICLE_QUOTA_BENEFIT);
+        consumeDailyQuotaIfConfigured(userId);
 
         // 新 task：沿用 source 输入参数，可选覆盖 wordCount
         Map<String, Object> input = parseInput(source.getInputParam());
@@ -202,6 +209,7 @@ public class GenerationTaskService {
         }
 
         benefitService.refund(userId, ARTICLE_QUOTA_BENEFIT);
+        benefitService.refund(userId, DAILY_ARTICLE_QUOTA_BENEFIT);
 
         task.setStatus(GenerationTaskStatus.FAILED);
         task.setFailedReason(USER_STOP_REASON);
@@ -227,6 +235,30 @@ public class GenerationTaskService {
     }
 
     // ---------- helpers ----------
+
+    /**
+     * 扣 1 次每日创作额度（daily_article_quota）。
+     *
+     * <p>套餐未配置该权益或管理端将上限置 0 时不做每日限制；超出上限抛
+     * {@link BenefitErrorCode#DAILY_QUOTA_EXHAUSTED}，与月度额度（ai_article_quota）同事务回退。
+     */
+    private void consumeDailyQuotaIfConfigured(Long userId) {
+        BenefitCheckVO check = benefitService.check(userId, DAILY_ARTICLE_QUOTA_BENEFIT);
+        if (parseInt(check.getValue(), 0) <= 0) {
+            return;
+        }
+        if (check.getRemaining() <= 0) {
+            throw new BusinessException(BenefitErrorCode.DAILY_QUOTA_EXHAUSTED);
+        }
+        try {
+            benefitService.consume(userId, DAILY_ARTICLE_QUOTA_BENEFIT);
+        } catch (BusinessException e) {
+            if (e.getCode() != null && e.getCode() == BenefitErrorCode.QUOTA_EXHAUSTED.getCode()) {
+                throw new BusinessException(BenefitErrorCode.DAILY_QUOTA_EXHAUSTED);
+            }
+            throw e;
+        }
+    }
 
     /**
      * 解析当前用户有效套餐对应的优先级。

@@ -1,8 +1,8 @@
 <template>
   <div class="commission-admin">
     <div class="toolbar">
-      <a-input-search v-model:value="keyword" placeholder="任务标题或编号" style="width: 280px" @search="loadTasks" />
-      <a-select v-model:value="status" allow-clear placeholder="全部状态" style="width: 160px" @change="loadTasks">
+      <a-input-search v-model:value="keyword" placeholder="任务标题或编号" style="width: 280px" @search="searchTasks" />
+      <a-select v-model:value="status" allow-clear placeholder="全部状态" style="width: 160px" @change="searchTasks">
         <a-select-option v-for="item in statusOptions" :key="item.value" :value="item.value">{{ item.label }}</a-select-option>
       </a-select>
       <a-button type="primary" @click="openPublish">发布约稿任务</a-button>
@@ -49,8 +49,8 @@
           <a-col :span="12"><a-form-item label="每篇奖励" required><a-input-number v-model:value="form.rewardCoin" :min="5" style="width:100%" addon-after="创作币" /></a-form-item></a-col>
           <a-col :span="12"><a-form-item label="需采纳数量" required><a-input-number v-model:value="form.neededCount" :min="1" style="width:100%" addon-after="篇" /></a-form-item></a-col>
         </a-row>
-        <a-form-item label="投递截止时间" required><a-date-picker v-model:value="form.deadlineAt" show-time style="width:100%" /></a-form-item>
-        <a-form-item label="评选截止时间" required><a-date-picker v-model:value="form.selectionDeadlineAt" show-time style="width:100%" /></a-form-item>
+        <a-form-item label="投递截止时间" required><a-date-picker v-model:value="form.deadlineAt" show-time :disabled-date="disabledPastDate" style="width:100%" /></a-form-item>
+        <a-form-item label="评选截止时间" required><a-date-picker v-model:value="form.selectionDeadlineAt" show-time :disabled-date="disabledPastDate" style="width:100%" /></a-form-item>
       </a-form>
     </a-modal>
 
@@ -366,6 +366,7 @@ function handleBatchDelete() {
   })
 }
 
+function searchTasks() { page.value = 1; selectedTaskRowKeys.value = []; loadTasks() }
 async function loadTasks() {
   loading.value = true
   try {
@@ -386,6 +387,7 @@ async function reconcileStatus() {
   finally { reconciling.value = false }
 }
 function beforeImport(file) {
+  if (importing.value) return false
   if (!file.name.toLowerCase().endsWith('.xlsx')) {
     message.error('请上传 .xlsx 格式的 Excel 文件')
     return false
@@ -424,6 +426,9 @@ function validateForm() {
 }
 function formatDate(value) {
   return value ? value.format('YYYY-MM-DDTHH:mm:ss') : null
+}
+function disabledPastDate(current) {
+  return current && current.isBefore(dayjs().startOf('day'))
 }
 function openPublish() {
   Object.assign(form, emptyForm())

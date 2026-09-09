@@ -32,7 +32,10 @@ public enum MessageSubType {
     GENERATION_FAILED("failed", "创作失败"),
 
     /** 抽奖结果(promotion 类下)。 */
-    LOTTERY_RESULT("lottery_result", "抽奖结果");
+    LOTTERY_RESULT("lottery_result", "抽奖结果"),
+
+    /** 提现审核通过(coin 类下)。 */
+    WITHDRAW_APPROVED("withdraw_approved", "提现通过");
 
     private final String code;
     private final String description;

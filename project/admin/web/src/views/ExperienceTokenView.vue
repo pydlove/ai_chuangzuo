@@ -62,9 +62,16 @@
           <template v-else-if="column.key === 'usedAt'">
             {{ record.usedAt || '-' }}
           </template>
+          <template v-else-if="column.key === 'sentMark'">
+            <a-tag v-if="isSent(record)" color="blue">已发送</a-tag>
+            <a-tag v-else>未发送</a-tag>
+          </template>
           <template v-else-if="column.key === 'actions'">
             <a-button type="link" size="small" :disabled="record.status !== 0" @click="copyShareText(record.token)">
               复制文案
+            </a-button>
+            <a-button type="link" size="small" :disabled="record.status !== 0" @click="toggleSent(record)">
+              {{ isSent(record) ? '取消标记' : '标记已发送' }}
             </a-button>
           </template>
         </template>
@@ -150,6 +157,7 @@ const columns = [
   { title: '套餐', dataIndex: 'planKey', key: 'planKey', width: 100 },
   { title: '会员天数', dataIndex: 'membershipDays', key: 'membershipDays', width: 100 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 90 },
+  { title: '发送标记', key: 'sentMark', width: 100 },
   { title: '使用人ID', dataIndex: 'usedByUserId', key: 'usedByUserId', width: 90 },
   { title: '使用人昵称', dataIndex: 'usedByUserName', key: 'usedByUserName', width: 120 },
   { title: '使用人邮箱', dataIndex: 'usedByUserEmail', key: 'usedByUserEmail', width: 180 },
@@ -157,7 +165,7 @@ const columns = [
   { title: '使用时间', dataIndex: 'usedAt', key: 'usedAt', width: 170 },
   { title: '有效期', dataIndex: 'expiresAt', key: 'expiresAt', width: 170 },
   { title: '创建时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
-  { title: '操作', key: 'actions', width: 100, fixed: 'right' }
+  { title: '操作', key: 'actions', width: 170, fixed: 'right' }
 ]
 
 const statusText = (status) => {
@@ -239,6 +247,33 @@ const handleGenerate = async () => {
 
 const USER_WEB_URL = import.meta.env.VITE_USER_WEB_URL || window.location.origin
 
+// 发送标记仅保存在当前浏览器 localStorage，用于运营防重复发放
+const SENT_MARKS_KEY = 'aichuangzuo_experience_token_sent_marks'
+const sentMarks = ref({})
+
+const loadSentMarks = () => {
+  try {
+    sentMarks.value = JSON.parse(localStorage.getItem(SENT_MARKS_KEY) || '{}')
+  } catch {
+    sentMarks.value = {}
+  }
+}
+
+const isSent = (record) => Boolean(sentMarks.value[record.id])
+
+const toggleSent = (record) => {
+  const next = { ...sentMarks.value }
+  if (next[record.id]) {
+    delete next[record.id]
+    message.success('已取消发送标记')
+  } else {
+    next[record.id] = Date.now()
+    message.success('已标记为发送')
+  }
+  sentMarks.value = next
+  localStorage.setItem(SENT_MARKS_KEY, JSON.stringify(next))
+}
+
 const copyShareText = async (token) => {
   try {
     const res = await listShareConfigs({ sceneKey: 'experience', enabled: 1, page: 1, size: 1 })
@@ -257,6 +292,7 @@ const copyShareText = async (token) => {
 }
 
 onMounted(() => {
+  loadSentMarks()
   fetchList()
 })
 </script>

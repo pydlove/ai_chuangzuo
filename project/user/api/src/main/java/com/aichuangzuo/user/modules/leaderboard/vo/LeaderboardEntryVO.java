@@ -27,4 +27,10 @@ public class LeaderboardEntryVO {
 
     /** 是否为当前登录用户。 */
     private Boolean isMe;
+
+    /** 会员等级：basic/pro/flagship；非会员或已过期为 null。 */
+    private String memberLevel;
+
+    /** 累计邀请人数（邀请排行榜用）。 */
+    private Long inviteCount;
 }

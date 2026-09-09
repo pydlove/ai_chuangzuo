@@ -9,11 +9,16 @@ import com.aichuangzuo.user.modules.earnings.dto.request.WithdrawProcessRequest;
 import com.aichuangzuo.user.modules.earnings.entity.WithdrawRequest;
 import com.aichuangzuo.shared.enums.error.WithdrawErrorCode;
 import com.aichuangzuo.user.modules.earnings.mapper.WithdrawRequestMapper;
+import com.aichuangzuo.user.modules.earnings.service.EarningsService;
 import com.aichuangzuo.user.modules.earnings.service.WithdrawService;
 import com.aichuangzuo.user.modules.earnings.vo.RealNameVO;
 import com.aichuangzuo.user.modules.earnings.vo.WithdrawRequestVO;
+import com.aichuangzuo.user.modules.earnings.vo.WithdrawSuccessItemVO;
 import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
+import com.aichuangzuo.user.modules.message.enums.MessageSubType;
+import com.aichuangzuo.user.modules.message.service.MessageService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,8 +27,11 @@ import org.springframework.util.StringUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
@@ -43,6 +51,8 @@ public class WithdrawServiceImpl implements WithdrawService {
     private final UserMapper userMapper;
     private final WithdrawRequestMapper withdrawRequestMapper;
     private final CoinRecordService coinRecordService;
+    private final MessageService messageService;
+    private final EarningsService earningsService;
 
     @Override
     public RealNameVO getRealName(Long userId) {
@@ -88,6 +98,31 @@ public class WithdrawServiceImpl implements WithdrawService {
     }
 
     @Override
+    public List<WithdrawSuccessItemVO> listRecentSuccessfulWithdrawals(int limit) {
+        int safeLimit = limit <= 0 ? 10 : Math.min(limit, 50);
+        Page<WithdrawRequest> page = new Page<>(1, safeLimit);
+        LambdaQueryWrapper<WithdrawRequest> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(WithdrawRequest::getStatus, STATUS_APPROVED)
+                .eq(WithdrawRequest::getIsDeleted, 0)
+                .orderByDesc(WithdrawRequest::getProcessedAt);
+        List<WithdrawRequest> records = withdrawRequestMapper.selectPage(page, wrapper).getRecords();
+        if (records.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<Long> userIds = records.stream().map(WithdrawRequest::getUserId).distinct().collect(Collectors.toList());
+        Map<Long, User> userMap = userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+        return records.stream().map(record -> {
+            WithdrawSuccessItemVO vo = new WithdrawSuccessItemVO();
+            vo.setNickname(maskNickname(userMap.get(record.getUserId()) == null
+                    ? null : userMap.get(record.getUserId()).getNickname()));
+            vo.setAmount(record.getAmount());
+            vo.setProcessedAt(record.getProcessedAt());
+            return vo;
+        }).collect(Collectors.toList());
+    }
+
+    @Override
     @Transactional(rollbackFor = Exception.class)
     public String applyWithdraw(Long userId, WithdrawApplyRequest request) {
         User user = userMapper.selectById(userId);
@@ -111,6 +146,7 @@ public class WithdrawServiceImpl implements WithdrawService {
 
         String bizNo = generateBizNo();
         coinRecordService.spend(userId, "withdraw", request.getAmount(), bizNo, "提现申请扣减");
+        earningsService.recordWithdrawEarnings(userId, request.getAmount(), bizNo, false);
 
         WithdrawRequest record = new WithdrawRequest();
         record.setBizNo(bizNo);
@@ -150,6 +186,7 @@ public class WithdrawServiceImpl implements WithdrawService {
             }
             coinRecordService.grant(record.getUserId(), "withdraw_refund", record.getAmount(),
                     record.getBizNo(), "提现被拒绝退回");
+            earningsService.recordWithdrawEarnings(record.getUserId(), record.getAmount(), record.getBizNo(), true);
         }
 
         record.setStatus(request.getStatus());
@@ -157,6 +194,14 @@ public class WithdrawServiceImpl implements WithdrawService {
         record.setProcessedBy(adminUserId);
         record.setResultRemark(request.getRemark());
         withdrawRequestMapper.updateById(record);
+
+        if (request.getStatus() == STATUS_APPROVED) {
+            String summary = String.format("您的提现已通过审核，金额 %s 创作币", record.getAmount().toPlainString());
+            String content = String.format("提现单号：%s\n\n提现金额：%s 创作币\n\n您的提现申请已审核通过，款项将发放至您填写的收款账户，请留意到账情况。",
+                    record.getBizNo(), record.getAmount().toPlainString());
+            messageService.pushPersonal(record.getUserId(), "coin", "提现审核通过",
+                    summary, "/console/earnings", content, MessageSubType.WITHDRAW_APPROVED.getCode());
+        }
 
         log.info("管理员处理提现申请 bizNo={}, status={}, adminUserId={}", bizNo, request.getStatus(), adminUserId);
     }

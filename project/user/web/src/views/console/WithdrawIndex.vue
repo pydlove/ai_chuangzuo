@@ -254,9 +254,10 @@ const canSubmitRealName = computed(() => {
 })
 
 const withdrawnTotal = computed(() => {
-  return withdrawRecords.value
+  const cents = withdrawRecords.value
     .filter((r) => r.status !== 'rejected')
-    .reduce((sum, r) => sum + (r.amount || 0), 0)
+    .reduce((sum, r) => sum + Math.round((r.amount || 0) * 100), 0)
+  return cents / 100
 })
 
 const eligibilityLevel = computed(() => {
@@ -715,6 +716,7 @@ body[data-theme="dark"] .coin-rules-highlight {
   padding: 2px 10px;
   border-radius: 10px;
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .coin-records-status-tag.pending {

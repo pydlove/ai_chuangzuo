@@ -8,9 +8,11 @@ public class PlanVO {
     private Long id;
     private String planKey;
     private String displayName;
+    private String displayNameEn;
     private Integer sortOrder;
     private Integer recommended;
     private java.math.BigDecimal priceMonthly;
+    private java.math.BigDecimal firstMonthPrice;
     private java.math.BigDecimal priceQuarter;
     private java.math.BigDecimal priceYear;
     private java.math.BigDecimal originalMonthly;
@@ -27,9 +29,11 @@ public class PlanVO {
         vo.setId(p.getId());
         vo.setPlanKey(p.getPlanKey());
         vo.setDisplayName(p.getDisplayName());
+        vo.setDisplayNameEn(p.getDisplayNameEn());
         vo.setSortOrder(p.getSortOrder());
         vo.setRecommended(p.getRecommended());
         vo.setPriceMonthly(p.getPriceMonthly());
+        vo.setFirstMonthPrice(p.getFirstMonthPrice());
         vo.setPriceQuarter(p.getPriceQuarter());
         vo.setPriceYear(p.getPriceYear());
         vo.setOriginalMonthly(p.getOriginalMonthly());

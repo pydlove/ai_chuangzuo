@@ -3,6 +3,7 @@ import {
   getRealName,
   submitRealName as submitRealNameApi,
   listWithdrawals,
+  listRecentSuccessWithdrawals,
   applyWithdraw as applyWithdrawApi
 } from '@/api/withdraw.js'
 import { useInviteStats } from '@/composables/useInviteStats.js'
@@ -13,6 +14,7 @@ const realNameInfo = ref({
   verified: false
 })
 const withdrawRecords = ref([])
+const recentSuccessWithdrawals = ref([])
 const loading = ref(false)
 
 function toNumber(value) {
@@ -62,6 +64,11 @@ export function useWithdraw() {
     withdrawRecords.value = (list || []).map(normalizeRecord)
   }
 
+  const loadRecentSuccessWithdrawals = async (limit = 10) => {
+    const list = await listRecentSuccessWithdrawals(limit)
+    recentSuccessWithdrawals.value = list || []
+  }
+
   const applyWithdraw = async (data) => {
     try {
       loading.value = true
@@ -76,10 +83,12 @@ export function useWithdraw() {
   return {
     realNameInfo,
     withdrawRecords,
+    recentSuccessWithdrawals,
     loading,
     loadRealName,
     submitRealName,
     loadWithdrawals,
+    loadRecentSuccessWithdrawals,
     applyWithdraw
   }
 }

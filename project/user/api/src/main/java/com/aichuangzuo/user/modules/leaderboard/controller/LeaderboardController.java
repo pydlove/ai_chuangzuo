@@ -46,6 +46,13 @@ public class LeaderboardController {
         return Result.success(leaderboardService.getIncomeLeaderboard(userId, periodType, periodValue));
     }
 
+    @GetMapping("/invite")
+    public Result<CoinLeaderboardVO> invite() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("Get invite leaderboard, userId={}", userId);
+        return Result.success(leaderboardService.getInviteLeaderboard(userId));
+    }
+
     @PostMapping(value = "/income-submissions", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Result<IncomeSubmissionVO> submit(@RequestParam(name = "periodMonth") String periodMonth,
                                               @RequestParam(name = "amount") BigDecimal amount,

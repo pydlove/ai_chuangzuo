@@ -8,6 +8,7 @@ import com.aichuangzuo.user.modules.recommendedcreation.dto.request.UpdateSessio
 import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationSession;
 import com.aichuangzuo.user.modules.recommendedcreation.entity.RecommendedCreationTopicHistory;
 import com.aichuangzuo.shared.enums.error.RecommendedCreationErrorCode;
+import com.aichuangzuo.user.modules.platform.mapper.PlatformMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationSessionMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.mapper.RecommendedCreationTopicHistoryMapper;
 import com.aichuangzuo.user.modules.recommendedcreation.service.impl.RecommendedCreationServiceImpl;
@@ -38,10 +39,11 @@ class RecommendedCreationServiceImplTest {
     private final GenerationTaskService generationTaskService = mock(GenerationTaskService.class);
     private final RecommendedCreationSessionMapper sessionMapper = mock(RecommendedCreationSessionMapper.class);
     private final RecommendedCreationTopicHistoryMapper topicHistoryMapper = mock(RecommendedCreationTopicHistoryMapper.class);
+    private final PlatformMapper platformMapper = mock(PlatformMapper.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private RecommendedCreationServiceImpl service() {
-        return new RecommendedCreationServiceImpl(aiService, planService, generationTaskService, sessionMapper, topicHistoryMapper, objectMapper);
+        return new RecommendedCreationServiceImpl(aiService, planService, generationTaskService, sessionMapper, topicHistoryMapper, platformMapper, objectMapper);
     }
 
     private SelfMediaPlanVO mockPlan() {
@@ -169,6 +171,7 @@ class RecommendedCreationServiceImplTest {
         session.setPrompt("提示词");
         session.setTemplate("xiaohongshu-default");
         when(sessionMapper.selectByUserId(1L)).thenReturn(session);
+        when(platformMapper.selectCount(any())).thenReturn(1L);
         when(generationTaskService.submit(any(GenerationSubmitRequest.class), eq(1L))).thenReturn(new GenerationTaskVO());
 
         service().submitGeneration(1L);
@@ -181,6 +184,28 @@ class RecommendedCreationServiceImplTest {
         assertEquals("xiaohongshu-default", captor.getValue().getTemplate());
         assertEquals("completed", session.getStatus());
         verify(sessionMapper).updateById(session);
+    }
+
+    @Test
+    void submitGeneration_shouldBlankPlatformWhenTemplateHasNoPlatformPrefix() throws Exception {
+        RecommendedCreationSession session = new RecommendedCreationSession();
+        session.setId(1L);
+        session.setUserId(1L);
+        session.setCurrentStep(5);
+        session.setSelectedTopicJson(objectMapper.writeValueAsString(new TopicOptionVO() {{ setId("t1"); setTitle("选题1"); }}));
+        session.setSelectedAnglesJson(objectMapper.writeValueAsString(List.of(new AngleOptionVO() {{ setId("a1"); setText("观点1"); }})));
+        session.setWordCount(1500);
+        session.setPrompt("提示词");
+        session.setTemplate("marketing");
+        when(sessionMapper.selectByUserId(1L)).thenReturn(session);
+        when(platformMapper.selectCount(any())).thenReturn(0L);
+        when(generationTaskService.submit(any(GenerationSubmitRequest.class), eq(1L))).thenReturn(new GenerationTaskVO());
+
+        service().submitGeneration(1L);
+
+        ArgumentCaptor<GenerationSubmitRequest> captor = ArgumentCaptor.forClass(GenerationSubmitRequest.class);
+        verify(generationTaskService).submit(captor.capture(), eq(1L));
+        assertEquals("", captor.getValue().getPlatform());
     }
 
     @Test

@@ -42,9 +42,11 @@ public class PlanAdminServiceImpl implements PlanAdminService {
         Plan entity = existing == null ? new Plan() : existing;
         entity.setPlanKey(req.getPlanKey());
         entity.setDisplayName(req.getDisplayName());
+        entity.setDisplayNameEn(req.getDisplayNameEn());
         entity.setSortOrder(req.getSortOrder());
         entity.setRecommended(req.getRecommended());
         entity.setPriceMonthly(req.getPriceMonthly());
+        entity.setFirstMonthPrice(req.getFirstMonthPrice());
         entity.setPriceQuarter(req.getPriceQuarter());
         entity.setPriceYear(req.getPriceYear());
         entity.setOriginalMonthly(req.getOriginalMonthly());

@@ -26,6 +26,14 @@ export function listWithdrawals() {
 }
 
 /**
+ * 查询全站最近的提现成功动态（工作台滚动条）。
+ * @returns {Promise<Array<{nickname:string, amount:number, processedAt:string}>>}
+ */
+export function listRecentSuccessWithdrawals(limit = 10) {
+  return api.get('/account/withdrawals/recent-success', { params: { limit } }).then((res) => res.data || [])
+}
+
+/**
  * 申请提现。
  * @param {{amount:number, account:string}} data
  * @returns {Promise<string>} 提现业务编号

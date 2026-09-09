@@ -65,16 +65,21 @@
             <div class="invite-panel">
               <div class="invite-header">
                 <span class="invite-title">🎁 邀请有礼</span>
-                <a-tooltip title="点击复制 ID">
-                  <button class="invite-user-id" @click="copyUserId(userId)">
-                    <span class="invite-user-id-label">我的 ID</span>
-                    <b class="invite-user-id-value">{{ userId }}</b>
-                    <Icon name="copy" class="invite-user-id-copy" :size="12" />
+                <div class="invite-header__right">
+                  <button class="invite-rank-entry-btn" @click="invitePanelView = 'rank'">
+                    🏆 邀请排行榜
                   </button>
-                </a-tooltip>
+                  <a-tooltip title="点击复制 ID">
+                    <button class="invite-user-id" @click="copyUserId(userId)">
+                      <span class="invite-user-id-label">我的 ID</span>
+                      <b class="invite-user-id-value">{{ userId }}</b>
+                      <Icon name="copy" class="invite-user-id-copy" :size="12" />
+                    </button>
+                  </a-tooltip>
+                </div>
               </div>
 
-              <div class="invite-content">
+              <div v-if="invitePanelView === 'main'" class="invite-content">
                 <!-- 活动规则 -->
                 <div class="invite-rules">
                   <div class="invite-rules-header">
@@ -89,7 +94,7 @@
                     <span class="invite-rule-label">💰 创作币返利</span>
                     <span class="invite-rule-text">
                       <u class="invite-rule-underline">推荐新客下单即获得奖励，一次邀请终身享受订单返佣红利</u>。<br>
-                      好友首次购买返 10%，续费返 5%（10 创作币 = 1 元，满 1000 可提现至支付宝）。
+                      好友首次购买返 10%，续费返 5%（按实付金额计，10 创作币 = 1 元，满 1000 可提现至支付宝）。
                     </span>
                   </div>
                   <div class="invite-rule-item">
@@ -195,7 +200,18 @@
                 </div>
               </div>
 
-              <div v-if="inviteAutoOpened" class="invite-modal-auto-footer">
+              <div v-else class="invite-rank-view">
+                <div class="invite-rank-view__bar">
+                  <button class="invite-rank-view__back" @click="invitePanelView = 'main'">‹ 返回</button>
+                  <span class="invite-rank-view__title">🏆 邀请排行榜</span>
+                  <span class="invite-rank-view__spacer"></span>
+                </div>
+                <div class="invite-rank-view__body">
+                  <InviteLeaderboardPanel />
+                </div>
+              </div>
+
+              <div v-if="inviteAutoOpened && invitePanelView === 'main'" class="invite-modal-auto-footer">
                 <a-checkbox v-model:checked="inviteModalDontShow">我已经知道，不再弹出</a-checkbox>
               </div>
             </div>
@@ -264,6 +280,7 @@
                     <li>累计邀请 3 人奖励 30 创作币；累计邀请 5 人奖励 50 创作币。</li>
                     <li>超过 5 人后，每多邀请 1 人额外奖励 20 创作币，创作币可累计叠加。</li>
                     <li>好友首次购买会员可获 10% 创作币返佣，续费返佣 5%，返佣以创作币形式即时到账。</li>
+                    <li>返佣金额按好友的<b>现金实付金额</b>计算，使用优惠券、创作币抵扣的部分不计入返佣。</li>
                     <li>被邀请的好友通过你的链接首次下单后，该笔订单视为你邀请的返佣订单。</li>
                     <li>好友需先建立邀请关系再购买会员；若先购买会员、再绑定邀请关系，首购订单不计入邀请返佣，但绑定后好友的后续续费仍可享受续费返佣。</li>
                   </ul>
@@ -1484,6 +1501,7 @@ import CoinInfoTooltip from '@/components/CoinInfoTooltip.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
 import AppFooter from '@/components/layout/AppFooter.vue'
 import SliderCaptcha from '@/components/SliderCaptcha.vue'
+import InviteLeaderboardPanel from '@/components/common/InviteLeaderboardPanel.vue'
 import CreateFlowLauncher from '@/components/CreateFlowLauncher.vue'
 import Icon from '@/components/common/Icon.vue'
 import StatCard from '@/components/common/StatCard.vue'
@@ -1605,6 +1623,7 @@ const pageTitleMap = {
   '/console/activities': '活动',
   '/console/works': '我的作品',
   '/console/skills': '我的提示词',
+  '/console/plan-gallery': '运营方案库',
   '/console/skill-market': '提示词市场',
   '/console/earnings': '我的账户',
   '/console/benefits': '我的权益',
@@ -1712,6 +1731,7 @@ const handleInviteClose = () => {
   }
   inviteAutoOpened.value = false
   inviteModalDontShow.value = false
+  invitePanelView.value = 'main'
 }
 
 const newcomerModalGoToPricing = () => {
@@ -1823,6 +1843,11 @@ const notifTypeLabel = (n) => {
     if (n.subType === 'subscribed') return '订阅成功'
     if (n.subType === 'invite_reward') return '邀请奖励'
     return '会员提醒'
+  }
+  if (n.type === 'coin') {
+    if (n.subType === 'withdraw_approved') return '提现到账'
+    if (n.subType === 'invite_reward') return '邀请奖励'
+    return '创作币'
   }
   const tab = notifTabs.find(t => t.type === n.type)
   return tab ? tab.label : n.type
@@ -2288,7 +2313,7 @@ const sendPhoneCode = async () => {
     return
   }
   try {
-    await sendSmsCodeApi({ phone })
+    await sendSmsCodeApi({ phone, scene: 'bind_phone' })
     message.success('验证码已发送，请查收短信')
     startPhoneCodeCountdown()
   } catch (e) {
@@ -2301,7 +2326,7 @@ watch(phoneSliderPassed, async (val) => {
   phoneSliderSending = true
   try {
     const phone = phoneForm.newPhone.trim()
-    await sendSmsCodeApi({ phone })
+    await sendSmsCodeApi({ phone, scene: 'bind_phone' })
     startPhoneCodeCountdown()
     message.success('验证码已发送，请查收短信')
   } catch (e) {
@@ -2712,6 +2737,7 @@ const submitRedeem = () => {
 }
 
 const inviteVisible = ref(false)
+const invitePanelView = ref('main')
 const withdrawVisible = ref(false)
 const inviteRulesVisible = ref(false)
 const posterVisible = ref(false)
@@ -3086,6 +3112,7 @@ const openInviteModal = () => {
   loadInviteStats()
   loadShareConfig()
   inviteFriendPage.value = 1
+  invitePanelView.value = 'main'
   inviteVisible.value = true
 }
 
@@ -3170,7 +3197,7 @@ const currentNotifs = computed(() => {
     .filter(n => {
       if (activeTab.value === 'all') return true
       if (activeTab.value === 'station') {
-        return n.type === 'membership' || n.type === 'reward'
+        return n.type === 'membership' || n.type === 'reward' || n.type === 'coin'
       }
       return n.type === activeTab.value
     })
@@ -5732,6 +5759,82 @@ body[data-theme="dark"] .password-input::placeholder {
   padding-bottom: 4px;
 }
 
+.invite-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.invite-rank-entry-btn {
+  padding: 5px 12px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fff0f2 100%);
+  border: 1px solid #ffe082;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #ad6800;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-rank-entry-btn:hover {
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.25);
+}
+
+.invite-rank-view {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 560px;
+  max-height: calc(80vh - 60px);
+}
+
+.invite-rank-view__bar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.invite-rank-view__back {
+  padding: 4px 10px;
+  background: #f8f9fa;
+  border: 1px solid #f0f0f0;
+  border-radius: 10px;
+  font-size: 12px;
+  color: #595959;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.invite-rank-view__back:hover {
+  color: var(--color-primary);
+  border-color: var(--color-primary);
+}
+
+.invite-rank-view__title {
+  flex: 1;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.invite-rank-view__spacer {
+  width: 56px;
+}
+
+.invite-rank-view__body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 20px;
+  background: #fafafa;
+}
+
 .invite-modal-auto-footer {
   flex-shrink: 0;
   display: flex;
@@ -6561,6 +6664,30 @@ body[data-theme="dark"] .invite-user-id-value {
 
 body[data-theme="dark"] .invite-user-id:hover .invite-user-id-copy {
   color: #ff4d6f;
+}
+
+body[data-theme="dark"] .invite-rank-entry-btn {
+  background: linear-gradient(135deg, #3a2a1a 0%, #3a1f2a 100%);
+  border-color: rgba(255, 193, 7, 0.3);
+  color: #ffd666;
+}
+
+body[data-theme="dark"] .invite-rank-view__bar {
+  border-bottom-color: #303030;
+}
+
+body[data-theme="dark"] .invite-rank-view__back {
+  background: #262626;
+  border-color: #303030;
+  color: #a6a6a6;
+}
+
+body[data-theme="dark"] .invite-rank-view__title {
+  color: #e0e0e0;
+}
+
+body[data-theme="dark"] .invite-rank-view__body {
+  background: #141414;
 }
 
 body[data-theme="dark"] .invite-stats {

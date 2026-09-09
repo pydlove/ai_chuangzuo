@@ -338,7 +338,7 @@ public class PaymentServiceImpl implements PaymentService {
         if (completed) {
             boolean rewarded = alreadyRewarded(order.getId());
             vo.setInviterRewarded(rewarded);
-            vo.setRewardAmount(rewarded ? calculateInviteReward(order.getTotalAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
+            vo.setRewardAmount(rewarded ? calculateInviteReward(order.getAmount(), isFirstPurchase(userId, order.getId())) : BigDecimal.ZERO);
         }
         return vo;
     }
@@ -378,6 +378,11 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         BigDecimal basePrice = resolveCyclePrice(plan, cycleCode);
+
+        // 首月价：月付周期 + 配置了首月价 + 首次购买（无任何成功支付订单）；与新人特惠（flagship/年付）无交集
+        if ("month".equals(cycleCode) && plan.getFirstMonthPrice() != null && isFirstPurchase(userId)) {
+            return plan.getFirstMonthPrice();
+        }
 
         boolean eligibleForNewcomer = NEWCOMER_PLAN_KEY.equals(planKey)
                 && NEWCOMER_CYCLE.equals(cycleCode)
@@ -600,7 +605,12 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         boolean firstPurchase = isFirstPurchase(userId, order.getId());
-        BigDecimal reward = calculateInviteReward(order.getTotalAmount(), firstPurchase);
+        // 分佣按现金实付金额（amount），不含优惠券与创作币抵扣
+        BigDecimal reward = calculateInviteReward(order.getAmount(), firstPurchase);
+        // 实付 0 元（创作币/券全额抵扣）不产生邀请奖励
+        if (reward.compareTo(BigDecimal.ZERO) <= 0) {
+            return false;
+        }
 
         User invitee = userMapper.selectById(userId);
         String inviteeName = invitee == null ? "好友" : (invitee.getNickname() == null ? "好友" : invitee.getNickname());
@@ -612,9 +622,19 @@ public class PaymentServiceImpl implements PaymentService {
 
         String settlementMonth = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM"));
         earningsService.recordInviteRewardEarnings(inviterId, userId, plan.getKey(), planName,
-                order.getCycle(), order.getTotalAmount(), firstPurchase,
+                order.getCycle(), order.getAmount(), firstPurchase,
                 firstPurchase ? FIRST_PURCHASE_RATE : RENEWAL_RATE, reward, settlementMonth);
         return true;
+    }
+
+    /** 下单前的首购判断：无任何成功支付订单即视为首次购买。 */
+    private boolean isFirstPurchase(Long userId) {
+        Long paidCount = orderMapper.selectCount(
+                new LambdaQueryWrapper<Order>()
+                        .eq(Order::getUserId, userId)
+                        .eq(Order::getStatus, 1)
+        );
+        return paidCount == null || paidCount == 0;
     }
 
     private boolean isFirstPurchase(Long userId, Long currentOrderId) {

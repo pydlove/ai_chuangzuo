@@ -254,6 +254,9 @@
       <button class="float-btn primary" @click="exportWord">
         导出 Word
       </button>
+      <button class="float-btn outline" @click="copyTitle">
+        复制标题
+      </button>
       <button class="float-btn outline" @click="copyText">
         复制正文
       </button>
@@ -986,6 +989,17 @@ const { copy: copyTagsText } = useCopy({
   successText: '标签已复制',
   errorText: '复制失败'
 })
+
+const { copy: copyTitleText } = useCopy({
+  successText: '标题已复制',
+  errorText: '复制失败'
+})
+
+// 复制标题
+const copyTitle = () => {
+  if (!article.value) return
+  copyTitleText(article.value.title)
+}
 
 // 复制正文
 const copyText = () => {

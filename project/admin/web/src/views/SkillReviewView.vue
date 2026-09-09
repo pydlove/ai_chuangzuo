@@ -96,6 +96,15 @@
             >
               打回
             </a-button>
+            <a-button
+              v-if="activeTab === 'pending'"
+              type="link"
+              size="small"
+              danger
+              @click="openDeleteModal(record)"
+            >
+              删除
+            </a-button>
           </template>
         </template>
       </a-table>
@@ -165,6 +174,24 @@
       </div>
     </a-modal>
 
+    <!-- 删除脏数据弹框 -->
+    <a-modal
+      v-model:open="deleteVisible"
+      title="删除审核记录"
+      ok-text="确认删除"
+      cancel-text="取消"
+      :ok-button-props="{ danger: true }"
+      :confirm-loading="deleteSubmitting"
+      @ok="confirmDelete"
+    >
+      <p v-if="deleteTarget">提示词名称：<strong>{{ deleteTarget.name }}</strong></p>
+      <p v-if="deleteTarget" style="margin-top: 8px">创作者：<strong>{{ deleteTarget.creatorName }}</strong></p>
+      <p style="margin-top: 16px; color: #595959">
+        仅用于清理脏数据（用户已撤销或从未提交的残留记录）。删除后该记录将转为用户的草稿并移出审核列表；
+        真实待审核的提交无法删除，请使用通过或打回。是否确认？
+      </p>
+    </a-modal>
+
     <!-- 查看原因弹框 -->
     <a-modal
       v-model:open="reasonVisible"
@@ -232,7 +259,8 @@ const {
   handleTabChange,
   handleReject,
   handleApprove,
-  handleApproveBatch
+  handleApproveBatch,
+  handleDelete
 } = useSkillReview()
 
 const columns = [
@@ -242,7 +270,7 @@ const columns = [
   { title: '创作者', dataIndex: 'creatorName', key: 'creatorName', width: 120 },
   { title: '提交时间', dataIndex: 'createdAt', key: 'createdAt', width: 170 },
   { title: '状态', dataIndex: 'status', key: 'status', width: 160 },
-  { title: '操作', key: 'actions', width: 120 }
+  { title: '操作', key: 'actions', width: 170 }
 ]
 
 const rejectVisible = ref(false)
@@ -259,6 +287,10 @@ const batchApproveSubmitting = ref(false)
 
 const reasonVisible = ref(false)
 const reasonTarget = ref(null)
+
+const deleteVisible = ref(false)
+const deleteTarget = ref(null)
+const deleteSubmitting = ref(false)
 
 const detailVisible = ref(false)
 const detailTarget = ref(null)
@@ -333,6 +365,21 @@ const confirmReject = async () => {
   rejectSubmitting.value = false
   if (ok) {
     rejectVisible.value = false
+  }
+}
+
+const openDeleteModal = (skill) => {
+  deleteTarget.value = skill
+  deleteVisible.value = true
+}
+
+const confirmDelete = async () => {
+  if (!deleteTarget.value) return
+  deleteSubmitting.value = true
+  const ok = await handleDelete(deleteTarget.value)
+  deleteSubmitting.value = false
+  if (ok) {
+    deleteVisible.value = false
   }
 }
 

@@ -201,6 +201,8 @@
         <AgreementCheckbox v-model="agreed" :shake-count="agreementShakeCount" />
 
         <button class="submit-btn" @click="handleRegister">注册</button>
+
+        <CustomerServiceGiftCard class="register-gift-card" />
       </div>
 
       <!-- 扫码登录 -->
@@ -288,6 +290,7 @@ import GridClickCaptcha from '@/components/GridClickCaptcha.vue'
 import PullToRefresh from '@/components/PullToRefresh.vue'
 import MobileLogin from '@/views/MobileLogin.vue'
 import AgreementCheckbox from '@/components/AgreementCheckbox.vue'
+import CustomerServiceGiftCard from '@/components/CustomerServiceGiftCard.vue'
 import { useDevice } from '@/composables/useDevice.js'
 import { useLogin } from '@/composables/useLogin.js'
 import { landingNavLinks, landingTopCta } from '@/data/siteConfig.js'
@@ -404,13 +407,13 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .login-page {
-  height: 100dvh;
+  min-height: 100dvh;
   background: linear-gradient(180deg, #f0f5ff 0%, #fff 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -690,6 +693,11 @@ body[data-theme="dark"] .remember-label {
   font-size: 13px;
   color: #d9d9d9;
   margin: 0 4px;
+}
+
+/* 注册页客服福利卡片 */
+.register-gift-card {
+  margin-top: 20px;
 }
 
 /* 底部 */

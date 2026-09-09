@@ -128,6 +128,14 @@ export const homeSteps = {
   ]
 }
 
+/** 会员价格区 */
+export const homePricing = {
+  tag: 'PRICING',
+  title: '会员套餐',
+  subtitle: '首月特惠，按需订阅，到期自动恢复免费版',
+  ctaText: '立即开通'
+}
+
 /** 最终 CTA 区 */
 export const homeFinalCta = {
   title: '现在起号，搭一条可执行的自媒体流水线',

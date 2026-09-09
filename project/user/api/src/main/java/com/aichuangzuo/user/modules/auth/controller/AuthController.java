@@ -52,7 +52,7 @@ public class AuthController {
     public Result<Void> sendSmsCode(@Valid @RequestBody SendSmsCodeRequest request, HttpServletRequest httpRequest) {
         String clientIp = getClientIp(httpRequest);
         log.info("发送短信验证码, userId={}, phone={}", SecurityUserContext.getCurrentUserId(), request.getPhone());
-        smsCodeService.sendSmsCode(request.getPhone(), clientIp);
+        smsCodeService.sendSmsCode(request.getPhone(), clientIp, request.getScene());
         return Result.success();
     }
 

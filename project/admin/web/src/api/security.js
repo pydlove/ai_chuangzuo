@@ -39,3 +39,7 @@ export const getSmsConfig = () =>
 /** 更新短信配置。 */
 export const updateSmsConfig = (payload) =>
   request.put('/security/sms-config', payload).then((res) => res.data)
+
+/** 查询短信发送记录（分页）。 */
+export const fetchSmsSendRecords = (params = {}) =>
+  request.get('/security/sms-config/records', { params }).then((res) => res.data)

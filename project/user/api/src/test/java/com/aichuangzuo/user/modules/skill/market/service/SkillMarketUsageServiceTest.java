@@ -8,7 +8,6 @@ import com.aichuangzuo.user.modules.leaderboard.service.CoinRecordService;
 import com.aichuangzuo.user.modules.skill.market.entity.SkillMarket;
 import com.aichuangzuo.user.modules.skill.market.mapper.SkillMarketMapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -54,8 +53,8 @@ class SkillMarketUsageServiceTest {
 
         service.recordUsage("SK123", 2L);
 
-        verify(coinRecordService).grant(100L, "skill_market_usage", new BigDecimal("2.00"), "SK123", "提示词使用收益：爆款标题");
-        verify(skillMarketMapper).update(any(), any(LambdaUpdateWrapper.class));
+        verify(coinRecordService).grant(100L, "skill_market_usage", new BigDecimal("2.00"), "ER123", "提示词使用收益：爆款标题");
+        verify(skillMarketMapper).incrementUsageStats(1L, new BigDecimal("2.00"));
 
         ArgumentCaptor<EarningsRecord> captor = ArgumentCaptor.forClass(EarningsRecord.class);
         verify(earningsRecordMapper).insert(captor.capture());
@@ -69,6 +68,25 @@ class SkillMarketUsageServiceTest {
     }
 
     @Test
+    void recordUsage_shouldGrantCoinOnEveryUsageOfSameSkill() {
+        SkillMarket skill = new SkillMarket();
+        skill.setId(1L);
+        skill.setBizNo("SK123");
+        skill.setSkillName("爆款标题");
+        skill.setPublisherUserId(100L);
+        skill.setAuditStatus(1);
+        when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(skill);
+        when(earningsService.nextBizNo()).thenReturn("ER1", "ER2");
+
+        service.recordUsage("SK123", 2L);
+        service.recordUsage("SK123", 3L);
+
+        verify(coinRecordService).grant(100L, "skill_market_usage", new BigDecimal("2.00"), "ER1", "提示词使用收益：爆款标题");
+        verify(coinRecordService).grant(100L, "skill_market_usage", new BigDecimal("2.00"), "ER2", "提示词使用收益：爆款标题");
+        verify(earningsRecordMapper, org.mockito.Mockito.times(2)).insert(any(EarningsRecord.class));
+    }
+
+    @Test
     void recordUsage_shouldNoopWhenSkillNotFound() {
         when(skillMarketMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
 
@@ -76,7 +94,7 @@ class SkillMarketUsageServiceTest {
 
         verify(coinRecordService, never()).grant(any(), any(), any(), any(), any());
         verify(earningsRecordMapper, never()).insert(any(EarningsRecord.class));
-        verify(skillMarketMapper, never()).update(any(), any(LambdaUpdateWrapper.class));
+        verify(skillMarketMapper, never()).incrementUsageStats(any(), any());
     }
 
     @Test
@@ -91,6 +109,6 @@ class SkillMarketUsageServiceTest {
 
         verify(coinRecordService, never()).grant(any(), any(), any(), any(), any());
         verify(earningsRecordMapper, never()).insert(any(EarningsRecord.class));
-        verify(skillMarketMapper, never()).update(any(), any(LambdaUpdateWrapper.class));
+        verify(skillMarketMapper, never()).incrementUsageStats(any(), any());
     }
 }

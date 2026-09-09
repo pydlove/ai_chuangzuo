@@ -5,6 +5,10 @@ import com.aichuangzuo.user.infrastructure.security.SecurityUserContext;
 import com.aichuangzuo.user.modules.skill.dto.request.AnalyzeSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.CreateSkillRequest;
 import com.aichuangzuo.user.modules.skill.dto.request.UpdateSkillRequest;
+import com.aichuangzuo.user.modules.skill.generate.dto.GenerateSkillRequest;
+import com.aichuangzuo.user.modules.skill.generate.service.SkillGenerateService;
+import com.aichuangzuo.user.modules.skill.generate.vo.SkillGenerateStatusVO;
+import com.aichuangzuo.user.modules.skill.generate.vo.SkillGenerateVO;
 import com.aichuangzuo.user.modules.skill.service.SkillAnalyzeService;
 import com.aichuangzuo.user.modules.skill.service.SystemSkillService;
 import com.aichuangzuo.user.modules.skill.service.UserSkillService;
@@ -36,6 +40,7 @@ public class UserSkillController {
     private final UserSkillService userSkillService;
     private final SystemSkillService systemSkillService;
     private final SkillAnalyzeService skillAnalyzeService;
+    private final SkillGenerateService skillGenerateService;
 
     /**
      * 分页获取当前登录用户的风格列表。
@@ -146,5 +151,32 @@ public class UserSkillController {
         Long userId = SecurityUserContext.getCurrentUserId();
         log.info("AI 分析参考文章写作风格 userId={} textLength={}", userId, request.getText() == null ? 0 : request.getText().length());
         return Result.success(skillAnalyzeService.analyze(userId, request.getText()));
+    }
+
+    /**
+     * 小爱帮写状态：套餐权限 + 今日剩余次数。
+     */
+    @Operation(summary = "小爱帮写状态")
+    @GetMapping("/generate/status")
+    public Result<SkillGenerateStatusVO> generateSkillStatus() {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        return Result.success(skillGenerateService.status(userId));
+    }
+
+    /**
+     * 小爱帮写：根据运营方案或描述方向 AI 生成结构化提示词。
+     *
+     * <p>专业版及以上可用，每日限 4 次。
+     *
+     * @param request 含运营方案或提示词描述方向（10-1000 字）
+     * @return 生成结果（回填新增表单后可编辑保存）
+     */
+    @Operation(summary = "小爱帮写生成提示词")
+    @PostMapping("/generate")
+    public Result<SkillGenerateVO> generateSkill(@Valid @RequestBody GenerateSkillRequest request) {
+        Long userId = SecurityUserContext.getCurrentUserId();
+        log.info("小爱帮写生成提示词 userId={} requirementLength={}", userId,
+                request.getRequirement() == null ? 0 : request.getRequirement().length());
+        return Result.success(skillGenerateService.generate(userId, request.getRequirement()));
     }
 }

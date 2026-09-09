@@ -21,7 +21,10 @@ public enum SkillErrorCode implements ErrorCode {
     SKILL_MARKET_NOT_OWNER(112008, "无权操作该提示词"),
     SKILL_MARKET_PUBLISH_QUOTA_EXCEEDED(112009, "本月提示词发布次数已达上限，升级套餐可发布更多提示词"),
     SKILL_ANALYZE_DAILY_LIMIT_EXCEEDED(112010, "今日的分析额度已经用完，明天再来吧"),
-    SKILL_LEARN_QUOTA_EXCEEDED(112011, "本月学习额度已用完，升级套餐可获得更多额度");
+    SKILL_LEARN_QUOTA_EXCEEDED(112011, "本月学习额度已用完，升级套餐可获得更多额度"),
+    SKILL_GENERATE_PLAN_REQUIRED(112012, "小爱帮写为专业版及以上功能，升级后即可使用"),
+    SKILL_GENERATE_DAILY_LIMIT_EXCEEDED(112013, "今日的帮写额度已用完（每天 4 次），明天再来吧"),
+    SKILL_GENERATE_FAILED(112014, "提示词生成失败，请重试");
 
     private final int code;
     private final String message;
