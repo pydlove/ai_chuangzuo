@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.simulation.client.SimulationUserApiClient;
 import com.aichuangzuo.admin.modules.simulation.config.SimulationStageConfig;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationBatch;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationRobot;
+import com.aichuangzuo.admin.modules.simulation.mapper.SimulationRobotMapper;
 import com.aichuangzuo.admin.modules.simulation.service.SimulationProfileGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -20,6 +21,7 @@ public class RobotContext {
     public final SimulationUserApiClient userApi;
     public final SimulationProfileGenerator profileGenerator;
     public final AvatarFetcher avatarFetcher;
+    public final SimulationRobotMapper robotMapper;
     public final ObjectMapper objectMapper;
 
     public RobotContext(SimulationBatch batch,
@@ -29,6 +31,7 @@ public class RobotContext {
                         SimulationUserApiClient userApi,
                         SimulationProfileGenerator profileGenerator,
                         AvatarFetcher avatarFetcher,
+                        SimulationRobotMapper robotMapper,
                         ObjectMapper objectMapper) {
         this.batch = batch;
         this.config = config;
@@ -37,6 +40,7 @@ public class RobotContext {
         this.userApi = userApi;
         this.profileGenerator = profileGenerator;
         this.avatarFetcher = avatarFetcher;
+        this.robotMapper = robotMapper;
         this.objectMapper = objectMapper;
     }
 }

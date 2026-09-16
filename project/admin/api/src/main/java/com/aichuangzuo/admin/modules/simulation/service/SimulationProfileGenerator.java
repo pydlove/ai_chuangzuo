@@ -24,10 +24,31 @@ public class SimulationProfileGenerator {
     private final GenerationAiService generationAiService;
     private final ModelConfigMapper modelConfigMapper;
 
-    public String generateNickname() {
+    /** 随机风格标签：让不同机器人的昵称风格分散，避免扎堆"晚风/拾光"类近似词。 */
+    private static final String[] STYLE_HINTS = {
+            "像一个分享日常美食的博主", "像一个科技数码爱好者", "像一个到处旅行的背包客",
+            "像一个记录职场成长的打工人", "像一个爱读书的文化人", "像一个带娃的日常博主",
+            "像一个健身运动爱好者", "像一个爱讲冷笑话的段子手", "像一个街头摄影爱好者",
+            "像一个音乐发烧友", "像一个手作DIY达人", "像一个炒股理财老韭菜",
+            "像一个养猫养狗铲屎官", "像一个爱种花的园艺爱好者", "像一个追剧的影视解说",
+            "像一个穿搭博主", "像一个钓鱼佬", "像一个咖啡爱好者",
+            "像一个历史人文爱好者", "像一个英语学习打卡者"
+    };
+
+    /**
+     * 生成昵称；excludeNames 为已用过的昵称（禁止重复，也避免与其用字过于相近）。
+     */
+    public String generateNickname(java.util.List<String> excludeNames) {
+        String style = STYLE_HINTS[java.util.concurrent.ThreadLocalRandom.current().nextInt(STYLE_HINTS.length)];
+        String avoid = "";
+        if (excludeNames != null && !excludeNames.isEmpty()) {
+            int end = Math.min(excludeNames.size(), 30);
+            avoid = "以下昵称已被使用，绝对禁止使用其中的任何字词组合，也禁止起与它们风格雷同的名字："
+                    + String.join("、", excludeNames.subList(0, end)) + "。";
+        }
         return call(
                 "你是网名生成器。只输出昵称本身，不要引号、不要解释、不要标点。",
-                "生成1个中文网名，2-6个字，像一个真实的自媒体博主，有网感但不低俗。直接输出昵称。");
+                "生成1个中文网名，2-6个字，" + style + "，有网感但不低俗。" + avoid + "直接输出昵称。");
     }
 
     public String generateBio(String nickname) {

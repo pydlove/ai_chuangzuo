@@ -41,7 +41,7 @@ class SimulationProfileGeneratorTest {
         when(generationAiService.call(anyLong(), anyString(), anyString(), isNull(), anyBoolean()))
                 .thenReturn(new AiCallResult("\"山茶星球\"\n", 1, 1, 2));
 
-        String nickname = generator.generateNickname();
+        String nickname = generator.generateNickname(java.util.List.of("晚风收信人"));
 
         assertEquals("山茶星球", nickname);
         verify(generationAiService).call(org.mockito.ArgumentMatchers.eq(9L), anyString(), anyString(),
@@ -68,7 +68,7 @@ class SimulationProfileGeneratorTest {
     void throwsWhenNoActiveModelConfig() {
         when(modelConfigMapper.selectOne(any())).thenReturn(null);
 
-        assertThrows(BusinessException.class, () -> generator.generateNickname());
+        assertThrows(BusinessException.class, () -> generator.generateNickname(java.util.List.of()));
     }
 
     @Test

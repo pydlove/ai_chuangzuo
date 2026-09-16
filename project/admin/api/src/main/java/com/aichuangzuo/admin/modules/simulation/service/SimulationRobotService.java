@@ -133,7 +133,7 @@ public class SimulationRobotService {
         }
 
         RobotContext ctx = new RobotContext(batch, config, robot, plainPassword,
-                userApi, profileGenerator, avatarFetcher, objectMapper);
+                userApi, profileGenerator, avatarFetcher, robotMapper, objectMapper);
         SimulationStage stage = SimulationStage.valueOf(robot.getCurrentStage());
         try {
             String detail = dispatcher.dispatch(ctx);

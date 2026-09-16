@@ -34,6 +34,12 @@ public class SimulationRobot {
     /** 绑定的邀请码。 */
     private String inviteCode;
 
+    /** LLM 生成的昵称（机器人内不重复）。 */
+    private String nickname;
+
+    /** randomuser 头像编号 1-200（机器人内不重复）。 */
+    private Integer avatarImg;
+
     /** 状态 WAITING/IN_PROGRESS/COMPLETED/FAILED/CANCELED。 */
     private String status;
 

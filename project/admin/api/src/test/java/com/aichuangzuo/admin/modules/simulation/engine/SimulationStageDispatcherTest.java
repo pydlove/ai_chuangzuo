@@ -93,6 +93,6 @@ class SimulationStageDispatcherTest {
         SimulationBatch batch = new SimulationBatch();
         batch.setId(1L);
         return new RobotContext(batch, config, robot, "password",
-                null, null, null, null);
+                null, null, null, null, null);
     }
 }
