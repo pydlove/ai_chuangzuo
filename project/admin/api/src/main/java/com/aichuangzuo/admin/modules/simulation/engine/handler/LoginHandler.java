@@ -22,7 +22,8 @@ public class LoginHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
+    public String execute(RobotContext ctx) {
         tokenHolder.token(ctx);
+        return null;
     }
 }

@@ -21,12 +21,13 @@ public class SimulationStageDispatcher {
     private final List<StageHandler> handlers;
     private final SecureRandom random = new SecureRandom();
 
-    public void dispatch(RobotContext ctx) {
+    /** 分发到对应 StageHandler，返回阶段明细（写入日志 detail 列）。 */
+    public String dispatch(RobotContext ctx) {
         SimulationStage stage = SimulationStage.valueOf(ctx.robot.getCurrentStage());
         if (!enabled(stage, ctx.config)) {
             throw new StageSkippedException("阶段未启用或概率未命中");
         }
-        handlers.stream()
+        return handlers.stream()
                 .filter(h -> h.stage() == stage)
                 .findFirst()
                 .orElseThrow(() -> new BusinessException(500, "无阶段处理器: " + stage))

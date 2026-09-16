@@ -25,7 +25,7 @@ public class SimulationRobotLog {
     /** 结果 SUCCESS/FAILED/SKIPPED。 */
     private String status;
 
-    /** 明细 JSON（任务ID/耗时等）。 */
+    /** 阶段明细（奖项/文章标题/提示词/约稿任务等）。 */
     private String detail;
 
     private String errorMsg;

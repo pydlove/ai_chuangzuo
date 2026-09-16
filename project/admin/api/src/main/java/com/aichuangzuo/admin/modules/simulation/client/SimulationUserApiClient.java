@@ -113,10 +113,23 @@ public class SimulationUserApiClient {
         return data == null || data.isNull() || !data.has("id") ? null : data.get("id").asLong();
     }
 
-    public void drawLottery(String token, Long campaignId) {
+    /** 抽奖结果：奖项名 + 奖励类型 + 提示语。 */
+    public record DrawResult(String tierName, String rewardType, String message) {
+    }
+
+    /** 约稿任务摘要。 */
+    public record CommissionTaskInfo(Long id, String taskNo, String title) {
+    }
+
+    /** 抽奖；先懒领取免费次数再 draw，返回中奖结果。 */
+    public DrawResult drawLottery(String token, Long campaignId) {
         // 真实用户进抽奖页时 GET /chances 懒领取免费次数；机器人直接 draw 会 70003 没有可用抽奖次数
         getRobot("/api/v1/user/lottery/chances?campaignId=" + campaignId, token);
-        postRobot("/api/v1/user/lottery/draw", Map.of("campaignId", campaignId), token);
+        JsonNode data = postRobot("/api/v1/user/lottery/draw", Map.of("campaignId", campaignId), token);
+        return data == null ? null : new DrawResult(
+                data.has("tierName") && !data.get("tierName").isNull() ? data.get("tierName").asText() : null,
+                data.has("rewardType") && !data.get("rewardType").isNull() ? data.get("rewardType").asText() : null,
+                data.has("message") && !data.get("message").isNull() ? data.get("message").asText() : null);
     }
 
     /** 订阅会员（测试支付绿通：payCode=123456 + X-Internal-Key）。 */
@@ -186,14 +199,18 @@ public class SimulationUserApiClient {
                 ? data.get("articleBizNo").asText() : null;
     }
 
-    /** 随机取一个投稿中的约稿任务 ID；无则 null。 */
-    public Long randomOpenCommissionTaskId(String token) {
+    /** 随机取一个投稿中的约稿任务；无则 null。 */
+    public CommissionTaskInfo randomOpenCommissionTask(String token) {
         JsonNode data = getRobot("/api/v1/user/commission/tasks?status=submission&page=1&pageSize=20", token);
         if (data == null || !data.has("records") || data.get("records").isEmpty()) {
             return null;
         }
         JsonNode records = data.get("records");
-        return records.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(records.size())).get("id").asLong();
+        JsonNode r = records.get(java.util.concurrent.ThreadLocalRandom.current().nextInt(records.size()));
+        return new CommissionTaskInfo(
+                r.get("id").asLong(),
+                r.has("taskNo") && !r.get("taskNo").isNull() ? r.get("taskNo").asText() : null,
+                r.has("title") && !r.get("title").isNull() ? r.get("title").asText() : null);
     }
 
     public void submitCommission(String token, Long commissionTaskId, String articleBizNo) {

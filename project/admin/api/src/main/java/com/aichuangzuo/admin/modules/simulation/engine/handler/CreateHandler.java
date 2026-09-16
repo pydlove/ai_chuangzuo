@@ -36,8 +36,8 @@ public class CreateHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
-        tokenHolder.execute(ctx, token -> {
+    public String execute(RobotContext ctx) {
+        return tokenHolder.execute(ctx, token -> {
             List<MarketSkill> skills = ctx.userApi.listMarketSkills(
                     token, ctx.config.getPromptScope().getUserType(), 50);
             if (skills.isEmpty()) {
@@ -57,6 +57,7 @@ public class CreateHandler implements StageHandler {
             ctx.robot.setContext(node.toString());
             log.info("模拟机器人创作完成 robotId={} taskId={} articleBizNo={}",
                     ctx.robot.getId(), taskId, articleBizNo);
+            return "文章「" + title + "」 提示词「" + skill.skillName() + "」";
         });
     }
 

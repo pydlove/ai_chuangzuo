@@ -24,7 +24,7 @@ public class ProfileHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
+    public String execute(RobotContext ctx) {
         String nickname = ctx.profileGenerator.generateNickname();
         String bio = ctx.profileGenerator.generateBio(nickname);
         byte[] avatar = ctx.avatarFetcher.fetchRandomAvatar();
@@ -34,5 +34,6 @@ public class ProfileHandler implements StageHandler {
             ctx.userApi.uploadAvatar(token, avatar, "avatar.jpg");
         });
         log.info("模拟机器人资料更新完成 robotId={} nickname={}", ctx.robot.getId(), nickname);
+        return "昵称「" + nickname + "」";
     }
 }

@@ -136,11 +136,11 @@ public class SimulationRobotService {
                 userApi, profileGenerator, avatarFetcher, objectMapper);
         SimulationStage stage = SimulationStage.valueOf(robot.getCurrentStage());
         try {
-            dispatcher.dispatch(ctx);
-            advance(robot, batch, config, stage, "SUCCESS", null);
+            String detail = dispatcher.dispatch(ctx);
+            advance(robot, batch, config, stage, "SUCCESS", detail, null);
         } catch (StageSkippedException e) {
             log.info("模拟机器人阶段跳过 robotId={} stage={} reason={}", robot.getId(), stage, e.getMessage());
-            advance(robot, batch, config, stage, "SKIPPED", e.getMessage());
+            advance(robot, batch, config, stage, "SKIPPED", null, e.getMessage());
         } catch (Exception e) {
             log.warn("模拟机器人阶段失败 robotId={} stage={}", robot.getId(), stage, e);
             failStage(robot, batch, stage, e);
@@ -150,9 +150,9 @@ public class SimulationRobotService {
 
     /** 成功/跳过：写日志 → 推进到下一阶段或完结；机器人行的 userId/context 等变更一并落库。 */
     private void advance(SimulationRobot robot, SimulationBatch batch, SimulationStageConfig config,
-                         SimulationStage stage, String status, String note) {
+                         SimulationStage stage, String status, String detail, String note) {
         LocalDateTime now = LocalDateTime.now();
-        writeLog(robot, stage, status, null, note);
+        writeLog(robot, stage, status, detail, note);
 
         SimulationStage next = stage.next();
         if (next != null) {
@@ -196,6 +196,9 @@ public class SimulationRobotService {
 
     private void writeLog(SimulationRobot robot, SimulationStage stage, String status,
                           String detail, String errorMsg) {
+        if (detail != null && detail.length() > 500) {
+            detail = detail.substring(0, 500);
+        }
         SimulationRobotLog logEntry = new SimulationRobotLog();
         logEntry.setRobotId(robot.getId());
         logEntry.setBatchId(robot.getBatchId());

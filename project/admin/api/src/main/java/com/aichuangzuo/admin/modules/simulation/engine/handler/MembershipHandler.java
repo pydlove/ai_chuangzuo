@@ -22,8 +22,12 @@ public class MembershipHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
-        tokenHolder.execute(ctx, token ->
-                ctx.userApi.subscribeMembership(token, ctx.batch.getPlanKey(), ctx.batch.getCycle()));
+    public String execute(RobotContext ctx) {
+        return tokenHolder.execute(ctx, token -> {
+            ctx.userApi.subscribeMembership(token, ctx.batch.getPlanKey(), ctx.batch.getCycle());
+            String planName = ctx.batch.getPlanName() == null || ctx.batch.getPlanName().isBlank()
+                    ? ctx.batch.getPlanKey() : ctx.batch.getPlanName();
+            return "「" + planName + "」" + ctx.batch.getCycle();
+        });
     }
 }

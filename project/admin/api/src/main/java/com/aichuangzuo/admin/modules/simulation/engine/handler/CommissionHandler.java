@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.simulation.engine.handler;
 
+import com.aichuangzuo.admin.modules.simulation.client.SimulationUserApiClient;
 import com.aichuangzuo.admin.modules.simulation.engine.RobotContext;
 import com.aichuangzuo.admin.modules.simulation.engine.RobotTokenHolder;
 import com.aichuangzuo.admin.modules.simulation.engine.StageHandler;
@@ -24,17 +25,18 @@ public class CommissionHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
+    public String execute(RobotContext ctx) {
         String articleBizNo = readArticleBizNo(ctx);
         if (articleBizNo == null) {
             throw new StageSkippedException("无可投递文章");
         }
-        tokenHolder.execute(ctx, token -> {
-            Long commissionTaskId = ctx.userApi.randomOpenCommissionTaskId(token);
-            if (commissionTaskId == null) {
+        return tokenHolder.execute(ctx, token -> {
+            SimulationUserApiClient.CommissionTaskInfo task = ctx.userApi.randomOpenCommissionTask(token);
+            if (task == null) {
                 throw new StageSkippedException("无投稿中的约稿任务");
             }
-            ctx.userApi.submitCommission(token, commissionTaskId, articleBizNo);
+            ctx.userApi.submitCommission(token, task.id(), articleBizNo);
+            return "任务「" + (task.title() == null ? "" : task.title()) + "」" + task.id();
         });
     }
 

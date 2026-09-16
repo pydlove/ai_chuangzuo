@@ -21,7 +21,7 @@ public class RegisterHandler implements StageHandler {
     }
 
     @Override
-    public void execute(RobotContext ctx) {
+    public String execute(RobotContext ctx) {
         List<String> codes = ctx.userApi.randomRobotInviteCodes(1);
         String inviteCode = codes.isEmpty() ? null : codes.get(0);
         var created = ctx.userApi.createRobot(ctx.robot.getEmail(), ctx.plainPassword, inviteCode);
@@ -29,5 +29,6 @@ public class RegisterHandler implements StageHandler {
         ctx.robot.setInviteCode(inviteCode);
         log.info("模拟机器人注册成功 robotId={} userId={} inviteCode={}",
                 ctx.robot.getId(), created.userId(), inviteCode);
+        return inviteCode == null ? null : "邀请码 " + inviteCode;
     }
 }
