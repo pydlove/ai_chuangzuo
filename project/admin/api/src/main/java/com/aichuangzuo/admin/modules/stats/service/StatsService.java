@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.stats.service;
 
+import com.aichuangzuo.admin.modules.simulation.service.SimulationStatsFilterService;
 import com.aichuangzuo.admin.modules.stats.mapper.DashboardGroupRow;
 import com.aichuangzuo.admin.modules.stats.mapper.DashboardMapper;
 import com.aichuangzuo.admin.modules.stats.vo.DashboardDistributionVO;
@@ -45,47 +46,53 @@ public class StatsService {
             .build();
 
     private final DashboardMapper dashboardMapper;
+    private final SimulationStatsFilterService statsFilterService;
 
-    public StatsService(DashboardMapper dashboardMapper) {
+    public StatsService(DashboardMapper dashboardMapper,
+                        SimulationStatsFilterService statsFilterService) {
         this.dashboardMapper = dashboardMapper;
+        this.statsFilterService = statsFilterService;
     }
 
     public DashboardOverviewVO dashboard() {
-        return dashboardCache.get("dashboard", k -> loadDashboard());
+        return dashboardCache.get("dashboard:" + statsFilterService.excludeRobots(), k -> loadDashboard());
     }
 
     public DashboardTrendVO trend(int days) {
         int normalized = Math.min(Math.max(days, 7), 90);
-        return trendCache.get("trend:" + normalized, k -> loadTrend(normalized));
+        return trendCache.get("trend:" + normalized + ":" + statsFilterService.excludeRobots(),
+                k -> loadTrend(normalized));
     }
 
     public DashboardDistributionVO distribution() {
-        return distributionCache.get("distribution", k -> loadDistribution());
+        return distributionCache.get("distribution:" + statsFilterService.excludeRobots(), k -> loadDistribution());
     }
 
     private DashboardOverviewVO loadDashboard() {
+        boolean excludeRobots = statsFilterService.excludeRobots();
         return new DashboardOverviewVO(
-                dashboardMapper.countOnline(LocalDateTime.now().minus(ONLINE_WINDOW)),
-                dashboardMapper.countTodayActive(),
-                dashboardMapper.countTotalUsers(),
-                dashboardMapper.countTodayNewUsers(),
-                dashboardMapper.countValidMembers(),
-                dashboardMapper.countTotalArticles(),
-                dashboardMapper.countTodayArticles(),
-                dashboardMapper.countTodayPaidOrders(),
-                dashboardMapper.sumTodayPaidAmount(),
-                dashboardMapper.sumTotalPaidAmount(),
+                dashboardMapper.countOnline(LocalDateTime.now().minus(ONLINE_WINDOW), excludeRobots),
+                dashboardMapper.countTodayActive(excludeRobots),
+                dashboardMapper.countTotalUsers(excludeRobots),
+                dashboardMapper.countTodayNewUsers(excludeRobots),
+                dashboardMapper.countValidMembers(excludeRobots),
+                dashboardMapper.countTotalArticles(excludeRobots),
+                dashboardMapper.countTodayArticles(excludeRobots),
+                dashboardMapper.countTodayPaidOrders(excludeRobots),
+                dashboardMapper.sumTodayPaidAmount(excludeRobots),
+                dashboardMapper.sumTotalPaidAmount(excludeRobots),
                 dashboardMapper.countPendingWithdraws()
         );
     }
 
     private DashboardTrendVO loadTrend(int days) {
+        boolean excludeRobots = statsFilterService.excludeRobots();
         LocalDate fromDate = LocalDate.now().minusDays(days - 1L);
         LocalDateTime from = fromDate.atStartOfDay();
-        Map<String, Long> newUserMap = toCountMap(dashboardMapper.countDailyNewUsers(from));
-        Map<String, Long> activeMap = toCountMap(dashboardMapper.countDailyActive(fromDate));
-        Map<String, Long> articleMap = toCountMap(dashboardMapper.countDailyArticles(from));
-        Map<String, DashboardGroupRow> paidMap = dashboardMapper.countDailyPaid(from).stream()
+        Map<String, Long> newUserMap = toCountMap(dashboardMapper.countDailyNewUsers(from, excludeRobots));
+        Map<String, Long> activeMap = toCountMap(dashboardMapper.countDailyActive(fromDate, excludeRobots));
+        Map<String, Long> articleMap = toCountMap(dashboardMapper.countDailyArticles(from, excludeRobots));
+        Map<String, DashboardGroupRow> paidMap = dashboardMapper.countDailyPaid(from, excludeRobots).stream()
                 .collect(Collectors.toMap(DashboardGroupRow::getItemKey, Function.identity(), (a, b) -> a));
 
         List<DashboardTrendVO.DailyPoint> points = new ArrayList<>(days);
@@ -105,13 +112,14 @@ public class StatsService {
     }
 
     private DashboardDistributionVO loadDistribution() {
-        List<DashboardDistributionVO.Item> memberPlans = dashboardMapper.countMemberPlanDistribution().stream()
+        boolean excludeRobots = statsFilterService.excludeRobots();
+        List<DashboardDistributionVO.Item> memberPlans = dashboardMapper.countMemberPlanDistribution(excludeRobots).stream()
                 .map(r -> toItem(r, StatsService::memberPlanName))
                 .toList();
-        List<DashboardDistributionVO.Item> articlePlatforms = dashboardMapper.countArticlePlatformDistribution().stream()
+        List<DashboardDistributionVO.Item> articlePlatforms = dashboardMapper.countArticlePlatformDistribution(excludeRobots).stream()
                 .map(r -> toItem(r, StatsService::platformName))
                 .toList();
-        List<DashboardDistributionVO.Item> paidAmountByPlan = dashboardMapper.sumPaidAmountByPlan().stream()
+        List<DashboardDistributionVO.Item> paidAmountByPlan = dashboardMapper.sumPaidAmountByPlan(excludeRobots).stream()
                 .map(r -> toItem(r, StatsService::orderPlanName))
                 .toList();
         return new DashboardDistributionVO(memberPlans, articlePlatforms, paidAmountByPlan);

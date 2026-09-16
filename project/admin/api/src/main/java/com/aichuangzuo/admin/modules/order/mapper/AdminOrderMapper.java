@@ -23,19 +23,22 @@ public interface AdminOrderMapper {
                                     @Param("startDate") String startDate,
                                     @Param("endDate") String endDate,
                                     @Param("offset") long offset,
-                                    @Param("size") long size);
+                                    @Param("size") long size,
+                                    @Param("excludeRobots") boolean excludeRobots);
 
     long countPage(@Param("keyword") String keyword,
                    @Param("planKey") String planKey,
                    @Param("status") Integer status,
                    @Param("startDate") String startDate,
-                   @Param("endDate") String endDate);
+                   @Param("endDate") String endDate,
+                   @Param("excludeRobots") boolean excludeRobots);
 
     BigDecimal sumAmountPage(@Param("keyword") String keyword,
                              @Param("planKey") String planKey,
                              @Param("status") Integer status,
                              @Param("startDate") String startDate,
-                             @Param("endDate") String endDate);
+                             @Param("endDate") String endDate,
+                   @Param("excludeRobots") boolean excludeRobots);
 
     AdminOrderView selectDetailById(@Param("id") Long id);
 
@@ -69,21 +72,23 @@ public interface AdminOrderMapper {
                          @Param("operatorId") Long operatorId,
                          @Param("now") LocalDateTime now);
 
-    OrderStatsOverviewVO statsOverview();
+    OrderStatsOverviewVO statsOverview(@Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> statsTrend(@Param("days") int days);
+    List<Map<String, Object>> statsTrend(@Param("days") int days,
+                                           @Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> statsPlanDistribution();
+    List<Map<String, Object>> statsPlanDistribution(@Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> statsCycleDistribution();
+    List<Map<String, Object>> statsCycleDistribution(@Param("excludeRobots") boolean excludeRobots);
 
-    RenewalOverviewVO selectRenewalOverview();
+    RenewalOverviewVO selectRenewalOverview(@Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> selectRenewalTrend(@Param("days") int days);
+    List<Map<String, Object>> selectRenewalTrend(@Param("days") int days,
+                                                  @Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> selectRenewalPlanDistribution();
+    List<Map<String, Object>> selectRenewalPlanDistribution(@Param("excludeRobots") boolean excludeRobots);
 
-    List<Map<String, Object>> selectRenewalCycleDistribution();
+    List<Map<String, Object>> selectRenewalCycleDistribution(@Param("excludeRobots") boolean excludeRobots);
 
     List<RenewalUserVO> selectRenewalUsers(@Param("keyword") String keyword,
                                             @Param("planKey") String planKey,
@@ -91,6 +96,7 @@ public interface AdminOrderMapper {
                                             @Param("startDate") String startDate,
                                             @Param("endDate") String endDate,
                                             @Param("renewalOnly") boolean renewalOnly,
+                                            @Param("excludeRobots") boolean excludeRobots,
                                             @Param("offset") long offset,
                                             @Param("size") long size);
 
@@ -99,7 +105,8 @@ public interface AdminOrderMapper {
                           @Param("cycle") String cycle,
                           @Param("startDate") String startDate,
                           @Param("endDate") String endDate,
-                          @Param("renewalOnly") boolean renewalOnly);
+                          @Param("renewalOnly") boolean renewalOnly,
+                          @Param("excludeRobots") boolean excludeRobots);
 
     List<AdminOrderView> selectRenewalOrderPage(@Param("type") String type,
                                                 @Param("keyword") String keyword,
@@ -107,6 +114,7 @@ public interface AdminOrderMapper {
                                                 @Param("cycle") String cycle,
                                                 @Param("startDate") String startDate,
                                                 @Param("endDate") String endDate,
+                                                @Param("excludeRobots") boolean excludeRobots,
                                                 @Param("offset") long offset,
                                                 @Param("size") long size);
 
@@ -115,12 +123,14 @@ public interface AdminOrderMapper {
                                @Param("planKey") String planKey,
                                @Param("cycle") String cycle,
                                @Param("startDate") String startDate,
-                               @Param("endDate") String endDate);
+                               @Param("endDate") String endDate,
+                   @Param("excludeRobots") boolean excludeRobots);
 
     BigDecimal sumAmountRenewalOrderPage(@Param("type") String type,
                                          @Param("keyword") String keyword,
                                          @Param("planKey") String planKey,
                                          @Param("cycle") String cycle,
                                          @Param("startDate") String startDate,
-                                         @Param("endDate") String endDate);
+                                         @Param("endDate") String endDate,
+                   @Param("excludeRobots") boolean excludeRobots);
 }

@@ -21,3 +21,11 @@ export function listBatchLogs(id, params = {}) {
 export function cancelBatch(id) {
   return request.post(`${BASE}/${id}/cancel`).then((res) => res.data)
 }
+
+export function getStatsFilter() {
+  return request.get('/simulation/stats-filter').then((res) => res.data)
+}
+
+export function updateStatsFilter(includeRobots) {
+  return request.put('/simulation/stats-filter', { includeRobots }).then((res) => res.data)
+}

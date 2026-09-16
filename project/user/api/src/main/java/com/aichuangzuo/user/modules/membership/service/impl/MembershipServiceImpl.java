@@ -79,6 +79,11 @@ public class MembershipServiceImpl implements MembershipService {
 
         BigDecimal basePrice = resolveCyclePrice(plan, cycleCode);
 
+        // 首月价：月付周期 + 配置了首月价 + 首次购买（无任何成功支付订单）；与 subscribe（PaymentServiceImpl）口径保持一致
+        if ("month".equals(cycleCode) && plan.getFirstMonthPrice() != null && isFirstPurchase(userId)) {
+            return plan.getFirstMonthPrice();
+        }
+
         boolean eligibleForNewcomer = NEWCOMER_PLAN_KEY.equals(planKey)
                 && NEWCOMER_CYCLE.equals(cycleCode)
                 && isNewcomerEligible(userId);

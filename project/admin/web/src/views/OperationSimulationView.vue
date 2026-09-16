@@ -2,6 +2,12 @@
   <div class="simulation-admin">
     <a-page-header title="模拟运营" sub-title="批量生成机器人用户，走真实用户端接口产生运营数据" />
 
+    <div class="filter-card">
+      <span class="filter-label">统计数据包含机器人数据</span>
+      <a-switch v-model:checked="includeRobots" :loading="filterLoading" @change="onToggleIncludeRobots" />
+      <span class="filter-hint">关闭后，概览与订单统计将排除模拟机器人产生的数据（约 1 分钟内生效）</span>
+    </div>
+
     <a-tabs v-model:activeKey="activeKey" class="simulation-tabs">
       <!-- 模拟新用户 -->
       <a-tab-pane key="new-users" tab="模拟新用户">
@@ -129,10 +135,36 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { createBatch, listBatches, getBatch, listBatchLogs, cancelBatch } from '@/api/simulation'
+import { createBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter } from '@/api/simulation'
 import { fetchPlans } from '@/api/plan.js'
 
 const activeKey = ref('new-users')
+
+// ---------- 统计过滤开关 ----------
+const includeRobots = ref(true)
+const filterLoading = ref(false)
+
+async function loadStatsFilter() {
+  try {
+    const res = await getStatsFilter()
+    includeRobots.value = res?.includeRobots !== false
+  } catch (e) {
+    // 开关加载失败不阻断页面
+  }
+}
+
+async function onToggleIncludeRobots(checked) {
+  filterLoading.value = true
+  try {
+    await updateStatsFilter(checked)
+    message.success(checked ? '已开启：统计包含机器人数据' : '已关闭：统计将排除机器人数据')
+  } catch (e) {
+    includeRobots.value = !checked
+    message.error(e.message || '开关更新失败')
+  } finally {
+    filterLoading.value = false
+  }
+}
 
 // ---------- 批次列表 ----------
 const batches = ref([])
@@ -383,7 +415,10 @@ function formatTime(t) {
   return dayjs(t).format('MM-DD HH:mm')
 }
 
-onMounted(loadBatches)
+onMounted(() => {
+  loadBatches()
+  loadStatsFilter()
+})
 onUnmounted(() => clearTimeout(pollTimer))
 </script>
 
@@ -397,6 +432,27 @@ onUnmounted(() => clearTimeout(pollTimer))
 
 .simulation-tabs :deep(.ant-tabs-content) {
   padding-top: 8px;
+}
+
+.filter-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.filter-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #262626;
+}
+
+.filter-hint {
+  font-size: 12px;
+  color: #8c8c8c;
 }
 
 .section-bar {

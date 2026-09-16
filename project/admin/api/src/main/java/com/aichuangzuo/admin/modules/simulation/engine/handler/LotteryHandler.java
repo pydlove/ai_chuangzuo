@@ -5,6 +5,8 @@ import com.aichuangzuo.admin.modules.simulation.engine.RobotTokenHolder;
 import com.aichuangzuo.admin.modules.simulation.engine.StageHandler;
 import com.aichuangzuo.admin.modules.simulation.engine.StageSkippedException;
 import com.aichuangzuo.admin.modules.simulation.enums.SimulationStage;
+import com.aichuangzuo.shared.enums.error.LotteryErrorCode;
+import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -29,7 +31,15 @@ public class LotteryHandler implements StageHandler {
             if (campaignId == null) {
                 throw new StageSkippedException("无进行中的抽奖活动");
             }
-            ctx.userApi.drawLottery(token, campaignId);
+            try {
+                ctx.userApi.drawLottery(token, campaignId);
+            } catch (BusinessException e) {
+                // 没有抽奖次数（如活动不送免费次数）与真实用户行为一致，视为跳过而非失败
+                if (e.getCode() != null && e.getCode() == LotteryErrorCode.NO_DRAW_CHANCE.getCode()) {
+                    throw new StageSkippedException("没有可用抽奖次数");
+                }
+                throw e;
+            }
         });
     }
 }

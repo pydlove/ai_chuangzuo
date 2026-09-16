@@ -114,6 +114,8 @@ public class SimulationUserApiClient {
     }
 
     public void drawLottery(String token, Long campaignId) {
+        // 真实用户进抽奖页时 GET /chances 懒领取免费次数；机器人直接 draw 会 70003 没有可用抽奖次数
+        getRobot("/api/v1/user/lottery/chances?campaignId=" + campaignId, token);
         postRobot("/api/v1/user/lottery/draw", Map.of("campaignId", campaignId), token);
     }
 
@@ -142,10 +144,14 @@ public class SimulationUserApiClient {
         List<MarketSkill> skills = new ArrayList<>();
         if (data != null && data.has("records")) {
             for (JsonNode r : data.get("records")) {
+                // 市场列表 VO 字段：id=skill bizNo，name=skillName，creatorId=发布者用户ID
+                if (!r.has("id") || r.get("id") == null) {
+                    continue;
+                }
                 skills.add(new MarketSkill(
-                        r.get("bizNo").asText(),
-                        r.has("skillName") ? r.get("skillName").asText() : "",
-                        r.has("publisherUserId") && r.get("publisherUserId") != null ? r.get("publisherUserId").asLong() : null));
+                        r.get("id").asText(),
+                        r.has("name") ? r.get("name").asText() : "",
+                        r.has("creatorId") && r.get("creatorId") != null ? r.get("creatorId").asLong() : null));
             }
         }
         return skills;
@@ -247,7 +253,9 @@ public class SimulationUserApiClient {
 
     private HttpHeaders robotHeaders(String token) {
         HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(token);
+        if (token != null && !token.isBlank()) {
+            headers.setBearerAuth(token);
+        }
         return headers;
     }
 

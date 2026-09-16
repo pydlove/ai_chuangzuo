@@ -80,11 +80,30 @@ public class SimulationRobotService {
 
     private void process(SimulationRobot robot) {
         LocalDateTime now = LocalDateTime.now();
+        SimulationBatch batch = null;
+        try {
+            batch = doProcess(robot, now);
+        } catch (Exception e) {
+            // 兜底：任何未预期异常都要让机器人失败落库，避免卡在 IN_PROGRESS
+            log.error("模拟机器人推进异常 robotId={} stage={}", robot.getId(), robot.getCurrentStage(), e);
+            try {
+                if (batch == null) {
+                    batch = new SimulationBatch();
+                    batch.setId(robot.getBatchId());
+                }
+                failStage(robot, batch, SimulationStage.valueOf(robot.getCurrentStage()), e);
+            } catch (Exception inner) {
+                log.error("模拟机器人失败落库也异常 robotId={}", robot.getId(), inner);
+            }
+        }
+    }
+
+    private SimulationBatch doProcess(SimulationRobot robot, LocalDateTime now) {
         SimulationBatch batch;
         if (SimulationRobotStatus.WAITING.name().equals(robot.getStatus())) {
             int claimed = robotMapper.claimWaiting(robot.getId(), now);
             if (claimed == 0) {
-                return;
+                return null;
             }
             robot.setStatus(SimulationRobotStatus.IN_PROGRESS.name());
             robot.setNextRunAt(now);
@@ -110,7 +129,7 @@ public class SimulationRobotService {
         } catch (Exception e) {
             log.warn("模拟机器人上下文构建失败 robotId={}", robot.getId(), e);
             failStage(robot, batch, SimulationStage.valueOf(robot.getCurrentStage()), e);
-            return;
+            return batch;
         }
 
         RobotContext ctx = new RobotContext(batch, config, robot, plainPassword,
@@ -126,6 +145,7 @@ public class SimulationRobotService {
             log.warn("模拟机器人阶段失败 robotId={} stage={}", robot.getId(), stage, e);
             failStage(robot, batch, stage, e);
         }
+        return batch;
     }
 
     /** 成功/跳过：写日志 → 推进到下一阶段或完结；机器人行的 userId/context 等变更一并落库。 */

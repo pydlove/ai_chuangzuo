@@ -15,6 +15,7 @@ import com.aichuangzuo.admin.modules.order.payment.xunhupay.dto.XunhupayRefundRe
 import com.aichuangzuo.admin.modules.order.service.AdminOrderService;
 import com.aichuangzuo.admin.modules.order.vo.*;
 import com.aichuangzuo.admin.modules.settings.paymentconfig.entity.PaymentConfig;
+import com.aichuangzuo.admin.modules.simulation.service.SimulationStatsFilterService;
 import com.aichuangzuo.admin.modules.settings.paymentconfig.service.PaymentConfigService;
 import com.aichuangzuo.shared.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +52,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     private final AdminMembershipMapper membershipMapper;
     private final PaymentConfigService paymentConfigService;
     private final XunhupayRefundClient xunhupayRefundClient;
+    private final SimulationStatsFilterService statsFilterService;
 
     private static final long PAYMENT_CONFIG_ID = 1L;
     private static final String PAYMENT_METHOD_XUNHUPAY = "xunhupay";
@@ -61,9 +63,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
     public OrderPageVO listOrders(String keyword, String planKey, Integer status,
                                   String startDate, String endDate, int page, int pageSize) {
         long offset = (long) (page - 1) * pageSize;
-        List<AdminOrderView> rows = orderMapper.selectPage(keyword, planKey, status, startDate, endDate, offset, pageSize);
-        long total = orderMapper.countPage(keyword, planKey, status, startDate, endDate);
-        BigDecimal totalAmount = orderMapper.sumAmountPage(keyword, planKey, status, startDate, endDate);
+        boolean excludeRobots = statsFilterService.excludeRobots();
+        List<AdminOrderView> rows = orderMapper.selectPage(keyword, planKey, status, startDate, endDate, offset, pageSize, excludeRobots);
+        long total = orderMapper.countPage(keyword, planKey, status, startDate, endDate, excludeRobots);
+        BigDecimal totalAmount = orderMapper.sumAmountPage(keyword, planKey, status, startDate, endDate, excludeRobots);
 
         List<OrderListVO> list = rows.stream().map(this::toListVO).toList();
         OrderPageVO vo = new OrderPageVO();
@@ -266,7 +269,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     public OrderStatsOverviewVO getStatsOverview() {
-        return orderMapper.statsOverview();
+        return orderMapper.statsOverview(statsFilterService.excludeRobots());
     }
 
     @Override
@@ -274,7 +277,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         if (days != 7 && days != 30) {
             days = 7;
         }
-        List<Map<String, Object>> rows = orderMapper.statsTrend(days);
+        List<Map<String, Object>> rows = orderMapper.statsTrend(days, statsFilterService.excludeRobots());
         OrderTrendVO vo = new OrderTrendVO();
         List<String> dates = new ArrayList<>();
         List<BigDecimal> revenues = new ArrayList<>();
@@ -292,7 +295,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     public RenewalOverviewVO getRenewalOverview() {
-        RenewalOverviewVO vo = orderMapper.selectRenewalOverview();
+        RenewalOverviewVO vo = orderMapper.selectRenewalOverview(statsFilterService.excludeRobots());
         if (vo.getTotalPaidUsers() != null && vo.getTotalPaidUsers() > 0) {
             BigDecimal rate = BigDecimal.valueOf(vo.getRenewalUsers())
                     .multiply(BigDecimal.valueOf(100))
@@ -309,7 +312,7 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         if (days != 7 && days != 30 && days != 90) {
             days = 7;
         }
-        List<Map<String, Object>> rows = orderMapper.selectRenewalTrend(days);
+        List<Map<String, Object>> rows = orderMapper.selectRenewalTrend(days, statsFilterService.excludeRobots());
         RenewalTrendVO vo = new RenewalTrendVO();
         List<String> dates = new ArrayList<>();
         List<BigDecimal> revenues = new ArrayList<>();
@@ -330,8 +333,9 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     public RenewalDistributionVO getRenewalDistribution() {
-        List<Map<String, Object>> planRows = orderMapper.selectRenewalPlanDistribution();
-        List<Map<String, Object>> cycleRows = orderMapper.selectRenewalCycleDistribution();
+        boolean excludeRobots = statsFilterService.excludeRobots();
+        List<Map<String, Object>> planRows = orderMapper.selectRenewalPlanDistribution(excludeRobots);
+        List<Map<String, Object>> cycleRows = orderMapper.selectRenewalCycleDistribution(excludeRobots);
 
         RenewalDistributionVO vo = new RenewalDistributionVO();
         List<RenewalDistributionVO.PlanItem> plans = new ArrayList<>();
@@ -366,10 +370,10 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         boolean renewalOnly = request.getRenewalOnly() != null ? request.getRenewalOnly() : true;
         List<RenewalUserVO> rows = orderMapper.selectRenewalUsers(
                 request.getKeyword(), request.getPlanKey(), request.getCycle(),
-                request.getStartDate(), request.getEndDate(), renewalOnly, offset, request.getPageSize());
+                request.getStartDate(), request.getEndDate(), renewalOnly, statsFilterService.excludeRobots(), offset, request.getPageSize());
         long total = orderMapper.countRenewalUsers(
                 request.getKeyword(), request.getPlanKey(), request.getCycle(),
-                request.getStartDate(), request.getEndDate(), renewalOnly);
+                request.getStartDate(), request.getEndDate(), renewalOnly, statsFilterService.excludeRobots());
         for (RenewalUserVO user : rows) {
             user.setCurrentLevel(PLAN_NAMES.getOrDefault(user.getCurrentLevel(), user.getCurrentLevel()));
         }
@@ -388,13 +392,13 @@ public class AdminOrderServiceImpl implements AdminOrderService {
         }
         List<AdminOrderView> rows = orderMapper.selectRenewalOrderPage(
                 type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
-                request.getStartDate(), request.getEndDate(), offset, request.getPageSize());
+                request.getStartDate(), request.getEndDate(), statsFilterService.excludeRobots(), offset, request.getPageSize());
         long total = orderMapper.countRenewalOrderPage(
                 type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
-                request.getStartDate(), request.getEndDate());
+                request.getStartDate(), request.getEndDate(), statsFilterService.excludeRobots());
         BigDecimal totalAmount = orderMapper.sumAmountRenewalOrderPage(
                 type, request.getKeyword(), request.getPlanKey(), request.getCycle(),
-                request.getStartDate(), request.getEndDate());
+                request.getStartDate(), request.getEndDate(), statsFilterService.excludeRobots());
         List<OrderListVO> list = rows.stream().map(this::toListVO).toList();
         OrderPageVO vo = new OrderPageVO();
         vo.setList(list);
@@ -405,8 +409,9 @@ public class AdminOrderServiceImpl implements AdminOrderService {
 
     @Override
     public PlanDistributionVO getPlanDistribution() {
-        List<Map<String, Object>> planRows = orderMapper.statsPlanDistribution();
-        List<Map<String, Object>> cycleRows = orderMapper.statsCycleDistribution();
+        boolean excludeRobots = statsFilterService.excludeRobots();
+        List<Map<String, Object>> planRows = orderMapper.statsPlanDistribution(excludeRobots);
+        List<Map<String, Object>> cycleRows = orderMapper.statsCycleDistribution(excludeRobots);
 
         PlanDistributionVO vo = new PlanDistributionVO();
 

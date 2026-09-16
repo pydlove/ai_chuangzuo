@@ -2,6 +2,8 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.aichuangzuo.admin.modules.order.mapper.AdminOrderMapper">
 
+    <sql id="robotFilterO"><if test="excludeRobots">AND o.user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if></sql>
+
     <resultMap id="orderMap" type="com.aichuangzuo.admin.modules.order.entity.AdminOrderView">
         <id property="id" column="id"/>
         <result property="orderNo" column="order_no"/>
@@ -53,6 +55,7 @@
         <if test="endDate != null and endDate != ''">
             AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
         </if>
+        <include refid="robotFilterO"/>
     </sql>
 
     <select id="selectPage" resultMap="orderMap">
@@ -81,6 +84,7 @@
         <if test="endDate != null and endDate != ''">
             AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
         </if>
+        <include refid="robotFilterO"/>
     </select>
 
     <select id="sumAmountPage" resultType="java.math.BigDecimal">
@@ -103,6 +107,7 @@
         <if test="endDate != null and endDate != ''">
             AND o.created_at &lt;= CONCAT(#{endDate}, ' 23:59:59')
         </if>
+        <include refid="robotFilterO"/>
     </select>
 
     <select id="selectDetailById" resultMap="orderMap">
@@ -175,12 +180,12 @@
 
     <select id="statsOverview" resultType="com.aichuangzuo.admin.modules.order.vo.OrderStatsOverviewVO">
         SELECT
-            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE()) AS todayOrderCount,
-            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE()) AS todayRevenue,
-            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthOrderCount,
-            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m')) AS monthRevenue,
-            (SELECT COUNT(*) FROM u_order WHERE status = 1) AS totalOrderCount,
-            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1) AS totalRevenue
+            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE() <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS todayOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE(paid_at) = CURDATE() <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS todayRevenue,
+            (SELECT COUNT(*) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m') <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS monthOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 AND DATE_FORMAT(paid_at, '%Y-%m') = DATE_FORMAT(CURDATE(), '%Y-%m') <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS monthRevenue,
+            (SELECT COUNT(*) FROM u_order WHERE status = 1 <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS totalOrderCount,
+            (SELECT COALESCE(SUM(amount), 0) FROM u_order WHERE status = 1 <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>) AS totalRevenue
     </select>
 
     <select id="statsTrend" resultType="java.util.LinkedHashMap">
@@ -206,6 +211,7 @@
             FROM u_order
             WHERE status = 1
               AND paid_at &gt;= DATE_SUB(CURDATE(), INTERVAL #{days} - 1 DAY)
+              <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>
             GROUP BY DATE(paid_at)
         ) stats ON stats.payDate = d.dt
         ORDER BY d.dt ASC
@@ -217,6 +223,7 @@
                COALESCE(SUM(amount), 0) AS revenue
         FROM u_order
         WHERE status = 1
+        <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>
         GROUP BY plan_key
         ORDER BY count DESC
     </select>
@@ -226,6 +233,7 @@
                COUNT(*) AS count
         FROM u_order
         WHERE status = 1
+        <if test="excludeRobots">AND user_id NOT IN (SELECT user_id FROM a_simulation_robot WHERE is_deleted = 0)</if>
         GROUP BY cycle
         ORDER BY count DESC
     </select>
@@ -235,6 +243,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT
             COUNT(DISTINCT user_id) AS totalPaidUsers,
@@ -251,6 +260,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         ),
         renewal_daily AS (
             SELECT DATE(o.paid_at) AS payDate,
@@ -287,6 +297,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT plan_key AS planKey,
                COUNT(*) AS count,
@@ -302,6 +313,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT cycle,
                COUNT(*) AS count,
@@ -318,6 +330,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         ),
         user_stats AS (
             SELECT user_id,
@@ -387,6 +400,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         ),
         user_stats AS (
             SELECT user_id,
@@ -439,6 +453,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT o.id, o.order_no, o.user_id, u.nickname, u.email, o.plan_key, o.cycle, o.amount, o.status,
                o.payment_method, o.third_party_trade_id,
@@ -476,6 +491,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT COUNT(*)
         FROM paid_orders o
@@ -509,6 +525,7 @@
             SELECT o.*, ROW_NUMBER() OVER (PARTITION BY o.user_id ORDER BY o.paid_at ASC, o.id ASC) AS rn
             FROM u_order o
             WHERE o.status = 1
+            <include refid="robotFilterO"/>
         )
         SELECT COALESCE(SUM(o.amount), 0)
         FROM paid_orders o
