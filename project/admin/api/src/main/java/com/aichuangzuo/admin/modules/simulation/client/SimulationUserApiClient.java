@@ -1,6 +1,7 @@
 package com.aichuangzuo.admin.modules.simulation.client;
 
 import com.aichuangzuo.admin.infrastructure.security.JwtUtil;
+import com.aichuangzuo.shared.enums.error.UserAuthErrorCode;
 import com.aichuangzuo.shared.exception.BusinessException;
 import com.aichuangzuo.shared.result.Result;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -259,6 +260,11 @@ public class SimulationUserApiClient {
     private void checkResult(Result result, String path) {
         if (result == null || result.getCode() == null || result.getCode() != 0) {
             String msg = result == null ? "empty response" : String.valueOf(result.getMessage());
+            int code = result == null || result.getCode() == null ? 500 : result.getCode();
+            // 机器人 token 过期：映射为 401，由 RobotTokenHolder 重新登录后重试一次
+            if (code == UserAuthErrorCode.TOKEN_EXPIRED.getCode()) {
+                throw new BusinessException(401, "robot token expired: " + path);
+            }
             throw new BusinessException(500, "模拟运营调用失败 " + path + ": " + msg);
         }
     }

@@ -33,6 +33,16 @@ public interface SimulationRobotMapper extends BaseMapper<SimulationRobot> {
     int claimWaiting(@Param("id") Long id, @Param("now") LocalDateTime now);
 
     /**
+     * 批次内用户间隔：领取一个机器人后，把同批次其余 WAITING 机器人推迟到
+     * now + #{deferSeconds}，实现机器人之间的执行间隔。
+     */
+    @Update("UPDATE a_simulation_robot SET next_run_at = DATE_ADD(#{now}, INTERVAL #{deferSeconds} SECOND), "
+            + "updated_at = NOW(3) "
+            + "WHERE batch_id = #{batchId} AND status = 'WAITING' AND is_deleted = 0")
+    int deferWaitingRobots(@Param("batchId") Long batchId, @Param("now") LocalDateTime now,
+                           @Param("deferSeconds") int deferSeconds);
+
+    /**
      * 取消批次下未终态机器人。
      */
     @Update("UPDATE a_simulation_robot SET status = 'CANCELED', finished_at = #{now}, updated_at = NOW(3) "
