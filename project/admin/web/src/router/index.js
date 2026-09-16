@@ -49,6 +49,11 @@ const routes = [
         component: () => import('@/views/MarketSkillListView.vue')
       },
       {
+        path: 'skill-usage-records',
+        name: 'AdminSkillUsageRecords',
+        component: () => import('@/views/SkillUsageRecordView.vue')
+      },
+      {
         path: 'market-skills/new',
         name: 'AdminMarketSkillCreate',
         component: () => import('@/views/MarketSkillEditView.vue')

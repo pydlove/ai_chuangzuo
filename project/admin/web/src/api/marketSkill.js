@@ -62,3 +62,17 @@ export function simulateMarketSkillUsage(bizNo, userId) {
   return request.post(`/market-skills/${bizNo}/simulate-usage`, { userId })
     .then((body) => body.data)
 }
+
+export function listGlobalUsageRecords(params = {}) {
+  const { keyword = '', pageNum = 1, pageSize = 20 } = params
+  return request.get('/market-skills/usage-records', { params: { keyword, pageNum, pageSize } })
+    .then((body) => {
+      const data = body.data || {}
+      return {
+        list: data.items || [],
+        total: data.total || 0,
+        page: data.page || pageNum,
+        size: data.size || pageSize
+      }
+    })
+}

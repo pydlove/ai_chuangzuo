@@ -134,7 +134,8 @@ const menuGroups = [
     children: [
       { key: '/console/skills', title: '提示词审核' },
       { key: '/console/global-skills', title: '预设提示词' },
-      { key: '/console/market-skills', title: '提示词市场' }
+      { key: '/console/market-skills', title: '提示词市场' },
+      { key: '/console/skill-usage-records', title: '使用记录' }
     ]
   },
   {

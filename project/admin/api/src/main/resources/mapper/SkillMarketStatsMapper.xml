@@ -87,4 +87,49 @@
           AND t.skill_ref = #{skillRef}
     </select>
 
+    <select id="selectGlobalUsageRecords" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillUsageRecordRowDTO">
+        SELECT
+            COALESCE(s.skill_name, t.skill_ref) AS skillName,
+            t.skill_ref AS skillRef,
+            JSON_UNQUOTE(JSON_EXTRACT(t.input_param, '$.title')) AS articleTitle,
+            t.article_biz_no AS articleBizNo,
+            t.target_user_id AS userId,
+            COALESCE(NULLIF(uu.nickname, ''), uu.email) AS userNickname,
+            s.publisher_user_id AS publisherUserId,
+            COALESCE(NULLIF(up.nickname, ''), up.email) AS publisherNickname,
+            t.completed_at AS completedAt
+        FROM a_generation_task t
+        LEFT JOIN u_skill_market s ON s.biz_no = t.skill_ref AND s.is_deleted = 0
+        LEFT JOIN u_user uu ON uu.id = t.target_user_id AND uu.is_deleted = 0
+        LEFT JOIN u_user up ON up.id = s.publisher_user_id AND up.is_deleted = 0
+        WHERE t.is_deleted = 0
+          AND t.status = 2
+          AND t.skill_ref IS NOT NULL
+          AND t.skill_ref != ''
+        <if test="keyword != null and keyword != ''">
+          AND (COALESCE(s.skill_name, t.skill_ref) LIKE CONCAT('%', #{keyword}, '%')
+               OR COALESCE(NULLIF(uu.nickname, ''), uu.email) LIKE CONCAT('%', #{keyword}, '%')
+               OR COALESCE(NULLIF(up.nickname, ''), up.email) LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        ORDER BY t.completed_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countGlobalUsageRecords" resultType="long">
+        SELECT COUNT(*)
+        FROM a_generation_task t
+        LEFT JOIN u_skill_market s ON s.biz_no = t.skill_ref AND s.is_deleted = 0
+        LEFT JOIN u_user uu ON uu.id = t.target_user_id AND uu.is_deleted = 0
+        LEFT JOIN u_user up ON up.id = s.publisher_user_id AND up.is_deleted = 0
+        WHERE t.is_deleted = 0
+          AND t.status = 2
+          AND t.skill_ref IS NOT NULL
+          AND t.skill_ref != ''
+        <if test="keyword != null and keyword != ''">
+          AND (COALESCE(s.skill_name, t.skill_ref) LIKE CONCAT('%', #{keyword}, '%')
+               OR COALESCE(NULLIF(uu.nickname, ''), uu.email) LIKE CONCAT('%', #{keyword}, '%')
+               OR COALESCE(NULLIF(up.nickname, ''), up.email) LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+    </select>
+
 </mapper>

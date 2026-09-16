@@ -11,6 +11,7 @@ import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketAdminServic
 import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
+import com.aichuangzuo.admin.modules.skill.market.vo.SkillUsageRecordVO;
 import com.aichuangzuo.shared.result.Result;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import io.swagger.v3.oas.annotations.Operation;
@@ -103,6 +104,18 @@ public class SkillMarketAdminController {
         Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
         log.info("管理员查询提示词市场统计概览, adminUserId={}", adminUserId);
         return Result.success(skillMarketAdminService.stats());
+    }
+
+    @Operation(summary = "全局提示词使用记录")
+    @GetMapping("/usage-records")
+    public Result<PageResult<SkillUsageRecordVO>> globalUsageRecords(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "1") int pageNum,
+            @RequestParam(defaultValue = "20") int pageSize) {
+        Long adminUserId = SecurityAdminContext.getCurrentAdminUserId();
+        log.info("管理员查询全局提示词使用记录, adminUserId={}, keyword={}, pageNum={}, pageSize={}",
+                adminUserId, keyword, pageNum, pageSize);
+        return Result.success(skillMarketAdminService.listGlobalUsageRecords(keyword, pageNum, pageSize));
     }
 
     @Operation(summary = "提示词市场使用记录")

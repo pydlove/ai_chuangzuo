@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.skill.market.service;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
+import com.aichuangzuo.admin.modules.skill.market.vo.SkillUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
@@ -60,4 +61,9 @@ public interface SkillMarketAdminService {
      * 分页查询指定提示词的使用记录。
      */
     PageResult<SkillMarketUsageRecordVO> listUsageRecords(String bizNo, int pageNum, int pageSize);
+
+    /**
+     * 分页查询全局提示词使用记录（跨市场/个人提示词，含文章标题与作者）。
+     */
+    PageResult<SkillUsageRecordVO> listGlobalUsageRecords(String keyword, int pageNum, int pageSize);
 }

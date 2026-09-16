@@ -25,4 +25,11 @@ public interface SkillMarketStatsMapper {
                                                        @Param("limit") int limit);
 
     long countUsageRecords(@Param("skillRef") String skillRef);
+
+    /** 全局使用记录：跨市场/个人提示词，含文章标题与作者。 */
+    List<SkillUsageRecordRowDTO> selectGlobalUsageRecords(@Param("keyword") String keyword,
+                                                          @Param("offset") long offset,
+                                                          @Param("limit") int limit);
+
+    long countGlobalUsageRecords(@Param("keyword") String keyword);
 }

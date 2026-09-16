@@ -10,6 +10,7 @@ import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopPublisherDTO
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTopSkillDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketTrendDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.SkillMarketUsageRecordDTO;
+import com.aichuangzuo.admin.modules.skill.market.dto.SkillUsageRecordRowDTO;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.CreateSkillMarketRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.SkillMarketPageRequest;
 import com.aichuangzuo.admin.modules.skill.market.dto.request.UpdateSkillMarketRequest;
@@ -23,6 +24,7 @@ import com.aichuangzuo.admin.modules.skill.market.service.SkillMarketUsageClient
 import com.aichuangzuo.admin.modules.skill.market.vo.MarketSkillStatsVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketUsageRecordVO;
 import com.aichuangzuo.admin.modules.skill.market.vo.SkillMarketVO;
+import com.aichuangzuo.admin.modules.skill.market.vo.SkillUsageRecordVO;
 import com.aichuangzuo.admin.modules.user.entity.PlatformUser;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.shared.exception.BusinessException;
@@ -248,6 +250,31 @@ public class SkillMarketAdminServiceImpl implements SkillMarketAdminService {
                 : statsMapper.selectUsageRecords(bizNo, offset, pageSize);
         List<SkillMarketUsageRecordVO> items = rows.stream().map(this::toUsageRecord).toList();
         return new PageResult<>(items, total, pageNum, pageSize);
+    }
+
+    @Override
+    public PageResult<SkillUsageRecordVO> listGlobalUsageRecords(String keyword, int pageNum, int pageSize) {
+        long offset = (long) (pageNum - 1) * pageSize;
+        long total = statsMapper.countGlobalUsageRecords(keyword);
+        List<SkillUsageRecordRowDTO> rows = total == 0
+                ? java.util.Collections.emptyList()
+                : statsMapper.selectGlobalUsageRecords(keyword, offset, pageSize);
+        List<SkillUsageRecordVO> items = rows.stream().map(this::toGlobalUsageRecord).toList();
+        return new PageResult<>(items, total, pageNum, pageSize);
+    }
+
+    private SkillUsageRecordVO toGlobalUsageRecord(SkillUsageRecordRowDTO dto) {
+        SkillUsageRecordVO vo = new SkillUsageRecordVO();
+        vo.setSkillName(dto.getSkillName());
+        vo.setSkillRef(dto.getSkillRef());
+        vo.setArticleTitle(dto.getArticleTitle());
+        vo.setArticleBizNo(dto.getArticleBizNo());
+        vo.setUserId(dto.getUserId());
+        vo.setUserNickname(dto.getUserNickname());
+        vo.setPublisherUserId(dto.getPublisherUserId());
+        vo.setPublisherNickname(dto.getPublisherNickname());
+        vo.setCompletedAt(dto.getCompletedAt());
+        return vo;
     }
 
     // -------- helpers --------
