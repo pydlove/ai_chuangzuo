@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Update;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Mapper
 public interface UserMapper extends BaseMapper<User> {
@@ -94,4 +95,10 @@ public interface UserMapper extends BaseMapper<User> {
      */
     @Update("UPDATE u_user SET coin_balance = coin_balance - #{amount}, updated_at = NOW(3) WHERE id = #{userId} AND is_deleted = 0 AND coin_balance >= #{amount}")
     int subtractCoinBalance(@Param("userId") Long userId, @Param("amount") BigDecimal amount);
+
+    /**
+     * 随机取 N 个机器人用户（user_type=0）的邀请码，供模拟运营新机器人绑定。
+     */
+    @Select("SELECT invite_code FROM u_user WHERE user_type = 0 AND is_deleted = 0 ORDER BY RAND() LIMIT #{count}")
+    List<String> selectRobotInviteCodes(@Param("count") int count);
 }

@@ -20,6 +20,7 @@ import com.aichuangzuo.user.modules.auth.entity.UserLoginLog;
 import com.aichuangzuo.user.modules.auth.mapper.IpRegisterLimitMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserLoginLogMapper;
 import com.aichuangzuo.user.modules.auth.mapper.UserMapper;
+import com.aichuangzuo.user.modules.auth.util.InviteCodeGenerator;
 import com.aichuangzuo.user.modules.user.service.InviteRewardService;
 import com.aichuangzuo.user.modules.auth.service.AuthService;
 import com.aichuangzuo.user.modules.auth.service.EmailCodeService;
@@ -59,9 +60,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthConverter authConverter;
     private final PasswordEncoder passwordEncoder;
     private final AuthProperties authProperties;
-
-    private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    private static final SecureRandom RANDOM = new SecureRandom();
+    private final InviteCodeGenerator inviteCodeGenerator;
 
     private static final int MAX_LOGIN_FAIL = 5;
     private static final long LOGIN_FAIL_WINDOW_MINUTES = 5;
@@ -178,7 +177,7 @@ public class AuthServiceImpl implements AuthService {
         user.setEmail(email);
         user.setPhone(phone);
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        user.setInviteCode(generateInviteCode());
+        user.setInviteCode(inviteCodeGenerator.generate());
         user.setUserStatus(UserStatusEnum.ENABLED.getCode());
         user.setEmailVerified(isEmail ? VerifyStatusEnum.VERIFIED.getCode() : VerifyStatusEnum.UNVERIFIED.getCode());
         user.setPhoneVerified(isPhone ? VerifyStatusEnum.VERIFIED.getCode() : VerifyStatusEnum.UNVERIFIED.getCode());
@@ -224,20 +223,6 @@ public class AuthServiceImpl implements AuthService {
 
     private void handleInviteRelation(User invitee, String inviteCode) {
         inviteRewardService.rewardAfterRegister(invitee, inviteCode);
-    }
-
-    private String generateInviteCode() {
-        for (int attempt = 0; attempt < 10; attempt++) {
-            StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < 6; i++) {
-                sb.append(CHARS.charAt(RANDOM.nextInt(CHARS.length())));
-            }
-            String code = sb.toString();
-            if (userMapper.selectByInviteCode(code) == null) {
-                return code;
-            }
-        }
-        throw new SystemException("生成邀请码失败");
     }
 
     private AuthTokenVO buildAuthTokenVO(User user, boolean rememberMe) {
