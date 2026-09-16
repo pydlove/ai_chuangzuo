@@ -70,6 +70,11 @@ user:
     base-url: ${USER_API_BASE_URL:http://localhost:25050}
     internal-key: ${USER_API_INTERNAL_KEY:default-change-me}
 
+# 模拟运营配置
+simulation:
+  # 机器人初始密码 AES 密钥（16/24/32 字节），生产必须环境变量覆盖
+  password-secret: ${SIMULATION_PASSWORD_SECRET:simudevkey123456}
+
 reminder:
   enabled: true
   advance-days: 7
