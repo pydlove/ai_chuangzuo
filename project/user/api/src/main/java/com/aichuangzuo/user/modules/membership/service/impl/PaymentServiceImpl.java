@@ -1,6 +1,7 @@
 package com.aichuangzuo.user.modules.membership.service.impl;
 
 import com.aichuangzuo.shared.exception.BusinessException;
+import com.aichuangzuo.user.infrastructure.security.InternalCallContext;
 import com.aichuangzuo.user.modules.auth.entity.User;
 import com.aichuangzuo.user.modules.auth.entity.UserInviteRelation;
 import com.aichuangzuo.user.modules.auth.mapper.UserInviteRelationMapper;
@@ -145,7 +146,8 @@ public class PaymentServiceImpl implements PaymentService {
         Order order = createPendingOrder(userId, plan, cycle, finalCashAmount,
                 requestedCoinAmount.longValue(), coinDiscountYuan, request.getCouponCode(), couponDiscount);
 
-        if (isTestMode(config)) {
+        // test_mode 全局开关 或 携带合法 X-Internal-Key 的内部请求（模拟运营绿通）走测试支付分支
+        if (isTestMode(config) || InternalCallContext.isInternal()) {
             if (!StringUtils.hasText(request.getPayCode()) || !TEST_PAY_CODE.equals(request.getPayCode())) {
                 throw new BusinessException(MembershipErrorCode.INVALID_PAY_CODE);
             }

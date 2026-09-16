@@ -28,22 +28,40 @@ public class InternalKeyAuthenticationFilter extends OncePerRequestFilter {
         // 兼容老路径 + 新增 generation 内部接口，统一用 X-Internal-Key 校验
         boolean isInternal = path.startsWith("/api/v1/user/coin-records/internal-grant")
                 || path.startsWith("/api/v1/user/internal/");
+        String headerKey = request.getHeader("X-Internal-Key");
+        boolean keyValid = internalApiKey != null && !internalApiKey.isEmpty()
+                && internalApiKey.equals(headerKey);
+
         if (!isInternal) {
+            // 非内部路径：key 合法时仅打标（请求级绿通），不拦截
+            if (keyValid) {
+                InternalCallContext.markInternal();
+                try {
+                    filterChain.doFilter(request, response);
+                } finally {
+                    InternalCallContext.clear();
+                }
+                return;
+            }
             filterChain.doFilter(request, response);
             return;
         }
 
-        String headerKey = request.getHeader("X-Internal-Key");
-        if (internalApiKey == null || internalApiKey.isEmpty() || !internalApiKey.equals(headerKey)) {
+        if (!keyValid) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"code\":401,\"message\":\"unauthorized\"}");
             return;
         }
 
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
-                "internal", null, List.of(new SimpleGrantedAuthority("INTERNAL_ADMIN")));
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        filterChain.doFilter(request, response);
+        InternalCallContext.markInternal();
+        try {
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
+                    "internal", null, List.of(new SimpleGrantedAuthority("INTERNAL_ADMIN")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            filterChain.doFilter(request, response);
+        } finally {
+            InternalCallContext.clear();
+        }
     }
 }
