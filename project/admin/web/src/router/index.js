@@ -156,6 +156,11 @@ const routes = [
         component: () => import('@/views/LotteryAdminView.vue')
       },
       {
+        path: 'operation/simulation',
+        name: 'AdminOperationSimulation',
+        component: () => import('@/views/OperationSimulationView.vue')
+      },
+      {
         path: 'experience-tokens',
         name: 'AdminExperienceTokens',
         component: () => import('@/views/ExperienceTokenView.vue')

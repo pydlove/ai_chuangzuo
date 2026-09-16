@@ -77,7 +77,7 @@ import {
   BookOutlined, ReadOutlined, MessageOutlined, CommentOutlined, FileTextOutlined, ExperimentOutlined,
   UnorderedListOutlined, SlidersOutlined, PictureOutlined, ShoppingCartOutlined, BulbOutlined,
   TagsOutlined, ProfileOutlined, SafetyOutlined, FileSearchOutlined, RocketOutlined, ShareAltOutlined, AppstoreOutlined,
-  ClockCircleOutlined, DownOutlined, RightOutlined, ToolOutlined, GiftOutlined, CloudUploadOutlined, DashboardOutlined, CameraOutlined
+  ClockCircleOutlined, DownOutlined, RightOutlined, ToolOutlined, GiftOutlined, CloudUploadOutlined, DashboardOutlined, CameraOutlined, RobotOutlined
 } from '@ant-design/icons-vue'
 import { message } from 'ant-design-vue'
 import { useUserStore } from '@/stores/user.js'
@@ -192,6 +192,7 @@ const menuGroups = [
       { key: '/console/share-config', title: '分享管理', icon: ShareAltOutlined },
       { key: '/console/experience-tokens', title: '体验会员管理', icon: GiftOutlined },
       { key: '/console/lottery', title: '抽奖活动', icon: FireOutlined },
+      { key: '/console/operation/simulation', title: '模拟运营', icon: RobotOutlined },
       { key: '/console/home-testimonials', title: '首页评价', icon: CommentOutlined },
       { key: '/console/platform-screenshot', title: '平台截图', icon: CameraOutlined }
     ]
