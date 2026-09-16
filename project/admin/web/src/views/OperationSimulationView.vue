@@ -119,7 +119,15 @@
               <a-tag :color="logStatusColor(record.status)">{{ record.status }}</a-tag>
             </span>
             <span v-else-if="column.key === 'detail'">
-              <a-typography-text v-if="record.detail" :content="record.detail" ellipsis :tooltip="record.detail" />
+              <a-tooltip v-if="record.detail" :title="record.detail" placement="topLeft">
+                <span class="cell-ellipsis">{{ record.detail }}</span>
+              </a-tooltip>
+              <span v-else>-</span>
+            </span>
+            <span v-else-if="column.key === 'errorMsg'">
+              <a-tooltip v-if="record.errorMsg" :title="record.errorMsg" placement="topLeft">
+                <span class="cell-ellipsis">{{ record.errorMsg }}</span>
+              </a-tooltip>
               <span v-else>-</span>
             </span>
             <span v-else-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
@@ -341,8 +349,8 @@ const logLoading = ref(false)
 const logColumns = [
   { title: '阶段', key: 'stage', width: 90 },
   { title: '结果', key: 'status', width: 90 },
-  { title: '明细', key: 'detail', ellipsis: true },
-  { title: '错误', dataIndex: 'errorMsg', key: 'errorMsg', ellipsis: true },
+  { title: '明细', key: 'detail' },
+  { title: '错误', dataIndex: 'errorMsg', key: 'errorMsg' },
   { title: '时间', key: 'createdAt', width: 110 }
 ]
 
@@ -484,5 +492,14 @@ onUnmounted(() => clearTimeout(pollTimer))
 
 .log-section {
   margin-top: 24px;
+}
+
+.cell-ellipsis {
+  display: inline-block;
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
 }
 </style>
