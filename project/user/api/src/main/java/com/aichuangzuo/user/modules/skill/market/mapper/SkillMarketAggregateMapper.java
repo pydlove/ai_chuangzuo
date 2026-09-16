@@ -16,13 +16,15 @@ public interface SkillMarketAggregateMapper {
     /**
      * 分页查询已上架的风格市场列表。
      *
-     * @param page     分页对象
-     * @param keyword  关键词（匹配风格名或适用范围）
-     * @param sortType 排序类型：all / week-hot / all-hot / new / featured
+     * @param page          分页对象
+     * @param keyword       关键词（匹配风格名或适用范围）
+     * @param sortType      排序类型：all / week-hot / all-hot / new / featured
+     * @param publisherType 发布者类型过滤：0-机器人 / 1-真实用户；null 为全部
      */
     IPage<MarketSkillRow> selectEnabledMarketSkills(IPage<?> page,
                                                     @Param("keyword") String keyword,
-                                                    @Param("sortType") String sortType);
+                                                    @Param("sortType") String sortType,
+                                                    @Param("publisherType") Integer publisherType);
 
     /**
      * 根据关键词推荐已上架的市场提示词。

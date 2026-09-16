@@ -50,10 +50,11 @@ public class SkillMarketController {
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "15") int pageSize,
             @RequestParam(required = false) String keyword,
-            @RequestParam(required = false, defaultValue = "all") String sortType) {
+            @RequestParam(required = false, defaultValue = "all") String sortType,
+            @RequestParam(required = false) Integer publisherType) {
         Long userId = SecurityUserContext.getCurrentUserId();
-        log.info("分页查询已上架的风格市场列表 userId={} page={} pageSize={} keyword={} sortType={}", userId, page, pageSize, keyword, sortType);
-        return Result.success(skillMarketQueryService.pageEnabled(page, pageSize, keyword, sortType));
+        log.info("分页查询已上架的风格市场列表 userId={} page={} pageSize={} keyword={} sortType={} publisherType={}", userId, page, pageSize, keyword, sortType, publisherType);
+        return Result.success(skillMarketQueryService.pageEnabled(page, pageSize, keyword, sortType, publisherType));
     }
 
     @Operation(summary = "获取提示词市场概览")

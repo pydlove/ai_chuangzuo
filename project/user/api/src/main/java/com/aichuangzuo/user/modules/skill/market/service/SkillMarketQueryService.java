@@ -19,12 +19,13 @@ public interface SkillMarketQueryService {
     /**
      * 分页查询已上架的风格市场列表。
      *
-     * @param page     页码，从 1 开始
-     * @param pageSize 每页条数
-     * @param keyword  关键词（匹配风格名或适用范围）
-     * @param sortType 排序类型：all / week-hot / all-hot / new / featured
+     * @param page          页码，从 1 开始
+     * @param pageSize      每页条数
+     * @param keyword       关键词（匹配风格名或适用范围）
+     * @param sortType      排序类型：all / week-hot / all-hot / new / featured
+     * @param publisherType 发布者类型过滤：0-机器人 / 1-真实用户；null 为全部
      */
-    IPage<MarketSkillVO> pageEnabled(int page, int pageSize, String keyword, String sortType);
+    IPage<MarketSkillVO> pageEnabled(int page, int pageSize, String keyword, String sortType, Integer publisherType);
 
     /**
      * 获取风格市场概览（统计、官方精选）。

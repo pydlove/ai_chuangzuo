@@ -34,6 +34,9 @@
           <if test="sortType == 'featured'">
               AND s.featured = 1
           </if>
+          <if test="publisherType != null">
+              AND u.user_type = #{publisherType}
+          </if>
         ORDER BY
         <choose>
             <when test="sortType == 'week-hot'">

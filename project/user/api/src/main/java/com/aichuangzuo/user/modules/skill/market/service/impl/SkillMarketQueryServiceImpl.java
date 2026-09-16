@@ -46,21 +46,21 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
     @Override
     public List<MarketSkillVO> listEnabled() {
-        List<MarketSkillRow> rows = aggregateMapper.selectEnabledMarketSkills(new Page<>(1, Integer.MAX_VALUE), null, "all").getRecords();
+        List<MarketSkillRow> rows = aggregateMapper.selectEnabledMarketSkills(new Page<>(1, Integer.MAX_VALUE), null, "all", null).getRecords();
         return rows.stream()
                 .map(this::toVo)
                 .collect(Collectors.toList());
     }
 
     @Override
-    public IPage<MarketSkillVO> pageEnabled(int page, int pageSize, String keyword, String sortType) {
+    public IPage<MarketSkillVO> pageEnabled(int page, int pageSize, String keyword, String sortType, Integer publisherType) {
         int safePage = Math.max(1, page);
         int safeSize = Math.min(Math.max(1, pageSize), MAX_PAGE_SIZE);
         String safeKeyword = StringUtils.hasText(keyword) ? keyword.trim() : null;
         String safeSortType = StringUtils.hasText(sortType) ? sortType : "all";
 
         Page<MarketSkillRow> rowPage = new Page<>(safePage, safeSize);
-        IPage<MarketSkillRow> result = aggregateMapper.selectEnabledMarketSkills(rowPage, safeKeyword, safeSortType);
+        IPage<MarketSkillRow> result = aggregateMapper.selectEnabledMarketSkills(rowPage, safeKeyword, safeSortType, publisherType);
 
         List<MarketSkillVO> records = result.getRecords().stream()
                 .map(this::toVo)
@@ -72,7 +72,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
     @Override
     public MarketSkillOverviewVO getOverview() {
-        List<MarketSkillRow> allApproved = aggregateMapper.selectEnabledMarketSkills(new Page<>(1, Integer.MAX_VALUE), null, "all").getRecords();
+        List<MarketSkillRow> allApproved = aggregateMapper.selectEnabledMarketSkills(new Page<>(1, Integer.MAX_VALUE), null, "all", null).getRecords();
 
         MarketSkillOverviewVO overview = new MarketSkillOverviewVO();
         overview.setApprovedCount((long) allApproved.size());
@@ -163,7 +163,7 @@ public class SkillMarketQueryServiceImpl implements SkillMarketQueryService {
 
     private List<MarketSkillVO> listFeaturedFallback(Long userId, int size) {
         List<MarketSkillRow> allApproved = aggregateMapper.selectEnabledMarketSkills(
-                new Page<>(1, Integer.MAX_VALUE), null, "all").getRecords();
+                new Page<>(1, Integer.MAX_VALUE), null, "all", null).getRecords();
         return allApproved.stream()
                 .filter(r -> !userId.equals(r.getPublisherUserId()))
                 .filter(r -> r.getFeatured() != null && r.getFeatured() == 1)
