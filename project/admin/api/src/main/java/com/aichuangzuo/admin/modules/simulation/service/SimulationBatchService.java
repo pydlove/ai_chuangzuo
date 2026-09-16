@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.simulation.service;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchQueryRequest;
+import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationFreeCreateBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.vo.SimulationBatchDetailVO;
 import com.aichuangzuo.admin.modules.simulation.vo.SimulationBatchVO;
 import com.aichuangzuo.admin.modules.simulation.vo.SimulationRobotLogVO;
@@ -10,6 +11,11 @@ import com.aichuangzuo.admin.modules.simulation.vo.SimulationRobotLogVO;
 public interface SimulationBatchService {
 
     Long create(SimulationBatchCreateRequest request);
+
+    /**
+     * 创建模拟生成文章批次：随机抽取存量真实用户，随机使用市场提示词产生作者收益（不真正生成文章）。
+     */
+    Long createFreeCreate(SimulationFreeCreateBatchCreateRequest request);
 
     PageResult<SimulationBatchVO> list(SimulationBatchQueryRequest request);
 

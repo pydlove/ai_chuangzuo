@@ -5,6 +5,7 @@ import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchQueryRequest;
+import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationFreeCreateBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.service.SimulationBatchService;
 import com.aichuangzuo.admin.modules.simulation.vo.SimulationBatchDetailVO;
 import com.aichuangzuo.admin.modules.simulation.vo.SimulationBatchVO;
@@ -41,6 +42,14 @@ public class SimulationBatchAdminController {
         log.info("管理员创建模拟批次, adminId={}, userCount={}, planKey={}, cycle={}",
                 adminId, request.getUserCount(), request.getPlanKey(), request.getCycle());
         return Result.success(simulationBatchService.create(request));
+    }
+
+    @PostMapping("/free-create")
+    public Result<Long> createFreeCreate(@Valid @RequestBody SimulationFreeCreateBatchCreateRequest request) {
+        Long adminId = checkSuperAdmin();
+        log.info("管理员创建模拟生成文章批次, adminId={}, userCount={}, promptScope={}",
+                adminId, request.getUserCount(), request.getPromptScope());
+        return Result.success(simulationBatchService.createFreeCreate(request));
     }
 
     @GetMapping

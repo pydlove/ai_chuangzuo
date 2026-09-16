@@ -33,6 +33,9 @@ public class SimulationBatch {
     /** 订阅周期：month/quarter/year。 */
     private String cycle;
 
+    /** 批次类型：ROBOT_JOURNEY / FREE_CREATE（SimulationBatchType）。 */
+    private String batchType;
+
     /** 阶段配置 JSON（SimulationStageConfig）。 */
     private String stageConfig;
 

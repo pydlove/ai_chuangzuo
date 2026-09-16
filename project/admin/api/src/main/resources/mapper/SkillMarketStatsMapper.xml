@@ -132,4 +132,21 @@
         </if>
     </select>
 
+    <select id="selectRandomEnabledSkill" resultType="com.aichuangzuo.admin.modules.skill.market.dto.SkillPickRowDTO">
+        SELECT s.biz_no AS bizNo,
+               s.skill_name AS skillName,
+               s.publisher_user_id AS publisherUserId,
+               COALESCE(NULLIF(pu.nickname, ''), CONCAT('用户', pu.biz_no)) AS publisherNickname
+        FROM u_skill_market s
+        JOIN u_user pu ON pu.id = s.publisher_user_id AND pu.is_deleted = 0
+        WHERE s.is_deleted = 0
+          AND s.enable_status = 1
+          AND s.audit_status = 1
+        <if test="userType != null">
+            AND pu.user_type = #{userType}
+        </if>
+        ORDER BY RAND()
+        LIMIT 1
+    </select>
+
 </mapper>

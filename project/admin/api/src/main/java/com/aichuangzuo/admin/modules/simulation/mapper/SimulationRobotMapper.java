@@ -1,5 +1,6 @@
 package com.aichuangzuo.admin.modules.simulation.mapper;
 
+import com.aichuangzuo.admin.modules.simulation.dto.SimulationUserPickRow;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationRobot;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import org.apache.ibatis.annotations.Mapper;
@@ -71,4 +72,11 @@ public interface SimulationRobotMapper extends BaseMapper<SimulationRobot> {
     /** 所有机器人已用过的头像编号（资料去重）。 */
     @Select("SELECT DISTINCT avatar_img FROM a_simulation_robot WHERE avatar_img IS NOT NULL")
     List<Integer> selectUsedAvatarImgs();
+
+    /**
+     * 模拟生成文章：随机抽取一批存量真实用户（user_type=1）。
+     */
+    @Select("SELECT id, COALESCE(NULLIF(nickname, ''), email) AS nickname, email FROM u_user "
+            + "WHERE is_deleted = 0 AND user_type = 1 ORDER BY RAND() LIMIT #{limit}")
+    List<SimulationUserPickRow> selectRandomRealUsers(@Param("limit") int limit);
 }

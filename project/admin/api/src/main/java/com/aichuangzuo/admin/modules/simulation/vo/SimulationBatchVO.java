@@ -14,6 +14,9 @@ public class SimulationBatchVO {
     private String planName;
     private String cycle;
 
+    /** 批次类型：ROBOT_JOURNEY / FREE_CREATE。 */
+    private String batchType;
+
     /** 阶段配置 JSON（原样透出）。 */
     private String stageConfig;
 

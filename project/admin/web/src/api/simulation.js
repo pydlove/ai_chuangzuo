@@ -6,6 +6,10 @@ export function createBatch(data) {
   return request.post(BASE, data).then((res) => res.data)
 }
 
+export function createFreeCreateBatch(data) {
+  return request.post(`${BASE}/free-create`, data).then((res) => res.data)
+}
+
 export function listBatches(params = {}) {
   return request.get(BASE, { params }).then((res) => res.data)
 }

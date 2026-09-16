@@ -2,13 +2,16 @@ package com.aichuangzuo.admin.modules.simulation.service.impl;
 
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
 import com.aichuangzuo.admin.modules.simulation.config.SimulationStageConfig;
+import com.aichuangzuo.admin.modules.simulation.dto.SimulationUserPickRow;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationBatchQueryRequest;
+import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationFreeCreateBatchCreateRequest;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationBatch;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationRobot;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationRobotLog;
 import com.aichuangzuo.admin.modules.simulation.enums.AdminSimulationErrorCode;
 import com.aichuangzuo.admin.modules.simulation.enums.SimulationBatchStatus;
+import com.aichuangzuo.admin.modules.simulation.enums.SimulationBatchType;
 import com.aichuangzuo.admin.modules.simulation.enums.SimulationRobotStatus;
 import com.aichuangzuo.admin.modules.simulation.enums.SimulationStage;
 import com.aichuangzuo.admin.modules.simulation.mapper.SimulationBatchMapper;
@@ -84,15 +87,11 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
         stageConfig.setStageIntervalMin(request.getStageIntervalMin());
         stageConfig.setStageIntervalMax(request.getStageIntervalMax());
 
-        String stageConfigJson;
-        try {
-            stageConfigJson = objectMapper.writeValueAsString(stageConfig);
-        } catch (Exception e) {
-            throw new BusinessException(AdminSimulationErrorCode.PARAM_INVALID.getCode(), "阶段配置序列化失败");
-        }
+        String stageConfigJson = writeStageConfig(stageConfig);
 
         SimulationBatch batch = new SimulationBatch();
         batch.setBatchNo(nextBatchNo());
+        batch.setBatchType(SimulationBatchType.ROBOT_JOURNEY.name());
         batch.setUserCount(request.getUserCount());
         batch.setPlanKey(request.getPlanKey());
         batch.setPlanName(request.getPlanName());
@@ -134,9 +133,57 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
     }
 
     @Override
+    @Transactional
+    public Long createFreeCreate(SimulationFreeCreateBatchCreateRequest request) {
+        if (request.getUserIntervalMin() > request.getUserIntervalMax()) {
+            throw new BusinessException(AdminSimulationErrorCode.PARAM_INVALID.getCode(), "用户间隔最小值不能大于最大值");
+        }
+
+        SimulationStageConfig stageConfig = new SimulationStageConfig();
+        stageConfig.setPromptScope(request.getPromptScope());
+        stageConfig.setUserIntervalMin(request.getUserIntervalMin());
+        stageConfig.setUserIntervalMax(request.getUserIntervalMax());
+
+        SimulationBatch batch = new SimulationBatch();
+        batch.setBatchNo(nextBatchNo());
+        batch.setBatchType(SimulationBatchType.FREE_CREATE.name());
+        batch.setUserCount(request.getUserCount());
+        batch.setStageConfig(writeStageConfig(stageConfig));
+        batch.setStatus(SimulationBatchStatus.PENDING.name());
+        batch.setTotalCount(0);
+        batch.setCompletedCount(0);
+        batch.setFailedCount(0);
+        batch.setRemark(request.getRemark());
+        batchMapper.insert(batch);
+
+        List<SimulationUserPickRow> users = robotMapper.selectRandomRealUsers(request.getUserCount());
+        LocalDateTime now = LocalDateTime.now();
+        int seq = 1;
+        for (SimulationUserPickRow user : users) {
+            SimulationRobot robot = new SimulationRobot();
+            robot.setBatchId(batch.getId());
+            robot.setSeq(seq++);
+            robot.setEmail(user.getEmail());
+            robot.setUserId(user.getId());
+            robot.setNickname(user.getNickname());
+            robot.setStatus(SimulationRobotStatus.WAITING.name());
+            robot.setCurrentStage(SimulationStage.FREE_CREATE.name());
+            robot.setNextRunAt(now);
+            robotMapper.insert(robot);
+        }
+
+        batch.setTotalCount(users.size());
+        batchMapper.updateById(batch);
+        log.info("模拟生成文章批次创建成功 batchId={} batchNo={} userCount={} promptScope={}",
+                batch.getId(), batch.getBatchNo(), users.size(), request.getPromptScope());
+        return batch.getId();
+    }
+
+    @Override
     public PageResult<SimulationBatchVO> list(SimulationBatchQueryRequest request) {
         LambdaQueryWrapper<SimulationBatch> wrapper = new LambdaQueryWrapper<SimulationBatch>()
                 .eq(request.getStatus() != null && !request.getStatus().isBlank(), SimulationBatch::getStatus, request.getStatus())
+                .eq(request.getBatchType() != null && !request.getBatchType().isBlank(), SimulationBatch::getBatchType, request.getBatchType())
                 .orderByDesc(SimulationBatch::getId);
         Page<SimulationBatch> page = batchMapper.selectPage(new Page<>(request.getPage(), request.getSize()), wrapper);
         List<SimulationBatchVO> items = page.getRecords().stream().map(this::toBatchVO).toList();
@@ -189,8 +236,7 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
         log.info("模拟批次已取消 batchId={}", id);
     }
 
-    private void validate(SimulationBatchCreateRequest request) {
-        if (request.getUserCount() == null || request.getUserCount() < 1 || request.getUserCount() > 500) {
+    private void validate(SimulationBatchCreateRequest request) {        if (request.getUserCount() == null || request.getUserCount() < 1 || request.getUserCount() > 500) {
             throw new BusinessException(AdminSimulationErrorCode.PARAM_INVALID.getCode(), "机器人数必须在1-500之间");
         }
         if (request.getUserIntervalMin() > request.getUserIntervalMax()) {
@@ -201,8 +247,15 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
         }
     }
 
-    private String nextBatchNo() {
-        String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
+    private String writeStageConfig(SimulationStageConfig stageConfig) {
+        try {
+            return objectMapper.writeValueAsString(stageConfig);
+        } catch (Exception e) {
+            throw new BusinessException(AdminSimulationErrorCode.PARAM_INVALID.getCode(), "阶段配置序列化失败");
+        }
+    }
+
+    private String nextBatchNo() {        String date = LocalDate.now().format(DateTimeFormatter.BASIC_ISO_DATE);
         String prefix = "SIM" + date;
         Long todayCount = batchMapper.selectCount(new LambdaQueryWrapper<SimulationBatch>()
                 .likeRight(SimulationBatch::getBatchNo, prefix));
@@ -233,6 +286,7 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
         vo.setPlanKey(batch.getPlanKey());
         vo.setPlanName(batch.getPlanName());
         vo.setCycle(batch.getCycle());
+        vo.setBatchType(batch.getBatchType());
         vo.setStageConfig(batch.getStageConfig());
         vo.setStatus(batch.getStatus());
         vo.setTotalCount(batch.getTotalCount());
@@ -251,6 +305,7 @@ public class SimulationBatchServiceImpl implements SimulationBatchService {
         vo.setBatchId(robot.getBatchId());
         vo.setSeq(robot.getSeq());
         vo.setEmail(robot.getEmail());
+        vo.setNickname(robot.getNickname());
         vo.setUserId(robot.getUserId());
         vo.setInviteCode(robot.getInviteCode());
         vo.setStatus(robot.getStatus());

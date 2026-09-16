@@ -122,10 +122,13 @@ public class SimulationRobotService {
         }
 
         SimulationStageConfig config;
-        String plainPassword;
+        String plainPassword = null;
         try {
             config = parseStageConfig(batch.getStageConfig());
-            plainPassword = AesUtil.decrypt(robot.getPasswordEncrypted(), passwordSecret);
+            // 模拟生成文章批次面向存量真实用户，无初始密码，直接走内部使用接口
+            if (!SimulationStage.FREE_CREATE.name().equals(robot.getCurrentStage())) {
+                plainPassword = AesUtil.decrypt(robot.getPasswordEncrypted(), passwordSecret);
+            }
         } catch (Exception e) {
             log.warn("模拟机器人上下文构建失败 robotId={}", robot.getId(), e);
             failStage(robot, batch, SimulationStage.valueOf(robot.getCurrentStage()), e);

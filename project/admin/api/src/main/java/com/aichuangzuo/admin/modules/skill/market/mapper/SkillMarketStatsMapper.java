@@ -32,4 +32,11 @@ public interface SkillMarketStatsMapper {
                                                           @Param("limit") int limit);
 
     long countGlobalUsageRecords(@Param("keyword") String keyword);
+
+    /**
+     * 自由创作模拟：按发布者类型随机取一条已上架且审核通过的市场提示词。
+     *
+     * @param userType 发布者类型：0-机器人 / 1-真实用户；null 为全部
+     */
+    SkillPickRowDTO selectRandomEnabledSkill(@Param("userType") Integer userType);
 }

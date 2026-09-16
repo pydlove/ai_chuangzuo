@@ -8,7 +8,7 @@
       <span class="filter-hint">关闭后，概览与订单统计将排除模拟机器人产生的数据（约 1 分钟内生效）</span>
     </div>
 
-    <a-tabs v-model:activeKey="activeKey" class="simulation-tabs">
+    <a-tabs v-model:activeKey="activeKey" class="simulation-tabs" @change="onTabChange">
       <!-- 模拟新用户 -->
       <a-tab-pane key="new-users" tab="模拟新用户">
         <div class="section-bar">
@@ -33,6 +33,39 @@
                 <a-button size="small" type="link" @click="openDetail(record)">详情</a-button>
                 <a-popconfirm v-if="record.status === 'PENDING' || record.status === 'RUNNING'"
                               title="确认取消该批次？未执行的机器人将停止" @confirm="cancelBatchById(record.id)">
+                  <a-button size="small" type="link" danger>取消</a-button>
+                </a-popconfirm>
+              </a-space>
+            </span>
+            <span v-else>{{ record[column.key] }}</span>
+          </template>
+        </a-table>
+      </a-tab-pane>
+
+      <!-- 模拟生成文章 -->
+      <a-tab-pane key="free-create" tab="模拟生成文章">
+        <div class="section-bar">
+          <span class="section-title">模拟生成文章批次</span>
+          <a-button type="primary" @click="openFreeCreateModal">创建批次</a-button>
+        </div>
+
+        <a-table :columns="fcBatchColumns" :data-source="fcBatches" :loading="fcLoading"
+                 :pagination="fcPagination" row-key="id" @change="handleFcTableChange">
+          <template #bodyCell="{ column, record }">
+            <span v-if="column.key === 'progress'">
+              {{ record.completedCount || 0 }}/{{ record.totalCount || 0 }}
+              <span v-if="record.failedCount > 0" class="failed-count">+{{ record.failedCount }}</span>
+            </span>
+            <span v-else-if="column.key === 'status'">
+              <a-tag :color="batchStatusColor(record.status)">{{ batchStatusText(record.status) }}</a-tag>
+            </span>
+            <span v-else-if="column.key === 'scope'">{{ scopeText(record.stageConfig) }}</span>
+            <span v-else-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
+            <span v-else-if="column.key === 'action'">
+              <a-space>
+                <a-button size="small" type="link" @click="openDetail(record)">详情</a-button>
+                <a-popconfirm v-if="record.status === 'PENDING' || record.status === 'RUNNING'"
+                              title="确认取消该批次？未执行的用户将停止" @confirm="cancelFcBatch(record.id)">
                   <a-button size="small" type="link" danger>取消</a-button>
                 </a-popconfirm>
               </a-space>
@@ -91,12 +124,45 @@
       </a-form>
     </a-modal>
 
+    <!-- 创建模拟生成文章批次 -->
+    <a-modal v-model:open="fcModalVisible" title="创建模拟生成文章批次" width="560px"
+             :confirm-loading="fcCreating" @ok="submitFreeCreate">
+      <a-alert type="info" show-icon style="margin-bottom: 16px"
+               message="随机抽取存量真实用户，随机使用市场提示词，使提示词作者获得创作币收益；不真正生成文章，不消耗 token。" />
+      <a-form :model="fcForm" layout="vertical">
+        <a-form-item label="用户数量（1-500）" required>
+          <a-input-number v-model:value="fcForm.userCount" :min="1" :max="500" style="width: 200px" />
+        </a-form-item>
+        <a-form-item label="提示词范围（按发布者）" required>
+          <a-radio-group v-model:value="fcForm.promptScope">
+            <a-radio value="REAL">真实用户</a-radio>
+            <a-radio value="ROBOT">机器人</a-radio>
+            <a-radio value="ALL">全部</a-radio>
+          </a-radio-group>
+        </a-form-item>
+        <a-form-item label="用户间隔（秒）">
+          <a-input-number v-model:value="fcForm.userIntervalMin" :min="0" style="width: 100px" />
+          <span class="interval-sep">~</span>
+          <a-input-number v-model:value="fcForm.userIntervalMax" :min="0" style="width: 100px" />
+        </a-form-item>
+        <a-form-item label="备注">
+          <a-input v-model:value="fcForm.remark" maxlength="200" placeholder="可空" />
+        </a-form-item>
+      </a-form>
+    </a-modal>
+
     <!-- 批次详情 -->
     <a-drawer v-model:open="detailDrawerVisible" width="720px" :title="`批次详情 · ${detailBatchNo}`">
       <a-table :columns="robotColumns" :data-source="detailRobots" :loading="detailLoading"
                :pagination="false" row-key="id" size="small">
         <template #bodyCell="{ column, record }">
-          <span v-if="column.key === 'status'">
+          <span v-if="column.key === 'email'">
+            <a-tooltip v-if="record.email" :title="record.email" placement="topLeft">
+              <span>{{ record.nickname || record.email }}</span>
+            </a-tooltip>
+            <span v-else>{{ record.nickname || '-' }}</span>
+          </span>
+          <span v-else-if="column.key === 'status'">
             <a-tag :color="robotStatusColor(record.status)">{{ robotStatusText(record.status) }}</a-tag>
           </span>
           <span v-else-if="column.key === 'currentStage'">{{ stageText(record.currentStage) }}</span>
@@ -109,7 +175,7 @@
 
       <div v-if="logRobot" class="log-section">
         <div class="section-bar">
-          <span class="section-title">执行日志 · {{ logRobot.email }}</span>
+          <span class="section-title">执行日志 · {{ logRobot.nickname || logRobot.email }}</span>
         </div>
         <a-table :columns="logColumns" :data-source="logs" :loading="logLoading"
                  :pagination="false" row-key="id" size="small">
@@ -143,11 +209,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { createBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter } from '@/api/simulation'
+import { createBatch, createFreeCreateBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter } from '@/api/simulation'
 import { fetchPlans } from '@/api/plan.js'
 
 const activeKey = ref('new-users')
-
 // ---------- 统计过滤开关 ----------
 const includeRobots = ref(true)
 const filterLoading = ref(false)
@@ -201,7 +266,7 @@ const batchColumns = [
 async function loadBatches() {
   loading.value = true
   try {
-    const res = await listBatches({ page: batchQuery.value.page, size: batchQuery.value.size })
+    const res = await listBatches({ page: batchQuery.value.page, size: batchQuery.value.size, batchType: 'ROBOT_JOURNEY' })
     batches.value = res.items || []
     batchTotal.value = res.total || 0
     schedulePoll()
@@ -214,9 +279,13 @@ async function loadBatches() {
 
 function schedulePoll() {
   clearTimeout(pollTimer)
-  const hasRunning = (batches.value || []).some((b) => b.status === 'RUNNING' || b.status === 'PENDING')
+  const hasRunning = [...(batches.value || []), ...(fcBatches.value || [])]
+    .some((b) => b.status === 'RUNNING' || b.status === 'PENDING')
   if (hasRunning) {
-    pollTimer = setTimeout(() => loadBatches(), 10000)
+    pollTimer = setTimeout(() => {
+      loadBatches()
+      loadFcBatches()
+    }, 10000)
   }
 }
 
@@ -233,6 +302,104 @@ async function cancelBatchById(id) {
     loadBatches()
   } catch (e) {
     message.error(e.message || '取消失败')
+  }
+}
+
+// ---------- 模拟生成文章 ----------
+const fcBatches = ref([])
+const fcLoading = ref(false)
+const fcQuery = ref({ page: 1, size: 20 })
+const fcTotal = ref(0)
+const fcPagination = computed(() => ({
+  current: fcQuery.value.page,
+  pageSize: fcQuery.value.size,
+  total: fcTotal.value,
+  showSizeChanger: true
+}))
+
+const fcBatchColumns = [
+  { title: '批次号', dataIndex: 'batchNo', key: 'batchNo' },
+  { title: '用户数', dataIndex: 'userCount', key: 'userCount', width: 90 },
+  { title: '提示词范围', key: 'scope', width: 110 },
+  { title: '进度', key: 'progress', width: 110 },
+  { title: '状态', key: 'status', width: 90 },
+  { title: '创建时间', key: 'createdAt', width: 110 },
+  { title: '备注', dataIndex: 'remark', key: 'remark', ellipsis: true },
+  { title: '操作', key: 'action', width: 120 }
+]
+
+async function loadFcBatches() {
+  fcLoading.value = true
+  try {
+    const res = await listBatches({ page: fcQuery.value.page, size: fcQuery.value.size, batchType: 'FREE_CREATE' })
+    fcBatches.value = res.items || []
+    fcTotal.value = res.total || 0
+    schedulePoll()
+  } catch (e) {
+    message.error(e.message || '加载批次失败')
+  } finally {
+    fcLoading.value = false
+  }
+}
+
+function handleFcTableChange(pagination) {
+  fcQuery.value.page = pagination.current
+  fcQuery.value.size = pagination.pageSize
+  loadFcBatches()
+}
+
+async function cancelFcBatch(id) {
+  try {
+    await cancelBatch(id)
+    message.success('批次已取消')
+    loadFcBatches()
+  } catch (e) {
+    message.error(e.message || '取消失败')
+  }
+}
+
+const fcModalVisible = ref(false)
+const fcCreating = ref(false)
+
+function defaultFcForm() {
+  return {
+    userCount: 10,
+    promptScope: 'REAL',
+    userIntervalMin: 10,
+    userIntervalMax: 30,
+    remark: ''
+  }
+}
+
+const fcForm = ref(defaultFcForm())
+
+function openFreeCreateModal() {
+  fcForm.value = defaultFcForm()
+  fcModalVisible.value = true
+}
+
+async function submitFreeCreate() {
+  const f = fcForm.value
+  if (f.userIntervalMin > f.userIntervalMax) {
+    message.warning('用户间隔最小值不能大于最大值')
+    return
+  }
+  fcCreating.value = true
+  try {
+    await createFreeCreateBatch({
+      userCount: f.userCount,
+      promptScope: f.promptScope,
+      userIntervalMin: f.userIntervalMin,
+      userIntervalMax: f.userIntervalMax,
+      remark: f.remark || undefined
+    })
+    message.success('批次创建成功')
+    fcModalVisible.value = false
+    loadFcBatches()
+  } catch (e) {
+    message.error(e.message || '创建失败')
+  } finally {
+    fcCreating.value = false
   }
 }
 
@@ -413,14 +580,30 @@ function logStatusColor(status) {
 function stageText(stage) {
   const map = {
     REGISTER: '注册', LOGIN: '登录', PROFILE: '资料', LOTTERY: '抽奖',
-    MEMBERSHIP: '会员', CREATE: '创作', COMMISSION: '约稿'
+    MEMBERSHIP: '会员', CREATE: '创作', COMMISSION: '约稿', FREE_CREATE: '模拟创作'
   }
   return map[stage] || stage || '-'
+}
+
+function scopeText(stageConfig) {
+  try {
+    const scope = JSON.parse(stageConfig || '{}').promptScope
+    const map = { REAL: '真实用户', ROBOT: '机器人', ALL: '全部' }
+    return map[scope] || scope || '-'
+  } catch (e) {
+    return '-'
+  }
 }
 
 function formatTime(t) {
   if (!t) return '-'
   return dayjs(t).format('MM-DD HH:mm')
+}
+
+function onTabChange(key) {
+  if (key === 'free-create' && fcBatches.value.length === 0) {
+    loadFcBatches()
+  }
 }
 
 onMounted(() => {

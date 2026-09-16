@@ -11,6 +11,7 @@ public class SimulationRobotVO {
     private Long batchId;
     private Integer seq;
     private String email;
+    private String nickname;
     private Long userId;
     private String inviteCode;
     private String status;
