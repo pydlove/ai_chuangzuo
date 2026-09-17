@@ -362,13 +362,14 @@ import { message } from 'ant-design-vue'
 const router = useRouter()
 const route = useRoute()
 import { QuestionCircleOutlined } from '@ant-design/icons-vue'
-import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides } from '@/utils/articleBlocks.js'
+import { parseBodyToBlocks, serializeBlocksToArticle, BLOCK_TYPES, stripLeadingTitle, applySkillOverrides, buildArticleCopyText, buildArticleCopyHtml } from '@/utils/articleBlocks.js'
+import { copyToClipboard as writeClipboard } from '@/utils/copy.js'
 import { useExportTemplates, DEFAULT_TEMPLATE_STYLE } from '@/composables/useExportTemplates.js'
 import { getArticle, updateArticle, optimizeTitles, getExportToken, downloadArticleWord } from '@/api/article.js'
 import EmptyState from '@/components/common/EmptyState.vue'
 import SectionTitle from '@/components/common/SectionTitle.vue'
 import { getCachedPublishPlan, generatePublishPlan } from '@/composables/usePublishPlan.js'
-import { PLATFORM_NAME_MAP } from '@/utils/platform.js'
+import { PLATFORM_NAME_MAP, formatTagForCopy } from '@/utils/platform.js'
 import { useBenefits } from '@/composables/useBenefits.js'
 import { useCopy } from '@/composables/useCopy.js'
 import { formatDateTime } from '@/utils/format.js'
@@ -975,11 +976,6 @@ const formattedBody = computed(() => {
   return renderedWithOverrides
 })
 
-const { copy: copyArticleText } = useCopy({
-  successText: '已复制到剪贴板',
-  errorText: '复制失败'
-})
-
 const { copy: copyDescText } = useCopy({
   successText: '描述已复制',
   errorText: '复制失败'
@@ -1001,11 +997,19 @@ const copyTitle = () => {
   copyTitleText(article.value.title)
 }
 
-// 复制正文
-const copyText = () => {
+// 复制正文：纯文本剥掉 # 号；同时写入 text/html，粘到富文本框时 ## 直接变成小标题
+const copyText = async () => {
   if (!article.value) return
-  const text = `${article.value.title}\n\n${article.value.body}`
-  copyArticleText(text)
+  const body = stripLeadingTitle(article.value.body, (article.value.title || '').trim())
+  try {
+    await writeClipboard(
+      buildArticleCopyText(article.value.title, body),
+      buildArticleCopyHtml(article.value.title, body)
+    )
+    message.success('已复制到剪贴板')
+  } catch {
+    message.error('复制失败')
+  }
 }
 
 // 导出 Word
@@ -1035,13 +1039,14 @@ const copyDesc = () => {
   copyDescText(publishDesc.value)
 }
 
-// 复制全部标签
+// 复制全部标签：按文章平台加 # 号（百家号 #话题#，抖音等 #话题）
 const copyTags = () => {
   if (!canUseSeoKeywords.value) {
     message.info(`推荐标签为${SEO_MIN_PLAN.name}功能，请升级套餐后使用`)
     return
   }
-  copyTagsText(publishTags.value.join(' '))
+  const platform = article.value?.platform
+  copyTagsText(publishTags.value.map(tag => formatTagForCopy(tag, platform)).join(' '))
 }
 
 // AI优化标题：首次点击调后端大模型生成，之后后端返回首次缓存结果

@@ -1251,7 +1251,7 @@ const submitAvatar = async () => {
     await updateUserAvatar(avatarTarget.value.id, avatarFile.value)
     message.success('头像已更新')
     avatarModalVisible.value = false
-    loadUsers()
+    fetchUsers()
   } catch (e) {
     message.error(e.message || '头像更新失败')
   } finally {

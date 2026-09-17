@@ -3,6 +3,7 @@ package com.aichuangzuo.admin.modules.simulation.controller;
 import com.aichuangzuo.admin.infrastructure.security.SecurityAdminContext;
 import com.aichuangzuo.admin.modules.auth.service.AdminUserPermissionService;
 import com.aichuangzuo.admin.modules.earnings.vo.PageResult;
+import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationLibraryBatchDeleteRequest;
 import com.aichuangzuo.admin.modules.simulation.dto.request.SimulationNicknameBatchAddRequest;
 import com.aichuangzuo.admin.modules.simulation.service.SimulationLibraryService;
 import com.aichuangzuo.admin.modules.simulation.util.SimulationNicknameExcelUtil;
@@ -95,6 +96,14 @@ public class SimulationLibraryAdminController {
         return Result.success(null);
     }
 
+    @PostMapping("/nicknames/batch-delete")
+    public Result<Map<String, Integer>> batchDeleteNicknames(@Valid @RequestBody SimulationLibraryBatchDeleteRequest request) {
+        checkSuperAdmin();
+        int deleted = libraryService.batchDeleteNicknames(request.getIds());
+        log.info("管理员批量删除模拟昵称 deleted={}", deleted);
+        return Result.success(Map.of("deleted", deleted));
+    }
+
     // ---------- 头像库 ----------
 
     @GetMapping("/avatars")
@@ -124,6 +133,14 @@ public class SimulationLibraryAdminController {
         checkSuperAdmin();
         libraryService.deleteAvatar(id);
         return Result.success(null);
+    }
+
+    @PostMapping("/avatars/batch-delete")
+    public Result<Map<String, Integer>> batchDeleteAvatars(@Valid @RequestBody SimulationLibraryBatchDeleteRequest request) {
+        checkSuperAdmin();
+        int deleted = libraryService.batchDeleteAvatars(request.getIds());
+        log.info("管理员批量删除模拟头像 deleted={}", deleted);
+        return Result.success(Map.of("deleted", deleted));
     }
 
     private Long checkSuperAdmin() {

@@ -200,9 +200,9 @@
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/隐私政策_compressed-v1.jpg" alt="隐私政策" /></div>
           <span class="mine-grid-label">隐私政策</span>
         </div>
-        <div class="mine-grid-item" @click="router.push('/console/wechat-bind')">
-          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关注微信_compressed-v1.jpg" alt="绑定公众号" /></div>
-          <span class="mine-grid-label">绑定公众号</span>
+        <div class="mine-grid-item" @click="officialQrVisible = true">
+          <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/关注微信_compressed-v1.jpg" alt="关注公众号" /></div>
+          <span class="mine-grid-label">关注公众号</span>
         </div>
         <div class="mine-grid-item" @click="openOfficialSite">
           <div class="mine-grid-icon mine-grid-icon--img"><img src="/assets/images/changyong/访问官网_compressed-v1.jpg" alt="访问官网" /></div>
@@ -257,6 +257,25 @@
       </div>
     </a-modal>
 
+    <!-- 公众号二维码弹框 -->
+    <a-modal
+      v-model:open="officialQrVisible"
+      title="公众号"
+      :footer="null"
+      :width="360"
+      centered
+      class="mine-official-qr-modal"
+    >
+      <div class="mine-official-qr-content">
+        <img
+          class="mine-official-qr-img"
+          src="https://foruda.gitee.com/images/1788417922298176039/649f9e43_8060302.jpg"
+          alt="公众号二维码"
+        />
+        <p class="mine-official-qr-hint">扫码关注「爱创作工坊」公众号</p>
+      </div>
+    </a-modal>
+
     <PlanGalleryModal v-model:open="planGalleryVisible" />
   </div>
 </template>
@@ -284,6 +303,7 @@ const router = useRouter()
 const actions = inject('consoleActions')
 
 const settingsModalVisible = ref(false)
+const officialQrVisible = ref(false)
 
 // 运营方案库：专业版及以上可用
 const canViewPlanGallery = computed(() => {
@@ -1108,6 +1128,27 @@ const onMineAvatarChange = async (e) => {
   flex-shrink: 0;
   font-size: 12px;
   color: #999;
+}
+
+/* ========== 公众号二维码弹框 ========== */
+.mine-official-qr-content {
+  text-align: center;
+  padding: 16px 0;
+  user-select: none;
+}
+
+.mine-official-qr-img {
+  width: 200px;
+  height: auto;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+}
+
+.mine-official-qr-hint {
+  margin-top: 16px;
+  font-size: 14px;
+  color: #595959;
 }
 
 /* ========== PC 端适配 ========== */

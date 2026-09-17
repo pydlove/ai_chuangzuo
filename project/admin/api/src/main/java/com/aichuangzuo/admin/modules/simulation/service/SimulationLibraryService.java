@@ -49,7 +49,7 @@ public class SimulationLibraryService {
     /** 单次批量添加/导入昵称上限 */
     private static final int MAX_NICKNAME_BATCH = 2000;
     private static final int MAX_NICKNAME_LENGTH = 30;
-    private static final long MAX_AVATAR_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_AVATAR_FILE_SIZE = 20 * 1024 * 1024;
     private static final int AVATAR_MAX_EDGE = 256;
     private static final float AVATAR_JPEG_QUALITY = 0.8f;
     private static final int MAX_AVATAR_BATCH = 50;
@@ -97,6 +97,14 @@ public class SimulationLibraryService {
 
     public void deleteNickname(Long id) {
         nicknameMapper.deleteById(id);
+    }
+
+    /** 批量删除昵称，返回删除条数。 */
+    public int batchDeleteNicknames(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(400, "请选择要删除的昵称");
+        }
+        return nicknameMapper.deleteBatchIds(ids);
     }
 
     /** PROFILE 阶段取用：随机取一条并删除；库空或重试均失败返回 null。 */
@@ -151,6 +159,14 @@ public class SimulationLibraryService {
 
     public void deleteAvatar(Long id) {
         avatarMapper.deleteById(id);
+    }
+
+    /** 批量删除头像，返回删除条数。 */
+    public int batchDeleteAvatars(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            throw new BusinessException(400, "请选择要删除的头像");
+        }
+        return avatarMapper.deleteBatchIds(ids);
     }
 
     /** PROFILE 阶段取用：随机取一条并删除；库空或重试均失败返回 null。 */
@@ -209,7 +225,7 @@ public class SimulationLibraryService {
             throw new BusinessException(400, "头像文件为空");
         }
         if (file.getSize() > MAX_AVATAR_FILE_SIZE) {
-            throw new BusinessException(400, "单张头像不能超过 5MB");
+            throw new BusinessException(400, "单张头像不能超过 20MB");
         }
         try {
             BufferedImage source = ImageIO.read(new ByteArrayInputStream(file.getBytes()));

@@ -29,12 +29,6 @@ const routes = [
     meta: { title: '扫码登录' }
   },
   {
-    path: '/wechat-bind',
-    name: 'WechatBindExternal',
-    component: () => import('@/views/WechatBindExternalView.vue'),
-    meta: { title: '绑定公众号' }
-  },
-  {
     path: '/pricing',
     name: 'Pricing',
     component: () => import('@/views/Pricing.vue')
@@ -212,12 +206,6 @@ const routes = [
         path: 'mine',
         name: 'ConsoleMine',
         component: () => import('@/views/console/MineIndex.vue')
-      },
-      {
-        path: 'wechat-bind',
-        name: 'ConsoleWechatBind',
-        component: () => import('@/views/console/WechatBindView.vue'),
-        meta: { title: '绑定公众号' }
       },
       {
         path: 'account-check',

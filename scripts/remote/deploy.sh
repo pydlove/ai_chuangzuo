@@ -9,7 +9,7 @@ set -e
 
 # ============ 配置区（请按实际情况修改） ============
 # 支持通过环境变量注入，便于管理端升级管理页面统一设置。
-SERVER_IP="${SERVER_IP:-101.126.15.58}"           # 例如: 123.45.67.89
+SERVER_IP="${SERVER_IP:-101.35.228.195}"           # 例如: 123.45.67.89
 SERVER_USER="${SERVER_USER:-root}"                 # SSH 用户名
 SERVER_PASSWORD="${SERVER_PASSWORD:-}"             # SSH 密码（或使用 SSH_KEY_PATH）
 SSH_KEY_PATH="${SSH_KEY_PATH:-~/.ssh/id_rsa}"      # 如使用密钥登录，填密钥路径，例如: ~/.ssh/id_rsa

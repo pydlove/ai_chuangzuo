@@ -86,10 +86,16 @@
               <a-button :loading="nicknameImporting">Excel 导入</a-button>
             </a-upload>
             <a-button type="primary" @click="openNicknameModal">批量添加</a-button>
+            <a-popconfirm title="确认删除选中的昵称？" @confirm="removeNicknames">
+              <a-button danger :disabled="selectedNicknameKeys.length === 0" :loading="nicknameBatchDeleting">
+                批量删除{{ selectedNicknameKeys.length > 0 ? `（${selectedNicknameKeys.length}）` : '' }}
+              </a-button>
+            </a-popconfirm>
           </a-space>
         </div>
         <a-table :columns="nicknameColumns" :data-source="nicknames" :loading="nicknameLoading"
-                 :pagination="nicknamePagination" row-key="id" @change="handleNicknameTableChange">
+                 :pagination="nicknamePagination" row-key="id" :row-selection="nicknameRowSelection"
+                 @change="handleNicknameTableChange">
           <template #bodyCell="{ column, record }">
             <span v-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
             <span v-else-if="column.key === 'action'">
@@ -115,11 +121,18 @@
                       @click="submitAvatarUpload">
               上传（{{ avatarPending.length }}）
             </a-button>
+            <a-popconfirm title="确认删除选中的头像？" @confirm="removeAvatars">
+              <a-button danger :disabled="selectedAvatarIds.length === 0" :loading="avatarBatchDeleting">
+                批量删除{{ selectedAvatarIds.length > 0 ? `（${selectedAvatarIds.length}）` : '' }}
+              </a-button>
+            </a-popconfirm>
           </a-space>
         </div>
         <a-empty v-if="!avatarLoading && avatars.length === 0" description="暂无头像，请先上传" />
         <div class="avatar-grid">
-          <div v-for="a in avatars" :key="a.id" class="avatar-cell">
+          <div v-for="a in avatars" :key="a.id" class="avatar-cell" :class="{ selected: selectedAvatarIds.includes(a.id) }">
+            <a-checkbox class="avatar-cell-check" :checked="selectedAvatarIds.includes(a.id)"
+                        @change="toggleAvatarSelect(a.id)" />
             <img :src="a.dataUrl" alt="avatar" />
             <div class="avatar-cell-footer">
               <span class="avatar-cell-time">{{ formatTime(a.createdAt) }}</span>
@@ -275,7 +288,7 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { createBatch, createFreeCreateBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter, listNicknames, countNicknames, addNicknames, importNicknamesExcel, deleteNickname, listAvatars, countAvatars, uploadAvatars, deleteAvatar } from '@/api/simulation'
+import { createBatch, createFreeCreateBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter, listNicknames, countNicknames, addNicknames, importNicknamesExcel, deleteNickname, batchDeleteNicknames, listAvatars, countAvatars, uploadAvatars, deleteAvatar, batchDeleteAvatars } from '@/api/simulation'
 import { fetchPlans } from '@/api/plan.js'
 import request from '@/utils/request.js'
 
@@ -692,6 +705,15 @@ const nicknameImporting = ref(false)
 const nicknameModalVisible = ref(false)
 const nicknameSaving = ref(false)
 const nicknameBatchText = ref('')
+const selectedNicknameKeys = ref([])
+const nicknameBatchDeleting = ref(false)
+
+const nicknameRowSelection = computed(() => ({
+  selectedRowKeys: selectedNicknameKeys.value,
+  onChange: (keys) => {
+    selectedNicknameKeys.value = keys
+  }
+}))
 
 const nicknameColumns = [
   { title: 'ID', dataIndex: 'id', key: 'id', width: 90 },
@@ -808,6 +830,22 @@ async function removeNickname(id) {
   }
 }
 
+async function removeNicknames() {
+  if (selectedNicknameKeys.value.length === 0) return
+  nicknameBatchDeleting.value = true
+  try {
+    await batchDeleteNicknames(selectedNicknameKeys.value)
+    message.success(`已删除 ${selectedNicknameKeys.value.length} 个昵称`)
+    selectedNicknameKeys.value = []
+    loadNicknames()
+    loadNicknameCount()
+  } catch (e) {
+    message.error(e.message || '批量删除失败')
+  } finally {
+    nicknameBatchDeleting.value = false
+  }
+}
+
 // ---------- 头像库 ----------
 const avatars = ref([])
 const avatarLoading = ref(false)
@@ -816,6 +854,17 @@ const avatarQuery = ref({ page: 1, size: 24 })
 const avatarTotal = ref(0)
 const avatarPending = ref([])
 const avatarUploading = ref(false)
+const selectedAvatarIds = ref([])
+const avatarBatchDeleting = ref(false)
+
+function toggleAvatarSelect(id) {
+  const idx = selectedAvatarIds.value.indexOf(id)
+  if (idx >= 0) {
+    selectedAvatarIds.value.splice(idx, 1)
+  } else {
+    selectedAvatarIds.value.push(id)
+  }
+}
 
 async function loadAvatars() {
   avatarLoading.value = true
@@ -823,6 +872,8 @@ async function loadAvatars() {
     const res = await listAvatars({ page: avatarQuery.value.page, size: avatarQuery.value.size })
     avatars.value = res.items || []
     avatarTotal.value = res.total || 0
+    const validIds = new Set(avatars.value.map((a) => a.id))
+    selectedAvatarIds.value = selectedAvatarIds.value.filter((id) => validIds.has(id))
   } catch (e) {
     message.error(e.message || '加载头像库失败')
   } finally {
@@ -844,8 +895,8 @@ function pickAvatarFiles(file) {
     message.warning(`${file.name} 不是 JPG/PNG 图片，已跳过`)
     return false
   }
-  if (file.size > 5 * 1024 * 1024) {
-    message.warning(`${file.name} 超过 5MB，已跳过`)
+  if (file.size > 20 * 1024 * 1024) {
+    message.warning(`${file.name} 超过 20MB，已跳过`)
     return false
   }
   avatarPending.value.push(file)
@@ -878,6 +929,22 @@ async function removeAvatar(id) {
     loadAvatarCount()
   } catch (e) {
     message.error(e.message || '删除失败')
+  }
+}
+
+async function removeAvatars() {
+  if (selectedAvatarIds.value.length === 0) return
+  avatarBatchDeleting.value = true
+  try {
+    await batchDeleteAvatars(selectedAvatarIds.value)
+    message.success(`已删除 ${selectedAvatarIds.value.length} 张头像`)
+    selectedAvatarIds.value = []
+    loadAvatars()
+    loadAvatarCount()
+  } catch (e) {
+    message.error(e.message || '批量删除失败')
+  } finally {
+    avatarBatchDeleting.value = false
   }
 }
 
@@ -968,10 +1035,25 @@ onUnmounted(() => clearTimeout(pollTimer))
 }
 
 .avatar-cell {
+  position: relative;
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   overflow: hidden;
   background: #fff;
+}
+
+.avatar-cell.selected {
+  border-color: #1677ff;
+}
+
+.avatar-cell-check {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 1;
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 4px;
+  padding: 0 2px;
 }
 
 .avatar-cell img {

@@ -59,6 +59,10 @@ export function deleteNickname(id) {
   return request.delete(`${LIBRARY}/nicknames/${id}`).then((res) => res.data)
 }
 
+export function batchDeleteNicknames(ids) {
+  return request.post(`${LIBRARY}/nicknames/batch-delete`, { ids }).then((res) => res.data)
+}
+
 export function listAvatars(params = {}) {
   return request.get(`${LIBRARY}/avatars`, { params }).then((res) => res.data)
 }
@@ -75,4 +79,8 @@ export function uploadAvatars(files) {
 
 export function deleteAvatar(id) {
   return request.delete(`${LIBRARY}/avatars/${id}`).then((res) => res.data)
+}
+
+export function batchDeleteAvatars(ids) {
+  return request.post(`${LIBRARY}/avatars/batch-delete`, { ids }).then((res) => res.data)
 }

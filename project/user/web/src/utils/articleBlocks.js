@@ -41,6 +41,109 @@ export function stripLeadingTitle(body, title) {
 }
 
 /**
+ * 生成「复制正文」用的纯文本：剥掉 markdown 标题的 # 号和旧版 【】 包裹，
+ * 粘到任何文本框都是不带头衔符号的干净文本。
+ * @param {string} title
+ * @param {string} body
+ * @returns {string}
+ */
+export function buildArticleCopyText(title, body) {
+  const stripped = (body || '')
+    .split('\n')
+    .map(line => {
+      const t = line.trim()
+      const mdHeading = t.match(/^#{1,6}\s+(.+)$/)
+      if (mdHeading) return mdHeading[1]
+      const legacyHeading = t.match(/^【(.+)】$/)
+      if (legacyHeading) return legacyHeading[1]
+      return line
+    })
+    .join('\n')
+  return `${title || ''}\n\n${stripped}`.trim()
+}
+
+/**
+ * 生成「复制正文」用的富文本 HTML：标题 → h1，## / ### → h2 / h3，
+ * 【...】 → h2，> 引导 → blockquote，- / 数字. 连续行 → ul / ol，其余 → p。
+ * 不带内联样式，粘到富文本编辑器后继承编辑器自身的标题样式。
+ * @param {string} title
+ * @param {string} body
+ * @returns {string}
+ */
+export function buildArticleCopyHtml(title, body) {
+  const out = [`<h1>${escapeHtml(title || '')}</h1>`]
+  let para = []
+  let list = null
+
+  const flushPara = () => {
+    if (para.length === 0) return
+    out.push(`<p>${para.map(escapeHtml).join('<br>')}</p>`)
+    para = []
+  }
+  const flushList = () => {
+    if (!list) return
+    const tag = list.ordered ? 'ol' : 'ul'
+    out.push(`<${tag}>${list.items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</${tag}>`)
+    list = null
+  }
+
+  ;(body || '').split('\n').forEach(raw => {
+    const line = raw.trim()
+    if (!line) {
+      flushPara()
+      flushList()
+      return
+    }
+    const mdHeading = line.match(/^(#{1,6})\s+(.+)$/)
+    if (mdHeading) {
+      flushPara()
+      flushList()
+      const level = Math.min(mdHeading[1].length, 3)
+      out.push(`<h${level}>${escapeHtml(mdHeading[2])}</h${level}>`)
+      return
+    }
+    const legacyHeading = line.match(/^【(.+)】$/)
+    if (legacyHeading) {
+      flushPara()
+      flushList()
+      out.push(`<h2>${escapeHtml(legacyHeading[1])}</h2>`)
+      return
+    }
+    if (line.startsWith('> ')) {
+      flushPara()
+      flushList()
+      out.push(`<blockquote><p>${escapeHtml(line.slice(2))}</p></blockquote>`)
+      return
+    }
+    const ulMatch = line.match(/^[-•]\s+(.*)$/)
+    if (ulMatch) {
+      flushPara()
+      if (!list || list.ordered) {
+        flushList()
+        list = { ordered: false, items: [] }
+      }
+      list.items.push(ulMatch[1])
+      return
+    }
+    const olMatch = line.match(/^\d+\.\s+(.*)$/)
+    if (olMatch) {
+      flushPara()
+      if (!list || !list.ordered) {
+        flushList()
+        list = { ordered: true, items: [] }
+      }
+      list.items.push(olMatch[1])
+      return
+    }
+    flushList()
+    para.push(line)
+  })
+  flushPara()
+  flushList()
+  return out.join('')
+}
+
+/**
  * 把文章标题和正文解析为可编辑 block 数组
  * @param {string} title
  * @param {string} body

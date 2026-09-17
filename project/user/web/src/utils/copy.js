@@ -1,9 +1,20 @@
-export async function copyToClipboard(text) {
+export async function copyToClipboard(text, html) {
   if (text == null || text === '') return
 
   // 优先使用现代 Clipboard API（需要 HTTPS 或 localhost）
   if (navigator.clipboard && window.isSecureContext) {
     try {
+      // 富文本场景：同时写入 text/html 与 text/plain，
+      // 粘到富文本框保留标题/段落结构，粘到纯文本框拿到无 # 号的干净文本
+      if (html && typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([
+          new ClipboardItem({
+            'text/html': new Blob([String(html)], { type: 'text/html' }),
+            'text/plain': new Blob([String(text)], { type: 'text/plain' })
+          })
+        ])
+        return
+      }
       await navigator.clipboard.writeText(String(text))
       return
     } catch {

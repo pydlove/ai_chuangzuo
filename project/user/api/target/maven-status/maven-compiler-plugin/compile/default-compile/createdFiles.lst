@@ -21,6 +21,7 @@ com/aichuangzuo/user/modules/lottery/service/impl/LotteryDisplayServiceImpl.clas
 com/aichuangzuo/user/modules/benefit/vo/BenefitCheckVO.class
 com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlanQuestion.class
 com/aichuangzuo/user/modules/skill/market/entity/UserMarketFavorite.class
+com/aichuangzuo/user/modules/simulation/vo/RobotCreatedVO.class
 com/aichuangzuo/user/modules/skill/dto/request/UpdateSkillRequest.class
 com/aichuangzuo/user/modules/earnings/service/EarningsService.class
 com/aichuangzuo/user/modules/earnings/dto/request/RealNameRequest.class
@@ -125,6 +126,7 @@ com/aichuangzuo/user/modules/article/vo/TitleOptimizeVO.class
 com/aichuangzuo/user/modules/leaderboard/dto/request/IncomeSubmissionUploadRequest.class
 com/aichuangzuo/user/modules/auth/entity/UserLoginLog.class
 com/aichuangzuo/user/modules/lottery/controller/UserCouponController.class
+com/aichuangzuo/user/modules/simulation/controller/SimulationInternalController.class
 com/aichuangzuo/user/modules/selfmedia/vo/SelfMediaPlanVO.class
 com/aichuangzuo/user/config/MybatisPlusConfig.class
 com/aichuangzuo/user/modules/generation/vo/GenerationTaskPageVO.class
@@ -218,6 +220,7 @@ com/aichuangzuo/user/modules/scheduler/mapper/ScheduledTaskLogMapper.class
 com/aichuangzuo/user/modules/auth/mail/EmbeddedSmtpTestConfig.class
 com/aichuangzuo/user/modules/selfmedia/entity/SelfMediaPlanNiche.class
 com/aichuangzuo/user/infrastructure/security/AdminJwtUtil.class
+com/aichuangzuo/user/modules/user/controller/UserInternalController.class
 com/aichuangzuo/user/modules/generation/mapper/UserMembershipMirrorMapper.class
 com/aichuangzuo/user/modules/benefit/vo/UserBenefitVO.class
 com/aichuangzuo/user/modules/share/mapper/ShareConfigMapper.class
@@ -244,6 +247,7 @@ com/aichuangzuo/user/modules/membership/service/impl/MembershipServiceImpl.class
 com/aichuangzuo/user/modules/exporttemplate/controller/ExportTemplateController.class
 com/aichuangzuo/user/modules/recommendedcreation/dto/request/GenerateAnglesRequest.class
 com/aichuangzuo/user/modules/workbench/dto/request/WeeklyArticleItemRequest.class
+com/aichuangzuo/user/modules/simulation/dto/SimulationRobotCreateRequest.class
 com/aichuangzuo/user/modules/selfmedia/controller/SelfMediaPlanController.class
 com/aichuangzuo/user/modules/commission/service/CommissionService.class
 com/aichuangzuo/user/modules/platform/controller/HealthController.class
@@ -286,6 +290,7 @@ com/aichuangzuo/user/modules/generation/vo/GenerationTaskVO.class
 com/aichuangzuo/user/modules/selfmedia/service/impl/SelfMediaPlanServiceImpl$3.class
 com/aichuangzuo/user/modules/generation/mapper/GenerationTaskRefundMapper.class
 com/aichuangzuo/user/modules/selfmedia/vo/NicknameRecommendVO$Option.class
+com/aichuangzuo/user/modules/simulation/service/SimulationUserService.class
 com/aichuangzuo/user/modules/auth/entity/SmsSendRecord.class
 com/aichuangzuo/user/modules/aiprompt/service/impl/AiPromptRenderServiceImpl$1.class
 com/aichuangzuo/user/modules/earnings/service/impl/EarningsServiceImpl.class
@@ -301,6 +306,7 @@ com/aichuangzuo/user/modules/selfmedia/util/SelfMediaPlanHashUtil$2.class
 com/aichuangzuo/user/modules/benefit/mapper/PlanBenefitMapper.class
 com/aichuangzuo/user/modules/leaderboard/service/LeaderboardService.class
 com/aichuangzuo/user/modules/user/dto/request/UpdatePhoneRequest.class
+com/aichuangzuo/user/infrastructure/security/InternalCallContext.class
 com/aichuangzuo/user/modules/learn/mapper/LearnCategoryMapper.class
 com/aichuangzuo/user/modules/commission/vo/CommissionSubmissionMineVO.class
 com/aichuangzuo/user/modules/leaderboard/service/impl/CoinRecordServiceImpl.class
@@ -308,6 +314,7 @@ com/aichuangzuo/user/modules/selfmedia/vo/NicheOptionVO.class
 com/aichuangzuo/user/modules/membership/enums/MembershipPlan.class
 com/aichuangzuo/user/modules/activity/interceptor/UserActivityInterceptor.class
 com/aichuangzuo/user/modules/wechat/vo/WechatBindStatusVO.class
+com/aichuangzuo/user/modules/auth/util/InviteCodeGenerator.class
 com/aichuangzuo/user/modules/recommendedcreation/entity/RecommendedCreationSession.class
 com/aichuangzuo/user/modules/auth/service/impl/AuthServiceImpl.class
 com/aichuangzuo/user/modules/auth/mapper/UserMapper.class

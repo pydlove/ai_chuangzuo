@@ -19,3 +19,19 @@ export const PLATFORM_OPTIONS = [
   { key: 'zhihu', label: PLATFORM_NAME_MAP.zhihu },
   { key: 'bilibili', label: PLATFORM_NAME_MAP.bilibili }
 ]
+
+// 复制标签时按平台习惯加 # 号：百家号是 #话题#，抖音/快手/小红书/公众号/头条是 #话题，
+// 知乎/B站话题在发布页搜索选择，不带 # 原样复制
+const TAG_COPY_FORMATTERS = {
+  baijiahao: tag => `#${tag}#`,
+  douyin: tag => `#${tag}`,
+  kuaishou: tag => `#${tag}`,
+  xiaohongshu: tag => `#${tag}`,
+  wechat: tag => `#${tag}`,
+  toutiao: tag => `#${tag}`
+}
+
+export function formatTagForCopy(tag, platform) {
+  const formatter = TAG_COPY_FORMATTERS[platform]
+  return formatter ? formatter(tag) : tag
+}

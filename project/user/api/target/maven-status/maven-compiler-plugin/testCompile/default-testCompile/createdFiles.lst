@@ -32,7 +32,9 @@ com/aichuangzuo/user/modules/benefit/service/BenefitServiceTest.class
 com/aichuangzuo/user/modules/article/service/DraftServiceTest.class
 com/aichuangzuo/user/modules/recommendedcreation/service/RecommendedCreationServiceImplTest$5.class
 com/aichuangzuo/user/modules/selfmedia/service/SelfMediaPlanServiceImplTest.class
+com/aichuangzuo/user/infrastructure/security/InternalCallContextTest.class
 com/aichuangzuo/user/modules/leaderboard/service/CoinRecordServiceTest.class
+com/aichuangzuo/user/modules/simulation/service/SimulationUserServiceTest.class
 com/aichuangzuo/user/modules/auth/service/AuthServiceTest.class
 com/aichuangzuo/user/modules/exporttemplate/service/impl/ExportTemplateServiceImplTest.class
 com/aichuangzuo/user/modules/generation/service/GenerationBenefitResolverTest.class
