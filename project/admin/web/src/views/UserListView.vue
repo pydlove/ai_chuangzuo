@@ -214,7 +214,7 @@
           <a-upload :show-upload-list="false" accept="image/jpeg,image/png" :before-upload="pickAvatarFile">
             <a-button>选择图片</a-button>
           </a-upload>
-          <p class="avatar-upload-hint">支持 jpg/png，最大 5MB</p>
+          <p class="avatar-upload-hint">支持 jpg/png，最大 10MB</p>
         </div>
       </div>
     </a-modal>
@@ -1231,8 +1231,8 @@ const openAvatarModal = (user) => {
 }
 
 const pickAvatarFile = (file) => {
-  if (file.size > 5 * 1024 * 1024) {
-    message.error('图片不能超过 5MB')
+  if (file.size > 10 * 1024 * 1024) {
+    message.error('图片不能超过 10MB')
     return false
   }
   avatarFile.value = file

@@ -145,7 +145,7 @@ public class UserProfileController {
     /**
      * 上传头像。
      *
-     * @param file 头像文件（jpg/png，最大 5MB）
+     * @param file 头像文件（jpg/png，最大 10MB）
      * @return 更新后的 UserProfileVO
      */
     @Operation(summary = "上传头像")

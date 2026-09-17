@@ -24,6 +24,7 @@ import java.util.Locale;
 public class LocalFileStorage {
 
     private static final long MAX_FILE_SIZE = 5 * 1024 * 1024;
+    private static final long MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
     private static final int MAX_FILES_PER_UPLOAD = 20;
     private static final List<String> ALLOWED_EXTENSIONS = List.of("jpg", "jpeg", "png");
 
@@ -104,7 +105,7 @@ public class LocalFileStorage {
         if (file == null || file.isEmpty()) {
             throw new BusinessException(UserAuthErrorCode.AVATAR_FILE_INVALID);
         }
-        if (file.getSize() > MAX_FILE_SIZE) {
+        if (file.getSize() > MAX_AVATAR_FILE_SIZE) {
             throw new BusinessException(UserAuthErrorCode.AVATAR_FILE_INVALID);
         }
         String ext = extension(file.getOriginalFilename());

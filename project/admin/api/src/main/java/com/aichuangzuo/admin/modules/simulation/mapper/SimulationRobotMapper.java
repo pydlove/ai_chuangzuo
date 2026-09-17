@@ -66,9 +66,11 @@ public interface SimulationRobotMapper extends BaseMapper<SimulationRobot> {
     List<Long> selectRunnableBatchIdsToComplete();
 
     /**
-     * 模拟生成文章：随机抽取一批存量真实用户（user_type=1）。
+     * 模拟生成文章：随机抽取一批存量真实用户（user_type=1），仅取有邮箱的用户
+     * （a_simulation_robot.email 非空约束，且登录等场景依赖邮箱）。
      */
     @Select("SELECT id, COALESCE(NULLIF(nickname, ''), email) AS nickname, email FROM u_user "
-            + "WHERE is_deleted = 0 AND user_type = 1 ORDER BY RAND() LIMIT #{limit}")
+            + "WHERE is_deleted = 0 AND user_type = 1 AND email IS NOT NULL AND email <> '' "
+            + "ORDER BY RAND() LIMIT #{limit}")
     List<SimulationUserPickRow> selectRandomRealUsers(@Param("limit") int limit);
 }

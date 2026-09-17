@@ -1,0 +1,1 @@
+import{r}from"./request-CViwglX_.js";function o(t="",s=20){return r.get("/users/options",{params:{keyword:t,limit:s}}).then(e=>e.data||[])}function i(t="",s=1,e=10){return r.get("/users/options/page",{params:{keyword:t,page:s,pageSize:e}}).then(a=>a.data||{list:[],total:0})}export{i as f,o as l};
