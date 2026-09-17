@@ -1,11 +1,11 @@
 package com.aichuangzuo.admin.modules.simulation.engine;
 
-import com.aichuangzuo.admin.modules.simulation.client.AvatarFetcher;
 import com.aichuangzuo.admin.modules.simulation.client.SimulationUserApiClient;
 import com.aichuangzuo.admin.modules.simulation.config.SimulationStageConfig;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationBatch;
 import com.aichuangzuo.admin.modules.simulation.entity.SimulationRobot;
 import com.aichuangzuo.admin.modules.simulation.mapper.SimulationRobotMapper;
+import com.aichuangzuo.admin.modules.simulation.service.SimulationLibraryService;
 import com.aichuangzuo.admin.modules.simulation.service.SimulationProfileGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -20,7 +20,7 @@ public class RobotContext {
     public final String plainPassword;
     public final SimulationUserApiClient userApi;
     public final SimulationProfileGenerator profileGenerator;
-    public final AvatarFetcher avatarFetcher;
+    public final SimulationLibraryService libraryService;
     public final SimulationRobotMapper robotMapper;
     public final ObjectMapper objectMapper;
 
@@ -30,7 +30,7 @@ public class RobotContext {
                         String plainPassword,
                         SimulationUserApiClient userApi,
                         SimulationProfileGenerator profileGenerator,
-                        AvatarFetcher avatarFetcher,
+                        SimulationLibraryService libraryService,
                         SimulationRobotMapper robotMapper,
                         ObjectMapper objectMapper) {
         this.batch = batch;
@@ -39,7 +39,7 @@ public class RobotContext {
         this.plainPassword = plainPassword;
         this.userApi = userApi;
         this.profileGenerator = profileGenerator;
-        this.avatarFetcher = avatarFetcher;
+        this.libraryService = libraryService;
         this.robotMapper = robotMapper;
         this.objectMapper = objectMapper;
     }

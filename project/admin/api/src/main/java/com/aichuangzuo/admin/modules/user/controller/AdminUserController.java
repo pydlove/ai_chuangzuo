@@ -103,6 +103,17 @@ public class AdminUserController {
         return Result.success(adminUserService.getUser(id));
     }
 
+    @Operation(summary = "修改用户头像")
+    @PostMapping(value = "/{id}/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Result<Void> updateAvatar(@PathVariable(name = "id") Long id,
+                                     @RequestParam("file") MultipartFile file) {
+        Long adminUserId = checkSuperAdmin();
+        log.info("管理员修改用户头像, adminUserId={}, userId={}, fileName={}, fileSize={}",
+                adminUserId, id, file.getOriginalFilename(), file.getSize());
+        adminUserService.updateAvatar(id, file);
+        return Result.success();
+    }
+
     @Operation(summary = "查看用户邀请关系详情")
     @GetMapping("/{id}/invites")
     public Result<AdminUserInviteDetailVO> getUserInvites(

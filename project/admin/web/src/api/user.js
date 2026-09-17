@@ -56,6 +56,14 @@ export function updateUser(id, data) {
   return request.put(`/users/${id}`, data).then((res) => res.data)
 }
 
+export function updateUserAvatar(id, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request
+    .post(`/users/${id}/avatar`, formData, { headers: { 'Content-Type': 'multipart/form-data' } })
+    .then((res) => res.data)
+}
+
 export function importUsers(file) {
   const formData = new FormData()
   formData.append('file', file)

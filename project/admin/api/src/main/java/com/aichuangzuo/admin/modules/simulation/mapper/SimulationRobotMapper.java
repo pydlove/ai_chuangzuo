@@ -65,14 +65,6 @@ public interface SimulationRobotMapper extends BaseMapper<SimulationRobot> {
             + "AND r.status IN ('WAITING', 'IN_PROGRESS'))")
     List<Long> selectRunnableBatchIdsToComplete();
 
-    /** 所有机器人已用过的昵称（资料去重）。 */
-    @Select("SELECT DISTINCT nickname FROM a_simulation_robot WHERE nickname IS NOT NULL AND nickname != ''")
-    List<String> selectUsedNicknames();
-
-    /** 所有机器人已用过的头像编号（资料去重）。 */
-    @Select("SELECT DISTINCT avatar_img FROM a_simulation_robot WHERE avatar_img IS NOT NULL")
-    List<Integer> selectUsedAvatarImgs();
-
     /**
      * 模拟生成文章：随机抽取一批存量真实用户（user_type=1）。
      */

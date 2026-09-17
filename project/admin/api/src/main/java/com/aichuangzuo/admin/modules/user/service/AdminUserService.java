@@ -26,6 +26,14 @@ public interface AdminUserService {
     AdminUserInviteDetailVO getUserInviteDetail(Long id, int page, int pageSize);
     void updateStatus(Long id, AdminUserStatusRequest request);
     AdminUserResetPasswordVO resetPassword(Long id);
+
+    /**
+     * 修改用户头像：转发 user-api 内部接口，走与用户本人上传一致的存储逻辑。
+     *
+     * @param id 用户 ID
+     * @param file 头像文件（jpg/png，最大 5MB）
+     */
+    void updateAvatar(Long id, MultipartFile file);
     List<AdminUserOptionVO> listUserOptions(String keyword, int limit);
     AdminUserOptionPageVO listUserOptionsPage(String keyword, int page, int pageSize);
     AdminUserVO createUser(AdminUserCreateRequest request);

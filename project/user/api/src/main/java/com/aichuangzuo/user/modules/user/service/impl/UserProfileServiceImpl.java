@@ -247,6 +247,15 @@ public class UserProfileServiceImpl implements UserProfileService {
     @Override
     public UserProfileVO updateAvatar(MultipartFile file) {
         Long userId = SecurityUserContext.getCurrentUserId();
+        return updateAvatarInternal(userId, file);
+    }
+
+    @Override
+    public UserProfileVO updateAvatarForInternal(Long userId, MultipartFile file) {
+        return updateAvatarInternal(userId, file);
+    }
+
+    private UserProfileVO updateAvatarInternal(Long userId, MultipartFile file) {
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException(UserAuthErrorCode.USER_NOT_FOUND);

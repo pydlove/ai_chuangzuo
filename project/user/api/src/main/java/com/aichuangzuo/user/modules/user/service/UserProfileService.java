@@ -70,6 +70,18 @@ public interface UserProfileService {
     UserProfileVO updateAvatar(MultipartFile file);
 
     /**
+     * 上传头像（管理端内部接口专用，显式指定 userId）。
+     *
+     * <p>仅供 {@code /api/v1/user/internal} 接口调用，普通业务不得使用。
+     *
+     * @param userId 目标用户 ID
+     * @param file 头像文件
+     * @return 更新后的 UserProfileVO
+     * @throws com.aichuangzuo.shared.exception.BusinessException AVATAR_FILE_INVALID / USER_NOT_FOUND
+     */
+    UserProfileVO updateAvatarForInternal(Long userId, MultipartFile file);
+
+    /**
      * 修改密码。需要原密码校验通过。
      *
      * <p>成功后不会自动签发新 token —— 客户端继续使用旧 access token，

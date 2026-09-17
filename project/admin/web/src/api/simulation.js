@@ -33,3 +33,46 @@ export function getStatsFilter() {
 export function updateStatsFilter(includeRobots) {
   return request.put('/simulation/stats-filter', { includeRobots }).then((res) => res.data)
 }
+
+// ---------- 素材库（昵称库/头像库） ----------
+const LIBRARY = '/simulation/library'
+
+export function listNicknames(params = {}) {
+  return request.get(`${LIBRARY}/nicknames`, { params }).then((res) => res.data)
+}
+
+export function countNicknames() {
+  return request.get(`${LIBRARY}/nicknames/count`).then((res) => res.data)
+}
+
+export function addNicknames(nicknames) {
+  return request.post(`${LIBRARY}/nicknames`, { nicknames }).then((res) => res.data)
+}
+
+export function importNicknamesExcel(file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post(`${LIBRARY}/nicknames/excel`, formData).then((res) => res.data)
+}
+
+export function deleteNickname(id) {
+  return request.delete(`${LIBRARY}/nicknames/${id}`).then((res) => res.data)
+}
+
+export function listAvatars(params = {}) {
+  return request.get(`${LIBRARY}/avatars`, { params }).then((res) => res.data)
+}
+
+export function countAvatars() {
+  return request.get(`${LIBRARY}/avatars/count`).then((res) => res.data)
+}
+
+export function uploadAvatars(files) {
+  const formData = new FormData()
+  files.forEach((f) => formData.append('files', f))
+  return request.post(`${LIBRARY}/avatars`, formData).then((res) => res.data)
+}
+
+export function deleteAvatar(id) {
+  return request.delete(`${LIBRARY}/avatars/${id}`).then((res) => res.data)
+}

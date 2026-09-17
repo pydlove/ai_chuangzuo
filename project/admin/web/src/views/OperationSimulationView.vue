@@ -74,7 +74,73 @@
           </template>
         </a-table>
       </a-tab-pane>
+
+      <!-- 昵称库 -->
+      <a-tab-pane key="nickname-lib" tab="昵称库">
+        <div class="section-bar">
+          <span class="section-title">昵称库 <a-tag color="blue">{{ nicknameCount }}</a-tag></span>
+          <a-space>
+            <a-input-search v-model:value="nicknameKeyword" placeholder="搜索昵称" style="width: 200px" @search="onNicknameSearch" />
+            <a-button @click="downloadNicknameTemplate">下载模板</a-button>
+            <a-upload accept=".xlsx" :show-upload-list="false" :before-upload="importNicknameExcelFile">
+              <a-button :loading="nicknameImporting">Excel 导入</a-button>
+            </a-upload>
+            <a-button type="primary" @click="openNicknameModal">批量添加</a-button>
+          </a-space>
+        </div>
+        <a-table :columns="nicknameColumns" :data-source="nicknames" :loading="nicknameLoading"
+                 :pagination="nicknamePagination" row-key="id" @change="handleNicknameTableChange">
+          <template #bodyCell="{ column, record }">
+            <span v-if="column.key === 'createdAt'">{{ formatTime(record.createdAt) }}</span>
+            <span v-else-if="column.key === 'action'">
+              <a-popconfirm title="确认删除该昵称？" @confirm="removeNickname(record.id)">
+                <a-button size="small" type="link" danger>删除</a-button>
+              </a-popconfirm>
+            </span>
+            <span v-else>{{ record[column.key] }}</span>
+          </template>
+        </a-table>
+      </a-tab-pane>
+
+      <!-- 头像库 -->
+      <a-tab-pane key="avatar-lib" tab="头像库">
+        <div class="section-bar">
+          <span class="section-title">头像库 <a-tag color="blue">{{ avatarCount }}</a-tag></span>
+          <a-space>
+            <span class="filter-hint">支持多选，上传后自动压缩（最长边 256px）</span>
+            <a-upload accept="image/jpeg,image/png" multiple :show-upload-list="false" :before-upload="pickAvatarFiles">
+              <a-button>选择图片</a-button>
+            </a-upload>
+            <a-button type="primary" :disabled="avatarPending.length === 0" :loading="avatarUploading"
+                      @click="submitAvatarUpload">
+              上传（{{ avatarPending.length }}）
+            </a-button>
+          </a-space>
+        </div>
+        <a-empty v-if="!avatarLoading && avatars.length === 0" description="暂无头像，请先上传" />
+        <div class="avatar-grid">
+          <div v-for="a in avatars" :key="a.id" class="avatar-cell">
+            <img :src="a.dataUrl" alt="avatar" />
+            <div class="avatar-cell-footer">
+              <span class="avatar-cell-time">{{ formatTime(a.createdAt) }}</span>
+              <a-popconfirm title="确认删除该头像？" @confirm="removeAvatar(a.id)">
+                <a-button size="small" type="link" danger>删除</a-button>
+              </a-popconfirm>
+            </div>
+          </div>
+        </div>
+        <a-pagination v-if="avatarTotal > 0" class="avatar-pagination"
+                      v-model:current="avatarQuery.page" v-model:page-size="avatarQuery.size"
+                      :total="avatarTotal" :show-size-changer="true"
+                      @change="loadAvatars" />
+      </a-tab-pane>
     </a-tabs>
+
+    <!-- 批量添加昵称 -->
+    <a-modal v-model:open="nicknameModalVisible" title="批量添加昵称" :confirm-loading="nicknameSaving" @ok="submitNicknameBatch">
+      <a-alert type="info" show-icon style="margin-bottom: 12px" message="每行一个昵称，重复或空行自动忽略。" />
+      <a-textarea v-model:value="nicknameBatchText" :rows="10" placeholder="晚风轻轻吹&#10;山间的雾" />
+    </a-modal>
 
     <!-- 创建批次 -->
     <a-modal v-model:open="createModalVisible" title="创建模拟批次" width="640px"
@@ -209,8 +275,9 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { message } from 'ant-design-vue'
 import dayjs from 'dayjs'
-import { createBatch, createFreeCreateBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter } from '@/api/simulation'
+import { createBatch, createFreeCreateBatch, listBatches, getBatch, listBatchLogs, cancelBatch, getStatsFilter, updateStatsFilter, listNicknames, countNicknames, addNicknames, importNicknamesExcel, deleteNickname, listAvatars, countAvatars, uploadAvatars, deleteAvatar } from '@/api/simulation'
 import { fetchPlans } from '@/api/plan.js'
+import request from '@/utils/request.js'
 
 const activeKey = ref('new-users')
 // ---------- 统计过滤开关 ----------
@@ -604,6 +671,214 @@ function onTabChange(key) {
   if (key === 'free-create' && fcBatches.value.length === 0) {
     loadFcBatches()
   }
+  if (key === 'nickname-lib') {
+    loadNicknames()
+    loadNicknameCount()
+  }
+  if (key === 'avatar-lib') {
+    loadAvatars()
+    loadAvatarCount()
+  }
+}
+
+// ---------- 昵称库 ----------
+const nicknames = ref([])
+const nicknameLoading = ref(false)
+const nicknameCount = ref(0)
+const nicknameKeyword = ref('')
+const nicknameQuery = ref({ page: 1, size: 20 })
+const nicknameTotal = ref(0)
+const nicknameImporting = ref(false)
+const nicknameModalVisible = ref(false)
+const nicknameSaving = ref(false)
+const nicknameBatchText = ref('')
+
+const nicknameColumns = [
+  { title: 'ID', dataIndex: 'id', key: 'id', width: 90 },
+  { title: '昵称', dataIndex: 'nickname', key: 'nickname' },
+  { title: '上传时间', key: 'createdAt', width: 130 },
+  { title: '操作', key: 'action', width: 90 }
+]
+
+const nicknamePagination = computed(() => ({
+  current: nicknameQuery.value.page,
+  pageSize: nicknameQuery.value.size,
+  total: nicknameTotal.value,
+  showSizeChanger: true
+}))
+
+async function loadNicknames() {
+  nicknameLoading.value = true
+  try {
+    const res = await listNicknames({
+      page: nicknameQuery.value.page,
+      size: nicknameQuery.value.size,
+      keyword: nicknameKeyword.value || undefined
+    })
+    nicknames.value = res.items || []
+    nicknameTotal.value = res.total || 0
+  } catch (e) {
+    message.error(e.message || '加载昵称库失败')
+  } finally {
+    nicknameLoading.value = false
+  }
+}
+
+async function loadNicknameCount() {
+  try {
+    nicknameCount.value = (await countNicknames()) || 0
+  } catch (e) {
+    // 数量加载失败不阻断页面
+  }
+}
+
+function onNicknameSearch() {
+  nicknameQuery.value.page = 1
+  loadNicknames()
+}
+
+function handleNicknameTableChange(pagination) {
+  nicknameQuery.value.page = pagination.current
+  nicknameQuery.value.size = pagination.pageSize
+  loadNicknames()
+}
+
+function openNicknameModal() {
+  nicknameBatchText.value = ''
+  nicknameModalVisible.value = true
+}
+
+async function submitNicknameBatch() {
+  const list = nicknameBatchText.value.split('\n').map((s) => s.trim()).filter(Boolean)
+  if (list.length === 0) {
+    message.warning('请输入至少一个昵称')
+    return
+  }
+  nicknameSaving.value = true
+  try {
+    const res = await addNicknames(list)
+    message.success(`已添加 ${res.inserted} 个昵称`)
+    nicknameModalVisible.value = false
+    loadNicknames()
+    loadNicknameCount()
+  } catch (e) {
+    message.error(e.message || '添加失败')
+  } finally {
+    nicknameSaving.value = false
+  }
+}
+
+async function importNicknameExcelFile(file) {
+  nicknameImporting.value = true
+  try {
+    const res = await importNicknamesExcel(file)
+    message.success(`导入完成，新增 ${res.inserted} 个昵称`)
+    loadNicknames()
+    loadNicknameCount()
+  } catch (e) {
+    message.error(e.message || '导入失败')
+  } finally {
+    nicknameImporting.value = false
+  }
+  return false
+}
+
+async function downloadNicknameTemplate() {
+  try {
+    const blob = await request.get('/simulation/library/nicknames/template', { responseType: 'blob' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '昵称导入模板.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+  } catch (e) {
+    message.error(e.message || '模板下载失败')
+  }
+}
+
+async function removeNickname(id) {
+  try {
+    await deleteNickname(id)
+    message.success('已删除')
+    loadNicknames()
+    loadNicknameCount()
+  } catch (e) {
+    message.error(e.message || '删除失败')
+  }
+}
+
+// ---------- 头像库 ----------
+const avatars = ref([])
+const avatarLoading = ref(false)
+const avatarCount = ref(0)
+const avatarQuery = ref({ page: 1, size: 24 })
+const avatarTotal = ref(0)
+const avatarPending = ref([])
+const avatarUploading = ref(false)
+
+async function loadAvatars() {
+  avatarLoading.value = true
+  try {
+    const res = await listAvatars({ page: avatarQuery.value.page, size: avatarQuery.value.size })
+    avatars.value = res.items || []
+    avatarTotal.value = res.total || 0
+  } catch (e) {
+    message.error(e.message || '加载头像库失败')
+  } finally {
+    avatarLoading.value = false
+  }
+}
+
+async function loadAvatarCount() {
+  try {
+    avatarCount.value = (await countAvatars()) || 0
+  } catch (e) {
+    // 数量加载失败不阻断页面
+  }
+}
+
+function pickAvatarFiles(file) {
+  const isImage = ['image/jpeg', 'image/png'].includes(file.type)
+  if (!isImage) {
+    message.warning(`${file.name} 不是 JPG/PNG 图片，已跳过`)
+    return false
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    message.warning(`${file.name} 超过 5MB，已跳过`)
+    return false
+  }
+  avatarPending.value.push(file)
+  return false
+}
+
+async function submitAvatarUpload() {
+  if (avatarPending.value.length === 0) {
+    return
+  }
+  avatarUploading.value = true
+  try {
+    const res = await uploadAvatars(avatarPending.value)
+    message.success(`已上传 ${res.saved} 张头像`)
+    avatarPending.value = []
+    loadAvatars()
+    loadAvatarCount()
+  } catch (e) {
+    message.error(e.message || '上传失败')
+  } finally {
+    avatarUploading.value = false
+  }
+}
+
+async function removeAvatar(id) {
+  try {
+    await deleteAvatar(id)
+    message.success('已删除')
+    loadAvatars()
+    loadAvatarCount()
+  } catch (e) {
+    message.error(e.message || '删除失败')
+  }
 }
 
 onMounted(() => {
@@ -684,5 +959,42 @@ onUnmounted(() => clearTimeout(pollTimer))
   text-overflow: ellipsis;
   white-space: nowrap;
   vertical-align: bottom;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+}
+
+.avatar-cell {
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.avatar-cell img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-cell-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 4px 0 8px;
+}
+
+.avatar-cell-time {
+  font-size: 12px;
+  color: #999;
+}
+
+.avatar-pagination {
+  margin-top: 16px;
+  text-align: right;
 }
 </style>

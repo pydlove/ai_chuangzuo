@@ -1,6 +1,5 @@
 package com.aichuangzuo.admin.modules.simulation.service;
 
-import com.aichuangzuo.admin.modules.simulation.client.AvatarFetcher;
 import com.aichuangzuo.admin.modules.simulation.client.SimulationUserApiClient;
 import com.aichuangzuo.admin.modules.simulation.config.SimulationStageConfig;
 import com.aichuangzuo.admin.modules.simulation.engine.RobotContext;
@@ -43,7 +42,7 @@ public class SimulationRobotService {
     private final SimulationStageDispatcher dispatcher;
     private final SimulationUserApiClient userApi;
     private final SimulationProfileGenerator profileGenerator;
-    private final AvatarFetcher avatarFetcher;
+    private final SimulationLibraryService libraryService;
     private final ObjectMapper objectMapper;
 
     @Value("${simulation.password-secret}")
@@ -136,7 +135,7 @@ public class SimulationRobotService {
         }
 
         RobotContext ctx = new RobotContext(batch, config, robot, plainPassword,
-                userApi, profileGenerator, avatarFetcher, robotMapper, objectMapper);
+                userApi, profileGenerator, libraryService, robotMapper, objectMapper);
         SimulationStage stage = SimulationStage.valueOf(robot.getCurrentStage());
         try {
             String detail = dispatcher.dispatch(ctx);

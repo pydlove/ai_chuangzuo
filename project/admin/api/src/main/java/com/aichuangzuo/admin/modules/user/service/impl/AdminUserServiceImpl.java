@@ -26,6 +26,7 @@ import com.aichuangzuo.admin.modules.user.mapper.PlatformUserLoginLogMapper;
 import com.aichuangzuo.admin.modules.user.mapper.PlatformUserMapper;
 import com.aichuangzuo.admin.modules.user.mapper.UserInviteRelationMapper;
 import com.aichuangzuo.admin.modules.user.service.AdminUserService;
+import com.aichuangzuo.admin.modules.user.service.UserProfileInternalClient;
 import com.aichuangzuo.admin.modules.user.util.UserExcelImportUtil;
 import com.aichuangzuo.admin.modules.user.vo.AdminLearnedSkillMonthVO;
 import com.aichuangzuo.admin.modules.user.vo.AdminUserFavoriteSkillVO;
@@ -81,6 +82,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final PlanMapper planMapper;
     private final PlanBenefitMapper planBenefitMapper;
     private final AdminMembershipMapper adminMembershipMapper;
+    private final UserProfileInternalClient userProfileInternalClient;
 
     private static final String RESET_PASSWORD = "Aichuangzuo@123";
     private static final String CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -473,6 +475,26 @@ public class AdminUserServiceImpl implements AdminUserService {
         AdminUserResetPasswordVO vo = new AdminUserResetPasswordVO();
         vo.setNewPassword(RESET_PASSWORD);
         return vo;
+    }
+
+    @Override
+    public void updateAvatar(Long id, MultipartFile file) {
+        PlatformUser user = platformUserMapper.selectById(id);
+        if (user == null || user.getIsDeleted() == 1) {
+            throw new BusinessException(AdminUserErrorCode.USER_NOT_FOUND);
+        }
+        String filename = file.getOriginalFilename() == null ? "avatar.jpg" : file.getOriginalFilename();
+        userProfileInternalClient.updateAvatar(id, toBytes(file), filename);
+        log.info("管理员修改用户头像成功, adminUserId={}, userId={}",
+                SecurityAdminContext.getCurrentAdminUserId(), id);
+    }
+
+    private byte[] toBytes(MultipartFile file) {
+        try {
+            return file.getBytes();
+        } catch (IOException e) {
+            throw new BusinessException(AdminUserErrorCode.EXCEL_PARSE_ERROR);
+        }
     }
 
     @Override

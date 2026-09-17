@@ -33,17 +33,17 @@ class SimulationProfileGeneratorTest {
     private SimulationProfileGenerator generator;
 
     @Test
-    void generateNicknameReturnsCleanText() {
+    void generateBioReturnsCleanText() {
         ModelConfig cfg = new ModelConfig();
         cfg.setId(9L);
         cfg.setIsActive(1);
         when(modelConfigMapper.selectOne(any())).thenReturn(cfg);
         when(generationAiService.call(anyLong(), anyString(), anyString(), isNull(), anyBoolean()))
-                .thenReturn(new AiCallResult("\"山茶星球\"\n", 1, 1, 2));
+                .thenReturn(new AiCallResult("记录普通日子里的闪闪发光\n", 1, 1, 2));
 
-        String nickname = generator.generateNickname(java.util.List.of("晚风收信人"));
+        String bio = generator.generateBio("山茶星球");
 
-        assertEquals("山茶星球", nickname);
+        assertEquals("记录普通日子里的闪闪发光", bio);
         verify(generationAiService).call(org.mockito.ArgumentMatchers.eq(9L), anyString(), anyString(),
                 isNull(), org.mockito.ArgumentMatchers.eq(false));
     }
@@ -68,7 +68,7 @@ class SimulationProfileGeneratorTest {
     void throwsWhenNoActiveModelConfig() {
         when(modelConfigMapper.selectOne(any())).thenReturn(null);
 
-        assertThrows(BusinessException.class, () -> generator.generateNickname(java.util.List.of()));
+        assertThrows(BusinessException.class, () -> generator.generateBio("x"));
     }
 
     @Test

@@ -72,9 +72,12 @@
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'avatar'">
-            <a-avatar :src="resolveUserAssetUrl(record.avatarUrl)" :size="36">
-              {{ (record.nickname || '?').charAt(0) }}
-            </a-avatar>
+            <a-tooltip title="点击修改头像">
+              <a-avatar :src="resolveUserAssetUrl(record.avatarUrl)" :size="36" class="avatar-clickable"
+                        @click="openAvatarModal(record)">
+                {{ (record.nickname || '?').charAt(0) }}
+              </a-avatar>
+            </a-tooltip>
           </template>
           <template v-else-if="column.key === 'contact'">
             <div class="contact-cell">
@@ -153,6 +156,7 @@
                     {{ record.status === 'enabled' ? '禁用' : '启用' }}
                   </a-menu-item>
                   <a-menu-item @click="openEditModal(record)">编辑</a-menu-item>
+                  <a-menu-item @click="openAvatarModal(record)">修改头像</a-menu-item>
                   <a-menu-item @click="openResetPasswordModal(record)">重置密码</a-menu-item>
                   <a-menu-item @click="openInviteModal(record)">邀请关系</a-menu-item>
                   <a-menu-item @click="openDetailDrawer(record)">查看详情</a-menu-item>
@@ -191,6 +195,28 @@
       <p style="color: #8c8c8c; margin-top: 12px">
         重置后密码将设为 <code>Aichuangzuo@123</code>，请通知用户及时修改。
       </p>
+    </a-modal>
+
+    <!-- 修改头像弹框 -->
+    <a-modal
+      v-model:open="avatarModalVisible"
+      title="修改用户头像"
+      ok-text="保存头像"
+      cancel-text="取消"
+      :confirm-loading="avatarLoading"
+      @ok="submitAvatar"
+    >
+      <p>用户：<strong>{{ avatarTarget?.nickname || avatarTarget?.account }}</strong></p>
+      <div class="avatar-edit-row">
+        <img v-if="avatarPreview" :src="avatarPreview" class="avatar-preview-large" alt="new avatar" />
+        <img v-else-if="avatarTarget?.avatarUrl" :src="resolveUserAssetUrl(avatarTarget.avatarUrl)" class="avatar-preview-large" alt="current avatar" />
+        <div class="avatar-upload-btn">
+          <a-upload :show-upload-list="false" accept="image/jpeg,image/png" :before-upload="pickAvatarFile">
+            <a-button>选择图片</a-button>
+          </a-upload>
+          <p class="avatar-upload-hint">支持 jpg/png，最大 5MB</p>
+        </div>
+      </div>
     </a-modal>
 
     <!-- 编辑用户弹框 -->
@@ -765,7 +791,7 @@ import { CopyOutlined, DownOutlined, PlusOutlined, ReloadOutlined, UploadOutline
 import { useUserManagement } from '@/composables/useUserManagement.js'
 import { copyToClipboard } from '@/utils/clipboard.js'
 import { resolveUserAssetUrl } from '@/utils/userAsset.js'
-import { getUser, getUserInvites, updateUser, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
+import { getUser, getUserInvites, updateUser, updateUserAvatar, listUserSkills, listUserPublishedSkills, listUserFavoriteSkills, listUserLearnedSkillsByMonth, resetLearnedSkillQuota, releaseCustomSkillQuota, releasePublishSkillQuota, importUsers, downloadUserImportTemplate } from '@/api/user.js'
 import { listUserArticles, getArticleDetail } from '@/api/article.js'
 import { fetchPlans } from '@/api/plan.js'
 
@@ -1188,6 +1214,49 @@ const confirmResetPassword = async () => {
   if (!resetPasswordTarget.value) return
   await handleResetPassword(resetPasswordTarget.value)
   resetPasswordVisible.value = false
+}
+
+// ---------- 修改头像 ----------
+const avatarModalVisible = ref(false)
+const avatarTarget = ref(null)
+const avatarFile = ref(null)
+const avatarPreview = ref('')
+const avatarLoading = ref(false)
+
+const openAvatarModal = (user) => {
+  avatarTarget.value = user
+  avatarFile.value = null
+  avatarPreview.value = ''
+  avatarModalVisible.value = true
+}
+
+const pickAvatarFile = (file) => {
+  if (file.size > 5 * 1024 * 1024) {
+    message.error('图片不能超过 5MB')
+    return false
+  }
+  avatarFile.value = file
+  avatarPreview.value = URL.createObjectURL(file)
+  return false
+}
+
+const submitAvatar = async () => {
+  if (!avatarTarget.value) return
+  if (!avatarFile.value) {
+    message.warning('请先选择图片')
+    return
+  }
+  avatarLoading.value = true
+  try {
+    await updateUserAvatar(avatarTarget.value.id, avatarFile.value)
+    message.success('头像已更新')
+    avatarModalVisible.value = false
+    loadUsers()
+  } catch (e) {
+    message.error(e.message || '头像更新失败')
+  } finally {
+    avatarLoading.value = false
+  }
 }
 
 const openDetailDrawer = async (user) => {
@@ -1706,12 +1775,29 @@ onMounted(() => {
   overflow-y: auto;
 }
 
+.avatar-clickable {
+  cursor: pointer;
+}
+
 .avatar-preview-large {
   width: 64px;
   height: 64px;
   object-fit: cover;
   border-radius: 50%;
   background: #f5f5f5;
+}
+
+.avatar-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.avatar-upload-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #8c8c8c;
 }
 
 </style>
